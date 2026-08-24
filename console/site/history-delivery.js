@@ -6,6 +6,8 @@
   const HISTORY_EXPORT_SCHEMA_VERSION = 2;
   const DELIVERY_STATES = new Set(['idle', 'preparing', 'prepared', 'handoff-started', 'handoff-unverified', 'handoff-cancelled', 'handoff-failed']);
   const MAX_HISTORY = 250;
+  const MAX_EVENT_COUNT = 100000;
+  const MAX_EVENT_BYTES = 64 * 1024 * 1024;
   const CHANGELOG = (Array.isArray(window.DING_SITE_CHANGELOG) ? window.DING_SITE_CHANGELOG : []).filter(entry => entry && /^[0-9a-f]{40}$/.test(entry.commit || '') && entry.version && entry.date && entry.summary);
   const PRODUCT_CHANGELOG = CHANGELOG.filter(entry => entry.category === 'Release');
   const UPSTREAM_HISTORY = CHANGELOG.filter(entry => entry.category !== 'Release');
@@ -52,7 +54,7 @@
     const migrated = [];
     for (const event of Array.isArray(events) ? events : []) {
       if (!event || typeof event !== 'object' || typeof event.id !== 'string' || typeof event.timestamp !== 'string' || typeof event.action !== 'string') { counts.omitted += 1; continue; }
-      const params = migrateLegacyEvent(event);
+      const params = normalizeEventParams(event.action, migrateLegacyEvent(event));
       if (!params) { counts.refused += 1; continue; }
       migrated.push({ id: id(event.id), timestamp: event.timestamp.slice(0, 40), action: event.action, params }); counts.imported += 1;
     }
@@ -91,10 +93,11 @@
       const deliveryStatus = DELIVERY_STATES.has(parsed.delivery?.status) ? parsed.delivery.status : 'idle';
       const transferHandoffState = ['idle', 'handoff-started', 'prepared', 'handoff-cancelled', 'handoff-failed'].includes(parsed.transfer?.handoffState) ? parsed.transfer.handoffState : 'idle';
       const persistedCounts = parsed.migration?.counts && typeof parsed.migration.counts === 'object' ? { imported: Number.isInteger(parsed.migration.counts.imported) ? parsed.migration.counts.imported : 0, omitted: Number.isInteger(parsed.migration.counts.omitted) ? parsed.migration.counts.omitted : 0, refused: Number.isInteger(parsed.migration.counts.refused) ? parsed.migration.counts.refused : 0, retentionOmitted: Number.isInteger(parsed.migration.counts.retentionOmitted) ? parsed.migration.counts.retentionOmitted : 0 } : { imported: 0, omitted: 0, refused: 0, retentionOmitted: 0 };
-      const hasLoss = migratedLegacy.counts.refused || migratedLegacy.counts.omitted || migratedLegacy.counts.retentionOmitted;
-      const migrationStatus = persistedVersion < STATE_SCHEMA_VERSION ? (hasLoss ? 'migrated-with-loss' : 'migrated') : hasLoss ? 'normalized-with-loss' : ['migrated', 'migrated-with-loss', 'normalized-with-loss'].includes(parsed.migration?.status) ? parsed.migration.status : 'none';
-      const migrationCounts = persistedVersion < STATE_SCHEMA_VERSION ? migratedLegacy.counts : persistedCounts;
-      if (persistedVersion === STATE_SCHEMA_VERSION && migrationStatus === 'normalized-with-loss') appendMigrationAudit('normalized-with-loss', persistedVersion, migrationCounts);
+      const currentLoss = migratedLegacy.counts.refused || migratedLegacy.counts.omitted || migratedLegacy.counts.retentionOmitted;
+      const persistedLoss = persistedCounts.refused || persistedCounts.omitted || persistedCounts.retentionOmitted;
+      const migrationStatus = persistedVersion < STATE_SCHEMA_VERSION ? (currentLoss ? 'migrated-with-loss' : 'migrated') : currentLoss ? 'normalized-with-loss' : persistedLoss && ['migrated-with-loss', 'normalized-with-loss'].includes(parsed.migration?.status) ? parsed.migration.status : ['migrated', 'migrated-with-loss', 'normalized-with-loss'].includes(parsed.migration?.status) ? parsed.migration.status : 'none';
+      const migrationCounts = persistedVersion < STATE_SCHEMA_VERSION || currentLoss ? migratedLegacy.counts : persistedCounts;
+      if (persistedVersion === STATE_SCHEMA_VERSION && migrationStatus === 'normalized-with-loss') appendMigrationAudit('normalized-with-loss', persistedVersion, migrationCounts, 'normalized-records-refused-or-omitted');
       return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: migrationStatus, sourceVersion: persistedVersion < STATE_SCHEMA_VERSION ? persistedVersion : parsed.migration?.sourceVersion || persistedVersion, recorded: parsed.migration?.recorded === true, counts: migrationCounts }, history, tabs, forge, editor: { lastPreparedExport: scrubSummary(parsed.editor?.lastPreparedExport).slice(0, 120), lastHandoffState: ['idle', 'handoff-started', 'handoff-unverified', 'handoff-failed', 'handoff-cancelled'].includes(parsed.editor?.lastHandoffState) ? parsed.editor.lastHandoffState : 'idle', lastExport: scrubSummary(parsed.editor?.lastExport).slice(0, 120) }, delivery: { status: deliveryStatus, reason: scrubSummary(parsed.delivery?.reason).slice(0, 240) }, transfer: { status: transferStatus === 'started' ? 'interrupted' : transferStatus, handoffState: transferHandoffState, name: scrubSummary(parsed.transfer?.name).slice(0, 160), startedAt: text(parsed.transfer?.startedAt).slice(0, 40), completedAt: text(parsed.transfer?.completedAt).slice(0, 40), totalBytes: Number.isFinite(parsed.transfer?.totalBytes) ? Math.max(0, parsed.transfer.totalBytes) : 0, bytesWritten: Number.isFinite(parsed.transfer?.bytesWritten) ? Math.max(0, parsed.transfer.bytesWritten) : 0, interruptionRecorded: transferStatus === 'started' ? false : parsed.transfer?.interruptionRecorded === true, resume: 'never' }, update: { status: updateStatus, checkedAt: text(parsed.update?.checkedAt).slice(0, 40) } };
     } catch {
       return defaultState();
@@ -122,12 +125,12 @@
     const output = document.querySelector('#delivery-state'); if (output) output.textContent = `Delivery state: ${status}. ${state.delivery.reason || 'No additional detail.'}`;
     return true;
   }
-  function appendMigrationAudit(status, sourceVersion, counts = { imported: 0, omitted: 0, refused: 0, retentionOmitted: 0 }) {
+  function appendMigrationAudit(status, sourceVersion, counts = { imported: 0, omitted: 0, refused: 0, retentionOmitted: 0 }, reason = '') {
     try {
       const key = `${STORAGE_KEY}-migration-audit`;
       const audit = JSON.parse(localStorage.getItem(key) || '[]');
       if (!audit.some(item => item.status === status && item.sourceVersion === sourceVersion)) {
-        audit.push({ schemaVersion: 1, status, sourceVersion, imported: counts.imported, omitted: counts.omitted, refused: counts.refused, retentionOmitted: counts.retentionOmitted || 0, timestamp: new Date().toISOString() });
+        audit.push({ schemaVersion: 1, status, sourceVersion, imported: counts.imported, omitted: counts.omitted, refused: counts.refused, retentionOmitted: counts.retentionOmitted || 0, refusal: scrubSummary(reason).slice(0, 160), timestamp: new Date().toISOString() });
         localStorage.setItem(key, JSON.stringify(audit.slice(-20)));
       }
     } catch { /* refusal remains visible even when audit storage is unavailable */ }
@@ -136,7 +139,7 @@
     const host = document.querySelector('#migration-audit-list'); if (!host) return;
     try {
       const audit = JSON.parse(localStorage.getItem(`${STORAGE_KEY}-migration-audit`) || '[]');
-      host.innerHTML = audit.length ? audit.slice().reverse().map(item => `<li>${escapeHtml(item.status)} · saved state version ${escapeHtml(item.sourceVersion)} · imported ${escapeHtml(item.imported || 0)}, omitted ${escapeHtml(item.omitted || 0)}, refused ${escapeHtml(item.refused || 0)}, retention omitted ${escapeHtml(item.retentionOmitted || 0)} · ${escapeHtml(formatDate(item.timestamp))}</li>`).join('') : '<li>No migration refusal audit records.</li>';
+      host.innerHTML = audit.length ? audit.slice().reverse().map(item => `<li>${escapeHtml(item.status)} · saved state version ${escapeHtml(item.sourceVersion)} · imported ${escapeHtml(item.imported || 0)}, omitted ${escapeHtml(item.omitted || 0)}, refused ${escapeHtml(item.refused || 0)}, retention omitted ${escapeHtml(item.retentionOmitted || 0)} · ${escapeHtml(item.refusal || 'reason omitted')} · ${escapeHtml(formatDate(item.timestamp))}</li>`).join('') : '<li>No migration refusal audit records.</li>';
     } catch { host.textContent = 'Migration audit is unavailable because local audit storage could not be read.'; }
   }
   function ensureMigrationAuditPanel() {
@@ -150,7 +153,7 @@
     return text(value).replace(/(?:bearer|token|password|passwd|secret|api[-_]?key)\s*[:=]\s*\S+/gi, '[redacted]').replace(/https?:\/\/\S+/gi, '[url omitted]').replace(/(?:[A-Za-z]:\\|\\\\|\/(?:Users|home|private|tmp)\/)[^\s]+/gi, '[path omitted]').replace(/\b[0-9a-f]{32,}\b/gi, '[redacted]').slice(0, 240);
   }
   const REDACTED_DETAIL_KEYS = new Set(['source', 'route', 'action', 'bytes', 'progress', 'owner', 'repository', 'protocol', 'restore', 'completion', 'installation', 'content', 'privateVocabulary', 'credentials', 'mode', 'status', 'name', 'tag', 'commit', 'provider', 'account', 'destination', 'eventCount', 'sourceEvent']);
-  const EVENT_ACTIONS = new Set(['updated', 'restored', 'pruned', 'download-started', 'download-complete', 'download-cancelled', 'download-interrupted', 'update-check', 'update-reload', 'recovery-opened', 'forge-preview', 'forge-handoff', 'tab-pin', 'provider-preview', 'state-migration']);
+  const EVENT_ACTIONS = new Set(['updated', 'restored', 'pruned', 'download-started', 'download-complete', 'download-cancelled', 'download-interrupted', 'update-check', 'update-reload', 'recovery-opened', 'forge-preview', 'forge-handoff', 'tab-pin', 'provider-preview', 'state-migration', 'history-import']);
   const EVENT_ENUMS = {
     updatedField: new Set(['settings', 'history', 'appearance', 'delivery']),
     updatedStatus: new Set(['changed', 'reset', 'imported']),
@@ -164,16 +167,37 @@
     forgeStatus: new Set(['preview-ready', 'preview-opened']),
     tab: new Set(TAB_ROUTES.map(([idValue]) => idValue)),
   };
-  const ACTION_LABELS = { updated: ['Updated', '更新'], restored: ['Restored', '還原'], pruned: ['Pruned', '清理'], 'download-started': ['Download started', '開始下載'], 'download-complete': ['Download complete', '下載完成'], 'download-cancelled': ['Download cancelled', '取消下載'], 'download-interrupted': ['Download interrupted', '下載中斷'], 'update-check': ['Update check', '檢查更新'], 'update-reload': ['Reload requested', '要求重新載入'], 'recovery-opened': ['Recovery opened', '開啟恢復'], 'forge-preview': ['Forge preview', '發佈預覽'], 'forge-handoff': ['Forge handoff', '發佈交接'], 'tab-pin': ['Route pin', '路線釘選'], 'provider-preview': ['Provider preview', '供應商預覽'], 'state-migration': ['State migration', '狀態遷移'] };
-  const ENUM_LABELS = { field: { settings: ['Settings', '設定'], history: ['History', '歷史'], appearance: ['Appearance', '外觀'], delivery: ['Delivery', '交付'] }, status: { changed: ['Changed', '改動'], reset: ['Reset', '重設'], imported: ['Imported', '匯入'] }, action: ACTION_LABELS, source: { 'current-site': ['Current site', '目前頁面'], 'local-export': ['Local export', '本地匯出'], 'selected-file': ['Selected file', '已選檔案'] }, destination: { 'new-repository': ['New repository', '新專案庫'], 'existing-repository': ['Existing repository', '現有專案庫'] }, account: { browser: ['Browser account', '瀏覽器帳戶'], manual: ['Provider selection', '供應商選擇'] }, route: { copy: ['Copy and publish', '複製及發佈'], fork: ['Fork flow', '分叉流程'] } };
+  const ACTION_LABELS = { updated: ['Updated', '更新'], restored: ['Restored', '還原'], pruned: ['Pruned', '清理'], 'download-started': ['Download started', '開始下載'], 'download-complete': ['Download complete', '下載完成'], 'download-cancelled': ['Download cancelled', '取消下載'], 'download-interrupted': ['Download interrupted', '下載中斷'], 'update-check': ['Update check', '檢查更新'], 'update-reload': ['Reload requested', '要求重新載入'], 'recovery-opened': ['Recovery opened', '開啟恢復'], 'forge-preview': ['Forge preview', '發佈預覽'], 'forge-handoff': ['Forge handoff', '發佈交接'], 'tab-pin': ['Route pin', '路線釘選'], 'provider-preview': ['Provider preview', '供應商預覽'], 'state-migration': ['State migration', '狀態遷移'], 'history-import': ['History import', '匯入歷史'] };
+  const ENUM_LABELS = {
+    field: { settings: ['Settings', '設定'], history: ['History', '歷史'], appearance: ['Appearance', '外觀'], delivery: ['Delivery', '交付'] },
+    status: {
+      changed: ['Changed', '改動'], reset: ['Reset', '重設'], imported: ['Imported', '匯入'], writing: ['Writing', '寫入中'], 'stream-closed': ['Stream closed', '串流已關閉'], cancelled: ['Cancelled', '已取消'], interrupted: ['Interrupted', '已中斷'],
+      unavailable: ['Unavailable', '未能使用'], available: ['Available', '可用'], downloading: ['Downloading', '下載中'], ready: ['Ready', '準備好'], failed: ['Failed', '失敗'], requested: ['Requested', '已要求'], 'preview-ready': ['Preview ready', '預覽準備好'], 'preview-opened': ['Preview opened', '預覽已開啟'], rendered: ['Rendered', '已顯示'], migrated: ['Migrated', '已遷移'], 'migrated-with-loss': ['Migrated with recorded loss', '遷移但有記錄損失'], 'normalized-with-loss': ['Normalized with recorded loss', '正規化但有記錄損失']
+    },
+    action: { all: ['All actions', '全部動作'], ...ACTION_LABELS },
+    source: { 'current-site': ['Current site', '目前頁面'], 'local-export': ['Local export', '本地匯出'], 'selected-file': ['Selected file', '已選檔案'] },
+    destination: { 'new-repository': ['New repository', '新專案庫'], 'existing-repository': ['Existing repository', '現有專案庫'] },
+    account: { browser: ['Browser account', '瀏覽器帳戶'], manual: ['Provider selection', '供應商選擇'] },
+    route: { copy: ['Copy and publish', '複製及發佈'], fork: ['Fork flow', '分叉流程'] },
+    recoveryAction: { retry: ['Retry', '重試'], settings: ['Open settings', '開啟設定'], vscode: ['Open Visual Studio Code download', '開啟 Visual Studio Code 下載'] },
+    deliveryStatus: { writing: ['Writing', '寫入中'], 'stream-closed': ['Stream closed', '串流已關閉'], cancelled: ['Cancelled', '已取消'], interrupted: ['Interrupted', '已中斷'] },
+    updateStatus: { unavailable: ['Unavailable', '未能使用'], available: ['Available', '可用'], downloading: ['Downloading', '下載中'], ready: ['Ready', '準備好'], failed: ['Failed', '失敗'] },
+    forgeStatus: { 'preview-ready': ['Preview ready', '預覽準備好'], 'preview-opened': ['Preview opened', '預覽已開啟'] },
+    tab: Object.fromEntries(TAB_ROUTES.map(([idValue, label]) => [idValue, [label, label]])),
+  };
   function localizedEnumLabel(kind, value) { const pair = ENUM_LABELS[kind]?.[value] || [value, value]; try { const mode = JSON.parse(localStorage.getItem('ding-pbx-pages-v2') || '{}').language; return mode === 'zh' ? pair[1] : mode === 'both' ? `${pair[0]} · ${pair[1]}` : pair[0]; } catch { return pair[0]; } }
   function normalizeEventParams(action, params = {}) {
     if (!EVENT_ACTIONS.has(action) || !params || typeof params !== 'object' || Array.isArray(params)) return null;
-    const integer = value => Number.isInteger(value) && value >= 0 ? value : null;
+    const allowed = { updated: ['field', 'status'], restored: ['sourceAction', 'sourceEvent'], pruned: ['count', 'retention'], 'download-started': ['bytes', 'status'], 'download-complete': ['bytes', 'status'], 'download-cancelled': ['bytes', 'status'], 'download-interrupted': ['status'], 'update-check': ['status'], 'update-reload': ['status'], 'recovery-opened': ['action'], 'forge-preview': ['source', 'destination', 'account', 'route', 'status'], 'forge-handoff': ['source', 'destination', 'account', 'route', 'status'], 'tab-pin': ['tab', 'pinned'], 'provider-preview': ['status'], 'state-migration': ['fromVersion', 'toVersion', 'status', 'imported', 'omitted', 'refused', 'retentionOmitted'], 'history-import': ['imported', 'refused', 'truncated'] }[action] || [];
+    if (Object.keys(params).some(key => !allowed.includes(key) || ['__proto__', 'constructor', 'prototype'].includes(key))) return null;
+    const integer = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
+    const count = value => integer(value) !== null && value <= MAX_EVENT_COUNT ? integer(value) : null;
+    const bytes = value => integer(value) !== null && value <= MAX_EVENT_BYTES ? integer(value) : null;
+    const version = value => integer(value) !== null && value > 0 && value <= STATE_SCHEMA_VERSION ? integer(value) : null;
     if (action === 'updated') return EVENT_ENUMS.updatedField.has(params.field) && EVENT_ENUMS.updatedStatus.has(params.status) ? { field: params.field, status: params.status } : null;
     if (action === 'restored') return EVENT_ACTIONS.has(params.sourceAction) && /^[a-z0-9_-]{1,100}$/i.test(params.sourceEvent || '') ? { sourceAction: params.sourceAction, sourceEvent: params.sourceEvent } : null;
-    if (action === 'pruned') return integer(params.count) !== null && integer(params.retention) !== null ? { count: integer(params.count), retention: integer(params.retention) } : null;
-    if (['download-started', 'download-complete', 'download-cancelled'].includes(action)) return integer(params.bytes) !== null && EVENT_ENUMS.deliveryStatus.has(params.status) ? { bytes: integer(params.bytes), status: params.status } : null;
+    if (action === 'pruned') return count(params.count) !== null && count(params.retention) !== null ? { count: count(params.count), retention: count(params.retention) } : null;
+    if (['download-started', 'download-complete', 'download-cancelled'].includes(action)) return bytes(params.bytes) !== null && EVENT_ENUMS.deliveryStatus.has(params.status) ? { bytes: bytes(params.bytes), status: params.status } : null;
     if (action === 'download-interrupted') return params.status === 'interrupted' ? { status: params.status } : null;
     if (action === 'update-check') return EVENT_ENUMS.updateStatus.has(params.status) ? { status: params.status } : null;
     if (action === 'update-reload') return params.status === 'requested' ? { status: params.status } : null;
@@ -181,15 +205,16 @@
     if (['forge-preview', 'forge-handoff'].includes(action)) return EVENT_ENUMS.source.has(params.source) && EVENT_ENUMS.destination.has(params.destination) && EVENT_ENUMS.account.has(params.account) && EVENT_ENUMS.route.has(params.route) && EVENT_ENUMS.forgeStatus.has(params.status) ? { source: params.source, destination: params.destination, account: params.account, route: params.route, status: params.status } : null;
     if (action === 'tab-pin') return EVENT_ENUMS.tab.has(params.tab) && typeof params.pinned === 'boolean' ? { tab: params.tab, pinned: params.pinned } : null;
     if (action === 'provider-preview') return params.status === 'rendered' ? { status: params.status } : null;
-    if (action === 'state-migration') return integer(params.fromVersion) !== null && params.toVersion === STATE_SCHEMA_VERSION && ['migrated', 'migrated-with-loss', 'normalized-with-loss'].includes(params.status) && integer(params.imported) !== null && integer(params.omitted) !== null && integer(params.refused) !== null && integer(params.retentionOmitted) !== null ? { fromVersion: integer(params.fromVersion), toVersion: STATE_SCHEMA_VERSION, status: params.status, imported: integer(params.imported), omitted: integer(params.omitted), refused: integer(params.refused), retentionOmitted: integer(params.retentionOmitted) } : null;
+    if (action === 'state-migration') return version(params.fromVersion) !== null && params.toVersion === STATE_SCHEMA_VERSION && ['migrated', 'migrated-with-loss', 'normalized-with-loss'].includes(params.status) && count(params.imported) !== null && count(params.omitted) !== null && count(params.refused) !== null && count(params.retentionOmitted) !== null ? { fromVersion: version(params.fromVersion), toVersion: STATE_SCHEMA_VERSION, status: params.status, imported: count(params.imported), omitted: count(params.omitted), refused: count(params.refused), retentionOmitted: count(params.retentionOmitted) } : null;
+    if (action === 'history-import') return count(params.imported) !== null && count(params.refused) !== null && count(params.truncated) !== null ? { imported: count(params.imported), refused: count(params.refused), truncated: count(params.truncated) } : null;
     return null;
   }
   function eventSentence(event) {
     const p = event.params || {};
     const labels = { field: { settings: ['settings', '設定'], history: ['history', '歷史'], appearance: ['appearance', '外觀'], delivery: ['delivery', '交付'] }, status: { changed: ['changed', '改動'], reset: ['reset', '重設'], imported: ['imported', '匯入'], writing: ['writing', '寫入中'], 'stream-closed': ['stream closed', '串流已關閉'], cancelled: ['cancelled', '已取消'], interrupted: ['interrupted', '已中斷'], unavailable: ['unavailable', '不可用'], available: ['available', '可用'], downloading: ['downloading', '下載中'], ready: ['ready', '已準備'], failed: ['failed', '失敗'], requested: ['requested', '已要求'], 'preview-ready': ['preview ready', '預覽已準備'], 'preview-opened': ['preview opened', '預覽已開啟'], rendered: ['rendered', '已顯示'], migrated: ['migrated', '已遷移'], 'migrated-with-loss': ['migrated with recorded loss', '遷移但有記錄損失'] }, action: { retry: ['retry', '重試'], settings: ['settings', '設定'], vscode: ['editor download', '編輯器下載'] }, source: { 'current-site': ['current site', '目前頁面'], 'local-export': ['local export', '本地匯出'], 'selected-file': ['selected file', '已選檔案'] }, destination: { 'new-repository': ['new repository', '新專案庫'], 'existing-repository': ['existing repository', '現有專案庫'] }, account: { browser: ['browser account', '瀏覽器帳戶'], manual: ['provider selection', '供應商選擇'] }, route: { copy: ['copy and publish', '複製及發佈'], fork: ['fork flow', '分叉流程'] }, tab: Object.fromEntries(TAB_ROUTES.map(([idValue, label]) => [idValue, [label, label]])) };
     const label = (kind, value, language) => labels[kind]?.[value]?.[language === 'zh' ? 1 : 0] || value;
-    const en = { updated: `Updated ${label('field', p.field, 'en')} settings`, restored: `Restored a ${label('action', p.sourceAction, 'en')} event as a new event`, pruned: `Pruned ${p.count} older events, retaining ${p.retention}`, 'download-started': `Started ${label('status', p.status, 'en')} ${p.bytes} bytes`, 'download-complete': `Finished writing ${p.bytes} bytes`, 'download-cancelled': `Cancelled after writing ${p.bytes} bytes`, 'download-interrupted': `Marked the write ${label('status', p.status, 'en')}`, 'update-check': `Checked update state: ${label('status', p.status, 'en')}`, 'update-reload': 'Requested a page reload', 'recovery-opened': `Opened recovery action: ${label('action', p.action, 'en')}`, 'forge-preview': `Prepared a ${label('route', p.route, 'en')} preview from ${label('source', p.source, 'en')} to ${label('destination', p.destination, 'en')} for ${label('account', p.account, 'en')}`, 'forge-handoff': `Opened a ${label('route', p.route, 'en')} preview`, 'tab-pin': `${p.pinned ? 'Pinned' : 'Unpinned'} the ${label('tab', p.tab, 'en')} route`, 'provider-preview': 'Rendered a safe provider preview', 'state-migration': `${label('status', p.status, 'en')} saved state from version ${p.fromVersion} to ${p.toVersion}, imported ${p.imported}, omitted ${p.omitted}, refused ${p.refused}, retention omitted ${p.retentionOmitted}` }[event.action] || 'Recorded a local event';
-    const zh = { updated: `更新咗 ${label('field', p.field, 'zh')} 設定`, restored: `將 ${label('action', p.sourceAction, 'zh')} 記錄另存成新記錄`, pruned: `清理咗 ${p.count} 個舊記錄，保留 ${p.retention} 個`, 'download-started': `開始${label('status', p.status, 'zh')} ${p.bytes} bytes`, 'download-complete': `完成寫入 ${p.bytes} bytes`, 'download-cancelled': `寫入 ${p.bytes} bytes 後取消`, 'download-interrupted': `標記寫入為${label('status', p.status, 'zh')}`, 'update-check': `檢查更新狀態：${label('status', p.status, 'zh')}`, 'update-reload': '要求重新載入頁面', 'recovery-opened': `開啟恢復動作：${label('action', p.action, 'zh')}`, 'forge-preview': `準備由${label('source', p.source, 'zh')} 到${label('destination', p.destination, 'zh')} 嘅${label('route', p.route, 'zh')}預覽，使用${label('account', p.account, 'zh')}`, 'forge-handoff': `開啟咗${label('route', p.route, 'zh')}預覽`, 'tab-pin': `${p.pinned ? '釘選' : '取消釘選'} ${label('tab', p.tab, 'zh')} 路線`, 'provider-preview': '安全顯示 provider preview', 'state-migration': `${label('status', p.status, 'zh')} state 由版本 ${p.fromVersion} 到 ${p.toVersion}，匯入 ${p.imported}、省略 ${p.omitted}、拒絕 ${p.refused}、保留上限省略 ${p.retentionOmitted}` }[event.action] || '記錄咗一項本地事件';
+    const en = { updated: `Updated ${label('field', p.field, 'en')} settings`, restored: `Restored a ${label('action', p.sourceAction, 'en')} event as a new event`, pruned: `Pruned ${p.count} older events, retaining ${p.retention}`, 'download-started': `Started ${label('status', p.status, 'en')} ${p.bytes} bytes`, 'download-complete': `Finished writing ${p.bytes} bytes`, 'download-cancelled': `Cancelled after writing ${p.bytes} bytes`, 'download-interrupted': `Marked the write ${label('status', p.status, 'en')}`, 'update-check': `Checked update state: ${label('status', p.status, 'en')}`, 'update-reload': 'Requested a page reload', 'recovery-opened': `Opened recovery action: ${label('action', p.action, 'en')}`, 'forge-preview': `Prepared a ${label('route', p.route, 'en')} preview from ${label('source', p.source, 'en')} to ${label('destination', p.destination, 'en')} for ${label('account', p.account, 'en')}`, 'forge-handoff': `Opened a ${label('route', p.route, 'en')} preview`, 'tab-pin': `${p.pinned ? 'Pinned' : 'Unpinned'} the ${label('tab', p.tab, 'en')} route`, 'provider-preview': 'Rendered a safe provider preview', 'state-migration': `${label('status', p.status, 'en')} saved state from version ${p.fromVersion} to ${p.toVersion}, imported ${p.imported}, omitted ${p.omitted}, refused ${p.refused}, retention omitted ${p.retentionOmitted}`, 'history-import': `Imported ${p.imported} events, refused ${p.refused}, truncated ${p.truncated}` }[event.action] || 'Recorded a local event';
+    const zh = { updated: `更新咗 ${label('field', p.field, 'zh')} 設定`, restored: `將 ${label('action', p.sourceAction, 'zh')} 記錄另存成新記錄`, pruned: `清理咗 ${p.count} 個舊記錄，保留 ${p.retention} 個`, 'download-started': `開始${label('status', p.status, 'zh')} ${p.bytes} bytes`, 'download-complete': `完成寫入 ${p.bytes} bytes`, 'download-cancelled': `寫入 ${p.bytes} bytes 後取消`, 'download-interrupted': `標記寫入為${label('status', p.status, 'zh')}`, 'update-check': `檢查更新狀態：${label('status', p.status, 'zh')}`, 'update-reload': '要求重新載入頁面', 'recovery-opened': `開啟恢復動作：${label('action', p.action, 'zh')}`, 'forge-preview': `準備由${label('source', p.source, 'zh')} 到${label('destination', p.destination, 'zh')} 嘅${label('route', p.route, 'zh')}預覽，使用${label('account', p.account, 'zh')}`, 'forge-handoff': `開啟咗${label('route', p.route, 'zh')}預覽`, 'tab-pin': `${p.pinned ? '釘選' : '取消釘選'} ${label('tab', p.tab, 'zh')} 路線`, 'provider-preview': '安全顯示 provider preview', 'state-migration': `${label('status', p.status, 'zh')} state 由版本 ${p.fromVersion} 到 ${p.toVersion}，匯入 ${p.imported}、省略 ${p.omitted}、拒絕 ${p.refused}、保留上限省略 ${p.retentionOmitted}`, 'history-import': `匯入 ${p.imported} 個記錄，拒絕 ${p.refused}，截斷 ${p.truncated}` }[event.action] || '記錄咗一項本地事件';
     try { const prefs = JSON.parse(localStorage.getItem('ding-pbx-pages-v2') || '{}'); const mode = prefs.language; const enLevel = Math.max(0, Math.min(4, Number.isInteger(prefs.englishFunny) ? prefs.englishFunny : 0)); const zhLevel = Math.max(0, Math.min(4, Number.isInteger(prefs.cantoneseFunny) ? prefs.cantoneseFunny : 0)); const enVariants = [sentence => sentence, sentence => `${sentence} (local record)`, sentence => `${sentence}. The tiny ledger agrees.`, sentence => `${sentence}. The paper trail has shown up.`, sentence => `${sentence}. The evidence drawer is wearing a tie.`]; const zhVariants = [sentence => sentence, sentence => `${sentence}（本地記錄）`, sentence => `${sentence}，細細本 ledger 都認同。`, sentence => `${sentence}，紙仔路線出現喇。`, sentence => `${sentence}，證據櫃今日戴咗呔。`]; const styledEn = enVariants[enLevel](en); const styledZh = zhVariants[zhLevel](zh); return mode === 'zh' ? styledZh : mode === 'both' ? `${styledEn} · ${styledZh}` : styledEn; } catch { return en; }
   }
   function eventSearchProjection(event) {
@@ -370,6 +395,25 @@
     apply.addEventListener('click', () => { const keep = Number(select.value); const retain = Math.max(0, keep - 1); const remove = Math.max(0, state.history.length - retain); if (!remove) return; state.history = state.history.slice(-retain); persist(); const result = record('pruned', { count: remove, retention: keep }); if (!result?.ok) { status.textContent = result?.reason || 'The prune event was not appended, so success was not reported.'; return; } status.textContent = `Pruned ${remove} older event${remove === 1 ? '' : 's'} and recorded the action. The prune event occupies the reserved slot.`; apply.disabled = true; });
   }
 
+  function ensureHistoryImportControls() {
+    if (document.querySelector('#history-import-file')) return;
+    const list = document.querySelector('#history-list'); if (!list) return;
+    const panel = document.createElement('div'); panel.id = 'history-import'; panel.className = 'delivery-retention'; panel.innerHTML = '<label>Import schema-2 JSON<input id="history-import-file" type="file" accept="application/json,.json"></label><button id="history-import-button" class="secondary-button" type="button">Append imported events</button><span id="history-import-status" role="status"></span>';
+    list.before(panel);
+    panel.querySelector('#history-import-button').addEventListener('click', async () => {
+      const input = panel.querySelector('#history-import-file'); const status = panel.querySelector('#history-import-status'); const file = input.files?.[0];
+      if (!file) { status.textContent = 'Choose one local JSON export before importing.'; return; }
+      try {
+        const parsed = validateImportPayload(await file.text());
+        const existing = new Set(state.history.map(event => event.id)); const duplicates = parsed.valid.filter(event => existing.has(event.id)).length; const candidates = parsed.valid.filter(event => !existing.has(event.id));
+        const merged = [...state.history, ...candidates]; const kept = merged.slice(-(MAX_HISTORY - 1)); const keptIds = new Set(kept.map(event => event.id)); const imported = candidates.filter(event => keptIds.has(event.id)).length; const truncated = candidates.length - imported; const refused = parsed.refused + duplicates;
+        const previous = state.history; state.history = kept; persist(); const result = record('history-import', { imported, refused, truncated });
+        if (!result?.ok) { state.history = previous; persist(); status.textContent = result?.reason || 'The import event was not appended, so success was not reported. Live state was restored.'; return; }
+        status.textContent = `Import appended ${imported} events. Refused ${refused}, truncated ${truncated}. Existing live events were preserved.`; input.value = '';
+      } catch (error) { status.textContent = `Import refused: ${error.message || 'invalid JSON export'}. Live state was unchanged.`; }
+    });
+  }
+
   function downloadFile(name, body, type) {
     state.editor.lastPreparedExport = scrubSummary(name);
     state.editor.lastHandoffState = 'handoff-started';
@@ -394,14 +438,45 @@
     return filterHistory().map(event => ({ id: event.id, timestamp: event.timestamp, action: event.action, text: eventSentence(event), params: event.params }));
   }
 
+  function duplicateJsonKey(raw) {
+    let index = 0;
+    const whitespace = () => { while (/\s/.test(raw[index] || '')) index += 1; };
+    const string = () => { const start = index; index += 1; while (index < raw.length) { if (raw[index] === '\\') index += 2; else if (raw[index++] === '"') return JSON.parse(raw.slice(start, index)); } throw new Error('unterminated string'); };
+    const value = depth => { if (depth > 8) throw new Error('nesting exceeds 8 levels'); whitespace(); const token = raw[index]; if (token === '{') return object(depth + 1); if (token === '[') return array(depth + 1); if (token === '"') { string(); return; } const match = raw.slice(index).match(/^(?:true|false|null|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?)/); if (!match) throw new Error('invalid value'); index += match[0].length; };
+    const array = depth => { index += 1; whitespace(); if (raw[index] === ']') { index += 1; return; } while (index < raw.length) { value(depth); whitespace(); if (raw[index] === ']') { index += 1; return; } if (raw[index++] !== ',') throw new Error('expected array comma'); } throw new Error('unterminated array'); };
+    const object = depth => { index += 1; const keys = new Set(); whitespace(); if (raw[index] === '}') { index += 1; return; } while (index < raw.length) { whitespace(); if (raw[index] !== '"') throw new Error('object key must be a string'); const key = string(); if (keys.has(key)) throw new Error(`duplicate key: ${key}`); keys.add(key); if (['__proto__', 'constructor', 'prototype'].includes(key)) throw new Error(`unsafe key: ${key}`); whitespace(); if (raw[index++] !== ':') throw new Error('expected object colon'); value(depth); whitespace(); if (raw[index] === '}') { index += 1; return; } if (raw[index++] !== ',') throw new Error('expected object comma'); } throw new Error('unterminated object'); };
+    value(0); whitespace(); if (index !== raw.length) throw new Error('trailing JSON data');
+  }
+  function validateImportPayload(raw) {
+    if (raw.length > 512 * 1024) throw new Error('the JSON file exceeds the 512 KiB limit');
+    duplicateJsonKey(raw);
+    const parsed = JSON.parse(raw);
+    const topKeys = new Set(['schemaVersion', 'eventSchemaVersion', 'exportedAt', 'privateVocabulary', 'credentials', 'events']);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || Object.keys(parsed).some(key => !topKeys.has(key))) throw new Error('unknown top-level field');
+    if (parsed.schemaVersion !== HISTORY_EXPORT_SCHEMA_VERSION || parsed.eventSchemaVersion !== STATE_SCHEMA_VERSION) throw new Error(`expected export schema ${HISTORY_EXPORT_SCHEMA_VERSION} and event schema ${STATE_SCHEMA_VERSION}`);
+    if (parsed.privateVocabulary !== 'omitted' || parsed.credentials !== 'omitted') throw new Error('private vocabulary and credentials must be marked omitted');
+    if (parsed.exportedAt !== undefined && (typeof parsed.exportedAt !== 'string' || !Number.isFinite(Date.parse(parsed.exportedAt)))) throw new Error('exportedAt must be a valid timestamp');
+    if (!Array.isArray(parsed.events) || parsed.events.length > MAX_HISTORY) throw new Error(`events must be an array of at most ${MAX_HISTORY} records`);
+    const seen = new Set(); const valid = []; let refused = 0;
+    for (const event of parsed.events) {
+      if (!event || typeof event !== 'object' || Array.isArray(event) || Object.keys(event).some(key => !['id', 'timestamp', 'action', 'params'].includes(key))) { refused += 1; continue; }
+      if (typeof event.id !== 'string' || typeof event.timestamp !== 'string' || typeof event.action !== 'string' || !/^[a-z0-9_-]{1,100}$/i.test(event.id) || seen.has(event.id) || !Number.isFinite(Date.parse(event.timestamp))) { refused += 1; continue; }
+      const params = normalizeEventParams(event.action, event.params); if (!params) { refused += 1; continue; }
+      seen.add(event.id); valid.push({ id: id(event.id), timestamp: event.timestamp.slice(0, 40), action: event.action, params });
+    }
+    return { valid, refused };
+  }
+
   function exportHistory(format = 'json') {
     const rows = historyExportRows();
     if (format === 'markdown') {
-      const body = `# Local history export\n\nExport schema version: ${HISTORY_EXPORT_SCHEMA_VERSION}. Private vocabulary, credentials, source paths, and file contents were omitted.\n\n| Timestamp | Action | Text |\n| --- | --- | --- |\n${rows.map(row => `| ${row.timestamp} | ${row.action} | ${String(row.text || '').replaceAll('|', '\\|')} |`).join('\n')}\n`;
+      const query = historyQuery.regex ? `regex ${scrubSummary(historyQuery.pattern).slice(0, 160)}` : `plain text ${scrubSummary(historyQuery.text).slice(0, 160)}`;
+      const body = `# Local history export\n\nExport schema version: ${HISTORY_EXPORT_SCHEMA_VERSION}. Private vocabulary, credentials, source paths, and file contents were omitted. This Markdown file is presentation-only. Structured parameters are intentionally omitted here; use the JSON export for round-trip import.\n\nActive search: ${query || 'none'}\nActive date range: ${historyQuery.from || 'none'} to ${historyQuery.to || 'none'}\nActive action filter: ${historyQuery.action || 'all'}\nRows exported: ${rows.length}\n\n| Timestamp | Action | Text |\n| --- | --- | --- |\n${rows.map(row => `| ${row.timestamp} | ${row.action} | ${String(row.text || '').replaceAll('|', '\\|')} |`).join('\n')}\n`;
       downloadFile('ding-pbx-site-history.md', body, 'text/markdown');
       return;
     }
-    downloadFile('ding-pbx-site-history.json', JSON.stringify({ schemaVersion: HISTORY_EXPORT_SCHEMA_VERSION, eventSchemaVersion: STATE_SCHEMA_VERSION, exportedAt: new Date().toISOString(), privateVocabulary: 'omitted', credentials: 'omitted', events: rows }, null, 2), 'application/json');
+    const jsonRows = rows.map(({ id: eventId, timestamp, action, params }) => ({ id: eventId, timestamp, action, params }));
+    downloadFile('ding-pbx-site-history.json', JSON.stringify({ schemaVersion: HISTORY_EXPORT_SCHEMA_VERSION, eventSchemaVersion: STATE_SCHEMA_VERSION, exportedAt: new Date().toISOString(), privateVocabulary: 'omitted', credentials: 'omitted', events: jsonRows }, null, 2), 'application/json');
   }
 
   function renderHistory() {
@@ -412,7 +487,7 @@
     const actionSelect = document.querySelector('#history-action');
     if (actionSelect) {
       const current = historyQuery.action;
-      actionSelect.innerHTML = `<option value="all">All actions (${state.history.length})</option>${actions.map(action => `<option value="${escapeHtml(action)}">${escapeHtml(action)} (${state.history.filter(event => event.action === action).length})</option>`).join('')}`;
+      actionSelect.innerHTML = `<option value="all">${escapeHtml(localizedEnumLabel('action', 'all'))} (${state.history.length})</option>${actions.map(action => `<option value="${escapeHtml(action)}">${escapeHtml(localizedEnumLabel('action', action))} (${state.history.filter(event => event.action === action).length})</option>`).join('')}`;
       actionSelect.value = current;
       actionSelect._deliveryRefresh?.();
       [...actionSelect.options].forEach(option => { if (ACTION_LABELS[option.value]) option.textContent = localizedEnumLabel('action', option.value); });
@@ -430,7 +505,7 @@
     if (status) status.textContent = validDateRange(historyQuery) ? `${rows.length} of ${state.history.length} local events shown` : 'Invalid date range. Use ISO dates and ensure From is not after To.';
     const migration = document.querySelector('#history-status');
     if (migration && state.migration?.status === 'future-version-refused') migration.textContent = `Saved state version ${state.migration.sourceVersion} is newer than this page understands, so it was refused and no saved events were applied.`;
-    else if (migration && state.migration?.status === 'migrated-with-loss') { const counts = state.migration.counts || { imported: 0, omitted: 0, refused: 0, retentionOmitted: 0 }; migration.textContent = `Saved state version ${state.migration.sourceVersion} was migrated with recorded loss. Imported ${counts.imported}, omitted ${counts.omitted}, refused ${counts.refused}, retention omitted ${counts.retentionOmitted}. This is not a lossless migration.`; }
+    else if (migration && ['migrated-with-loss', 'normalized-with-loss'].includes(state.migration?.status)) { const counts = state.migration.counts || { imported: 0, omitted: 0, refused: 0, retentionOmitted: 0 }; migration.textContent = `Saved state version ${state.migration.sourceVersion} was migrated with recorded loss. Imported ${counts.imported}, omitted ${counts.omitted}, refused ${counts.refused}, retention omitted ${counts.retentionOmitted}. This is not a lossless migration.`; if (!document.querySelector('#migration-focus')) { const focus = document.createElement('button'); focus.id = 'migration-focus'; focus.type = 'button'; focus.className = 'text-button'; focus.textContent = 'Review migration audit'; focus.addEventListener('click', () => { const audit = document.querySelector('#migration-audit'); if (audit) { audit.open = true; audit.scrollIntoView({ block: 'nearest' }); } }); migration.after(focus); } }
     else if (migration && state.migration?.status === 'migrated') migration.textContent = `Saved state version ${state.migration.sourceVersion} was migrated to version ${STATE_SCHEMA_VERSION} with no omitted or refused records.`;
   }
 
@@ -871,7 +946,7 @@
     const editorLead = host.querySelector('#editor .section-heading p'); if (editorLead) editorLead.textContent = 'Select a local file or download an export. A normal browser does not expose a verified local path for external-editor opening, so this route remains explicitly unavailable.';
     const transferLead = host.querySelector('#downloads .section-heading p'); if (transferLead) transferLead.textContent = 'When File System Access is available, this page writes a selected local file to a user-chosen destination in measured chunks. Unsupported browsers remain unavailable.';
     host.querySelector('#transfer-complete')?.remove();
-    ensureDatePreset('history-preset', 'history-to'); ensureDatePreset('changelog-preset', 'changelog-to'); ensureRetentionControls(); ensureMigrationAuditPanel(); ensureDropdownSearches();
+    ensureDatePreset('history-preset', 'history-to'); ensureDatePreset('changelog-preset', 'changelog-to'); ensureRetentionControls(); ensureHistoryImportControls(); ensureMigrationAuditPanel(); ensureDropdownSearches();
     bindHistory(); bindChangelog(); bindEditor(); bindTransfer(); bindOperation(); bindRecovery(); bindForge(); bindUpdate();
     document.querySelector('#provider-render')?.addEventListener('click', () => { const value = document.querySelector('#provider-markdown').value.slice(0, 20000); document.querySelector('#provider-preview').innerHTML = parseProviderMarkdown(value) || '<p>No provider-authored text is loaded.</p>'; record('provider-preview', { status: 'rendered' }); });
     document.querySelector('#provider-clear')?.addEventListener('click', () => { document.querySelector('#provider-markdown').value = ''; document.querySelector('#provider-preview').innerHTML = '<p>No provider-authored text is loaded.</p>'; });
@@ -885,9 +960,9 @@
     document.addEventListener('keydown', event => { if (event.key === 'Escape') closeContextMenu(); if (event.ctrlKey && event.shiftKey && event.key.toLocaleLowerCase() === 'f') { event.preventDefault(); openPaletteRoute(); } if (event.ctrlKey && event.key === 'Enter' && ['history-event-field', 'history-event-status'].includes(document.activeElement?.id)) { event.preventDefault(); document.querySelector('#history-record')?.click(); } });
     renderPage();
     ensureRail();
-    if (['migrated', 'migrated-with-loss', 'normalized-with-loss'].includes(state.migration?.status) && !state.migration.recorded) { state.migration.recorded = true; persist(); const counts = state.migration.counts || { imported: 0, omitted: 0, refused: 0, retentionOmitted: 0 }; record('state-migration', { fromVersion: state.migration.sourceVersion, toVersion: STATE_SCHEMA_VERSION, status: state.migration.status, imported: counts.imported, omitted: counts.omitted, refused: counts.refused, retentionOmitted: counts.retentionOmitted }); }
-    if (state.migration?.status === 'future-version-refused') { appendMigrationAudit('future-version-refused', state.migration.sourceVersion); renderMigrationAudit(); }
-    if (['migrated-with-loss', 'normalized-with-loss'].includes(state.migration?.status)) { appendMigrationAudit(state.migration.status, state.migration.sourceVersion, state.migration.counts); renderMigrationAudit(); }
+    if (['migrated', 'migrated-with-loss', 'normalized-with-loss'].includes(state.migration?.status) && !state.migration.recorded) { const counts = state.migration.counts || { imported: 0, omitted: 0, refused: 0, retentionOmitted: 0 }; const result = record('state-migration', { fromVersion: state.migration.sourceVersion, toVersion: STATE_SCHEMA_VERSION, status: state.migration.status, imported: counts.imported, omitted: counts.omitted, refused: counts.refused, retentionOmitted: counts.retentionOmitted }); if (result?.ok) { state.migration.recorded = true; persist(); } else { appendMigrationAudit('state-migration-event-refused', state.migration.sourceVersion, counts, result?.reason || 'state-migration event was not appended'); renderMigrationAudit(); } }
+    if (state.migration?.status === 'future-version-refused') { appendMigrationAudit('future-version-refused', state.migration.sourceVersion, undefined, 'future-version-refused'); renderMigrationAudit(); }
+    if (['migrated-with-loss', 'normalized-with-loss'].includes(state.migration?.status)) { appendMigrationAudit(state.migration.status, state.migration.sourceVersion, state.migration.counts, 'unmappable-or-retention-loss'); renderMigrationAudit(); }
     ensurePaletteOpener();
     if (state.transfer.status === 'interrupted' && !state.transfer.interruptionRecorded) { state.transfer.interruptionRecorded = true; persist(); record('download-interrupted', { status: 'interrupted' }); }
     document.querySelectorAll('#history-delivery-page .delivery-panel, #history-delivery-mount .delivery-panel').forEach(panel => { panel.dataset.deliveryContext = 'panel'; });
