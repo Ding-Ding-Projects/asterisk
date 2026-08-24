@@ -1,0 +1,344 @@
+{
+  "surface": "pages-site",
+  "schemaVersion": 1,
+  "readme": "Localization evidence for the Pages site, one row per canonical feature. The site localizes through its own COPY table rather than the console boundary, because it is a separate artifact that ships without the renderer. `copyKeys` names the entries a feature depends on; a row is `localized` only when every one of them exists in site/app.js, so this file is checkable against that source rather than asserted. The contract test recomputes every state and fails on any row that disagrees.",
+  "languageModes": [
+    "en",
+    "zh",
+    "both"
+  ],
+  "knownCopyKeys": [
+    "emptyDestinations",
+    "emptyNotifications",
+    "heroLede",
+    "motionDesc",
+    "notifRegexApplied",
+    "notifSettingSaved",
+    "notifSettingsReset",
+    "themeDesc"
+  ],
+  "features": {
+    "language-modes": {
+      "state": "localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [
+        "heroLede"
+      ],
+      "missingCopyKeys": [],
+      "note": "Covered by COPY keys: heroLede."
+    },
+    "funny-levels": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "dialog-emojis": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "school-mode": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "narration": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "scheduled-settings": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "external-settings-sources": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "dim-sum-surprise": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "regex-builder": {
+      "state": "localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [
+        "notifRegexApplied"
+      ],
+      "missingCopyKeys": [],
+      "note": "Covered by COPY keys: notifRegexApplied."
+    },
+    "non-blocking-notifications": {
+      "state": "localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [
+        "emptyNotifications",
+        "notifSettingSaved",
+        "notifSettingsReset"
+      ],
+      "missingCopyKeys": [],
+      "note": "Covered by COPY keys: emptyNotifications, notifSettingSaved, notifSettingsReset."
+    },
+    "status-hub": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "material-appearance": {
+      "state": "localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [
+        "themeDesc"
+      ],
+      "missingCopyKeys": [],
+      "note": "Covered by COPY keys: themeDesc."
+    },
+    "app-logo-customization": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "local-file-converter": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "ollama-suite-manager": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "browser-style-tabs": {
+      "state": "localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [
+        "emptyDestinations"
+      ],
+      "missingCopyKeys": [],
+      "note": "Covered by COPY keys: emptyDestinations."
+    },
+    "tab-groups-and-searches": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "command-palette": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "destructive-action-confirmation": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "local-version-history": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "changelog-viewer": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "external-editor-handoff": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "complete-exports": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "bulk-actions": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "accessibility": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "responsive-sizing": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "personal-vocabulary-upload": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "per-element-toy-locks": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "support-tickets": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "unlock-ladder": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "built-in-authenticator": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "attention-modes": {
+      "state": "localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [
+        "motionDesc"
+      ],
+      "missingCopyKeys": [],
+      "note": "Covered by COPY keys: motionDesc."
+    },
+    "browser-extension-download-surfaces": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "offline-documentation-browser": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "app-display-name": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "guided-forms": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "bounded-overlays": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "context-menu-shortcuts": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "long-operation-progress": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "in-context-recovery": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "provider-markup-rendering": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "forge-publishing": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "collapsible-filters": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    },
+    "automatic-updates": {
+      "state": "not-localized",
+      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
+      "copyKeys": [],
+      "missingCopyKeys": [],
+      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+    }
+  }
+}
