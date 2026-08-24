@@ -26,10 +26,12 @@
       "state": "localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
       "labels": [
-        "Fun level"
+        "Fun level (English)",
+        "Fun level (廣東話)"
       ],
       "localizedLabels": [
-        "Fun level"
+        "Fun level (English)",
+        "Fun level (廣東話)"
       ],
       "untranslatedLabels": [],
       "note": "Every listed label has a Cantonese entry."

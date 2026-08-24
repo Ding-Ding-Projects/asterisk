@@ -31,6 +31,8 @@ const WIRED = [
   { id: 'school_unlock', acts: 'deactivateSchoolMode(' },
   { id: 'school_set_credential', acts: 'setCredential(' },
   { id: 'school_credential', acts: 'consumeCredential(' },
+  { id: 'fun_level', acts: 'setFunnyLevel(' },
+  { id: 'fun_level_yue', acts: 'setFunnyLevel(' },
 ];
 
 test('every wired control exists in the compiled design', () => {

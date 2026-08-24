@@ -39,6 +39,7 @@ import {
   schoolModeActive, schoolModeName, setCredential, type CredentialMethod,
 } from './school-mode';
 import { attemptMessage, consumeCredential } from './credential-field';
+import { isFunnyLevel, setFunnyLevel, type CopyLanguage } from './funny-levels';
 import {
   AA_LARGE_TEXT_RATIO, AA_NORMAL_TEXT_RATIO, contrastLevel, contrastRatioFromHex,
 } from './accessibility-contract';
@@ -799,6 +800,11 @@ ${resolution.disclosure}`);
     }
     /* The five attention modes share one prefix and one handler, so adding a sixth is
      * a registry entry rather than another branch here. */
+    /* Two dials, one per language, deliberately not one shared slider. */
+    if ((control?.id === 'fun_level' || control?.id === 'fun_level_yue') && typeof value === 'number') {
+      const language: CopyLanguage = control.id === 'fun_level_yue' ? 'yue' : 'en';
+      if (isFunnyLevel(value)) setFunnyLevel(this.durableStorage.storage, language, value);
+    }
     if (control?.id === 'school_mode' && typeof value === 'boolean') {
       this.setSchoolMode(value);
       return;

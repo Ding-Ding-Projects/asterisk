@@ -16,9 +16,13 @@
       ]
     },
     "funny-levels": {
-      "state": "absent",
-      "note": "No funny-level slider or copy-styling mechanism exists. Notification and dialog copy in App.tsx and the compiled console (this.fire/this.toast) is fixed text with no tone variation.",
-      "files": []
+      "state": "implemented",
+      "note": "Implemented 2026-08-24 as app/renderer/src/funny-levels.ts with two sliders in the design (fun_level, fun_level_yue), acted on through App. Two dials rather than one, because English and Cantonese playfulness are not the same setting -- somebody may want the Cantonese warm and the English flat for a colleague reading over their shoulder. Both ship at 5, so nobody has to opt in to a console with a voice. The level applies to every category with no carve-out, including destructive and error copy, and what keeps that safe is that a message is facts plus per-level phrasings rather than a string: renderMessage checks every fact survives the chosen wording and appends any the phrasing dropped, so a destructive confirmation cannot lose which endpoint it is about at level 5. An unreadable stored value falls back rather than being clamped, since clamping a hand-edited 9 to 5 looks identical to somebody having chosen 5. RESTORED IN THE SAME CHANGE: the fun_level control had been destroyed by a parallel lane’s boundary violation and shipped in commit 913d5988c1, which I cleared by grepping the id and counting matches that were bindings rather than the control itself.",
+      "files": [
+        "app/renderer/src/funny-levels.ts",
+        "app/renderer/src/App.tsx",
+        "tests/ui/funny-levels.test.tsx"
+      ]
     },
     "dialog-emojis": {
       "state": "implemented",
