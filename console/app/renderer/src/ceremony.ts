@@ -17,13 +17,15 @@ export interface CeremonyResponse {
   data?: unknown;
 }
 
+export type NoticeSeverity = 'info' | 'warning' | 'error';
+
 export interface CeremonyOptions {
   command: string;
   connected: boolean;
   request: (action: string, extra: Record<string, unknown>) => Promise<CeremonyResponse | undefined>;
   serverId: string;
-  toast: (message: string) => void;
-  fire: (title: string, body: string) => void;
+  toast: (message: string, severity?: NoticeSeverity) => void;
+  fire: (title: string, body: string, severity?: NoticeSeverity) => void;
   /** Output longer than this is trimmed for display; the command still ran in full. */
   maxOutput?: number;
 }
@@ -35,11 +37,11 @@ export async function runCeremonyCommand(options: CeremonyOptions): Promise<bool
   const limit = options.maxOutput ?? 2000;
 
   if (command.length === 0) {
-    options.fire(NOT_RUN, 'No command was attached to this confirmation, so nothing was run.');
+    options.fire(NOT_RUN, 'No command was attached to this confirmation, so nothing was run.', 'error');
     return false;
   }
   if (!options.connected) {
-    options.fire(NOT_RUN, `No target is connected, so "${command}" was not run.`);
+    options.fire(NOT_RUN, `No target is connected, so "${command}" was not run.`, 'warning');
     return false;
   }
 
@@ -50,11 +52,11 @@ export async function runCeremonyCommand(options: CeremonyOptions): Promise<bool
   });
 
   if (!response) {
-    options.fire(NOT_RUN, `The desktop bridge is unavailable, so "${command}" was not run.`);
+    options.fire(NOT_RUN, `The desktop bridge is unavailable, so "${command}" was not run.`, 'error');
     return false;
   }
   if (!response.ok) {
-    options.fire(NOT_RUN, response.message ?? `"${command}" was not run.`);
+    options.fire(NOT_RUN, response.message ?? `"${command}" was not run.`, 'error');
     return false;
   }
 

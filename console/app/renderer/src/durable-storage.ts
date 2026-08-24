@@ -102,20 +102,24 @@ export function createDurableStorage(bridge: DurableStorageBridge | undefined): 
   }
 
   const pending = new Map<string, { kind: 'write' | 'remove'; value?: string; promise: Promise<DurableWriteResult> }>();
+  const chains = new Map<string, Promise<DurableWriteResult>>();
 
   function persist(action: 'settings.write' | 'settings.remove', payload: Record<string, unknown>, key: string, value?: string): Promise<DurableWriteResult> {
     const kind = action === 'settings.write' ? 'write' : 'remove';
     const existing = pending.get(key);
     if (existing && existing.kind === kind && existing.value === value) return existing.promise;
-    const promise = bridge
+    const previous = chains.get(key) ?? Promise.resolve({ ok: true, durable: !!bridge });
+    const promise = previous.catch(() => ({ ok: false, durable: !!bridge })).then(() => bridge
       ? bridge.controlPlane.request({ requestId: newRequestId(), action, payload })
         .then((response) => ({ ok: response?.ok === true, durable: true }))
         .catch(() => ({ ok: false, durable: true }))
-      : Promise.resolve({ ok: false, durable: false });
+      : Promise.resolve({ ok: false, durable: false }));
+    chains.set(key, promise);
     pending.set(key, { kind, value, promise });
     void promise.finally(() => {
       const current = pending.get(key);
       if (current?.promise === promise) pending.delete(key);
+      if (chains.get(key) === promise) chains.delete(key);
     });
     return promise;
   }

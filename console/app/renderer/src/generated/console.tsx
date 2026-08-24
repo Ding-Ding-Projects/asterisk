@@ -3996,15 +3996,17 @@ class ConsoleShell extends DCLogic {
     celebrate:false, celebrateTitle:'', celebrateSub:''
   };
 
-  fire = (title, sub) => {
+  fire = (title, sub, severity = 'info') => {
     this.setState({ celebrate:true, celebrateTitle:title, celebrateSub:sub });
     clearTimeout(this._cf);
     this._cf = setTimeout(() => this.setState({ celebrate:false }), 2600);
   };
 
-  set = (k, v) => this.setState(s => ({ [k]:v }));
+  onUserMutation = (_source) => {};
+  isUserMutationKey = (key) => ['canvasTool','grid','snap','guides','minimap','layer','zoom','pinned','dock','branch','tabs','tabNames','tabColours','groups','nodePos','edgeList','fullscreen','values','locks','authAnswers','sortList'].indexOf(key) >= 0;
+  set = (k, v) => { this.setState(s => ({ [k]:v })); if (this.isUserMutationKey(k)) this.onUserMutation('set:' + k); };
   val = (c) => (this.state.values[c.id] !== undefined ? this.state.values[c.id] : c.value);
-  toast = (t) => { this.setState({ toastOpen:true, toastText:t }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toastOpen:false }), 4200); };
+  toast = (t, severity = 'info') => { this.setState({ toastOpen:true, toastText:t }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toastOpen:false }), 4200); };
 
   commit = (c, v) => {
     const file = (SCREENS[this.state.screen] || {}).file || 'console';
@@ -4025,6 +4027,7 @@ class ConsoleShell extends DCLogic {
     else if (v === false && /encrypt|tls|guard|lock|hostkey|attest|verify|strict|stir/i.test(id + c.label)) this.toast('⚠ ' + c.label + ' is off — that is a real reduction in security');
     else if (c.kind === 'order') this.toast(c.label + ' reordered — ' + (v[0] || 'nothing') + ' is now offered first');
     else if (v === true) this.fire('Nice', c.label + ' switched on.');
+    this.onUserMutation('control:' + (c.id || 'unknown'));
   };
 
   simulate() {
@@ -4139,12 +4142,14 @@ class ConsoleShell extends DCLogic {
       if (rz) {
         const sizes = Object.assign({}, this.state.dlgSize);
         sizes[rz.key] = { w:Math.max(300, Math.round(rz.w + (e.clientX - rz.x))), h:Math.max(220, Math.round(rz.h + (e.clientY - rz.y))) };
+        this.onUserMutation('layout:resize');
         return this.setState({ dlgSize:sizes });
       }
       const d = this.state.drag;
       if (!d) return;
       const pos = Object.assign({}, this.state.dlgPos);
       pos[d.key] = { x:(e.clientX - d.dx) + 'px', y:(e.clientY - d.dy) + 'px' };
+      this.onUserMutation('layout:move');
       this.setState({ dlgPos:pos });
     };
     this._mu = () => { if (this.state.drag || this.state.resize) this.setState({ drag:null, resize:null }); };
@@ -4199,7 +4204,7 @@ class ConsoleShell extends DCLogic {
         { icon:'filter_center_focus', label:'Centre', v:'centre' }
       ].map(o => Object.assign({}, o, {
         on:mode === o.v, off:mode !== o.v,
-        pick:() => this.setState(st => ({ dlgDock:Object.assign({}, st.dlgDock, { [key]:o.v }) }))
+        pick:() => { this.setState(st => ({ dlgDock:Object.assign({}, st.dlgDock, { [key]:o.v }) })); this.onUserMutation('layout:dock'); }
       })),
       floating:mode === 'float'
     };
@@ -4332,6 +4337,7 @@ class ConsoleShell extends DCLogic {
       ap_rainbow:wild && Math.random() > 0.55
     };
     this.setState(st => ({ values:Object.assign({}, st.values, next) }));
+    this.onUserMutation('appearance:random');
     this.fire(all ? 'Everything reshuffled' : 'Reshuffled', all ? 'Every element got its own random look.' : 'One element, one new look. Undo is in the history.');
   };
 
@@ -4344,6 +4350,7 @@ class ConsoleShell extends DCLogic {
     } else {
       this.setState(st => ({ tabColours:Object.assign({}, st.tabColours, { [key]:colour }), tabColourOpen:false }));
     }
+    this.onUserMutation('appearance:colour');
     this.fire('Colour applied', val === 'rainbow' ? 'It cycles the whole spectrum now.' : 'Set to ' + val + '.');
   };
 
@@ -4356,10 +4363,11 @@ class ConsoleShell extends DCLogic {
     if (m.indexOf('Password') >= 0 && (s.unlockPw || '') !== L.password) { this.setState({ unlockPw:'' }); return this.toast('Wrong passphrase — the surface stays locked'); }
     const n = Object.assign({}, s.locks); delete n[s.unlockKey];
     this.setState({ locks:n, unlockOpen:false, unlockPin:'', unlockPw:'' });
+    this.onUserMutation('lock:unlock');
     this.fire('Unlocked', 'Welcome back.');
   };
 
-  addEdgeFrom = () => { this.setState(st => ({ edgeList:st.edgeList.concat([[st.nodeId, 'n4']]) })); this.toast('Connection added — pick its target in the inspector'); };
+  addEdgeFrom = () => { this.setState(st => ({ edgeList:st.edgeList.concat([[st.nodeId, 'n4']]) })); this.onUserMutation('canvas:edge'); this.toast('Connection added — pick its target in the inspector'); };
 
   moveNode = (id, dx, dy) => {
     const base = NODES.find(n => n.id === id);
@@ -4368,6 +4376,7 @@ class ConsoleShell extends DCLogic {
     const pos = Object.assign({}, this.state.nodePos);
     pos[id] = { x:Math.max(0, Math.round((cur.x + dx) / snap) * snap), y:Math.max(0, Math.round((cur.y + dy) / snap) * snap) };
     this.setState({ nodePos:pos });
+    this.onUserMutation('canvas:move');
   };
 
   bulk = (verb, sel) => { this.setState({ selected:[] }); this.fire(verb, sel.length + ' objects in one action.'); };
@@ -4404,8 +4413,8 @@ class ConsoleShell extends DCLogic {
     }
     if (c.kind === 'switch') { o.on = !!v; o.off = !v; o.toggle = () => this.setVal(c, !v); }
     if (c.kind === 'stepper') {
-      o.dec = () => this.setState(st => { const cur = st.values[c.id] !== undefined ? st.values[c.id] : c.value; return { values:Object.assign({}, st.values, { [c.id]:Math.max(c.min, cur - 1) }) }; });
-      o.inc = () => this.setState(st => { const cur = st.values[c.id] !== undefined ? st.values[c.id] : c.value; return { values:Object.assign({}, st.values, { [c.id]:Math.min(c.max, cur + 1) }) }; });
+      o.dec = () => { const cur = this.val(c); this.setVal(c, Math.max(c.min, cur - 1)); };
+      o.inc = () => { const cur = this.val(c); this.setVal(c, Math.min(c.max, cur + 1)); };
     }
     if (c.kind === 'stepper' || c.kind === 'slider') o.set = (nv) => this.setVal(c, Number(nv));
     if (c.kind === 'slider') { o.onSlide = (e) => this.setVal(c, Number(e.target.value)); o.display = v + (c.unit || ''); o.pct = ((v - c.min) / (c.max - c.min) * 100) + '%'; }
@@ -4640,22 +4649,23 @@ class ConsoleShell extends DCLogic {
         const pos = Object.assign({}, s.nodePos);
         pos[d.id] = { x:Math.max(0, Math.round(e.clientX - r.left - d.dx)), y:Math.max(0, Math.round(e.clientY - r.top - d.dy)) };
         this.setState({ nodePos:pos, nodeDrag:null });
+        this.onUserMutation('canvas:drop');
       },
       canvasDragOver:(e) => e.preventDefault(),
       canvasOps:[
-        { icon:'auto_awesome_mosaic', label:'Auto-arrange', run:() => { this.setState({ nodePos:{} }); this.toast('Steps arranged left to right by call order'); } },
-        { icon:'align_horizontal_left', label:'Align left', run:() => { const p = {}; NODES.forEach(n => { p[n.id] = { x:40, y:(s.nodePos[n.id] || n).y }; }); this.setState({ nodePos:p }); } },
-        { icon:'vertical_distribute', label:'Distribute', run:() => { const p = {}; NODES.forEach((n, i) => { p[n.id] = { x:(s.nodePos[n.id] || n).x, y:20 + i * 66 }; }); this.setState({ nodePos:p }); } },
+        { icon:'auto_awesome_mosaic', label:'Auto-arrange', run:() => { this.setState({ nodePos:{} }); this.onUserMutation('canvas:auto-arrange'); this.toast('Steps arranged left to right by call order'); } },
+        { icon:'align_horizontal_left', label:'Align left', run:() => { const p = {}; NODES.forEach(n => { p[n.id] = { x:40, y:(s.nodePos[n.id] || n).y }; }); this.setState({ nodePos:p }); this.onUserMutation('canvas:align'); } },
+        { icon:'vertical_distribute', label:'Distribute', run:() => { const p = {}; NODES.forEach((n, i) => { p[n.id] = { x:(s.nodePos[n.id] || n).x, y:20 + i * 66 }; }); this.setState({ nodePos:p }); this.onUserMutation('canvas:distribute'); } },
         { icon:'fit_screen', label:'Fit to view', run:() => { this.set('zoom', 100); this.toast('Zoom reset and canvas centred'); } },
-        { icon:'undo', label:'Undo layout', run:() => { this.setState({ nodePos:{} }); this.toast('Layout reverted'); } }
+        { icon:'undo', label:'Undo layout', run:() => { this.setState({ nodePos:{} }); this.onUserMutation('canvas:undo-layout'); this.toast('Layout reverted'); } }
       ],
       edgeRows:s.edgeList.map((e, i) => ({
         from:NODES.find(n => n.id === e[0]).title, to:NODES.find(n => n.id === e[1]).title,
-        fromOpts:NODES.map(n => ({ label:n.title, on:n.id === e[0], off:n.id !== e[0], pick:() => { const L = s.edgeList.map(x => x.slice()); L[i][0] = n.id; this.setState({ edgeList:L }); } })),
-        toOpts:NODES.map(n => ({ label:n.title, on:n.id === e[1], off:n.id !== e[1], pick:() => { const L = s.edgeList.map(x => x.slice()); L[i][1] = n.id; this.setState({ edgeList:L }); } })),
-        del:() => this.setState({ edgeList:s.edgeList.filter((_, j) => j !== i) })
+        fromOpts:NODES.map(n => ({ label:n.title, on:n.id === e[0], off:n.id !== e[0], pick:() => { const L = s.edgeList.map(x => x.slice()); L[i][0] = n.id; this.setState({ edgeList:L }); this.onUserMutation('canvas:edge-from'); } })),
+        toOpts:NODES.map(n => ({ label:n.title, on:n.id === e[1], off:n.id !== e[1], pick:() => { const L = s.edgeList.map(x => x.slice()); L[i][1] = n.id; this.setState({ edgeList:L }); this.onUserMutation('canvas:edge-to'); } })),
+        del:() => { this.setState({ edgeList:s.edgeList.filter((_, j) => j !== i) }); this.onUserMutation('canvas:edge-delete'); }
       })),
-      addEdge:() => this.setState({ edgeList:s.edgeList.concat([['n1', 'n2']]) }),
+      addEdge:() => { this.setState({ edgeList:s.edgeList.concat([['n1', 'n2']]) }); this.onUserMutation('canvas:edge-add'); },
       fullscreen:s.fullscreen,
       canvasPosition:s.fullscreen ? 'fixed' : 'static',
       canvasInset:s.fullscreen ? '0' : 'auto',
@@ -4833,7 +4843,7 @@ class ConsoleShell extends DCLogic {
       tabGroups:s.groups.map(g => ({
         name:g.name, colour:g.colour, count:g.tabs.length + '', bg:'#141A15',
         chevron:g.collapsed ? 'chevron_right' : 'expand_more',
-        toggle:() => this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, { collapsed:!x.collapsed }) : x) }),
+        toggle:() => { this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, { collapsed:!x.collapsed }) : x) }); this.onUserMutation('group:toggle'); },
         ctx:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxSub:'', ctxGroupId:g.id, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'group · ' + g.name, ctxKind:'group' }); }
       })),
       renameOpen:s.renameOpen, renameValue:s.renameValue,
@@ -4843,9 +4853,11 @@ class ConsoleShell extends DCLogic {
         if (key.indexOf('group:') === 0) {
           const id = key.slice(6);
           this.setState(st => ({ groups:st.groups.map(g => g.id === id ? Object.assign({}, g, { name:st.renameValue }) : g), renameOpen:false }));
+          this.onUserMutation('group:rename');
           return this.toast('Group renamed');
         }
         this.setState(st => ({ tabNames:Object.assign({}, st.tabNames, { [key]:st.renameValue }), renameOpen:false }));
+        this.onUserMutation('tab:rename');
         this.toast('Tab renamed');
       },
       cancelRename:() => this.set('renameOpen', false),
@@ -4918,6 +4930,7 @@ class ConsoleShell extends DCLogic {
           if (!s.tabFilterColour) return this.toast('Pick a colour first');
           const keep = s.tabs.filter(k => (s.tabColours[k] || 'none') !== s.tabFilterColour);
           this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash'), tabFilterOpen:false });
+          this.onUserMutation('tabs:close-colour');
           return this.toast('Closed every tab of that colour');
         }
         const q = (s.tabFilterText || (s.patterns.nav || []).join('')).toLowerCase();
@@ -4928,6 +4941,7 @@ class ConsoleShell extends DCLogic {
           return s.tabFilterMode === 'not' ? hit : !hit;
         });
         this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash'), tabFilterOpen:false });
+        this.onUserMutation('tabs:close-filter');
         this.toast((s.tabs.length - (keep.length || 1)) + ' tabs closed');
       },
       closeTabFilter:() => this.set('tabFilterOpen', false),
@@ -4951,7 +4965,9 @@ class ConsoleShell extends DCLogic {
           if (from < 0 || from === i) return this.setState({ tabDrag:-1, tabOver:-1 });
           if (e.shiftKey) {
             const a = s.tabs.slice(); const [m] = a.splice(from, 1); a.splice(i, 0, m);
-            return this.setState({ tabs:a, tabDrag:-1, tabOver:-1 });
+            this.setState({ tabs:a, tabDrag:-1, tabOver:-1 });
+            this.onUserMutation('tabs:reorder');
+            return;
           }
           const dragged = s.tabs[from], target = k;
           const existing = s.groups.find(g => g.tabs.indexOf(target) >= 0);
@@ -4959,15 +4975,16 @@ class ConsoleShell extends DCLogic {
           if (existing) groups = s.groups.map(g => g === existing ? Object.assign({}, g, { tabs:g.tabs.concat([dragged]) }) : g);
           else groups = s.groups.concat([{ id:'g' + Date.now(), name:'New group', colour:s.tabColours[target] || '#8AB4F8', collapsed:false, tabs:[target, dragged] }]);
           this.setState({ groups, tabDrag:-1, tabOver:-1 });
+          this.onUserMutation('tabs:group');
           this.fire('Grouped', dragged + ' and ' + target + ' are now one tab group.');
         },
         on:k === s.screen, off:k !== s.screen, pinned:s.pinned.indexOf(k) >= 0,
         go:() => this.setState({ screen:k, railId:SCREENS[k] ? SCREENS[k].rail : s.railId }),
-        close:(e) => { if (e && e.stopPropagation) e.stopPropagation(); const t = s.tabs.filter(x => x !== k); this.setState({ tabs:t.length ? t : ['dash'], screen:k === s.screen ? (t[0] || 'dash') : s.screen }); },
+        close:(e) => { if (e && e.stopPropagation) e.stopPropagation(); const t = s.tabs.filter(x => x !== k); this.setState({ tabs:t.length ? t : ['dash'], screen:k === s.screen ? (t[0] || 'dash') : s.screen }); this.onUserMutation('tabs:close'); },
         ctx:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxTabKey:k, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'tab · ' + (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)), ctxKind:'tab' }); }
         };
       }),
-      newTab:() => { const next = ORDER.find(k => s.tabs.indexOf(k) < 0) || 'dash'; this.setState({ tabs:s.tabs.concat([next]), screen:next, railId:SCREENS[next].rail }); },
+      newTab:() => { const next = ORDER.find(k => s.tabs.indexOf(k) < 0) || 'dash'; this.setState({ tabs:s.tabs.concat([next]), screen:next, railId:SCREENS[next].rail }); this.onUserMutation('tabs:new'); },
       dockOpts:[
         { label:'Rail on the left', icon:'dock_to_right', v:'left' },
         { label:'Rail on the right', icon:'dock_to_left', v:'right' },
@@ -4998,8 +5015,8 @@ class ConsoleShell extends DCLogic {
       funKnobAnim:this.v('fun_level', 2) > 2 ? 'm3Wiggle 1.6s ease-in-out infinite' : 'none',
       funLabelFg:this.v('fun_level', 2) > 0 ? '#00391F' : '#9FF7C4',
       toggleFun:() => { const on = this.v('fun_level', 2) > 0; this.setVal({ id:'fun_level', label:'Fun level' }, on ? 0 : 3); if (!on) this.fire('Fun restored', 'Level 3. Brace yourself.'); },
-      maxFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:4, fun_random:true, fun_confetti:300, fun_copy:'Comedian', th_rainbow:true, fun_random_scope:['Colour','Radius','Shadow','Type weight','Size','Rotation','Entrance animation'], fun_random_strength:100, fun_random_reroll:true }) })); this.fire('MAXIMUM FUN', 'Every element now has its own random look, rerolling as you go.'); },
-      zeroFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:0, fun_random:false, th_rainbow:false, fun_confetti:0, fun_copy:'Terse' }) })); this.toast('Fun disabled. The console is now a spreadsheet with opinions.'); },
+      maxFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:4, fun_random:true, fun_confetti:300, fun_copy:'Comedian', th_rainbow:true, fun_random_scope:['Colour','Radius','Shadow','Type weight','Size','Rotation','Entrance animation'], fun_random_strength:100, fun_random_reroll:true }) })); this.onUserMutation('preset:max-fun'); this.fire('MAXIMUM FUN', 'Every element now has its own random look, rerolling as you go.'); },
+      zeroFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:0, fun_random:false, th_rainbow:false, fun_confetti:0, fun_copy:'Terse' }) })); this.onUserMutation('preset:zero-fun'); this.toast('Fun disabled. The console is now a spreadsheet with opinions.'); },
       toggleRandom:() => { const on = this.v('fun_random', false); this.setVal({ id:'fun_random', label:'Random appearance for every element', kind:'switch' }, !on); if (!on) this.fire('Randomised', 'Every element just got its own look.'); },
       rndBtnBg:this.v('fun_random', false) ? '#1B4D33' : 'rgba(0,0,0,.24)',
       rndBtnBorder:this.v('fun_random', false) ? '#9FF7C4' : 'rgba(159,247,196,.3)',
@@ -5007,7 +5024,7 @@ class ConsoleShell extends DCLogic {
       rndJustify:this.v('fun_random', false) ? 'flex-end' : 'flex-start',
       rndKnob:this.v('fun_random', false) ? '#00391F' : '#8B938C',
       rndFg:this.v('fun_random', false) ? '#9FF7C4' : '#DFF3E5',
-      rerollNow:() => { this.setState(st => ({ rndNonce:st.rndNonce + 1 })); this.toast('Rerolled — every element has a new look'); },
+      rerollNow:() => { this.setState(st => ({ rndNonce:st.rndNonce + 1 })); this.onUserMutation('appearance:reroll'); this.toast('Rerolled — every element has a new look'); },
       isServers:sc.kind === 'servers', isArcade:sc.kind === 'arcade', isTrunkAuth:sc.kind === 'trunkauth', isHistory:sc.kind === 'history',
       branchName:s.branch, commitCount:s.commits.length + ' commits',
       branches:['main', 'hardening', 'lab'].map(b => ({ label:b, on:s.branch === b, off:s.branch !== b, pick:() => { this.set('branch', b); this.toast('Checked out ' + b); } })),
@@ -5258,7 +5275,7 @@ class ConsoleShell extends DCLogic {
       subItems:(() => {
         const close = () => this.setState({ ctxOpen:false, ctxSub:'' });
         const g = s.groups.find(x => x.id === s.ctxGroupId) || { id:'', tabs:[], name:'', colour:'#82D9A5' };
-        const upd = (patch) => this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, patch) : x), ctxOpen:false, ctxSub:'' });
+        const upd = (patch) => { this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, patch) : x), ctxOpen:false, ctxSub:'' }); this.onUserMutation('group:update'); };
         if (s.ctxSub === 'gcolour') return [{ icon:'colorize', label:'Open colour picker…', run:() => this.setState({ ctxOpen:false, ctxSub:'', tabColourOpen:true, renameKey:'group:' + g.id }) }]
           .concat(['#82D9A5', '#FFD68A', '#FFB4AB', '#8AB4F8', '#D8A9F0', '#DFE4DC'].map(c => ({ icon:'circle', label:c, run:() => upd({ colour:c }) })));
         if (s.ctxSub === 'gbehave') return [
@@ -5285,14 +5302,14 @@ class ConsoleShell extends DCLogic {
         if (s.ctxSub !== 'closetabs') return [];
         const k = s.ctxTabKey || s.screen, i = s.tabs.indexOf(k);
         return [
-          { icon:'first_page', label:'To the left', run:() => { close(); this.setState({ tabs:s.tabs.slice(i) }); } },
-          { icon:'last_page', label:'To the right', run:() => { close(); this.setState({ tabs:s.tabs.slice(0, i + 1) }); } },
-          { icon:'tab_close_right', label:'All others', run:() => { close(); this.setState({ tabs:[k], screen:k }); } },
+          { icon:'first_page', label:'To the left', run:() => { close(); this.setState({ tabs:s.tabs.slice(i) }); this.onUserMutation('tabs:close-left'); } },
+          { icon:'last_page', label:'To the right', run:() => { close(); this.setState({ tabs:s.tabs.slice(0, i + 1) }); this.onUserMutation('tabs:close-right'); } },
+          { icon:'tab_close_right', label:'All others', run:() => { close(); this.setState({ tabs:[k], screen:k }); this.onUserMutation('tabs:close-others'); } },
           { icon:'search', label:'Containing…', run:() => this.setState({ ctxOpen:false, ctxSub:'', tabFilterOpen:true, tabFilterMode:'has', tabFilterText:'' }) },
           { icon:'search_off', label:'Not containing…', run:() => this.setState({ ctxOpen:false, ctxSub:'', tabFilterOpen:true, tabFilterMode:'not', tabFilterText:'' }) },
           { icon:'format_color_fill', label:'By colour…', run:() => this.setState({ ctxOpen:false, ctxSub:'', tabFilterOpen:true, tabFilterMode:'colour', tabFilterText:'' }) },
-          { icon:'label_off', label:'All uncoloured', run:() => { close(); this.setState({ tabs:s.tabs.filter(t => s.tabColours[t] || t === k) }); } },
-          { icon:'push_pin', label:'All unpinned', run:() => { close(); this.setState({ tabs:s.tabs.filter(t => s.pinned.indexOf(t) >= 0 || t === k) }); } }
+          { icon:'label_off', label:'All uncoloured', run:() => { close(); this.setState({ tabs:s.tabs.filter(t => s.tabColours[t] || t === k) }); this.onUserMutation('tabs:close-uncoloured'); } },
+          { icon:'push_pin', label:'All unpinned', run:() => { close(); this.setState({ tabs:s.tabs.filter(t => s.pinned.indexOf(t) >= 0 || t === k) }); this.onUserMutation('tabs:close-unpinned'); } }
         ];
       })(),
       subX:(parseInt(s.ctxX, 10) + 266) + 'px',
@@ -5315,7 +5332,7 @@ class ConsoleShell extends DCLogic {
         ];
         if (s.ctxKind === 'group') {
           const g = s.groups.find(x => x.id === s.ctxGroupId) || { tabs:[], name:'' };
-          const upd = (patch) => this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, patch) : x), ctxOpen:false, ctxSub:'' });
+        const upd = (patch) => { this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, patch) : x), ctxOpen:false, ctxSub:'' }); this.onUserMutation('group:update'); };
           return decorate([
             { icon:'edit', label:'Rename group…', hint:'F2', run:() => { close(); this.setState({ renameOpen:true, renameKey:'group:' + g.id, renameValue:g.name }); } },
             { icon:'palette', label:'Group colour', hint:'▸', sub:'gcolour' },
@@ -5323,8 +5340,8 @@ class ConsoleShell extends DCLogic {
             { icon:'tab', label:'Tabs in group', hint:'▸', sub:'gtabs' },
             { icon:'save', label:'Save & restore', hint:'▸', sub:'gsave' },
             { icon:'unfold_less', label:g.collapsed ? 'Expand group' : 'Collapse group', hint:'', run:() => upd({ collapsed:!g.collapsed }) },
-            { icon:'link_off', label:'Ungroup', hint:'', run:() => { close(); this.setState({ groups:s.groups.filter(x => x.id !== g.id) }); this.toast('Group dissolved — tabs kept'); } },
-            { icon:'close', label:'Close group and its tabs', hint:'', run:() => { close(); this.areYouSure('Close ' + g.name, 'Every tab in this group closes. Unsaved staged changes in them are discarded.', 3, () => { const keep = s.tabs.filter(t => g.tabs.indexOf(t) < 0); this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep[0] || 'dash', groups:s.groups.filter(x => x.id !== g.id) }); }); } },
+            { icon:'link_off', label:'Ungroup', hint:'', run:() => { close(); this.setState({ groups:s.groups.filter(x => x.id !== g.id) }); this.onUserMutation('group:ungroup'); this.toast('Group dissolved — tabs kept'); } },
+            { icon:'close', label:'Close group and its tabs', hint:'', run:() => { close(); this.areYouSure('Close ' + g.name, 'Every tab in this group closes. Unsaved staged changes in them are discarded.', 3, () => { const keep = s.tabs.filter(t => g.tabs.indexOf(t) < 0); this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep[0] || 'dash', groups:s.groups.filter(x => x.id !== g.id) }); this.onUserMutation('group:close'); }); } },
             { icon:'brush', label:'Edit group appearance…', hint:'⌃E', run:() => this.setState({ ctxOpen:false, appearOpen:true, appearTarget:'group · ' + g.name }) },
             { icon:'lock', label:'Lock this group…', hint:'⌃L', run:common[0].run }
           ]);
@@ -5338,8 +5355,8 @@ class ConsoleShell extends DCLogic {
             { icon:'brush', label:'Edit tab appearance…', hint:'⌃E', run:() => this.setState({ ctxOpen:false, appearOpen:true, appearTarget:'tab · ' + (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)) }) },
             { icon:'tab_close', label:'Close tabs', hint:'▸', sub:'closetabs' },
             { icon:'push_pin', label:s.pinned.indexOf(k) >= 0 ? 'Unpin tab' : 'Pin tab', hint:'', run:() => { close(); this.set('pinned', s.pinned.indexOf(k) >= 0 ? s.pinned.filter(x => x !== k) : s.pinned.concat([k])); } },
-            { icon:'content_copy', label:'Duplicate tab', hint:'⌃D', run:() => { close(); this.setState({ tabs:s.tabs.concat([k]) }); } },
-            { icon:'close', label:'Close tab', hint:'⌃W', run:() => { close(); const t = s.tabs.filter(x => x !== k); this.setState({ tabs:t.length ? t : ['dash'], screen:t[0] || 'dash' }); } },
+            { icon:'content_copy', label:'Duplicate tab', hint:'⌃D', run:() => { close(); this.setState({ tabs:s.tabs.concat([k]) }); this.onUserMutation('tabs:duplicate'); } },
+            { icon:'close', label:'Close tab', hint:'⌃W', run:() => { close(); const t = s.tabs.filter(x => x !== k); this.setState({ tabs:t.length ? t : ['dash'], screen:t[0] || 'dash' }); this.onUserMutation('tabs:close'); } },
             { icon:'save', label:'Export & import', hint:'▸', sub:'tabexport' },
             { icon:'folder', label:'Group tabs by area', hint:'', run:() => { close(); this.toast('Tabs grouped by rail area'); } },
             { icon:'open_in_new', label:'Move to new window', hint:'', run:() => { close(); this.toast('Tab detached to its own window'); } },
@@ -5384,7 +5401,7 @@ class ConsoleShell extends DCLogic {
           { icon:'data_object', label:'Search this screen with regex…', hint:'⌃R', run:() => this.setState({ ctxOpen:false, regexOpen:true, regexTarget:'nav', regexX:s.ctxX, regexY:s.ctxY }) },
           { icon:'auto_fix_high', label:'Guided wizard for this screen', hint:'', run:() => this.setState({ ctxOpen:false, wizardOpen:true, wizardStep:0 }) },
           { icon:'checklist', label:'Select all rows', hint:'⌃A', run:() => { close(); this.set('selected', (sc.table ? sc.table.rows.map(r => r[0]) : [])); } },
-          { icon:'add', label:'New tab here', hint:'⌃T', run:() => { close(); this.setState({ tabs:s.tabs.concat([s.screen]) }); } },
+          { icon:'add', label:'New tab here', hint:'⌃T', run:() => { close(); this.setState({ tabs:s.tabs.concat([s.screen]) }); this.onUserMutation('tabs:new-here'); } },
           { icon:'history', label:'Version history', hint:'', run:() => { close(); this.openScreen('history'); } },
           { icon:'notifications', label:'Notification centre', hint:'', run:() => { close(); this.openScreen('notifications'); } },
           { icon:'content_copy', label:'Copy as configuration', hint:'⌃C', run:() => { close(); this.toast('Configuration block copied'); } }
@@ -5484,7 +5501,7 @@ class ConsoleShell extends DCLogic {
       appearActions:[
         { icon:'casino', label:'Randomise this element', run:() => this.randomAppearance(false) },
         { icon:'shuffle', label:'Randomise every element', run:() => this.randomAppearance(true) },
-        { icon:'restart_alt', label:'Reset', run:() => { this.setState({ values:{} }); this.toast('Appearance reset to the design system'); } },
+        { icon:'restart_alt', label:'Reset', run:() => { this.setState({ values:{} }); this.onUserMutation('appearance:reset'); this.toast('Appearance reset to the design system'); } },
         { icon:'bookmark_add', label:'Save preset', run:() => this.fire('Preset saved', 'It is yours now.') },
         { icon:'download', label:'Export', run:() => this.toast('Appearance exported as JSON') },
         { icon:'upload', label:'Import', run:() => this.toast('Pick an appearance file to import') }
@@ -5582,7 +5599,7 @@ class ConsoleShell extends DCLogic {
       onboardCtls:ob.ctls.map(this.buildCtl),
       onboardNextLabel:s.onboardStep === ONBOARD.length - 1 ? 'Deploy it all now' : 'Next',
       easyMode:this.v('ob_ease', 'Super easy') === 'Super easy',
-      superEasy:() => { this.setState(st => ({ values:Object.assign({}, st.values, { ob_intent:'Deploy a new server', ob_ease:'Super easy', ob_phones:8, ob_menu:true, ob_hours:true, ob_tls:true }), onboardOpen:false, screen:'servers', railId:'app', oneClickMode:'Funny' })); this.fire('Super easy mode', 'Three defaults taken. Press the big button and walk away.'); },
+      superEasy:() => { this.setState(st => ({ values:Object.assign({}, st.values, { ob_intent:'Deploy a new server', ob_ease:'Super easy', ob_phones:8, ob_menu:true, ob_hours:true, ob_tls:true }), onboardOpen:false, screen:'servers', railId:'app', oneClickMode:'Funny' })); this.onUserMutation('preset:super-easy'); this.fire('Super easy mode', 'Three defaults taken. Press the big button and walk away.'); },
       onboardNext:() => this.setState(st => (st.onboardStep >= ONBOARD.length - 1
         ? { onboardOpen:false, tourOpen:st.values.ob_tour !== false, tourStep:0, screen:'servers', railId:'app' }
         : { onboardStep:st.onboardStep + 1 })),

@@ -429,4 +429,6 @@ The checked-in design adds the `att_next` text control, generated renderer outpu
 
 The refutation repair now uses semantic markers from the design for title bar, tab strip, rail, section list, work region, and attention-card mount instead of child indexes. It also acknowledges attention writes, bounds restored snoozes, suppresses informational notifications only, retains warning and error history, and records last-change time through the explicit mutation-path inventory while leaving passive reads and navigation alone.
 
+The second refutation repair adds the generated `onUserMutation` callback for controls, steppers, appearance, canvas, layout, tabs, groups, presets, and direct application-owned mutations. Durable writes are serialized per key and newest generations decide pending, session-only, retry, or saved state. Notification severity is passed explicitly through the notification and ceremony APIs, with no text heuristic.
+
 No UI, accessibility, browser, capture, Lowlevel, broad build, packaging, or release verification was run in this lane. The next owner must run focused built-artifact checks for mount restoration, each mode's visible consumer, the next-action persistence path, Momentum snooze expiry, keyboard access, reduced-motion behavior, refused durable writes, and reviewable warning or error history before marking the feature verified.

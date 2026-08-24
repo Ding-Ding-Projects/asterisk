@@ -46,6 +46,17 @@ export const LAST_CHANGED_SETTING_KEY = `${MODE_SETTING_PREFIX}lastChangedAt`;
 export const SNOOZED_UNTIL_SETTING_KEY = `${MODE_SETTING_PREFIX}snoozedUntil`;
 export const NEXT_ACTION_MAX_LENGTH = 140;
 
+/** Handwritten control wiring inventory. Each row names one control, its durable
+ * key, the writer, and the live consumer that must remain present together. */
+export const ATTENTION_WIRING = [
+  { control: 'att_focus', storageKey: 'console.attention.focus', writer: 'generated setVal -> onUserMutation -> App.attentionWrite', consumer: 'App.attentionRender -> data-attention-inactive' },
+  { control: 'att_low', storageKey: 'console.attention.lowStimulation', writer: 'generated setVal -> onUserMutation -> App.attentionWrite', consumer: 'App.toast/App.fire explicit severity -> body.attention-low-stimulation' },
+  { control: 'att_time', storageKey: 'console.attention.timeAwareness', writer: 'generated setVal -> onUserMutation -> App.attentionWrite', consumer: 'App.attentionRender -> data-attention-meta' },
+  { control: 'att_one', storageKey: 'console.attention.oneThing', writer: 'generated setVal -> onUserMutation -> App.attentionWrite', consumer: 'App.attentionRender -> data-attention-next' },
+  { control: 'att_momentum', storageKey: 'console.attention.momentum', writer: 'generated setVal -> onUserMutation -> App.attentionWrite', consumer: 'App.attentionRender -> momentumPrompt and attentionSnooze' },
+  { control: 'att_next', storageKey: 'console.attention.nextAction', writer: 'generated setVal -> onUserMutation; App.languageAwareSetVal -> setNextAction plus attentionWrite', consumer: 'App.attentionRender -> data-attention-next' },
+] as const;
+
 export interface ModeStorage {
   getItem(key: string): string | null | undefined;
   setItem(key: string, value: string): void;

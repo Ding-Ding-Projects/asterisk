@@ -31,7 +31,7 @@ import {
 } from './display-name';
 import { setEmojisEnabled } from './dialog-emojis';
 import {
-  ATTENTION_MODES, LAST_CHANGED_SETTING_KEY, NEXT_ACTION_MAX_LENGTH, NEXT_ACTION_SETTING_KEY,
+  ATTENTION_WIRING, LAST_CHANGED_SETTING_KEY, NEXT_ACTION_MAX_LENGTH, NEXT_ACTION_SETTING_KEY,
   MODE_SETTING_PREFIX, SNOOZED_UNTIL_SETTING_KEY, SNOOZE_MIGRATION_TOLERANCE_MS, SNOOZE_MS, elapsedPhrase,
   isAttentionMode, modeEnabled, momentumPrompt, nextAction, presentationFor, setModeEnabled,
   setNextAction,
@@ -71,6 +71,7 @@ import {
 type Target = { id: string; label: string; detail: string; connected: boolean };
 
 type ConnectionObservation = { state?: string; reason?: string };
+type AttentionNoticeSeverity = 'info' | 'warning' | 'error';
 
 /** `server.connect` can accept the discovered distribution while reporting an
  * unavailable operating-system or Asterisk observation in its data payload. The
@@ -139,9 +140,9 @@ interface Shell {
   setState(update: Record<string, unknown>): void;
   moveNode(id: string, dx: number, dy: number): void;
   addEdgeFrom(): void;
-  toast(message: string): void;
+  toast(message: string, severity?: AttentionNoticeSeverity): void;
   areYouSure(title: string, body: string, seconds: number, onConfirm: () => void): void;
-  fire(title: string, body: string): void;
+  fire(title: string, body: string, severity?: AttentionNoticeSeverity): void;
 }
 
 /** The shape the compiled shell hands every control callback. */
@@ -215,8 +216,8 @@ export class App extends Base {
    *  body, so by then an override declared as a field would already have replaced the
    *  shell's and the copy would point at itself -- a recursion with no base case. */
   private readonly baseSetVal: (control: ControlRef, value: unknown) => void;
-  private readonly baseToast: (message: string) => void;
-  private readonly baseFire: (title: string, body: string) => void;
+  private readonly baseToast: (message: string, severity?: AttentionNoticeSeverity) => void;
+  private readonly baseFire: (title: string, body: string, severity?: AttentionNoticeSeverity) => void;
   private attentionTimer: ReturnType<typeof setInterval> | undefined;
   private attentionSessionStartedAt = Date.now();
   private attentionLastChangedAt = this.attentionSessionStartedAt;
@@ -226,28 +227,32 @@ export class App extends Base {
   private attentionMotionQuery: MediaQueryList | undefined;
   private attentionSyncing = false;
   private attentionPersistenceState: 'saved' | 'pending' | 'session-only' | 'retry' = 'saved';
-  private attentionPendingWrites = new Map<string, string | null>();
+  private attentionPendingWrites = new Map<string, { value: string | null; generation: number }>();
+  private attentionWriteGenerations = new Map<string, number>();
   private attentionNoticeHistory: Array<{ severity: 'warning' | 'error'; title: string; body: string }> = [];
+
+  /** Single generated-renderer mutation callback. Direct App-owned mutation paths
+   * call this too, so the last-change clock has one source rather than a scattered
+   * collection of timestamp writes. */
+  onUserMutation = (_source = 'unknown'): void => this.attentionSetLastChanged();
 
   constructor(props: Record<string, never>) {
     super(props);
     this.baseSetVal = this.setVal as (control: ControlRef, value: unknown) => void;
     this.setVal = this.languageAwareSetVal;
-    this.baseToast = this.toast as (message: string) => void;
-    this.baseFire = this.fire as (title: string, body: string) => void;
-    this.toast = (message: string): void => {
-      const severity = this.attentionSeverity(message, '');
+    this.baseToast = this.toast as (message: string, severity?: AttentionNoticeSeverity) => void;
+    this.baseFire = this.fire as (title: string, body: string, severity?: AttentionNoticeSeverity) => void;
+    this.toast = (message: string, severity: AttentionNoticeSeverity = 'info'): void => {
       if (severity !== 'info') this.attentionRecordNotice(severity, 'Notification', message);
       /* Low stimulation suppresses informational messages only. Warnings and errors
        * stay visible and are retained by the reviewable history below. */
       if (severity === 'info' && modeEnabled(this.durableStorage.storage, 'lowStimulation')) return;
-      this.baseToast(message);
+      this.baseToast(message, severity);
     };
-    this.fire = (title: string, body: string): void => {
-      const severity = this.attentionSeverity(title, body);
+    this.fire = (title: string, body: string, severity: AttentionNoticeSeverity = 'info'): void => {
       if (severity !== 'info') this.attentionRecordNotice(severity, title, body);
       if (severity === 'info' && modeEnabled(this.durableStorage.storage, 'lowStimulation')) return;
-      this.baseFire(title, body);
+      this.baseFire(title, body, severity);
     };
   }
   /** The chosen file's own name, kept only for display — never its contents. */
@@ -285,19 +290,12 @@ export class App extends Base {
 
   private attentionStateValues(): Record<string, unknown> {
     const restored: Record<string, unknown> = {};
-    for (const mode of ATTENTION_MODES) {
-      const control = Object.entries(App.ATTENTION_CONTROLS).find(([, value]) => value === mode)?.[0];
-      if (control) restored[control] = modeEnabled(this.durableStorage.storage, mode);
+    for (const wiring of ATTENTION_WIRING) {
+      const mode = App.ATTENTION_CONTROLS[wiring.control];
+      if (isAttentionMode(mode)) restored[wiring.control] = modeEnabled(this.durableStorage.storage, mode);
     }
     restored.att_next = nextAction(this.durableStorage.storage);
     return restored;
-  }
-
-  private attentionSeverity(title: string, body: string): 'info' | 'warning' | 'error' {
-    const text = `${title} ${body}`.toLowerCase();
-    if (/(error|failed|failure|cannot|could not|refused|rejected|unavailable|invalid|not found|not saved|not written|not created|not removed|not added|will not)/.test(text)) return 'error';
-    if (/(warning|caution|unsafe|missing|stale|offline|blocked|not now)/.test(text)) return 'warning';
-    return 'info';
   }
 
   private attentionRecordNotice(severity: 'warning' | 'error', title: string, body: string): void {
@@ -313,7 +311,9 @@ export class App extends Base {
   }
 
   private attentionWrite(key: string, value: string | null): void {
-    this.attentionPendingWrites.set(key, value);
+    const generation = (this.attentionWriteGenerations.get(key) ?? 0) + 1;
+    this.attentionWriteGenerations.set(key, generation);
+    this.attentionPendingWrites.set(key, { value, generation });
     this.attentionPersistenceState = this.bridge() ? 'pending' : 'session-only';
     this.attentionRender();
     const result = value === null
@@ -321,18 +321,18 @@ export class App extends Base {
       : this.durableStorage.writeItem(key, value);
     void result.then((outcome) => {
       if (!outcome.durable) {
-        if (this.attentionPendingWrites.get(key) !== value) return;
+        if (this.attentionPendingWrites.get(key)?.generation !== generation) return;
         this.attentionPersistenceState = 'session-only';
         this.attentionRender();
         return;
       }
       if (!outcome.ok) {
-        if (this.attentionPendingWrites.get(key) !== value) return;
+        if (this.attentionPendingWrites.get(key)?.generation !== generation) return;
         this.attentionPersistenceState = 'retry';
         this.attentionRender();
         return;
       }
-      if (this.attentionPendingWrites.get(key) !== value) return;
+      if (this.attentionPendingWrites.get(key)?.generation !== generation) return;
       this.attentionPendingWrites.delete(key);
       if (this.attentionPendingWrites.size === 0) this.attentionPersistenceState = 'saved';
       this.attentionRender();
@@ -342,7 +342,7 @@ export class App extends Base {
   private attentionRetry(): void {
     const pending = [...this.attentionPendingWrites.entries()];
     if (pending.length === 0) return;
-    for (const [key, value] of pending) this.attentionWrite(key, value);
+    for (const [key, entry] of pending) this.attentionWrite(key, entry.value);
   }
 
   /** Restores all five independent switches and the chosen next action from the one
@@ -687,7 +687,7 @@ export class App extends Base {
     this.toast('Starting the phone system…');
     const started = await this.request('daemon.start');
     if (!started?.ok) {
-      this.fire('The phone system did not start', started?.message ?? 'Asterisk did not answer after it was started.');
+      this.fire('The phone system did not start', started?.message ?? 'Asterisk did not answer after it was started.', 'error');
       return;
     }
     /* Anything read before this point was read against a daemon that was not up, so it
@@ -720,12 +720,12 @@ export class App extends Base {
       this.pickedFileNames.set(ctl.id, result.ok ? file.name : `${file.name} — rejected`);
       this.forceUpdate();
       if (result.ok) {
-        this.attentionSetLastChanged();
+        this.onUserMutation('vocabulary-load');
         this.toast(result.status);
       }
-      else this.fire('Vocabulary file rejected', result.status);
+      else this.fire('Vocabulary file rejected', result.status, 'error');
     };
-    reader.onerror = () => this.fire('Vocabulary file not read', 'The file could not be read from disk.');
+    reader.onerror = () => this.fire('Vocabulary file not read', 'The file could not be read from disk.', 'error');
     reader.readAsText(file);
   };
 
@@ -733,7 +733,7 @@ export class App extends Base {
     const result = clearVocabulary(this.vocabStorage);
     this.pickedFileNames.delete(ctl.id);
     this.forceUpdate();
-    this.attentionSetLastChanged();
+    this.onUserMutation('vocabulary-clear');
     this.toast(result.status);
   };
 
@@ -741,13 +741,13 @@ export class App extends Base {
 
   private daemonAction = async (verb: 'start' | 'stop' | 'restart'): Promise<void> => {
     if (!this.target.connected) {
-      this.fire('No target connected', 'Connect to a server first — there is nothing to start, stop, or restart yet.');
+      this.fire('No target connected', 'Connect to a server first — there is nothing to start, stop, or restart yet.', 'warning');
       return;
     }
     this.toast(`${verb === 'start' ? 'Starting' : verb === 'stop' ? 'Stopping' : 'Restarting'} the phone system…`);
     const response = await this.request(`daemon.${verb}`);
     if (!response?.ok) {
-      this.fire('Not done', response?.message ?? `The phone system did not ${verb}.`);
+      this.fire('Not done', response?.message ?? `The phone system did not ${verb}.`, 'error');
       await this.refreshDaemonStatus();
       return;
     }
@@ -792,11 +792,11 @@ export class App extends Base {
       draw: Math.random(),
     });
     if ('problems' in result) {
-      this.fire('That ticket will not file', result.problems[0].message);
+      this.fire('That ticket will not file', result.problems[0].message, 'error');
       return;
     }
     const resolution = resolutionFor(IDENTITY.dataDirectory);
-    this.attentionSetLastChanged();
+    this.onUserMutation('support-ticket');
     this.fire(`Ticket ${result.id} — ${result.status}`,
       `${result.firstResponse}
 
@@ -842,7 +842,7 @@ ${resolution.disclosure}`);
       if (problems.length > 0) {
         /* Report it rather than storing a name the module refused, which would leave
          * the control showing something the app would not accept back. */
-        this.fire('That name will not work', problems[0].message);
+        this.fire('That name will not work', problems[0].message, 'error');
         return;
       }
     }
@@ -886,9 +886,6 @@ ${resolution.disclosure}`);
       }
     }
     this.baseSetVal(control, value);
-    /* Every setVal call is a user-authored setting, draft, or configuration mutation.
-     * Navigation uses setState directly and therefore does not reset untouched time. */
-    this.attentionSetLastChanged();
     this.attentionRender();
   };
 
@@ -929,23 +926,23 @@ ${resolution.disclosure}`);
     const created = await this.servers.add(input as never);
     this.forceUpdate();
     if (created) {
-      this.attentionSetLastChanged();
+      this.onUserMutation('server-add');
       this.fire('Connection added', `${created.name} is now in the server list below.`);
     }
-    else this.fire('Not added', 'The control plane did not accept that connection.');
+    else this.fire('Not added', 'The control plane did not accept that connection.', 'error');
   };
 
   /** The design has already run this past `areYouSure` before calling it. */
   onRemoveServerRow = async (name: string): Promise<void> => {
     const server = this.servers.servers.find((s) => s.name === name);
-    if (!server) { this.fire('Not found', `${name} is no longer in the server list.`); return; }
+    if (!server) { this.fire('Not found', `${name} is no longer in the server list.`, 'error'); return; }
     const removed = await this.servers.remove(server.id);
     this.forceUpdate();
     if (removed) {
-      this.attentionSetLastChanged();
+      this.onUserMutation('server-remove');
       this.fire('Connection removed', `${name} was removed from the server list.`);
     }
-    else this.fire('Not removed', 'The control plane did not accept that removal.');
+    else this.fire('Not removed', 'The control plane did not accept that removal.', 'error');
   };
 
   // ---------------------------------------------------------------- onboarding wizard
@@ -1003,14 +1000,14 @@ ${resolution.disclosure}`);
     const created = await this.servers.add(input as never);
     this.forceUpdate();
     if (created) {
-      this.attentionSetLastChanged();
+      this.onUserMutation('onboarding-connect');
       this.fire('Connected', `${created.name} was added to the server list and is available on Deploy & servers.`);
       void this.discover();
       this.set('onboardOpen', false);
       this.set('screen', 'servers');
       this.set('railId', 'app');
     } else {
-      this.fire('Not connected', 'The control plane did not accept that connection. Nothing was written.');
+      this.fire('Not connected', 'The control plane did not accept that connection. Nothing was written.', 'error');
     }
   }
 
@@ -1022,18 +1019,18 @@ ${resolution.disclosure}`);
   private async onboardDeploy(): Promise<void> {
     if (!this.target.connected) {
       if (!canProvision(this.runtime)) {
-        this.fire('No target', `Nothing is connected and a runtime cannot be created here: ${runtimeLabel(this.runtime)}`);
+        this.fire('No target', `Nothing is connected and a runtime cannot be created here: ${runtimeLabel(this.runtime)}`, 'warning');
         return;
       }
       this.toast('Creating the Asterisk runtime for the wizard — this takes a while.');
       const provisioned = await this.request('runtime.provision');
       if (!provisioned?.ok) {
-        this.fire('Not created', provisioned?.message ?? 'Creating the runtime did not succeed, so there is nothing to deploy to.');
+        this.fire('Not created', provisioned?.message ?? 'Creating the runtime did not succeed, so there is nothing to deploy to.', 'error');
         return;
       }
       await this.discover();
       if (!this.target.connected) {
-        this.fire('No target', 'The runtime was created but nothing is connected yet — open Deploy & servers to finish connecting, then try the wizard again.');
+        this.fire('No target', 'The runtime was created but nothing is connected yet — open Deploy & servers to finish connecting, then try the wizard again.', 'warning');
         return;
       }
     }
@@ -1067,7 +1064,7 @@ ${resolution.disclosure}`);
           const response = await this.request('pbx.apply', { serverId: this.target.id, payload: { documents: plan.documents } });
           const result = (response as { data?: { result?: { status: string; message?: string } }; message?: string } | undefined);
           if (!response?.ok) {
-            this.fire('Deploy not applied', `${response?.message ?? result?.data?.result?.message ?? 'The target refused the change.'}`);
+            this.fire('Deploy not applied', `${response?.message ?? result?.data?.result?.message ?? 'The target refused the change.'}`, 'error');
             return;
           }
           const secretLines = plan.newExtensions.map((e) => `${e.id}: ${e.secret}`).join('\n');
@@ -1080,7 +1077,7 @@ ${resolution.disclosure}`);
               'Every changed file was backed up first and is in local history if you need to undo this.',
             ].filter(Boolean).join('\n\n'),
           );
-          this.attentionSetLastChanged();
+          this.onUserMutation('onboarding-deploy');
           this.set('onboardOpen', false);
           this.set('screen', 'servers');
           this.set('railId', 'app');
@@ -1108,9 +1105,9 @@ ${resolution.disclosure}`);
    */
   onPickRow = (name: string): void => {
     const value = this.pjsipValue();
-    if (!value) { this.fire('Not loaded', 'The pjsip.conf on this target has not been read yet.'); return; }
+    if (!value) { this.fire('Not loaded', 'The pjsip.conf on this target has not been read yet.', 'warning'); return; }
     const endpoint = findEndpoint(value, name);
-    if (!endpoint) { this.fire('Not loaded', `${name} is not in this target's pjsip.conf.`); return; }
+    if (!endpoint) { this.fire('Not loaded', `${name} is not in this target's pjsip.conf.`, 'warning'); return; }
     this.editingEndpoint = name;
     const state = this.state as { values: Record<string, unknown> };
     this.setState({ values: { ...state.values, ...controlValuesFor(endpoint) } } as never);
@@ -1149,7 +1146,7 @@ ${resolution.disclosure}`);
 
     if (verb === 'Exported') {
       if (plan.affected.length === 0) {
-        this.fire('Nothing to export', message);
+        this.fire('Nothing to export', message, 'warning');
         return;
       }
       const byId = new Map(rows.map((r) => [r[0], r] as const));
@@ -1252,6 +1249,7 @@ ${resolution.disclosure}`);
     const account = s.lockTarget || s.lockKey || 'this element';
     const uri = pairingUri({ issuer: 'Ding PBX Console', account, parameters: { secret } });
     this.setState({ totpPendingSecret: secret, totpPendingUri: uri } as never);
+    this.onUserMutation('authenticator-pair');
     this.showInfo(
       'Authenticator secret',
       `Generated on this computer just now and never sent anywhere. Base32 secret: ${secret} - `
@@ -1290,7 +1288,7 @@ ${resolution.disclosure}`);
       ...(needsTotp ? { totpSecret: s.totpPendingSecret } : {}),
     };
     this.setState({ locks: L, lockOpen: false, totpPendingSecret: undefined, totpPendingUri: undefined } as never);
-    this.attentionSetLastChanged();
+    this.onUserMutation('lock-create');
     this.toast(`${s.lockTarget} is locked with ${s.lockMethod} -- the surface is now disabled`);
   };
 
@@ -1349,7 +1347,7 @@ ${resolution.disclosure}`);
       locks: n, unlockOpen: false, unlockPin: '', unlockPw: '', unlockTotpDigits: '', unlockPhase: undefined,
       ladderActive: false, ladderChallenge: null,
     } as never);
-    this.attentionSetLastChanged();
+    this.onUserMutation('lock-remove');
     this.fire('Unlocked', 'Welcome back.');
   };
 
@@ -1382,9 +1380,9 @@ ${resolution.disclosure}`);
   /** Writes the controls back onto the endpoint they were loaded from. */
   onSaveEndpoint = async (): Promise<void> => {
     const value = this.pjsipValue();
-    if (!value || !this.editingEndpoint) { this.fire('Nothing to save', 'Select an endpoint first.'); return; }
+    if (!value || !this.editingEndpoint) { this.fire('Nothing to save', 'Select an endpoint first.', 'warning'); return; }
     const edit = applyControlValues(value, this.editingEndpoint, (this.state as { values: Record<string, unknown> }).values);
-    if ('error' in edit) { this.fire('Not saved', edit.error); return; }
+    if ('error' in edit) { this.fire('Not saved', edit.error, 'error'); return; }
     if (edit.summary.length === 0) { this.toast('Nothing changed, so nothing was written.'); return; }
     await this.writePjsip(editDocument(edit, PJSIP_RESOURCE), edit.summary, `${this.editingEndpoint} updated`);
   };
@@ -1392,10 +1390,10 @@ ${resolution.disclosure}`);
   /** Removes the loaded endpoint, meaning all three of its sections. */
   onDeleteEndpoint = (): void => {
     const value = this.pjsipValue();
-    if (!value || !this.editingEndpoint) { this.fire('Nothing to remove', 'Select an endpoint first.'); return; }
+    if (!value || !this.editingEndpoint) { this.fire('Nothing to remove', 'Select an endpoint first.', 'warning'); return; }
     const name = this.editingEndpoint;
     const removal = removeEndpoint(value, name);
-    if ('error' in removal) { this.fire('Not removed', removal.error); return; }
+    if ('error' in removal) { this.fire('Not removed', removal.error, 'error'); return; }
     this.areYouSure('Remove ' + name, removal.summary.join('\n'), 3, () => {
       void this.writePjsip(editDocument(removal, PJSIP_RESOURCE), removal.summary, `${name} removed`).then(() => {
         this.editingEndpoint = '';
@@ -1407,7 +1405,7 @@ ${resolution.disclosure}`);
   onCreateEndpoint = async (): Promise<void> => {
     const value = this.pjsipValue() ?? [];
     const draft = buildEndpointDraft(value, (this.state as { values: Record<string, unknown> }).values);
-    if ('error' in draft) { this.fire('Not created', draft.error); return; }
+    if ('error' in draft) { this.fire('Not created', draft.error, 'error'); return; }
     const applied = await this.writePjsip(endpointDocument(draft), draft.summary, `${draft.view.endpoints.slice(-1)[0].name} created`);
     /* Shown once, and deliberately never in the plan above: a plan gets read aloud and
      * screenshotted, and a password has no business in one. */
@@ -1422,15 +1420,15 @@ It is shown once. The phone needs it to register.`);
   private async writePjsip(document: { resource: string; value: ConfigValue }, summary: string[], done: string): Promise<boolean> {
     const payload = { documents: [{ resource: document.resource, value: document.value }] };
     const planned = await this.request('pbx.plan', { serverId: this.target.id, payload });
-    if (!planned?.ok) { this.fire('Not written', planned?.message ?? 'The control plane did not answer.'); return false; }
+    if (!planned?.ok) { this.fire('Not written', planned?.message ?? 'The control plane did not answer.', 'error'); return false; }
     const applied = await this.request('pbx.apply', { serverId: this.target.id, payload });
-    if (!applied?.ok) { this.fire('Not written', applied?.message ?? 'The change was planned but not applied.'); return false; }
+    if (!applied?.ok) { this.fire('Not written', applied?.message ?? 'The change was planned but not applied.', 'error'); return false; }
     /* The reading is now stale, and a stale reading is how the next edit gets built on a
      * value that is no longer there. */
     delete this.configs.endpoints;
     this.seeded.delete('endpoints');
     this.fire(done, summary.join('\n'));
-    this.attentionSetLastChanged();
+    this.onUserMutation('endpoint-write');
     this.forceUpdate();
     return true;
   }
@@ -1984,7 +1982,7 @@ It is shown once. The phone needs it to register.`);
     this.setState((st: { values: Record<string, unknown> }) => ({
       values: { ...st.values, ap_hue: Math.floor(Math.random() * 360) },
     }));
-    this.attentionSetLastChanged();
+    this.onUserMutation('appearance-random');
     this.fire('Bold choice', 'Nobody will ever say it is boring.');
   }
 
@@ -2001,13 +1999,13 @@ It is shown once. The phone needs it to register.`);
       return { values: next };
     });
     this.applyAppearanceToDom(resetAll(this.buildAppearanceTheme(this.currentAppearanceValues())));
-    this.attentionSetLastChanged();
+    this.onUserMutation('appearance-reset');
     this.toast('Appearance reset to the design system');
   }
 
   private saveAppearance(): void {
     this.syncAppearance();
-    this.attentionSetLastChanged();
+    this.onUserMutation('appearance-save');
     this.fire('Appearance saved', 'It will still be set the next time this opens.');
   }
 
@@ -2069,8 +2067,8 @@ It is shown once. The phone needs it to register.`);
           connected: this.target.connected,
           serverId: this.target.id,
           request: (action, extra) => this.request(action, extra) as Promise<CeremonyResponse | undefined>,
-          toast: (message) => this.toast(message),
-          fire: (title, body) => this.fire(title, body),
+          toast: (message, severity) => this.toast(message, severity),
+          fire: (title, body, severity) => this.fire(title, body, severity),
         });
       },
       /* The real file, for the screens that edit one. A screen showing the target's own
