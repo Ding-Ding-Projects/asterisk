@@ -16,9 +16,16 @@ term() {
 }
 trap term INT TERM
 
-while kill -0 "$server_pid" 2>/dev/null; do
+while kill -0 "$server_pid" 2>/dev/null && kill -0 "$asterisk_pid" 2>/dev/null; do
   sleep 1
 done
+if ! kill -0 "$asterisk_pid" 2>/dev/null; then
+  echo 'Asterisk exited, so the hosted control plane is not viable.' >&2
+  kill -TERM "$server_pid" 2>/dev/null || true
+  wait "$asterisk_pid" 2>/dev/null || true
+  wait "$server_pid" 2>/dev/null || true
+  exit 1
+fi
 status=0
 wait "$server_pid" || status=$?
 kill -TERM "$asterisk_pid" 2>/dev/null || true

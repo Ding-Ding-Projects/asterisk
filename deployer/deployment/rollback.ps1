@@ -4,6 +4,8 @@ param(
     [Parameter(Mandatory)] [string]$CurrentImage,
     [Parameter(Mandatory)] [string]$TlsCertFile,
     [Parameter(Mandatory)] [string]$TlsKeyFile,
+    [Parameter(Mandatory)] [string]$ManifestPath,
+    [Parameter(Mandatory)] [string]$PreflightEvidencePath,
     [string]$ComposeFile = "$PSScriptRoot\docker-compose.yml",
     [string]$ProjectName = 'ding-pbx-control-plane',
     [switch]$Execute
@@ -29,6 +31,8 @@ if (-not $Execute) {
     -PreviousImageRef $CurrentImage `
     -TlsCertFile $TlsCertFile `
     -TlsKeyFile $TlsKeyFile `
+    -ManifestPath $ManifestPath `
+    -PreflightEvidencePath $PreflightEvidencePath `
     -ComposeFile $ComposeFile `
     -ProjectName $ProjectName `
     -Execute

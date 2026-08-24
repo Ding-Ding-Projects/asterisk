@@ -13,6 +13,7 @@ $repoRoot = (Resolve-Path -LiteralPath (Join-Path $deploymentRoot '..\..')).Path
 $dockerfile = Join-Path $deploymentRoot 'control-plane.Dockerfile'
 $consoleLockfile = Join-Path $repoRoot 'console\package-lock.json'
 $inputManifest = Join-Path $deploymentRoot 'inputs.lock.json'
+. (Join-Path $deploymentRoot 'provenance.ps1')
 
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     throw 'Docker is not available on PATH. Start a local Linux Docker engine before building; this script never contacts a host or deploys.'
@@ -36,20 +37,20 @@ $dockerfileSha = File-Sha256 $dockerfile
 $consoleLockSha = File-Sha256 $consoleLockfile
 $inputManifestSha = File-Sha256 $inputManifest
 $archivePath = Join-Path ([System.IO.Path]::GetTempPath()) "ding-pbx-source-$PID.tar"
-try {
-    & git -C $repoRoot archive --format=tar --output=$archivePath HEAD
-    if ($LASTEXITCODE -ne 0) { throw "git archive exited with $LASTEXITCODE" }
-    $sourceTreeSha = File-Sha256 $archivePath
-} finally {
-    if (Test-Path -LiteralPath $archivePath) { Remove-Item -LiteralPath $archivePath -Force }
-}
+$contextRoot = Join-Path ([System.IO.Path]::GetTempPath()) "ding-pbx-source-context-$PID"
+New-Item -ItemType Directory -Force -Path $contextRoot | Out-Null
+& git -C $repoRoot archive --format=tar --output=$archivePath HEAD
+if ($LASTEXITCODE -ne 0) { throw "git archive exited with $LASTEXITCODE" }
+$sourceTreeSha = File-Sha256 $archivePath
+& tar.exe -xf $archivePath -C $contextRoot
+if ($LASTEXITCODE -ne 0) { throw "tar extraction of the exact git archive exited with $LASTEXITCODE" }
 
 if ([string]::IsNullOrWhiteSpace($Tag)) {
     $Tag = "ding-pbx-control-plane:$($sourceCommit.Substring(0, 12))"
 }
 $buildArgs = @(
     'build',
-    '--file', $dockerfile,
+    '--file', (Join-Path $contextRoot 'deployer\deployment\control-plane.Dockerfile'),
     '--build-arg', "SOURCE_COMMIT=$sourceCommit",
     '--build-arg', "SOURCE_TREE_COMMIT=$sourceCommit",
     '--build-arg', "SOURCE_TREE_SHA256=$sourceTreeSha",
@@ -63,7 +64,7 @@ $buildArgs = @(
     '--tag', $Tag
 )
 if ($NoCache) { $buildArgs += '--no-cache' }
-$buildArgs += $repoRoot
+$buildArgs += $contextRoot
 
 Write-Host "Building hosted control plane from commit $sourceCommit with Docker's Linux engine."
 Write-Host "Image tag: $Tag"
@@ -81,24 +82,29 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($imageId)) {
 $container = "ding-pbx-provenance-$PID"
 $provenancePath = Join-Path ([System.IO.Path]::GetTempPath()) "$container.json"
 $sbomPath = Join-Path ([System.IO.Path]::GetTempPath()) "$container-sbom.txt"
+$sbomHashPath = Join-Path ([System.IO.Path]::GetTempPath()) "$container-sbom.sha256"
 $nodeVersionPath = Join-Path ([System.IO.Path]::GetTempPath()) "$container-node.txt"
 try {
-    & docker create --name $container $Tag | Out-Null
+    & docker create --label io.ding.pbx.inspect=true --name $container $Tag | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "docker create exited with $LASTEXITCODE" }
     & docker cp "${container}:/opt/ding-pbx-console/provenance.json" $provenancePath | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "docker cp provenance exited with $LASTEXITCODE" }
     $provenance = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
-    if ($provenance.sourceCommit -ne $sourceCommit -or $provenance.sourceTreeCommit -ne $sourceCommit) { throw 'Embedded provenance does not match the source commit.' }
-    if ($provenance.sourceTreeSha256 -ne $sourceTreeSha -or $provenance.dockerfileSha256 -ne $dockerfileSha -or $provenance.consoleLockSha256 -ne $consoleLockSha -or $provenance.inputManifestSha256 -ne $inputManifestSha) { throw 'Embedded provenance does not match the build input digests.' }
-    if ($provenance.imageVersion -ne $Version -or $provenance.imageDigest -ne $ImageDigest -or $provenance.ubuntuSnapshot -ne '20260824T000000Z') { throw 'Embedded provenance has an unexpected digest, version, or package snapshot.' }
+    Assert-ProvenanceRecord -Record $provenance -ExpectedCommit $sourceCommit -ExpectedVersion $Version -ExpectedDockerfileSha256 $dockerfileSha -ExpectedConsoleLockSha256 $consoleLockSha -ExpectedInputManifestSha256 $inputManifestSha | Out-Null
+    if ($provenance.sourceTreeSha256 -ne $sourceTreeSha -or $provenance.imageDigest -ne $ImageDigest -or $provenance.ubuntuSnapshot -ne '20260824T000000Z') { throw 'Embedded provenance has an unexpected digest, source-tree hash, or package snapshot.' }
     & docker cp "${container}:/opt/ding-pbx-console/sbom-apt.txt" $sbomPath | Out-Null
+    & docker cp "${container}:/opt/ding-pbx-console/sbom-apt.sha256" $sbomHashPath | Out-Null
     & docker cp "${container}:/opt/ding-pbx-console/node-runtime-version.txt" $nodeVersionPath | Out-Null
     if (-not (Test-Path -LiteralPath $sbomPath) -or (Get-Item -LiteralPath $sbomPath).Length -eq 0) { throw 'The image did not contain an apt package SBOM.' }
+    if ((Get-FileHash -LiteralPath $sbomPath -Algorithm SHA256).Hash.ToLowerInvariant() -ne ((Get-Content -Raw -LiteralPath $sbomHashPath).Trim().Split(' ')[0])) { throw 'The apt SBOM hash record does not match its contents.' }
+    if ($provenance.aptSbomSha256 -ne ((Get-Content -Raw -LiteralPath $sbomHashPath).Trim().Split(' ')[0])) { throw 'Embedded provenance does not match the apt SBOM hash.' }
     if ((Get-Content -Raw -LiteralPath $nodeVersionPath).Trim() -ne 'v22.23.2') { throw 'The copied Node runtime is not v22.23.2.' }
 } finally {
-    & docker rm $container | Out-Null
+    $owned = (& docker inspect --format '{{index .Config.Labels "io.ding.pbx.inspect"}}' $container 2>$null).Trim()
+    if ($owned -eq 'true') { & docker rm $container | Out-Null }
     if (Test-Path -LiteralPath $provenancePath) { Remove-Item -LiteralPath $provenancePath -Force }
     if (Test-Path -LiteralPath $sbomPath) { Remove-Item -LiteralPath $sbomPath -Force }
+    if (Test-Path -LiteralPath $sbomHashPath) { Remove-Item -LiteralPath $sbomHashPath -Force }
     if (Test-Path -LiteralPath $nodeVersionPath) { Remove-Item -LiteralPath $nodeVersionPath -Force }
 }
 
@@ -125,3 +131,5 @@ $recordPath = Join-Path $OutputDirectory 'control-plane-image.json'
 [System.IO.File]::WriteAllText($recordPath, ($record | ConvertTo-Json -Depth 4), [System.Text.UTF8Encoding]::new($false))
 Write-Host "Built image verified for source commit $sourceCommit."
 Write-Host "Provenance record: $recordPath"
+if (Test-Path -LiteralPath $archivePath) { Remove-Item -LiteralPath $archivePath -Force }
+if (Test-Path -LiteralPath $contextRoot) { Remove-Item -LiteralPath $contextRoot -Recurse -Force }

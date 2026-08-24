@@ -19,6 +19,8 @@
 - [x] Add immutable image-reference validation, provenance inspection, bounded health wait, automatic rollback, resource limits, internal egress policy, and atomic first-setup protections.
 - [x] Add source-tree, Dockerfile, lockfile, input-manifest, apt snapshot, Node runtime, and apt SBOM records to the hosted image contract.
 - [x] Require the exact private inventory tuple, persistent known-hosts path, capacity thresholds, architecture, port, conflict, and workload checks for approved-host preflight.
+- [x] Add external deployment-manifest validation, owned-container and volume verification, local Asterisk readiness gating, and automatic rollback after liveness or readiness failure.
+- [x] Add named hosted refusals for WSL-only configuration, media, history, connect, and snapshot operations while exposing the local Asterisk target as a discoverable read-only target.
 - [ ] Build and publish a hosted image from a verified commit.
 - [ ] Run the read-only preflight against the chosen local or approved private target.
 - [ ] Deploy the hosted image, verify the health response and persistent volume, and retain rollback evidence.

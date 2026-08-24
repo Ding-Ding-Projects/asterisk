@@ -6,6 +6,7 @@ $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
 $resourceRoot = Join-Path $repoRoot 'console\resources'
 $bundlePath = Join-Path $resourceRoot 'asterisk-wsl-rootfs.tar'
 $provenancePath = Join-Path $resourceRoot 'asterisk-wsl-rootfs.json'
+$trustedManifestPath = Join-Path $resourceRoot 'asterisk-wsl-trusted-manifest.json'
 $dockerfile = Join-Path $PSScriptRoot 'asterisk-wsl-runtime.Dockerfile'
 $sourceCommit = (& git -C $repoRoot rev-parse HEAD).Trim()
 $baseDigest = 'sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517'
@@ -17,7 +18,7 @@ function Get-Sha256([string]$Path) {
     finally { $algorithm.Dispose(); $stream.Dispose() }
 }
 
-if (-not $Force -and (Test-Path -LiteralPath $bundlePath) -and (Test-Path -LiteralPath $provenancePath)) {
+if (-not $Force -and (Test-Path -LiteralPath $bundlePath) -and (Test-Path -LiteralPath $provenancePath) -and (Test-Path -LiteralPath $trustedManifestPath)) {
     $existing = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
     if ($existing.sourceCommit -eq $sourceCommit -and $existing.sha256 -eq (Get-Sha256 $bundlePath)) {
         Write-Host "Reusing bundled Asterisk WSL rootfs for $sourceCommit."
@@ -85,6 +86,8 @@ try {
         contents = @('complete Ubuntu root filesystem','Asterisk executable and modules','all apt-installed runtime libraries','systemd unit','WSL configuration','sample Asterisk configuration')
     }
     [System.IO.File]::WriteAllText($provenancePath, ($provenance | ConvertTo-Json -Depth 4), [System.Text.UTF8Encoding]::new($false))
+    $trusted = [ordered]@{ schemaVersion = 1; sourceCommit = $sourceCommit; baseImage = 'ubuntu:24.04'; baseDigest = $baseDigest; runtime = 'wsl2-linux-amd64'; rootfsSha256 = $provenance.sha256; rootfsBytes = $provenance.bytes }
+    [System.IO.File]::WriteAllText($trustedManifestPath, ($trusted | ConvertTo-Json -Depth 4), [System.Text.UTF8Encoding]::new($false))
     Write-Host ("Created {0} ({1} bytes, sha256:{2})." -f $bundlePath,$file.Length,$provenance.sha256)
 } finally {
     if ($containerCreated) { docker rm --force $container | Out-Null }

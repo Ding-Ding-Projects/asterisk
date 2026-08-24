@@ -35,6 +35,8 @@ import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../
 export const HOSTED_UNSUPPORTED_ACTIONS = new Set<string>([
   'runtime.status', 'runtime.provision', 'runtime.stop', 'runtime.remove',
   'daemon.status', 'daemon.start', 'daemon.stop', 'daemon.restart',
+  'server.connect', 'pbx.snapshot', 'pbx.config', 'pbx.plan', 'pbx.apply',
+  'history.list', 'history.restore', 'media.list', 'media.upload', 'media.remove',
 ]);
 
 const TRUSTED_WSL_BASE_DIGEST = 'sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517';
@@ -164,9 +166,11 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     const root = join(resourcesPath, 'asterisk');
     const rootfs = join(root, 'asterisk-wsl-rootfs.tar');
     const provenance = join(root, 'asterisk-wsl-rootfs.json');
-    if (!existsSync(rootfs) || !existsSync(provenance)) return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime is missing.' };
+    const trustedManifest = join(root, 'asterisk-wsl-trusted-manifest.json');
+    if (!existsSync(rootfs) || !existsSync(provenance) || !existsSync(trustedManifest)) return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime or its trusted manifest is missing.' };
     try {
       const record = JSON.parse(readFileSync(provenance, 'utf8')) as Record<string, unknown>;
+      const trusted = JSON.parse(readFileSync(trustedManifest, 'utf8')) as Record<string, unknown>;
       const sourceCommit = typeof record.sourceCommit === 'string' && /^[0-9a-f]{40}$/iu.test(record.sourceCommit);
       const digest = typeof record.sha256 === 'string' && /^[0-9a-f]{64}$/iu.test(record.sha256);
       const bytes = typeof record.bytes === 'number' && Number.isSafeInteger(record.bytes) && record.bytes > 0;
@@ -189,7 +193,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         }
       } finally { closeSync(handle); }
       const actualDigest = hash.digest('hex');
-      if (record.schemaVersion !== 1 || !sourceCommit || !digest || !bytes || !runtime || record.baseDigest !== TRUSTED_WSL_BASE_DIGEST || actualBytes !== record.bytes || actualDigest !== record.sha256) {
+      if (trusted.schemaVersion !== 1 || trusted.sourceCommit !== record.sourceCommit || trusted.baseDigest !== TRUSTED_WSL_BASE_DIGEST || trusted.rootfsSha256 !== record.sha256 || trusted.rootfsBytes !== record.bytes || record.schemaVersion !== 1 || !sourceCommit || !digest || !bytes || !runtime || record.baseDigest !== TRUSTED_WSL_BASE_DIGEST || actualBytes !== record.bytes || actualDigest !== record.sha256) {
         return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime provenance does not match the rootfs bytes.' };
       }
       return { state: 'available', rootfs, provenance, record };
@@ -357,6 +361,13 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         return { ok: answering, requestId: request.requestId, code: answering ? undefined : 'DAEMON_RESTART_FAILED', message: answering ? undefined : outcome.status.reason, data: outcome } as ControlPlaneResponse;
       }
       if (request.action === 'server.list') {
+        if (hosted) {
+          return { ok: true, requestId: request.requestId, data: {
+            observedAt: new Date().toISOString(),
+            targets: [{ id: 'hosted-local-asterisk', displayName: 'Hosted local Asterisk', connectionKind: 'local', capability: 'read-only CLI and PBX readings' }],
+            unsupported: [...HOSTED_UNSUPPORTED_ACTIONS],
+          } };
+        }
         const [wsl, containers] = await Promise.all([
           targetDiscovery.discoverWslDistributions().catch(error => ({ unavailable: error instanceof Error ? error.message : 'WSL discovery failed' })),
           targetDiscovery.discoverLocalDocker('ding-pbx-console').catch(error => ({ unavailable: error instanceof Error ? error.message : 'Docker discovery failed' })),

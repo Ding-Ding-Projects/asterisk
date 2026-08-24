@@ -12,6 +12,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\deployer\deployment\bu
 
 The script reads `git rev-parse HEAD`, passes that full 40-character commit to Docker, and refuses to report success unless the resulting image label matches it. The Dockerfile pins its Ubuntu and Node build images by digest. The image also stores the source commit, version, and base-image digests in `/opt/ding-pbx-console/provenance.json`. `out/control-plane-image.json` records the local image identifier and the source commit. The build script does not start a container, connect to a host, or deploy anything.
 
+After a registry has returned the immutable image digest, create an external deployment manifest matching `deployment-manifest.schema.json`. It must carry the image digest, source commit, version, `ding-pbx-control-plane`, admin port `8088`, `admin-only` network mode, target kind (`local-docker` or `approved-ssh`), the preflight evidence path, the embedded provenance SHA-256, the source-tree, Dockerfile, lockfile, input-manifest, and apt SBOM SHA-256 values. The manifest lives outside the repository and is the final release identity.
+
 The image has a dedicated non-root UID and GID, a read-only root filesystem in the Compose deployment, dropped Linux capabilities, `no-new-privileges`, bounded temporary filesystems, explicit memory, CPU, PID, file-descriptor, and process limits, an explicit port, a persistent data volume, an OCI revision label, an embedded apt SBOM, a copied Node `22.23.2` runtime, and a Docker healthcheck against `/api/v1/health`.
 
 ## Compose deployment contract
@@ -24,12 +26,12 @@ $env:DING_PBX_SOURCE_COMMIT = '<the-40-character-commit-used-for-the-image>'
 $env:DING_PBX_VERSION = '<the-image-version-derived-from-provenance>'
 $env:DING_PBX_TLS_CERT_FILE = 'C:\private\ding-pbx\tls\fullchain.pem'
 $env:DING_PBX_TLS_KEY_FILE = 'C:\private\ding-pbx\tls\privkey.pem'
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\deployer\deployment\deploy-control-plane.ps1 -ImageRef 'registry.example.invalid/ding-pbx-control-plane@sha256:<verified-image-digest>' -TlsCertFile 'C:\private\ding-pbx\tls\fullchain.pem' -TlsKeyFile 'C:\private\ding-pbx\tls\privkey.pem' -Execute
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\deployer\deployment\deploy-control-plane.ps1 -ImageRef 'registry.example.invalid/ding-pbx-control-plane@sha256:<verified-image-digest>' -TlsCertFile 'C:\private\ding-pbx\tls\fullchain.pem' -TlsKeyFile 'C:\private\ding-pbx\tls\privkey.pem' -ManifestPath 'C:\private\ding-pbx\deployment-manifest.json' -PreflightEvidencePath 'C:\private\ding-pbx\preflight.json' -Execute
 ```
 
 The Compose file uses `127.0.0.1:8088` by default. Set `DING_PBX_BIND_ADDRESS` only after the operator has reviewed the network boundary and TLS setup. TLS files are mounted as Docker secrets and never copied into the image, placed in an environment value, or written to logs. The named volume `ding-pbx-control-plane-data` holds the local account, sessions, server inventory, and history. The volume is not removed during an image change or rollback.
 
-The default restart policy is `unless-stopped`. The service listens on container port `8088`, has a healthcheck with a 20 second start period and three retries, and exposes the source commit and version through labels. `/api/v1/health` is deliberately a redacted process-liveness route and never claims that the PBX target is ready. `/api/v1/ready` requires an authenticated session and checks the configured local Asterisk transport with `asterisk -rx`, so binary presence alone cannot become readiness.
+The default restart policy is `unless-stopped`. The service listens on container port `8088`, has a healthcheck with a 20 second start period and three retries, and exposes the source commit and version through labels. The selected network mode is `admin-only`: only the admin port `8088` is published, no SIP, RTP, AMI, or ARI port is published by this Compose contract, and the Docker network is internal. `/api/v1/health` is deliberately a redacted process-liveness route and never claims that the PBX target is ready. `/api/v1/ready` requires an authenticated session and checks the configured local Asterisk transport with `asterisk -rx`, so binary presence alone cannot become readiness.
 
 ## Read-only preflight inventory
 
@@ -47,15 +49,17 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\deployer\deployment\pr
 
 The host probe reads architecture, CPU count, memory, root filesystem capacity, Docker engine information, port listeners, and every container. It compares the tuple and thresholds with the exact private inventory entry, uses the persistent known-hosts path recorded there, and does not stop or replace an unrelated workload. The host spelling and port must already be approved in the operator's private inventory before this command is run.
 
+Capture the command's JSON output to the preflight evidence path named by the external deployment manifest. Plan-only deployment performs image inspection only. It does not pull images, create temporary containers, remove containers, or change Compose state.
+
 ## Rollback
 
 Rollback means selecting a previously verified immutable image reference while keeping the data volume:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\deployer\deployment\rollback.ps1 -PreviousImage 'registry.example.invalid/ding-pbx-control-plane@sha256:<previous-verified-digest>' -CurrentImage 'registry.example.invalid/ding-pbx-control-plane@sha256:<current-verified-digest>' -TlsCertFile 'C:\private\ding-pbx\tls\fullchain.pem' -TlsKeyFile 'C:\private\ding-pbx\tls\privkey.pem'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\deployer\deployment\rollback.ps1 -PreviousImage 'registry.example.invalid/ding-pbx-control-plane@sha256:<previous-verified-digest>' -CurrentImage 'registry.example.invalid/ding-pbx-control-plane@sha256:<current-verified-digest>' -TlsCertFile 'C:\private\ding-pbx\tls\fullchain.pem' -TlsKeyFile 'C:\private\ding-pbx\tls\privkey.pem' -ManifestPath 'C:\private\ding-pbx\deployment-manifest.json' -PreflightEvidencePath 'C:\private\ding-pbx\preflight.json'
 ```
 
-That command is plan-only. Review the source commit, embedded provenance, image digest, and TLS paths, then add `-Execute` to run the Compose update. The script waits for liveness and automatically restores the current image if the previous image does not become healthy. It never removes the named data volume. If the image fails its healthcheck, inspect `docker compose ps`, `docker compose logs --no-color control-plane`, and the recorded image provenance before choosing another verified image. Do not rebuild an older commit under a new tag and call it a rollback.
+That command is plan-only. Review the external deployment manifest, preflight evidence, source commit, embedded provenance, image digest, and TLS paths, then add `-Execute` to run the Compose update. The script waits for liveness and local Asterisk readiness and automatically restores the current image if either check fails. It verifies the live image digest, owned container labels, all six writable volumes, and the internal network. It never removes the named data volumes. If the image fails its healthcheck, inspect `docker compose ps`, `docker compose logs --no-color control-plane`, and the recorded image provenance before choosing another verified image. Do not rebuild an older commit under a new tag and call it a rollback.
 
 ## Desktop WSL runtime
 

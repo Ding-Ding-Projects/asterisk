@@ -88,6 +88,8 @@ RUN install -d -o ding-pbx -g ding-pbx /etc/asterisk /run/asterisk /var/lib/aste
   chown -R ding-pbx:ding-pbx /etc/asterisk /var/lib/asterisk /var/log/asterisk /var/spool/asterisk /run/asterisk 2>/dev/null || true && \
   chmod 0555 /usr/local/bin/ding-pbx-entrypoint.sh && \
   dpkg-query -W -f='${Package}\t${Version}\n' > /opt/ding-pbx-console/sbom-apt.txt && \
+  sha256sum /opt/ding-pbx-console/sbom-apt.txt > /opt/ding-pbx-console/sbom-apt.sha256 && \
+  aptSbomSha=$(awk '{print $1}' /opt/ding-pbx-console/sbom-apt.sha256) && \
   /usr/local/bin/node --version > /opt/ding-pbx-console/node-runtime-version.txt && \
   printf '%s\n' \
   '{' \
@@ -101,7 +103,8 @@ RUN install -d -o ding-pbx -g ding-pbx /etc/asterisk /run/asterisk /var/lib/aste
   '  "consoleLockSha256": "'"$CONSOLE_LOCK_SHA256"'",' \
   '  "inputManifestSha256": "'"$INPUT_MANIFEST_SHA256"'",' \
   '  "ubuntuSnapshot": "'"$UBUNTU_SNAPSHOT"'",' \
-  '  "sbom": ["sbom-apt.txt", "node-runtime-version.txt"],' \
+  '  "aptSbomSha256": "'"$aptSbomSha"'",' \
+  '  "sbom": ["sbom-apt.txt", "sbom-apt.sha256", "node-runtime-version.txt"],' \
   '  "baseImages": {' \
   '    "runtime": "ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517",' \
   '    "nodeBuild": "node:22.23.2-bookworm-slim@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436"' \

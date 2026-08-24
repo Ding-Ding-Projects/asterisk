@@ -3,7 +3,6 @@ name: ding-pbx-control-plane
 services:
   control-plane:
     image: ${DING_PBX_IMAGE:?Set DING_PBX_IMAGE to the immutable image reference}
-    container_name: ding-pbx-control-plane
     restart: unless-stopped
     init: true
     read_only: true
@@ -26,11 +25,17 @@ services:
       - "${DING_PBX_BIND_ADDRESS:-127.0.0.1}:${DING_PBX_PORT:-8088}:8088"
     volumes:
       - ding-pbx-data:/var/lib/ding-pbx-console
+      - ding-pbx-asterisk-etc:/etc/asterisk
+      - ding-pbx-asterisk-lib:/var/lib/asterisk
+      - ding-pbx-asterisk-log:/var/log/asterisk
+      - ding-pbx-asterisk-spool:/var/spool/asterisk
+      - ding-pbx-asterisk-run:/run/asterisk
     environment:
       DING_HOST: 0.0.0.0
       DING_PORT: 8088
       DING_DATA_DIR: /var/lib/ding-pbx-console
       DING_ASTERISK_TRANSPORT: local
+      DING_PBX_NETWORK_MODE: admin-only
       # TLS paths point at Docker secrets, never at an image layer or a shell
       # variable containing secret bytes.
       DING_TLS_CERT: /run/secrets/tls_cert
@@ -50,12 +55,23 @@ services:
       org.opencontainers.image.version: ${DING_PBX_VERSION:?Set the image version}
       io.ding.pbx.project: ding-pbx
       io.ding.pbx.service: control-plane
+      io.ding.pbx.exposed-surface: admin-only
     networks:
       - control-plane
 
 volumes:
   ding-pbx-data:
     name: ding-pbx-control-plane-data
+  ding-pbx-asterisk-etc:
+    name: ding-pbx-control-plane-asterisk-etc
+  ding-pbx-asterisk-lib:
+    name: ding-pbx-control-plane-asterisk-lib
+  ding-pbx-asterisk-log:
+    name: ding-pbx-control-plane-asterisk-log
+  ding-pbx-asterisk-spool:
+    name: ding-pbx-control-plane-asterisk-spool
+  ding-pbx-asterisk-run:
+    name: ding-pbx-control-plane-asterisk-run
 
 networks:
   control-plane:

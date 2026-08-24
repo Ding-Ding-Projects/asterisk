@@ -67,6 +67,7 @@ export function createServerModeHandler(options: ServerModeOptions) {
   const sessions = new SessionManager({ signingKey });
   const limiter = new LoginRateLimiter();
   let setupNonce: string | undefined;
+  let setupNonceExpiresAt = 0;
   const dispatcher = createControlPlaneDispatcher({
     userDataPath: options.dataDir,
     resourcesPath: options.resourcesDir,
@@ -177,6 +178,7 @@ export function createServerModeHandler(options: ServerModeOptions) {
       if (path === '/api/setup' && req.method === 'GET') {
         const needsSetup = !hasAdminAccount(accountStore);
         setupNonce = needsSetup ? randomUUID() : undefined;
+        setupNonceExpiresAt = needsSetup ? Date.now() + 5 * 60_000 : 0;
         return sendJson(res, 200, { needsSetup, tlsEnabled, setupNonce });
       }
       if (path === '/api/setup' && req.method === 'POST') {
@@ -190,10 +192,11 @@ export function createServerModeHandler(options: ServerModeOptions) {
         }
         /* The nonce is intentionally single-use and process-local. Account creation is
          * still guarded by the durable account file, so a restart cannot reopen setup. */
-        if (body.setupNonce !== setupNonce) {
+        if (body.setupNonce !== setupNonce || Date.now() >= setupNonceExpiresAt) {
           return sendJson(res, 400, { error: 'SETUP_NONCE_INVALID', message: 'That setup nonce is no longer valid. Fetch a fresh setup nonce.' });
         }
         setupNonce = undefined;
+        setupNonceExpiresAt = 0;
         try {
           createAdminAccount(accountStore, String(body.username ?? ''), String(body.password ?? ''));
         } catch (error) {

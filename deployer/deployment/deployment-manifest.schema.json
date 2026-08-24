@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schemaVersion", "image", "sourceCommit", "version", "projectName", "adminPort", "networkMode", "target", "preflightEvidencePath", "provenanceSha256", "sourceTreeSha256", "dockerfileSha256", "consoleLockSha256", "inputManifestSha256", "aptSbomSha256"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "image": { "type": "string", "pattern": "@sha256:[0-9a-f]{64}$" },
+    "sourceCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "version": { "type": "string", "pattern": "^[0-9A-Za-z][0-9A-Za-z._+-]{0,63}$" },
+    "projectName": { "const": "ding-pbx-control-plane" },
+    "adminPort": { "const": 8088 },
+    "networkMode": { "const": "admin-only" },
+    "target": { "enum": ["local-docker", "approved-ssh"] },
+    "preflightEvidencePath": { "type": "string", "minLength": 1 },
+    "provenanceSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+    ,"sourceTreeSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+    ,"dockerfileSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+    ,"consoleLockSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+    ,"inputManifestSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+    ,"aptSbomSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  },
+  "additionalProperties": false
+}

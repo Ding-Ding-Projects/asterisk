@@ -330,7 +330,7 @@
     },
     "hosted-control-plane-deployment": {
       "state": "implemented",
-      "note": "The deployment contract is committed under deployer/deployment: a digest-pinned multi-stage Dockerfile records exact source-tree, Dockerfile, lockfile, input-manifest, apt snapshot, Node runtime, and SBOM provenance. docker-compose.yml uses a non-root UID, read-only root, dropped capabilities, explicit resource limits, internal egress policy, explicit port, liveness healthcheck, persistent data volume, external TLS secrets, restart policy, and ownership labels. Hosted mode uses explicit local Asterisk transport and refuses WSL or daemon lifecycle actions by name. deploy-control-plane.ps1 validates immutable image@sha256 references, derives commit/version from embedded provenance, waits for liveness, and restores the previous image after a health failure. preflight.ps1 reads WSL, local Docker, or an exact private-inventory host without mutation. Deployment itself remains unrun in this lane.",
+      "note": "The deployment contract is committed under deployer/deployment: a digest-pinned multi-stage Dockerfile records exact source-tree, Dockerfile, lockfile, input-manifest, apt snapshot, Node runtime, and SBOM provenance. docker-compose.yml uses a non-root UID, read-only root, dropped capabilities, explicit resource limits, internal admin-only networking, six owned writable volumes, explicit port, liveness healthcheck, external TLS secrets, restart policy, and ownership labels. Hosted mode uses explicit local Asterisk transport and refuses unsupported WSL, daemon, configuration, media, history, connect, and snapshot actions by name. deploy-control-plane.ps1 requires an external immutable deployment manifest and matching preflight evidence, derives commit/version from embedded provenance, waits for liveness and local Asterisk readiness, and restores the previous image after a health failure. preflight.ps1 reads WSL, local Docker, or an exact private-inventory host without mutation. Deployment itself remains unrun in this lane.",
       "files": [
         "deployer/deployment/control-plane.Dockerfile",
         "deployer/deployment/docker-compose.yml",
@@ -339,6 +339,9 @@
         "deployer/deployment/rollback.ps1",
         "deployer/deployment/deploy-control-plane.ps1",
         "deployer/deployment/inputs.lock.json",
+        "deployer/deployment/deployment-manifest.schema.json",
+        "deployer/deployment/provenance.ps1",
+        "console/scripts/build-asterisk-wsl-bundle.ps1",
         "deployer/deployment/hosted-entrypoint.sh",
         "console/server/http-server.ts",
         "console/server/auth.ts",
