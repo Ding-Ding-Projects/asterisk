@@ -30,7 +30,7 @@ function Read-State {
     }
 }
 
-function Write-State([object]$State) {
+function Write-State([object]$State, [switch]$SingleOwner) {
     $parent = Split-Path -Parent $StatePath
     New-Item -ItemType Directory -Force -Path $parent | Out-Null
     $mutexName = 'Local\DingForgeState-' + (([BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash([Text.Encoding]::UTF8.GetBytes($StatePath)))).Replace('-', '').ToLowerInvariant())
@@ -46,8 +46,10 @@ function Write-State([object]$State) {
             if ($existing -and $incomingSessionId -and $existing.sessionId -and [string]$existing.sessionId -ne [string]$incomingSessionId) { throw 'The ConPTY state belongs to a different session.' }
             $expectedRevision = $null
             if ($State -is [hashtable] -and $State.ContainsKey('expectedRevision')) { $expectedRevision = [long]$State['expectedRevision'] }
+            elseif ($State -is [hashtable] -and $State.ContainsKey('revision')) { $expectedRevision = [long]$State['revision'] }
             elseif ($State -isnot [hashtable] -and $null -ne $State.revision) { $expectedRevision = [long]$State.revision }
             $actualRevision = if ($existing -and $null -ne $existing.revision) { [long]$existing.revision } else { 0L }
+            if ($existing -and $null -eq $expectedRevision -and -not $SingleOwner) { throw 'The ConPTY state write omitted its expected revision.' }
             if ($null -ne $expectedRevision -and $actualRevision -ne $expectedRevision) { throw "The ConPTY state revision changed from expected $expectedRevision to actual $actualRevision." }
             $merged = @{}
             if ($existing) { foreach ($property in $existing.PSObject.Properties) { $merged[$property.Name] = $property.Value } }
@@ -85,7 +87,23 @@ function Retire-Terminal-State {
     if ($prior.pid -and $prior.pidStartTicks -and (Test-ProcessIdentity ([int]$prior.pid) ([long]$prior.pidStartTicks))) { throw 'The prior ConPTY helper still has its recorded process identity.' }
     $retired = "$StatePath.retired.$([string]$prior.sessionId).$([string]$prior.revision).json"
     for ($attempt = 1; $attempt -le 8; $attempt++) {
-        try { Move-Item -LiteralPath $StatePath -Destination $retired -Force; return }
+        try {
+            $redacted = @{
+                status = [string]$prior.status
+                sessionId = [string]$prior.sessionId
+                operationId = [string]$prior.operationId
+                revision = [long]$prior.revision
+                exitCode = if ($null -ne $prior.exitCode) { [int]$prior.exitCode } else { $null }
+                corruption = if ($prior.corruption) { [string]$prior.corruption } else { $null }
+                retiredAt = [DateTimeOffset]::UtcNow.ToString('o')
+                message = 'Terminal ConPTY state retained in redacted form.'
+            }
+            [IO.File]::WriteAllText($retired, (($redacted | ConvertTo-Json -Depth 4) + "`n"), [Text.UTF8Encoding]::new($false))
+            Remove-Item -LiteralPath $StatePath -Force
+            $retiredFiles = @(Get-ChildItem -LiteralPath (Split-Path -Parent $StatePath) -Filter ((Split-Path -Leaf $StatePath) + '.retired.*.json') -File | Sort-Object LastWriteTime -Descending)
+            foreach ($old in ($retiredFiles | Select-Object -Skip 3)) { Remove-Item -LiteralPath $old.FullName -Force -ErrorAction SilentlyContinue }
+            return
+        }
         catch { if ($attempt -eq 8) { throw }; Start-Sleep -Milliseconds 40 }
     }
 }
@@ -204,19 +222,20 @@ if ($Mode -eq 'status') { Read-State | ConvertTo-Json -Depth 6; exit 0 }
 if ($Mode -eq 'cancel') {
     $state=Read-State
     if (-not $state -or $state.status -eq 'corrupt') { Write-Error 'The cancellation target state is missing or corrupt; no process was terminated.'; exit 2 }
-    if ([string]$state.sessionId -ne [string]$SessionId -or ($OperationId -and [string]$state.operationId -ne [string]$OperationId)) { Write-State @{status='unknown-side-effect'; message='The cancellation target was stale or could not be proven to be this session.'; sessionId=$SessionId; operationId=$OperationId}; exit 2 }
-    if ($state.pid -and $state.pidStartTicks -and (Test-ProcessIdentity ([int]$state.pid) ([long]$state.pidStartTicks))) { Stop-Process -Id ([int]$state.pid) -Force -ErrorAction SilentlyContinue; Write-State @{status='cancelled'; message='Device sign-in cancelled.'; sessionId=$SessionId; operationId=$OperationId}; exit 0 }
-    Write-State @{status='unknown-side-effect'; message='The cancellation target no longer has the recorded process identity.'; sessionId=$SessionId; operationId=$OperationId}; exit 2
+if ([string]$state.sessionId -ne [string]$SessionId -or ($OperationId -and [string]$state.operationId -ne [string]$OperationId)) { Write-State @{status='unknown-side-effect'; message='The cancellation target was stale or could not be proven to be this session.'; sessionId=$SessionId; operationId=$OperationId; expectedRevision=[long]$state.revision}; exit 2 }
+if ($state.pid -and $state.pidStartTicks -and (Test-ProcessIdentity ([int]$state.pid) ([long]$state.pidStartTicks))) { Stop-Process -Id ([int]$state.pid) -Force -ErrorAction SilentlyContinue; Write-State @{status='cancelled'; message='Device sign-in cancelled.'; sessionId=$SessionId; operationId=$OperationId; expectedRevision=[long]$state.revision}; exit 0 }
+Write-State @{status='unknown-side-effect'; message='The cancellation target no longer has the recorded process identity.'; sessionId=$SessionId; operationId=$OperationId; expectedRevision=[long]$state.revision}; exit 2
 }
 if ($Mode -eq 'validate') { Assert-Tooling; Ensure-ConPtyType; Write-Output 'forge ConPTY helper validated'; exit 0 }
 Assert-Tooling
 if ($Mode -eq 'start') {
     $SessionId=[Guid]::NewGuid().ToString('N')
     Retire-Terminal-State
-    Write-State @{status='starting'; message='Starting gh device sign-in through ConPTY.'; sessionId=$SessionId; operationId=$OperationId; expiresAt=$ExpiresAt}
+    Write-State @{status='starting'; message='Starting gh device sign-in through ConPTY.'; sessionId=$SessionId; operationId=$OperationId; expiresAt=$ExpiresAt} -SingleOwner
     $args=@('-NoLogo','-NoProfile','-ExecutionPolicy','Bypass','-File',$PSCommandPath,'-Mode','run','-StatePath',$StatePath,'-GhPath',$GhPath,'-SessionId',$SessionId,'-OperationId',$OperationId,'-ExpiresAt',$ExpiresAt)
     $child=Start-Process -FilePath 'powershell.exe' -ArgumentList $args -WindowStyle Hidden -PassThru
-    Write-State @{status='pending'; message='gh device sign-in is running through ConPTY.'; sessionId=$SessionId; operationId=$OperationId; expiresAt=$ExpiresAt; pid=$child.Id; pidStartTicks=(Get-ProcessStartTicks $child.Id)}
+    $starting = Read-State
+    Write-State @{status='pending'; message='gh device sign-in is running through ConPTY.'; sessionId=$SessionId; operationId=$OperationId; expiresAt=$ExpiresAt; pid=$child.Id; pidStartTicks=(Get-ProcessStartTicks $child.Id); expectedRevision=[long]$starting.revision}
     [Console]::Out.WriteLine($SessionId)
     exit 0
 }
@@ -224,9 +243,9 @@ if ($Mode -eq 'start') {
 Sanitize-Environment
 Ensure-ConPtyType
 $state=Read-State
-if (-not $state -or $state.status -eq 'corrupt') { $stateMessage = if($state -and $state.corruption){$state.corruption}else{'Device sign-in state is missing.'}; Write-State @{status='failed'; message=$stateMessage; sessionId=$SessionId; operationId=$OperationId; expiresAt=$ExpiresAt}; exit 1 }
+if (-not $state -or $state.status -eq 'corrupt') { $stateMessage = if($state -and $state.corruption){$state.corruption}else{'Device sign-in state is missing.'}; Write-Error $stateMessage; exit 1 }
 if ([string]$state.sessionId -ne [string]$SessionId -or ($OperationId -and [string]$state.operationId -ne [string]$OperationId)) { throw 'The ConPTY state session or operation id does not match.' }
-Write-State @{status='pending'; message='Waiting for the gh device code and approval.'; sessionId=$SessionId; operationId=$OperationId; expiresAt=$ExpiresAt; pid=$PID; pidStartTicks=(Get-ProcessStartTicks $PID)}
+Write-State @{status='pending'; message='Waiting for the gh device code and approval.'; sessionId=$SessionId; operationId=$OperationId; expiresAt=$ExpiresAt; pid=$PID; pidStartTicks=(Get-ProcessStartTicks $PID); expectedRevision=[long]$state.revision}
 $env:GH_BROWSER='cmd.exe /d /c exit 0'
 $env:BROWSER=$env:GH_BROWSER
 $output=New-Object Text.StringBuilder
@@ -250,4 +269,4 @@ try {
   $current.exitCode=$exit
   if($exit -eq 0){$current.status='completed';$current.message='gh device sign-in completed. Read gh auth status to prove keyring storage.'}elseif($exit -eq 130){$current.status='cancelled';$current.message='Device sign-in cancelled.'}elseif($exit -eq 124){$current.status='unknown-side-effect';$current.message='The ConPTY device flow exceeded its deadline before the external outcome was known.'}else{$current.status='failed';$current.message="gh device sign-in ended with exit code $exit."}
   Write-State ([hashtable]$current)
-} catch { Write-State @{status='failed'; message=$_.Exception.Message; sessionId=$SessionId; operationId=$OperationId; expiresAt=$ExpiresAt} }
+} catch { $current = Read-State; if ($current -and $current.status -ne 'corrupt') { Write-State @{status='failed'; message=$_.Exception.Message; sessionId=$SessionId; operationId=$OperationId; expiresAt=$ExpiresAt; expectedRevision=[long]$current.revision} } else { Write-Error $_.Exception.Message } }

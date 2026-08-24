@@ -253,6 +253,7 @@ export class App extends Base {
   private forgeOperation: Record<string, string | number | boolean> = { id: 'idle', status: 'idle', progress: 0, message: 'No forge operation is running.', cancellable: false };
   private forgeDevice: Record<string, string> = { status: 'idle', operationId: 'idle', sessionId: '', revision: '0', message: 'No device sign-in is running.' };
   private forgePollTimer: ReturnType<typeof setInterval> | undefined;
+  private forgeLoadGeneration = 0;
   private forgeOwners: Array<Record<string, string>> = [];
   private forgeReceipts: Array<Record<string, string>> = [];
   private forgeActiveAccountId = '';
@@ -316,9 +317,11 @@ export class App extends Base {
   }
 
   private forgeLoad = async (): Promise<void> => {
+    const generation = ++this.forgeLoadGeneration;
     this.forgeStatus = 'Reading the local provider sign-in store.';
     this.forceUpdate();
     const capabilityResponse = await this.request('forge.capabilities');
+    if (generation !== this.forgeLoadGeneration) return;
     if (capabilityResponse?.ok) {
       this.forgeCapabilities = ((capabilityResponse.data as { providers?: Array<Record<string, unknown>> }).providers ?? []).map((provider) => ({
         label: String(provider.displayName ?? provider.provider ?? ''),
@@ -326,6 +329,7 @@ export class App extends Base {
       }));
     } else {
       this.forgeCapabilities = [];
+      this.forgeLoadGeneration += 1;
       this.forgeAccounts = [];
       this.forgeOwners = [];
       this.forgeActiveAccountId = '';
@@ -347,6 +351,7 @@ export class App extends Base {
       return;
     }
     const response = await this.request('forge.accounts.list');
+    if (generation !== this.forgeLoadGeneration) return;
     const data = response?.data as { accounts?: Array<Record<string, unknown>>; activeAccountId?: string; receipts?: Array<Record<string, unknown>>; operation?: Record<string, unknown>; device?: Record<string, unknown>; corruption?: string; reauthAction?: string } | undefined;
     this.forgeCorruption = data?.corruption ?? '';
     this.forgeActiveAccountId = typeof data?.activeAccountId === 'string' ? data.activeAccountId : '';
@@ -359,7 +364,7 @@ export class App extends Base {
     });
     this.forgeReceipts = (data?.receipts ?? []).map((receipt) => ({ status: String(receipt.status ?? 'unknown'), message: String(receipt.message ?? ''), when: String(receipt.observedAt ?? '') })).slice(0, 12);
     if (data?.operation) this.forgeOperation = { id: String(data.operation.id ?? 'idle'), status: String(data.operation.status ?? 'idle'), progress: Number(data.operation.progress ?? 0), message: String(data.operation.message ?? ''), cancellable: Boolean(data.operation.cancellable) };
-    if (data?.device) this.forgeDevice = { status: String(data.device.status ?? 'idle'), operationId: String(data.device.operationId ?? 'idle'), sessionId: String(data.device.sessionId ?? ''), revision: String(data.device.revision ?? '0'), exitCode: String(data.device.exitCode ?? ''), userCode: String(data.device.userCode ?? ''), verificationUri: String(data.device.verificationUri ?? ''), expiresAt: String(data.device.expiresAt ?? ''), message: String(data.device.message ?? '') };
+    if (data?.device) this.forgeDevice = { status: String(data.device.status ?? 'idle'), operationId: String(data.device.operationId ?? 'idle'), sessionId: String(data.device.sessionId ?? ''), revision: String(data.device.revision ?? '0'), exitCode: String(data.device.exitCode ?? ''), credentialRotation: String(data.device.credentialRotation ?? ''), userCode: String(data.device.userCode ?? ''), verificationUri: String(data.device.verificationUri ?? ''), expiresAt: String(data.device.expiresAt ?? ''), message: String(data.device.message ?? '') };
     if (data?.corruption) this.forgeStatus = data.corruption;
     if (!response?.ok) {
       this.forgeStatus = data?.corruption ? `${data.corruption} ${response?.message ?? ''}`.trim() : (response?.message ?? 'The forge bridge did not answer.');
@@ -379,8 +384,10 @@ export class App extends Base {
   }
 
   private async pollForgeProgress(): Promise<void> {
+    const generation = this.forgeLoadGeneration;
     const expectedOperationId = String(this.forgeOperation.id ?? 'idle');
     const response = await this.request('forge.operation.status', { payload: { operationId: expectedOperationId } });
+    if (generation !== this.forgeLoadGeneration) return;
     if (!response?.ok) {
       if (String(response?.code ?? '') === 'FORGE_STALE_OPERATION') {
         if (this.forgePollTimer) clearInterval(this.forgePollTimer);
@@ -392,7 +399,7 @@ export class App extends Base {
     }
     const operation = (response.data as { operation?: Record<string, unknown> }).operation;
     const device = (response.data as { device?: Record<string, unknown> }).device;
-    if (device) this.forgeDevice = { status: String(device.status ?? 'idle'), operationId: String(device.operationId ?? expectedOperationId), sessionId: String(device.sessionId ?? ''), revision: String(device.revision ?? '0'), exitCode: String(device.exitCode ?? ''), userCode: String(device.userCode ?? ''), verificationUri: String(device.verificationUri ?? ''), expiresAt: String(device.expiresAt ?? ''), message: String(device.message ?? '') };
+    if (device && (expectedOperationId === 'idle' || String(device.operationId ?? expectedOperationId) === expectedOperationId)) this.forgeDevice = { status: String(device.status ?? 'idle'), operationId: String(device.operationId ?? expectedOperationId), sessionId: String(device.sessionId ?? ''), revision: String(device.revision ?? '0'), exitCode: String(device.exitCode ?? ''), credentialRotation: String(device.credentialRotation ?? ''), userCode: String(device.userCode ?? ''), verificationUri: String(device.verificationUri ?? ''), expiresAt: String(device.expiresAt ?? ''), message: String(device.message ?? '') };
     if (!operation) return;
     const operationId = String(operation.id ?? 'idle');
     if (expectedOperationId !== 'idle' && operationId !== expectedOperationId) return;
@@ -406,7 +413,9 @@ export class App extends Base {
   }
 
   private forgeLoadOwners = async (): Promise<void> => {
+    const generation = this.forgeLoadGeneration;
     const response = await this.request('forge.owners.list', { payload: { accountId: this.forgeActiveAccountId } });
+    if (generation !== this.forgeLoadGeneration) return;
     if (!response?.ok) {
       this.forgeStatus = response?.message ?? 'Owners could not be loaded. Re-authenticate beside this surface if requested.';
       this.forceUpdate();

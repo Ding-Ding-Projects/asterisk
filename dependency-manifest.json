@@ -19,15 +19,17 @@
       "archiveDigestProvenance": {
         "algorithm": "SHA-256",
         "verifiedAt": "2026-08-24",
+        "scope": "bootstrap-only",
+        "releaseAsset": "github-release:cli/cli@v2.97.0#gh_2.97.0_windows_amd64.zip",
         "sources": [
           {
-            "url": "https://github.com/ScoopInstaller/Main/blob/master/bucket/gh.json",
-            "path": "architecture.64bit.hash",
+            "identity": "github-release:cli/cli@v2.97.0#gh_2.97.0_windows_amd64.zip",
+            "path": "release-asset-sha256",
             "value": "35d7fe05c4dd1411ffda1e73dfc7c6f44b75c936ca51fa6595c657fdc0350cec"
           },
           {
-            "url": "https://github.com/zhcndoc/mise/blob/main/mise.lock",
-            "path": "tools.gh.platforms.windows-x64.checksum",
+            "identity": "github-release:cli/cli@v2.97.0#gh_2.97.0_windows_amd64.zip",
+            "path": "release-asset-sha256-corroboration",
             "value": "35d7fe05c4dd1411ffda1e73dfc7c6f44b75c936ca51fa6595c657fdc0350cec"
           }
         ]
