@@ -341,7 +341,11 @@ export class App extends Base {
 
   private restoreAttentionHistory(): void {
     const raw = this.durableStorage.storage.getItem(NOTICE_HISTORY_SETTING_KEY);
-    if (!raw) return;
+    if (raw === null) return;
+    if (raw === '') {
+      this.attentionHistoryCorrupt = true;
+      return;
+    }
     try {
       const parsed = JSON.parse(raw) as { schemaVersion?: number; entries?: unknown };
       if (parsed.schemaVersion !== NOTICE_HISTORY_SCHEMA_VERSION || !Array.isArray(parsed.entries)) {

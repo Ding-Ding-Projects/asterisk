@@ -72,6 +72,10 @@ function verifyAttentionWiring() {
       ['url https://example.invalid/Program Files/(old)[x], retry after bridge', 'url [url omitted], retry after bridge'],
       ['path C:/Program Files/retry because please will/settings, the recovery text', 'path [path omitted], the recovery text'],
       ['url https://example.invalid/retry/because/please/will path, this recovery', 'url [url omitted], this recovery'],
+      ['path configs/pjsip.conf, the recovery text', 'path [path omitted], the recovery text'],
+      ['path retry/because/please/will/pjsip.conf; check this recovery', 'path [path omitted]; check this recovery'],
+      ['HTTPS://example.invalid/config, the recovery text', '[url omitted], the recovery text'],
+      ['FILE:///C:/Program Files/pjsip.conf; this recovery', '[url omitted]; this recovery'],
     ]) {
       if (redactNoticeText(input) !== expected) throw new Error('Redaction span fixture failed: ' + input);
     }
@@ -97,6 +101,7 @@ function verifyAttentionWiring() {
     let overlapRejected = false;
     try { redactNoticeText('abcdef', [{ field:'body', start:0, end:4, kind:'path' }, { field:'body', start:3, end:6, kind:'url' }], 'body'); } catch { overlapRejected = true; }
     if (!overlapRejected) throw new Error('Structured overlap fixture stayed green.');
+    if (!sources.app.includes('if (raw === null) return;') || !sources.app.includes("if (raw === '')") || !sources.app.includes('Reset unreadable history')) throw new Error('Empty-history recovery surface is incomplete.');
     for (const row of ATTENTION_WIRING) {
       const markers = [row.designMarker, row.controlConstruction, row.durableKey, ...row.writerMarkers, ...row.setterMarkers, ...row.consumerMarkers];
       for (const marker of markers) {

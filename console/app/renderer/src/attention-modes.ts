@@ -89,7 +89,8 @@ function markerForSpan(kind: SensitiveSpanKind): string {
   return kind === 'url' ? URL_MARKER : kind === 'credential' ? CREDENTIAL_MARKER : PATH_MARKER;
 }
 const CREDENTIAL_KEY = /^(?:password|passphrase|secret|token|pin|code|api[_ -]?key|access[_ -]?token|refresh[_ -]?token|credential)\s*[:=]\s*/iu;
-const PBX_BASENAME = /^(?:pjsip|extensions|queues|http|acl|asterisk|modules|logger|rtp|cdr|cel|features|musiconhold|voicemail)(?:\.conf)?(?:[\\/]|$)/iu;
+const PBX_BASENAME = /^(?:pjsip|extensions|queues|http|acl|asterisk|modules|logger|rtp|cdr|cel|features|musiconhold|voicemail)(?:\.conf)?(?:[\\/]|(?=[,;\s)\]}]|$))/iu;
+const PBX_RELATIVE_PATH = /^(?:[A-Za-z0-9._-]+[\\/])+(?:pjsip|extensions|queues|http|acl|asterisk|modules|logger|rtp|cdr|cel|features|musiconhold|voicemail)(?:\.conf)?(?:[\\/]|(?=[,;\s)\]}]|$))/iu;
 
 function isQuote(value: string): boolean { return value === '"' || value === "'" || value === '`'; }
 function isUrlStart(value: string, index: number): boolean { return /^(?:https?|file):\/\//iu.test(value.slice(index)); }
@@ -97,10 +98,11 @@ function isPathStart(value: string, index: number): boolean {
   const before = index === 0 ? '' : value[index - 1];
   if (before && !/[\s=(\[{<]/u.test(before)) return false;
   return /^(?:[A-Za-z]:[\\/]|\\\\|\/(?:etc|var|home|tmp|opt|srv|mnt|usr)(?:\/|$)|\.{1,2}[\\/])/u.test(value.slice(index))
-    || PBX_BASENAME.test(value.slice(index));
+    || PBX_BASENAME.test(value.slice(index))
+    || PBX_RELATIVE_PATH.test(value.slice(index));
 }
 function isSensitiveQuoted(value: string): boolean {
-  return isUrlStart(value, 0) || /^(?:[A-Za-z]:[\\/]|\\\\|\/(?:etc|var|home|tmp|opt|srv|mnt|usr)(?:\/|$)|\.{1,2}[\\/])/u.test(value) || PBX_BASENAME.test(value);
+  return isUrlStart(value, 0) || /^(?:[A-Za-z]:[\\/]|\\\\|\/(?:etc|var|home|tmp|opt|srv|mnt|usr)(?:\/|$)|\.{1,2}[\\/])/u.test(value) || PBX_BASENAME.test(value) || PBX_RELATIVE_PATH.test(value);
 }
 function scanToDelimiter(value: string, start: number, _url: boolean): number {
   let index = start;
@@ -153,7 +155,7 @@ function redactUnstructuredText(value: string): string {
       const inner = input.slice(index + 1, end);
       const quotedCredential = inner.match(CREDENTIAL_KEY);
       if (quotedCredential) output += `${ch}${quotedCredential[0]}${CREDENTIAL_MARKER}${ch}`;
-      else output += isSensitiveQuoted(inner) ? `${ch}${inner.startsWith('http') || inner.startsWith('file:') ? URL_MARKER : PATH_MARKER}${ch}` : input.slice(index, Math.min(end + 1, input.length));
+      else output += isSensitiveQuoted(inner) ? `${ch}${/^(?:https?|file):\/\//iu.test(inner) ? URL_MARKER : PATH_MARKER}${ch}` : input.slice(index, Math.min(end + 1, input.length));
       index = Math.min(end + 1, input.length);
       continue;
     }

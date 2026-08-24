@@ -264,8 +264,9 @@
         "key": "console.attention.noticeHistory",
         "schemaVersion": 1,
         "maxEntries": 200,
-        "redaction": "redactNoticeText uses bounded structured spans for Windows, UNC, POSIX, relative, and PBX paths plus file and HTTP URLs, preserving trailing recovery text at clause boundaries; quoted credential assignments for password, token, secret, PIN, API key, and access token are redacted before durable write or export",
-        "actions": ["search", "clear", "export", "restore", "show-corrupt-state", "reset-corrupt-state"]
+        "redaction": "redactNoticeText uses bounded structured spans for Windows, UNC, POSIX, bare relative PBX paths, and case-insensitive file and HTTP URLs, preserving trailing recovery text at explicit clause boundaries; quoted credential assignments for password, token, secret, PIN, API key, and access token are redacted before durable write or export",
+        "actions": ["search", "clear", "export", "restore", "show-corrupt-state", "reset-corrupt-state"],
+        "emptyStoredValue": "An absent key means no history; an explicitly stored empty string is corrupt, remains bounded and recoverable, and exposes Reset unreadable history."
       },
       "mutationInventory": { "source": "app/renderer/src/attention-inventory.ts:ATTENTION_MUTATION_INVENTORY", "entries": 61, "validator": "app/renderer/src/attention-modes.ts:verifyAttentionMutationInventory", "passiveExclusions": "app/renderer/src/attention-inventory.ts:ATTENTION_MUTATION_PASSIVE_EXCLUSIONS" },
       "severityInventory": { "source": "app/renderer/src/attention-inventory.ts:ATTENTION_SEVERITY_PRODUCERS", "routes": "app/renderer/src/attention-inventory.ts:ATTENTION_SEVERITY_ROUTES", "entries": 183, "validator": "app/renderer/src/attention-modes.ts:verifyAttentionSeverityProducers" },
