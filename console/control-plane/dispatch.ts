@@ -670,7 +670,10 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         const loopback = ['localhost', '127.0.0.1', '::1'].includes(host.replace(/^\[|\]$/gu, '').toLowerCase());
         const baseUrl = `${loopback ? 'http' : 'https'}://${host}:${port}/ari/`;
         const transport = new AriTransport({ baseUrl, credentialKey: target.credentialKey ?? '', vault: credentialVault });
-        const receipt = await transport.execute(operation as keyof typeof ARI_OPERATIONS);
+        const receipt = await transport.execute(operation as keyof typeof ARI_OPERATIONS, {
+          parameters: (request.payload?.parameters ?? {}) as Readonly<Record<string, string | number | boolean>>,
+          body: request.payload?.body,
+        });
         await recordActionHistory(`ARI ${operation}`, { action: 'ari.operation', operation, state: receipt.state });
         return { ok: receipt.state === 'available', requestId: request.requestId, code: receipt.state === 'available' ? undefined : 'ARI_OPERATION_FAILED', message: receipt.reason, data: receipt } as ControlPlaneResponse;
       }

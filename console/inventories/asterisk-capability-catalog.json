@@ -59,6 +59,10 @@
     { "file": "console/control-plane/dispatch.ts", "needle": "new AsteriskConfigInventory(" },
     { "file": "console/control-plane/ami-ari-transports.ts", "needle": "AMI_ACTION_REGISTRY" },
     { "file": "console/control-plane/ami-ari-transports.ts", "needle": "ARI_OPERATION_REGISTRY" },
+    { "file": "console/control-plane/ami-ari-transports.ts", "needle": "class AmiEventTransport" },
+    { "file": "console/control-plane/ami-ari-transports.ts", "needle": "class AriEventTransport" },
+    { "file": "console/control-plane/dispatch.ts", "needle": "request.action === 'ami.events'" },
+    { "file": "console/control-plane/dispatch.ts", "needle": "request.action === 'ari.events'" },
     { "file": "console/app/renderer/src/App.tsx", "needle": "request('pbx.module'" },
     { "file": "console/app/renderer/src/App.tsx", "needle": "catalogCliSteps(" },
     { "file": "console/app/renderer/src/App.tsx", "needle": "catalogModuleGroups(" }
@@ -74,8 +78,15 @@
     "apiResources": 11
   },
   "expectedRegistrations": {
+    "cli": 314,
     "amiActions": 122,
     "amiEvents": 11,
+    "agi": 48,
+    "applications": 167,
+    "functions": 209,
+    "codecs": 30,
+    "formats": 24,
+    "channels": 11,
     "ariOperations": 109,
     "ariWebSocketOperations": 1
   },

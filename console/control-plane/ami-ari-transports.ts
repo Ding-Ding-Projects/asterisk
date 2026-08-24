@@ -29,14 +29,17 @@ export interface AmiReceipt {
   reason?: string;
 }
 
-export const AMI_ACTIONS: Record<string, { action: string; required: ReadonlyArray<string> }> = {
+export const AMI_ACTIONS: Record<string, { action: string; required: ReadonlyArray<string>; parameters?: unknown }> = {
   ping: { action: "Ping", required: [] },
   coreStatus: { action: "CoreStatus", required: [] },
   commandCatalog: { action: "ListCommands", required: [] },
   moduleList: { action: "ModuleCheck", required: ["Module"] },
 } as const;
 
-for (const action of AMI_ACTION_REGISTRY) AMI_ACTIONS[action.id] = { action: action.name, required: [] };
+for (const action of AMI_ACTION_REGISTRY) {
+  const parameters = (action as unknown as { parameters?: ReadonlyArray<{ name?: string; required?: boolean }> }).parameters ?? [];
+  AMI_ACTIONS[action.id] = { action: action.name, required: parameters.filter((parameter) => parameter.required && typeof parameter.name === 'string').map((parameter) => parameter.name!), parameters };
+}
 
 export type AmiActionName = string;
 
@@ -235,6 +238,11 @@ export interface AriTransportOptions {
   now?: () => Date;
 }
 
+export interface AriOperationInput {
+  parameters?: Readonly<Record<string, string | number | boolean>>;
+  body?: unknown;
+}
+
 /** Bounded ARI HTTP transport with an allowlisted operation catalogue. */
 export class AriTransport {
   readonly #options: Required<Pick<AriTransportOptions, "timeoutMs" | "maxResponseBytes" | "now">> & AriTransportOptions;
@@ -245,7 +253,7 @@ export class AriTransport {
     this.#options = { ...options, timeoutMs: options.timeoutMs ?? 10_000, maxResponseBytes: options.maxResponseBytes ?? 2 * 1024 * 1024, now: options.now ?? (() => new Date()) };
   }
 
-  async execute<T = unknown>(operation: AriOperationName, signal?: AbortSignal): Promise<AriReceipt<T>> {
+  async execute<T = unknown>(operation: AriOperationName, input: AriOperationInput = {}, signal?: AbortSignal): Promise<AriReceipt<T>> {
     const credential = await this.#options.vault.read(this.#options.credentialKey, signal);
     const observedAt = this.#options.now().toISOString();
     if (!credential) return { state: "unavailable", observedAt, operation, reason: "The ARI credential is unavailable in the OS vault." };
@@ -254,9 +262,16 @@ export class AriTransport {
     const abort = () => controller.abort();
     signal?.addEventListener("abort", abort, { once: true });
     try {
-      const spec = ARI_OPERATIONS[operation];
-      const url = new URL(spec.path, this.#options.baseUrl);
-      const response = await fetch(url, { method: spec.method, redirect: "error", signal: controller.signal, headers: { Accept: "application/json", Authorization: `Basic ${Buffer.from(`${credential.username}:${credential.secret}`).toString("base64")}` } });
+      const spec = ARI_OPERATIONS[operation] as typeof ARI_OPERATIONS[string] & { parameters?: ReadonlyArray<{ name?: string; paramType?: string; required?: boolean }> };
+      if (!spec) return { state: "unavailable", observedAt, operation, reason: "The ARI operation is not registered." };
+      const parameters = input.parameters ?? {};
+      const unresolved = [...spec.path.matchAll(/\{([^}]+)\}/gu)].map((match) => match[1]).filter((name) => parameters[name] === undefined);
+      if (unresolved.length > 0) return { state: "unavailable", observedAt, operation, reason: `Missing ARI path parameters: ${unresolved.join(", ")}.` };
+      let path = spec.path.replace(/\{([^}]+)\}/gu, (_match, name: string) => encodeURIComponent(String(parameters[name])));
+      const query = Object.entries(parameters).filter(([name]) => !spec.path.includes(`{${name}}`));
+      if (query.length > 0) path += `?${new URLSearchParams(query.map(([name, value]) => [name, String(value)]))}`;
+      const url = new URL(path, this.#options.baseUrl);
+      const response = await fetch(url, { method: spec.method, redirect: "error", signal: controller.signal, headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Basic ${Buffer.from(`${credential.username}:${credential.secret}`).toString("base64")}` }, body: input.body === undefined ? undefined : JSON.stringify(input.body) });
       const text = await boundedText(response, this.#options.maxResponseBytes);
       let value: T | undefined;
       if (text.trim()) {
@@ -285,7 +300,7 @@ export class AriTransport {
     try {
       for (let index = 0; index < operations.length && !controller.signal.aborted; index += 4) {
         const batch = operations.slice(index, index + 4);
-        const receipts = await Promise.all(batch.map((operation) => this.execute(operation, controller.signal)));
+        const receipts = await Promise.all(batch.map((operation) => this.execute(operation, {}, controller.signal)));
         for (let offset = 0; offset < receipts.length; offset += 1) {
           const receipt = receipts[offset]!;
           if (receipt.state === "available") names.push(ARI_OPERATIONS[batch[offset]!]!.path);
