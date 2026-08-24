@@ -269,7 +269,7 @@
       },
       "mutationInventory": { "source": "app/renderer/src/attention-inventory.ts:ATTENTION_MUTATION_INVENTORY", "entries": 61, "validator": "app/renderer/src/attention-modes.ts:verifyAttentionMutationInventory", "passiveExclusions": "app/renderer/src/attention-inventory.ts:ATTENTION_MUTATION_PASSIVE_EXCLUSIONS" },
       "severityInventory": { "source": "app/renderer/src/attention-inventory.ts:ATTENTION_SEVERITY_PRODUCERS", "routes": "app/renderer/src/attention-inventory.ts:ATTENTION_SEVERITY_ROUTES", "entries": 183, "validator": "app/renderer/src/attention-modes.ts:verifyAttentionSeverityProducers" },
-      "structuredNoticeProducers": { "source": "app/renderer/src/attention-inventory.ts:ATTENTION_STRUCTURED_NOTICE_PRODUCERS", "entries": 2, "validator": "app/renderer/src/attention-modes.ts:verifyAttentionStructuredNoticeProducers", "fallback": "Unstructured context uses privacy-first bounded scanning and is labelled as fallback coverage." },
+      "structuredNoticeProducers": { "source": "app/renderer/src/attention-inventory.ts:ATTENTION_STRUCTURED_NOTICE_PRODUCERS", "entries": 3, "validator": "app/renderer/src/attention-modes.ts:verifyAttentionStructuredNoticeProducers", "fields": ["title", "body"], "fallback": "Unstructured context uses privacy-first bounded scanning and is labelled as fallback coverage." },
       "mutationActions": [
         { "action": "set", "key": "canvasTool", "state": "canvasTool" },
         { "action": "set", "key": "grid", "state": "grid" },

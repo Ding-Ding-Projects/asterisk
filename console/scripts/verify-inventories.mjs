@@ -13,7 +13,7 @@ function verifyAttentionWiring() {
   const source = `
     import { readFileSync } from 'node:fs';
     import { resolve } from 'node:path';
-    import { ATTENTION_MUTATION_INVENTORY, ATTENTION_SEVERITY_PRODUCERS, ATTENTION_SEVERITY_ROUTES, ATTENTION_STRUCTURED_NOTICE_PRODUCERS, ATTENTION_WIRING, redactNoticeText, verifyAttentionMutationInventory, verifyAttentionSeverityProducers, verifyAttentionStructuredNoticeProducers, verifyAttentionWiring } from './console/app/renderer/src/attention-modes.ts';
+    import { ATTENTION_MUTATION_INVENTORY, ATTENTION_SEVERITY_PRODUCERS, ATTENTION_SEVERITY_ROUTES, ATTENTION_STRUCTURED_NOTICE_PRODUCERS, ATTENTION_WIRING, redactNoticeText, sensitiveSpansForValue, verifyAttentionMutationInventory, verifyAttentionSeverityProducers, verifyAttentionStructuredNoticeProducers, verifyAttentionWiring } from './console/app/renderer/src/attention-modes.ts';
     const root = resolve(${JSON.stringify(root)});
     const sources = {
       design: readFileSync(resolve(root, 'design/Asterisk Console M3.dc.html'), 'utf8'),
@@ -70,6 +70,8 @@ function verifyAttentionWiring() {
       ['url https://example.invalid/Program Files/(old)[x],semi;tail', 'url [url omitted]'],
       ['path C:/Program Files/Ding PBX/settings (old), retry with bridge', 'path [path omitted], retry with bridge'],
       ['url https://example.invalid/Program Files/(old)[x], retry after bridge', 'url [url omitted], retry after bridge'],
+      ['path C:/Program Files/retry because please will/settings, the recovery text', 'path [path omitted], the recovery text'],
+      ['url https://example.invalid/retry/because/please/will path, this recovery', 'url [url omitted], this recovery'],
     ]) {
       if (redactNoticeText(input) !== expected) throw new Error('Redaction span fixture failed: ' + input);
     }
@@ -86,6 +88,15 @@ function verifyAttentionWiring() {
       const expected = '"' + key + ': [redacted]"';
       if (redactNoticeText(input) !== expected) throw new Error('Quoted credential fixture failed: ' + key);
     }
+    const repeated = 'credential alpha then alpha';
+    const repeatedSpans = sensitiveSpansForValue(repeated, 'alpha', 'credential', 'body');
+    if (repeatedSpans.length !== 2 || redactNoticeText(repeated, repeatedSpans, 'body') !== 'credential [redacted] then [redacted]') throw new Error('Repeated structured span fixture failed.');
+    let fieldRejected = false;
+    try { redactNoticeText('title', [{ field:'body', start:0, end:5, kind:'credential' }], 'title'); } catch { fieldRejected = true; }
+    if (!fieldRejected) throw new Error('Structured field discriminator fixture stayed green.');
+    let overlapRejected = false;
+    try { redactNoticeText('abcdef', [{ field:'body', start:0, end:4, kind:'path' }, { field:'body', start:3, end:6, kind:'url' }], 'body'); } catch { overlapRejected = true; }
+    if (!overlapRejected) throw new Error('Structured overlap fixture stayed green.');
     for (const row of ATTENTION_WIRING) {
       const markers = [row.designMarker, row.controlConstruction, row.durableKey, ...row.writerMarkers, ...row.setterMarkers, ...row.consumerMarkers];
       for (const marker of markers) {

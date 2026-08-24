@@ -71,11 +71,19 @@ const PATH_MARKER = '[path omitted]';
 const URL_MARKER = '[url omitted]';
 const CREDENTIAL_MARKER = '[redacted]';
 export type SensitiveSpanKind = 'path' | 'url' | 'credential';
-export interface NoticeSensitiveSpan { readonly start: number; readonly end: number; readonly kind: SensitiveSpanKind; }
-export function sensitiveSpanForValue(text: string, value: string, kind: SensitiveSpanKind): NoticeSensitiveSpan | undefined {
-  if (!value) return undefined;
-  const start = text.indexOf(value);
-  return start < 0 ? undefined : { start, end: start + value.length, kind };
+export type NoticeField = 'title' | 'body';
+export interface NoticeSensitiveSpan { readonly field: NoticeField; readonly start: number; readonly end: number; readonly kind: SensitiveSpanKind; }
+export function sensitiveSpansForValue(text: string, value: string, kind: SensitiveSpanKind, field: NoticeField): NoticeSensitiveSpan[] {
+  if (!value) return [];
+  const spans: NoticeSensitiveSpan[] = [];
+  let start = 0;
+  while (start < text.length) {
+    const found = text.indexOf(value, start);
+    if (found < 0) break;
+    spans.push({ field, start: found, end: found + value.length, kind });
+    start = found + value.length;
+  }
+  return spans;
 }
 function markerForSpan(kind: SensitiveSpanKind): string {
   return kind === 'url' ? URL_MARKER : kind === 'credential' ? CREDENTIAL_MARKER : PATH_MARKER;
@@ -111,10 +119,6 @@ function scanToDelimiter(value: string, start: number, _url: boolean): number {
     if (parentheses === 0 && brackets === 0 && (ch === ',' || ch === ';')) {
       const next = value[index + 1] ?? '';
       if (/\s/u.test(next)) break;
-    }
-    if (parentheses === 0 && brackets === 0 && /\s/u.test(ch)) {
-      const recovery = value.slice(index).match(/^\s+(?:retry(?:ing)?|please|again|then|because|while|but|so|cannot|could|was|were|is|has|have|will)\b/iu);
-      if (recovery) break;
     }
     index += 1;
   }
@@ -189,12 +193,17 @@ function redactUnstructuredText(value: string): string {
 }
 
 /** Redacts producer-tagged spans exactly, then scans only unstructured gaps. */
-export function redactNoticeText(value: string, spans: readonly NoticeSensitiveSpan[] = []): string {
+export function redactNoticeText(value: string, spans: readonly NoticeSensitiveSpan[] = [], field?: NoticeField): string {
   const input = String(value).slice(0, REDACTION_INPUT_LIMIT);
-  const ordered = spans
-    .filter((span) => Number.isInteger(span.start) && Number.isInteger(span.end) && span.start >= 0 && span.end > span.start && span.end <= input.length)
-    .sort((left, right) => left.start - right.start)
-    .filter((span, index, all) => index === 0 || span.start >= all[index - 1].end);
+  const ordered = spans.slice().sort((left, right) => left.start - right.start);
+  for (const span of ordered) {
+    if (!Number.isInteger(span.start) || !Number.isInteger(span.end) || span.start < 0 || span.end <= span.start || span.end > input.length) throw new Error('Structured sensitive span is out of bounds.');
+    if (span.field !== 'title' && span.field !== 'body') throw new Error('Structured sensitive span has an invalid field.');
+    if (field && span.field !== field) throw new Error(`Structured sensitive span belongs to ${span.field}, not ${field}.`);
+  }
+  for (let index = 1; index < ordered.length; index += 1) {
+    if (ordered[index].start < ordered[index - 1].end) throw new Error('Structured sensitive spans overlap.');
+  }
   if (ordered.length === 0) return redactUnstructuredText(input);
   let output = '';
   let cursor = 0;
@@ -313,11 +322,12 @@ export function verifyAttentionStructuredNoticeProducers(sources: { app: string;
     const source = entry.file === 'App.tsx' ? sources.app : sources.generated;
     const count = source.split(entry.marker).length - 1;
     if (count !== 1) throw new Error(`Structured notice producer ${entry.id} must have one implementation marker, found ${count}.`);
+    if (entry.field !== 'title' && entry.field !== 'body') throw new Error(`Structured notice producer ${entry.id} has an invalid field.`);
   }
   for (const [file, source] of [['App.tsx', sources.app], ['generated/console.tsx', sources.generated] ] as const) {
     const lines = source.split(/\r?\n/u);
     for (let index = 0; index < lines.length; index += 1) {
-      if (!/sensitiveSpanForValue\(/u.test(lines[index])) continue;
+      if (!/sensitiveSpansForValue\(/u.test(lines[index])) continue;
       const entries = inventory.filter((entry) => entry.file === file && entry.line === index + 1);
       if (entries.length !== 1) throw new Error(`Unlisted structured notice producer at ${file}:${index + 1}.`);
     }

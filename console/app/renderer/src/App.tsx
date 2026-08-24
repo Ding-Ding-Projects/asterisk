@@ -34,7 +34,7 @@ import {
   ATTENTION_WIRING, LAST_CHANGED_SETTING_KEY, NEXT_ACTION_MAX_LENGTH, NEXT_ACTION_SETTING_KEY,
   MODE_SETTING_PREFIX, NOTICE_HISTORY_MAX_ENTRIES, NOTICE_HISTORY_SCHEMA_VERSION, NOTICE_HISTORY_SETTING_KEY,
   SNOOZED_UNTIL_SETTING_KEY, SNOOZE_MIGRATION_TOLERANCE_MS, SNOOZE_MS, elapsedPhrase,
-  isAttentionMode, modeEnabled, momentumPrompt, nextAction, presentationFor, redactNoticeText, sensitiveSpanForValue, setModeEnabled,
+  isAttentionMode, modeEnabled, momentumPrompt, nextAction, presentationFor, redactNoticeText, sensitiveSpansForValue, setModeEnabled,
   type NoticeSensitiveSpan,
   setNextAction,
 } from './attention-modes';
@@ -324,9 +324,10 @@ export class App extends Base {
   }
 
   private attentionRecordNotice(severity: 'warning' | 'error', title: string, body: string, spans: readonly NoticeSensitiveSpan[] = []): void {
-    const titleSpans = spans.filter((span) => span.end <= title.length);
-    const bodySpans = spans.filter((span) => span.end <= body.length);
-    this.attentionNoticeHistory = [{ severity, title: redactNoticeText(title, titleSpans), body: redactNoticeText(body, bodySpans) }, ...this.attentionNoticeHistory].slice(0, NOTICE_HISTORY_MAX_ENTRIES);
+    const titleSpans = spans.filter((span) => span.field === 'title');
+    const bodySpans = spans.filter((span) => span.field === 'body');
+    if (titleSpans.length + bodySpans.length !== spans.length) throw new Error('Notice span field discriminator is invalid.');
+    this.attentionNoticeHistory = [{ severity, title: redactNoticeText(title, titleSpans, 'title'), body: redactNoticeText(body, bodySpans, 'body') }, ...this.attentionNoticeHistory].slice(0, NOTICE_HISTORY_MAX_ENTRIES);
     this.attentionPersistHistory();
     this.attentionRender();
   }
@@ -1239,15 +1240,14 @@ ${resolution.disclosure}`);
             return;
           }
           const secretLines = plan.newExtensions.map((e) => `${e.id}: ${e.secret}`).join('\n');
-          this.notifyEvent(
-            'Deployed',
-            [
-              `Applied: ${plan.summary.join('; ')}.`,
-              plan.newExtensions.length > 0 ? `New extension secrets (shown once — write these down):\n${secretLines}` : '',
-              plan.skipped.length > 0 ? `Not applied: ${plan.skipped.join(' ')}` : '',
-              'Every changed file was backed up first and is in local history if you need to undo this.',
-            ].filter(Boolean).join('\n\n'),
-          );
+          const deployedBody = [
+            `Applied: ${plan.summary.join('; ')}.`,
+            plan.newExtensions.length > 0 ? `New extension secrets (shown once — write these down):\n${secretLines}` : '',
+            plan.skipped.length > 0 ? `Not applied: ${plan.skipped.join(' ')}` : '',
+            'Every changed file was backed up first and is in local history if you need to undo this.',
+          ].filter(Boolean).join('\n\n');
+          const deploymentSpans = plan.newExtensions.flatMap((entry) => sensitiveSpansForValue(deployedBody, entry.secret, 'credential', 'body'));
+          this.notifyEvent('Deployed', deployedBody, 'info', deploymentSpans);
           this.onUserMutation('onboarding-deploy');
           this.set('onboardOpen', false);
           this.set('screen', 'servers');
@@ -1340,8 +1340,8 @@ ${resolution.disclosure}`);
       this.set('selected', []);
       const lossNote = loss.length > 0 ? ` ${loss.join(' ')}` : '';
       const noticeBody = `${message} Saved as ${filename} — ${format.toUpperCase()}, UTF-8, LF line endings.${lossNote}`;
-      const filenameSpan = sensitiveSpanForValue(noticeBody, filename, 'path');
-      this.notifyEvent('Exported', noticeBody, 'info', filenameSpan ? [filenameSpan] : []);
+      const filenameSpans = sensitiveSpansForValue(noticeBody, filename, 'path', 'body');
+      this.notifyEvent('Exported', noticeBody, 'info', filenameSpans);
       return;
     }
 
@@ -1586,8 +1586,8 @@ ${resolution.disclosure}`);
       const noticeBody = `${String((this.state as { values: Record<string, unknown> }).values[WIZARD_CONTROLS.name] ?? '')}: ${draft.secret}
 
 It is shown once. The phone needs it to register.`;
-      const secretSpan = sensitiveSpanForValue(noticeBody, draft.secret, 'credential');
-      this.notifyEvent('Write this password down', noticeBody, 'info', secretSpan ? [secretSpan] : []);
+      const secretSpans = sensitiveSpansForValue(noticeBody, draft.secret, 'credential', 'body');
+      this.notifyEvent('Write this password down', noticeBody, 'info', secretSpans);
     }
   };
 
