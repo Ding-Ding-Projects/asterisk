@@ -584,7 +584,10 @@ function Template(v: any) {
                     "Invert"
                   ),
                   h("button", { onClick: fn(v.bulkExportMigration), style: sty(`min-height:44px; background:#1B4D33; border:0; border-radius:8px; padding:7px 9px; color:#9FF7C4; font:inherit; font-size:11px; cursor:pointer;`) },
-                    "Export selected"
+                    "Export all owned"
+                  ),
+                  h("button", { onClick: fn(v.bulkReceiptReview), style: sty(`min-height:44px; background:transparent; border:1px solid #414942; border-radius:8px; padding:7px 9px; color:#C4CBC2; font:inherit; font-size:11px; cursor:pointer;`) },
+                    "Receipt outcomes"
                   ),
                   h("button", { onClick: fn(v.selectMigrationScope), style: sty(`min-height:44px; background:transparent; border:1px solid #414942; border-radius:8px; padding:7px 9px; color:#C4CBC2; font:inherit; font-size:11px; cursor:pointer;`) },
                     `Scope: ${S(v.migrationSelectionScope)}`

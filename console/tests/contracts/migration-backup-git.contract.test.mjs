@@ -37,6 +37,12 @@ test('real migration service can be instantiated with the disposable executor', 
     const module = await import('../../control-plane/migration-backup-git.ts');
     const service = new module.MigrationBackupService({ userDataPath: fixture.root, executor: fixture.executor });
     assert.deepEqual(service.recoveryStatus().resolved, true);
+    const exportResult = await service.exportMigration();
+    assert.ok(['succeeded', 'failed', 'cancelled'].includes(exportResult.operation.state));
+    const backupResult = await service.createBackup();
+    assert.ok(['succeeded', 'failed', 'cancelled'].includes(backupResult.operation.state));
+    assert.equal((await service.listBackups()).every((entry) => typeof entry.status === 'string'), true);
+    assert.equal(service.operationStatus('missing-operation').state, 'failed');
   } finally {
     fixture.dispose();
   }
