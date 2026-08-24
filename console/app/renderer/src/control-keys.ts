@@ -16,20 +16,35 @@
  * merely honest about what has not been wired up yet.
  */
 
-import type { ConfigSection, ConfigValue } from './configuration';
+import { hostCapabilityFor } from '../../../shared/configuration-resources';
+import type { HostCapabilityDescriptor } from '../../../shared/configuration-resources';
+import type { ConfigReading, ConfigScreenReadings, ConfigSection, ConfigValue } from './configuration';
+import {
+  buildControlProvenance,
+  type AppliedControlValue,
+  type ControlDraft,
+  type ControlProvenance,
+} from './control-provenance';
 
 /** The four value shapes a control can round-trip through Asterisk's own text format. */
 export type ControlValueKind = 'boolean' | 'number' | 'string' | 'list';
+export type ControlParserId = `asterisk-${ControlValueKind}`;
 
 export interface ControlBinding {
   /** The control id as it appears in a screen's `ctl(id, …)` call. */
   control: string;
+  /** Exact configuration resource. A display label is never accepted here. */
+  resource: string;
   /** The `[section]` name in the target file. */
   section: string;
   /** The `key` within that section. */
   key: string;
   /** How the raw config string round-trips to and from the control's own value. */
   kind: ControlValueKind;
+  /** Stable parser identity for provenance, logs, and fail-closed dispatch. */
+  parser: ControlParserId;
+  /** Exact host action available to write this resource, or why it is unavailable. */
+  writerCapability: HostCapabilityDescriptor;
   /**
    * Set only for a boolean control whose real key has the opposite sense — e.g. the
    * control means "enabled" while the key is a `*_disable` flag. When true, the parsed
@@ -87,7 +102,7 @@ function parseAsteriskNumber(raw: string): number | undefined {
  * is not in `valueMap` at all, …) so callers can tell "not set" from "set to something
  * we cannot parse" if they need to.
  */
-function fromRaw(
+export function fromRaw(
   raw: string,
   kind: ControlValueKind,
   invert: boolean | undefined,
@@ -152,14 +167,68 @@ function toRaw(
   }
 }
 
+const CONTROL_RESOURCE: Readonly<Record<string, string>> = {
+  ...mapResource('/etc/asterisk/pjsip.conf', [
+    'e_transport', 'e_context', 'e_trust', 'e_direct', 'e_symmetric', 'e_forcerport', 'e_rewrite',
+    'e_ice', 'e_encryption', 'e_dtmf', 'e_codecs', 'e_maxcontacts', 'e_qualify', 'e_expiry',
+    't_retry', 't_forbidden', 't_fatal', 't_pai', 't_100rel',
+  ]),
+  ...mapResource('/etc/asterisk/queues.conf', [
+    'q_strategy', 'q_timeout', 'q_wrapup', 'q_retry', 'q_ringinuse', 'q_autopause', 'q_maxlen',
+    'q_service', 'q_joinempty', 'q_leave', 'q_periodic', 'q_position',
+  ]),
+  ...mapResource('/etc/asterisk/voicemail.conf', [
+    'v_attach', 'v_delete', 'v_format', 'v_maxmsg', 'v_maxsecs', 'v_minsecs', 'v_review',
+    'v_operator', 'v_envelope', 'v_saycid',
+  ]),
+  ...mapResource('/etc/asterisk/confbridge.conf', [
+    'c_rate', 'c_mixing', 'c_video', 'c_denoise', 'c_jitter', 'c_talker', 'c_max', 'c_marked', 'c_music',
+  ]),
+  ...mapResource('/etc/asterisk/musiconhold.conf', ['h_mode', 'h_sort']),
+  ...mapResource('/etc/asterisk/rtp.conf', ['r_start', 'r_end', 'r_strict', 'r_ice']),
+  ...mapResource('/etc/asterisk/cdr.conf', ['d_enable', 'd_unanswered', 'd_congestion', 'd_batch', 'd_size']),
+  ...mapResource('/etc/asterisk/cel.conf', ['l_enable', 'l_events', 'l_apps', 'l_date']),
+  ...mapResource('/etc/asterisk/manager.conf', ['a_read', 'a_write', 'a_timeout']),
+  ...mapResource('/etc/asterisk/ari.conf', ['a_origin']),
+  ...mapResource('/etc/asterisk/http.conf', ['a_http', 'a_port', 'a_tls']),
+  ...mapResource('/etc/asterisk/modules.conf', ['mo_auto', 'mo_preload', 'mo_noload', 'mo_require']),
+  ...mapResource('/etc/asterisk/logger.conf', ['g_console', 'g_file', 'g_rotate', 'g_queue']),
+  ...mapResource('/etc/asterisk/stir_shaken.conf', ['s_stir', 's_level', 's_verifyin', 's_failaction']),
+};
+
+function mapResource(resource: string, controls: ReadonlyArray<string>): Record<string, string> {
+  return Object.fromEntries(controls.map((control) => [control, resource]));
+}
+
+function binding(
+  control: string,
+  section: string,
+  key: string,
+  kind: ControlValueKind,
+  extras: Pick<ControlBinding, 'invert' | 'valueMap'> = {},
+): ControlBinding {
+  const resource = CONTROL_RESOURCE[control];
+  if (!resource) throw new Error(`Control ${control} has no exact configuration resource.`);
+  return {
+    control,
+    resource,
+    section,
+    key,
+    kind,
+    parser: `asterisk-${kind}`,
+    writerCapability: hostCapabilityFor(resource, 'applier'),
+    ...extras,
+  };
+}
+
 function b(control: string, section: string, key: string, invert?: boolean): ControlBinding {
-  return invert ? { control, section, key, kind: 'boolean', invert } : { control, section, key, kind: 'boolean' };
+  return binding(control, section, key, 'boolean', invert ? { invert } : {});
 }
 function n(control: string, section: string, key: string): ControlBinding {
-  return { control, section, key, kind: 'number' };
+  return binding(control, section, key, 'number');
 }
 function s(control: string, section: string, key: string): ControlBinding {
-  return { control, section, key, kind: 'string' };
+  return binding(control, section, key, 'string');
 }
 /** A `string`-kind binding whose control values do not literally match Asterisk's own
  *  spelling — see `ControlBinding.valueMap`. */
@@ -169,10 +238,10 @@ function sMapped(
   key: string,
   valueMap: Readonly<Record<string, string>>,
 ): ControlBinding {
-  return { control, section, key, kind: 'string', valueMap };
+  return binding(control, section, key, 'string', { valueMap });
 }
 function l(control: string, section: string, key: string): ControlBinding {
-  return { control, section, key, kind: 'list' };
+  return binding(control, section, key, 'list');
 }
 
 /**
@@ -311,10 +380,8 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
 
   // configs/samples/cdr.conf.sample [general] for the d_* controls;
   // configs/samples/cel.conf.sample [general] for the l_* controls. Both sample files
-  // declare their own unrelated [general] section, and a ConfigValue for this
-  // two-file screen has no per-file namespace to keep them apart in — so the CEL
-  // keys are bound under the synthetic section name 'cel' here to avoid colliding
-  // with cdr.conf's own [general]/enable. d_backend is unmapped: cdr.conf.sample has
+  // declare their own unrelated [general] section. Exact resource identities keep
+  // those sections separate, so no synthetic section name is needed. d_backend is unmapped: cdr.conf.sample has
   // no single key that selects a backend by name (a backend is chosen by which
   // per-backend section, e.g. [csv] or [odbc], is present and loaded).
   cdr: [
@@ -323,17 +390,17 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     b('d_congestion', 'general', 'congestion'),
     b('d_batch', 'general', 'batch'),
     n('d_size', 'general', 'size'),
-    b('l_enable', 'cel', 'enable'),
-    l('l_events', 'cel', 'events'),
-    l('l_apps', 'cel', 'apps'),
-    s('l_date', 'cel', 'dateformat'),
+    b('l_enable', 'general', 'enable'),
+    l('l_events', 'general', 'events'),
+    l('l_apps', 'general', 'apps'),
+    s('l_date', 'general', 'dateformat'),
   ],
 
   // configs/samples/manager.conf.sample — [general] (the only section header the
   // sample declares; the read/write example at ~line 330 sits textually under it).
   // configs/samples/http.conf.sample — [general]. configs/samples/ari.conf.sample —
-  // [general] (~line 1), which shares this screen's synthetic 'general' section
-  // safely: none of its own keys collide by name with manager.conf's or http.conf's.
+  // [general] (~line 1). Exact resource identities keep these three unrelated
+  // sections separate even when key names overlap.
   // a_origin ("Allowed origins", a chip list) binds to ari.conf.sample's
   // `;allowed_origins=` (~line 5) — a second look found this; the first pass checked
   // only http.conf.sample, which genuinely has no CORS key, and missed that ari.conf
@@ -409,18 +476,51 @@ function bindingsFor(screen: string): ReadonlyArray<ControlBinding> {
   return CONTROL_BINDINGS[screen] ?? [];
 }
 
-/** Pulls the real values out of a parsed file, keyed by control id. */
-export function readControlValues(screen: string, value: ConfigValue | undefined): Record<string, unknown> {
+function isConfigScreenReadings(value: ConfigValue | ConfigScreenReadings): value is ConfigScreenReadings {
+  const first = value[0] as ConfigSection | ConfigReading | undefined;
+  return !!first && 'resource' in first;
+}
+
+export function parseBindingValue(binding: ControlBinding, raw: string): unknown {
+  return fromRaw(raw, binding.kind, binding.invert, binding.valueMap);
+}
+
+/** Pulls only observed, parseable values out of their exact resources. */
+export function readControlValues(
+  screen: string,
+  source: ConfigValue | ConfigScreenReadings | undefined,
+): Record<string, unknown> {
   const out: Record<string, unknown> = {};
-  if (!value) return out;
+  if (!source) return out;
+  const readings = isConfigScreenReadings(source) ? source : undefined;
   for (const binding of bindingsFor(screen)) {
+    const value = readings
+      ? readings.find((reading) => reading.resource === binding.resource && reading.state === 'read')?.value
+      : source as ConfigValue;
+    if (!value) continue;
     const section = value.find((candidate) => candidate.name === binding.section);
     const entry = section?.entries.find((e) => e.key === binding.key);
     if (!entry) continue;
-    const parsed = fromRaw(entry.value, binding.kind, binding.invert, binding.valueMap);
+    const parsed = parseBindingValue(binding, entry.value);
     if (parsed !== undefined) out[binding.control] = parsed;
   }
   return out;
+}
+
+export function controlProvenanceForScreen(
+  screen: string,
+  readings: ConfigScreenReadings,
+  drafts?: Readonly<Record<string, ControlDraft>>,
+  applied?: Readonly<Record<string, AppliedControlValue>>,
+): Readonly<Record<string, ControlProvenance>> {
+  return buildControlProvenance({
+    controls: SCREEN_CONTROL_IDS[screen] ?? [],
+    bindings: bindingsFor(screen),
+    readings,
+    drafts,
+    applied,
+    parse: parseBindingValue,
+  });
 }
 
 /**
@@ -435,7 +535,16 @@ export function applyControlValues(
   current: ConfigValue,
   changes: Record<string, unknown>,
 ): ConfigValue {
-  const bindings = bindingsFor(screen);
+  const resources = new Set(bindingsFor(screen).map((binding) => binding.resource));
+  if (resources.size !== 1) return current;
+  return applyBindings(bindingsFor(screen), current, changes);
+}
+
+function applyBindings(
+  bindings: ReadonlyArray<ControlBinding>,
+  current: ConfigValue,
+  changes: Record<string, unknown>,
+): ConfigValue {
   if (bindings.length === 0) return current;
 
   // Work section-by-section so we can preserve ordering, repeated keys, and every
@@ -467,6 +576,26 @@ export function applyControlValues(
   return sections;
 }
 
+/** Applies each change only to the resource declared by its binding. */
+export function applyControlValuesByResource(
+  screen: string,
+  current: Readonly<Record<string, ConfigValue>>,
+  changes: Record<string, unknown>,
+): Readonly<Record<string, ConfigValue>> {
+  const next: Record<string, ConfigValue> = { ...current };
+  const resources = new Set(bindingsFor(screen).map((binding) => binding.resource));
+  for (const resource of resources) {
+    const existing = current[resource];
+    if (!existing) continue;
+    next[resource] = applyBindings(
+      bindingsFor(screen).filter((binding) => binding.resource === resource),
+      existing,
+      changes,
+    );
+  }
+  return next;
+}
+
 /** The controls on this screen with no real-key binding, so the UI can say so honestly. */
 export function unmappedControls(screen: string): ReadonlyArray<string> {
   return SCREEN_CONTROL_IDS[screen]?.filter((id) => !bindingsFor(screen).some((b) => b.control === id)) ?? [];
@@ -478,15 +607,17 @@ export function unmappedControls(screen: string): ReadonlyArray<string> {
  * `unmappedControls` reports the real remainder — a control this table does not know
  * about yet is simply absent from its result, never wrongly reported as mapped.
  */
-const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
+export const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
+  dash: [],
   live: ['m_spy', 'm_format', 'm_beep', 'm_retain'],
   endpoints: [
     'e_transport', 'e_context', 'e_callerid', 'e_trust',
     'e_direct', 'e_symmetric', 'e_forcerport', 'e_rewrite', 'e_ice', 'e_encryption', 'e_dtmf',
-    'e_maxcontacts', 'e_qualify', 'e_expiry', 'e_codecs',
+    'e_maxcontacts', 'e_removeexisting', 'e_qualify', 'e_expiry', 'e_codecs', 'e_mailboxes', 'e_voicemail_ext',
   ],
   trunks: ['t_retry', 't_forbidden', 't_fatal', 't_order', 't_from', 't_pai', 't_privacy', 't_100rel'],
   trunkauth: ['ta_auto', 'ta_expire', 'ta_notify', 'ta_mutual', 'ta_sign', 'ta_log'],
+  canvas: [],
   ivr: ['i_timeout', 'i_retries', 'i_invalid', 'i_direct', 'i_lang', 'i_barge'],
   queues: [
     'q_strategy', 'q_timeout', 'q_wrapup', 'q_retry', 'q_ringinuse', 'q_autopause',
@@ -500,7 +631,7 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     'c_rate', 'c_mixing', 'c_video', 'c_denoise', 'c_jitter', 'c_talker',
     'c_max', 'c_marked', 'c_announce', 'c_music', 'c_dtmf',
   ],
-  moh: ['h_mode', 'h_sort', 'h_announce', 'h_volume'],
+  moh: ['h_mode', 'h_directory', 'h_upload', 'h_application', 'h_sort', 'h_announce', 'h_volume'],
   codecs: [
     'k_order', 'k_transcode', 'k_opusbr', 'k_ptime',
     'r_start', 'r_end', 'r_dtmf', 'r_strict', 'r_ice', 'r_dtls',
@@ -516,4 +647,39 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     's_acl', 's_permit', 's_failban', 's_bantime', 's_guest', 's_cert', 's_method',
     's_verify', 's_ciphers', 's_stir', 's_level', 's_verifyin', 's_failaction',
   ],
+  cli: [],
+  memory: [],
+  sync: ['y_auto', 'y_every', 'y_backup', 'y_attest', 'y_retain'],
+  skills: ['u_lanes', 'u_isolate', 'u_model', 'u_verify', 'u_destruct'],
+  hub: ['b_poll', 'b_notify', 'b_close', 'b_report'],
+  vocab: ['n_guard', 'n_mode', 'n_scan', 'n_lock', 'n_drift'],
+  ops: ['o_check', 'o_stage', 'o_restart', 'o_channel', 'o_hash'],
+  secrets: ['x_store', 'x_rotate', 'x_mask', 'x_export'],
+  servers: [
+    'sv_kind', 'sv_host', 'sv_container', 'sv_user', 'sv_sshport', 'sv_hostkey', 'sv_iface',
+    'sv_amiport', 'sv_tls', 'sv_forward', 'sv_watch', 'sv_readonly',
+    'da_status', 'da_start', 'da_stop', 'da_restart',
+  ],
+  notifications: ['nt_toast', 'nt_sound', 'nt_levels', 'nt_quiet', 'nt_keep'],
+  history: [
+    'hi_commit', 'hi_msg', 'hi_author', 'hi_sign', 'hi_push', 'hi_hook',
+    'hi_keep', 'hi_gc', 'hi_diff', 'hi_branch', 'hi_reload',
+  ],
+  arcade: ['cr_enable', 'cr_cost', 'cr_danger', 'cr_cap', 'cr_expire'],
+  customise: [
+    'fun_level', 'fun_copy', 'fun_celebrate', 'fun_confetti', 'fun_sound', 'fun_mascot', 'fun_easter',
+    'fun_random', 'fun_random_seed', 'fun_random_scope', 'fun_random_strength', 'fun_random_reroll',
+    'mo_speed', 'mo_curve', 'mo_screen', 'mo_dialog', 'mo_reduce', 'mo_hover',
+    'ly_dock', 'ly_density', 'ly_radius', 'ly_gap', 'ly_tabs', 'ly_sidebar', 'ly_mono',
+    'th_mode', 'th_hue', 'th_sat', 'th_contrast', 'th_rainbow', 'th_rbspeed', 'th_tint',
+    'bh_start', 'bh_confirm', 'bh_commit', 'bh_lockdefault', 'bh_wizard', 'bh_explain', 'bh_tour',
+    'pr_active', 'pr_sync', 'pr_perscreen', 'pr_export',
+  ],
+  appearance: [
+    'p_density', 'p_theme', 'p_scale', 'p_motion', 'p_mono', 'p_start', 'p_tour', 'p_tray',
+    'p_confirm', 'va_file', 'va_status', 'va_clear',
+  ],
+  about: ['z_sign', 'z_installer', 'z_telemetry', 'z_crash'],
+  docs: [],
+  changelog: [],
 };

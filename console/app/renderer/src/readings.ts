@@ -1,11 +1,23 @@
 import type { Observation, PbxReadView } from '../../../shared/control-plane';
+import {
+  aggregateTableState,
+  displayRows,
+  readCell,
+  sourceStatus,
+  UNREAD_MARKER,
+  unavailableCell,
+  unreadCell,
+  type DestinationTable,
+  type TableCell,
+  type TableReading,
+} from './table-state';
 
 /**
  * Turns control-plane readings into the row shapes the design's own screens consume.
  * Nothing here invents a value: a cell the console has not read is `NOT_READ`, and a
  * screen with no reading carries the exact reason it has none.
  */
-export const NOT_READ = '—';
+export const NOT_READ = UNREAD_MARKER;
 
 export interface Channel {
   name: string; context: string; extension: string; state: string;
@@ -68,12 +80,21 @@ export const TABLE_DESTINATION_READERS: Record<string, boolean> = {
   live: true,
   endpoints: true,
   trunks: true,
+  ivr: false,
   queues: true,
   modules: true,
   voicemail: true,
   confbridge: true,
   moh: true,
   ami: true,
+  sync: false,
+  skills: false,
+  hub: false,
+  vocab: false,
+  ops: false,
+  secrets: false,
+  servers: true,
+  notifications: false,
 };
 
 export const READABLE_VIEWS: PbxReadView[] = [
@@ -99,17 +120,104 @@ export function reasonFor(readings: ViewReadings | undefined, keys: Array<keyof 
 }
 
 export function rowsFor(screen: string, readings: ViewReadings | undefined): string[][] {
-  if (!readings) return [];
-  if (screen === 'live') return channelRows(valueOf(readings.channels) ?? []);
-  if (screen === 'endpoints') return endpointRows(valueOf(readings.endpoints) ?? [], valueOf(readings.contacts) ?? []);
-  if (screen === 'trunks') return registrationRows(valueOf(readings.registrations) ?? []);
-  if (screen === 'queues') return queueRows(valueOf(readings.queues) ?? []);
-  if (screen === 'modules') return moduleRows(valueOf(readings.modules) ?? []);
-  if (screen === 'voicemail') return voicemailRows(valueOf(readings.voicemailUsers)?.users ?? []);
-  if (screen === 'confbridge') return confbridgeRows(valueOf(readings.rooms) ?? []);
-  if (screen === 'moh') return mohRows(valueOf(readings.mohClasses) ?? []);
-  if (screen === 'ami') return amiRows(valueOf(readings.managerUsers)?.users ?? [], valueOf(readings.ariApps) ?? []);
-  return [];
+  return displayRows(tableStateFor(screen, readings));
+}
+
+function cellFor(value: string, reading: TableReading<unknown> | undefined, missingReason: string): TableCell {
+  if (value === NOT_READ) return unreadCell(missingReason, reading?.command);
+  if (!reading) return unreadCell('The source command has not been requested.');
+  if (reading.result.state === 'unavailable') {
+    return unavailableCell(reading.result.reason, reading.command, reading.result.observedAt);
+  }
+  return readCell(value, reading.command, reading.result.observedAt);
+}
+
+function cellsForRows(
+  rows: string[][],
+  reading: TableReading<unknown> | undefined,
+  missingReason: string,
+): TableCell[][] {
+  return rows.map((row) => row.map((value) => cellFor(value, reading, missingReason)));
+}
+
+/** Destination-specific rows plus the state of every command required to build them. */
+export function tableStateFor(screen: string, readings: ViewReadings | undefined): DestinationTable {
+  if (screen === 'live') {
+    return aggregateTableState(screen, [sourceStatus('channels', readings?.channels)], cellsForRows(
+      channelRows(valueOf(readings?.channels) ?? []), readings?.channels, 'The channel command did not expose this field.',
+    ));
+  }
+  if (screen === 'endpoints') {
+    const endpoints = valueOf(readings?.endpoints) ?? [];
+    const contacts = valueOf(readings?.contacts) ?? [];
+    const byAor = new Map(contacts.map((contact) => [contact.aor, contact]));
+    const rows = endpoints.map((endpoint): TableCell[] => {
+      const contact = byAor.get(endpoint.id);
+      const observedAt = readings?.endpoints?.result.observedAt ?? '';
+      return [
+        observedAt ? readCell(endpoint.id, readings?.endpoints?.command ?? 'pjsip show endpoints', observedAt) : unreadCell('Endpoints have not been read.'),
+        contact && readings?.contacts?.result.state === 'available'
+          ? readCell(contact.uri, readings.contacts.command, readings.contacts.result.observedAt)
+          : readings?.contacts?.result.state === 'unavailable'
+            ? unavailableCell(readings.contacts.result.reason, readings.contacts.command, readings.contacts.result.observedAt)
+            : unreadCell('No contact URI was observed for this endpoint.', readings?.contacts?.command),
+        unreadCell('The endpoint summary does not expose its transport.'),
+        unreadCell('The endpoint summary does not expose its codec list.'),
+        observedAt ? readCell(endpoint.state, readings?.endpoints?.command ?? 'pjsip show endpoints', observedAt) : unreadCell('Endpoints have not been read.'),
+      ];
+    });
+    return aggregateTableState(screen, [
+      sourceStatus('endpoints', readings?.endpoints),
+      sourceStatus('contacts', readings?.contacts),
+    ], rows);
+  }
+  if (screen === 'trunks') {
+    return aggregateTableState(screen, [sourceStatus('registrations', readings?.registrations)], cellsForRows(
+      registrationRows(valueOf(readings?.registrations) ?? []), readings?.registrations,
+      'The registration command does not expose this field.',
+    ));
+  }
+  if (screen === 'queues') {
+    return aggregateTableState(screen, [sourceStatus('queues', readings?.queues)], cellsForRows(
+      queueRows(valueOf(readings?.queues) ?? []), readings?.queues, 'The queue command did not expose this field.',
+    ));
+  }
+  if (screen === 'modules') {
+    return aggregateTableState(screen, [sourceStatus('modules', readings?.modules)], cellsForRows(
+      moduleRows(valueOf(readings?.modules) ?? []), readings?.modules, 'The module command did not expose this field.',
+    ));
+  }
+  if (screen === 'voicemail') {
+    return aggregateTableState(screen, [sourceStatus('voicemailUsers', readings?.voicemailUsers)], cellsForRows(
+      voicemailRows(valueOf(readings?.voicemailUsers)?.users ?? []), readings?.voicemailUsers,
+      'The voicemail command does not expose this field.',
+    ));
+  }
+  if (screen === 'confbridge') {
+    return aggregateTableState(screen, [sourceStatus('rooms', readings?.rooms)], cellsForRows(
+      confbridgeRows(valueOf(readings?.rooms) ?? []), readings?.rooms, 'The conference command does not expose this field.',
+    ));
+  }
+  if (screen === 'moh') {
+    return aggregateTableState(screen, [sourceStatus('mohClasses', readings?.mohClasses)], cellsForRows(
+      mohRows(valueOf(readings?.mohClasses) ?? []), readings?.mohClasses, 'The music class command does not expose this field.',
+    ));
+  }
+  if (screen === 'ami') {
+    const managerRows = cellsForRows(
+      amiRows(valueOf(readings?.managerUsers)?.users ?? [], []), readings?.managerUsers,
+      'The manager command does not expose this field.',
+    );
+    const ariRows = cellsForRows(
+      amiRows([], valueOf(readings?.ariApps) ?? []), readings?.ariApps,
+      'The ARI command does not expose this field.',
+    );
+    return aggregateTableState(screen, [
+      sourceStatus('managerUsers', readings?.managerUsers),
+      sourceStatus('ariApps', readings?.ariApps),
+    ], [...managerRows, ...ariRows]);
+  }
+  return aggregateTableState(screen, [], []);
 }
 
 /** `voicemail.conf` mailboxes. The design's columns are Box, Owner, Email, New, Storage;
@@ -338,18 +446,47 @@ const pad = (value: number): string => String(value).padStart(2, '0');
  * across every screen that could have produced that count — and is empty otherwise. No
  * screen fires an extra read just to fill in a badge.
  */
-export function badgeFor(screen: string, readings: Partial<Record<string, ViewReadings>>): string {
+export function badgeFor(
+  screen: string,
+  readings: Partial<Record<string, ViewReadings>>,
+  serverCount?: number,
+): string {
   const channels = valueOf(readings.live?.channels) ?? valueOf(readings.dash?.channels);
   const endpoints = valueOf(readings.endpoints?.endpoints) ?? valueOf(readings.dash?.endpoints);
   const registrations = valueOf(readings.trunks?.registrations);
   const queues = valueOf(readings.queues?.queues) ?? valueOf(readings.dash?.queues);
   const modules = valueOf(readings.modules?.modules);
-  if (screen === 'live' && channels) return String(channels.length);
-  if (screen === 'endpoints' && endpoints) return String(endpoints.length);
-  if (screen === 'trunks' && registrations) return String(registrations.length);
-  if (screen === 'queues' && queues) return String(queues.length);
-  if (screen === 'modules' && modules) return String(modules.length);
+  const voicemail = valueOf(readings.voicemail?.voicemailUsers)?.users;
+  const conferences = valueOf(readings.confbridge?.rooms);
+  const mohClasses = valueOf(readings.moh?.mohClasses);
+  const managerUsers = valueOf(readings.ami?.managerUsers)?.users;
+  const ariApps = valueOf(readings.ami?.ariApps);
+  if (screen === 'live' && channels !== undefined) return String(channels.length);
+  if (screen === 'endpoints' && endpoints !== undefined) return String(endpoints.length);
+  if (screen === 'trunks' && registrations !== undefined) return String(registrations.length);
+  if (screen === 'queues' && queues !== undefined) return String(queues.length);
+  if (screen === 'modules' && modules !== undefined) return String(modules.length);
+  if (screen === 'voicemail' && voicemail !== undefined) return String(voicemail.length);
+  if (screen === 'confbridge' && conferences !== undefined) return String(conferences.length);
+  if (screen === 'moh' && mohClasses !== undefined) return String(mohClasses.length);
+  if (screen === 'ami' && (managerUsers !== undefined || ariApps !== undefined)) {
+    return String((managerUsers?.length ?? 0) + (ariApps?.length ?? 0));
+  }
+  if (screen === 'servers' && serverCount !== undefined) return String(serverCount);
   return '';
+}
+
+export function serverTableState(servers: ReadonlyArray<ServerRow>, observedAt: string): DestinationTable {
+  const source = 'server.inventory.list';
+  const rows = serverRows(servers).map((row) => row.map((value) => value === NOT_READ
+    ? unreadCell('The saved server record does not contain this field.', source)
+    : readCell(value, source, observedAt)));
+  return aggregateTableState('servers', [{
+    key: 'servers',
+    command: source,
+    state: servers.length === 0 ? 'verified-empty' : 'read',
+    observedAt,
+  }], rows);
 }
 
 /**

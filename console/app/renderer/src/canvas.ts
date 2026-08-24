@@ -17,6 +17,34 @@ export interface DialplanGraph { nodes: DialplanNode[]; edges: DialplanEdge[] }
 interface Reading<T> { command: string; result: Observation<T> }
 export interface CanvasReadings { dialplan?: Reading<DialplanGraph> }
 
+export type CanvasSubsetState = 'unread' | 'verified-empty' | 'read' | 'unavailable';
+
+export interface CanvasCapability {
+  readonly state: 'available' | 'unavailable';
+  readonly reason?: string;
+}
+
+export interface CanvasSubsetMetadata {
+  readonly state: CanvasSubsetState;
+  readonly sourceCommand?: string;
+  readonly observedAt?: string;
+  readonly observedNodes: number;
+  readonly observedEdges: number;
+  readonly renderedNodes: number;
+  readonly renderedEdges: number;
+  readonly omittedEdges: number;
+  readonly scope: string;
+  readonly staleReason?: string;
+  readonly reason?: string;
+  readonly capabilities: {
+    readonly read: CanvasCapability;
+    readonly add: CanvasCapability;
+    readonly edit: CanvasCapability;
+    readonly remove: CanvasCapability;
+    readonly rewire: CanvasCapability;
+  };
+}
+
 export function valueOf<T>(reading: Reading<T> | undefined): T | undefined {
   return reading?.result.state === 'available' ? reading.result.value : undefined;
 }
@@ -24,6 +52,64 @@ export function valueOf<T>(reading: Reading<T> | undefined): T | undefined {
 export function canvasReason(readings: CanvasReadings | undefined): string {
   const reading = readings?.dialplan;
   return reading && reading.result.state === 'unavailable' ? reading.result.reason : '';
+}
+
+const NO_CANVAS_WRITER = {
+  state: 'unavailable',
+  reason: 'The canvas has no configuration-write path.',
+} as const satisfies CanvasCapability;
+
+/** Exact scope and completeness of the graph that can be drawn from one observation. */
+export function canvasSubsetMetadata(readings: CanvasReadings | undefined): CanvasSubsetMetadata {
+  const reading = readings?.dialplan;
+  const base = {
+    observedNodes: 0,
+    observedEdges: 0,
+    renderedNodes: 0,
+    renderedEdges: 0,
+    omittedEdges: 0,
+    scope: 'Contexts, extensions, priorities, applications, and explicit graph edges returned by the dialplan reading.',
+    capabilities: {
+      read: { state: 'unavailable', reason: 'The dialplan has not been read.' } as CanvasCapability,
+      add: NO_CANVAS_WRITER,
+      edit: NO_CANVAS_WRITER,
+      remove: NO_CANVAS_WRITER,
+      rewire: NO_CANVAS_WRITER,
+    },
+  } as const;
+  if (!reading) return { ...base, state: 'unread' };
+  if (reading.result.state === 'unavailable') {
+    return {
+      ...base,
+      state: 'unavailable',
+      sourceCommand: reading.command,
+      observedAt: reading.result.observedAt,
+      reason: reading.result.reason,
+      capabilities: {
+        ...base.capabilities,
+        read: { state: 'unavailable', reason: reading.result.reason },
+      },
+    };
+  }
+
+  const graph = reading.result.value;
+  const nodeIds = new Set(graph.nodes.map((node) => node.id));
+  const renderedEdges = graph.edges.filter(([from, to]) => nodeIds.has(from) && nodeIds.has(to)).length;
+  return {
+    ...base,
+    state: graph.nodes.length === 0 && graph.edges.length === 0 ? 'verified-empty' : 'read',
+    sourceCommand: reading.command,
+    observedAt: reading.result.observedAt,
+    observedNodes: graph.nodes.length,
+    observedEdges: graph.edges.length,
+    renderedNodes: graph.nodes.length,
+    renderedEdges,
+    omittedEdges: graph.edges.length - renderedEdges,
+    capabilities: {
+      ...base.capabilities,
+      read: { state: 'available' },
+    },
+  };
 }
 
 export interface CanvasNode { id: string; x: number; y: number; icon: string; title: string; detail: string }
