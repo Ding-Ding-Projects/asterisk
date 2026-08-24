@@ -2861,7 +2861,6 @@ function pjsipCtls() {
     { title:'Identity', desc:'Who this endpoint claims to be on the wire, and what the far end is allowed to present back.', ctls:[
       ctl('e_transport','Transport','select','transport-udp',{ options:['transport-udp','transport-tcp','transport-tls','transport-wss'], info:'A transport is the road the signalling travels on. UDP is the plain road, TLS is the same road inside an armoured tunnel.' }),
       ctl('e_context','Dialplan context','select','from-internal',{ options:['from-internal','from-external','from-trunk','sip-guest'], info:'When this endpoint dials, Asterisk looks for the number inside this context. Think of it as which phone book gets opened.' }),
-      ctl('e_callerid','Caller ID presentation','segmented','Allowed',{ options:['Allowed','Prohibited','Unavailable'] }),
       ctl('e_trust','Trust inbound identity','switch',false,{ info:'Only turn this on for carriers you control. It tells Asterisk to believe P-Asserted-Identity headers the other side sends.' })
     ]},
     { title:'Media & NAT', desc:'Every option here came out of pjsip.conf. Toggle, do not type.', ctls:[
@@ -2936,12 +2935,9 @@ const SCREENS = {
     groups:[{ title:'Failover', desc:'What happens when the primary carrier stops answering.', ctls:[
       ctl('t_retry','Retry interval','slider',60,{ min:10, max:600, step:10, unit:'s' }),
       ctl('t_forbidden','Forbidden retry','slider',300,{ min:30, max:1800, step:30, unit:'s' }),
-      ctl('t_fatal','Fatal retry attempts','stepper',5,{ min:0, max:50 }),
-      ctl('t_order','Failover order','order',['carrier-primary','carrier-backup','branch-iax'],{ pool:[] })
+      ctl('t_fatal','Fatal retry attempts','stepper',5,{ min:0, max:50 })
     ]},{ title:'Outbound identity', desc:'How your calls appear to the carrier.', ctls:[
-      ctl('t_from','From domain source','segmented','Trunk',{ options:['Trunk','Endpoint','Global'] }),
       ctl('t_pai','Send P-Asserted-Identity','switch',true),
-      ctl('t_privacy','Privacy header','segmented','none',{ options:['none','id','header','critical'] }),
       ctl('t_100rel','100rel','segmented','yes',{ options:['no','required','yes'] })
     ]}] },
   trunkauth:{ rail:'pbx', icon:'handshake', label:'Trunk authentication', badge:'2', title:'Trunk authentication', file:'pjsip.conf · partner requests', kind:'trunkauth',
@@ -3020,8 +3016,7 @@ const SCREENS = {
       ctl('c_max','Maximum members','stepper',50,{ min:2, max:500 }),
       ctl('c_marked','Wait for marked user','switch',true),
       ctl('c_announce','Announce join and leave','segmented','name',{ options:['off','name','count'], info:'One setting here, two in confbridge.conf: announce_join_leave and announce_user_count. A tone is not either of them -- it is a sound file, so that option was removed rather than mapped onto a boolean that means something else.' }),
-      ctl('c_music','Music while alone','switch',true),
-      ctl('c_dtmf','DTMF menu','select','default_menu',{ options:['default_menu','admin_menu','listen_only'] })
+      ctl('c_music','Music while alone','switch',true)
     ]}] },
   moh:{ rail:'media', icon:'library_music', label:'Music on hold', badge:'4', title:'Music on hold', file:'musiconhold.conf', kind:'table',
     sub:'Hold classes and their sources. Files are chosen from a picker; the playlist is reordered by dragging.',
@@ -3138,7 +3133,6 @@ const SCREENS = {
     sub:'Which backend stores records, what counts as an answered call, and which events are logged. Backends are picked, connection secrets come from secret intake.',
     groups:[{ title:'CDR', desc:'One row per call.', ctls:[
       ctl('d_enable','CDR enabled','switch',true),
-      ctl('d_backend','Backend','select','odbc',{ options:['csv','custom','odbc','pgsql','sqlite3','mysql','manager','radius'] }),
       ctl('d_unanswered','Log unanswered calls','switch',false),
       ctl('d_congestion','Log congestion','switch',false),
       ctl('d_batch','Batch mode','switch',true),
@@ -3191,8 +3185,7 @@ const SCREENS = {
       ctl('s_acl','Active ACL','select','trusted-nets',{ options:['trusted-nets','branch-offices','carrier-only','deny-all'] }),
       ctl('s_permit','Permitted networks','chips',['10.20.0.0/16','198.51.100.0/24'],{ options:['10.20.0.0/16','198.51.100.0/24','192.0.2.0/24','0.0.0.0/0'] }),
       ctl('s_failban','Auto-ban after failures','stepper',5,{ min:0, max:100 }),
-      ctl('s_bantime','Ban duration','slider',600,{ min:60, max:86400, step:60, unit:'s' }),
-      ctl('s_guest','Allow guest calls','switch',false,{ info:'Off. Always off, unless you run a public conference bridge and know exactly why you turned it on.' })
+      ctl('s_bantime','Ban duration','slider',600,{ min:60, max:86400, step:60, unit:'s' })
     ]},{ title:'TLS', desc:'Certificates come from the system store.', ctls:[
     ]},{ title:'STIR/SHAKEN', desc:'Signed caller identity for outbound calls.', ctls:[
       ctl('s_stir','Attestation enabled','switch',true),

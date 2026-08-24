@@ -900,11 +900,11 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
   ],
   live: ['m_spy', 'm_format', 'm_beep', 'm_retain'],
   endpoints: [
-    'e_transport', 'e_context', 'e_callerid', 'e_trust',
+    'e_transport', 'e_context', 'e_trust',
     'e_direct', 'e_symmetric', 'e_forcerport', 'e_rewrite', 'e_ice', 'e_encryption', 'e_dtmf',
     'e_maxcontacts', 'e_qualify', 'e_expiry', 'e_codecs',
   ],
-  trunks: ['t_retry', 't_forbidden', 't_fatal', 't_order', 't_from', 't_pai', 't_privacy', 't_100rel'],
+  trunks: ['t_retry', 't_forbidden', 't_fatal', 't_pai', 't_100rel'],
   trunkauth: ['ta_auto', 'ta_expire', 'ta_notify', 'ta_mutual', 'ta_sign', 'ta_log'],
   ivr: ['i_timeout', 'i_retries', 'i_invalid', 'i_direct', 'i_lang', 'i_barge'],
   queues: [
@@ -917,7 +917,7 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
   ],
   confbridge: [
     'c_rate', 'c_mixing', 'c_video', 'c_denoise', 'c_jitter', 'c_talker',
-    'c_max', 'c_marked', 'c_announce', 'c_music', 'c_dtmf',
+    'c_max', 'c_marked', 'c_announce', 'c_music',
   ],
   moh: ['h_mode', 'h_sort'],
   codecs: [
@@ -925,14 +925,14 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     'r_start', 'r_end', 'r_strict', 'r_ice',
   ],
   cdr: [
-    'd_enable', 'd_backend', 'd_unanswered', 'd_congestion', 'd_batch', 'd_size',
+    'd_enable', 'd_unanswered', 'd_congestion', 'd_batch', 'd_size',
     'l_enable', 'l_events', 'l_apps', 'l_date',
   ],
   ami: ['a_http', 'a_port', 'a_tls', 'a_tlsport', 'a_origin', 'a_read', 'a_write', 'a_deny', 'a_timeout'],
   modules: ['mo_auto', 'mo_preload', 'mo_noload', 'mo_require'],
   logger: ['g_console', 'g_verbose', 'g_file', 'g_rotate', 'g_queue'],
   security: [
-    's_acl', 's_permit', 's_failban', 's_bantime', 's_guest',
+    's_acl', 's_permit', 's_failban', 's_bantime',
     's_stir', 's_level', 's_verifyin', 's_failaction',
   ],
 };

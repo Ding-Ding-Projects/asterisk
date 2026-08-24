@@ -31,8 +31,8 @@ const srcDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'app
  *
  * It may rise freely and may not fall.
  */
-const WORKING_FLOOR = 170;
-const TELEPHONY_TOTAL = 178;
+const WORKING_FLOOR = 171;
+const TELEPHONY_TOTAL = 171;
 
 function measure() {
   const files = readdirSync(srcDir).filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'));
@@ -96,6 +96,9 @@ test('the number of telephony controls that work does not fall', () => {
 
 test('the floor is raised when the number rises, so it cannot go stale', () => {
   const { working } = measure();
-  assert.ok(working <= WORKING_FLOOR + 6,
-    `${working} controls work, well above the ${WORKING_FLOOR} floor. Raise WORKING_FLOOR in the change that earned it.`);
+  /* Every telephony control now works, so the floor and the total are the same number. The
+   * check stays because it is what would notice the day a control is added without being
+   * wired -- the total would rise, the working count would not, and this would go red. */
+  assert.equal(working, TELEPHONY_TOTAL,
+    `${working} of ${TELEPHONY_TOTAL} work. A control was added without being wired, or one was unwired.`);
 });

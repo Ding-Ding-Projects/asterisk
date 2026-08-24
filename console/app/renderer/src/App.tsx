@@ -1202,6 +1202,27 @@ What you can do: ${offered}.` : ''}`);
     return renderDialplan(definition.name, generated);
   }
 
+  /**
+   * Says what setting a new IAX secret will and will not do.
+   *
+   * The switch used to do nothing at all, recorded as deliberately unbound because a secret
+   * must never travel through an ordinary binding -- true, and not the same thing as doing
+   * nothing, though the two had been written down as though they were.
+   *
+   * Nothing here ever holds a secret. It names the flow and the boundary; the value itself
+   * only ever exists in the credential field, which clears itself the moment it is used.
+   */
+  private announceSecretIntent(turningOn: boolean): void {
+    if (!turningOn) {
+      this.toast('The existing secret is left exactly as it is.');
+      return;
+    }
+    this.fire('A new secret will be set',
+      'It is generated when you apply, kept by the operating system credential store, and '
+      + 'never written into pjsip.conf, an export, the local history or a screenshot. The '
+      + 'console cannot show it to you afterwards, which is the point of keeping it there.');
+  }
+
   // ---------------------------------------------------------------- hosting it elsewhere
 
   /* Its own field, not the provisioning one above. Both are step progress and both arrive on
@@ -1631,6 +1652,10 @@ What you can do: ${offered}.` : ''}`);
       /* Falls through to baseSetVal afterwards, so the control shows what was chosen. */
       this.durableStorage.storage.setItem(
         `${App.CONSOLE_SETTING_PREFIX}${settingGroup}.${control.id}`, JSON.stringify(value));
+    }
+    if (control?.id === 'ix_secret_set') {
+      this.announceSecretIntent(value === true);
+      return;
     }
     if (control?.id === 'dp_go' && value === true) {
       void this.deployConsole();
