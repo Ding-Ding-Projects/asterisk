@@ -243,6 +243,7 @@
       "note": "Implemented-unverified 2026-08-24. The attention runtime keeps five independent off-by-default switches, and its canonical source inventory records every control row, durable key, writer chain, setter, generated mutation callback, and complete consumer marker. The canonical mutation inventory enumerates 61 direct and generated onUserMutation call sites with exact source spans, affected state, clock effect, and explicit passive exclusions. The canonical severity inventory enumerates 183 notification producer call sites with exact source spans, helper, expected severity, and passive routing markers; invalid input, unmet prerequisites, unavailable bridges, refused actions, and failed operations use warning or error severity. DurableStorageHandle.bootstrap returns the typed loaded, unavailable, malformed, or retryable union, retains the result, and exposes bounded retry. Redaction uses a bounded deterministic scanner for quoted and unquoted Windows, UNC, POSIX, relative, PBX, file URL, HTTP URL, and whitespace-bearing credential spans. No UI, accessibility, browser, or built-artifact verification was run in this lane, so built evidence remains unverified.",
       "files": [
         "app/renderer/src/attention-modes.ts",
+        "app/renderer/src/attention-inventory.ts",
         "app/renderer/src/App.tsx",
         "app/renderer/src/ceremony.ts",
         "app/renderer/src/durable-storage.ts",
@@ -256,9 +257,9 @@
         "docs/platform/attention-modes.md",
         "tests/ui/attention-modes.test.tsx"
       ],
-      "wiring": "Canonical rows live in app/renderer/src/attention-modes.ts:ATTENTION_WIRING and are validated against design, App, generated renderer, and module source by verifyAttentionWiring. Each row independently names design control, exact App construction, durable key, writer markers, setter markers, and every full consumer marker.",
+      "wiring": "Canonical rows live in app/renderer/src/attention-inventory.ts:ATTENTION_WIRING and are validated against design, App, generated renderer, and implementation source by verifyAttentionWiring. Each row independently names design control, exact App construction, durable key, writer markers, setter markers, and every full consumer marker.",
       "wiringChut": "app/renderer/src/attention-modes.ts:verifyAttentionWiring",
-      "notificationProducers": "Canonical exhaustive 183-entry source inventory at app/renderer/src/attention-modes.ts:ATTENTION_SEVERITY_PRODUCERS, validated by verifyAttentionSeverityProducers; passive routing helpers are explicit entries and every active failure-like producer is warning or error.",
+      "notificationProducers": "Canonical exhaustive 183-entry source inventory at app/renderer/src/attention-inventory.ts:ATTENTION_SEVERITY_PRODUCERS, validated by verifyAttentionSeverityProducers. Ceremony toast and fire ternary branches are passive routing entries in ATTENTION_SEVERITY_ROUTES, and their actual error, warning, and default input mapping is validated from the implementation span; every active failure-like producer is warning or error.",
       "notificationHistory": {
         "key": "console.attention.noticeHistory",
         "schemaVersion": 1,
@@ -266,8 +267,8 @@
         "redaction": "redactNoticeText removes Windows, UNC, POSIX, relative, and PBX configuration paths, URLs, and credential-shaped values before durable write or export",
         "actions": ["search", "clear", "export", "restore", "show-corrupt-state", "reset-corrupt-state"]
       },
-      "mutationInventory": { "source": "app/renderer/src/attention-modes.ts:ATTENTION_MUTATION_INVENTORY", "entries": 61, "validator": "app/renderer/src/attention-modes.ts:verifyAttentionMutationInventory", "passiveExclusions": "app/renderer/src/attention-modes.ts:ATTENTION_MUTATION_PASSIVE_EXCLUSIONS" },
-      "severityInventory": { "source": "app/renderer/src/attention-modes.ts:ATTENTION_SEVERITY_PRODUCERS", "entries": 183, "validator": "app/renderer/src/attention-modes.ts:verifyAttentionSeverityProducers" },
+      "mutationInventory": { "source": "app/renderer/src/attention-inventory.ts:ATTENTION_MUTATION_INVENTORY", "entries": 61, "validator": "app/renderer/src/attention-modes.ts:verifyAttentionMutationInventory", "passiveExclusions": "app/renderer/src/attention-inventory.ts:ATTENTION_MUTATION_PASSIVE_EXCLUSIONS" },
+      "severityInventory": { "source": "app/renderer/src/attention-inventory.ts:ATTENTION_SEVERITY_PRODUCERS", "routes": "app/renderer/src/attention-inventory.ts:ATTENTION_SEVERITY_ROUTES", "entries": 183, "validator": "app/renderer/src/attention-modes.ts:verifyAttentionSeverityProducers" },
       "mutationActions": [
         { "action": "set", "key": "canvasTool", "state": "canvasTool" },
         { "action": "set", "key": "grid", "state": "grid" },

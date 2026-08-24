@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { validateSurfaceInventory, validateParityInventory } from './inventory-validation.mjs';
@@ -13,7 +13,7 @@ function verifyAttentionWiring() {
   const source = `
     import { readFileSync } from 'node:fs';
     import { resolve } from 'node:path';
-    import { ATTENTION_MUTATION_INVENTORY, ATTENTION_SEVERITY_PRODUCERS, ATTENTION_WIRING, verifyAttentionMutationInventory, verifyAttentionSeverityProducers, verifyAttentionWiring } from './console/app/renderer/src/attention-modes.ts';
+    import { ATTENTION_MUTATION_INVENTORY, ATTENTION_SEVERITY_PRODUCERS, ATTENTION_SEVERITY_ROUTES, ATTENTION_WIRING, verifyAttentionMutationInventory, verifyAttentionSeverityProducers, verifyAttentionWiring } from './console/app/renderer/src/attention-modes.ts';
     const root = resolve(${JSON.stringify(root)});
     const sources = {
       design: readFileSync(resolve(root, 'design/Asterisk Console M3.dc.html'), 'utf8'),
@@ -21,16 +21,12 @@ function verifyAttentionWiring() {
       generated: readFileSync(resolve(root, 'console/app/renderer/src/generated/console.tsx'), 'utf8'),
       module: readFileSync(resolve(root, 'console/app/renderer/src/attention-modes.ts'), 'utf8'),
     };
-    const removeEverywhere = (input, marker) => {
-      let count = 0;
-      const next = {};
-      for (const key of Object.keys(input)) {
-        const sourceText = input[key];
-        const matches = sourceText.split(marker).length - 1;
-        count += matches;
-        next[key] = sourceText.split(marker).join('');
-      }
-      if (count !== 1 && count < 1) throw new Error('Negative fixture marker was absent: ' + marker);
+    const removeOwned = (input, marker) => {
+      const next = { ...input };
+      const sourceText = next[marker.owner];
+      const count = sourceText.split(marker.text).length - 1;
+      if (count !== 1) throw new Error('Negative fixture marker must have one owner match, found ' + count + ': ' + marker.text);
+      next[marker.owner] = sourceText.replace(marker.text, '');
       return next;
     };
     const replaceAt = (input, file, line, column, oldText, newText) => {
@@ -42,18 +38,36 @@ function verifyAttentionWiring() {
       next[file] = lines.join('\\n');
       return next;
     };
+    const removeMutationCallback = (input, row) => {
+      const key = row.file === 'App.tsx' ? 'app' : 'generated';
+      const call = 'onUserMutation(' + row.argument + ')';
+      const next = { ...input };
+      const lines = next[key].split(/\\r?\\n/);
+      const current = lines[row.line - 1];
+      if (current.split(call).length - 1 !== 1) throw new Error('Mutation callback span drift at ' + row.file + ':' + row.line);
+      lines[row.line - 1] = current.replace(call, '');
+      next[key] = lines.join('\\n');
+      return next;
+    };
     verifyAttentionWiring(sources);
     verifyAttentionMutationInventory({ app: sources.app, generated: sources.generated });
     verifyAttentionSeverityProducers(sources);
     for (const row of ATTENTION_WIRING) {
       const markers = [row.designMarker, row.controlConstruction, row.durableKey, ...row.writerMarkers, ...row.setterMarkers, ...row.consumerMarkers];
       for (const marker of markers) {
-        const broken = removeEverywhere(sources, marker);
+        const broken = removeOwned(sources, marker);
         let turnedRed = false;
         try { verifyAttentionWiring(broken); } catch { turnedRed = true; }
         if (!turnedRed) throw new Error('Attention wiring negative fixture stayed green for ' + row.id + ': ' + marker);
         verifyAttentionWiring(sources);
       }
+    }
+    for (const row of ATTENTION_MUTATION_INVENTORY) {
+      const sourceBroken = removeMutationCallback(sources, row);
+      let sourceTurnedRed = false;
+      try { verifyAttentionMutationInventory({ app: sourceBroken.app, generated: sourceBroken.generated }); } catch { sourceTurnedRed = true; }
+      if (!sourceTurnedRed) throw new Error('Mutation source negative fixture stayed green at ' + row.file + ':' + row.line);
+      verifyAttentionMutationInventory({ app: sources.app, generated: sources.generated });
     }
     for (const row of ATTENTION_MUTATION_INVENTORY) {
       const brokenInventory = ATTENTION_MUTATION_INVENTORY.filter((candidate) => candidate !== row);
@@ -70,13 +84,35 @@ function verifyAttentionWiring() {
       if (!turnedRed) throw new Error('Severity negative fixture stayed green at ' + row.file + ':' + row.line + ':' + row.column);
       verifyAttentionSeverityProducers(sources);
     }
+    for (const route of ATTENTION_SEVERITY_ROUTES) {
+      const file = route.file === 'App.tsx' ? 'app' : 'generated';
+      const first = route.branches[0];
+      const entry = ATTENTION_SEVERITY_PRODUCERS.find((candidate) => candidate.file === route.file && candidate.line === route.line && candidate.helper === first.helper);
+      if (!entry) throw new Error('Severity route fixture has no inventory entry: ' + route.id);
+      const broken = replaceAt(sources, file, entry.line, entry.column, entry.helper, 'notifyInvalid');
+      let turnedRed = false;
+      try { verifyAttentionSeverityProducers({ app: broken.app, generated: broken.generated }); } catch { turnedRed = true; }
+      if (!turnedRed) throw new Error('Severity route negative fixture stayed green for ' + route.id);
+      verifyAttentionSeverityProducers(sources);
+    }
     console.log('PASS: attention wiring, mutation, and severity Chuts green; every exact matrix fixture turned red and restored green.');
   `;
-  const output = execFileSync(process.execPath, ['--experimental-strip-types', '--experimental-specifier-resolution=node', '--input-type=module', '-e', source], {
-    cwd: root,
-    encoding: 'utf8',
-  });
-  process.stdout.write(output);
+  const temporarySource = resolve(root, '.attention-inventory-check.mjs');
+  if (existsSync(temporarySource)) throw new Error(`Refusing to overwrite existing ${temporarySource}.`);
+  writeFileSync(temporarySource, source, 'utf8');
+  try {
+    const command = process.platform === 'win32' ? process.env.ComSpec : 'npx';
+    const args = process.platform === 'win32'
+      ? ['/d', '/s', '/c', `npx --yes tsx ${temporarySource}`]
+      : ['--yes', 'tsx', temporarySource];
+    const output = execFileSync(command, args, {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    process.stdout.write(output);
+  } finally {
+    rmSync(temporarySource, { force: true });
+  }
 }
 
 try {
