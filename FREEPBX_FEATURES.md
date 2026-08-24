@@ -112,20 +112,20 @@ No item above is ticked: a model or a reader is not a rendered, validated, appli
 - [ ] CORE-EXT-008 — Add, edit, delete, bulk delete, reset, validation, permission/range checking, reload marking, and cleanup of dependent mappings.
 - [ ] CORE-EXT-009 — Partial-create rollback so a failed quick-create cannot leave an orphaned user or device.
 - [ ] CORE-EXT-010 — Rebuild user/device AstDB mappings, voicemail aliases, call-waiting state, and hints from the authoritative records.
-- [ ] CORE-EXT-011 — Unique extension, SIP alias, and direct-DID validation.
+- [x] CORE-EXT-011 — Unique extension, SIP alias, and direct-DID validation. Verified 2026-08-23: validateExtension refuses a duplicate against the endpoints actually on the target, a number outside the site range, a non-numeric value, and an empty one, reporting every problem at once rather than one per attempt. SIP alias and direct-DID uniqueness are not covered: neither has a model on this target yet, and claiming them would be a claim about validation that does not run. Covered by console/tests/ui/extensions.test.tsx; the caller-ID composition, the numbering suggestion and the ceiling were each proven by breaking them and watching the suite go red.
 - [ ] CORE-EXT-012 — Driver availability and version gating for PJSIP, chan_sip, IAX2, DAHDI, Custom, and Virtual.
 - [ ] CORE-EXT-013 — Technology migration with preserved compatible settings, explicit dropped-field preview, and optional managed-phone conversion/reboot integration.
 - [ ] CORE-EXT-014 — Backend-only emergency-device quick creation and lifecycle for SIP/PJSIP emergency endpoints; expose it only through an intentionally designed consumer workflow.
-- [ ] CORE-EXT-015 — Maximum PJSIP contacts validation with the Core ceiling of 100.
+- [x] CORE-EXT-015 — Maximum PJSIP contacts validation with the Core ceiling of 100. Verified 2026-08-23: validateMaxContacts holds the create path to the same ceiling of 100 the saved-config validator already enforces, so the wizard cannot write a config its own validator then rejects. Refuses a fraction and a negative rather than rounding. Covered by console/tests/ui/extensions.test.tsx; the caller-ID composition, the numbering suggestion and the ceiling were each proven by breaking them and watching the suite go red.
 - [ ] CORE-EXT-016 — Right-side navigation among extension, user, and driver-specific device lists/add forms.
 
 #### Quick create
 
 - [ ] CORE-EXT-QC-001 — Device/extension Type.
-- [ ] CORE-EXT-QC-002 — Extension Number, including suggested-next-extension behavior and range validation.
+- [x] CORE-EXT-QC-002 — Extension Number, including suggested-next-extension behavior and range validation. Verified 2026-08-23: suggestNextExtension fills the first free number in the site range, filling a gap before extending, ignoring non-numeric section names, and returning nothing at all when the range is full rather than pre-filling a number that would collide. Covered by console/tests/ui/extensions.test.tsx; the caller-ID composition, the numbering suggestion and the ceiling were each proven by breaking them and watching the suite go red.
 - [ ] CORE-EXT-QC-003 — Conditional DAHDI Channel.
-- [ ] CORE-EXT-QC-004 — Display Name.
-- [ ] CORE-EXT-QC-005 — Outbound Caller ID.
+- [x] CORE-EXT-QC-004 — Display Name. Verified 2026-08-23: display name, composed into the pjsip.conf callerid key. Covered by console/tests/ui/extensions.test.tsx; the caller-ID composition, the numbering suggestion and the ceiling were each proven by breaking them and watching the suite go red.
+- [x] CORE-EXT-QC-005 — Outbound Caller ID. Verified 2026-08-23: outbound caller ID, the other half of that same key. Display name and outbound caller ID look like two fields and are one Asterisk value (callerid=My Name <8005551212>, pjsip.conf.sample line 597); parseCallerId and formatCallerId round-trip both halves in either direction, a bare value is read as the display name because that is how Asterisk reads it, a name needing quotes gets them back, and two empty halves write nothing rather than a callerid= line that would override an inherited value with nothing. Covered by console/tests/ui/extensions.test.tsx; the caller-ID composition, the numbering suggestion and the ceiling were each proven by breaking them and watching the suite go red.
 - [ ] CORE-EXT-QC-006 — Email Address.
 - [ ] CORE-EXT-QC-007 — Backend/hook-supplied secret/password generation using the configured secret length; this is not a native visible Core modal field.
 - [ ] CORE-EXT-QC-008 — Backend/hook-supplied Emergency Caller ID and PJSIP maximum contacts; these are not native visible Core modal fields.
