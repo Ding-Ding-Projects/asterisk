@@ -31,21 +31,21 @@
   }
 
   function defaultState() {
-    return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: 'none', sourceVersion: STATE_SCHEMA_VERSION }, history: [], tabs: TAB_ROUTES.map(([idValue], index) => ({ id: idValue, pinned: index < 2 })), forge: { account: 'browser', owner: '', repository: '', route: 'copy', source: 'current-site', destination: 'new-repository' }, editor: { lastExport: '' }, transfer: { status: 'idle', name: '', startedAt: '', completedAt: '', totalBytes: 0, bytesWritten: 0, interruptionRecorded: false }, update: { status: 'ready', checkedAt: '' } };
+    return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: 'none', sourceVersion: STATE_SCHEMA_VERSION, recorded: false }, history: [], tabs: TAB_ROUTES.map(([idValue], index) => ({ id: idValue, pinned: index < 2 })), forge: { account: 'browser', owner: '', repository: '', route: 'copy', source: 'current-site', destination: 'new-repository' }, editor: { lastExport: '' }, transfer: { status: 'idle', name: '', startedAt: '', completedAt: '', totalBytes: 0, bytesWritten: 0, interruptionRecorded: false, resume: 'never' }, update: { status: 'ready', checkedAt: '' } };
   }
   function readState() {
     try {
       const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
       const defaults = defaultState();
       const persistedVersion = Number(parsed.schemaVersion ?? 1);
-      if (!Number.isInteger(persistedVersion) || persistedVersion > STATE_SCHEMA_VERSION) return { ...defaults, migration: { status: 'future-version-refused', sourceVersion: persistedVersion } };
-      const history = Array.isArray(parsed.history) ? parsed.history.filter(event => event && typeof event === 'object' && typeof event.id === 'string' && typeof event.timestamp === 'string' && typeof event.action === 'string' && typeof event.summary === 'string').slice(-MAX_HISTORY).map(event => ({ id: id(event.id), timestamp: event.timestamp.slice(0, 40), action: text(event.action).slice(0, 80), summary: scrubSummary(event.summary), details: redactDetails(event.details || {}) })) : [];
+      if (!Number.isInteger(persistedVersion) || persistedVersion > STATE_SCHEMA_VERSION) return { ...defaults, migration: { status: 'future-version-refused', sourceVersion: persistedVersion, recorded: false } };
+      const history = Array.isArray(parsed.history) ? parsed.history.filter(event => event && typeof event === 'object' && typeof event.id === 'string' && typeof event.timestamp === 'string' && typeof event.action === 'string' && typeof event.summary === 'string' && safeEventSummary(event.summary)).slice(-MAX_HISTORY).map(event => ({ id: id(event.id), timestamp: event.timestamp.slice(0, 40), action: text(event.action).slice(0, 80), summary: safeEventSummary(event.summary), details: redactDetails(event.details || {}) })) : [];
       const allowedTabs = new Set(TAB_ROUTES.map(([idValue]) => idValue));
       const tabs = Array.isArray(parsed.tabs) ? parsed.tabs.filter(tab => tab && allowedTabs.has(tab.id)).map(tab => ({ id: tab.id, pinned: Boolean(tab.pinned) })) : defaults.tabs;
       const forge = parsed.forge && typeof parsed.forge === 'object' ? { account: ['browser', 'manual'].includes(parsed.forge.account) ? parsed.forge.account : 'browser', owner: scrubSummary(parsed.forge.owner).slice(0, 80), repository: scrubSummary(parsed.forge.repository).slice(0, 100), route: ['copy', 'fork'].includes(parsed.forge.route) ? parsed.forge.route : 'copy', source: ['current-site', 'local-export', 'selected-file'].includes(parsed.forge.source) ? parsed.forge.source : 'current-site', destination: ['new-repository', 'existing-repository'].includes(parsed.forge.destination) ? parsed.forge.destination : 'new-repository' } : defaults.forge;
       const transferStatus = ['idle', 'started', 'complete', 'cancelled', 'unavailable', 'interrupted'].includes(parsed.transfer?.status) ? parsed.transfer.status : 'idle';
       const updateStatus = ['ready', 'unavailable', 'available', 'downloading', 'failed'].includes(parsed.update?.status) ? parsed.update.status : 'ready';
-      return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: persistedVersion < STATE_SCHEMA_VERSION ? 'migrated' : 'none', sourceVersion: persistedVersion }, history, tabs: tabs.length ? tabs : defaults.tabs, forge, editor: { lastExport: scrubSummary(parsed.editor?.lastExport).slice(0, 120) }, transfer: { status: transferStatus === 'started' ? 'interrupted' : transferStatus, name: scrubSummary(parsed.transfer?.name).slice(0, 160), startedAt: text(parsed.transfer?.startedAt).slice(0, 40), completedAt: text(parsed.transfer?.completedAt).slice(0, 40), totalBytes: Number.isFinite(parsed.transfer?.totalBytes) ? Math.max(0, parsed.transfer.totalBytes) : 0, bytesWritten: Number.isFinite(parsed.transfer?.bytesWritten) ? Math.max(0, parsed.transfer.bytesWritten) : 0, interruptionRecorded: transferStatus === 'started' ? false : parsed.transfer?.interruptionRecorded === true }, update: { status: updateStatus, checkedAt: text(parsed.update?.checkedAt).slice(0, 40) } };
+      return { schemaVersion: STATE_SCHEMA_VERSION, migration: { status: persistedVersion < STATE_SCHEMA_VERSION ? 'migrated' : 'none', sourceVersion: persistedVersion, recorded: parsed.migration?.recorded === true }, history, tabs: tabs.length ? tabs : defaults.tabs, forge, editor: { lastExport: scrubSummary(parsed.editor?.lastExport).slice(0, 120) }, transfer: { status: transferStatus === 'started' ? 'interrupted' : transferStatus, name: scrubSummary(parsed.transfer?.name).slice(0, 160), startedAt: text(parsed.transfer?.startedAt).slice(0, 40), completedAt: text(parsed.transfer?.completedAt).slice(0, 40), totalBytes: Number.isFinite(parsed.transfer?.totalBytes) ? Math.max(0, parsed.transfer.totalBytes) : 0, bytesWritten: Number.isFinite(parsed.transfer?.bytesWritten) ? Math.max(0, parsed.transfer.bytesWritten) : 0, interruptionRecorded: transferStatus === 'started' ? false : parsed.transfer?.interruptionRecorded === true, resume: 'never' }, update: { status: updateStatus, checkedAt: text(parsed.update?.checkedAt).slice(0, 40) } };
     } catch {
       return defaultState();
     }
@@ -59,14 +59,31 @@
   let contextOrigin = null;
   let transferAbort = null;
   let transferWriter = null;
+  let transferDestinationName = '';
   let operation = { running: false, cancelled: false, index: 0, total: 0, timer: 0 };
 
   function persist() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* local storage can be unavailable in private browsing */ }
   }
+  function appendMigrationAudit(status, sourceVersion) {
+    try {
+      const key = `${STORAGE_KEY}-migration-audit`;
+      const audit = JSON.parse(localStorage.getItem(key) || '[]');
+      if (!audit.some(item => item.status === status && item.sourceVersion === sourceVersion)) {
+        audit.push({ schemaVersion: 1, status, sourceVersion, timestamp: new Date().toISOString() });
+        localStorage.setItem(key, JSON.stringify(audit.slice(-20)));
+      }
+    } catch { /* refusal remains visible even when audit storage is unavailable */ }
+  }
 
   function scrubSummary(value) {
     return text(value).replace(/(?:bearer|token|password|passwd|secret|api[-_]?key)\s*[:=]\s*\S+/gi, '[redacted]').replace(/https?:\/\/\S+/gi, '[url omitted]').replace(/(?:[A-Za-z]:\\|\\\\|\/(?:Users|home|private|tmp)\/)[^\s]+/gi, '[path omitted]').replace(/\b[0-9a-f]{32,}\b/gi, '[redacted]').slice(0, 240);
+  }
+  function safeEventSummary(value) {
+    const raw = text(value).trim();
+    if (!raw || raw.length > 240 || /https?:\/\/|file:|custom:|data:|^[A-Za-z]:[\\/]|^\\\\|(?:^|\s)\.{1,2}[\\/]|(?:^|\s)\/(?:Users|home|private|tmp)\//i.test(raw) || /(?:content|body|payload|clipboard|html|markdown)\s*[:=]/i.test(raw)) return null;
+    const safe = scrubSummary(raw);
+    return safe.includes('[url omitted]') || safe.includes('[path omitted]') || safe.includes('[redacted]') ? null : safe;
   }
 
   const REDACTED_DETAIL_KEYS = new Set(['source', 'route', 'action', 'bytes', 'progress', 'owner', 'repository', 'protocol', 'restore', 'completion', 'installation', 'content', 'privateVocabulary', 'credentials', 'mode', 'status', 'name', 'tag', 'commit', 'provider', 'account', 'destination', 'eventCount', 'sourceEvent']);
@@ -89,11 +106,13 @@
   state = readState();
 
   function record(action, summary, details = {}) {
+    const safeSummary = safeEventSummary(summary);
+    if (!safeSummary) { const status = document.querySelector('#history-status'); if (status) status.textContent = 'This event was refused because its summary contains a path, URL, private value, or content-bearing input.'; return null; }
     const event = {
       id: `event-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       timestamp: new Date().toISOString(),
       action: text(action).slice(0, 80),
-      summary: scrubSummary(summary),
+      summary: safeSummary,
       details: redactDetails({ ...details, privateVocabulary: 'omitted', credentials: 'omitted' }),
     };
     state.history = [...state.history, event].slice(-MAX_HISTORY);
@@ -129,8 +148,10 @@
 
   function validReleaseManifest(manifest) {
     if (!manifest || manifest.schemaVersion !== 1 || !['unavailable', 'available', 'downloading', 'ready', 'failed'].includes(manifest.state) || !['stable', 'beta', 'nightly'].includes(manifest.channel) || !Array.isArray(manifest.assets)) return false;
-    if (manifest.state === 'unavailable') return manifest.assets.length === 0;
-    return manifest.assets.length > 0 && /^[0-9a-f]{40}$/.test(manifest.commit || '') && typeof manifest.version === 'string' && typeof manifest.tag === 'string' && manifest.assets.every(asset => asset && typeof asset.name === 'string' && /^https:\/\//.test(asset.url || '') && /^[0-9a-f]{64}$/.test(asset.sha256 || '') && Number.isInteger(asset.bytes) && asset.bytes > 0);
+    if (manifest.state === 'unavailable') return manifest.assets.length === 0 && typeof manifest.reason === 'string' && manifest.reason.length > 0;
+    const identity = /^[0-9a-f]{40}$/.test(manifest.commit || '') && typeof manifest.version === 'string' && typeof manifest.tag === 'string';
+    if (manifest.state === 'failed') return identity && typeof manifest.reason === 'string' && manifest.reason.length > 0 && manifest.assets.every(asset => asset && typeof asset.name === 'string' && (!asset.url || /^https:\/\//.test(asset.url)) && (!asset.sha256 || /^[0-9a-f]{64}$/.test(asset.sha256)) && (asset.bytes === undefined || (Number.isInteger(asset.bytes) && asset.bytes > 0)));
+    return manifest.assets.length > 0 && identity && manifest.assets.every(asset => asset && typeof asset.name === 'string' && /^https:\/\//.test(asset.url || '') && /^[0-9a-f]{64}$/.test(asset.sha256 || '') && Number.isInteger(asset.bytes) && asset.bytes > 0);
   }
 
   function filterHistory() {
@@ -191,7 +212,8 @@
     const wrap = document.createElement('div');
     wrap.className = 'delivery-select-control';
     wrap.innerHTML = `<label for="${idValue}">Date preset</label><select id="${idValue}"><option value="all">All dates</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option><option value="year">This year</option></select>`;
-    after.parentElement.insertBefore(wrap, after.nextSibling);
+    const anchor = after.closest('label') || after;
+    anchor.parentElement.insertBefore(wrap, anchor.nextSibling);
   }
 
   function ensureDropdownSearch(select) {
@@ -320,7 +342,7 @@
     const transfer = state.transfer;
     if (start) start.disabled = transfer.status === 'started' || !document.querySelector('#transfer-file')?.files?.length;
     if (transfer.status === 'started') {
-      status.textContent = `Writing ${transfer.name} to the user-selected local destination. Bytes written are reported from the real file stream.`;
+      status.textContent = `Writing ${transfer.name} to ${transferDestinationName || 'the user-selected local destination'}. The destination identity is transient and is not persisted. Bytes written are reported from the real file stream.`;
       progress.value = transfer.totalBytes ? Math.round(((transfer.bytesWritten || 0) / transfer.totalBytes) * 100) : 0;
       cancel.hidden = false;
       if (complete) complete.hidden = true;
@@ -340,7 +362,7 @@
       cancel.hidden = true;
       if (complete) complete.hidden = true;
     } else if (transfer.status === 'interrupted') {
-      status.textContent = `An earlier local write for ${transfer.name || 'the selected file'} was interrupted before completion. Select the source again and restart it.`;
+      status.textContent = `An earlier local write for ${transfer.name || 'the selected file'} was interrupted before completion. No destination identity was persisted, no resume is attempted, and a fresh source selection is required.`;
       progress.value = 0;
       cancel.hidden = true;
       if (complete) complete.hidden = true;
@@ -493,7 +515,7 @@
       if (!file) return;
       if (typeof window.showSaveFilePicker !== 'function') { status.textContent = 'Unavailable: this browser does not expose a verified local output handle, so no transfer was started.'; state.transfer = { ...state.transfer, status: 'unavailable', name: scrubSummary(file.name), totalBytes: 0, bytesWritten: 0 }; persist(); renderTransfer(); return; }
       let handle;
-      try { handle = await window.showSaveFilePicker({ suggestedName: file.name, types: [{ description: 'Selected file', accept: { [file.type || 'application/octet-stream']: [`.${file.name.split('.').pop() || 'bin'}`] } }] }); transferWriter = await handle.createWritable(); }
+      try { handle = await window.showSaveFilePicker({ suggestedName: file.name, types: [{ description: 'Selected file', accept: { [file.type || 'application/octet-stream']: [`.${file.name.split('.').pop() || 'bin'}`] } }] }); transferDestinationName = scrubSummary(handle.name || 'selected destination'); transferWriter = await handle.createWritable(); }
       catch (error) { status.textContent = `The browser did not provide an output handle: ${error.message || 'selection cancelled'}. Nothing was written.`; state.transfer = { ...state.transfer, status: 'idle', name: scrubSummary(file.name), totalBytes: 0, bytesWritten: 0 }; renderTransfer(); return; }
       transferAbort = new AbortController();
       state.transfer = { ...state.transfer, status: 'started', name: scrubSummary(file.name), startedAt: new Date().toISOString(), totalBytes: file.size, bytesWritten: 0, interruptionRecorded: false };
@@ -532,7 +554,7 @@
       operation.running = false;
       start.disabled = false;
       cancel.hidden = true;
-      status.textContent = operation.cancelled ? 'Operation cancelled before an export was written.' : 'Local export preparation completed and the redacted file is ready.';
+      status.textContent = operation.cancelled ? 'Preparation cancelled before an export was written.' : 'Preparation complete. The redacted export is handed to the browser next, and browser download completion is unverified here.';
       if (!operation.cancelled) exportHistory('json');
     };
     start.addEventListener('click', () => {
@@ -591,7 +613,7 @@
       if (state.forge.route === 'fork' && state.forge.source !== 'current-site') { status.textContent = 'The provider fork route requires a real source repository. Select the current published site or use copy and publish.'; return; }
       const url = state.forge.route === 'fork' ? `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/fork` : `https://github.com/new?name=${encodeURIComponent(repository)}&owner=${encodeURIComponent(owner)}`;
       window.open(url, '_blank', 'noopener');
-      status.textContent = `A browser-mediated ${state.forge.route} flow was opened for source ${state.forge.source}, destination ${state.forge.destination}, account ${state.forge.account}, and owner ${owner}. This page did not authenticate, publish, fork, or store credentials.`;
+      status.textContent = `A generic provider preview page was opened for source ${state.forge.source}, destination ${state.forge.destination}, account ${state.forge.account}, and owner ${owner}. No source or destination operation occurred here. This page did not authenticate, publish, fork, or store credentials.`;
       record('forge-handoff', `Opened a browser-mediated ${state.forge.route} flow for ${owner}/${repository}`, { owner, repository, source: state.forge.source, destination: state.forge.destination, account: state.forge.account, credentials: 'omitted' });
     });
     renderForge();
@@ -609,12 +631,19 @@
   }
 
   function closeContextMenu() { document.querySelector('#delivery-context-menu')?.remove(); const origin = contextOrigin; contextOrigin = null; origin?.focus?.(); }
+  function openPaletteRoute() {
+    if (window.DingSitePalette?.open) { window.DingSitePalette.open(); return; }
+    const dialog = document.querySelector('#command-palette');
+    if (dialog?.showModal) { dialog.showModal(); document.querySelector('#palette-search')?.focus(); return; }
+    document.querySelector('#palette-open')?.click();
+  }
   function showContextMenu(event) {
     closeContextMenu();
     contextOrigin = event.target.closest('[data-delivery-context]') || event.target;
     const targetKind = contextOrigin.dataset?.deliveryContext || 'panel';
     const menu = document.createElement('div'); menu.id = 'delivery-context-menu'; menu.className = 'delivery-context-menu'; menu.setAttribute('role', 'menu');
-    const targetActions = targetKind === 'history-row' ? '<button type="button" role="menuitem" data-context-action="restore">Restore this event as new</button><button type="button" role="menuitem" data-context-action="copy-row">Copy this event summary</button>' : '<button type="button" role="menuitem" data-context-action="focus-history">Open local history</button><button type="button" role="menuitem" data-context-action="record">Record local event <kbd>Ctrl+Enter</kbd></button>';
+    const panelActions = contextOrigin.id === 'history' ? '<button type="button" role="menuitem" data-context-action="record">Record local event <kbd>Ctrl+Enter</kbd></button>' : contextOrigin.id === 'operations' ? '<button type="button" role="menuitem" data-context-action="start-operation">Prepare redacted export</button>' : '';
+    const targetActions = targetKind === 'history-row' ? '<button type="button" role="menuitem" data-context-action="restore">Restore this event as new</button><button type="button" role="menuitem" data-context-action="copy-row">Copy this event summary</button>' : `${panelActions}<button type="button" role="menuitem" data-context-action="focus-panel">Focus this panel</button><button type="button" role="menuitem" data-context-action="copy-panel">Copy this panel summary</button>`;
     menu.innerHTML = `<label>Filter actions<div class="search-composite"><input id="delivery-context-search" data-label="context actions" type="search" aria-label="Filter context actions"><button type="button" class="regex-trigger" id="delivery-context-regex" aria-label="Build a regular expression for context actions">.*</button></div></label><div class="delivery-context-items">${targetActions}<button type="button" role="menuitem" data-context-action="palette">Open command palette <kbd>Ctrl+Shift+F</kbd></button><button type="button" role="menuitem" data-context-action="escape">Close this menu <kbd>Escape</kbd></button></div>`;
     document.body.append(menu); menu.style.left = `${Math.min(event.clientX, innerWidth - 320)}px`; menu.style.top = `${Math.min(event.clientY, innerHeight - 190)}px`;
     const filter = menu.querySelector('input'); filter.focus();
@@ -622,7 +651,7 @@
     filter.addEventListener('input', () => { contextQuery.text = filter.value.slice(0, 160); contextQuery.pattern = filter.dataset.regexPattern || ''; contextQuery.flags = filter.dataset.regexFlags || 'iu'; contextQuery.regex = Boolean(contextQuery.pattern); menu.querySelectorAll('[data-context-action]').forEach(item => { item.hidden = !matchesQuery(item.textContent, contextQuery); }); });
     menu.querySelector('#delivery-context-regex').addEventListener('click', () => openRegex(filter));
     menu.addEventListener('keydown', keyEvent => { if (keyEvent.key === 'ArrowDown' || keyEvent.key === 'ArrowUp') { keyEvent.preventDefault(); const items = [...menu.querySelectorAll('[data-context-action]:not([hidden])')]; const index = items.indexOf(document.activeElement); items[(index + (keyEvent.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus(); } if (keyEvent.key === 'Escape') { keyEvent.preventDefault(); closeContextMenu(); } });
-    menu.querySelectorAll('[data-context-action]').forEach(button => button.addEventListener('click', () => { const rowEvent = contextOrigin.closest?.('[data-event-id]'); if (button.dataset.contextAction === 'palette') document.querySelector('#palette-open')?.click(); if (button.dataset.contextAction === 'record') document.querySelector('#history-event-summary')?.focus(); if (button.dataset.contextAction === 'focus-history') document.querySelector('#history')?.scrollIntoView({ block: 'start' }); if (button.dataset.contextAction === 'restore') rowEvent?.querySelector('[data-restore-event]')?.click(); if (button.dataset.contextAction === 'copy-row') copyText(rowEvent?.querySelector('h3')?.textContent || '', document.querySelector('#history-status')); closeContextMenu(); }));
+    menu.querySelectorAll('[data-context-action]').forEach(button => button.addEventListener('click', () => { const rowEvent = contextOrigin.closest?.('[data-event-id]'); if (button.dataset.contextAction === 'palette') openPaletteRoute(); if (button.dataset.contextAction === 'record') document.querySelector('#history-event-summary')?.focus(); if (button.dataset.contextAction === 'focus-panel') contextOrigin.scrollIntoView({ block: 'start' }); if (button.dataset.contextAction === 'start-operation') document.querySelector('#operation-start')?.click(); if (button.dataset.contextAction === 'restore') rowEvent?.querySelector('[data-restore-event]')?.click(); if (button.dataset.contextAction === 'copy-row') copyText(rowEvent?.querySelector('h3')?.textContent || '', document.querySelector('#history-status')); if (button.dataset.contextAction === 'copy-panel') copyText(contextOrigin.textContent.slice(0, 2000), document.querySelector('#history-status')); closeContextMenu(); }));
     document.addEventListener('click', closeContextMenu, { once: true });
     event.preventDefault();
   }
@@ -639,6 +668,14 @@
     document.querySelectorAll('.site-nav').forEach(nav => {
       if (!nav.querySelector('a[href$="history.html"]')) { const link = document.createElement('a'); link.href = siteAsset('history.html'); link.textContent = 'Delivery'; nav.append(link); }
     });
+  }
+
+  function ensurePaletteOpener() {
+    if (document.querySelector('#palette-open')) return;
+    const rail = document.querySelector('#delivery-rail');
+    if (!rail) return;
+    const button = document.createElement('button'); button.id = 'palette-open'; button.type = 'button'; button.className = 'text-button'; button.textContent = 'Open command palette'; button.title = 'Ctrl+Shift+F'; button.addEventListener('click', openPaletteRoute);
+    rail.querySelector('.delivery-rail-actions')?.append(button);
   }
 
   function currentTabId() {
@@ -708,9 +745,12 @@
     document.documentElement.dataset.historyDeliveryReady = 'true';
     ensureNavigation(); ensureRail(); ensureRegexDialog(); ensureDropdownSearches();
     bindContextTargets();
-    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeContextMenu(); if (event.ctrlKey && event.shiftKey && event.key.toLocaleLowerCase() === 'f') document.querySelector('#palette-open')?.click(); if (event.ctrlKey && event.key === 'Enter' && document.activeElement?.id === 'history-event-summary') { event.preventDefault(); document.querySelector('#history-record')?.click(); } });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeContextMenu(); if (event.ctrlKey && event.shiftKey && event.key.toLocaleLowerCase() === 'f') { event.preventDefault(); openPaletteRoute(); } if (event.ctrlKey && event.key === 'Enter' && document.activeElement?.id === 'history-event-summary') { event.preventDefault(); document.querySelector('#history-record')?.click(); } });
     renderPage();
     ensureRail();
+    if (state.migration?.status === 'migrated' && !state.migration.recorded) { state.migration.recorded = true; persist(); record('state-migration', `Migrated saved state version ${state.migration.sourceVersion} to version ${STATE_SCHEMA_VERSION}`, { source: 'schema-migration', status: 'migrated', sourceEvent: 'redacted' }); }
+    if (state.migration?.status === 'future-version-refused') appendMigrationAudit('future-version-refused', state.migration.sourceVersion);
+    ensurePaletteOpener();
     if (state.transfer.status === 'interrupted' && !state.transfer.interruptionRecorded) { state.transfer.interruptionRecorded = true; persist(); record('download-interrupted', `Recovered an interrupted local write for ${state.transfer.name || 'the selected file'}`, { status: 'interrupted', completion: 'not-complete' }); }
     document.querySelectorAll('#history-delivery-page .delivery-panel, #history-delivery-mount .delivery-panel').forEach(panel => { panel.dataset.deliveryContext = 'panel'; });
     bindContextTargets();
