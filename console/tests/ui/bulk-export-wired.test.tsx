@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 /**
@@ -14,7 +15,10 @@ import test from 'node:test';
  * in this test's environment -- the real reachability was proven by driving the
  * actual built application (see the pig's task report).
  */
-const appSource = fs.readFileSync(path.join(process.cwd(), 'app/renderer/src/App.tsx'), 'utf8');
+const testDirectory = path.dirname(fileURLToPath(import.meta.url));
+const consoleRoot = path.resolve(testDirectory, '..', '..');
+const appSourcePath = path.join(consoleRoot, 'app', 'renderer', 'src', 'App.tsx');
+const appSource = fs.readFileSync(appSourcePath, 'utf8');
 
 test('App.tsx imports the real export engine, not a decorative placeholder', () => {
   assert.match(appSource, /from '\.\/export';?/);

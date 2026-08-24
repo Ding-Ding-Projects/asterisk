@@ -136,12 +136,19 @@ test('resolveLink resolves a relative link crossing categories', () => {
   assert.equal(resolveLink(b, 'app/servers', '../data/ami.md'), 'data/ami');
 });
 
-test('resolveLink strips a fragment before resolving', () => {
+test('resolveLink accepts only fragments matching generated heading ids', () => {
   const b = bundle([
     article({ id: 'app/about', category: 'app', title: 'About' }),
-    article({ id: 'app/other', category: 'app', title: 'Other' }),
+    article({
+      id: 'app/other',
+      category: 'app',
+      title: 'Other',
+      headings: [{ title: 'Some section', id: 'some-section' }],
+    }),
   ]);
-  assert.equal(resolveLink(b, 'app/other', 'about.md#some-section'), 'app/about');
+  assert.equal(resolveLink(b, 'app/about', 'other.md#some-section'), 'app/other');
+  assert.equal(resolveLink(b, 'app/about', 'other.md#Some%20section'), 'app/other');
+  assert.equal(resolveLink(b, 'app/about', 'other.md#missing-section'), undefined);
 });
 
 test('resolveLink returns undefined for a non-.md link and for a missing target', () => {
