@@ -394,3 +394,28 @@ Ordered by what actually blocks the next claim.
 7. **Retained, not merged: `claude/busy-zhukovsky-ae0b75`.** One commit, clean worktree,
    but not an ancestor of `master`, and `master` has moved well past it -- merging would
    revert later site work. Keep it or drop it deliberately; do not merge it blindly.
+
+## Updater evidence added on 2026-08-23
+
+The updater evidence lane fast-forwarded this branch through source commit
+`b29850dd1ae63553dc6c60ecdedc60adb6707a77` and preserved the two contract-test commits in
+that graph. It copied two supplied real built-artifact captures byte-for-byte into
+`console/docs/platform/captures/automatic-updates/`:
+
+- `baseline-update-ready.png`: 1456 x 928, SHA-256
+  `3a92900f8fd19a722ece3175567df346d8f272ee24d7ac47e3681b1db5216d99`. This is the old
+  `0.1.0` baseline from source and release commit `745d7425df791646aef4a6972c96dcf279a6004a`,
+  tag `ding-pbx-console-v0.0.82-r1`, with the repaired `0.1.84` candidate from
+  `870be47d6708b32f7fed154abf0ca3779f1fe3bb`, tag `ding-pbx-console-v0.0.84-r1`.
+- `installed84-draft-blocked.png`: 1456 x 928, SHA-256
+  `79d4257a806ef31aea22cef34ce490cc980fdd527ce84a5adfe60e6bd197b751`. This is the
+  installed `0.1.84` artifact from `870be47d6708b32f7fed154abf0ca3779f1fe3bb`, with the
+  next `0.1.85` release record from `b29850dd1ae63553dc6c60ecdedc60adb6707a77`, tag
+  `ding-pbx-console-v0.0.85-r1`, and two PBX drafts blocking restart.
+
+The evidence was captured through Lowlevel on named hidden desktops, using task-local CDP
+ports `9346` and `9347`, exact expected file URLs, bounded synchronous evaluation, and a
+one-page target preflight. The run also recorded direct `Setup.exe` launch success, the
+repaired restart path, Later hiding the banner while retaining the staged candidate, and
+the visible review, apply, or discard block for two drafts. The detailed public article is
+`console/docs/platform/automatic-updates-evidence.md`. No new capture was made in this lane.
