@@ -1527,10 +1527,13 @@
       }
     },
     "local-version-history": {
-      "status": "absent",
-      "note": "The documentation catalogue lists a \"History\" article (app/history, describing append-only local configuration revisions) as PRODUCT documentation content, but no actual history/versions panel, diff view, or restore action exists in the site itself - this is a described feature of the console product, not an implemented feature of the site.",
+      "status": "implemented-unverified",
+      "note": "The browser-local delivery workspace provides schema-versioned append-only event history, counted migration and normalization audits, date/action/text filtering, JSON import and round-trip export, presentation-only Markdown export, restore-as-new-event, retention accounting, and explicit refusal states. Built interaction remains unverified.",
       "implementation": {
-        "paths": [],
+        "paths": [
+          "site/history-delivery.js",
+          "site/history.html"
+        ],
         "symbols": []
       },
       "registration": {
@@ -1598,10 +1601,14 @@
       }
     },
     "changelog-viewer": {
-      "status": "absent",
-      "note": "No changelog viewer, date filter, or commit-link rendering was found in site/app.js.",
+      "status": "implemented-unverified",
+      "note": "The delivery workspace renders the exact generated product release changelog with optional upstream history, real local calendar ranges, action and text filters, commit links, and filtered export. Built interaction remains unverified.",
       "implementation": {
-        "paths": [],
+        "paths": [
+          "site/history-delivery.js",
+          "site/history.html",
+          "site/changelog-data.js"
+        ],
         "symbols": []
       },
       "registration": {
@@ -1669,10 +1676,13 @@
       }
     },
     "external-editor-handoff": {
-      "status": "absent",
-      "note": "No open-in-external-editor / VS Code handoff exists on the site.",
+      "status": "partial",
+      "note": "The static page presents the local export and editor handoff boundary, retains prepared and browser-handoff states separately, and offers the official editor recovery route. A static browser page cannot launch a native editor, so no native handoff is claimed.",
       "implementation": {
-        "paths": [],
+        "paths": [
+          "site/history-delivery.js",
+          "site/history.html"
+        ],
         "symbols": []
       },
       "registration": {
@@ -2528,10 +2538,13 @@
       }
     },
     "browser-extension-download-surfaces": {
-      "status": "absent",
-      "note": "This is a static documentation/marketing site; there is no browser extension and no Start-download/Downloading/complete dialog surfaces.",
+      "status": "implemented-unverified",
+      "note": "The static delivery workspace provides a browser-local File System Access equivalent with explicit preparation, destination, active write, cancellation, completion, interruption, and failure states. It does not claim native-extension ingress or always-on-top desktop windows.",
       "implementation": {
-        "paths": [],
+        "paths": [
+          "site/history-delivery.js",
+          "site/history.html"
+        ],
         "symbols": []
       },
       "registration": {
@@ -2912,10 +2925,13 @@
       }
     },
     "context-menu-shortcuts": {
-      "status": "absent",
-      "note": "No context menu (oncontextmenu handling) exists anywhere on the site.",
+      "status": "implemented-unverified",
+      "note": "The delivery workspace exposes target-specific keyboard-accessible context menus with local filters, shortcut labels, focus return, and actions limited to the selected panel or history row.",
       "implementation": {
-        "paths": [],
+        "paths": [
+          "site/history-delivery.js",
+          "site/styles.css"
+        ],
         "symbols": []
       },
       "registration": {
@@ -2983,10 +2999,13 @@
       }
     },
     "long-operation-progress": {
-      "status": "absent",
-      "note": "The only progress-shaped code found is a decorative counter-animation easing function (line 967), not a real operation-progress report inside a start dialog.",
+      "status": "implemented-unverified",
+      "note": "The delivery workspace separates preparation from browser handoff, reports measured byte progress, disables re-entry, exposes cancellation, and records interruption and terminal states without treating an unverified browser handoff as completion.",
       "implementation": {
-        "paths": [],
+        "paths": [
+          "site/history-delivery.js",
+          "site/history.html"
+        ],
         "symbols": []
       },
       "registration": {
@@ -3054,10 +3073,13 @@
       }
     },
     "in-context-recovery": {
-      "status": "absent",
-      "note": "No surface-level recovery route (for example re-authentication offered directly beside a refused action) was found.",
+      "status": "implemented-unverified",
+      "note": "History, editor, forge preview, update, and browser-handoff panels expose target-specific adjacent recovery actions and exact local status without claiming a native or authenticated action the static page cannot perform.",
       "implementation": {
-        "paths": [],
+        "paths": [
+          "site/history-delivery.js",
+          "site/history.html"
+        ],
         "symbols": []
       },
       "registration": {
@@ -3125,10 +3147,13 @@
       }
     },
     "provider-markup-rendering": {
-      "status": "absent",
-      "note": "No renderer for remote/provider-authored Markdown or rich text was found; documentation content in renderDestinations() is inserted as plain escaped text/HTML built by the site itself, not rendered from provider-authored markup.",
+      "status": "implemented-unverified",
+      "note": "The delivery workspace renders a bounded safe Markdown subset after escaping provider text. Raw HTML, scripts, images, unsafe links, and privileged rendering are refused. Built interaction remains unverified.",
       "implementation": {
-        "paths": [],
+        "paths": [
+          "site/history-delivery.js",
+          "site/history.html"
+        ],
         "symbols": []
       },
       "registration": {
@@ -3196,10 +3221,13 @@
       }
     },
     "forge-publishing": {
-      "status": "absent",
-      "note": "No GitHub/forge publishing flow exists; this is a documentation/marketing site with no repository-publishing feature.",
+      "status": "partial",
+      "note": "The browser-local workspace provides a required source, destination, account, owner, repository, and route preview before opening a generic provider entry point. It does not authenticate, fork, copy, push, or store credentials, so native publication is not claimed.",
       "implementation": {
-        "paths": [],
+        "paths": [
+          "site/history-delivery.js",
+          "site/history.html"
+        ],
         "symbols": []
       },
       "registration": {
@@ -3353,10 +3381,14 @@
       }
     },
     "automatic-updates": {
-      "status": "absent",
-      "note": "This is a static site with nothing to auto-update client-side; no update-check/ready-banner logic exists in site/app.js. (The console app's automatic-updates feature is a separate surface tracked on the windows-console row.)",
+      "status": "implemented-unverified",
+      "note": "The static delivery workspace validates the versioned release manifest and exposes unavailable, available, downloading, ready, failed, cancelled, and unverified browser-handoff states without claiming installation. Built interaction remains unverified.",
       "implementation": {
-        "paths": [],
+        "paths": [
+          "site/history-delivery.js",
+          "site/history.html",
+          "site/release-manifest.js"
+        ],
         "symbols": []
       },
       "registration": {

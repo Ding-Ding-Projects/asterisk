@@ -14,7 +14,7 @@ Its tone would follow the funny-level and language settings while every version 
 
 **Desktop application:** Not implemented. The desktop application has no in-app changelog viewer; release history is not browsable from within the application.
 
-**Documentation website:** Not implemented. The documentation website links out to release notes rather than hosting an in-app browsable, filterable, searchable changelog view.
+**Documentation website:** Implemented at `history.html` as a recorded-change viewer with date range, plain or regex search, full commit links, copy, and filtered Markdown export. It does not infer a release from an unverified local state.
 
 ## Failure modes
 

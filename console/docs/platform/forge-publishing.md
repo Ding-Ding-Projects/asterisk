@@ -14,7 +14,7 @@ The account list would be searchable and support adding further signed-in accoun
 
 **Desktop application:** Not implemented. The desktop application administers a telephony exchange and has no source-repository publishing feature.
 
-**Documentation website:** Not implemented. The documentation website has no repository-publishing feature of its own.
+**Documentation website:** Implemented as a browser-mediated flow at `history.html`. The visitor chooses account mode, owner, repository, and copy or fork route; the provider handles authentication and publication, and this page stores no credentials or publication claim.
 
 ## Failure modes
 

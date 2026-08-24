@@ -14,7 +14,7 @@ Where an operation includes a slow optional phase, the user would be able to dec
 
 **Desktop application:** Partial. Long actions show a generic busy indicator rather than real progress, and only the visible button — not confirmed keyboard re-entry — is guarded against duplicate submission.
 
-**Documentation website:** Not implemented. The documentation website triggers no long-running operations of its own.
+**Documentation website:** Implemented at `history.html` for redacted export preparation. The bounded local operation reports progress, disables re-entry, and supports cancellation before writing the export.
 
 ## Failure modes
 

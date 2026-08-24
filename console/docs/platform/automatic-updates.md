@@ -20,6 +20,10 @@ PBX drafts disable restart. The renderer counts every loaded resource whose curr
 
 Code signing is permanently prohibited. The package and update feed are intentionally unsigned, so the operating system may show an unknown-publisher or SmartScreen warning. Digest checking proves byte integrity only and never claims authenticity or signing.
 
+## Pages-site equivalent
+
+The static delivery workspace at `history.html` reads the versioned release-manifest equivalent. A valid available record needs a full commit identifier, a version and tag, immutable HTTPS asset URLs, positive byte sizes, and SHA-256 hashes. The page reports `unavailable`, `available`, `downloading`, `ready`, or `failed` only when that schema validates. It offers a normal browser reload, but a hosted page cannot install or restart the desktop application, so it never claims that an update was downloaded, staged, or applied.
+
 ## Failure modes
 
 Malformed packaged identity, an older or equal package version, incomplete release assets, missing checksum lines, inconsistent artifact sizes or digests, response-header timeout, stream-read timeout, bounded-size overflow, temporary-file failure, and installer-spawn failure remain visible as retryable updater states. A failed or superseded download is removed from its updater-owned temporary directory.

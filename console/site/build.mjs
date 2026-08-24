@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(fileURLToPath(import.meta.url));
 const docs = resolve(root, '..', 'docs');
 const output = join(root, 'dist');
-const assets = ['index.html', 'product.html', 'documentation.html', 'converter.html', 'ollama.html', 'downloads.html', 'status.html', 'settings.html', 'styles.css', 'app.js'];
+const assets = ['index.html', 'product.html', 'documentation.html', 'converter.html', 'ollama.html', 'downloads.html', 'status.html', 'settings.html', 'history.html', 'styles.css', 'app.js', 'history-delivery.js', 'full-builder.js', 'changelog-data.js', 'release-manifest.js'];
 const socialPreview = resolve(root, '..', '..', 'social-preview.png');
 const packageFile = resolve(root, '..', 'package.json');
 const releaseEvidenceFile = resolve(root, '..', 'release', 'evidence', 'site-release.json');
@@ -169,6 +169,33 @@ async function composeDocs(sourceRelative='') {
   }
 }
 await composeDocs();
+
+async function wireGeneratedDelivery(relative) {
+  const file = join(output, relative);
+  const depth = relative.split(/[\\/]/).length;
+  const back = '../'.repeat(depth);
+  let mounted = await readFile(file, 'utf8');
+  if (!mounted.includes('history-delivery-mount')) {
+    mounted = mounted.replace('</main>', '<div id="history-delivery-mount" data-delivery-host></div></main>');
+  }
+  const scriptNames = ['changelog-data.js', 'release-manifest.js', 'full-builder.js', 'history-delivery.js'];
+  const missingScripts = scriptNames.filter(name => !mounted.includes(`src="${back}${name}"`));
+  if (missingScripts.length) {
+    const tags = missingScripts.map(name => `<script src="${back}${name}" defer></script>`).join('');
+    mounted = mounted.replace('</body>', `${tags}</body>`);
+  }
+  await writeFile(file, mounted, 'utf8');
+}
+
+async function wireGeneratedTree(relative = '') {
+  for (const entry of await readdir(join(output, relative), { withFileTypes: true })) {
+    const child = join(relative, entry.name);
+    if (entry.isDirectory()) await wireGeneratedTree(child);
+    else if (entry.name.endsWith('.html') && relative.replaceAll('\\', '/').startsWith('docs')) await wireGeneratedDelivery(child);
+  }
+}
+
+await wireGeneratedTree();
 
 const files = [];
 async function record(relative) {
