@@ -35,6 +35,7 @@ const manifest = {
   ubuntuSnapshot: '20260824T000000Z',
   runtimeBaseImage: 'ubuntu:24.04@sha256:' + '3'.repeat(64),
   nodeBuildBaseImage: 'node:22.23.2@sha256:' + '4'.repeat(64),
+  snapshotKeyId: 'operator-key-2026-08',
 };
 try {
   writeFileSync(manifestPath, JSON.stringify(manifest));

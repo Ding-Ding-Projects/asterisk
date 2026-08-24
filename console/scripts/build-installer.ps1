@@ -42,6 +42,9 @@ function Test-UnsignedPortableExecutable([string]$Path) {
         return $certificateOffset -eq 0 -and $certificateSize -eq 0
     } finally { $reader.Dispose(); $stream.Dispose() }
 }
+function Assert-IdentityArtifact($IdentityRecord, [System.IO.FileInfo]$File) {
+    if ($IdentityRecord.name -ne $File.Name -or [long]$IdentityRecord.size -ne [long]$File.Length -or $IdentityRecord.sha256 -ne (Get-Sha256 $File.FullName)) { throw "release identity digest binding does not match artifact $($File.Name)" }
+}
 
 $headCommit = (& git -C $repoRoot rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0 -or $headCommit -notmatch '^[0-9a-f]{40}$') { throw 'Could not resolve the exact candidate commit from the checkout.' }
@@ -88,6 +91,10 @@ try {
     $identity = Get-Content -Raw -LiteralPath $identityPath | ConvertFrom-Json
     if ($identity.schemaVersion -ne 1 -or $identity.product -ne 'ding-pbx-console') { throw 'release identity schema or product is invalid' }
     if ($identity.version -ne $Version -or $identity.candidateCommit -ne $CandidateCommit) { throw 'release identity does not match the package version and candidate commit' }
+    Assert-IdentityArtifact $identity.artifacts.setup $setup[0]
+    Assert-IdentityArtifact $identity.artifacts.releases $releases[0]
+    foreach ($package in $full) { $identityRecord = @($identity.artifacts.fullPackages | Where-Object name -eq $package.Name); if ($identityRecord.Count -ne 1) { throw "release identity does not contain exactly one record for $($package.Name)" }; Assert-IdentityArtifact $identityRecord[0] $package }
+    foreach ($package in $delta) { $identityRecord = @($identity.artifacts.deltaPackages | Where-Object name -eq $package.Name); if ($identityRecord.Count -ne 1) { throw "release identity does not contain exactly one record for $($package.Name)" }; Assert-IdentityArtifact $identityRecord[0] $package }
     if (-not (Test-Path -LiteralPath $bundledRootfs)) { throw 'packaged application is missing the bundled Asterisk WSL rootfs' }
     if (-not (Test-Path -LiteralPath $bundledProvenance)) { throw 'packaged application is missing Asterisk bundle provenance' }
     if (-not (Test-Path -LiteralPath $bundledTrusted) -or -not (Test-Path -LiteralPath $bundledReleaseManifest) -or -not (Test-Path -LiteralPath $bundledInstallerBinding)) { throw 'packaged application is missing the trusted WSL release binding' }

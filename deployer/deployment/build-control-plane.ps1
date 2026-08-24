@@ -90,7 +90,8 @@ $sbomPath = Join-Path ([System.IO.Path]::GetTempPath()) "$container-sbom.txt"
 $sbomHashPath = Join-Path ([System.IO.Path]::GetTempPath()) "$container-sbom.sha256"
 $nodeVersionPath = Join-Path ([System.IO.Path]::GetTempPath()) "$container-node.txt"
 try {
-    & docker create --label io.ding.pbx.inspect=true --name $container $Tag | Out-Null
+    $container = (& docker create --label io.ding.pbx.inspect=true $Tag).Trim()
+    if ($container -notmatch '^[0-9a-f]{12,64}$') { throw 'The provenance inspection helper did not return an immutable container id.' }
     if ($LASTEXITCODE -ne 0) { throw "docker create exited with $LASTEXITCODE" }
     & docker cp "${container}:/opt/ding-pbx-console/provenance.json" $provenancePath | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "docker cp provenance exited with $LASTEXITCODE" }

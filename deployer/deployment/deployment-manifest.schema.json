@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
-  "required": ["schemaVersion", "image", "sourceCommit", "version", "projectName", "adminPort", "networkMode", "mountProfile", "mountInventory", "volumeSchemaVersion", "target", "targetHost", "targetUser", "targetSshPort", "inventoryPath", "preflightEvidencePath", "preflightEvidenceSha256", "preflightExpiresAt", "provenanceSha256", "sourceTreeSha256", "dockerfileSha256", "consoleLockSha256", "inputManifestSha256", "aptSbomSha256", "ubuntuSnapshot", "runtimeBaseImage", "nodeBuildBaseImage"],
+  "required": ["schemaVersion", "image", "sourceCommit", "version", "projectName", "adminPort", "networkMode", "mountProfile", "mountInventory", "volumeSchemaVersion", "target", "targetHost", "targetUser", "targetSshPort", "inventoryPath", "preflightEvidencePath", "preflightEvidenceSha256", "preflightExpiresAt", "provenanceSha256", "sourceTreeSha256", "dockerfileSha256", "consoleLockSha256", "inputManifestSha256", "aptSbomSha256", "ubuntuSnapshot", "runtimeBaseImage", "nodeBuildBaseImage", "snapshotKeyId"],
   "properties": {
     "schemaVersion": { "const": 1 },
     "image": { "type": "string", "pattern": "@sha256:[0-9a-f]{64}$" },
@@ -30,6 +30,7 @@
     ,"ubuntuSnapshot": { "type": "string", "pattern": "^[0-9]{8}T[0-9]{6}Z$" }
     ,"runtimeBaseImage": { "type": "string", "pattern": "@sha256:[0-9a-f]{64}$" }
     ,"nodeBuildBaseImage": { "type": "string", "pattern": "@sha256:[0-9a-f]{64}$" }
+    ,"snapshotKeyId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$" }
   },
   "additionalProperties": false
 }

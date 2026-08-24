@@ -14,6 +14,7 @@ param(
     [string]$SessionCookieFile = '',
     [string]$SnapshotDirectory = '',
     [string]$SnapshotEncryptionKeyFile = '',
+    [int]$SessionCredentialMaxAgeMinutes = 15,
     [string]$TlsCertificateSha256 = '',
     [long]$MinimumSnapshotFreeBytes = 8589934592,
     [int]$SnapshotRetentionDays = 14,
@@ -68,6 +69,7 @@ function Assert-ProtectedSessionCredentialFile([string]$Path) {
     $full = Assert-ProtectedExternalPath $Path 'Session credential file'
     if (-not (Test-Path -LiteralPath $full -PathType Leaf)) { throw 'Execute requires an existing session credential file.' }
     $item = Get-Item -LiteralPath $full
+    if ($SessionCredentialMaxAgeMinutes -lt 1 -or $item.LastWriteTimeUtc -lt [DateTime]::UtcNow.AddMinutes(-$SessionCredentialMaxAgeMinutes)) { throw "Session credential file is older than the $SessionCredentialMaxAgeMinutes minute freshness bound." }
     if ($item.Length -lt 1 -or $item.Length -gt 1024) { throw 'Session credential file must be between 1 and 1024 bytes.' }
     $acl = Get-Acl -LiteralPath $full
     if ([string]::IsNullOrWhiteSpace([string]$acl.Owner)) { throw 'Session credential file has no readable owner ACL.' }
@@ -141,7 +143,8 @@ function Read-Provenance([string]$Reference, [bool]$InspectEmbedded, $ExpectedMa
         if ($labelRevision -notmatch '^[0-9a-f]{40}$' -or [string]::IsNullOrWhiteSpace($labelVersion)) { throw 'The final image is missing its source revision or version label.' }
         if ($labelRevision -ne $ExpectedManifest.sourceCommit -or $labelVersion -ne $ExpectedManifest.version) { throw 'The image labels do not match the external deployment manifest.' }
         if (-not $InspectEmbedded) { return [pscustomobject]@{ sourceCommit = [string]$ExpectedManifest.sourceCommit; imageVersion = [string]$ExpectedManifest.version; schemaVersion = 0; imageId = $imageId; repoDigests = @($repoDigests); planOnly = $true } }
-        & docker create --label io.ding.pbx.inspect=true --name $container $Reference | Out-Null
+        $container = (& docker create --label io.ding.pbx.inspect=true $Reference).Trim()
+        if ($container -notmatch '^[0-9a-f]{12,64}$') { throw 'The provenance inspection helper did not return an immutable container id.' }
         if ($LASTEXITCODE -ne 0) { throw "docker create exited with $LASTEXITCODE" }
         $created = $true
         & docker cp "${container}:/opt/ding-pbx-console/provenance.json" $path | Out-Null
@@ -279,7 +282,7 @@ function Register-PlaintextPath([string]$Path, [string]$State) {
     $temporary = "$journalPath.$([guid]::NewGuid().ToString('N')).tmp"; [System.IO.File]::WriteAllText($temporary, ($journal | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false)); Move-Item -LiteralPath $temporary -Destination $journalPath -Force
 }
 function Recover-PlaintextPaths {
-    $journalPath=Join-Path $SnapshotDirectory 'plaintext-recovery-journal.json'; if(-not (Test-Path -LiteralPath $journalPath)){return}; $journal=Get-Content -Raw -LiteralPath $journalPath|ConvertFrom-Json; $root=[System.IO.Path]::GetFullPath($SnapshotDirectory).TrimEnd('\')+'\'; foreach($entry in @($journal.paths|Where-Object state -in @('planned','created'))){ $full=[System.IO.Path]::GetFullPath([string]$entry.path); if(-not $full.StartsWith($root,[StringComparison]::OrdinalIgnoreCase) -or [System.IO.Path]::GetFileName($full) -notmatch '^snapshot-decrypted\.[0-9a-f-]+\.tar$'){throw "Plaintext recovery path is outside the owned snapshot pattern: $($entry.path)"}; if(Test-Path -LiteralPath $full -PathType Leaf){$item=Get-Item -LiteralPath $full;if($item.Attributes -band [IO.FileAttributes]::ReparsePoint){throw "Plaintext recovery path is a reparse point: $full"};Remove-Item -LiteralPath $full -Force}; Register-PlaintextPath $full 'erased' }
+    $journalPath=Join-Path $SnapshotDirectory 'plaintext-recovery-journal.json'; if(-not (Test-Path -LiteralPath $journalPath)){return}; $journal=Get-Content -Raw -LiteralPath $journalPath|ConvertFrom-Json; $root=[System.IO.Path]::GetFullPath($SnapshotDirectory).TrimEnd('\')+'\'; $allowedSourceNames=@('ding_pbx_control_plane_data.tar','ding_pbx_control_plane_asterisk_etc.tar','ding_pbx_control_plane_asterisk_lib.tar','ding_pbx_control_plane_asterisk_log.tar','ding_pbx_control_plane_asterisk_spool.tar'); foreach($entry in @($journal.paths|Where-Object state -in @('planned','created'))){ $full=[System.IO.Path]::GetFullPath([string]$entry.path); $leaf=[System.IO.Path]::GetFileName($full); if(-not $full.StartsWith($root,[StringComparison]::OrdinalIgnoreCase) -or (($leaf -notmatch '^snapshot-decrypted\.[0-9a-f-]+\.tar$') -and $leaf -notin $allowedSourceNames)){throw "Plaintext recovery path is outside the owned snapshot pattern: $($entry.path)"}; if(Test-Path -LiteralPath $full -PathType Leaf){$item=Get-Item -LiteralPath $full;if($item.Attributes -band [IO.FileAttributes]::ReparsePoint){throw "Plaintext recovery path is a reparse point: $full"};Remove-Item -LiteralPath $full -Force}; Register-PlaintextPath $full 'erased' }
 }
 
 function Get-SnapshotEncryptionKeys {
@@ -298,7 +301,29 @@ function Get-SnapshotEncryptionKeys {
     }
     $enc = Expand-Hkdf $prk ([Text.Encoding]::UTF8.GetBytes('encryption-v1')) 32
     $mac = Expand-Hkdf $prk ([Text.Encoding]::UTF8.GetBytes('integrity-v1')) 32
-    return [pscustomobject]@{ encryption = $enc; integrity = $mac; formatVersion = 1; keyDerivation = 'HKDF-SHA256' }
+    return [pscustomobject]@{ encryption = $enc; integrity = $mac; formatVersion = 2; keyDerivation = 'HKDF-SHA256' }
+}
+
+function Get-SnapshotArchiveHeader([string]$SnapshotId, [string]$Volume, [string]$KeyId) {
+    if ($SnapshotId -notmatch '^[0-9a-f]{32}$' -or $Volume -notmatch '^[a-z0-9-]+$' -or $KeyId -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$') { throw 'Snapshot archive header identity is invalid.' }
+    $text = "DING-PBX-SNAPSHOT|2|HKDF-SHA256|AES-256-CBC+HMAC-SHA256|$SnapshotId|$Volume|$KeyId"
+    $bytes = [Text.Encoding]::UTF8.GetBytes($text)
+    if ($bytes.Length -lt 32 -or $bytes.Length -gt 512) { throw 'Snapshot archive header is outside its bounded size.' }
+    return [pscustomobject]@{ bytes = $bytes; magic = 'DING-PBX-SNAPSHOT'; formatVersion = 2; keyDerivation = 'HKDF-SHA256'; algorithm = 'AES-256-CBC+HMAC-SHA256'; snapshotId = $SnapshotId; volume = $Volume; keyId = $KeyId }
+}
+
+function Read-SnapshotArchiveHeader([string]$Path, [string]$ExpectedSnapshotId = '', [string]$ExpectedVolume = '', [string]$ExpectedKeyId = '') {
+    $stream = [IO.File]::OpenRead($Path)
+    try {
+        $lengthBytes = New-Object byte[] 4; Read-Exact $stream $lengthBytes
+        $headerLength = [BitConverter]::ToInt32($lengthBytes, 0)
+        if ($headerLength -lt 32 -or $headerLength -gt 512) { throw 'Encrypted snapshot archive header length is invalid.' }
+        $headerBytes = New-Object byte[] $headerLength; Read-Exact $stream $headerBytes
+        $parts = ([Text.Encoding]::UTF8.GetString($headerBytes) -split '\|', 7)
+        if ($parts.Count -ne 7 -or $parts[0] -ne 'DING-PBX-SNAPSHOT' -or $parts[1] -ne '2' -or $parts[2] -ne 'HKDF-SHA256' -or $parts[3] -ne 'AES-256-CBC+HMAC-SHA256' -or $parts[4] -notmatch '^[0-9a-f]{32}$' -or $parts[5] -notmatch '^[a-z0-9-]+$' -or $parts[6] -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$') { throw 'Encrypted snapshot archive header is invalid.' }
+        if (($ExpectedSnapshotId -and $parts[4] -ne $ExpectedSnapshotId) -or ($ExpectedVolume -and $parts[5] -ne $ExpectedVolume) -or ($ExpectedKeyId -and $parts[6] -ne $ExpectedKeyId)) { throw 'Encrypted snapshot archive header does not match the expected snapshot journal identity.' }
+        return [pscustomobject]@{ headerLength = $headerLength; magic = $parts[0]; formatVersion = [int]$parts[1]; keyDerivation = $parts[2]; algorithm = $parts[3]; snapshotId = $parts[4]; volume = $parts[5]; keyId = $parts[6]; dataOffset = 4 + $headerLength }
+    } finally { $stream.Dispose() }
 }
 
 function Get-FileHmacSha256([string]$Path, [byte[]]$Key, [bool]$ExcludeTrailer = $true) {
@@ -311,14 +336,17 @@ function Get-BytesHmacSha256([byte[]]$Bytes, [int]$Length, [byte[]]$Key) { $hmac
 function Read-Exact($Stream, [byte[]]$Buffer) { $offset=0; while($offset -lt $Buffer.Length){$read=$Stream.Read($Buffer,$offset,$Buffer.Length-$offset);if($read -le 0){throw 'Encrypted snapshot archive ended before the required bytes.'};$offset+=$read} }
 function Test-ConstantTimeEqual([byte[]]$Left, [byte[]]$Right) { if($Left.Length -ne $Right.Length){return $false};$difference=0;for($i=0;$i -lt $Left.Length;$i++){$difference=$difference -bor ($Left[$i]-bxor $Right[$i])};return $difference -eq 0 }
 
-function Protect-SnapshotArchive([string]$PlainPath) {
+function Protect-SnapshotArchive([string]$PlainPath, [string]$SnapshotId, [string]$Volume, [string]$KeyId) {
     $keys = Get-SnapshotEncryptionKeys; $key = $keys.encryption
+    $header = Get-SnapshotArchiveHeader $SnapshotId $Volume $KeyId
     $encryptedPath = "$PlainPath.enc"
     $iv = New-Object byte[] 16
     $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create(); $rng.GetBytes($iv); $rng.Dispose()
     $input = [System.IO.File]::OpenRead($PlainPath)
     $output = [System.IO.File]::Create($encryptedPath)
     try {
+        $output.Write([BitConverter]::GetBytes($header.bytes.Length), 0, 4)
+        $output.Write($header.bytes, 0, $header.bytes.Length)
         $output.Write($iv, 0, $iv.Length)
         $aes = [System.Security.Cryptography.Aes]::Create(); $aes.Key = $key; $aes.IV = $iv; $aes.Mode = 'CBC'; $aes.Padding = 'PKCS7'
         try { $crypto = [System.Security.Cryptography.CryptoStream]::new($output, $aes.CreateEncryptor(), [System.Security.Cryptography.CryptoStreamMode]::Write); try { $input.CopyTo($crypto); $crypto.FlushFinalBlock() } finally { $crypto.Dispose() } } finally { $aes.Dispose() }
@@ -327,11 +355,11 @@ function Protect-SnapshotArchive([string]$PlainPath) {
     $append = [System.IO.File]::Open($encryptedPath, [System.IO.FileMode]::Append, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None); try { $append.Write($mac, 0, $mac.Length) } finally { $append.Dispose() }
     $encryptedItem = Get-Item -LiteralPath $encryptedPath
     Remove-Item -LiteralPath $PlainPath -Force
-    [pscustomobject]@{ path = $encryptedPath; bytes = [long]$encryptedItem.Length; sha256 = (Get-FileHash -LiteralPath $encryptedPath -Algorithm SHA256).Hash.ToLowerInvariant(); formatVersion = $keys.formatVersion; keyDerivation = $keys.keyDerivation; algorithm = 'AES-256-CBC+HMAC-SHA256' }
+    [pscustomobject]@{ path = $encryptedPath; bytes = [long]$encryptedItem.Length; sha256 = (Get-FileHash -LiteralPath $encryptedPath -Algorithm SHA256).Hash.ToLowerInvariant(); formatVersion = $keys.formatVersion; keyDerivation = $keys.keyDerivation; algorithm = 'AES-256-CBC+HMAC-SHA256'; archiveHeader = [ordered]@{ magic = $header.magic; formatVersion = $header.formatVersion; keyDerivation = $header.keyDerivation; algorithm = $header.algorithm; snapshotId = $header.snapshotId; volume = $header.volume; keyId = $header.keyId } }
 }
 
-function Unprotect-SnapshotArchive([string]$EncryptedPath) {
-    $keys = Get-SnapshotEncryptionKeys; $item=Get-Item -LiteralPath $EncryptedPath; if($item.Length -lt 48 -or $item.Length -gt $MaxEncryptedArchiveBytes){throw 'Encrypted snapshot archive is outside the size bound.'}; $stream=[System.IO.File]::OpenRead($EncryptedPath);$iv=New-Object byte[] 16;try{Read-Exact $stream $iv}finally{$stream.Dispose()};$expected=New-Object byte[] 32;$stream=[System.IO.File]::OpenRead($EncryptedPath);try{$stream.Seek(-32,[IO.SeekOrigin]::End)|Out-Null;Read-Exact $stream $expected}finally{$stream.Dispose()};$actual=Get-FileHmacSha256 $EncryptedPath $keys.integrity;if(-not (Test-ConstantTimeEqual $expected $actual)){throw 'Encrypted snapshot archive integrity validation failed.'};$temporary=Join-Path $SnapshotDirectory ("snapshot-decrypted.{0}.tar"-f([guid]::NewGuid().ToString('N')));Register-PlaintextPath $temporary 'planned';$output=[System.IO.File]::Create($temporary);Register-PlaintextPath $temporary 'created';$input=[System.IO.File]::OpenRead($EncryptedPath);$aes=[System.Security.Cryptography.Aes]::Create();$aes.Key=$keys.encryption;$aes.IV=$iv;$aes.Mode='CBC';$aes.Padding='PKCS7';try{$input.Seek(16,[IO.SeekOrigin]::Begin)|Out-Null;$crypto=[Security.Cryptography.CryptoStream]::new($output,$aes.CreateDecryptor(),[Security.Cryptography.CryptoStreamMode]::Write);try{$remaining=$input.Length-48;$buffer=New-Object byte[] 1048576;while($remaining -gt 0){$read=$input.Read($buffer,0,[int][Math]::Min($buffer.Length,$remaining));if($read -le 0){throw 'Encrypted snapshot archive ended before ciphertext completed.'};$crypto.Write($buffer,0,$read);$remaining-=$read};$crypto.FlushFinalBlock()}finally{$crypto.Dispose()}}catch{if(Test-Path -LiteralPath $temporary){Remove-Item -LiteralPath $temporary -Force;Register-PlaintextPath $temporary 'erased'};throw}finally{$input.Dispose();$aes.Dispose();$output.Dispose()};if((Get-Item -LiteralPath $temporary).Length -gt $MaxPlainArchiveBytes){Remove-Item -LiteralPath $temporary -Force;Register-PlaintextPath $temporary 'erased';throw 'Decrypted snapshot archive exceeds the size bound.'};return $temporary
+function Unprotect-SnapshotArchive([string]$EncryptedPath, [string]$ExpectedSnapshotId = '', [string]$ExpectedVolume = '', [string]$ExpectedKeyId = '') {
+    $keys = Get-SnapshotEncryptionKeys; $item=Get-Item -LiteralPath $EncryptedPath; if($item.Length -lt 84 -or $item.Length -gt $MaxEncryptedArchiveBytes){throw 'Encrypted snapshot archive is outside the size bound.'}; $header=Read-SnapshotArchiveHeader $EncryptedPath $ExpectedSnapshotId $ExpectedVolume $ExpectedKeyId; $stream=[System.IO.File]::OpenRead($EncryptedPath);$iv=New-Object byte[] 16;try{$stream.Seek($header.dataOffset,[IO.SeekOrigin]::Begin)|Out-Null;Read-Exact $stream $iv}finally{$stream.Dispose()};$expected=New-Object byte[] 32;$stream=[System.IO.File]::OpenRead($EncryptedPath);try{$stream.Seek(-32,[IO.SeekOrigin]::End)|Out-Null;Read-Exact $stream $expected}finally{$stream.Dispose()};$actual=Get-FileHmacSha256 $EncryptedPath $keys.integrity;if(-not (Test-ConstantTimeEqual $expected $actual)){throw 'Encrypted snapshot archive integrity validation failed.'};$temporary=Join-Path $SnapshotDirectory ("snapshot-decrypted.{0}.tar"-f([guid]::NewGuid().ToString('N')));Register-PlaintextPath $temporary 'planned';$output=[System.IO.File]::Create($temporary);Register-PlaintextPath $temporary 'created';$input=[System.IO.File]::OpenRead($EncryptedPath);$aes=[System.Security.Cryptography.Aes]::Create();$aes.Key=$keys.encryption;$aes.IV=$iv;$aes.Mode='CBC';$aes.Padding='PKCS7';try{$input.Seek($header.dataOffset + 16,[IO.SeekOrigin]::Begin)|Out-Null;$crypto=[Security.Cryptography.CryptoStream]::new($output,$aes.CreateDecryptor(),[Security.Cryptography.CryptoStreamMode]::Write);try{$remaining=$input.Length-$header.dataOffset-16-32;$buffer=New-Object byte[] 1048576;while($remaining -gt 0){$read=$input.Read($buffer,0,[int][Math]::Min($buffer.Length,$remaining));if($read -le 0){throw 'Encrypted snapshot archive ended before ciphertext completed.'};$crypto.Write($buffer,0,$read);$remaining-=$read};$crypto.FlushFinalBlock()}finally{$crypto.Dispose()}}catch{if(Test-Path -LiteralPath $temporary){Remove-Item -LiteralPath $temporary -Force;Register-PlaintextPath $temporary 'erased'};throw}finally{$input.Dispose();$aes.Dispose();$output.Dispose()};if((Get-Item -LiteralPath $temporary).Length -gt $MaxPlainArchiveBytes){Remove-Item -LiteralPath $temporary -Force;Register-PlaintextPath $temporary 'erased';throw 'Decrypted snapshot archive exceeds the size bound.'};return $temporary
 }
 
 function Stop-OwnedServiceForSnapshot($Transaction) {
@@ -358,13 +386,12 @@ function Restore-PartialVolumeSnapshots {
     foreach ($result in @($journal.volumeResults | Where-Object state -eq 'complete')) {
         Assert-OperationDeadline
         $path = Join-Path $SnapshotDirectory $result.archive
-        $actual = Read-AndValidateSnapshotTar $path
+        $actual = Read-AndValidateSnapshotTar $path $journal.snapshotId $result.volume $result.archiveHeader.keyId
         if ($actual.bytes -ne [long]$result.bytes -or $actual.sha256 -ne $result.sha256) { throw "Partial snapshot restore is blocked by an archive integrity mismatch for $($result.volume)." }
-        $helperName = "ding-pbx-partial-restore-$([guid]::NewGuid().ToString('N'))"
-        $plainPath = Unprotect-SnapshotArchive $path
+        $plainPath = Unprotect-SnapshotArchive $path $journal.snapshotId $result.volume $result.archiveHeader.keyId
         $helperId = $null
         try {
-            $helperId = (& docker run --detach --name $helperName --label io.ding.pbx.snapshot-partial-restore=$journal.snapshotId --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --pids-limit 64 --memory 256m --cpus 0.50 --tmpfs /tmp:rw,noexec,nosuid,size=8m --user 10001:10001 --entrypoint /bin/tar -v "$($result.volume):/restore:rw" -v "${plainPath}:/backup/archive.tar:ro" $preChangeImageRef -xf /backup/archive.tar -C /restore).Trim()
+            $helperId = (& docker run --detach --label io.ding.pbx.snapshot-partial-restore=$journal.snapshotId --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --pids-limit 64 --memory 256m --cpus 0.50 --tmpfs /tmp:rw,noexec,nosuid,size=8m --user 10001:10001 --entrypoint /bin/tar -v "$($result.volume):/restore:rw" -v "${plainPath}:/backup/archive.tar:ro" $preChangeImageRef -xf /backup/archive.tar -C /restore).Trim()
             if ($LASTEXITCODE -ne 0 -or $helperId -notmatch '^[0-9a-f]{12,64}$') { throw "Could not start partial snapshot restore for $($result.volume)." }
             $deadline = [DateTimeOffset]::UtcNow.AddMinutes(5)
             do { Start-Sleep -Milliseconds 250; $state = (& docker inspect --format '{{.State.Status}}' $helperId 2>$null).Trim(); if ([DateTimeOffset]::UtcNow -gt $deadline) { throw "Partial snapshot restore timed out for $($result.volume)." } } while ($state -eq 'running')
@@ -373,10 +400,10 @@ function Restore-PartialVolumeSnapshots {
     }
 }
 
-function Read-AndValidateSnapshotTar([string]$Path) {
+function Read-AndValidateSnapshotTar([string]$Path, [string]$ExpectedSnapshotId = '', [string]$ExpectedVolume = '', [string]$ExpectedKeyId = '') {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "Snapshot archive does not exist: $Path" }
     $temporary = $null
-    if ($Path.EndsWith('.enc', [StringComparison]::OrdinalIgnoreCase)) { $temporary = Unprotect-SnapshotArchive $Path; Register-PlaintextPath $temporary 'created'; $Path = $temporary }
+    if ($Path.EndsWith('.enc', [StringComparison]::OrdinalIgnoreCase)) { $temporary = Unprotect-SnapshotArchive $Path $ExpectedSnapshotId $ExpectedVolume $ExpectedKeyId; Register-PlaintextPath $temporary 'created'; $Path = $temporary }
     try {
     $tar = Get-TarExecutable
     $entries = @(& $tar -tf $Path 2>&1)
@@ -410,7 +437,7 @@ function Snapshot-Volumes {
         $destination = Join-Path $SnapshotDirectory "$safe.tar"
         $helperId = $null
         try {
-            $helperId = (& docker run --detach --label io.ding.pbx.snapshot=true --label "io.ding.pbx.snapshot-id=$snapshotRunId" --label "io.ding.pbx.snapshot-volume=$volume" --name $name --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --pids-limit 64 --memory 256m --cpus 0.50 --tmpfs /tmp:rw,noexec,nosuid,size=8m --user 10001:10001 --entrypoint /bin/tar -v "${volume}:/source:ro" -v "${SnapshotDirectory}:/backup:rw" $ImageRef -cf "/backup/$safe.tar" -C /source .).Trim()
+            $helperId = (& docker run --detach --label io.ding.pbx.snapshot=true --label "io.ding.pbx.snapshot-id=$snapshotRunId" --label "io.ding.pbx.snapshot-volume=$volume" --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --pids-limit 64 --memory 256m --cpus 0.50 --tmpfs /tmp:rw,noexec,nosuid,size=8m --user 10001:10001 --entrypoint /bin/tar -v "${volume}:/source:ro" -v "${SnapshotDirectory}:/backup:rw" $ImageRef -cf "/backup/$safe.tar" -C /source .).Trim()
             if ($LASTEXITCODE -ne 0 -or $helperId -notmatch '^[0-9a-f]{12,64}$') { throw "Could not start owned volume snapshot for $volume." }
             $deadline = [DateTimeOffset]::UtcNow.AddMinutes(5)
             do { Start-Sleep -Milliseconds 250; $state = (& docker inspect --format '{{.State.Status}}' $helperId 2>$null).Trim(); if ([DateTimeOffset]::UtcNow -gt $deadline) { throw "Volume snapshot helper timed out for $volume." } } while ($state -eq 'running')
@@ -421,9 +448,9 @@ function Snapshot-Volumes {
             if ($exitCode -ne '0') { throw "Volume snapshot helper failed for $volume." }
             $archive = Read-AndValidateSnapshotTar $destination
             Register-PlaintextPath $destination 'created'
-            $protected = Protect-SnapshotArchive $destination
+            $protected = Protect-SnapshotArchive $destination $snapshotRunId $volume $manifest.snapshotKeyId
             Register-PlaintextPath $destination 'erased'
-            $journal.volumeResults += [ordered]@{ volume = $volume; helperId = $helperId; archive = [System.IO.Path]::GetFileName($protected.path); bytes = $archive.bytes; sha256 = $archive.sha256; encryptedBytes = $protected.bytes; encryptedSha256 = $protected.sha256; encryption = $protected.algorithm; formatVersion = $protected.formatVersion; keyDerivation = $protected.keyDerivation; entries = $archive.entries; state = 'complete' }
+            $journal.volumeResults += [ordered]@{ volume = $volume; helperId = $helperId; archive = [System.IO.Path]::GetFileName($protected.path); bytes = $archive.bytes; sha256 = $archive.sha256; encryptedBytes = $protected.bytes; encryptedSha256 = $protected.sha256; encryption = $protected.algorithm; formatVersion = $protected.formatVersion; keyDerivation = $protected.keyDerivation; archiveHeader = $protected.archiveHeader; entries = $archive.entries; state = 'complete' }
             $journal.state = 'in-progress'
             Write-SnapshotJournal $journal
         } catch {
@@ -445,6 +472,14 @@ function Snapshot-Volumes {
         }
     }
     $snapshotRecord = [ordered]@{ schemaVersion = 1; snapshotId = $snapshotRunId; sourceImage = $ImageRef; sourceCommit = $manifest.sourceCommit; sourceVersion = $manifest.version; sourceTreeSha256 = $manifest.sourceTreeSha256; dockerfileSha256 = $manifest.dockerfileSha256; consoleLockSha256 = $manifest.consoleLockSha256; inputManifestSha256 = $manifest.inputManifestSha256; aptSbomSha256 = $manifest.aptSbomSha256; ubuntuSnapshot = $manifest.ubuntuSnapshot; runtimeBaseImage = $manifest.runtimeBaseImage; nodeBuildBaseImage = $manifest.nodeBuildBaseImage; volumeSchemaVersion = $manifest.volumeSchemaVersion; mountProfile = $manifest.mountProfile; volumes = $volumes; archives = $journal.volumeResults; createdAt = [DateTimeOffset]::UtcNow.ToString('o'); compatibility = 'restore only into the same volume schema, mount profile, and ordered volume names'; restoreCommand = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\restore-volume-snapshots.ps1`" -SnapshotDirectory `"$SnapshotDirectory`" -ManifestPath `"<compatible-manifest-path>`" -PreflightEvidencePath `"<fresh-preflight-path>`" -SnapshotEncryptionKeyFile `"<protected-key-path>`" -TlsCertificateSha256 `"<certificate-pin>`" -SessionCookieFile `"<fresh-readiness-credential>`" -Execute"; retention = $journal.retention }
+    $snapshotRecord.snapshotKeyId = $manifest.snapshotKeyId
+    $snapshotRecord.projectName = $manifest.projectName
+    $snapshotRecord.adminPort = $manifest.adminPort
+    $snapshotRecord.target = $manifest.target
+    $snapshotRecord.targetHost = $manifest.targetHost
+    $snapshotRecord.targetUser = $manifest.targetUser
+    $snapshotRecord.targetSshPort = $manifest.targetSshPort
+    $snapshotRecord.inventoryPath = $manifest.inventoryPath
     [System.IO.File]::WriteAllText((Join-Path $SnapshotDirectory 'snapshot-record.json'), ($snapshotRecord | ConvertTo-Json -Depth 8), [System.Text.UTF8Encoding]::new($false))
     $journal.state = 'complete'
     $journal.snapshotRecordSha256 = (Get-FileHash -LiteralPath (Join-Path $SnapshotDirectory 'snapshot-record.json') -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -457,21 +492,20 @@ function Snapshot-Volumes {
 function Test-SnapshotRecoverability {
     $recordPath = Join-Path $SnapshotDirectory 'snapshot-record.json'
     $record = Get-Content -Raw -LiteralPath $recordPath | ConvertFrom-Json
-    if ($record.schemaVersion -ne 1 -or $record.volumeSchemaVersion -ne $manifest.volumeSchemaVersion -or @($record.volumes).Count -ne 5 -or @($record.archives).Count -ne 5) { throw 'Snapshot recoverability is blocked by an incomplete or incompatible record.' }
+    if ($record.schemaVersion -ne 1 -or $record.snapshotKeyId -ne $manifest.snapshotKeyId -or $record.volumeSchemaVersion -ne $manifest.volumeSchemaVersion -or @($record.volumes).Count -ne 5 -or @($record.archives).Count -ne 5) { throw 'Snapshot recoverability is blocked by an incomplete or incompatible record.' }
     foreach ($archive in @($record.archives)) {
         Assert-OperationDeadline
         $path = Join-Path $SnapshotDirectory $archive.archive
-        $actual = Read-AndValidateSnapshotTar $path
+        $actual = Read-AndValidateSnapshotTar $path $record.snapshotId $archive.volume $record.snapshotKeyId
         if ($actual.bytes -ne [long]$archive.bytes -or $actual.sha256 -ne $archive.sha256) { throw "Snapshot archive digest or byte count changed for $($archive.volume)." }
         $volumeName = ("ding-pbx-snapshot-recovery-{0}-{1}" -f $record.snapshotId, ([guid]::NewGuid().ToString('N')))
         $volumeId = (& docker volume create --label io.ding.pbx.snapshot-recovery=$record.snapshotId $volumeName).Trim()
         if ($LASTEXITCODE -ne 0 -or $volumeId -ne $volumeName) { throw "Could not create a temporary recovery volume for $($archive.volume)." }
         try {
-            $helperName = "ding-pbx-recover-$([guid]::NewGuid().ToString('N'))"
-            $plainPath = Unprotect-SnapshotArchive $path
+            $plainPath = Unprotect-SnapshotArchive $path $record.snapshotId $archive.volume $record.snapshotKeyId
             $helperId = $null
             try {
-                $helperId = (& docker run --detach --name $helperName --label io.ding.pbx.snapshot-recovery=$record.snapshotId --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --pids-limit 64 --memory 256m --cpus 0.50 --tmpfs /tmp:rw,noexec,nosuid,size=8m --user 10001:10001 --entrypoint /bin/tar -v "${volumeId}:/restore:rw" -v "${plainPath}:/backup/archive.tar:ro" $ImageRef -xf /backup/archive.tar -C /restore).Trim()
+                $helperId = (& docker run --detach --label io.ding.pbx.snapshot-recovery=$record.snapshotId --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --pids-limit 64 --memory 256m --cpus 0.50 --tmpfs /tmp:rw,noexec,nosuid,size=8m --user 10001:10001 --entrypoint /bin/tar -v "${volumeId}:/restore:rw" -v "${plainPath}:/backup/archive.tar:ro" $ImageRef -xf /backup/archive.tar -C /restore).Trim()
                 if ($LASTEXITCODE -ne 0 -or $helperId -notmatch '^[0-9a-f]{12,64}$') { throw "Could not start snapshot recoverability helper for $($archive.volume)." }
                 $deadline = [DateTimeOffset]::UtcNow.AddMinutes(5)
                 do { Start-Sleep -Milliseconds 250; $state = (& docker inspect --format '{{.State.Status}}' $helperId 2>$null).Trim(); if ([DateTimeOffset]::UtcNow -gt $deadline) { throw "Snapshot recovery helper timed out for $($archive.volume)." } } while ($state -eq 'running')
@@ -491,13 +525,12 @@ function Restore-VolumeSnapshots([string]$RestoreImageRef = $ImageRef, $RestoreM
     foreach ($archive in @($record.archives)) {
         Assert-OperationDeadline
         $path = Join-Path $SnapshotDirectory $archive.archive
-        $actual = Read-AndValidateSnapshotTar $path
+        $actual = Read-AndValidateSnapshotTar $path $record.snapshotId $archive.volume $record.snapshotKeyId
         if ($actual.bytes -ne [long]$archive.bytes -or $actual.sha256 -ne $archive.sha256) { throw "Volume restore is blocked because $($archive.volume) failed its archive integrity check." }
-        $helperName = "ding-pbx-restore-$([guid]::NewGuid().ToString('N'))"
-        $plainPath = Unprotect-SnapshotArchive $path
+        $plainPath = Unprotect-SnapshotArchive $path $record.snapshotId $archive.volume $record.snapshotKeyId
         $helperId = $null
         try {
-            $helperId = (& docker run --detach --name $helperName --label io.ding.pbx.snapshot-restore=$record.snapshotId --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --pids-limit 64 --memory 256m --cpus 0.50 --tmpfs /tmp:rw,noexec,nosuid,size=8m --user 10001:10001 --entrypoint /bin/tar -v "$($archive.volume):/restore:rw" -v "${plainPath}:/backup/archive.tar:ro" $RestoreImageRef -xf /backup/archive.tar -C /restore).Trim()
+            $helperId = (& docker run --detach --label io.ding.pbx.snapshot-restore=$record.snapshotId --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --pids-limit 64 --memory 256m --cpus 0.50 --tmpfs /tmp:rw,noexec,nosuid,size=8m --user 10001:10001 --entrypoint /bin/tar -v "$($archive.volume):/restore:rw" -v "${plainPath}:/backup/archive.tar:ro" $RestoreImageRef -xf /backup/archive.tar -C /restore).Trim()
             if ($LASTEXITCODE -ne 0 -or $helperId -notmatch '^[0-9a-f]{12,64}$') { throw "Could not start volume restore helper for $($archive.volume)." }
             $deadline = [DateTimeOffset]::UtcNow.AddMinutes(5)
             do { Start-Sleep -Milliseconds 250; $state = (& docker inspect --format '{{.State.Status}}' $helperId 2>$null).Trim(); if ([DateTimeOffset]::UtcNow -gt $deadline) { throw "Volume restore helper timed out for $($archive.volume)." } } while ($state -eq 'running')
