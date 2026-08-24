@@ -340,6 +340,42 @@ function looksAbsent(error: unknown): boolean {
   return /No such file or directory/u.test(message);
 }
 
+interface ResourceMetadata {
+  uid: number;
+  gid: number;
+  mode: number;
+}
+
+/** Metadata for a newly created configuration when the target did not exist. */
+const RESTRICTIVE_NEW_RESOURCE_METADATA: ResourceMetadata = Object.freeze({
+  uid: 0,
+  gid: 0,
+  mode: 0o600,
+});
+
+function parseMetadata(text: string, resource: string): ResourceMetadata {
+  const line = text.trim().split(/\r?\n/u)[0] ?? "";
+  const parts = line.split(":");
+  if (parts.length !== 3 || !/^\d+$/u.test(parts[0]!) || !/^\d+$/u.test(parts[1]!) || !/^[0-7]{3,4}$/u.test(parts[2]!)) {
+    throw new Error(`Could not read numeric metadata for ${resource}.`);
+  }
+  const uid = Number(parts[0]);
+  const gid = Number(parts[1]);
+  const mode = Number.parseInt(parts[2]!, 8);
+  if (!Number.isSafeInteger(uid) || !Number.isSafeInteger(gid) || uid < 0 || gid < 0 || mode < 0 || mode > 0o7777) {
+    throw new Error(`Numeric metadata for ${resource} is outside the supported range.`);
+  }
+  return { uid, gid, mode };
+}
+
+function sameMetadata(left: ResourceMetadata, right: ResourceMetadata): boolean {
+  return left.uid === right.uid && left.gid === right.gid && left.mode === right.mode;
+}
+
+function chmodValue(metadata: ResourceMetadata): string {
+  return metadata.mode.toString(8).padStart(4, "0");
+}
+
 export class WslConfigTransport implements ConfigTransport {
   readonly targetId: string;
   readonly requiresRuntimeVerification = true;
@@ -351,6 +387,12 @@ export class WslConfigTransport implements ConfigTransport {
   readonly #staged = new Map<string, ConfigurableResource>();
   /** Exact materialized bytes expected after apply, retained only inside the privileged transport. */
   readonly #stagedValues = new Map<string, ConfigValue>();
+  /** Exact uid, gid, and mode retained for the staged handle, never renderer-visible. */
+  readonly #stagedMetadata = new Map<string, ResourceMetadata>();
+  /** Backup metadata captured from the backup file for exact rollback restoration. */
+  readonly #backupMetadata = new Map<string, ResourceMetadata | null>();
+  /** The latest backup for each resource, used to self-restore if apply fails after rename. */
+  readonly #backupHandles = new Map<ConfigurableResource, string>();
   readonly #appliedValues = new Map<ConfigurableResource, ConfigValue>();
 
   constructor(options: WslConfigTransportOptions) {
@@ -417,19 +459,51 @@ export class WslConfigTransport implements ConfigTransport {
     return result.state === "absent" ? [] : parseConfig(result.text);
   }
 
+  async #readMetadata(resource: string): Promise<ResourceMetadata | undefined> {
+    try {
+      return parseMetadata(await this.#run(["stat", "-c", "%u:%g:%a", resource]), resource);
+    } catch (error) {
+      if (looksAbsent(error)) return undefined;
+      throw error;
+    }
+  }
+
+  async #captureTargetMetadata(resource: ConfigurableResource): Promise<ResourceMetadata> {
+    return (await this.#readMetadata(resource)) ?? RESTRICTIVE_NEW_RESOURCE_METADATA;
+  }
+
+  async #forgetStaged(stagedHandle: string, removeFile: boolean): Promise<void> {
+    this.#staged.delete(stagedHandle);
+    this.#stagedValues.delete(stagedHandle);
+    this.#stagedMetadata.delete(stagedHandle);
+    if (removeFile) {
+      try {
+        await this.#run(["rm", "-f", stagedHandle]);
+      } catch {
+        // The original failure is more useful than a best-effort temporary-file cleanup failure.
+      }
+    }
+  }
+
   async backup(resource: string): Promise<string> {
     const allowed = assertConfigurable(resource);
     const stamp = this.#now().toISOString().replaceAll(/[:.]/gu, "-");
     const backup = this.#path(allowed, `.backup-${stamp}-${randomUUID()}`);
     try {
       await this.#run(["cp", "--preserve=mode,ownership,timestamps", this.#path(allowed), backup]);
-      return backup;
     } catch (error) {
       if (!looksAbsent(error)) throw error;
       const absent = `${backup}-absent`;
       await this.#run(["touch", absent]);
+      this.#backupMetadata.set(absent, null);
+      this.#backupHandles.set(allowed, absent);
       return absent;
     }
+    const metadata = await this.#readMetadata(backup);
+    if (!metadata) throw new Error(`The backup for ${allowed} disappeared before metadata could be read.`);
+    this.#backupMetadata.set(backup, metadata);
+    this.#backupHandles.set(allowed, backup);
+    return backup;
   }
 
   async stage(resource: string, value: unknown, signal?: AbortSignal): Promise<string> {
@@ -439,31 +513,67 @@ export class WslConfigTransport implements ConfigTransport {
     const materialized = carriesHiddenValues
       ? materializeHiddenValues(desired, await this.#readRawValue(allowed, signal))
       : desired;
+    const metadata = await this.#captureTargetMetadata(allowed);
     const staged = this.#path(allowed, `.staged-${randomUUID()}`);
-    await this.#run(["tee", staged], renderConfig(materialized));
-    this.#staged.set(staged, allowed);
-    this.#stagedValues.set(staged, materialized);
-    return staged;
+    try {
+      await this.#run(["tee", staged], renderConfig(materialized));
+      this.#staged.set(staged, allowed);
+      this.#stagedValues.set(staged, materialized);
+      this.#stagedMetadata.set(staged, metadata);
+      return staged;
+    } catch (error) {
+      await this.#forgetStaged(staged, true);
+      throw error;
+    }
   }
 
   async validate(stagedHandle: string): Promise<void> {
     const resource = this.#staged.get(stagedHandle);
     if (!resource) throw new Error("That staged file was not created by this transaction.");
-    const written = parseConfig(await this.#run(["cat", stagedHandle]));
-    if (written.length === 0) {
-      throw new Error(`The staged ${resource} parsed to nothing, so it was not applied.`);
+    try {
+      const written = parseConfig(await this.#run(["cat", stagedHandle]));
+      if (written.length === 0) {
+        throw new Error(`The staged ${resource} parsed to nothing, so it was not applied.`);
+      }
+    } catch (error) {
+      await this.#forgetStaged(stagedHandle, true);
+      throw error;
     }
   }
 
   async apply(stagedHandle: string): Promise<void> {
     const resource = this.#staged.get(stagedHandle);
     const expected = this.#stagedValues.get(stagedHandle);
+    const metadata = this.#stagedMetadata.get(stagedHandle);
     if (!resource) throw new Error("That staged file was not created by this transaction.");
     if (!expected) throw new Error("That staged file has no retained verification value.");
-    await this.#run(["mv", stagedHandle, this.#path(resource)]);
-    this.#appliedValues.set(resource, expected);
-    this.#staged.delete(stagedHandle);
-    this.#stagedValues.delete(stagedHandle);
+    if (!metadata) throw new Error("That staged file has no retained metadata.");
+    let renamed = false;
+    try {
+      await this.#run(["mv", "--", stagedHandle, this.#path(resource)]);
+      renamed = true;
+      await this.#run(["chown", "--", `${metadata.uid}:${metadata.gid}`, this.#path(resource)]);
+      await this.#run(["chmod", "--", chmodValue(metadata), this.#path(resource)]);
+      const actual = await this.#readMetadata(this.#path(resource));
+      if (!actual || !sameMetadata(actual, metadata)) {
+        throw new Error(`Applied metadata mismatch for ${resource}.`);
+      }
+      this.#appliedValues.set(resource, expected);
+    } catch (error) {
+      if (renamed) {
+        const backup = this.#backupHandles.get(resource);
+        if (backup) {
+          try {
+            await this.#restoreBackup(backup);
+          } catch {
+            throw new Error(`Applying ${resource} failed and its backup could not be restored.`);
+          }
+        }
+      }
+      throw error;
+    } finally {
+      await this.#forgetStaged(stagedHandle, !renamed);
+    }
   }
 
   /** Exact privileged post-read. Renderer-visible reads cannot verify generated secrets. */
@@ -478,16 +588,36 @@ export class WslConfigTransport implements ConfigTransport {
     this.#appliedValues.delete(allowed);
   }
 
+  async #restoreBackup(backupHandle: string): Promise<void> {
+    const resource = CONFIGURABLE_RESOURCES.find((candidate) => backupHandle.startsWith(`${candidate}.backup-`));
+    if (!resource) throw new Error("That backup handle does not belong to a configurable resource.");
+    const metadata = this.#backupMetadata.get(backupHandle);
+    if (metadata === null || (metadata === undefined && backupHandle.endsWith("-absent"))) {
+      await this.#run(["rm", "-f", resource]);
+      if (await this.#readMetadata(resource)) throw new Error(`The absent backup still has a live ${resource}.`);
+      this.#appliedValues.delete(resource);
+      return;
+    }
+    const retained = metadata ?? await this.#readMetadata(backupHandle);
+    if (!retained) throw new Error(`The backup for ${resource} has no readable metadata.`);
+    await this.#run(["cp", "--preserve=mode,ownership,timestamps", backupHandle, resource]);
+    await this.#run(["chown", "--", `${retained.uid}:${retained.gid}`, resource]);
+    await this.#run(["chmod", "--", chmodValue(retained), resource]);
+    const actual = await this.#readMetadata(resource);
+    if (!actual || !sameMetadata(actual, retained)) {
+      throw new Error(`Rollback metadata mismatch for ${resource}.`);
+    }
+    this.#appliedValues.delete(resource);
+  }
+
   async rollback(backupHandle: string): Promise<void> {
     const resource = CONFIGURABLE_RESOURCES.find((candidate) => backupHandle.startsWith(`${candidate}.backup-`));
     if (!resource) {
       throw new Error("That backup handle does not belong to a configurable resource.");
     }
-    if (backupHandle.endsWith("-absent")) {
-      await this.#run(["rm", "-f", resource]);
-      return;
-    }
-    await this.#run(["cp", backupHandle, resource]);
+    await this.#restoreBackup(backupHandle);
+    this.#backupMetadata.delete(backupHandle);
+    if (this.#backupHandles.get(resource) === backupHandle) this.#backupHandles.delete(resource);
   }
 }
 
