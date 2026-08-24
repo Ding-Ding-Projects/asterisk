@@ -1,8 +1,9 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { join } from 'node:path';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
-import type { ControlPlaneRequest, UpdaterRestartResult, UpdaterStatusForRenderer } from '../../shared/control-plane.js';
+import { ExternalEditorRuntime } from '../../control-plane/external-editor-runtime.js';
+import type { ControlPlaneRequest, ExternalEditorCustomRecord, ExternalEditorLaunchTarget, UpdaterRestartResult, UpdaterStatusForRenderer } from '../../shared/control-plane.js';
 import {
   parseVersion, resolveLatestUpdate, validateReleaseIdentity, initialUpdaterState, beganChecking, checkSucceeded,
   updateFailed, beganDownloading, downloadReady, dismissedForNow, verifyDownload, findDigestForAsset,
@@ -15,6 +16,7 @@ import {
 
 let mainWindow: BrowserWindow | null = null;
 const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false });
+const externalEditor = new ExternalEditorRuntime({ userDataPath: app.getPath('userData') });
 const { controlPlaneRequest } = dispatcher;
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 let updateCheckInFlight: Promise<void> | undefined;
@@ -154,6 +156,29 @@ ipcMain.handle('updater:restart-to-install', async (): Promise<UpdaterRestartRes
   }
   return result;
 });
+
+ipcMain.handle('external-editor:detect', () => externalEditor.status());
+ipcMain.handle('external-editor:choose', (_event, editorId: unknown) => externalEditor.choose(String(editorId ?? '')));
+ipcMain.handle('external-editor:save-custom', (_event, record: ExternalEditorCustomRecord) => externalEditor.saveCustom(record));
+ipcMain.handle('external-editor:remove-custom', (_event, editorId: unknown) => externalEditor.removeCustom(String(editorId ?? '')));
+ipcMain.handle('external-editor:pick-executable', async () => {
+  const result = await dialog.showOpenDialog(mainWindow ?? undefined, {
+    title: 'Choose an editor executable',
+    properties: ['openFile'],
+    filters: [{ name: 'Programs', extensions: ['exe', 'com'] }, { name: 'All files', extensions: ['*'] }],
+  });
+  return { canceled: result.canceled, executable: result.canceled ? undefined : result.filePaths[0] };
+});
+ipcMain.handle('external-editor:open-download', async (_event, editorId?: string) => {
+  const candidate = externalEditor.status().editors.find((editor) => editor.id === editorId) ?? externalEditor.status().editors.find((editor) => editor.id === 'vscode');
+  const url = candidate?.downloadUrl;
+  if (!url || !/^https:\/\/code\.visualstudio\.com(?:\/|$)/u.test(url)) return { ok: false, message: 'No official download link is available for the selected editor.' };
+  try { await shell.openExternal(url); return { ok: true, message: url }; }
+  catch (error) { return { ok: false, message: error instanceof Error ? error.message : 'The official download link could not be opened.' }; }
+});
+ipcMain.handle('external-editor:open-project', (_event, editorId?: string) => externalEditor.launch({ kind: 'folder', path: app.getAppPath() }, editorId));
+ipcMain.handle('external-editor:launch', (_event, target: ExternalEditorLaunchTarget, editorId?: string) => externalEditor.launch(target, editorId));
+ipcMain.handle('external-editor:open-export', (_event, input: { name: string; content: string; editorId?: string }) => externalEditor.openExport(input));
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({

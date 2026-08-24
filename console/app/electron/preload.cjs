@@ -10,6 +10,17 @@ const api = Object.freeze({
   controlPlane: Object.freeze({
     request: request => ipcRenderer.invoke('control-plane:request', request),
   }),
+  externalEditor: Object.freeze({
+    detect: () => ipcRenderer.invoke('external-editor:detect'),
+    choose: editorId => ipcRenderer.invoke('external-editor:choose', editorId),
+    saveCustom: record => ipcRenderer.invoke('external-editor:save-custom', record),
+    removeCustom: editorId => ipcRenderer.invoke('external-editor:remove-custom', editorId),
+    pickExecutable: () => ipcRenderer.invoke('external-editor:pick-executable'),
+    openDownload: editorId => ipcRenderer.invoke('external-editor:open-download', editorId),
+    openProjectFolder: editorId => ipcRenderer.invoke('external-editor:open-project', editorId),
+    launch: (target, editorId) => ipcRenderer.invoke('external-editor:launch', target, editorId),
+    openExport: input => ipcRenderer.invoke('external-editor:open-export', input),
+  }),
   updater: Object.freeze({
     getStatus: () => ipcRenderer.invoke('updater:get-status'),
     checkNow: () => ipcRenderer.invoke('updater:check-now'),

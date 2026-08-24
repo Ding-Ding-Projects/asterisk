@@ -11,7 +11,7 @@ import { runCeremonyCommand, type CeremonyResponse } from './ceremony';
 import { configSummary, renderForDisplay, resourceForFile, type ConfigReading, type ConfigValue } from './configuration';
 import { readControlValues, unmappedControls } from './control-keys';
 import { canProvision, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
-import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
+import type { ControlPlaneResponse, ExternalEditorLaunchResult, ExternalEditorStatus, PbxReadView } from '../../../shared/control-plane';
 import { ServerSwitcher } from './servers';
 import { buildEndpointDraft, endpointDocument, PJSIP_RESOURCE, WIZARD_CONTROLS } from './endpoint-create';
 import {
@@ -180,6 +180,8 @@ export class App extends Base {
    *  stored yet", exactly like a missing settings file. */
   private durableStorage: DurableStorageHandle = createDurableStorage(this.bridge());
   private vocabStorage: VocabularyStorage = this.durableStorage.storage;
+  private externalEditorStatus: ExternalEditorStatus = { editors: [] };
+  private lastExport: { name: string; content: string } | undefined;
 
   /* The design's `lang_mode` control, mapped to the boundary's own mode names. The
    * control names each language in that language, which is the one label a person
@@ -270,6 +272,7 @@ export class App extends Base {
      * anything is reachable and must be on screen whether or not discovery finds a
      * target, so it is loaded independently of it. */
     void this.servers.load().then(() => this.forceUpdate());
+    void this.refreshExternalEditors();
     void this.discover();
     this.refreshTimer = setInterval(() => {
       if (this.target.connected) {
@@ -293,6 +296,83 @@ export class App extends Base {
     const bridge = this.bridge();
     if (!bridge) return undefined;
     return await bridge.controlPlane.request({ requestId: crypto.randomUUID(), action, ...extra } as never);
+  }
+
+  private async refreshExternalEditors(): Promise<void> {
+    const bridge = this.bridge();
+    if (!bridge?.externalEditor) return;
+    try {
+      this.externalEditorStatus = await bridge.externalEditor.detect();
+      this.forceUpdate();
+    } catch (error) {
+      this.externalEditorStatus = { editors: [], noEditorMessage: error instanceof Error ? error.message : 'Editor detection is unavailable.' };
+      this.forceUpdate();
+    }
+  }
+
+  private editorResult(result: ExternalEditorLaunchResult | undefined): void {
+    if (!result) { this.fire('Editor not reached', 'The desktop bridge is unavailable, so nothing was opened.'); return; }
+    if (result.ok) { this.toast(`${result.editorId} opened ${result.target.path}`); return; }
+    this.fire('Editor not opened', result.message);
+  }
+
+  private async editorAction(action: string): Promise<void> {
+    const bridge = this.bridge();
+    if (!bridge?.externalEditor) { this.fire('Editor not reached', 'The desktop bridge is unavailable, so nothing was opened.'); return; }
+    if (action === 'editor-browse') {
+      const picked = await bridge.externalEditor.pickExecutable();
+      if (!picked.canceled && picked.executable) {
+        this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, 'pbxadm:ed_custom_path': picked.executable } }));
+        this.toast('Executable selected. Save the custom editor to keep it.');
+      }
+      return;
+    }
+    if (action === 'editor-save-custom') {
+      const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+      try {
+        this.externalEditorStatus = await bridge.externalEditor.saveCustom({
+          name: String(values['pbxadm:ed_custom_name'] ?? ''),
+          executable: String(values['pbxadm:ed_custom_path'] ?? ''),
+          supportsFolderWorkspace: false,
+        });
+        this.toast('Custom editor saved and selected.');
+        this.forceUpdate();
+      } catch (error) { this.fire('Custom editor not saved', error instanceof Error ? error.message : String(error)); }
+      return;
+    }
+    if (action === 'editor-open-project') {
+      this.editorResult(await bridge.externalEditor.openProjectFolder());
+      return;
+    }
+    if (action === 'editor-download') {
+      const result = await bridge.externalEditor.openDownload(this.externalEditorStatus.selectedId);
+      if (result.ok) this.toast('Official editor download opened.'); else this.fire('Download link not opened', result.message);
+      return;
+    }
+    if (action === 'editor-remove-custom') {
+      const selected = this.externalEditorStatus.selectedId;
+      const record = this.externalEditorStatus.editors.find((editor) => editor.id === selected);
+      if (!selected || !record?.custom) { this.fire('Custom editor not removed', 'Choose a saved custom editor first.'); return; }
+      this.externalEditorStatus = await bridge.externalEditor.removeCustom(selected);
+      this.toast('Custom editor removed.');
+      this.forceUpdate();
+      return;
+    }
+    if (action === 'editor-open-vscode') {
+      this.editorResult(await bridge.externalEditor.openProjectFolder('vscode'));
+      return;
+    }
+    if (action === 'editor-open-export') {
+      if (!this.lastExport) { this.fire('No export to open', 'Export something first. The editor handoff does not invent a file.'); return; }
+      this.editorResult(await bridge.externalEditor.openExport({ ...this.lastExport, editorId: 'vscode' }));
+      return;
+    }
+    if (action === 'editor-open-selected') {
+      const screen = (this.state as { screen: string }).screen;
+      const resource = this.configs[screen]?.resource;
+      if (!resource) { this.fire('No selected file', 'This screen has not reported a local file to open.'); return; }
+      this.editorResult(await bridge.externalEditor.launch({ kind: 'file', path: resource }));
+    }
   }
 
   /** Bounded, allowlisted discovery through the preload bridge. Never a shell command. */
@@ -556,7 +636,8 @@ ${resolution.disclosure}`);
     /* The display name and the dialog-emoji switch ride the same interception as the
      * language mode: one place that notices a cross-cutting setting going past, rather
      * than three places that each have to remember to. */
-    if (control?.id === 'id_name' && typeof value === 'string') {
+    const controlId = control?.id?.replace(/^pbxadm:/u, '');
+    if (controlId === 'id_name' && typeof value === 'string') {
       const problems = setDisplayName(this.durableStorage.storage, value);
       if (problems.length > 0) {
         /* Report it rather than storing a name the module refused, which would leave
@@ -565,17 +646,17 @@ ${resolution.disclosure}`);
         return;
       }
     }
-    if (control?.id === 'id_name_reset' && value === true) {
+    if (controlId === 'id_name_reset' && value === true) {
       resetDisplayName(this.durableStorage.storage);
       this.toast(`Name restored to ${IDENTITY.productName}`);
     }
     /* The five attention modes share one prefix and one handler, so adding a sixth is
      * a registry entry rather than another branch here. */
-    if (control?.id === 'ed_choice' && typeof value === 'string') {
+    if (controlId === 'ed_choice' && typeof value === 'string') {
       const editor = KNOWN_EDITORS.find((candidate) => candidate.name === value);
       if (editor) chooseEditor(this.durableStorage.storage, editor.id);
     }
-    if (control?.id === 'ed_clear' && value === true) {
+    if (controlId === 'ed_clear' && value === true) {
       clearEditorChoice(this.durableStorage.storage);
       this.toast('Editor choice forgotten');
     }
@@ -604,6 +685,7 @@ ${resolution.disclosure}`);
   controlActionText = (action: string): string => {
     if (action === 'daemon-status') return this.daemonStatusLine;
     if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
+    if (action === 'editor-status') return this.externalEditorStatus.noEditorMessage ?? `${this.externalEditorStatus.editors.filter((editor) => editor.available).length} editor(s) detected.`;
     return '';
   };
 
@@ -613,6 +695,7 @@ ${resolution.disclosure}`);
     if (action === 'daemon-start') { void this.daemonAction('start'); return; }
     if (action === 'daemon-stop') { void this.daemonAction('stop'); return; }
     if (action === 'daemon-restart') { void this.daemonAction('restart'); return; }
+    if (action.startsWith('editor-')) { void this.editorAction(action); return; }
   };
 
   // ---------------------------------------------------------------- server add / remove
@@ -862,6 +945,7 @@ ${resolution.disclosure}`);
       const text = exportRows({ rows: records, format, table: screen });
       const loss = describeLoss(records, format);
       const filename = exportFilename(screen, format);
+      this.lastExport = { name: filename, content: text };
       const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1730,11 +1814,41 @@ It is shown once. The phone needs it to register.`);
     this.syncAppearance();
     const values = super.renderVals() as Record<string, unknown>;
     const bridge = this.bridge();
+    const externalGroups = Array.isArray(values.groups) ? (values.groups as Array<{ title?: string; ctls?: Array<Record<string, unknown>> }>).map((group) => {
+      if (group.title !== 'External editor' || !Array.isArray(group.ctls)) return group;
+      const editors = this.externalEditorStatus.editors;
+      return {
+        ...group,
+        ctls: group.ctls.map((control) => {
+          if (control.id !== 'ed_choice') return control;
+          return {
+            ...control,
+            options: editors.map((editor) => ({
+              label: editor.name,
+              on: editor.id === this.externalEditorStatus.selectedId,
+              off: editor.id !== this.externalEditorStatus.selectedId,
+              pick: () => {
+                if (!editor.available) {
+                  this.fire('Editor unavailable', `${editor.name} is saved but not installed at the moment. Choose another editor or restore that installation.`);
+                  return;
+                }
+                void bridge?.externalEditor.choose(editor.id).then((next) => {
+                  this.externalEditorStatus = next;
+                  this.durableStorage.storage.setItem('console.externalEditor', editor.id);
+                  this.forceUpdate();
+                }).catch((error) => this.fire('Editor not selected', error instanceof Error ? error.message : String(error)));
+              },
+            })),
+          };
+        }),
+      };
+    }) : values.groups;
     const readings = this.readings[screen];
     const note = this.note(screen);
 
     return {
       ...values,
+      groups: externalGroups,
       // The "Edit appearance..." panel's real colour translator and real actions
       // (appearance.ts + colour.ts) -- see the Appearance section above renderVals.
       ...this.appearanceVals(),
@@ -2166,6 +2280,7 @@ It is shown once. The phone needs it to register.`);
   private exportChangelog(): void {
     const { entries } = this.changelogFilterResult();
     const markdown = toMarkdown(entries);
+    this.lastExport = { name: 'changelog-export.md', content: markdown };
     const blob = new Blob([markdown], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -2257,4 +2372,15 @@ interface DesktopBridge {
   platform: string;
   window: { minimize: () => void; toggleMaximize: () => void; close: () => void };
   controlPlane: { request: (request: Record<string, unknown>) => Promise<ControlPlaneResponse | undefined> };
+  externalEditor: {
+    detect: () => Promise<ExternalEditorStatus>;
+    choose: (editorId: string) => Promise<ExternalEditorStatus>;
+    saveCustom: (record: { name: string; executable: string; supportsFolderWorkspace?: boolean }) => Promise<ExternalEditorStatus>;
+    removeCustom: (editorId: string) => Promise<ExternalEditorStatus>;
+    pickExecutable: () => Promise<{ canceled: boolean; executable?: string }>;
+    openDownload: (editorId?: string) => Promise<{ ok: boolean; message: string }>;
+    openProjectFolder: (editorId?: string) => Promise<ExternalEditorLaunchResult>;
+    launch: (target: { kind: 'file' | 'folder'; path: string }, editorId?: string) => Promise<ExternalEditorLaunchResult>;
+    openExport: (input: { name: string; content: string; editorId?: string }) => Promise<ExternalEditorLaunchResult>;
+  };
 }

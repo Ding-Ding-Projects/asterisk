@@ -74,10 +74,70 @@ export interface UpdaterRestartResult {
   reason?: string;
 }
 
+export interface ExternalEditorCandidate {
+  id: string;
+  name: string;
+  resolved?: string;
+  available: boolean;
+  selected: boolean;
+  supportsFolderWorkspace: boolean;
+  downloadUrl?: string;
+  custom: boolean;
+}
+
+export interface ExternalEditorStatus {
+  editors: ExternalEditorCandidate[];
+  selectedId?: string;
+  noEditorMessage?: string;
+}
+
+export interface ExternalEditorLaunchTarget {
+  kind: 'file' | 'folder';
+  path: string;
+}
+
+export interface ExternalEditorLaunchReceipt {
+  ok: true;
+  editorId: string;
+  executable: string;
+  args: string[];
+  target: ExternalEditorLaunchTarget;
+  pid?: number;
+}
+
+export interface ExternalEditorLaunchFailure {
+  ok: false;
+  code: 'NO_EDITOR' | 'EMPTY_TARGET' | 'FOLDER_UNSUPPORTED' | 'SPAWN_FAILED' | 'INVALID_EDITOR';
+  message: string;
+  downloadUrl?: string;
+}
+
+export type ExternalEditorLaunchResult = ExternalEditorLaunchReceipt | ExternalEditorLaunchFailure;
+
+export interface ExternalEditorCustomRecord {
+  id?: string;
+  name: string;
+  executable: string;
+  supportsFolderWorkspace?: boolean;
+}
+
+export interface ExternalEditorApi {
+  detect(): Promise<ExternalEditorStatus>;
+  choose(editorId: string): Promise<ExternalEditorStatus>;
+  saveCustom(record: ExternalEditorCustomRecord): Promise<ExternalEditorStatus>;
+  removeCustom(editorId: string): Promise<ExternalEditorStatus>;
+  pickExecutable(): Promise<{ canceled: boolean; executable?: string }>;
+  openDownload(editorId?: string): Promise<{ ok: boolean; message: string }>;
+  openProjectFolder(editorId?: string): Promise<ExternalEditorLaunchResult>;
+  launch(target: ExternalEditorLaunchTarget, editorId?: string): Promise<ExternalEditorLaunchResult>;
+  openExport(input: { name: string; content: string; editorId?: string }): Promise<ExternalEditorLaunchResult>;
+}
+
 export interface DingDesktopApi {
   platform: string;
   window: { minimize(): void; toggleMaximize(): void; close(): void };
   controlPlane: { request(request: ControlPlaneRequest): Promise<ControlPlaneResponse> };
+  externalEditor: ExternalEditorApi;
   updater: {
     /** Current state, read once (e.g. on mount) without waiting for the next push. */
     getStatus(): Promise<UpdaterStatusForRenderer>;

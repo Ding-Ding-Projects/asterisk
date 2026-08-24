@@ -210,6 +210,15 @@ export const CANTONESE: Catalog = {
   'Other editor name': '其他編輯器名稱',
   'Other editor executable': '其他編輯器執行檔',
   'Forget the chosen editor': '唔記得揀咗嘅編輯器',
+  'Detection status': '偵測狀態',
+  'Browse for executable': '瀏覽執行檔',
+  'Open official download link': '開啟官方下載連結',
+  'Save custom editor': '儲存自訂編輯器',
+  'Remove custom editor': '移除自訂編輯器',
+  'Open current project folder': '開啟目前專案資料夾',
+  'Open selected file': '開啟已揀檔案',
+  'Open in Visual Studio Code': '用 Visual Studio Code 開啟',
+  'Open latest export in editor': '用編輯器開啟最近匯出',
 
   /* Support Tickets. */
   'Support Tickets': '支援工單',

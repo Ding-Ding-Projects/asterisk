@@ -158,10 +158,18 @@
     },
     "external-editor-handoff": {
       "state": "implemented",
-      "note": "Implemented 2026-08-23 as app/renderer/src/external-editor.ts with four controls in the design, acted on through App.tsx. Detects installed editors (PATH first, then absolute fallbacks in order), persists the choice, and lets one be added by hand. VS Code is a first-class export rather than a row in a list, because anything exportable has to be openable in it, and opening a folder carries the workspace-root arguments so a file tree appears rather than a bare file. Nothing is launched through a shell: a plan carries an executable and an argument list passed separately and has no joined command line for a target to be interpolated into, so a path with a space stays one argument and a path carrying shell metacharacters is inert. A hand-added editor is validated as a bare executable and refuses operators and quotes. An editor that has been uninstalled is never silently replaced with another. The copy treats an editor as an optional integration rather than a missing prerequisite, since the console is complete without one.",
+      "note": "Implemented 2026-08-23 as a pure renderer policy plus the privileged control-plane runtime, preload bridge, and mounted App.tsx actions. Detects stable, Insiders, portable and machine/user Visual Studio Code routes with normalized absolute paths and environment expansion, persists bounded custom records, keeps unavailable choices visible, uses a native executable picker, and launches through child_process.spawn with shell:false and separate executable and argument values. Folder targets require workspace capability, exports can be handed directly to Visual Studio Code, and the no-editor state offers the official download link without treating an editor as a missing prerequisite.",
       "files": [
         "app/renderer/src/external-editor.ts",
+        "control-plane/external-editor-runtime.ts",
+        "app/electron/main.ts",
+        "app/electron/preload.ts",
+        "app/electron/preload.cjs",
+        "shared/control-plane.ts",
         "app/renderer/src/App.tsx",
+        "app/renderer/src/generated/console.tsx",
+        "app/renderer/src/bridge/http-bridge.ts",
+        "docs/platform/external-editor-handoff.md",
         "tests/ui/external-editor.test.tsx"
       ]
     },

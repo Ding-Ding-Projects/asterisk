@@ -11,6 +11,17 @@ const api: DingDesktopApi = {
   controlPlane: {
     request: (request: ControlPlaneRequest) => ipcRenderer.invoke('control-plane:request', request) as Promise<ControlPlaneResponse>,
   },
+  externalEditor: {
+    detect: () => ipcRenderer.invoke('external-editor:detect'),
+    choose: (editorId: string) => ipcRenderer.invoke('external-editor:choose', editorId),
+    saveCustom: (record) => ipcRenderer.invoke('external-editor:save-custom', record),
+    removeCustom: (editorId: string) => ipcRenderer.invoke('external-editor:remove-custom', editorId),
+    pickExecutable: () => ipcRenderer.invoke('external-editor:pick-executable'),
+    openDownload: (editorId?: string) => ipcRenderer.invoke('external-editor:open-download', editorId),
+    openProjectFolder: (editorId?: string) => ipcRenderer.invoke('external-editor:open-project', editorId),
+    launch: (target, editorId) => ipcRenderer.invoke('external-editor:launch', target, editorId),
+    openExport: (input) => ipcRenderer.invoke('external-editor:open-export', input),
+  },
   updater: {
     getStatus: () => ipcRenderer.invoke('updater:get-status') as Promise<UpdaterStatusForRenderer>,
     checkNow: () => ipcRenderer.invoke('updater:check-now') as Promise<UpdaterStatusForRenderer>,

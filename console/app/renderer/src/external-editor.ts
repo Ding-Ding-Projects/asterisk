@@ -1,79 +1,67 @@
 /**
- * Opening a file or folder in an external editor.
+ * Pure external-editor policy.
  *
- * Detects the editors actually installed, lets somebody choose or add one, persists the
- * choice, and degrades with a real message rather than a silent no-op when none is found.
- *
- * Two things are deliberate and worth reading before changing anything here.
- *
- * VS Code is not merely one option among several: anything the console can export has to
- * be openable in it directly from the app, so `VS_CODE` is a first-class entry rather
- * than a row in a list. When it is absent the surface says so and offers the download,
- * because silently substituting some other editor the person did not ask for is worse
- * than reporting the gap.
- *
- * And an editor is an OPTIONAL INTEGRATION TARGET, not a dependency. The console is
- * complete without one. So the copy here never reads as a prerequisite somebody failed
- * to satisfy, and nothing about a missing editor blocks anything.
- *
- * No editor is ever launched through a shell. A candidate carries an executable and an
- * argument list, both passed separately, exactly as the control plane does everywhere
- * else -- a path with a space in it is common and a shell would split it, and a path with
- * a semicolon in it is a command injection.
+ * The renderer owns the safe model and launch-plan rules. The privileged runtime
+ * supplies actual filesystem detection, native picking and process creation through
+ * the typed bridge. No command line is ever assembled and no shell is ever used.
  */
 
 export interface EditorDefinition {
   id: string;
   name: string;
-  /** Command looked up on PATH first; absolute candidates are tried after. */
   command: string;
-  /** Absolute locations to try when the command is not on PATH. */
   fallbackPaths: readonly string[];
-  /** Arguments that open a folder as a workspace root rather than a bare file. */
   folderArgs: readonly string[];
-  /** Arguments that open a single file. */
   fileArgs: readonly string[];
-  /** Where to send somebody who does not have it. Never auto-downloaded. */
+  supportsFolderWorkspace: boolean;
   downloadUrl: string;
 }
 
-/**
- * Opening a folder must open it as a workspace ROOT, not as one file with no context --
- * a file tree is the reason to hand a folder to an editor at all.
- */
 export const VS_CODE: EditorDefinition = {
-  id: 'vscode',
-  name: 'Visual Studio Code',
-  command: 'code',
+  id: 'vscode', name: 'Visual Studio Code', command: 'code',
   fallbackPaths: [
-    '%LOCALAPPDATA%\\Programs\\Microsoft VS Code\\bin\\code.cmd',
-    '%ProgramFiles%\\Microsoft VS Code\\bin\\code.cmd',
-    '%LOCALAPPDATA%\\Programs\\Microsoft VS Code Insiders\\bin\\code-insiders.cmd',
+    '%LOCALAPPDATA%\\Programs\\Microsoft VS Code\\Code.exe',
+    '%ProgramFiles%\\Microsoft VS Code\\Code.exe',
+    '%ProgramFiles(x86)%\\Microsoft VS Code\\Code.exe',
   ],
-  folderArgs: ['--new-window'],
-  fileArgs: [],
+  folderArgs: ['--new-window'], fileArgs: [], supportsFolderWorkspace: true,
   downloadUrl: 'https://code.visualstudio.com/',
 };
 
+export const VS_CODE_INSIDERS: EditorDefinition = {
+  id: 'vscode-insiders', name: 'Visual Studio Code Insiders', command: 'code-insiders',
+  fallbackPaths: [
+    '%LOCALAPPDATA%\\Programs\\Microsoft VS Code Insiders\\Code - Insiders.exe',
+    '%ProgramFiles%\\Microsoft VS Code Insiders\\Code - Insiders.exe',
+    '%ProgramFiles(x86)%\\Microsoft VS Code Insiders\\Code - Insiders.exe',
+  ],
+  folderArgs: ['--new-window'], fileArgs: [], supportsFolderWorkspace: true,
+  downloadUrl: 'https://code.visualstudio.com/insiders/',
+};
+
+export const VS_CODE_PORTABLE: EditorDefinition = {
+  id: 'vscode-portable', name: 'Visual Studio Code Portable', command: 'code-portable',
+  fallbackPaths: [
+    '%USERPROFILE%\\Applications\\VSCode\\Code.exe',
+    '%USERPROFILE%\\Tools\\VSCode\\Code.exe',
+    '%LOCALAPPDATA%\\VSCode\\Code.exe',
+  ],
+  folderArgs: ['--new-window'], fileArgs: [], supportsFolderWorkspace: true,
+  downloadUrl: 'https://code.visualstudio.com/download',
+};
+
 export const KNOWN_EDITORS: readonly EditorDefinition[] = [
-  VS_CODE,
-  {
-    id: 'notepadpp', name: 'Notepad++', command: 'notepad++',
-    fallbackPaths: ['%ProgramFiles%\\Notepad++\\notepad++.exe'],
-    folderArgs: [], fileArgs: [], downloadUrl: 'https://notepad-plus-plus.org/',
-  },
-  {
-    id: 'sublime', name: 'Sublime Text', command: 'subl',
-    fallbackPaths: ['%ProgramFiles%\\Sublime Text\\subl.exe'],
-    folderArgs: [], fileArgs: [], downloadUrl: 'https://www.sublimetext.com/',
-  },
-  {
-    id: 'notepad', name: 'Notepad', command: 'notepad.exe',
-    fallbackPaths: [], folderArgs: [], fileArgs: [], downloadUrl: '',
-  },
+  VS_CODE, VS_CODE_INSIDERS, VS_CODE_PORTABLE,
+  { id: 'notepadpp', name: 'Notepad++', command: 'notepad++', fallbackPaths: ['%ProgramFiles%\\Notepad++\\notepad++.exe'], folderArgs: [], fileArgs: [], supportsFolderWorkspace: false, downloadUrl: 'https://notepad-plus-plus.org/' },
+  { id: 'sublime', name: 'Sublime Text', command: 'subl', fallbackPaths: ['%ProgramFiles%\\Sublime Text\\subl.exe'], folderArgs: [], fileArgs: [], supportsFolderWorkspace: false, downloadUrl: 'https://www.sublimetext.com/' },
+  { id: 'notepad', name: 'Notepad', command: 'notepad.exe', fallbackPaths: [], folderArgs: [], fileArgs: [], supportsFolderWorkspace: false, downloadUrl: '' },
 ];
 
 export const EDITOR_SETTING = 'console.externalEditor';
+export const CUSTOM_EDITORS_SETTING = 'console.externalEditors.v1';
+export const MAX_CUSTOM_EDITORS = 32;
+export const MAX_EDITOR_NAME_LENGTH = 80;
+export const MAX_EDITOR_PATH_LENGTH = 1024;
 
 export interface EditorStorage {
   getItem(key: string): string | null | undefined;
@@ -81,132 +69,112 @@ export interface EditorStorage {
   removeItem(key: string): void;
 }
 
-/** What the host reports about one candidate. Injected, so detection is testable. */
-export interface Probe {
-  (executable: string): boolean;
+export interface Probe { (executable: string): boolean; }
+export interface DetectedEditor { definition: EditorDefinition; resolved: string; }
+export interface CustomEditor { id?: string; name: string; executable: string; supportsFolderWorkspace?: boolean; }
+export interface EditorProblem { message: string; }
+
+export interface StoredEditorConfiguration {
+  version: 1;
+  choiceId?: string;
+  customEditors: CustomEditor[];
 }
 
-export interface DetectedEditor {
-  definition: EditorDefinition;
-  /** The executable that was actually found, which may be a fallback rather than PATH. */
-  resolved: string;
+export function validateCustomEditor(candidate: CustomEditor): EditorProblem[] {
+  const problems: EditorProblem[] = [];
+  if (candidate.name.trim() === '') problems.push({ message: 'Give the editor a name.' });
+  if (candidate.name.trim().length > MAX_EDITOR_NAME_LENGTH) problems.push({ message: `The editor name must be ${MAX_EDITOR_NAME_LENGTH} characters or fewer.` });
+  const executable = candidate.executable.trim();
+  if (executable === '') {
+    problems.push({ message: 'Choose the editor executable. Browse for it rather than typing it if you are not sure.' });
+    return problems;
+  }
+  if (executable.length > MAX_EDITOR_PATH_LENGTH) problems.push({ message: `The executable path must be ${MAX_EDITOR_PATH_LENGTH} characters or fewer.` });
+  if (/[&|;<>^`\n\r]/u.test(executable)) problems.push({ message: 'That looks like a command rather than a program. Choose the executable itself.' });
+  if (/^".*"$/u.test(executable)) problems.push({ message: 'Leave the quotes off. The path is passed to the editor directly, so it does not need them.' });
+  if (candidate.id !== undefined && !/^[a-z0-9][a-z0-9._:-]{0,80}$/u.test(candidate.id)) problems.push({ message: 'The editor identifier has an unsupported shape.' });
+  return problems;
 }
 
-/**
- * Which editors are present.
- *
- * PATH first, then the absolute candidates in order, so an install the shell already
- * knows about wins over a guessed location.
- */
+export function expandEnvironmentPath(value: string, env: Readonly<Record<string, string | undefined>> = {}): string {
+  return value
+    .replace(/%([^%]+)%/gu, (_, key: string) => env[key] ?? `%${key}%`)
+    .replace(/\$env:([A-Za-z_][A-Za-z0-9_]*)/gu, (_, key: string) => env[key] ?? `$env:${key}`)
+    .replace(/\$([A-Za-z_][A-Za-z0-9_]*)/gu, (_, key: string) => env[key] ?? `$${key}`);
+}
+
+export function normalizeEditorPath(value: string, env: Readonly<Record<string, string | undefined>> = {}, platform: 'win32' | 'posix' = 'win32'): string {
+  const expanded = expandEnvironmentPath(value.trim(), env);
+  if (platform === 'posix') {
+    const parts: string[] = [];
+    for (const part of (expanded.startsWith('/') ? expanded : `/${expanded}`).split('/')) {
+      if (!part || part === '.') continue;
+      if (part === '..') parts.pop(); else parts.push(part);
+    }
+    return `/${parts.join('/')}`;
+  }
+  const slash = expanded.replaceAll('/', '\\');
+  const prefix = slash.startsWith('\\\\') ? '\\\\' : (/^[A-Za-z]:\\/u.test(slash) ? slash.slice(0, 3) : '');
+  const parts: string[] = [];
+  for (const part of (prefix ? slash.slice(prefix.length) : slash).split('\\')) {
+    if (!part || part === '.') continue;
+    if (part === '..') parts.pop(); else parts.push(part);
+  }
+  return `${prefix || '\\\\'}${parts.join('\\')}`;
+}
+
 export function detectEditors(probe: Probe, editors: readonly EditorDefinition[] = KNOWN_EDITORS): DetectedEditor[] {
   const found: DetectedEditor[] = [];
   for (const definition of editors) {
-    if (probe(definition.command)) {
-      found.push({ definition, resolved: definition.command });
-      continue;
-    }
+    if (probe(definition.command)) { found.push({ definition, resolved: definition.command }); continue; }
     const fallback = definition.fallbackPaths.find((candidate) => probe(candidate));
     if (fallback) found.push({ definition, resolved: fallback });
   }
   return found;
 }
 
-export interface CustomEditor {
-  name: string;
-  executable: string;
+export function readStoredEditorConfiguration(storage: EditorStorage | undefined): StoredEditorConfiguration {
+  const raw = storage?.getItem(CUSTOM_EDITORS_SETTING);
+  if (typeof raw !== 'string') return { version: 1, customEditors: [] };
+  try {
+    const parsed = JSON.parse(raw) as Partial<StoredEditorConfiguration>;
+    if (parsed.version !== 1 || !Array.isArray(parsed.customEditors)) return { version: 1, customEditors: [] };
+    const customEditors = parsed.customEditors.filter((entry): entry is CustomEditor => !!entry && typeof entry === 'object')
+      .filter((entry) => validateCustomEditor(entry).length === 0).slice(0, MAX_CUSTOM_EDITORS);
+    return { version: 1, choiceId: typeof parsed.choiceId === 'string' ? parsed.choiceId : undefined, customEditors };
+  } catch { return { version: 1, customEditors: [] }; }
 }
 
-export interface EditorProblem {
-  message: string;
+export function writeStoredEditorConfiguration(storage: EditorStorage, configuration: StoredEditorConfiguration): void {
+  const customEditors = configuration.customEditors.filter((entry) => validateCustomEditor(entry).length === 0).slice(0, MAX_CUSTOM_EDITORS);
+  storage.setItem(CUSTOM_EDITORS_SETTING, JSON.stringify({ version: 1, choiceId: configuration.choiceId, customEditors }));
 }
 
-/**
- * Validates a hand-added editor.
- *
- * Rejects anything that is not a bare executable path: an argument string, a shell
- * operator, or a quoted command line. Those all look reasonable in a text box and are
- * how a settings field becomes a way to run an arbitrary command.
- */
-export function validateCustomEditor(candidate: CustomEditor): EditorProblem[] {
-  const problems: EditorProblem[] = [];
-  if (candidate.name.trim() === '') problems.push({ message: 'Give the editor a name.' });
-  const executable = candidate.executable.trim();
-  if (executable === '') {
-    problems.push({ message: 'Choose the editor’s executable. Browse for it rather than typing it if you are not sure.' });
-    return problems;
-  }
-  if (/[&|;<>^`\n\r]/u.test(executable)) {
-    problems.push({ message: 'That looks like a command rather than a program. Choose the executable itself.' });
-  }
-  if (/^".*"$/u.test(executable)) {
-    problems.push({ message: 'Leave the quotes off. The path is passed to the editor directly, so it does not need them.' });
-  }
-  return problems;
-}
-
-/** The stored choice, if it is still one of the editors currently present. */
-export function chosenEditor(
-  storage: EditorStorage | undefined,
-  available: readonly DetectedEditor[],
-): DetectedEditor | undefined {
+export function chosenEditor(storage: EditorStorage | undefined, available: readonly DetectedEditor[]): DetectedEditor | undefined {
   const stored = storage?.getItem(EDITOR_SETTING);
   if (typeof stored !== 'string') return undefined;
-  /* An editor that has since been uninstalled is not silently replaced with another:
-   * launching something the person did not choose is worse than reporting the gap. */
   return available.find((candidate) => candidate.definition.id === stored);
 }
 
-export function chooseEditor(storage: EditorStorage, id: string): void {
-  storage.setItem(EDITOR_SETTING, id);
-}
+export function chooseEditor(storage: EditorStorage, id: string): void { storage.setItem(EDITOR_SETTING, id); }
+export function clearEditorChoice(storage: EditorStorage): void { storage.removeItem(EDITOR_SETTING); }
 
-export function clearEditorChoice(storage: EditorStorage): void {
-  storage.removeItem(EDITOR_SETTING);
-}
+export interface LaunchPlan { executable: string; args: string[]; }
+export interface LaunchRefusal { message: string; downloadUrl?: string; }
 
-export interface LaunchPlan {
-  executable: string;
-  /** Passed separately. Never joined into a command line, never through a shell. */
-  args: string[];
-}
-
-export interface LaunchRefusal {
-  /** Why nothing will be launched, in words a person can act on. */
-  message: string;
-  /** Offered only when the reason is a missing editor with somewhere to get it. */
-  downloadUrl?: string;
-}
-
-/**
- * Builds the launch, or says why it cannot.
- *
- * A folder gets the editor's folder arguments so it opens as a workspace root; a file
- * gets the file arguments. The target is always the last argument and is never
- * interpolated into another string.
- */
-export function planLaunch(
-  editor: DetectedEditor | undefined,
-  target: { kind: 'file' | 'folder'; path: string },
-  fallbackDefinition: EditorDefinition = VS_CODE,
-): LaunchPlan | LaunchRefusal {
-  if (!editor) {
-    return {
-      message:
-        `No editor is set up yet, so there is nothing to open ${target.path} with. `
-        + `The console works fully without one; choose an installed editor in settings, or install `
-        + `${fallbackDefinition.name}.`,
-      downloadUrl: fallbackDefinition.downloadUrl || undefined,
-    };
-  }
-  if (target.path.trim() === '') {
-    return { message: 'There is no file or folder to open.' };
-  }
-  const args = target.kind === 'folder'
-    ? [...editor.definition.folderArgs, target.path]
-    : [...editor.definition.fileArgs, target.path];
+export function planLaunch(editor: DetectedEditor | undefined, target: { kind: 'file' | 'folder'; path: string }, fallbackDefinition: EditorDefinition = VS_CODE): LaunchPlan | LaunchRefusal {
+  if (!editor) return {
+    message: `No editor is set up yet, so there is nothing to open ${target.path} with. The console works fully without one. Choose an installed editor in settings, or install ${fallbackDefinition.name}.`,
+    downloadUrl: fallbackDefinition.downloadUrl || undefined,
+  };
+  if (target.path.trim() === '') return { message: 'There is no file or folder to open.' };
+  if (target.kind === 'folder' && !editor.definition.supportsFolderWorkspace) return { message: `${editor.definition.name} can open files but does not provide a folder workspace.` };
+  const args = target.kind === 'folder' ? [...editor.definition.folderArgs, target.path] : [...editor.definition.fileArgs, target.path];
   return { executable: editor.resolved, args };
 }
 
-export function isRefusal(result: LaunchPlan | LaunchRefusal): result is LaunchRefusal {
-  return 'message' in result;
-}
+export function isRefusal(result: LaunchPlan | LaunchRefusal): result is LaunchRefusal { return 'message' in result; }
+
+export type LaunchFailureCode = 'NO_EDITOR' | 'EMPTY_TARGET' | 'FOLDER_UNSUPPORTED' | 'SPAWN_FAILED';
+export interface LaunchReceipt { ok: true; editorId: string; executable: string; args: string[]; target: { kind: 'file' | 'folder'; path: string }; pid?: number; }
+export interface LaunchFailure { ok: false; code: LaunchFailureCode; message: string; downloadUrl?: string; }

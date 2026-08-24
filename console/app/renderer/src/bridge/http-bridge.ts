@@ -7,7 +7,7 @@
  * is the entire integration. There is exactly one compiled renderer; this file is what
  * lets it run unmodified inside a browser tab instead of only inside Electron.
  */
-import type { ControlPlaneRequest, ControlPlaneResponse } from '../../../../shared/control-plane';
+import type { ControlPlaneRequest, ControlPlaneResponse, ExternalEditorLaunchTarget } from '../../../../shared/control-plane';
 
 async function postJson(path: string, body: unknown): Promise<Response> {
   return fetch(path, {
@@ -38,6 +38,17 @@ export function installHttpBridge(): void {
         }
         return (await res.json()) as ControlPlaneResponse;
       },
+    },
+    externalEditor: {
+      async detect() { return { editors: [], noEditorMessage: 'External editor handoff is available only in the installed desktop console.' }; },
+      async choose(_editorId: string) { return { editors: [], noEditorMessage: 'External editor handoff is available only in the installed desktop console.' }; },
+      async saveCustom(_record: { name: string; executable: string; supportsFolderWorkspace?: boolean }) { return { editors: [], noEditorMessage: 'External editor handoff is available only in the installed desktop console.' }; },
+      async removeCustom(_editorId: string) { return { editors: [], noEditorMessage: 'External editor handoff is available only in the installed desktop console.' }; },
+      async pickExecutable() { return { canceled: true }; },
+      async openDownload(_editorId?: string) { return { ok: false, message: 'Native editor downloads are available only in the installed desktop console.' }; },
+      async openProjectFolder(_editorId?: string) { return { ok: false as const, code: 'NO_EDITOR' as const, message: 'External editor handoff is available only in the installed desktop console.' }; },
+      async launch(_target: ExternalEditorLaunchTarget, _editorId?: string) { return { ok: false as const, code: 'NO_EDITOR' as const, message: 'External editor handoff is available only in the installed desktop console.' }; },
+      async openExport(_input: { name: string; content: string; editorId?: string }) { return { ok: false as const, code: 'NO_EDITOR' as const, message: 'External editor handoff is available only in the installed desktop console.' }; },
     },
     updater: {
       // Server mode does not self-update the way the desktop installer does — the

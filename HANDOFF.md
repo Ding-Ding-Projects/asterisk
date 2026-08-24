@@ -419,3 +419,25 @@ one-page target preflight. The run also recorded direct `Setup.exe` launch succe
 repaired restart path, Later hiding the banner while retaining the staged candidate, and
 the visible review, apply, or discard block for two drafts. The detailed public article is
 `console/docs/platform/automatic-updates-evidence.md`. No new capture was made in this lane.
+
+## External editor runtime mount, 2026-08-23
+
+This lane mounted the external-editor contract into the desktop runtime. The pure policy
+remains in `console/app/renderer/src/external-editor.ts`; privileged detection, persistence,
+native launch and export handoff live in `console/control-plane/external-editor-runtime.ts`.
+The Electron main process and both preload forms expose one typed `externalEditor` bridge,
+while the hosted browser bridge reports its native limitation honestly.
+
+The mounted settings controls now detect Visual Studio Code stable, Insiders and Portable
+routes, retain unavailable choices, browse for a custom executable, validate bounded custom
+records, remove custom records, open the project folder, open a selected configuration file,
+open the latest export in Visual Studio Code, and return typed launch receipts or failures.
+Folder targets require workspace capability. Every launch uses `child_process.spawn` with
+`shell:false` and separate arguments.
+
+The checked-in design source was updated and regenerated with `npm run compile:design`. The
+documentation article is `console/docs/platform/external-editor-handoff.md`; the feature
+registry, Cantonese label registry, generated documentation bundle, roadmap and this handoff
+were updated. This lane deliberately did not run tests, lint, a broad build, packaging, UI
+driving or captures. The next owner should verify the real packaged artifact and native editor
+launch paths.

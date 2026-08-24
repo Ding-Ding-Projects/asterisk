@@ -146,6 +146,7 @@ be one. What remains for each is the screen that uses it.
 - [x] **Local version history** — append-only, a restore recorded as a new entry rather than a rewrite, commit messages naming what changed, and credential-shaped values redacted before they reach disk.
 - [x] **Offline documentation** — all 82 articles generated into the application with a completeness check that fails the build when the bundled count and the count on disk disagree, plus search, link resolution and broken-link reporting.
 - [x] **Media library** — prompts and music on hold, refusing by name before a command is built, verifying content by leading bytes where the format has any, and honest that headerless formats cannot be verified that way.
+- [x] **External editor handoff** — mounted desktop detection for Visual Studio Code stable, Insiders and Portable plus user and machine routes, bounded custom editor records, native executable picking, persistent unavailable-choice reporting, shell-free typed launch receipts, folder workspace capability checks, direct Visual Studio Code export handoff, and honest hosted no-editor behavior.
 
 ### Canvases worth building
 

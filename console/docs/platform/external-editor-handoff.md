@@ -1,33 +1,43 @@
 # External editor handoff
 
-A one-click action to open the current project, file, or export directly in an installed code editor.
+Open the current project folder, a selected configuration file, or an export in an editor that is installed on the same Windows computer.
 
 ## Behavior
 
-The product is meant to detect installed editors and offer opening the current folder or a selected or exported file directly in one, with the choice persisted.
+The desktop process detects real executables and returns normalized absolute paths to the renderer. Detection covers Visual Studio Code stable, Visual Studio Code Insiders, Visual Studio Code Portable, user and machine installation paths, Notepad++, Sublime Text, and Notepad. A saved choice remains visible when its executable is unavailable, and the console never substitutes another editor without an explicit choice.
 
-## Configuration
+The settings surface provides these actions:
 
-Opening a folder would open it as a workspace root rather than a single unrooted file, so surrounding project context is usable immediately.
+- Open the current project folder as a workspace root.
+- Open the selected configuration file when the current screen has reported one.
+- Open the current project explicitly in Visual Studio Code.
+- Open the latest export in Visual Studio Code through one action.
+- Browse for a custom editor executable, save it, remove it, or forget the selected editor.
 
-## Current status
+Folder opening is capability-aware. Visual Studio Code variants receive `--new-window` followed by the folder path. Editors without folder-workspace support refuse the folder action with an actionable message rather than opening a misleading single file.
 
-**Desktop application:** Not implemented. The desktop application has no external editor detection or handoff action anywhere in its interface.
+## Configuration and persistence
 
-**Documentation website:** Not implemented. The documentation website has no local files of the user's own to hand off to an editor.
+Custom records use the versioned `console.externalEditors.v1` shape in the application data store. The privileged runtime bounds the record to 32 entries, limits names to 80 characters and executable paths to 1,024 characters, normalizes accepted paths, and rejects command-line operators, quotes, newlines, and malformed identifiers. The selected editor id is stored separately from the renderer's display state so the choice survives relaunch and unavailable choices can still be reported.
 
-## Failure modes
+Exports handed to an editor are written to an application-owned `external-editor-exports` directory with a bounded UTF-8 payload and a sanitized filename. The source export remains unchanged.
 
-When no supported editor is installed, the intended behavior is a clear message naming that and an offer to get one, rather than a silently disabled or missing button; there is no handoff action yet to fail this way.
+## Security and failure modes
+
+No editor launch goes through a shell. The runtime calls `child_process.spawn` with `shell:false`, `windowsHide:true`, and separate executable and argument arrays. A path containing spaces remains one argument, and shell metacharacters are never interpreted. Launches return a typed receipt with editor id, executable, arguments, target and process id, or a typed failure with a bounded startup timeout.
+
+When no supported editor is installed, the settings surface states that the console works fully without one and offers the official Visual Studio Code download page. It does not auto-download software. A missing selected executable, invalid custom record, unsupported folder target, unavailable bridge, oversized export, and failed process start each produces a distinct failure message.
+
+The hosted browser surface exposes an honest no-editor state because native executable detection, file picking and process creation require the installed desktop runtime. No browser route pretends that a local editor was opened. The official Visual Studio Code download action is allowlisted to `https://code.visualstudio.com/` and its documented Insiders and download paths.
 
 ## Accessibility and localization
 
-This feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.
+All editor actions are rendered through the design reference's existing Material controls and retain keyboard focus, accessible labels, explanation affordances and the three language modes. Cantonese labels are registered alongside the English labels. The corrected executable placeholder names a path shape without suggesting a shell command.
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+The pure policy is covered by the existing focused renderer test file. This lane did not run tests, lint, a broad build, packaging, UI driving or captures by design. The design compiler was run after editing the checked-in design source, and the generated console output was inspected for every external-editor control and action. The next verification lane should launch the packaged desktop artifact and prove detection, native picking, persistence, folder capability refusal, Visual Studio Code handoff, export handoff, and typed launch failure receipts.
 
 ## Suggested articles
 
-[Complete data export](complete-exports.md), [Operations](../agent/ops.md), [Platform feature index](README.md).
+[Complete data export](complete-exports.md), [Local version history](../app/local-version-history.md), [Platform feature index](README.md).

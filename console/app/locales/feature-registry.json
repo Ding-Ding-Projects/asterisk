@@ -311,14 +311,32 @@
         "Editor",
         "Other editor name",
         "Other editor executable",
-        "Forget the chosen editor"
+        "Forget the chosen editor",
+        "Detection status",
+        "Browse for executable",
+        "Open official download link",
+        "Save custom editor",
+        "Remove custom editor",
+        "Open current project folder",
+        "Open selected file",
+        "Open in Visual Studio Code",
+        "Open latest export in editor"
       ],
       "localizedLabels": [
         "External editor",
         "Editor",
         "Other editor name",
         "Other editor executable",
-        "Forget the chosen editor"
+        "Forget the chosen editor",
+        "Detection status",
+        "Browse for executable",
+        "Open official download link",
+        "Save custom editor",
+        "Remove custom editor",
+        "Open current project folder",
+        "Open selected file",
+        "Open in Visual Studio Code",
+        "Open latest export in editor"
       ],
       "untranslatedLabels": [],
       "note": "Every listed label has a Cantonese entry."

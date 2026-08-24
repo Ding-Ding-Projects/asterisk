@@ -24,7 +24,7 @@ export interface DocsBundle {
 
 export const DOCS_BUNDLE: DocsBundle = {
   "generatedAt": "1970-01-01T00:00:00.000Z",
-  "articleCount": 85,
+  "articleCount": 86,
   "articles": [
     {
       "id": "agent/hub",
@@ -527,6 +527,23 @@ export const DOCS_BUNDLE: DocsBundle = {
       "headings": [],
       "links": [],
       "body": "# Automatic updater reliability\n\n- Draft-count updates now advance the main-process updater revision before publication, so a stale status read cannot overwrite a newer restart block.\n- PBX draft publication now counts every loaded resource against its last live read, including the currently edited resource, so apply, discard, restore, and field edits converge on one accurate restart block.\n- Installer launch acknowledgement clears its timeout on success and failure, preventing an old timer from changing a later state.\n- Successful installer acknowledgement now returns to the renderer before quit is scheduled, while the installing latch stays held through shutdown and clears only for a failed launch.\n- Release identity validation rejects duplicate artifact records, requires every resolved full and delta package exactly once, and checks version-bearing Squirrel filenames.\n- Published tags retain the legacy-compatible `ding-pbx-console-v0.0.<run>-r<attempt>` shape while the package identity remains monotonic `0.1.<run>`, so existing `0.1.0` installations can see repaired releases.\n- Published packaging now rejects a tag and package-version pair unless the run number maps exactly to `0.1.<run>` within a bounded positive range; local unpublished `tag: null` builds remain valid.\n- Added two byte-preserved built-artifact update captures with source and release SHAs, dimensions, digests, hidden-desktop CDP method, direct installer launch, restart, Later, and draft-block evidence.\n- A newer ready revision now clears a stale local spawn-error message after recovery, while current failure state remains visible.\n"
+    },
+    {
+      "id": "changelog/external-editor-runtime",
+      "category": "changelog",
+      "title": "External editor runtime mount",
+      "headings": [
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "../platform/external-editor-handoff.md",
+        "../platform/complete-exports.md",
+        "../app/local-version-history.md"
+      ],
+      "body": "# External editor runtime mount\n\nThe external-editor settings group is now mounted into the desktop runtime. Detection runs\nin the privileged process, custom records are bounded and persistent, native executable\npicking is available, and every launch returns a typed receipt or failure. Visual Studio Code\nstable, Insiders and Portable routes are distinct, folder targets require workspace support,\nand unavailable saved choices remain visible instead of being replaced.\n\nThe renderer, Electron preload, hosted fallback, control-plane runtime, design source and\ngenerated output share one typed bridge. Exports can be handed directly to Visual Studio Code\nthrough an application-owned UTF-8 file. The launch path never uses a shell.\n\n## Suggested articles\n\n[External editor handoff](../platform/external-editor-handoff.md), [Complete data export](../platform/complete-exports.md), [Local version history](../app/local-version-history.md).\n"
     },
     {
       "id": "data/ami",
@@ -1866,16 +1883,12 @@ export const DOCS_BUNDLE: DocsBundle = {
           "id": "behavior"
         },
         {
-          "title": "Configuration",
-          "id": "configuration"
+          "title": "Configuration and persistence",
+          "id": "configuration-and-persistence"
         },
         {
-          "title": "Current status",
-          "id": "current-status"
-        },
-        {
-          "title": "Failure modes",
-          "id": "failure-modes"
+          "title": "Security and failure modes",
+          "id": "security-and-failure-modes"
         },
         {
           "title": "Accessibility and localization",
@@ -1892,10 +1905,10 @@ export const DOCS_BUNDLE: DocsBundle = {
       ],
       "links": [
         "complete-exports.md",
-        "../agent/ops.md",
+        "../app/local-version-history.md",
         "README.md"
       ],
-      "body": "# External editor handoff\n\nA one-click action to open the current project, file, or export directly in an installed code editor.\n\n## Behavior\n\nThe product is meant to detect installed editors and offer opening the current folder or a selected or exported file directly in one, with the choice persisted.\n\n## Configuration\n\nOpening a folder would open it as a workspace root rather than a single unrooted file, so surrounding project context is usable immediately.\n\n## Current status\n\n**Desktop application:** Not implemented. The desktop application has no external editor detection or handoff action anywhere in its interface.\n\n**Documentation website:** Not implemented. The documentation website has no local files of the user's own to hand off to an editor.\n\n## Failure modes\n\nWhen no supported editor is installed, the intended behavior is a clear message naming that and an offer to get one, rather than a silently disabled or missing button; there is no handoff action yet to fail this way.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Complete data export](complete-exports.md), [Operations](../agent/ops.md), [Platform feature index](README.md).\n"
+      "body": "# External editor handoff\n\nOpen the current project folder, a selected configuration file, or an export in an editor that is installed on the same Windows computer.\n\n## Behavior\n\nThe desktop process detects real executables and returns normalized absolute paths to the renderer. Detection covers Visual Studio Code stable, Visual Studio Code Insiders, Visual Studio Code Portable, user and machine installation paths, Notepad++, Sublime Text, and Notepad. A saved choice remains visible when its executable is unavailable, and the console never substitutes another editor without an explicit choice.\n\nThe settings surface provides these actions:\n\n- Open the current project folder as a workspace root.\n- Open the selected configuration file when the current screen has reported one.\n- Open the current project explicitly in Visual Studio Code.\n- Open the latest export in Visual Studio Code through one action.\n- Browse for a custom editor executable, save it, remove it, or forget the selected editor.\n\nFolder opening is capability-aware. Visual Studio Code variants receive `--new-window` followed by the folder path. Editors without folder-workspace support refuse the folder action with an actionable message rather than opening a misleading single file.\n\n## Configuration and persistence\n\nCustom records use the versioned `console.externalEditors.v1` shape in the application data store. The privileged runtime bounds the record to 32 entries, limits names to 80 characters and executable paths to 1,024 characters, normalizes accepted paths, and rejects command-line operators, quotes, newlines, and malformed identifiers. The selected editor id is stored separately from the renderer's display state so the choice survives relaunch and unavailable choices can still be reported.\n\nExports handed to an editor are written to an application-owned `external-editor-exports` directory with a bounded UTF-8 payload and a sanitized filename. The source export remains unchanged.\n\n## Security and failure modes\n\nNo editor launch goes through a shell. The runtime calls `child_process.spawn` with `shell:false`, `windowsHide:true`, and separate executable and argument arrays. A path containing spaces remains one argument, and shell metacharacters are never interpreted. Launches return a typed receipt with editor id, executable, arguments, target and process id, or a typed failure with a bounded startup timeout.\n\nWhen no supported editor is installed, the settings surface states that the console works fully without one and offers the official Visual Studio Code download page. It does not auto-download software. A missing selected executable, invalid custom record, unsupported folder target, unavailable bridge, oversized export, and failed process start each produces a distinct failure message.\n\nThe hosted browser surface exposes an honest no-editor state because native executable detection, file picking and process creation require the installed desktop runtime. No browser route pretends that a local editor was opened. The official Visual Studio Code download action is allowlisted to `https://code.visualstudio.com/` and its documented Insiders and download paths.\n\n## Accessibility and localization\n\nAll editor actions are rendered through the design reference's existing Material controls and retain keyboard focus, accessible labels, explanation affordances and the three language modes. Cantonese labels are registered alongside the English labels. The corrected executable placeholder names a path shape without suggesting a shell command.\n\n## Verification\n\nThe pure policy is covered by the existing focused renderer test file. This lane did not run tests, lint, a broad build, packaging, UI driving or captures by design. The design compiler was run after editing the checked-in design source, and the generated console output was inspected for every external-editor control and action. The next verification lane should launch the packaged desktop artifact and prove detection, native picking, persistence, folder capability refusal, Visual Studio Code handoff, export handoff, and typed launch failure receipts.\n\n## Suggested articles\n\n[Complete data export](complete-exports.md), [Local version history](../app/local-version-history.md), [Platform feature index](README.md).\n"
     },
     {
       "id": "platform/external-settings-sources",
