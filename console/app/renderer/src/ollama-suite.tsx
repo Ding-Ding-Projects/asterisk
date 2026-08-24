@@ -4,6 +4,7 @@ import {
   fitLabel,
   formatBytes,
   runtimeLabel,
+  type BackendFailure,
   type BackendResponse,
   type ChatSession,
   type HarnessProfile,
@@ -36,6 +37,18 @@ const SEARCH_LIMITS = {
   timeoutMs: 75,
   maxMatches: 200,
 } as const;
+
+function normalizeClientRejection(error: unknown, operation: string): BackendFailure {
+  const cancelled = error instanceof DOMException && error.name === 'AbortError';
+  return {
+    code: cancelled ? 'client-request-cancelled' : 'client-promise-rejected',
+    message: cancelled
+      ? `The ${operation} request was cancelled before the backend returned typed evidence.`
+      : `The ${operation} request ended before the backend returned a typed response. Rejection details were withheld because untyped errors can contain private data.`,
+    recoveryAction: cancelled ? 'Run the action again when ready.' : 'Retry the action. If it continues to fail, inspect the redacted backend diagnostics.',
+    retryable: true,
+  };
+}
 
 function statusClass(value: string): string {
   return `ollama-status ollama-status--${value}`;
@@ -612,6 +625,9 @@ export function OllamaSuite({ client, initialSnapshot, className = '' }: OllamaS
         if (!active) return;
         if (response.ok) dispatch({ type: 'snapshot-loaded', snapshot: response.value });
         else dispatch({ type: 'snapshot-failed', error: response.error });
+      }).catch((error: unknown) => {
+        if (!active) return;
+        dispatch({ type: 'snapshot-failed', error: normalizeClientRejection(error, 'initial snapshot') });
       });
     }
     const unsubscribe = client.subscribe((event) => active && dispatch({ type: 'event', event }));
@@ -639,14 +655,18 @@ export function OllamaSuite({ client, initialSnapshot, className = '' }: OllamaS
       limits: SEARCH_LIMITS,
       filters: filterRecord,
     };
-    dispatch({ type: 'set-search', scope, search: { evaluating: true } });
+    dispatch({ type: 'set-search', scope, search: { evaluating: true, result: undefined } });
     void client.search(request).then((response) => {
       if (searchGeneration.current[scope] !== generation) return;
       if (response.ok) dispatch({ type: 'set-search', scope, search: { evaluating: false, result: response.value } });
       else {
-        dispatch({ type: 'set-search', scope, search: { evaluating: false } });
+        dispatch({ type: 'set-search', scope, search: { evaluating: false, result: undefined } });
         dispatch({ type: 'operation-failed', error: response.error });
       }
+    }).catch((error: unknown) => {
+      if (searchGeneration.current[scope] !== generation) return;
+      dispatch({ type: 'set-search', scope, search: { evaluating: false, result: undefined } });
+      dispatch({ type: 'operation-failed', error: normalizeClientRejection(error, `${scope} search`) });
     });
   }, [client, filters]);
 
@@ -665,7 +685,13 @@ export function OllamaSuite({ client, initialSnapshot, className = '' }: OllamaS
 
   const perform = useCallback(async <T,>(name: string, work: () => Promise<BackendResponse<T>>, accept?: (value: T) => void, notice?: string) => {
     dispatch({ type: 'operation-started', operation: name });
-    const response = await work();
+    let response: BackendResponse<T>;
+    try {
+      response = await work();
+    } catch (error: unknown) {
+      dispatch({ type: 'operation-failed', error: normalizeClientRejection(error, name) });
+      return;
+    }
     if (!response.ok) {
       dispatch({ type: 'operation-failed', error: response.error });
       return;
