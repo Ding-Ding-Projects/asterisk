@@ -434,3 +434,19 @@ This lane changed the checked-in design source and regenerated the renderer. It 
 Changed source files are `design/Asterisk Console M3.dc.html`, `design/M3 Control.dc.html`, and regenerated files under `console/app/renderer/src/generated/`. Documentation and the feature registry were updated in `console/docs/app/accessibility-overlays.md`, `console/docs/app/README.md`, and `console/app/feature-registry.json`.
 
 Verification boundary: `npm run compile:design` completed in this lane. Tests, lint, broad build, packaging, desktop interaction, browser interaction, and captures were intentionally not run for this lane. The parent task must independently review the generated diff before integration.
+
+## Refutation repair on 2026-08-24
+
+The first lane commit was refuted and repaired in the same Gerk Tong Hui. The repair adds:
+
+- generation and `AbortController` invalidation for discovery, with checks after each asynchronous control-plane or daemon request and before renderer state side effects;
+- a semantic progressbar and settled progress card that stays visible after completion or cancellation;
+- a real `Ctrl+Shift+F` listener, palette search, keyboard cursor movement, Enter activation, Escape close, focus return, and the existing full regex builder bound to the palette field;
+- tablist, tab, tabpanel, group, roving-tab-index, axis-aware arrow-key behavior, named 44px close controls, local tab and group persistence, and an explicit reset action;
+- one shared overlay interaction contract for painted surfaces, viewport limits, internal scrolling, Escape, menu arrows, keyboard movement, pointer resize and persisted geometry reset;
+- Retry and Re-authenticate callbacks for generated and live canvas context targets;
+- one shared tab-close predicate that rejects empty or invalid input, defaults to plain text, previews protected entries, and excludes pinned, locked, or unsaved tabs;
+- durable local notification history, versioned JSON export, and destructive-confirmation protection for bulk dismissal;
+- persisted attention root classes for focus, low stimulation, and platform or stored reduced motion.
+
+The design compiler completed again after this repair. No test suite, lint, broad build, packaging, desktop interaction, browser interaction, or capture was run. The repaired commit is the next commit after the earlier lane commit and must be reviewed as one unit before integration.

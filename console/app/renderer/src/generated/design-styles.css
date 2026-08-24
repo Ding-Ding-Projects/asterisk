@@ -57,7 +57,7 @@ html, body { margin:0; padding:0; background:#0B0F0C; }
   *, *::before, *::after { box-sizing:border-box; }
   button, input, select, textarea { min-height:44px; }
   button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline:3px solid #9FF7C4; outline-offset:3px; }
-  [data-overlay] { max-width:calc(100vw - 24px); max-height:calc(100vh - 64px); overflow:auto; overscroll-behavior:contain; }
+  [data-overlay] { max-width:calc(100vw - 24px); max-height:calc(100vh - 64px); overflow:auto; overscroll-behavior:contain; resize:both; }
   [data-overlay="menu"] { background:#252B25; border:1px solid #414942; box-shadow:0 12px 36px rgba(0,0,0,.6); }
   .m3-shortcut { min-width:3.5em; text-align:right; }
   @media (max-width:900px) { [data-overlay] { width:min(92vw, 560px) !important; left:4vw !important; right:4vw !important; transform:none !important; } }

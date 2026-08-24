@@ -172,6 +172,8 @@ export class App extends Base {
   private oneClickLog: Array<{ text: string; color: string; icon: string; ms: string }> = [];
   private oneClickStatus = 'Idle. No discovery is running.';
   private oneClickCancelled = false;
+  private oneClickGeneration = 0;
+  private oneClickAbort: AbortController | undefined;
   private refreshTimer: ReturnType<typeof setInterval> | undefined;
   private readStartedAt = new Map<string, number>();
   /** Durable storage for everything that must survive a relaunch (the
@@ -258,6 +260,7 @@ export class App extends Base {
      * bootstrap-then-restore sequence is awaited before touching either. Everything
      * else on mount does not depend on it and proceeds immediately. */
     setCatalog(CANTONESE);
+    this.applyAttentionPresentation();
     /* Until this runs the boundary applies language only. Wiring it here rather than
      * at construction keeps the uploaded file and the rendered text reading from one
      * storage handle instead of two that can disagree. */
@@ -300,6 +303,10 @@ export class App extends Base {
   /** Bounded, allowlisted discovery through the preload bridge. Never a shell command. */
   private discover = async () => {
     if (this.discoveryPending) return;
+    const generation = ++this.oneClickGeneration;
+    const abort = new AbortController();
+    this.oneClickAbort = abort;
+    const current = (): boolean => generation === this.oneClickGeneration && !abort.signal.aborted;
     this.discoveryPending = true;
     this.oneClickCancelled = false;
     this.oneClickStatus = 'Working. Completed observations remain recorded; later steps have not run.';
@@ -310,7 +317,7 @@ export class App extends Base {
     this.forceUpdate();
     try {
     const bridge = this.bridge();
-    if (!bridge) {
+    if (!bridge || !current()) {
       this.target = { ...NO_TARGET, label: 'bridge unavailable', detail: 'desktop preload not loaded' };
       this.forceUpdate();
       return;
@@ -318,6 +325,7 @@ export class App extends Base {
     this.target = { ...NO_TARGET, label: 'discovering…', detail: 'reading local targets' };
     this.forceUpdate();
     const response = await this.request('server.list');
+    if (!current()) return;
     if (!response?.ok) {
       this.target = { ...NO_TARGET, detail: response?.message ?? 'the control plane did not answer' };
       this.forceUpdate();
@@ -332,6 +340,7 @@ export class App extends Base {
        * names the way forward instead of only the problem. */
       const detail = Array.isArray(data.wsl) ? 'no WSL distribution discovered' : data.wsl?.unavailable ?? 'no local target discovered';
       const runtime = await this.request('runtime.status');
+      if (!current()) return;
       this.runtime = runtime?.ok ? (runtime.data as RuntimeStatus) : undefined;
       this.target = { ...NO_TARGET, detail: `${detail}${runtimeHint(this.runtime)}` };
       this.oneClickStage = 'No local target is available';
@@ -355,10 +364,13 @@ export class App extends Base {
      * the real connection action before marking the target connected. If the daemon is
      * merely stopped, start it through the existing lifecycle path and retry once. */
     let connected = await this.request('server.connect', { serverId: distribution });
+    if (!current()) return;
     let connectionReason = connectionFailureReason(connected);
     if (!connectionVerified(connected)) {
-      await this.ensureDaemon();
+      await this.ensureDaemon(current);
+      if (!current()) return;
       connected = await this.request('server.connect', { serverId: distribution });
+      if (!current()) return;
       connectionReason = connectionFailureReason(connected);
     }
     if (!connectionVerified(connected)) {
@@ -382,11 +394,13 @@ export class App extends Base {
       { icon: 'search', text: `${distributions.length} local target${distributions.length === 1 ? '' : 's'} discovered`, color: '#9FF7C4', ms: 'read' },
       { icon: 'verified', text: `${distribution} answered the connection check`, color: '#9FF7C4', ms: 'done' },
     ];
-    void this.ensureDaemon();
+    await this.ensureDaemon(current);
+    if (!current()) return;
     this.readings = {};
     this.canvasReadings = undefined;
     this.forceUpdate();
     } finally {
+      if (!current()) return;
       this.discoveryPending = false;
       this.oneClickRunning = false;
       if (this.oneClickCancelled) this.oneClickStatus = 'Cancelled. Completed observations are preserved; no later step was attempted.';
@@ -396,6 +410,11 @@ export class App extends Base {
 
   private cancelOneClick = (): void => {
     if (!this.discoveryPending) return;
+    this.oneClickGeneration += 1;
+    this.oneClickAbort?.abort();
+    this.oneClickAbort = undefined;
+    this.discoveryPending = false;
+    this.oneClickRunning = false;
     this.oneClickCancelled = true;
     this.oneClickStatus = 'Cancellation requested. The current bounded control-plane request will settle before the UI closes the operation.';
     this.forceUpdate();
@@ -414,17 +433,20 @@ export class App extends Base {
    * allowed to have. It is never silent: starting is announced, and a failure says
    * what actually went wrong rather than leaving the screens quietly empty.
    */
-  private ensureDaemon = async () => {
+  private ensureDaemon = async (isCurrent: () => boolean = () => true) => {
     const answer = await this.request('daemon.status');
+    if (!isCurrent()) return;
     if (!answer?.ok) return;
     const state = (answer.data as { status?: { state?: string } }).status?.state;
     /* This is the same reading the Deploy & servers status line shows, so it is
      * seeded from it rather than issuing a second `daemon.status` request. */
-    void this.refreshDaemonStatus();
+    await this.refreshDaemonStatus(isCurrent);
+    if (!isCurrent()) return;
     if (state === 'daemonAnswering') return;
 
     this.toast('Starting the phone system…');
     const started = await this.request('daemon.start');
+    if (!isCurrent()) return;
     if (!started?.ok) {
       this.fire('The phone system did not start', started?.message ?? 'Asterisk did not answer after it was started.');
       return;
@@ -433,7 +455,8 @@ export class App extends Base {
      * is discarded rather than left on screen as though it were current. */
     this.readings = {};
     this.canvasReadings = undefined;
-    void this.refreshDaemonStatus();
+    await this.refreshDaemonStatus(isCurrent);
+    if (!isCurrent()) return;
     this.forceUpdate();
   };
 
@@ -493,8 +516,9 @@ export class App extends Base {
     this.fire(`Phone system ${verb === 'start' ? 'started' : verb === 'stop' ? 'stopped' : 'restarted'}`, `Asterisk on ${this.target.label} answered after the ${verb}.`);
   };
 
-  private refreshDaemonStatus = async (): Promise<void> => {
+  private refreshDaemonStatus = async (isCurrent: () => boolean = () => true): Promise<void> => {
     const response = await this.request('daemon.status');
+    if (!isCurrent()) return;
     if (!response?.ok) {
       this.daemonStatusLine = response?.message ?? 'The control plane did not answer.';
       this.forceUpdate();
@@ -600,7 +624,10 @@ ${resolution.disclosure}`);
     }
     if (control?.id?.startsWith('att_') && typeof value === 'boolean') {
       const mode = App.ATTENTION_CONTROLS[control.id];
-      if (isAttentionMode(mode)) setModeEnabled(this.durableStorage.storage, mode, value);
+      if (isAttentionMode(mode)) {
+        setModeEnabled(this.durableStorage.storage, mode, value);
+        this.applyAttentionPresentation();
+      }
     }
     if (control?.id === 'dlg_emoji' && typeof value === 'boolean') {
       setEmojisEnabled(this.durableStorage.storage, value);
@@ -685,6 +712,20 @@ ${resolution.disclosure}`);
       // weakest) is the one case that does not imply it.
       hardened: String(values.ob_gates ?? 'All four gates') !== 'Credits allowed',
     };
+  }
+
+  /** Apply persisted attention accommodations to the real renderer root. The CSS
+   * consumer composes low stimulation with the platform reduced-motion preference,
+   * while focus dims and never removes content. */
+  private applyAttentionPresentation(): void {
+    const root = document.documentElement;
+    const low = this.durableStorage.storage.getItem('console.attention.lowStimulation') === 'on';
+    const focus = this.durableStorage.storage.getItem('console.attention.focus') === 'on';
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+    root.classList.toggle('attention-low-stimulation', low);
+    root.classList.toggle('attention-focus', focus);
+    root.classList.toggle('attention-reduced-motion', low || reduced);
+    root.dataset.attentionMotion = low || reduced ? 'reduced' : 'full';
   }
 
   /** Reads the three files the deploy touches, in parallel, tolerating an absent file
@@ -1372,6 +1413,7 @@ It is shown once. The phone needs it to register.`);
           { icon: 'content_copy', label: 'Duplicate step', hint: '⌃D', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
           { icon: 'call_split', label: 'Insert condition before', hint: '', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
           { icon: 'delete', label: 'Delete step', hint: '⌦', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
+          { icon: 'key', label: 'Recover or re-authenticate…', hint: '', act: () => { this.setState({ ctxOpen: false, recoveryOpen: true, recoveryTitle: `Recovery for ${(this.state as { ctxTarget?: string }).ctxTarget || 'observed step'}`, recoveryBody: 'The failed action stays unchanged. Choose Retry to run it again, or Re-authenticate to refresh the local credential before retrying.', recoveryStatus: 'No retry or re-authentication has run yet.' } as never); }, hover: () => {}, bg: '#1B211C' },
         ]
       : undefined;
 
@@ -1878,12 +1920,16 @@ It is shown once. The phone needs it to register.`);
       // Discovery replaces the design's simulated provisioning run.
       oneClickButton: this.target.connected ? 'Re-run discovery' : 'Discover local targets',
       oneClickRunning: this.oneClickRunning,
+      oneClickHasProgress: this.oneClickRunning || this.oneClickPct !== '0%',
       oneClickStage: this.oneClickStage,
       oneClickPct: this.oneClickPct,
+      oneClickProgressValue: Number.parseInt(this.oneClickPct, 10) || 0,
       oneClickLog: this.oneClickLog,
       oneClickStatus: this.oneClickStatus,
       runOneClick: this.discover,
       cancelOneClick: this.cancelOneClick,
+      recoveryRetry: () => { this.setState({ recoveryStatus: 'Retry requested. Re-reading the current target before reporting an outcome.' } as never); void this.refresh(); },
+      recoveryReauth: () => { this.setState({ recoveryStatus: 'Re-authentication requested. Discovery will refresh the local connection path without exposing credentials.' } as never); void this.discover(); },
 
       // Nav-rail badges: only a count this session actually read, never the design's
       // invented per-destination numbers.

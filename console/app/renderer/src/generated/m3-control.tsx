@@ -107,13 +107,13 @@ function Template(v: any) {
             ) : null),
           h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px;`), role: `listbox`, "aria-label": `${S(v.ctl.label)} options` },
             A(v.selectOptions).map(($o, $o$i) => R($o$i, F(
-              ($o.on ? h("button", { onClick: fn($o.pick), style: sty(`display:flex; align-items:center; gap:5px; background:#005230; border:0; border-radius:8px; padding:7px 13px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; font-weight:500; cursor:pointer;`) },
+              ($o.on ? h("button", { role: `option`, "aria-selected": `true`, onClick: fn($o.pick), style: sty(`display:flex; align-items:center; gap:5px; background:#005230; border:0; border-radius:8px; padding:7px 13px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; font-weight:500; cursor:pointer;`) },
                   h("span", { style: sty(`font-size:14px;`), className: "msym" },
                     "check"
                   ),
                   S($o.label)
                 ) : null),
-              ($o.off ? h("button", { onClick: fn($o.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:7px 13px; color:#C4CBC2; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`), className: "c-h1" },
+              ($o.off ? h("button", { role: `option`, "aria-selected": `false`, onClick: fn($o.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:7px 13px; color:#C4CBC2; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`), className: "c-h1" },
                   S($o.label)
                 ) : null)
             ))),

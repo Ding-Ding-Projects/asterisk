@@ -77,10 +77,10 @@
       <div style="display:flex; flex-wrap:wrap; gap:6px;" role="listbox" aria-label="{{ ctl.label }} options">
       <sc-for list="{{ selectOptions }}" as="o" hint-placeholder-count="4">
         <sc-if value="{{ o.on }}" hint-placeholder-val="{{ true }}">
-          <button onClick="{{ o.pick }}" style="display:flex; align-items:center; gap:5px; background:#005230; border:0; border-radius:8px; padding:7px 13px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; font-weight:500; cursor:pointer;"><span class="msym" style="font-size:14px;">check</span>{{ o.label }}</button>
+          <button role="option" aria-selected="true" onClick="{{ o.pick }}" style="display:flex; align-items:center; gap:5px; background:#005230; border:0; border-radius:8px; padding:7px 13px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; font-weight:500; cursor:pointer;"><span class="msym" style="font-size:14px;">check</span>{{ o.label }}</button>
         </sc-if>
         <sc-if value="{{ o.off }}">
-          <button onClick="{{ o.pick }}" style="background:transparent; border:1px solid #414942; border-radius:8px; padding:7px 13px; color:#C4CBC2; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;" style-hover="background:#262B26;">{{ o.label }}</button>
+          <button role="option" aria-selected="false" onClick="{{ o.pick }}" style="background:transparent; border:1px solid #414942; border-radius:8px; padding:7px 13px; color:#C4CBC2; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;" style-hover="background:#262B26;">{{ o.label }}</button>
         </sc-if>
       </sc-for>
       <sc-if value="{{ selectNoMatches }}"><span style="font-size:12px; color:#9AA39B; padding:8px;">No matching options</span></sc-if>

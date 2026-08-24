@@ -67,7 +67,7 @@
   *, *::before, *::after { box-sizing:border-box; }
   button, input, select, textarea { min-height:44px; }
   button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline:3px solid #9FF7C4; outline-offset:3px; }
-  [data-overlay] { max-width:calc(100vw - 24px); max-height:calc(100vh - 64px); overflow:auto; overscroll-behavior:contain; }
+  [data-overlay] { max-width:calc(100vw - 24px); max-height:calc(100vh - 64px); overflow:auto; overscroll-behavior:contain; resize:both; }
   [data-overlay="menu"] { background:#252B25; border:1px solid #414942; box-shadow:0 12px 36px rgba(0,0,0,.6); }
   .m3-shortcut { min-width:3.5em; text-align:right; }
   @media (max-width:900px) { [data-overlay] { width:min(92vw, 560px) !important; left:4vw !important; right:4vw !important; transform:none !important; } }
@@ -116,9 +116,9 @@
     </div>
   </div>
 
-  <div style="height:38px; flex:0 0 38px; display:flex; align-items:flex-end; gap:2px; background:#0B0F0C; padding:0 6px; overflow-x:auto;">
+  <div role="tablist" aria-label="Open destinations" aria-orientation="{{ tabOrientation }}" style="height:38px; flex:0 0 38px; display:flex; align-items:flex-end; gap:2px; background:#0B0F0C; padding:0 6px; overflow-x:auto;">
     <sc-for list="{{ tabGroups }}" as="g" hint-placeholder-count="1">
-      <div onClick="{{ g.toggle }}" onContextMenu="{{ g.ctx }}" style="display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:{{ g.bg }}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid {{ g.colour }};">
+      <div role="group" aria-label="Tab group {{ g.name }}" onClick="{{ g.toggle }}" onContextMenu="{{ g.ctx }}" onKeyDown="{{ g.keyDown }}" tabindex="0" style="display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:{{ g.bg }}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid {{ g.colour }};">
         <span style="width:9px; height:9px; border-radius:50%; background:{{ g.colour }};"></span>
         <span style="font-size:12px; font-weight:500; color:#DFE4DC; white-space:nowrap;">{{ g.name }}</span>
         <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#8FA394;">{{ g.count }}</span>
@@ -127,22 +127,22 @@
     </sc-for>
     <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
       <sc-if value="{{ t.on }}" hint-placeholder-val="{{ true }}">
-        <div draggable="true" onDragStart="{{ t.onDragStart }}" onDragOver="{{ t.onDragOver }}" onDrop="{{ t.onDrop }}" onDragEnd="{{ t.onDragEnd }}" onClick="{{ t.go }}" onContextMenu="{{ t.ctx }}" style="display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid {{ t.edge }}; border-right:2px solid {{ t.edge }};">
+        <div role="tab" aria-selected="true" aria-controls="panel-{{ t.key }}" tabindex="{{ t.tabIndex }}" draggable="true" onKeyDown="{{ t.keyDown }}" onDragStart="{{ t.onDragStart }}" onDragOver="{{ t.onDragOver }}" onDrop="{{ t.onDrop }}" onDragEnd="{{ t.onDragEnd }}" onClick="{{ t.go }}" onContextMenu="{{ t.ctx }}" style="display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid {{ t.edge }}; border-right:2px solid {{ t.edge }};">
           <sc-if value="{{ t.inGroup }}" hint-placeholder-val="{{ true }}"><span style="width:3px; height:18px; border-radius:2px; background:{{ t.groupColour }}; flex:0 0 auto;"></span></sc-if>
           <span style="width:7px; height:7px; border-radius:50%; background:{{ t.colour }}; flex:0 0 auto;"></span>
           <span class="msym" style="font-size:16px; color:#82D9A5; flex:0 0 auto;">{{ t.icon }}</span>
           <span style="flex:1; font-size:12.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ t.label }}</span>
           <sc-if value="{{ t.pinned }}" hint-placeholder-val="{{ true }}"><span class="msym" style="font-size:14px; color:#8FA394;">push_pin</span></sc-if>
-          <button onClick="{{ t.close }}" style="width:20px; height:20px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#333B34; color:#FFB4AB;"><span class="msym" style="font-size:14px;">close</span></button>
+          <button onClick="{{ t.close }}" aria-label="Close {{ t.label }}" title="Close {{ t.label }}" style="width:44px; height:44px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#333B34; color:#FFB4AB;"><span class="msym" style="font-size:14px;">close</span></button>
         </div>
       </sc-if>
       <sc-if value="{{ t.off }}">
-        <div draggable="true" onDragStart="{{ t.onDragStart }}" onDragOver="{{ t.onDragOver }}" onDrop="{{ t.onDrop }}" onDragEnd="{{ t.onDragEnd }}" onClick="{{ t.go }}" onContextMenu="{{ t.ctx }}" style="display:flex; align-items:center; gap:8px; background:#0F1510; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:200px; min-width:110px; border-top:2px solid transparent; border-left:2px solid {{ t.edge }}; border-right:2px solid {{ t.edge }};" style-hover="background:#141A15;">
+        <div role="tab" aria-selected="false" aria-controls="panel-{{ t.key }}" tabindex="{{ t.tabIndex }}" draggable="true" onKeyDown="{{ t.keyDown }}" onDragStart="{{ t.onDragStart }}" onDragOver="{{ t.onDragOver }}" onDrop="{{ t.onDrop }}" onDragEnd="{{ t.onDragEnd }}" onClick="{{ t.go }}" onContextMenu="{{ t.ctx }}" style="display:flex; align-items:center; gap:8px; background:#0F1510; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:200px; min-width:110px; border-top:2px solid transparent; border-left:2px solid {{ t.edge }}; border-right:2px solid {{ t.edge }};" style-hover="background:#141A15;">
           <sc-if value="{{ t.inGroup }}" hint-placeholder-val="{{ true }}"><span style="width:3px; height:18px; border-radius:2px; background:{{ t.groupColour }}; flex:0 0 auto;"></span></sc-if>
           <span class="msym" style="font-size:16px; color:#8FA394; flex:0 0 auto;">{{ t.icon }}</span>
           <span style="flex:1; font-size:12.5px; color:#9AA39B; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ t.label }}</span>
           <sc-if value="{{ t.pinned }}" hint-placeholder-val="{{ true }}"><span class="msym" style="font-size:14px; color:#778078;">push_pin</span></sc-if>
-          <button onClick="{{ t.close }}" style="width:20px; height:20px; border-radius:50%; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#333B34; color:#FFB4AB;"><span class="msym" style="font-size:14px;">close</span></button>
+          <button onClick="{{ t.close }}" aria-label="Close {{ t.label }}" title="Close {{ t.label }}" style="width:44px; height:44px; border-radius:50%; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#333B34; color:#FFB4AB;"><span class="msym" style="font-size:14px;">close</span></button>
         </div>
       </sc-if>
     </sc-for>
@@ -232,7 +232,7 @@
         </div>
       </div>
 
-      <div onContextMenu="{{ ctxScreen }}" key="{{ screenKey }}" style="flex:1; overflow-y:auto; padding:0 26px 80px; position:relative; animation:screenIn .3s cubic-bezier(.2,0,0,1);">
+      <div id="panel-{{ screenKey }}" role="tabpanel" aria-labelledby="tab-{{ screenKey }}" onContextMenu="{{ ctxScreen }}" key="{{ screenKey }}" style="flex:1; overflow-y:auto; padding:0 26px 80px; position:relative; animation:screenIn .3s cubic-bezier(.2,0,0,1);">
         <sc-if value="{{ beginner }}" hint-placeholder-val="{{ true }}">
           <div style="display:flex; align-items:center; gap:13px; background:#1B4D33; border-radius:16px; padding:14px 18px; margin-bottom:12px; animation:m3Slide .3s cubic-bezier(.2,0,0,1);">
             <span class="msym" style="font-size:24px; color:#9FF7C4; flex:0 0 auto;">school</span>
@@ -632,19 +632,19 @@
               </sc-for>
             </div>
           </div>
-          <sc-if value="{{ oneClickRunning }}" hint-placeholder-val="{{ true }}">
+          <sc-if value="{{ oneClickHasProgress }}" hint-placeholder-val="{{ true }}">
             <div style="background:#1B211C; border-radius:16px; padding:18px 20px; margin-bottom:14px;">
               <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-                <span class="msym" style="font-size:20px; color:#82D9A5; animation:m3Spin 1.4s linear infinite;">progress_activity</span>
+                <span class="msym" style="font-size:20px; color:#82D9A5;">{{ oneClickRunning ? 'progress_activity' : 'check_circle' }}</span>
                 <span style="font-size:15px; font-weight:500;">{{ oneClickStage }}</span>
                 <div style="flex:1;"></div>
                 <span style="font-family:'Roboto Mono',monospace; font-size:12px; color:#82D9A5;">{{ oneClickPct }}</span>
               </div>
               <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
                 <span role="status" aria-live="polite" style="flex:1; font-size:12px; color:#9AA39B;">{{ oneClickStatus }}</span>
-                <button onClick="{{ cancelOneClick }}" aria-label="Cancel deployment" style="min-height:44px; background:transparent; border:1px solid #FFB4AB; border-radius:999px; padding:8px 16px; color:#FFB4AB; font:inherit; font-size:12px; cursor:pointer;">Cancel</button>
+                <sc-if value="{{ oneClickRunning }}"><button onClick="{{ cancelOneClick }}" aria-label="Cancel deployment" style="min-height:44px; background:transparent; border:1px solid #FFB4AB; border-radius:999px; padding:8px 16px; color:#FFB4AB; font:inherit; font-size:12px; cursor:pointer;">Cancel</button></sc-if>
               </div>
-              <div style="height:8px; border-radius:4px; background:#262B26; overflow:hidden; margin-bottom:14px;"><div style="height:100%; background:#82D9A5; border-radius:4px; width:{{ oneClickPct }}; transition:width .4s ease;"></div></div>
+              <div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ oneClickProgressValue }}" aria-valuetext="{{ oneClickPct }}" aria-label="Discovery progress" style="height:8px; border-radius:4px; background:#262B26; overflow:hidden; margin-bottom:14px;"><div style="height:100%; background:#82D9A5; border-radius:4px; width:{{ oneClickPct }}; transition:width .4s ease;"></div></div>
               <div style="display:flex; flex-direction:column; gap:7px;">
                 <sc-for list="{{ oneClickLog }}" as="l" hint-placeholder-count="5">
                   <div style="display:flex; align-items:center; gap:9px; font-size:12.5px; color:{{ l.color }}; animation:m3Slide .3s cubic-bezier(.2,0,0,1) both;">
@@ -1328,16 +1328,17 @@
 
   <sc-if value="{{ paletteOpen }}">
     <div onClick="{{ togglePalette }}" style="position:absolute; inset:0; background:rgba(0,0,0,.5); z-index:70;"></div>
-    <div style="position:absolute; left:50%; top:88px; transform:translateX(-50%); width:620px; background:#252B25; border-radius:20px; box-shadow:0 12px 40px rgba(0,0,0,.6); z-index:71; overflow:hidden; animation:dlgPalette .22s cubic-bezier(.2,0,0,1);">
+    <div data-overlay="palette" role="dialog" aria-modal="true" aria-labelledby="palette-title" tabindex="-1" onKeyDown="{{ paletteKeyDown }}" style="position:absolute; left:50%; top:88px; transform:translateX(-50%); width:620px; background:#252B25; border:1px solid #414942; border-radius:20px; box-shadow:0 12px 40px rgba(0,0,0,.6); z-index:71; overflow:hidden; animation:dlgPalette .22s cubic-bezier(.2,0,0,1);">
       <div style="display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid #333B34;">
         <span class="msym" style="font-size:22px; color:#82D9A5;">search</span>
-        <span style="font-size:15px; color:#9AA39B;">Jump to any screen, setting, or command</span>
+        <label id="palette-title" for="palette-search" style="font-size:15px; color:#9AA39B;">Jump to any screen, setting, or command</label>
         <div style="flex:1;"></div>
         <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#778078;">Ctrl ⇧ F</span>
       </div>
+      <div style="display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid #333B34;"><input id="palette-search" type="search" value="{{ paletteQuery }}" onInput="{{ onPaletteQuery }}" onChange="{{ onPaletteQuery }}" onKeyDown="{{ paletteKeyDown }}" aria-label="Search commands and destinations" placeholder="Search commands" style="flex:1; min-width:0; background:#141A15; border:1px solid #414942; border-radius:10px; padding:9px 11px; color:#DFE4DC; font-family:'Roboto Mono',monospace;" /><button onClick="{{ openPaletteRegex }}" aria-label="Build a regex for the command palette" title="Build a regex for the command palette" style="width:40px; height:40px; border:0; border-radius:9px; background:#1B4D33; color:#9FF7C4; cursor:pointer;"><span class="msym">data_object</span></button></div>
       <div style="max-height:420px; overflow-y:auto; padding:8px;">
         <sc-for list="{{ paletteItems }}" as="p" hint-placeholder-count="8">
-          <button onClick="{{ p.go }}" style="width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:transparent; border:0; border-radius:12px; padding:11px 14px; cursor:pointer;" style-hover="background:#333B34;">
+          <button onClick="{{ p.go }}" onKeyDown="{{ p.keyDown }}" role="option" aria-selected="{{ p.selected }}" tabindex="{{ p.tabIndex }}" style="width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:{{ p.bg }}; border:0; border-radius:12px; padding:11px 14px; cursor:pointer;" style-hover="background:#333B34;">
             <span class="msym" style="font-size:19px; color:#82D9A5;">{{ p.icon }}</span>
             <span style="flex:1; font-size:13.5px; color:#DFE4DC;">{{ p.label }}</span>
             <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#8FA394;">{{ p.hint }}</span>
@@ -1596,7 +1597,7 @@
 
   <sc-if value="{{ ctxOpen }}">
     <div onClick="{{ closeCtx }}" onContextMenu="{{ closeCtx }}" style="position:absolute; inset:0; z-index:78;"></div>
-    <div data-overlay="menu" role="menu" aria-label="Actions for {{ ctxTarget }}" style="position:absolute; left:{{ ctxX }}; top:{{ ctxY }}; width:274px; border-radius:14px; padding:6px; z-index:79; animation:dlgCtx .14s cubic-bezier(.2,1.3,.4,1);">
+    <div data-overlay="menu" role="menu" aria-label="Actions for {{ ctxTarget }}" tabindex="-1" onKeyDown="{{ menuKeyDown }}" style="position:absolute; left:{{ ctxX }}; top:{{ ctxY }}; width:274px; border-radius:14px; padding:6px; z-index:79; animation:dlgCtx .14s cubic-bezier(.2,1.3,.4,1);">
       <div style="padding:8px 12px 6px; font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394; border-bottom:1px solid #333B34; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ ctxTarget }}</div>
       <div style="display:flex; align-items:center; gap:6px; padding:5px 6px 7px;">
         <input type="search" value="{{ ctxFilter }}" onInput="{{ onCtxFilter }}" onChange="{{ onCtxFilter }}" aria-label="Search this context menu" placeholder="Search actions" style="flex:1; min-width:0; background:#141A15; border:1px solid #414942; border-radius:8px; padding:7px 9px; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:11px;" />
@@ -1611,7 +1612,7 @@
       </sc-for>
     </div>
     <sc-if value="{{ subOpen }}">
-      <div data-overlay="menu" role="menu" aria-label="More actions" style="position:absolute; left:{{ subX }}; top:{{ subY }}; width:230px; border-radius:14px; padding:6px; z-index:80; animation:dlgCtx .13s cubic-bezier(.2,1.3,.4,1);">
+      <div data-overlay="menu" role="menu" aria-label="More actions" tabindex="-1" onKeyDown="{{ menuKeyDown }}" style="position:absolute; left:{{ subX }}; top:{{ subY }}; width:230px; border-radius:14px; padding:6px; z-index:80; animation:dlgCtx .13s cubic-bezier(.2,1.3,.4,1);">
         <div style="display:flex; align-items:center; gap:6px; padding:5px 6px 7px;"><input type="search" value="{{ subFilter }}" onInput="{{ onSubFilter }}" onChange="{{ onSubFilter }}" aria-label="Search submenu actions" placeholder="Search actions" style="flex:1; min-width:0; background:#141A15; border:1px solid #414942; border-radius:8px; padding:7px 9px; color:#DFE4DC; font-size:11px;" /><button onClick="{{ openSubRegex }}" title="Build a regex for this submenu" aria-label="Build a regex for this submenu" style="width:32px; height:32px; border-radius:8px; background:#262B26; border:0; color:#9FF7C4; cursor:pointer;"><span class="msym" style="font-size:15px;">data_object</span></button></div>
         <sc-for list="{{ subItems }}" as="i" hint-placeholder-count="6">
           <button onClick="{{ i.run }}" style="width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;" style-hover="background:#333B34;">
@@ -1624,7 +1625,7 @@
   </sc-if>
 
   <sc-if value="{{ recoveryOpen }}">
-    <div data-overlay="recovery" role="dialog" aria-modal="false" aria-labelledby="recovery-title" style="position:absolute; left:50%; top:96px; transform:translateX(-50%); width:460px; background:#252B25; border:1px solid #FFB4AB; border-radius:18px; padding:18px 20px; box-shadow:0 14px 40px rgba(0,0,0,.7); z-index:86;">
+    <div data-overlay="recovery" role="dialog" aria-modal="false" aria-labelledby="recovery-title" tabindex="-1" onKeyDown="{{ overlayKeyDown }}" style="position:absolute; left:50%; top:96px; transform:translateX(-50%); width:460px; background:#252B25; border:1px solid #FFB4AB; border-radius:18px; padding:18px 20px; box-shadow:0 14px 40px rgba(0,0,0,.7); z-index:86;">
       <div style="display:flex; align-items:center; gap:10px;"><span class="msym" style="font-size:22px; color:#FFB4AB;">error</span><h2 id="recovery-title" style="margin:0; font-size:17px;">{{ recoveryTitle }}</h2><div style="flex:1;"></div><button onClick="{{ closeRecovery }}" aria-label="Close recovery actions" style="min-width:44px; width:44px; height:44px; border:0; border-radius:50%; background:transparent; color:#C4CBC2; cursor:pointer;"><span class="msym">close</span></button></div>
       <p style="color:#DFE4DC; line-height:1.55; margin:12px 0 8px;">{{ recoveryBody }}</p>
       <p role="status" aria-live="polite" style="color:#FFD68A; font-family:'Roboto Mono',monospace; font-size:11px;">{{ recoveryStatus }}</p>
@@ -1950,10 +1951,11 @@
           </sc-for>
         </div>
       </div>
+      <div role="status" aria-live="polite" style="margin-top:10px; font-size:11px; color:{{ tabFilterStatusColour }};">{{ tabFilterStatus }}</div>
       <div style="display:flex; gap:8px; margin-top:16px; align-items:center;">
         <button onClick="{{ closeTabFilter }}" style="background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 20px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;">Cancel</button>
         <div style="flex:1;"></div>
-        <button onClick="{{ applyTabFilter }}" style="background:#93000A; border:0; border-radius:999px; padding:11px 24px; color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer;">{{ tabFilterApply }}</button>
+        <button onClick="{{ applyTabFilter }}" aria-disabled="{{ tabFilterBlocked }}" style="background:{{ tabFilterBlocked ? '#5C1B18' : '#93000A' }}; border:0; border-radius:999px; padding:11px 24px; color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer;">{{ tabFilterApply }}</button>
       </div>
     </div>
   </sc-if>
@@ -3168,15 +3170,15 @@ class Component extends DCLogic {
   state = {
     railId:'pbx', screen:'dash', mode:'Beginner', values:{},
     infoOpen:false, infoTitle:'', infoBody:'', infoPlain:'', infoX:'50%', infoY:'160px', infoDoc:null, infoKey:'',
-    wizardOpen:false, wizardStep:0, wizardCtl:null, paletteOpen:false,
+    wizardOpen:false, wizardStep:0, wizardCtl:null, paletteOpen:false, paletteQuery:'', paletteRegexOn:false, paletteCursor:0,
     ceremonyOpen:false, cStep:0, keyTurned:false, holdMs:0, slideVal:0, moleHits:0, moleTime:15, moleIdx:-1, ceremonyTitle:'', ceremonyCmd:'',
     onboardOpen:true, onboardStep:0, tourOpen:false, tourStep:0,
     toastOpen:false, toastText:'', nodeId:'n1', zoom:100, tableFilter:'All', filtersOpen:true,
     cli:{ verb:'pjsip', obj:'show', target:'endpoints' },
     regex:['^memory/', 'projects', '\\.md$'],
-    patterns:{ nav:[], table:[], memory:['^memory/', 'projects'], ctx:[], sub:[] },
+    patterns:{ nav:[], table:[], memory:['^memory/', 'projects'], palette:[], ctx:[], sub:[] },
     regexOpen:false, regexTarget:'nav', regexX:'300px', regexY:'120px', regexFlags:['i'],
-    ctxOpen:false, ctxX:'0px', ctxY:'0px', ctxTarget:'', ctxKind:'screen', ctxFilter:'', subFilter:'', recoveryOpen:false, recoveryTitle:'', recoveryBody:'', recoveryStatus:'No retry or re-authentication has run yet.',
+    ctxOpen:false, ctxX:'0px', ctxY:'0px', ctxTarget:'', ctxKind:'screen', ctxReturnFocus:null, ctxFilter:'', ctxRegexOn:false, subFilter:'', subRegexOn:false, recoveryOpen:false, recoveryTitle:'', recoveryBody:'', recoveryStatus:'No retry or re-authentication has run yet.',
     locks:{}, lockOpen:false, lockTarget:'', lockKey:'', lockStep:0, lockMethod:'PIN', pin:'', password:'', pinReveal:false, lockX:'40%', lockY:'22%',
     credits:3, game:'whack', gameScore:0, gameTime:0, gameCell:-1, gamePlaying:false,
     dtmfSeq:['4','7','2','9'], dtmfIn:[], dtmfShow:true,
@@ -3184,10 +3186,11 @@ class Component extends DCLogic {
     matchSel:'', matchDone:[], spotFound:-1, reflexNum:'1004', selected:[], authAnswers:{},
     sureOpen:false, sureTitle:'', sureBody:'', sureHits:0, sureNeed:3, sureCell:-1, sureAction:null,
     tabs:['dash', 'endpoints', 'canvas'], pinned:['dash'], dock:'left',
+    tabUnsaved:{},
     nodePos:{}, edgeList:EDGES.map(e => e.slice()), nodeDrag:null, fullscreen:false,
     canvasTool:'select', grid:true, snap:true, guides:true, minimap:true, layer:'Dialplan',
     tabNames:{}, tabColours:{}, ctxTabKey:'', renameOpen:false, renameKey:'', renameValue:'', tabColourOpen:false,
-    tabFilterOpen:false, tabFilterMode:'has', tabFilterText:'', ctxSub:'',
+    tabFilterOpen:false, tabFilterMode:'has', tabFilterText:'', tabFilterRegexOn:false, ctxSub:'',
     rxText:'', rxManual:false, tabFilterColour:'', rndNonce:1,
     tabDrag:-1, tabOver:-1, groups:[], ctxGroupId:'', groupRenameOpen:false,
     branch:'main', commits:[
@@ -3206,14 +3209,77 @@ class Component extends DCLogic {
 
   fire = (title, sub) => {
     const notice = { id:Math.random().toString(16).slice(2, 10), source:'console', message:title + ': ' + sub, when:'just now', state:'Unread' };
-    this.setState(st => ({ celebrate:true, celebrateTitle:title, celebrateSub:sub, notifications:[notice].concat(st.notifications || []).slice(0, 200) }));
+    const notifications = [notice].concat(this.state.notifications || []).slice(0, 200); this.persistNotifications(notifications);
+    this.setState({ celebrate:true, celebrateTitle:title, celebrateSub:sub, notifications });
     clearTimeout(this._cf);
     this._cf = setTimeout(() => this.setState({ celebrate:false }), 2600);
   };
 
+  componentDidMount() {
+    this._paletteKeydown = (event) => {
+      if (event.ctrlKey && event.shiftKey && String(event.key).toLowerCase() === 'f') {
+        event.preventDefault();
+        this.openPalette();
+      }
+      if (!this.state.paletteOpen) return;
+      if (event.key === 'Escape') { event.preventDefault(); this.closePalette(); }
+      if (event.key === 'ArrowDown') { event.preventDefault(); this.setState(st => ({ paletteCursor:Math.min(this.paletteCount(st), st.paletteCursor + 1) })); }
+      if (event.key === 'ArrowUp') { event.preventDefault(); this.setState(st => ({ paletteCursor:Math.max(0, st.paletteCursor - 1) })); }
+      if (event.key === 'Enter') { event.preventDefault(); this.activatePaletteCursor(); }
+    };
+    window.addEventListener('keydown', this._paletteKeydown);
+    try {
+      const saved = JSON.parse(window.localStorage.getItem('ding-pbx-console.notifications.v1') || '[]');
+      if (Array.isArray(saved)) this.setState({ notifications:saved.slice(0, 200) });
+    } catch (error) { this.setState({ notifications:[] }); }
+    try {
+      const overlays = JSON.parse(window.localStorage.getItem('ding-pbx-console.overlays.v1') || '{}');
+      if (overlays && typeof overlays === 'object') this.setState({ dlgPos:overlays.dlgPos || {}, dlgSize:overlays.dlgSize || {}, dlgDock:overlays.dlgDock || this.state.dlgDock });
+    } catch (error) {}
+    try {
+      const tabs = JSON.parse(window.localStorage.getItem('ding-pbx-console.tabs.v1') || 'null');
+      if (tabs && Array.isArray(tabs.tabs)) this.setState({ tabs:tabs.tabs, pinned:Array.isArray(tabs.pinned) ? tabs.pinned : ['dash'], groups:Array.isArray(tabs.groups) ? tabs.groups : [], dock:tabs.dock || 'left' });
+    } catch (error) {}
+  }
+
+  componentWillUnmount() {
+    if (this._paletteKeydown) window.removeEventListener('keydown', this._paletteKeydown);
+  }
+
+  componentDidUpdate() {
+    try { window.localStorage.setItem('ding-pbx-console.overlays.v1', JSON.stringify({ dlgPos:this.state.dlgPos, dlgSize:this.state.dlgSize, dlgDock:this.state.dlgDock })); } catch (error) {}
+    try { window.localStorage.setItem('ding-pbx-console.tabs.v1', JSON.stringify({ tabs:this.state.tabs, pinned:this.state.pinned, groups:this.state.groups, dock:this.state.dock })); } catch (error) {}
+  }
+
+  paletteCount = (state) => Math.max(0, this.filteredPalette(state).length - 1);
+  filteredPalette = (state) => {
+    const query = String(state.paletteQuery || '').trim();
+    const all = ORDER.map(k => ({ key:k, icon:SCREENS[k].icon, label:SCREENS[k].title, hint:SCREENS[k].file || 'console' }));
+    if (!query) return all;
+    if (!state.paletteRegexOn) return all.filter(item => item.label.toLowerCase().includes(query.toLowerCase()) || item.hint.toLowerCase().includes(query.toLowerCase()));
+    try { const re = new RegExp(query, 'i'); return all.filter(item => re.test(item.label) || re.test(item.hint)); }
+    catch (error) { return []; }
+  };
+  openPalette = () => { this.paletteReturnFocus = document.activeElement; this.setState({ paletteOpen:true, paletteCursor:0 }); setTimeout(() => document.getElementById('palette-search')?.focus(), 0); };
+  closePalette = () => { this.setState({ paletteOpen:false }); setTimeout(() => { if (this.paletteReturnFocus && this.paletteReturnFocus.focus) this.paletteReturnFocus.focus(); }, 0); };
+  activatePaletteCursor = () => { const item = this.filteredPalette(this.state)[this.state.paletteCursor]; if (item) { this.setState({ paletteOpen:false }); this.openScreen(item.key); } };
+  persistNotifications = (items) => { try { window.localStorage.setItem('ding-pbx-console.notifications.v1', JSON.stringify(items.slice(0, 200))); } catch (error) {} };
+  updateNotifications = (update) => { const next = update(this.state.notifications || []); this.persistNotifications(next); this.setState({ notifications:next }); };
+  exportNotifications = (ids) => {
+    const rows = (this.state.notifications || []).filter(n => !ids || ids.indexOf(n.id) >= 0);
+    const blob = new Blob([JSON.stringify({ schemaVersion:1, exportedAt:new Date().toISOString(), notifications:rows }, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'notification-history.json'; link.click(); URL.revokeObjectURL(url);
+  };
+  resetOverlay = (key) => {
+    const dlgPos = Object.assign({}, this.state.dlgPos); const dlgSize = Object.assign({}, this.state.dlgSize); const dlgDock = Object.assign({}, this.state.dlgDock);
+    delete dlgPos[key]; delete dlgSize[key]; delete dlgDock[key];
+    this.setState({ dlgPos, dlgSize, dlgDock });
+  };
+  resetTabs = () => this.setState({ tabs:['dash', 'endpoints', 'canvas'], pinned:['dash'], groups:[], tabNames:{}, tabColours:{}, dock:'left' });
+
   set = (k, v) => this.setState(s => ({ [k]:v }));
   val = (c) => (this.state.values[c.id] !== undefined ? this.state.values[c.id] : c.value);
-  toast = (t) => { const notice = { id:Math.random().toString(16).slice(2, 10), source:'console', message:t, when:'just now', state:'Unread' }; this.setState(st => ({ toastOpen:true, toastText:t, notifications:[notice].concat(st.notifications || []).slice(0, 200) })); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toastOpen:false }), 4200); };
+  toast = (t) => { const notice = { id:Math.random().toString(16).slice(2, 10), source:'console', message:t, when:'just now', state:'Unread' }; const notifications = [notice].concat(this.state.notifications || []).slice(0, 200); this.persistNotifications(notifications); this.setState({ toastOpen:true, toastText:t, notifications }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toastOpen:false }), 4200); };
 
   commit = (c, v) => {
     const file = (SCREENS[this.state.screen] || {}).file || 'console';
@@ -3723,6 +3789,22 @@ class Component extends DCLogic {
     const wizStep = wStep;
     const gk = (GAMES.find(g => g.id === s.game) || GAMES[0]).kind;
     const sel = s.selected || [];
+    const tabClosePlan = (() => {
+      if (s.tabFilterMode === 'colour') {
+        if (!s.tabFilterColour) return { blocked:'Choose a colour first.', rows:[], keep:s.tabs.slice(), excluded:[] };
+        const matches = (k) => (s.tabColours[k] || 'none') === s.tabFilterColour;
+        const excluded = s.tabs.filter(k => s.pinned.indexOf(k) >= 0 || !!s.locks[k] || !!s.tabUnsaved[k]);
+        const close = s.tabs.filter(k => matches(k) && excluded.indexOf(k) < 0);
+        return { blocked:'', rows:s.tabs.map(k => ({ label:s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k), close:close.indexOf(k) >= 0, excluded:excluded.indexOf(k) >= 0 })), keep:s.tabs.filter(k => close.indexOf(k) < 0), excluded };
+      }
+      const q = String(s.tabFilterText || (s.patterns.nav || []).join('')).trim();
+      if (!q) return { blocked:'Enter text or a valid pattern before closing tabs.', rows:[], keep:s.tabs.slice(), excluded:[] };
+      let re = null;
+      if (s.tabFilterRegexOn) { try { re = new RegExp(q, 'i'); } catch (error) { return { blocked:'The pattern is invalid. Fix it before closing tabs.', rows:[], keep:s.tabs.slice(), excluded:[] }; } }
+      const excluded = s.tabs.filter(k => s.pinned.indexOf(k) >= 0 || !!s.locks[k] || !!s.tabUnsaved[k]);
+      const close = s.tabs.filter(k => { const label = s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k); const hit = re ? re.test(label) : label.toLowerCase().includes(q.toLowerCase()); return (s.tabFilterMode === 'not' ? !hit : hit) && excluded.indexOf(k) < 0; });
+      return { blocked:'', rows:s.tabs.map(k => ({ label:s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k), close:close.indexOf(k) >= 0, excluded:excluded.indexOf(k) >= 0 })), keep:s.tabs.filter(k => close.indexOf(k) < 0), excluded };
+    })();
 
     const tbl = sc.table || { cols:[], rows:[], grid:'1fr', add:'Add' };
     const liveTableRows = s.screen === 'notifications'
@@ -3735,7 +3817,7 @@ class Component extends DCLogic {
       connLabel:'pbx-hq · AMI 5038', connUptime:'up 14d 06:22',
       openConnection:() => this.showInfo('Connection', 'The console is attached to pbx-hq over the manager interface on port 5038, secured with TLS. Losing this connection makes every live number on the dashboard grey out — configuration screens keep working from the last read.', 'The app is talking to your phone system over the network. If the little dot stops being green, the two are no longer talking.', '38%', '70px'),
       modeOpts:['Beginner','Expert'].map(m => ({ label:m, on:s.mode === m, off:s.mode !== m, pick:() => this.setState({ mode:m }) })),
-      togglePalette:() => this.set('paletteOpen', !s.paletteOpen),
+      togglePalette:() => s.paletteOpen ? this.closePalette() : this.openPalette(),
       openNotifications:() => this.setState({ railId:'app', screen:'notifications' }),
       unreadNotificationCount:(s.notifications || []).filter(n => n.state === 'Unread').length,
       startOnboarding:() => this.setState({ onboardOpen:true, onboardStep:0 }),
@@ -3894,9 +3976,9 @@ class Component extends DCLogic {
       toggleAll:() => this.set('selected', sel.length === liveTableRows.length ? [] : liveTableRows.map(r => r[0])),
       clearSelection:() => this.set('selected', []),
       bulkActions:s.screen === 'notifications' ? [
-        { icon:'done_all', label:'Mark read', run:() => this.setState(st => ({ notifications:(st.notifications || []).map(n => sel.indexOf(n.id) >= 0 ? Object.assign({}, n, { state:'Read' }) : n), selected:[] })) },
-        { icon:'delete_sweep', label:'Dismiss', run:() => this.setState(st => ({ notifications:(st.notifications || []).filter(n => sel.indexOf(n.id) < 0), selected:[] })) },
-        { icon:'download', label:'Export', run:() => this.toast('Selected notifications are ready for export') },
+        { icon:'done_all', label:'Mark read', run:() => this.updateNotifications(items => items.map(n => sel.indexOf(n.id) >= 0 ? Object.assign({}, n, { state:'Read' }) : n)) },
+        { icon:'delete_sweep', label:'Dismiss', run:() => this.areYouSure('Dismiss selected notifications', 'The selected notification records will be removed from local history.', 3, () => { this.updateNotifications(items => items.filter(n => sel.indexOf(n.id) < 0)); this.set('selected', []); }) },
+        { icon:'download', label:'Export', run:() => this.exportNotifications(sel) },
       ] : [
         { icon:'play_arrow', label:'Enable', run:() => this.bulk('Enabled', sel) },
         { icon:'pause', label:'Disable', run:() => this.bulk('Disabled', sel) },
@@ -4055,6 +4137,7 @@ class Component extends DCLogic {
         name:g.name, colour:g.colour, count:g.tabs.length + '', bg:'#141A15',
         chevron:g.collapsed ? 'chevron_right' : 'expand_more',
         toggle:() => this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, { collapsed:!x.collapsed }) : x) }),
+        keyDown:(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, { collapsed:!x.collapsed }) : x) }); } },
         ctx:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxSub:'', ctxGroupId:g.id, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'group · ' + g.name, ctxKind:'group' }); }
       })),
       renameOpen:s.renameOpen, renameValue:s.renameValue,
@@ -4114,49 +4197,24 @@ class Component extends DCLogic {
       })(),
       tabFilterText:s.tabFilterText,
       tabFilterApply:s.tabFilterMode === 'not' ? 'Close non-matching' : (s.tabFilterMode === 'colour' ? 'Close this colour' : 'Close matching'),
-      onTabFilterText:(e) => this.set('tabFilterText', e.target.value),
-      openTabRegex:() => this.setState({ regexOpen:true, regexTarget:'nav', regexX:'34%', regexY:'150px' }),
-      tabFilterPreview:(() => {
-        if (s.tabFilterMode === 'colour') {
-          return s.tabs.map(k => {
-            const label = s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k);
-            const c = s.tabColours[k] || 'none';
-            const closes = s.tabFilterColour ? c === s.tabFilterColour : false;
-            return { label, icon:closes ? 'close' : 'check', bg:closes ? '#5C1B18' : '#1B4D33', fg:closes ? '#FFB4AB' : '#9FF7C4' };
-          });
-        }
-        const q = (s.tabFilterText || (s.patterns.nav || []).join('')).toLowerCase();
-        return s.tabs.map(k => {
-          const label = s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k);
-          let hit = q ? label.toLowerCase().indexOf(q) >= 0 : false;
-          try { if (q) hit = new RegExp(q, 'i').test(label); } catch (e) {}
-          const closes = s.tabFilterMode === 'not' ? !hit : hit;
-          return { label, icon:closes ? 'close' : 'check', bg:closes ? '#5C1B18' : '#1B4D33', fg:closes ? '#FFB4AB' : '#9FF7C4' };
-        });
-      })(),
+      onTabFilterText:(e) => this.setState({ tabFilterText:e.target.value, tabFilterRegexOn:false }),
+      openTabRegex:() => this.setState({ regexOpen:true, regexTarget:'nav', regexX:'34%', regexY:'150px', tabFilterRegexOn:true }),
+      tabFilterBlocked:!!tabClosePlan.blocked,
+      tabFilterStatus:tabClosePlan.blocked || (tabClosePlan.rows.filter(r => r.close).length + ' tab(s) will close. ' + tabClosePlan.excluded.length + ' pinned, locked, or unsaved tab(s) are protected.'),
+      tabFilterStatusColour:tabClosePlan.blocked ? '#FFB4AB' : '#FFD68A',
+      tabFilterPreview:tabClosePlan.rows.map(r => ({ label:r.label + (r.excluded ? ' · protected' : ''), icon:r.close ? 'close' : 'check', bg:r.close ? '#5C1B18' : '#1B4D33', fg:r.close ? '#FFB4AB' : '#9FF7C4' })),
       applyTabFilter:() => {
-        if (s.tabFilterMode === 'colour') {
-          if (!s.tabFilterColour) return this.toast('Pick a colour first');
-          const keep = s.tabs.filter(k => (s.tabColours[k] || 'none') !== s.tabFilterColour);
-          this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash'), tabFilterOpen:false });
-          return this.toast('Closed every tab of that colour');
-        }
-        const q = (s.tabFilterText || (s.patterns.nav || []).join('')).toLowerCase();
-        const keep = s.tabs.filter(k => {
-          const label = (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)).toLowerCase();
-          let hit = q ? label.indexOf(q) >= 0 : false;
-          try { if (q) hit = new RegExp(q, 'i').test(label); } catch (e) {}
-          return s.tabFilterMode === 'not' ? hit : !hit;
-        });
+        if (tabClosePlan.blocked) return this.toast(tabClosePlan.blocked);
+        const keep = tabClosePlan.keep;
         this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash'), tabFilterOpen:false });
-        this.toast((s.tabs.length - (keep.length || 1)) + ' tabs closed');
+        this.toast((s.tabs.length - keep.length) + ' tab(s) closed. Protected tabs stayed open.');
       },
       closeTabFilter:() => this.set('tabFilterOpen', false),
       closeTabColour:() => this.set('tabColourOpen', false),
       tabs:s.tabs.filter(k => { const g = s.groups.find(x => x.tabs.indexOf(k) >= 0); return !(g && (g.collapsed || g.hidden)); }).map((k) => {
         const i = s.tabs.indexOf(k);
         return {
-        label:s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k), icon:SCREENS[k] ? SCREENS[k].icon : 'tab',
+        key:k, label:s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k), icon:SCREENS[k] ? SCREENS[k].icon : 'tab',
         colour:s.tabColours[k] || '#82D9A5',
         dropTarget:s.tabOver === i && s.tabDrag >= 0 && s.tabDrag !== i,
         edge:(s.tabOver === i && s.tabDrag >= 0 && s.tabDrag !== i) ? '#82D9A5' : 'transparent',
@@ -4183,18 +4241,26 @@ class Component extends DCLogic {
           this.fire('Grouped', dragged + ' and ' + target + ' are now one tab group.');
         },
         on:k === s.screen, off:k !== s.screen, pinned:s.pinned.indexOf(k) >= 0,
+        tabIndex:k === s.screen ? 0 : -1,
+        keyDown:(e) => {
+          const visible = s.tabs.filter(tab => { const group = s.groups.find(g => g.tabs.indexOf(tab) >= 0); return !(group && (group.collapsed || group.hidden)); });
+          const current = visible.indexOf(k); const vertical = s.dock === 'top' || s.dock === 'bottom'; const delta = vertical ? ((e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0)) : ((e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0));
+          if (!delta) return; e.preventDefault(); const next = visible[(current + delta + visible.length) % visible.length]; if (next) this.setState({ screen:next, railId:SCREENS[next] ? SCREENS[next].rail : s.railId });
+        },
         go:() => this.setState({ screen:k, railId:SCREENS[k] ? SCREENS[k].rail : s.railId }),
         close:(e) => { if (e && e.stopPropagation) e.stopPropagation(); const t = s.tabs.filter(x => x !== k); this.setState({ tabs:t.length ? t : ['dash'], screen:k === s.screen ? (t[0] || 'dash') : s.screen }); },
         ctx:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxTabKey:k, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'tab · ' + (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)), ctxKind:'tab' }); }
         };
       }),
+      tabOrientation:s.dock === 'top' || s.dock === 'bottom' ? 'vertical' : 'horizontal',
       newTab:() => { const next = ORDER.find(k => s.tabs.indexOf(k) < 0) || 'dash'; this.setState({ tabs:s.tabs.concat([next]), screen:next, railId:SCREENS[next].rail }); },
       dockOpts:[
         { label:'Rail on the left', icon:'dock_to_right', v:'left' },
         { label:'Rail on the right', icon:'dock_to_left', v:'right' },
         { label:'Rail on top', icon:'dock_to_bottom', v:'top' },
-        { label:'Compact rail', icon:'width_normal', v:'compact' }
-      ].map(d => ({ label:d.label, icon:d.icon, on:s.dock === d.v, off:s.dock !== d.v, pick:() => { this.set('dock', d.v); this.toast('Docked ' + d.label.toLowerCase()); } })),
+        { label:'Compact rail', icon:'width_normal', v:'compact' },
+        { label:'Reset tabs and groups', icon:'restart_alt', v:'reset', reset:true }
+      ].map(d => ({ label:d.label, icon:d.icon, on:s.dock === d.v, off:s.dock !== d.v, pick:() => { if (d.reset) { this.resetTabs(); this.toast('Tabs and groups reset to the shipped layout'); } else { this.set('dock', d.v); this.toast('Docked ' + d.label.toLowerCase()); } } })),
       dockDirection:s.dock === 'right' ? 'row-reverse' : (s.dock === 'top' ? 'column' : 'row'),
       isCustomise:s.screen === 'customise',
       funLevel:(() => { const l = this.v('fun_level', 2); return String(l); })(),
@@ -4387,8 +4453,10 @@ class Component extends DCLogic {
       ].map(this.buildCtl),
       oneClickModes:['Funny','Very funny','Just do it quietly'].map(m => ({ label:m, on:s.oneClickMode === m, off:s.oneClickMode !== m, pick:() => this.setState({ oneClickMode:m }) })),
       oneClickRunning:s.oneClickRunning,
+      oneClickHasProgress:s.oneClickRunning || s.oneClickStep > 0,
       oneClickStage:ONE_CLICK_LOG[Math.min(s.oneClickStep, ONE_CLICK_LOG.length - 1)].text,
       oneClickPct:Math.round(s.oneClickStep / ONE_CLICK_LOG.length * 100) + '%',
+      oneClickProgressValue:Math.round(s.oneClickStep / ONE_CLICK_LOG.length * 100),
       oneClickLog:ONE_CLICK_LOG.slice(0, s.oneClickStep).reverse().map((l, i) => ({ text:l.text, ms:l.ms, icon:i === 0 ? 'pending' : 'check_circle', color:i === 0 ? '#DFE4DC' : '#82D9A5' })),
       runOneClick:() => {
         if (s.oneClickRunning) return;
@@ -4435,7 +4503,7 @@ class Component extends DCLogic {
       openTableRegex:() => this.setState({ regexOpen:true, regexTarget:'table', regexX:'420px', regexY:'180px' }),
       regexOpen:s.regexOpen,
       regexX:this.pos('regex', s.regexX, s.regexY)[0], regexY:this.pos('regex', s.regexX, s.regexY)[1],
-      regexTargetLabel:s.regexTarget === 'nav' ? 'section list' : (s.regexTarget === 'table' ? 'row filter' : (s.regexTarget === 'ctx' ? 'context menu' : (s.regexTarget === 'sub' ? 'submenu' : 'memory search'))),
+      regexTargetLabel:s.regexTarget === 'nav' ? 'section list' : (s.regexTarget === 'table' ? 'row filter' : (s.regexTarget === 'palette' ? 'command palette' : (s.regexTarget === 'ctx' ? 'context menu' : (s.regexTarget === 'sub' ? 'submenu' : 'memory search')))),
       rxText:s.rxText || (s.patterns[s.regexTarget] || []).join(''),
       onRxText:(e) => { const v = e.target.value; const p = Object.assign({}, s.patterns); p[s.regexTarget] = v ? [v] : []; this.setState({ rxText:v, patterns:p }); },
       regexFlagStr:s.regexFlags.join(''),
@@ -4474,14 +4542,15 @@ class Component extends DCLogic {
       regexCount:(() => { const pat = (s.patterns[s.regexTarget] || []).join(''); if (!pat) return 'no filter'; try { new RegExp(pat); return 'valid pattern'; } catch (e) { return 'invalid pattern'; } })(),
       regexPreview:(() => {
         const pat = (s.patterns[s.regexTarget] || []).join('');
-        const pool = s.regexTarget === 'nav' ? ORDER.map(k => SCREENS[k].label) : (s.regexTarget === 'ctx' ? (this._ctxItems || []).map(i => i.label) : (s.regexTarget === 'sub' ? (this._subItems || []).map(i => i.label) : (sc.table ? sc.table.rows.map(r => r[0]) : ORDER.map(k => SCREENS[k].label))));
+        const pool = s.regexTarget === 'nav' ? ORDER.map(k => SCREENS[k].label) : (s.regexTarget === 'palette' ? ORDER.map(k => SCREENS[k].title) : (s.regexTarget === 'ctx' ? (this._ctxItems || []).map(i => i.label) : (s.regexTarget === 'sub' ? (this._subItems || []).map(i => i.label) : (sc.table ? sc.table.rows.map(r => r[0]) : ORDER.map(k => SCREENS[k].label)))));
         let re = null; try { re = pat ? new RegExp(pat, s.regexFlags.filter(f => f !== 'g').join('')) : null; } catch (e) { return [{ text:'pattern is not valid yet', icon:'error', color:'#FFB4AB' }]; }
         return pool.slice(0, 6).map(x => ({ text:x, icon:(!re || re.test(x)) ? 'check_circle' : 'remove_circle_outline', color:(!re || re.test(x)) ? '#82D9A5' : '#778078' }));
       })(),
       clearRegex:() => { const p = Object.assign({}, s.patterns); p[s.regexTarget] = []; this.setState({ patterns:p }); },
       closeRegex:() => {
-        if (s.regexTarget === 'ctx') this.setState({ ctxFilter:(s.patterns.ctx || []).join(''), regexOpen:false });
-        else if (s.regexTarget === 'sub') this.setState({ subFilter:(s.patterns.sub || []).join(''), regexOpen:false });
+        if (s.regexTarget === 'palette') this.setState({ paletteQuery:(s.patterns.palette || []).join(''), paletteRegexOn:true, regexOpen:false });
+        else if (s.regexTarget === 'ctx') this.setState({ ctxFilter:(s.patterns.ctx || []).join(''), ctxRegexOn:true, regexOpen:false });
+        else if (s.regexTarget === 'sub') this.setState({ subFilter:(s.patterns.sub || []).join(''), subRegexOn:true, regexOpen:false });
         else this.set('regexOpen', false);
       },
 
@@ -4492,7 +4561,7 @@ class Component extends DCLogic {
         const filterSub = (list) => {
           const q = String(s.subFilter || '').trim();
           if (!q) { this._subItems = list; return list; }
-          let re = null; try { re = new RegExp(q, 'i'); } catch (e) {}
+          let re = null; if (s.subRegexOn) { try { re = new RegExp(q, 'i'); } catch (e) { this._subItems = []; return []; } }
           const filtered = list.filter(i => re ? re.test(i.label) : String(i.label).toLowerCase().includes(q.toLowerCase()));
           this._subItems = filtered;
           return filtered;
@@ -4537,9 +4606,9 @@ class Component extends DCLogic {
       })(),
       subX:(parseInt(s.ctxX, 10) + 266) + 'px',
       subY:(parseInt(s.ctxY, 10) + 84) + 'px',
-      ctxScreen:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:sc.title + ' · ' + (sc.file || 'console'), ctxKind:'screen' }); },
-      ctxSearch:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'search field', ctxKind:'search' }); },
-      closeCtx:(e) => { if (e && e.preventDefault) e.preventDefault(); this.set('ctxOpen', false); },
+      ctxScreen:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxReturnFocus:e.currentTarget, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:sc.title + ' · ' + (sc.file || 'console'), ctxKind:'screen' }); },
+      ctxSearch:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxReturnFocus:e.currentTarget, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'search field', ctxKind:'search' }); },
+      closeCtx:(e) => { if (e && e.preventDefault) e.preventDefault(); const target = s.ctxReturnFocus; this.setState({ ctxOpen:false, ctxSub:'', ctxReturnFocus:null }); setTimeout(() => { if (target && target.focus) target.focus(); }, 0); },
       ctxItems:(() => {
         const close = () => this.setState({ ctxOpen:false, ctxSub:'' });
         const decorate = (list) => {
@@ -4550,7 +4619,7 @@ class Component extends DCLogic {
           }));
           const q = String(s.ctxFilter || '').trim();
           if (!q) { this._ctxItems = decorated; return decorated; }
-          let re = null; try { re = new RegExp(q, 'i'); } catch (e) {}
+          let re = null; if (s.ctxRegexOn) { try { re = new RegExp(q, 'i'); } catch (e) { this._ctxItems = []; return []; } }
           const filtered = decorated.filter(i => re ? re.test(i.label) : String(i.label).toLowerCase().includes(q.toLowerCase()));
           this._ctxItems = filtered;
           return filtered;
@@ -4606,7 +4675,7 @@ class Component extends DCLogic {
             { icon:'download', label:'Export as configuration', hint:'', run:() => { close(); this.toast(name + ' exported'); } },
             { icon:'history', label:'Version history for this', hint:'', run:() => { close(); this.openScreen('history'); } },
             { icon:'delete', label:'Delete ' + name, hint:'⌦', run:() => { close(); this.areYouSure('Delete ' + name, sc.kind === 'servers' ? 'This connection profile is removed from the console. It does not touch or reconfigure the target machine.' : 'This object and everything referencing it are removed. The four gates still apply after the minigame.', 3, () => (sc.kind === 'servers' && this.onRemoveServerRow ? this.onRemoveServerRow(name) : this.ceremony('Delete ' + name, 'delete ' + name))); } },
-            common[0], common[1]
+            common[0], common[1], common[3]
           ]);
         }
         if (s.ctxKind === 'search') {
@@ -4616,7 +4685,7 @@ class Component extends DCLogic {
             { icon:'select_all', label:'Whole word only', hint:'', run:() => { close(); this.toast('Whole-word matching on'); } },
             { icon:'bookmark_add', label:'Save this search', hint:'', run:() => { close(); this.fire('Search saved', 'It is in the palette now.'); } },
             { icon:'clear', label:'Clear search', hint:'⎋', run:() => { close(); const p = Object.assign({}, s.patterns); p.table = []; p.nav = []; this.setState({ patterns:p }); } },
-            common[0], common[1]
+            common[0], common[1], common[3]
           ]);
         }
         if (s.ctxKind === 'node') {
@@ -4626,7 +4695,7 @@ class Component extends DCLogic {
             { icon:'content_copy', label:'Duplicate step', hint:'⌃D', run:() => { close(); this.toast('Step duplicated'); } },
             { icon:'call_split', label:'Insert condition before', hint:'', run:() => { close(); this.toast('Condition inserted'); } },
             { icon:'delete', label:'Delete step', hint:'⌦', run:() => { close(); this.areYouSure('Delete this step', 'The step and its connections are removed from the dialplan.', 3, () => this.fire('Step deleted', 'Canvas updated.')); } },
-            common[0], common[1]
+            common[0], common[1], common[3]
           ]);
         }
         return decorate([
@@ -4641,8 +4710,30 @@ class Component extends DCLogic {
       })(),
       ctxFilter:s.ctxFilter,
       subFilter:s.subFilter,
-      onCtxFilter:(e) => this.setState({ ctxFilter:e.target.value }),
-      onSubFilter:(e) => this.setState({ subFilter:e.target.value }),
+      onCtxFilter:(e) => this.setState({ ctxFilter:e.target.value, ctxRegexOn:false }),
+      onSubFilter:(e) => this.setState({ subFilter:e.target.value, subRegexOn:false }),
+      menuKeyDown:(e) => {
+        if (e.key === 'Escape') { e.preventDefault(); this.setState({ ctxOpen:false, ctxSub:'' }); return; }
+        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+        e.preventDefault();
+        const items = Array.from(e.currentTarget.querySelectorAll('button'));
+        const current = items.indexOf(document.activeElement);
+        const next = items[(current + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length];
+        if (next && next.focus) next.focus();
+      },
+      overlayKeyDown:(e) => {
+        if (e.key === 'Escape') { e.preventDefault(); this.setState({ ctxOpen:false, recoveryOpen:false, paletteOpen:false, regexOpen:false }); return; }
+        if (e.key === 'Home' && e.ctrlKey) { e.preventDefault(); this.resetOverlay(e.currentTarget.dataset.overlay || 'overlay'); return; }
+        if (!e.ctrlKey && !e.shiftKey) return;
+        const step = e.shiftKey ? 16 : 4;
+        const key = e.currentTarget.dataset.overlay || 'overlay';
+        const delta = { ArrowLeft:[-step, 0], ArrowRight:[step, 0], ArrowUp:[0, -step], ArrowDown:[0, step] }[e.key];
+        if (!delta) return;
+        e.preventDefault();
+        const pos = Object.assign({}, s.dlgPos); const current = pos[key] || { x:'0px', y:'0px' };
+        pos[key] = { x:(parseInt(current.x, 10) + delta[0]) + 'px', y:(parseInt(current.y, 10) + delta[1]) + 'px' };
+        this.setState({ dlgPos:pos });
+      },
       openCtxRegex:() => this.setState({ regexOpen:true, regexTarget:'ctx', regexX:s.ctxX, regexY:s.ctxY }),
       openSubRegex:() => this.setState({ regexOpen:true, regexTarget:'sub', regexX:(parseInt(s.ctxX, 10) + 266) + 'px', regexY:(parseInt(s.ctxY, 10) + 84) + 'px' }),
       recoveryOpen:s.recoveryOpen,
@@ -4807,7 +4898,16 @@ class Component extends DCLogic {
       closeWizard:() => this.setState({ wizardOpen:false, wizardCtl:null }),
 
       paletteOpen:s.paletteOpen,
-      paletteItems:ORDER.map(k => ({ icon:SCREENS[k].icon, label:SCREENS[k].title, hint:SCREENS[k].file || 'console', go:() => { this.setState({ paletteOpen:false }); this.openScreen(k); } })),
+      paletteQuery:s.paletteQuery || '',
+      onPaletteQuery:(e) => this.setState({ paletteQuery:e.target.value, paletteRegexOn:false, paletteCursor:0 }),
+      paletteKeyDown:(e) => {
+        if (e.key === 'ArrowDown') { e.preventDefault(); this.setState(st => ({ paletteCursor:Math.min(this.paletteCount(st), st.paletteCursor + 1) })); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); this.setState(st => ({ paletteCursor:Math.max(0, st.paletteCursor - 1) })); }
+        else if (e.key === 'Enter') { e.preventDefault(); this.activatePaletteCursor(); }
+        else if (e.key === 'Escape') { e.preventDefault(); this.closePalette(); }
+      },
+      openPaletteRegex:() => this.setState({ regexOpen:true, regexTarget:'palette', regexX:'34%', regexY:'150px' }),
+      paletteItems:this.filteredPalette(s).map((item, index) => ({ icon:item.icon, label:item.label, hint:item.hint, selected:index === s.paletteCursor, tabIndex:index === s.paletteCursor ? 0 : -1, bg:index === s.paletteCursor ? '#1B4D33' : 'transparent', go:() => { this.setState({ paletteOpen:false }); this.openScreen(item.key); }, keyDown:(e) => { if (e.key === 'Enter') { e.preventDefault(); this.setState({ paletteOpen:false }); this.openScreen(item.key); } } })),
 
       ceremonyOpen:s.ceremonyOpen, ceremonyTitle:s.ceremonyTitle, ceremonyCmd:s.ceremonyCmd,
       ceremonySteps:['Operator key', 'Arming switch', 'Slide to commit', 'Attention check'].map((l, i) => ({ label:l, bg:i <= s.cStep ? '#82D9A5' : '#333B34', fg:i <= s.cStep ? '#9FF7C4' : '#778078' })),

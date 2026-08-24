@@ -87,8 +87,8 @@ function Template(v: any) {
           )
         )
       ),
-      h("div", { style: sty(`height:38px; flex:0 0 38px; display:flex; align-items:flex-end; gap:2px; background:#0B0F0C; padding:0 6px; overflow-x:auto;`) },
-        A(v.tabGroups).map(($g, $g$i) => R($g$i, h("div", { onClick: fn($g.toggle), onContextMenu: fn($g.ctx), style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
+      h("div", { role: `tablist`, "aria-label": `Open destinations`, "aria-orientation": v.tabOrientation, style: sty(`height:38px; flex:0 0 38px; display:flex; align-items:flex-end; gap:2px; background:#0B0F0C; padding:0 6px; overflow-x:auto;`) },
+        A(v.tabGroups).map(($g, $g$i) => R($g$i, h("div", { role: `group`, "aria-label": `Tab group ${S($g.name)}`, onClick: fn($g.toggle), onContextMenu: fn($g.ctx), onKeyDown: fn($g.keyDown), tabIndex: `0`, style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
             h("span", { style: sty(`width:9px; height:9px; border-radius:50%; background:${S($g.colour)};`) }),
             h("span", { style: sty(`font-size:12px; font-weight:500; color:#DFE4DC; white-space:nowrap;`) },
               S($g.name)
@@ -101,7 +101,7 @@ function Template(v: any) {
             )
           ))),
         A(v.tabs).map(($t, $t$i) => R($t$i, F(
-          ($t.on ? h("div", { draggable: `true`, onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`) },
+          ($t.on ? h("div", { role: `tab`, "aria-selected": `true`, "aria-controls": `panel-${S($t.key)}`, tabIndex: $t.tabIndex, draggable: `true`, onKeyDown: fn($t.keyDown), onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), id: `tab-${S($t.key)}` },
               ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
               h("span", { style: sty(`width:7px; height:7px; border-radius:50%; background:${S($t.colour)}; flex:0 0 auto;`) }),
               h("span", { style: sty(`font-size:16px; color:#82D9A5; flex:0 0 auto;`), className: "msym" },
@@ -113,13 +113,13 @@ function Template(v: any) {
               ($t.pinned ? h("span", { style: sty(`font-size:14px; color:#8FA394;`), className: "msym" },
                   "push_pin"
                 ) : null),
-              h("button", { onClick: fn($t.close), style: sty(`width:20px; height:20px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h6" },
+              h("button", { onClick: fn($t.close), "aria-label": `Close ${S($t.label)}`, title: `Close ${S($t.label)}`, style: sty(`width:44px; height:44px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h6" },
                 h("span", { style: sty(`font-size:14px;`), className: "msym" },
                   "close"
                 )
               )
             ) : null),
-          ($t.off ? h("div", { draggable: `true`, onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#0F1510; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:200px; min-width:110px; border-top:2px solid transparent; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), className: "k-h7" },
+          ($t.off ? h("div", { role: `tab`, "aria-selected": `false`, "aria-controls": `panel-${S($t.key)}`, tabIndex: $t.tabIndex, draggable: `true`, onKeyDown: fn($t.keyDown), onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#0F1510; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:200px; min-width:110px; border-top:2px solid transparent; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), id: `tab-${S($t.key)}`, className: "k-h7" },
               ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
               h("span", { style: sty(`font-size:16px; color:#8FA394; flex:0 0 auto;`), className: "msym" },
                 S($t.icon)
@@ -130,7 +130,7 @@ function Template(v: any) {
               ($t.pinned ? h("span", { style: sty(`font-size:14px; color:#778078;`), className: "msym" },
                   "push_pin"
                 ) : null),
-              h("button", { onClick: fn($t.close), style: sty(`width:20px; height:20px; border-radius:50%; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h6" },
+              h("button", { onClick: fn($t.close), "aria-label": `Close ${S($t.label)}`, title: `Close ${S($t.label)}`, style: sty(`width:44px; height:44px; border-radius:50%; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h6" },
                 h("span", { style: sty(`font-size:14px;`), className: "msym" },
                   "close"
                 )
@@ -274,7 +274,7 @@ function Template(v: any) {
               )
             )
           ),
-          h("div", { onContextMenu: fn(v.ctxScreen), key: v.screenKey, style: sty(`flex:1; overflow-y:auto; padding:0 26px 80px; position:relative; animation:screenIn .3s cubic-bezier(.2,0,0,1);`) },
+          h("div", { id: `panel-${S(v.screenKey)}`, role: `tabpanel`, "aria-labelledby": `tab-${S(v.screenKey)}`, onContextMenu: fn(v.ctxScreen), key: v.screenKey, style: sty(`flex:1; overflow-y:auto; padding:0 26px 80px; position:relative; animation:screenIn .3s cubic-bezier(.2,0,0,1);`) },
             (v.beginner ? h("div", { style: sty(`display:flex; align-items:center; gap:13px; background:#1B4D33; border-radius:16px; padding:14px 18px; margin-bottom:12px; animation:m3Slide .3s cubic-bezier(.2,0,0,1);`) },
                 h("span", { style: sty(`font-size:24px; color:#9FF7C4; flex:0 0 auto;`), className: "msym" },
                   "school"
@@ -896,10 +896,10 @@ function Template(v: any) {
                   )))
                 )
               ),
-              (v.oneClickRunning ? h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:18px 20px; margin-bottom:14px;`) },
+              (v.oneClickHasProgress ? h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:18px 20px; margin-bottom:14px;`) },
                   h("div", { style: sty(`display:flex; align-items:center; gap:10px; margin-bottom:12px;`) },
-                    h("span", { style: sty(`font-size:20px; color:#82D9A5; animation:m3Spin 1.4s linear infinite;`), className: "msym" },
-                      "progress_activity"
+                    h("span", { style: sty(`font-size:20px; color:#82D9A5;`), className: "msym" },
+                      S(v.oneClickRunning ? 'progress_activity' : 'check_circle')
                     ),
                     h("span", { style: sty(`font-size:15px; font-weight:500;`) },
                       S(v.oneClickStage)
@@ -913,11 +913,11 @@ function Template(v: any) {
                     h("span", { role: `status`, "aria-live": `polite`, style: sty(`flex:1; font-size:12px; color:#9AA39B;`) },
                       S(v.oneClickStatus)
                     ),
-                    h("button", { onClick: fn(v.cancelOneClick), "aria-label": `Cancel deployment`, style: sty(`min-height:44px; background:transparent; border:1px solid #FFB4AB; border-radius:999px; padding:8px 16px; color:#FFB4AB; font:inherit; font-size:12px; cursor:pointer;`) },
-                      "Cancel"
-                    )
+                    (v.oneClickRunning ? h("button", { onClick: fn(v.cancelOneClick), "aria-label": `Cancel deployment`, style: sty(`min-height:44px; background:transparent; border:1px solid #FFB4AB; border-radius:999px; padding:8px 16px; color:#FFB4AB; font:inherit; font-size:12px; cursor:pointer;`) },
+                        "Cancel"
+                      ) : null)
                   ),
-                  h("div", { style: sty(`height:8px; border-radius:4px; background:#262B26; overflow:hidden; margin-bottom:14px;`) },
+                  h("div", { role: `progressbar`, "aria-valuemin": `0`, "aria-valuemax": `100`, "aria-valuenow": v.oneClickProgressValue, "aria-valuetext": v.oneClickPct, "aria-label": `Discovery progress`, style: sty(`height:8px; border-radius:4px; background:#262B26; overflow:hidden; margin-bottom:14px;`) },
                     h("div", { style: sty(`height:100%; background:#82D9A5; border-radius:4px; width:${S(v.oneClickPct)}; transition:width .4s ease;`) })
                   ),
                   h("div", { style: sty(`display:flex; flex-direction:column; gap:7px;`) },
@@ -1639,7 +1639,7 @@ function Template(v: any) {
       ),
       (v.infoOpen ? F(
         h("div", { onClick: fn(v.closeInfo), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.32); z-index:60;`) }),
-        h("div", { style: sty(`position:absolute; ${S(v.infoChrome)} max-height:calc(100vh - 132px); overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:61;`) },
+        h("div", { style: sty(`position:absolute; ${S(v.infoChrome)} max-height:calc(100vh - 132px); overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:61;`), "data-overlay": `panel`, role: `dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { onMouseDown: fn(v.dragInfo), style: sty(`display:flex; align-items:center; gap:8px; margin:-18px -20px 10px; padding:14px 16px 8px; cursor:grab; min-width:0;`) },
             h("span", { style: sty(`font-size:16px; color:#778078; flex:0 0 auto;`), className: "msym" },
               "drag_indicator"
@@ -1892,12 +1892,12 @@ function Template(v: any) {
         ) : null),
       (v.paletteOpen ? F(
         h("div", { onClick: fn(v.togglePalette), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.5); z-index:70;`) }),
-        h("div", { style: sty(`position:absolute; left:50%; top:88px; transform:translateX(-50%); width:620px; background:#252B25; border-radius:20px; box-shadow:0 12px 40px rgba(0,0,0,.6); z-index:71; overflow:hidden; animation:dlgPalette .22s cubic-bezier(.2,0,0,1);`) },
+        h("div", { "data-overlay": `palette`, role: `dialog`, "aria-modal": `true`, "aria-labelledby": `palette-title`, tabIndex: `-1`, onKeyDown: fn(v.paletteKeyDown), style: sty(`position:absolute; left:50%; top:88px; transform:translateX(-50%); width:620px; background:#252B25; border:1px solid #414942; border-radius:20px; box-shadow:0 12px 40px rgba(0,0,0,.6); z-index:71; overflow:hidden; animation:dlgPalette .22s cubic-bezier(.2,0,0,1);`) },
           h("div", { style: sty(`display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid #333B34;`) },
             h("span", { style: sty(`font-size:22px; color:#82D9A5;`), className: "msym" },
               "search"
             ),
-            h("span", { style: sty(`font-size:15px; color:#9AA39B;`) },
+            h("label", { id: `palette-title`, htmlFor: `palette-search`, style: sty(`font-size:15px; color:#9AA39B;`) },
               "Jump to any screen, setting, or command"
             ),
             h("div", { style: sty(`flex:1;`) }),
@@ -1905,8 +1905,16 @@ function Template(v: any) {
               "Ctrl ⇧ F"
             )
           ),
+          h("div", { style: sty(`display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid #333B34;`) },
+            h("input", { id: `palette-search`, type: `search`, value: v.paletteQuery, onInput: fn(v.onPaletteQuery), onChange: fn(v.onPaletteQuery), onKeyDown: fn(v.paletteKeyDown), "aria-label": `Search commands and destinations`, placeholder: `Search commands`, style: sty(`flex:1; min-width:0; background:#141A15; border:1px solid #414942; border-radius:10px; padding:9px 11px; color:#DFE4DC; font-family:'Roboto Mono',monospace;`) }),
+            h("button", { onClick: fn(v.openPaletteRegex), "aria-label": `Build a regex for the command palette`, title: `Build a regex for the command palette`, style: sty(`width:40px; height:40px; border:0; border-radius:9px; background:#1B4D33; color:#9FF7C4; cursor:pointer;`) },
+              h("span", { className: "msym" },
+                "data_object"
+              )
+            )
+          ),
           h("div", { style: sty(`max-height:420px; overflow-y:auto; padding:8px;`) },
-            A(v.paletteItems).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.go), style: sty(`width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:transparent; border:0; border-radius:12px; padding:11px 14px; cursor:pointer;`), className: "k-h32" },
+            A(v.paletteItems).map(($p, $p$i) => R($p$i, h("button", { onClick: fn($p.go), onKeyDown: fn($p.keyDown), role: `option`, "aria-selected": $p.selected, tabIndex: $p.tabIndex, style: sty(`width:100%; text-align:left; display:flex; align-items:center; gap:12px; background:${S($p.bg)}; border:0; border-radius:12px; padding:11px 14px; cursor:pointer;`), className: "k-h32" },
                 h("span", { style: sty(`font-size:19px; color:#82D9A5;`), className: "msym" },
                   S($p.icon)
                 ),
@@ -2156,7 +2164,7 @@ function Template(v: any) {
         ) : null),
       (v.regexOpen ? F(
         h("div", { onClick: fn(v.closeRegex), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.3); z-index:96;`) }),
-        h("div", { style: sty(`position:absolute; ${S(v.regexChrome)} max-height:86vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:97;`) },
+        h("div", { style: sty(`position:absolute; ${S(v.regexChrome)} max-height:86vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:97;`), "data-overlay": `panel`, role: `dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { onMouseDown: fn(v.dragRegex), style: sty(`display:flex; align-items:center; gap:9px; margin:-18px -20px 4px; padding:16px 20px 10px; cursor:grab;`) },
             h("span", { style: sty(`font-size:18px; color:#778078;`), className: "msym" },
               "drag_indicator"
@@ -2282,7 +2290,7 @@ function Template(v: any) {
       ) : null),
       (v.ctxOpen ? F(
         h("div", { onClick: fn(v.closeCtx), onContextMenu: fn(v.closeCtx), style: sty(`position:absolute; inset:0; z-index:78;`) }),
-        h("div", { "data-overlay": `menu`, role: `menu`, "aria-label": `Actions for ${S(v.ctxTarget)}`, style: sty(`position:absolute; left:${S(v.ctxX)}; top:${S(v.ctxY)}; width:274px; border-radius:14px; padding:6px; z-index:79; animation:dlgCtx .14s cubic-bezier(.2,1.3,.4,1);`) },
+        h("div", { "data-overlay": `menu`, role: `menu`, "aria-label": `Actions for ${S(v.ctxTarget)}`, tabIndex: `-1`, onKeyDown: fn(v.menuKeyDown), style: sty(`position:absolute; left:${S(v.ctxX)}; top:${S(v.ctxY)}; width:274px; border-radius:14px; padding:6px; z-index:79; animation:dlgCtx .14s cubic-bezier(.2,1.3,.4,1);`) },
           h("div", { style: sty(`padding:8px 12px 6px; font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394; border-bottom:1px solid #333B34; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
             S(v.ctxTarget)
           ),
@@ -2306,7 +2314,7 @@ function Template(v: any) {
               )
             )))
         ),
-        (v.subOpen ? h("div", { "data-overlay": `menu`, role: `menu`, "aria-label": `More actions`, style: sty(`position:absolute; left:${S(v.subX)}; top:${S(v.subY)}; width:230px; border-radius:14px; padding:6px; z-index:80; animation:dlgCtx .13s cubic-bezier(.2,1.3,.4,1);`) },
+        (v.subOpen ? h("div", { "data-overlay": `menu`, role: `menu`, "aria-label": `More actions`, tabIndex: `-1`, onKeyDown: fn(v.menuKeyDown), style: sty(`position:absolute; left:${S(v.subX)}; top:${S(v.subY)}; width:230px; border-radius:14px; padding:6px; z-index:80; animation:dlgCtx .13s cubic-bezier(.2,1.3,.4,1);`) },
             h("div", { style: sty(`display:flex; align-items:center; gap:6px; padding:5px 6px 7px;`) },
               h("input", { type: `search`, value: v.subFilter, onInput: fn(v.onSubFilter), onChange: fn(v.onSubFilter), "aria-label": `Search submenu actions`, placeholder: `Search actions`, style: sty(`flex:1; min-width:0; background:#141A15; border:1px solid #414942; border-radius:8px; padding:7px 9px; color:#DFE4DC; font-size:11px;`) }),
               h("button", { onClick: fn(v.openSubRegex), title: `Build a regex for this submenu`, "aria-label": `Build a regex for this submenu`, style: sty(`width:32px; height:32px; border-radius:8px; background:#262B26; border:0; color:#9FF7C4; cursor:pointer;`) },
@@ -2325,7 +2333,7 @@ function Template(v: any) {
               )))
           ) : null)
       ) : null),
-      (v.recoveryOpen ? h("div", { "data-overlay": `recovery`, role: `dialog`, "aria-modal": `false`, "aria-labelledby": `recovery-title`, style: sty(`position:absolute; left:50%; top:96px; transform:translateX(-50%); width:460px; background:#252B25; border:1px solid #FFB4AB; border-radius:18px; padding:18px 20px; box-shadow:0 14px 40px rgba(0,0,0,.7); z-index:86;`) },
+      (v.recoveryOpen ? h("div", { "data-overlay": `recovery`, role: `dialog`, "aria-modal": `false`, "aria-labelledby": `recovery-title`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown), style: sty(`position:absolute; left:50%; top:96px; transform:translateX(-50%); width:460px; background:#252B25; border:1px solid #FFB4AB; border-radius:18px; padding:18px 20px; box-shadow:0 14px 40px rgba(0,0,0,.7); z-index:86;`) },
           h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },
             h("span", { style: sty(`font-size:22px; color:#FFB4AB;`), className: "msym" },
               "error"
@@ -2359,7 +2367,7 @@ function Template(v: any) {
             )
           )
         ) : null),
-      (v.lockOpen ? h("div", { style: sty(`position:absolute; ${S(v.lockChrome)} max-height:88vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:82;`) },
+      (v.lockOpen ? h("div", { style: sty(`position:absolute; ${S(v.lockChrome)} max-height:88vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:82;`), "data-overlay": `panel`, role: `dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { onMouseDown: fn(v.dragLock), style: sty(`display:flex; align-items:center; gap:9px; cursor:grab; margin:-18px -20px 0; padding:16px 20px 8px;`) },
             h("span", { style: sty(`font-size:18px; color:#778078;`), className: "msym" },
               "drag_indicator"
@@ -2742,7 +2750,7 @@ function Template(v: any) {
         ) : null),
       (v.tabFilterOpen ? F(
         h("div", { onClick: fn(v.closeTabFilter), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`) }),
-        h("div", { style: sty(`position:absolute; left:50%; top:92px; transform:translateX(-50%); width:540px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgFilter .24s cubic-bezier(.2,0,0,1);`) },
+        h("div", { style: sty(`position:absolute; left:50%; top:92px; transform:translateX(-50%); width:540px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgFilter .24s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, role: `dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },
             h("span", { style: sty(`font-size:21px; color:#82D9A5;`), className: "msym" },
               "filter_alt"
@@ -2802,12 +2810,15 @@ function Template(v: any) {
                 )))
             )
           ),
+          h("div", { role: `status`, "aria-live": `polite`, style: sty(`margin-top:10px; font-size:11px; color:${S(v.tabFilterStatusColour)};`) },
+            S(v.tabFilterStatus)
+          ),
           h("div", { style: sty(`display:flex; gap:8px; margin-top:16px; align-items:center;`) },
             h("button", { onClick: fn(v.closeTabFilter), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 20px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;`) },
               "Cancel"
             ),
             h("div", { style: sty(`flex:1;`) }),
-            h("button", { onClick: fn(v.applyTabFilter), style: sty(`background:#93000A; border:0; border-radius:999px; padding:11px 24px; color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer;`) },
+            h("button", { onClick: fn(v.applyTabFilter), "aria-disabled": v.tabFilterBlocked, style: sty(`background:${S(v.tabFilterBlocked ? '#5C1B18' : '#93000A')}; border:0; border-radius:999px; padding:11px 24px; color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer;`) },
               S(v.tabFilterApply)
             )
           )
@@ -2815,7 +2826,7 @@ function Template(v: any) {
       ) : null),
       (v.tabColourOpen ? F(
         h("div", { onClick: fn(v.closeTabColour), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`) }),
-        h("div", { style: sty(`position:absolute; left:50%; top:110px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgColour .3s cubic-bezier(.2,1.3,.3,1);`) },
+        h("div", { style: sty(`position:absolute; left:50%; top:110px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgColour .3s cubic-bezier(.2,1.3,.3,1);`), "data-overlay": `panel`, role: `dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },
             h("span", { style: sty(`font-size:20px; color:#82D9A5;`), className: "msym" },
               "colorize"
@@ -2873,7 +2884,7 @@ function Template(v: any) {
       ) : null),
       (v.renameOpen ? F(
         h("div", { onClick: fn(v.cancelRename), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`) }),
-        h("div", { style: sty(`position:absolute; left:50%; top:120px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgRename .22s cubic-bezier(.2,0,0,1);`) },
+        h("div", { style: sty(`position:absolute; left:50%; top:120px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgRename .22s cubic-bezier(.2,0,0,1);`), "data-overlay": `panel`, role: `dialog`, tabIndex: `-1`, onKeyDown: fn(v.overlayKeyDown) },
           h("div", { style: sty(`font-size:16px; font-weight:500; margin-bottom:12px;`) },
             "Rename tab"
           ),
@@ -4035,15 +4046,15 @@ class ConsoleShell extends DCLogic {
   state = {
     railId:'pbx', screen:'dash', mode:'Beginner', values:{},
     infoOpen:false, infoTitle:'', infoBody:'', infoPlain:'', infoX:'50%', infoY:'160px', infoDoc:null, infoKey:'',
-    wizardOpen:false, wizardStep:0, wizardCtl:null, paletteOpen:false,
+    wizardOpen:false, wizardStep:0, wizardCtl:null, paletteOpen:false, paletteQuery:'', paletteRegexOn:false, paletteCursor:0,
     ceremonyOpen:false, cStep:0, keyTurned:false, holdMs:0, slideVal:0, moleHits:0, moleTime:15, moleIdx:-1, ceremonyTitle:'', ceremonyCmd:'',
     onboardOpen:true, onboardStep:0, tourOpen:false, tourStep:0,
     toastOpen:false, toastText:'', nodeId:'n1', zoom:100, tableFilter:'All', filtersOpen:true,
     cli:{ verb:'pjsip', obj:'show', target:'endpoints' },
     regex:['^memory/', 'projects', '\\.md$'],
-    patterns:{ nav:[], table:[], memory:['^memory/', 'projects'], ctx:[], sub:[] },
+    patterns:{ nav:[], table:[], memory:['^memory/', 'projects'], palette:[], ctx:[], sub:[] },
     regexOpen:false, regexTarget:'nav', regexX:'300px', regexY:'120px', regexFlags:['i'],
-    ctxOpen:false, ctxX:'0px', ctxY:'0px', ctxTarget:'', ctxKind:'screen', ctxFilter:'', subFilter:'', recoveryOpen:false, recoveryTitle:'', recoveryBody:'', recoveryStatus:'No retry or re-authentication has run yet.',
+    ctxOpen:false, ctxX:'0px', ctxY:'0px', ctxTarget:'', ctxKind:'screen', ctxReturnFocus:null, ctxFilter:'', ctxRegexOn:false, subFilter:'', subRegexOn:false, recoveryOpen:false, recoveryTitle:'', recoveryBody:'', recoveryStatus:'No retry or re-authentication has run yet.',
     locks:{}, lockOpen:false, lockTarget:'', lockKey:'', lockStep:0, lockMethod:'PIN', pin:'', password:'', pinReveal:false, lockX:'40%', lockY:'22%',
     credits:3, game:'whack', gameScore:0, gameTime:0, gameCell:-1, gamePlaying:false,
     dtmfSeq:['4','7','2','9'], dtmfIn:[], dtmfShow:true,
@@ -4051,10 +4062,11 @@ class ConsoleShell extends DCLogic {
     matchSel:'', matchDone:[], spotFound:-1, reflexNum:'1004', selected:[], authAnswers:{},
     sureOpen:false, sureTitle:'', sureBody:'', sureHits:0, sureNeed:3, sureCell:-1, sureAction:null,
     tabs:['dash', 'endpoints', 'canvas'], pinned:['dash'], dock:'left',
+    tabUnsaved:{},
     nodePos:{}, edgeList:EDGES.map(e => e.slice()), nodeDrag:null, fullscreen:false,
     canvasTool:'select', grid:true, snap:true, guides:true, minimap:true, layer:'Dialplan',
     tabNames:{}, tabColours:{}, ctxTabKey:'', renameOpen:false, renameKey:'', renameValue:'', tabColourOpen:false,
-    tabFilterOpen:false, tabFilterMode:'has', tabFilterText:'', ctxSub:'',
+    tabFilterOpen:false, tabFilterMode:'has', tabFilterText:'', tabFilterRegexOn:false, ctxSub:'',
     rxText:'', rxManual:false, tabFilterColour:'', rndNonce:1,
     tabDrag:-1, tabOver:-1, groups:[], ctxGroupId:'', groupRenameOpen:false,
     branch:'main', commits:[
@@ -4073,14 +4085,77 @@ class ConsoleShell extends DCLogic {
 
   fire = (title, sub) => {
     const notice = { id:Math.random().toString(16).slice(2, 10), source:'console', message:title + ': ' + sub, when:'just now', state:'Unread' };
-    this.setState(st => ({ celebrate:true, celebrateTitle:title, celebrateSub:sub, notifications:[notice].concat(st.notifications || []).slice(0, 200) }));
+    const notifications = [notice].concat(this.state.notifications || []).slice(0, 200); this.persistNotifications(notifications);
+    this.setState({ celebrate:true, celebrateTitle:title, celebrateSub:sub, notifications });
     clearTimeout(this._cf);
     this._cf = setTimeout(() => this.setState({ celebrate:false }), 2600);
   };
 
+  componentDidMount() {
+    this._paletteKeydown = (event) => {
+      if (event.ctrlKey && event.shiftKey && String(event.key).toLowerCase() === 'f') {
+        event.preventDefault();
+        this.openPalette();
+      }
+      if (!this.state.paletteOpen) return;
+      if (event.key === 'Escape') { event.preventDefault(); this.closePalette(); }
+      if (event.key === 'ArrowDown') { event.preventDefault(); this.setState(st => ({ paletteCursor:Math.min(this.paletteCount(st), st.paletteCursor + 1) })); }
+      if (event.key === 'ArrowUp') { event.preventDefault(); this.setState(st => ({ paletteCursor:Math.max(0, st.paletteCursor - 1) })); }
+      if (event.key === 'Enter') { event.preventDefault(); this.activatePaletteCursor(); }
+    };
+    window.addEventListener('keydown', this._paletteKeydown);
+    try {
+      const saved = JSON.parse(window.localStorage.getItem('ding-pbx-console.notifications.v1') || '[]');
+      if (Array.isArray(saved)) this.setState({ notifications:saved.slice(0, 200) });
+    } catch (error) { this.setState({ notifications:[] }); }
+    try {
+      const overlays = JSON.parse(window.localStorage.getItem('ding-pbx-console.overlays.v1') || '{}');
+      if (overlays && typeof overlays === 'object') this.setState({ dlgPos:overlays.dlgPos || {}, dlgSize:overlays.dlgSize || {}, dlgDock:overlays.dlgDock || this.state.dlgDock });
+    } catch (error) {}
+    try {
+      const tabs = JSON.parse(window.localStorage.getItem('ding-pbx-console.tabs.v1') || 'null');
+      if (tabs && Array.isArray(tabs.tabs)) this.setState({ tabs:tabs.tabs, pinned:Array.isArray(tabs.pinned) ? tabs.pinned : ['dash'], groups:Array.isArray(tabs.groups) ? tabs.groups : [], dock:tabs.dock || 'left' });
+    } catch (error) {}
+  }
+
+  componentWillUnmount() {
+    if (this._paletteKeydown) window.removeEventListener('keydown', this._paletteKeydown);
+  }
+
+  componentDidUpdate() {
+    try { window.localStorage.setItem('ding-pbx-console.overlays.v1', JSON.stringify({ dlgPos:this.state.dlgPos, dlgSize:this.state.dlgSize, dlgDock:this.state.dlgDock })); } catch (error) {}
+    try { window.localStorage.setItem('ding-pbx-console.tabs.v1', JSON.stringify({ tabs:this.state.tabs, pinned:this.state.pinned, groups:this.state.groups, dock:this.state.dock })); } catch (error) {}
+  }
+
+  paletteCount = (state) => Math.max(0, this.filteredPalette(state).length - 1);
+  filteredPalette = (state) => {
+    const query = String(state.paletteQuery || '').trim();
+    const all = ORDER.map(k => ({ key:k, icon:SCREENS[k].icon, label:SCREENS[k].title, hint:SCREENS[k].file || 'console' }));
+    if (!query) return all;
+    if (!state.paletteRegexOn) return all.filter(item => item.label.toLowerCase().includes(query.toLowerCase()) || item.hint.toLowerCase().includes(query.toLowerCase()));
+    try { const re = new RegExp(query, 'i'); return all.filter(item => re.test(item.label) || re.test(item.hint)); }
+    catch (error) { return []; }
+  };
+  openPalette = () => { this.paletteReturnFocus = document.activeElement; this.setState({ paletteOpen:true, paletteCursor:0 }); setTimeout(() => document.getElementById('palette-search')?.focus(), 0); };
+  closePalette = () => { this.setState({ paletteOpen:false }); setTimeout(() => { if (this.paletteReturnFocus && this.paletteReturnFocus.focus) this.paletteReturnFocus.focus(); }, 0); };
+  activatePaletteCursor = () => { const item = this.filteredPalette(this.state)[this.state.paletteCursor]; if (item) { this.setState({ paletteOpen:false }); this.openScreen(item.key); } };
+  persistNotifications = (items) => { try { window.localStorage.setItem('ding-pbx-console.notifications.v1', JSON.stringify(items.slice(0, 200))); } catch (error) {} };
+  updateNotifications = (update) => { const next = update(this.state.notifications || []); this.persistNotifications(next); this.setState({ notifications:next }); };
+  exportNotifications = (ids) => {
+    const rows = (this.state.notifications || []).filter(n => !ids || ids.indexOf(n.id) >= 0);
+    const blob = new Blob([JSON.stringify({ schemaVersion:1, exportedAt:new Date().toISOString(), notifications:rows }, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'notification-history.json'; link.click(); URL.revokeObjectURL(url);
+  };
+  resetOverlay = (key) => {
+    const dlgPos = Object.assign({}, this.state.dlgPos); const dlgSize = Object.assign({}, this.state.dlgSize); const dlgDock = Object.assign({}, this.state.dlgDock);
+    delete dlgPos[key]; delete dlgSize[key]; delete dlgDock[key];
+    this.setState({ dlgPos, dlgSize, dlgDock });
+  };
+  resetTabs = () => this.setState({ tabs:['dash', 'endpoints', 'canvas'], pinned:['dash'], groups:[], tabNames:{}, tabColours:{}, dock:'left' });
+
   set = (k, v) => this.setState(s => ({ [k]:v }));
   val = (c) => (this.state.values[c.id] !== undefined ? this.state.values[c.id] : c.value);
-  toast = (t) => { const notice = { id:Math.random().toString(16).slice(2, 10), source:'console', message:t, when:'just now', state:'Unread' }; this.setState(st => ({ toastOpen:true, toastText:t, notifications:[notice].concat(st.notifications || []).slice(0, 200) })); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toastOpen:false }), 4200); };
+  toast = (t) => { const notice = { id:Math.random().toString(16).slice(2, 10), source:'console', message:t, when:'just now', state:'Unread' }; const notifications = [notice].concat(this.state.notifications || []).slice(0, 200); this.persistNotifications(notifications); this.setState({ toastOpen:true, toastText:t, notifications }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toastOpen:false }), 4200); };
 
   commit = (c, v) => {
     const file = (SCREENS[this.state.screen] || {}).file || 'console';
@@ -4590,6 +4665,22 @@ class ConsoleShell extends DCLogic {
     const wizStep = wStep;
     const gk = (GAMES.find(g => g.id === s.game) || GAMES[0]).kind;
     const sel = s.selected || [];
+    const tabClosePlan = (() => {
+      if (s.tabFilterMode === 'colour') {
+        if (!s.tabFilterColour) return { blocked:'Choose a colour first.', rows:[], keep:s.tabs.slice(), excluded:[] };
+        const matches = (k) => (s.tabColours[k] || 'none') === s.tabFilterColour;
+        const excluded = s.tabs.filter(k => s.pinned.indexOf(k) >= 0 || !!s.locks[k] || !!s.tabUnsaved[k]);
+        const close = s.tabs.filter(k => matches(k) && excluded.indexOf(k) < 0);
+        return { blocked:'', rows:s.tabs.map(k => ({ label:s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k), close:close.indexOf(k) >= 0, excluded:excluded.indexOf(k) >= 0 })), keep:s.tabs.filter(k => close.indexOf(k) < 0), excluded };
+      }
+      const q = String(s.tabFilterText || (s.patterns.nav || []).join('')).trim();
+      if (!q) return { blocked:'Enter text or a valid pattern before closing tabs.', rows:[], keep:s.tabs.slice(), excluded:[] };
+      let re = null;
+      if (s.tabFilterRegexOn) { try { re = new RegExp(q, 'i'); } catch (error) { return { blocked:'The pattern is invalid. Fix it before closing tabs.', rows:[], keep:s.tabs.slice(), excluded:[] }; } }
+      const excluded = s.tabs.filter(k => s.pinned.indexOf(k) >= 0 || !!s.locks[k] || !!s.tabUnsaved[k]);
+      const close = s.tabs.filter(k => { const label = s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k); const hit = re ? re.test(label) : label.toLowerCase().includes(q.toLowerCase()); return (s.tabFilterMode === 'not' ? !hit : hit) && excluded.indexOf(k) < 0; });
+      return { blocked:'', rows:s.tabs.map(k => ({ label:s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k), close:close.indexOf(k) >= 0, excluded:excluded.indexOf(k) >= 0 })), keep:s.tabs.filter(k => close.indexOf(k) < 0), excluded };
+    })();
 
     const tbl = sc.table || { cols:[], rows:[], grid:'1fr', add:'Add' };
     const liveTableRows = s.screen === 'notifications'
@@ -4602,7 +4693,7 @@ class ConsoleShell extends DCLogic {
       connLabel:'pbx-hq · AMI 5038', connUptime:'up 14d 06:22',
       openConnection:() => this.showInfo('Connection', 'The console is attached to pbx-hq over the manager interface on port 5038, secured with TLS. Losing this connection makes every live number on the dashboard grey out — configuration screens keep working from the last read.', 'The app is talking to your phone system over the network. If the little dot stops being green, the two are no longer talking.', '38%', '70px'),
       modeOpts:['Beginner','Expert'].map(m => ({ label:m, on:s.mode === m, off:s.mode !== m, pick:() => this.setState({ mode:m }) })),
-      togglePalette:() => this.set('paletteOpen', !s.paletteOpen),
+      togglePalette:() => s.paletteOpen ? this.closePalette() : this.openPalette(),
       openNotifications:() => this.setState({ railId:'app', screen:'notifications' }),
       unreadNotificationCount:(s.notifications || []).filter(n => n.state === 'Unread').length,
       startOnboarding:() => this.setState({ onboardOpen:true, onboardStep:0 }),
@@ -4761,9 +4852,9 @@ class ConsoleShell extends DCLogic {
       toggleAll:() => this.set('selected', sel.length === liveTableRows.length ? [] : liveTableRows.map(r => r[0])),
       clearSelection:() => this.set('selected', []),
       bulkActions:s.screen === 'notifications' ? [
-        { icon:'done_all', label:'Mark read', run:() => this.setState(st => ({ notifications:(st.notifications || []).map(n => sel.indexOf(n.id) >= 0 ? Object.assign({}, n, { state:'Read' }) : n), selected:[] })) },
-        { icon:'delete_sweep', label:'Dismiss', run:() => this.setState(st => ({ notifications:(st.notifications || []).filter(n => sel.indexOf(n.id) < 0), selected:[] })) },
-        { icon:'download', label:'Export', run:() => this.toast('Selected notifications are ready for export') },
+        { icon:'done_all', label:'Mark read', run:() => this.updateNotifications(items => items.map(n => sel.indexOf(n.id) >= 0 ? Object.assign({}, n, { state:'Read' }) : n)) },
+        { icon:'delete_sweep', label:'Dismiss', run:() => this.areYouSure('Dismiss selected notifications', 'The selected notification records will be removed from local history.', 3, () => { this.updateNotifications(items => items.filter(n => sel.indexOf(n.id) < 0)); this.set('selected', []); }) },
+        { icon:'download', label:'Export', run:() => this.exportNotifications(sel) },
       ] : [
         { icon:'play_arrow', label:'Enable', run:() => this.bulk('Enabled', sel) },
         { icon:'pause', label:'Disable', run:() => this.bulk('Disabled', sel) },
@@ -4922,6 +5013,7 @@ class ConsoleShell extends DCLogic {
         name:g.name, colour:g.colour, count:g.tabs.length + '', bg:'#141A15',
         chevron:g.collapsed ? 'chevron_right' : 'expand_more',
         toggle:() => this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, { collapsed:!x.collapsed }) : x) }),
+        keyDown:(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, { collapsed:!x.collapsed }) : x) }); } },
         ctx:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxSub:'', ctxGroupId:g.id, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'group · ' + g.name, ctxKind:'group' }); }
       })),
       renameOpen:s.renameOpen, renameValue:s.renameValue,
@@ -4981,49 +5073,24 @@ class ConsoleShell extends DCLogic {
       })(),
       tabFilterText:s.tabFilterText,
       tabFilterApply:s.tabFilterMode === 'not' ? 'Close non-matching' : (s.tabFilterMode === 'colour' ? 'Close this colour' : 'Close matching'),
-      onTabFilterText:(e) => this.set('tabFilterText', e.target.value),
-      openTabRegex:() => this.setState({ regexOpen:true, regexTarget:'nav', regexX:'34%', regexY:'150px' }),
-      tabFilterPreview:(() => {
-        if (s.tabFilterMode === 'colour') {
-          return s.tabs.map(k => {
-            const label = s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k);
-            const c = s.tabColours[k] || 'none';
-            const closes = s.tabFilterColour ? c === s.tabFilterColour : false;
-            return { label, icon:closes ? 'close' : 'check', bg:closes ? '#5C1B18' : '#1B4D33', fg:closes ? '#FFB4AB' : '#9FF7C4' };
-          });
-        }
-        const q = (s.tabFilterText || (s.patterns.nav || []).join('')).toLowerCase();
-        return s.tabs.map(k => {
-          const label = s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k);
-          let hit = q ? label.toLowerCase().indexOf(q) >= 0 : false;
-          try { if (q) hit = new RegExp(q, 'i').test(label); } catch (e) {}
-          const closes = s.tabFilterMode === 'not' ? !hit : hit;
-          return { label, icon:closes ? 'close' : 'check', bg:closes ? '#5C1B18' : '#1B4D33', fg:closes ? '#FFB4AB' : '#9FF7C4' };
-        });
-      })(),
+      onTabFilterText:(e) => this.setState({ tabFilterText:e.target.value, tabFilterRegexOn:false }),
+      openTabRegex:() => this.setState({ regexOpen:true, regexTarget:'nav', regexX:'34%', regexY:'150px', tabFilterRegexOn:true }),
+      tabFilterBlocked:!!tabClosePlan.blocked,
+      tabFilterStatus:tabClosePlan.blocked || (tabClosePlan.rows.filter(r => r.close).length + ' tab(s) will close. ' + tabClosePlan.excluded.length + ' pinned, locked, or unsaved tab(s) are protected.'),
+      tabFilterStatusColour:tabClosePlan.blocked ? '#FFB4AB' : '#FFD68A',
+      tabFilterPreview:tabClosePlan.rows.map(r => ({ label:r.label + (r.excluded ? ' · protected' : ''), icon:r.close ? 'close' : 'check', bg:r.close ? '#5C1B18' : '#1B4D33', fg:r.close ? '#FFB4AB' : '#9FF7C4' })),
       applyTabFilter:() => {
-        if (s.tabFilterMode === 'colour') {
-          if (!s.tabFilterColour) return this.toast('Pick a colour first');
-          const keep = s.tabs.filter(k => (s.tabColours[k] || 'none') !== s.tabFilterColour);
-          this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash'), tabFilterOpen:false });
-          return this.toast('Closed every tab of that colour');
-        }
-        const q = (s.tabFilterText || (s.patterns.nav || []).join('')).toLowerCase();
-        const keep = s.tabs.filter(k => {
-          const label = (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)).toLowerCase();
-          let hit = q ? label.indexOf(q) >= 0 : false;
-          try { if (q) hit = new RegExp(q, 'i').test(label); } catch (e) {}
-          return s.tabFilterMode === 'not' ? hit : !hit;
-        });
+        if (tabClosePlan.blocked) return this.toast(tabClosePlan.blocked);
+        const keep = tabClosePlan.keep;
         this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash'), tabFilterOpen:false });
-        this.toast((s.tabs.length - (keep.length || 1)) + ' tabs closed');
+        this.toast((s.tabs.length - keep.length) + ' tab(s) closed. Protected tabs stayed open.');
       },
       closeTabFilter:() => this.set('tabFilterOpen', false),
       closeTabColour:() => this.set('tabColourOpen', false),
       tabs:s.tabs.filter(k => { const g = s.groups.find(x => x.tabs.indexOf(k) >= 0); return !(g && (g.collapsed || g.hidden)); }).map((k) => {
         const i = s.tabs.indexOf(k);
         return {
-        label:s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k), icon:SCREENS[k] ? SCREENS[k].icon : 'tab',
+        key:k, label:s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k), icon:SCREENS[k] ? SCREENS[k].icon : 'tab',
         colour:s.tabColours[k] || '#82D9A5',
         dropTarget:s.tabOver === i && s.tabDrag >= 0 && s.tabDrag !== i,
         edge:(s.tabOver === i && s.tabDrag >= 0 && s.tabDrag !== i) ? '#82D9A5' : 'transparent',
@@ -5050,18 +5117,26 @@ class ConsoleShell extends DCLogic {
           this.fire('Grouped', dragged + ' and ' + target + ' are now one tab group.');
         },
         on:k === s.screen, off:k !== s.screen, pinned:s.pinned.indexOf(k) >= 0,
+        tabIndex:k === s.screen ? 0 : -1,
+        keyDown:(e) => {
+          const visible = s.tabs.filter(tab => { const group = s.groups.find(g => g.tabs.indexOf(tab) >= 0); return !(group && (group.collapsed || group.hidden)); });
+          const current = visible.indexOf(k); const vertical = s.dock === 'top' || s.dock === 'bottom'; const delta = vertical ? ((e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0)) : ((e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0));
+          if (!delta) return; e.preventDefault(); const next = visible[(current + delta + visible.length) % visible.length]; if (next) this.setState({ screen:next, railId:SCREENS[next] ? SCREENS[next].rail : s.railId });
+        },
         go:() => this.setState({ screen:k, railId:SCREENS[k] ? SCREENS[k].rail : s.railId }),
         close:(e) => { if (e && e.stopPropagation) e.stopPropagation(); const t = s.tabs.filter(x => x !== k); this.setState({ tabs:t.length ? t : ['dash'], screen:k === s.screen ? (t[0] || 'dash') : s.screen }); },
         ctx:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxTabKey:k, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'tab · ' + (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)), ctxKind:'tab' }); }
         };
       }),
+      tabOrientation:s.dock === 'top' || s.dock === 'bottom' ? 'vertical' : 'horizontal',
       newTab:() => { const next = ORDER.find(k => s.tabs.indexOf(k) < 0) || 'dash'; this.setState({ tabs:s.tabs.concat([next]), screen:next, railId:SCREENS[next].rail }); },
       dockOpts:[
         { label:'Rail on the left', icon:'dock_to_right', v:'left' },
         { label:'Rail on the right', icon:'dock_to_left', v:'right' },
         { label:'Rail on top', icon:'dock_to_bottom', v:'top' },
-        { label:'Compact rail', icon:'width_normal', v:'compact' }
-      ].map(d => ({ label:d.label, icon:d.icon, on:s.dock === d.v, off:s.dock !== d.v, pick:() => { this.set('dock', d.v); this.toast('Docked ' + d.label.toLowerCase()); } })),
+        { label:'Compact rail', icon:'width_normal', v:'compact' },
+        { label:'Reset tabs and groups', icon:'restart_alt', v:'reset', reset:true }
+      ].map(d => ({ label:d.label, icon:d.icon, on:s.dock === d.v, off:s.dock !== d.v, pick:() => { if (d.reset) { this.resetTabs(); this.toast('Tabs and groups reset to the shipped layout'); } else { this.set('dock', d.v); this.toast('Docked ' + d.label.toLowerCase()); } } })),
       dockDirection:s.dock === 'right' ? 'row-reverse' : (s.dock === 'top' ? 'column' : 'row'),
       isCustomise:s.screen === 'customise',
       funLevel:(() => { const l = this.v('fun_level', 2); return String(l); })(),
@@ -5254,8 +5329,10 @@ class ConsoleShell extends DCLogic {
       ].map(this.buildCtl),
       oneClickModes:['Funny','Very funny','Just do it quietly'].map(m => ({ label:m, on:s.oneClickMode === m, off:s.oneClickMode !== m, pick:() => this.setState({ oneClickMode:m }) })),
       oneClickRunning:s.oneClickRunning,
+      oneClickHasProgress:s.oneClickRunning || s.oneClickStep > 0,
       oneClickStage:ONE_CLICK_LOG[Math.min(s.oneClickStep, ONE_CLICK_LOG.length - 1)].text,
       oneClickPct:Math.round(s.oneClickStep / ONE_CLICK_LOG.length * 100) + '%',
+      oneClickProgressValue:Math.round(s.oneClickStep / ONE_CLICK_LOG.length * 100),
       oneClickLog:ONE_CLICK_LOG.slice(0, s.oneClickStep).reverse().map((l, i) => ({ text:l.text, ms:l.ms, icon:i === 0 ? 'pending' : 'check_circle', color:i === 0 ? '#DFE4DC' : '#82D9A5' })),
       runOneClick:() => {
         if (s.oneClickRunning) return;
@@ -5302,7 +5379,7 @@ class ConsoleShell extends DCLogic {
       openTableRegex:() => this.setState({ regexOpen:true, regexTarget:'table', regexX:'420px', regexY:'180px' }),
       regexOpen:s.regexOpen,
       regexX:this.pos('regex', s.regexX, s.regexY)[0], regexY:this.pos('regex', s.regexX, s.regexY)[1],
-      regexTargetLabel:s.regexTarget === 'nav' ? 'section list' : (s.regexTarget === 'table' ? 'row filter' : (s.regexTarget === 'ctx' ? 'context menu' : (s.regexTarget === 'sub' ? 'submenu' : 'memory search'))),
+      regexTargetLabel:s.regexTarget === 'nav' ? 'section list' : (s.regexTarget === 'table' ? 'row filter' : (s.regexTarget === 'palette' ? 'command palette' : (s.regexTarget === 'ctx' ? 'context menu' : (s.regexTarget === 'sub' ? 'submenu' : 'memory search')))),
       rxText:s.rxText || (s.patterns[s.regexTarget] || []).join(''),
       onRxText:(e) => { const v = e.target.value; const p = Object.assign({}, s.patterns); p[s.regexTarget] = v ? [v] : []; this.setState({ rxText:v, patterns:p }); },
       regexFlagStr:s.regexFlags.join(''),
@@ -5341,14 +5418,15 @@ class ConsoleShell extends DCLogic {
       regexCount:(() => { const pat = (s.patterns[s.regexTarget] || []).join(''); if (!pat) return 'no filter'; try { new RegExp(pat); return 'valid pattern'; } catch (e) { return 'invalid pattern'; } })(),
       regexPreview:(() => {
         const pat = (s.patterns[s.regexTarget] || []).join('');
-        const pool = s.regexTarget === 'nav' ? ORDER.map(k => SCREENS[k].label) : (s.regexTarget === 'ctx' ? (this._ctxItems || []).map(i => i.label) : (s.regexTarget === 'sub' ? (this._subItems || []).map(i => i.label) : (sc.table ? sc.table.rows.map(r => r[0]) : ORDER.map(k => SCREENS[k].label))));
+        const pool = s.regexTarget === 'nav' ? ORDER.map(k => SCREENS[k].label) : (s.regexTarget === 'palette' ? ORDER.map(k => SCREENS[k].title) : (s.regexTarget === 'ctx' ? (this._ctxItems || []).map(i => i.label) : (s.regexTarget === 'sub' ? (this._subItems || []).map(i => i.label) : (sc.table ? sc.table.rows.map(r => r[0]) : ORDER.map(k => SCREENS[k].label)))));
         let re = null; try { re = pat ? new RegExp(pat, s.regexFlags.filter(f => f !== 'g').join('')) : null; } catch (e) { return [{ text:'pattern is not valid yet', icon:'error', color:'#FFB4AB' }]; }
         return pool.slice(0, 6).map(x => ({ text:x, icon:(!re || re.test(x)) ? 'check_circle' : 'remove_circle_outline', color:(!re || re.test(x)) ? '#82D9A5' : '#778078' }));
       })(),
       clearRegex:() => { const p = Object.assign({}, s.patterns); p[s.regexTarget] = []; this.setState({ patterns:p }); },
       closeRegex:() => {
-        if (s.regexTarget === 'ctx') this.setState({ ctxFilter:(s.patterns.ctx || []).join(''), regexOpen:false });
-        else if (s.regexTarget === 'sub') this.setState({ subFilter:(s.patterns.sub || []).join(''), regexOpen:false });
+        if (s.regexTarget === 'palette') this.setState({ paletteQuery:(s.patterns.palette || []).join(''), paletteRegexOn:true, regexOpen:false });
+        else if (s.regexTarget === 'ctx') this.setState({ ctxFilter:(s.patterns.ctx || []).join(''), ctxRegexOn:true, regexOpen:false });
+        else if (s.regexTarget === 'sub') this.setState({ subFilter:(s.patterns.sub || []).join(''), subRegexOn:true, regexOpen:false });
         else this.set('regexOpen', false);
       },
 
@@ -5359,7 +5437,7 @@ class ConsoleShell extends DCLogic {
         const filterSub = (list) => {
           const q = String(s.subFilter || '').trim();
           if (!q) { this._subItems = list; return list; }
-          let re = null; try { re = new RegExp(q, 'i'); } catch (e) {}
+          let re = null; if (s.subRegexOn) { try { re = new RegExp(q, 'i'); } catch (e) { this._subItems = []; return []; } }
           const filtered = list.filter(i => re ? re.test(i.label) : String(i.label).toLowerCase().includes(q.toLowerCase()));
           this._subItems = filtered;
           return filtered;
@@ -5404,9 +5482,9 @@ class ConsoleShell extends DCLogic {
       })(),
       subX:(parseInt(s.ctxX, 10) + 266) + 'px',
       subY:(parseInt(s.ctxY, 10) + 84) + 'px',
-      ctxScreen:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:sc.title + ' · ' + (sc.file || 'console'), ctxKind:'screen' }); },
-      ctxSearch:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'search field', ctxKind:'search' }); },
-      closeCtx:(e) => { if (e && e.preventDefault) e.preventDefault(); this.set('ctxOpen', false); },
+      ctxScreen:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxReturnFocus:e.currentTarget, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:sc.title + ' · ' + (sc.file || 'console'), ctxKind:'screen' }); },
+      ctxSearch:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxReturnFocus:e.currentTarget, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'search field', ctxKind:'search' }); },
+      closeCtx:(e) => { if (e && e.preventDefault) e.preventDefault(); const target = s.ctxReturnFocus; this.setState({ ctxOpen:false, ctxSub:'', ctxReturnFocus:null }); setTimeout(() => { if (target && target.focus) target.focus(); }, 0); },
       ctxItems:(() => {
         const close = () => this.setState({ ctxOpen:false, ctxSub:'' });
         const decorate = (list) => {
@@ -5417,7 +5495,7 @@ class ConsoleShell extends DCLogic {
           }));
           const q = String(s.ctxFilter || '').trim();
           if (!q) { this._ctxItems = decorated; return decorated; }
-          let re = null; try { re = new RegExp(q, 'i'); } catch (e) {}
+          let re = null; if (s.ctxRegexOn) { try { re = new RegExp(q, 'i'); } catch (e) { this._ctxItems = []; return []; } }
           const filtered = decorated.filter(i => re ? re.test(i.label) : String(i.label).toLowerCase().includes(q.toLowerCase()));
           this._ctxItems = filtered;
           return filtered;
@@ -5473,7 +5551,7 @@ class ConsoleShell extends DCLogic {
             { icon:'download', label:'Export as configuration', hint:'', run:() => { close(); this.toast(name + ' exported'); } },
             { icon:'history', label:'Version history for this', hint:'', run:() => { close(); this.openScreen('history'); } },
             { icon:'delete', label:'Delete ' + name, hint:'⌦', run:() => { close(); this.areYouSure('Delete ' + name, sc.kind === 'servers' ? 'This connection profile is removed from the console. It does not touch or reconfigure the target machine.' : 'This object and everything referencing it are removed. The four gates still apply after the minigame.', 3, () => (sc.kind === 'servers' && this.onRemoveServerRow ? this.onRemoveServerRow(name) : this.ceremony('Delete ' + name, 'delete ' + name))); } },
-            common[0], common[1]
+            common[0], common[1], common[3]
           ]);
         }
         if (s.ctxKind === 'search') {
@@ -5483,7 +5561,7 @@ class ConsoleShell extends DCLogic {
             { icon:'select_all', label:'Whole word only', hint:'', run:() => { close(); this.toast('Whole-word matching on'); } },
             { icon:'bookmark_add', label:'Save this search', hint:'', run:() => { close(); this.fire('Search saved', 'It is in the palette now.'); } },
             { icon:'clear', label:'Clear search', hint:'⎋', run:() => { close(); const p = Object.assign({}, s.patterns); p.table = []; p.nav = []; this.setState({ patterns:p }); } },
-            common[0], common[1]
+            common[0], common[1], common[3]
           ]);
         }
         if (s.ctxKind === 'node') {
@@ -5493,7 +5571,7 @@ class ConsoleShell extends DCLogic {
             { icon:'content_copy', label:'Duplicate step', hint:'⌃D', run:() => { close(); this.toast('Step duplicated'); } },
             { icon:'call_split', label:'Insert condition before', hint:'', run:() => { close(); this.toast('Condition inserted'); } },
             { icon:'delete', label:'Delete step', hint:'⌦', run:() => { close(); this.areYouSure('Delete this step', 'The step and its connections are removed from the dialplan.', 3, () => this.fire('Step deleted', 'Canvas updated.')); } },
-            common[0], common[1]
+            common[0], common[1], common[3]
           ]);
         }
         return decorate([
@@ -5508,8 +5586,30 @@ class ConsoleShell extends DCLogic {
       })(),
       ctxFilter:s.ctxFilter,
       subFilter:s.subFilter,
-      onCtxFilter:(e) => this.setState({ ctxFilter:e.target.value }),
-      onSubFilter:(e) => this.setState({ subFilter:e.target.value }),
+      onCtxFilter:(e) => this.setState({ ctxFilter:e.target.value, ctxRegexOn:false }),
+      onSubFilter:(e) => this.setState({ subFilter:e.target.value, subRegexOn:false }),
+      menuKeyDown:(e) => {
+        if (e.key === 'Escape') { e.preventDefault(); this.setState({ ctxOpen:false, ctxSub:'' }); return; }
+        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+        e.preventDefault();
+        const items = Array.from(e.currentTarget.querySelectorAll('button'));
+        const current = items.indexOf(document.activeElement);
+        const next = items[(current + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length];
+        if (next && next.focus) next.focus();
+      },
+      overlayKeyDown:(e) => {
+        if (e.key === 'Escape') { e.preventDefault(); this.setState({ ctxOpen:false, recoveryOpen:false, paletteOpen:false, regexOpen:false }); return; }
+        if (e.key === 'Home' && e.ctrlKey) { e.preventDefault(); this.resetOverlay(e.currentTarget.dataset.overlay || 'overlay'); return; }
+        if (!e.ctrlKey && !e.shiftKey) return;
+        const step = e.shiftKey ? 16 : 4;
+        const key = e.currentTarget.dataset.overlay || 'overlay';
+        const delta = { ArrowLeft:[-step, 0], ArrowRight:[step, 0], ArrowUp:[0, -step], ArrowDown:[0, step] }[e.key];
+        if (!delta) return;
+        e.preventDefault();
+        const pos = Object.assign({}, s.dlgPos); const current = pos[key] || { x:'0px', y:'0px' };
+        pos[key] = { x:(parseInt(current.x, 10) + delta[0]) + 'px', y:(parseInt(current.y, 10) + delta[1]) + 'px' };
+        this.setState({ dlgPos:pos });
+      },
       openCtxRegex:() => this.setState({ regexOpen:true, regexTarget:'ctx', regexX:s.ctxX, regexY:s.ctxY }),
       openSubRegex:() => this.setState({ regexOpen:true, regexTarget:'sub', regexX:(parseInt(s.ctxX, 10) + 266) + 'px', regexY:(parseInt(s.ctxY, 10) + 84) + 'px' }),
       recoveryOpen:s.recoveryOpen,
@@ -5674,7 +5774,16 @@ class ConsoleShell extends DCLogic {
       closeWizard:() => this.setState({ wizardOpen:false, wizardCtl:null }),
 
       paletteOpen:s.paletteOpen,
-      paletteItems:ORDER.map(k => ({ icon:SCREENS[k].icon, label:SCREENS[k].title, hint:SCREENS[k].file || 'console', go:() => { this.setState({ paletteOpen:false }); this.openScreen(k); } })),
+      paletteQuery:s.paletteQuery || '',
+      onPaletteQuery:(e) => this.setState({ paletteQuery:e.target.value, paletteRegexOn:false, paletteCursor:0 }),
+      paletteKeyDown:(e) => {
+        if (e.key === 'ArrowDown') { e.preventDefault(); this.setState(st => ({ paletteCursor:Math.min(this.paletteCount(st), st.paletteCursor + 1) })); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); this.setState(st => ({ paletteCursor:Math.max(0, st.paletteCursor - 1) })); }
+        else if (e.key === 'Enter') { e.preventDefault(); this.activatePaletteCursor(); }
+        else if (e.key === 'Escape') { e.preventDefault(); this.closePalette(); }
+      },
+      openPaletteRegex:() => this.setState({ regexOpen:true, regexTarget:'palette', regexX:'34%', regexY:'150px' }),
+      paletteItems:this.filteredPalette(s).map((item, index) => ({ icon:item.icon, label:item.label, hint:item.hint, selected:index === s.paletteCursor, tabIndex:index === s.paletteCursor ? 0 : -1, bg:index === s.paletteCursor ? '#1B4D33' : 'transparent', go:() => { this.setState({ paletteOpen:false }); this.openScreen(item.key); }, keyDown:(e) => { if (e.key === 'Enter') { e.preventDefault(); this.setState({ paletteOpen:false }); this.openScreen(item.key); } } })),
 
       ceremonyOpen:s.ceremonyOpen, ceremonyTitle:s.ceremonyTitle, ceremonyCmd:s.ceremonyCmd,
       ceremonySteps:['Operator key', 'Arming switch', 'Slide to commit', 'Attention check'].map((l, i) => ({ label:l, bg:i <= s.cStep ? '#82D9A5' : '#333B34', fg:i <= s.cStep ? '#9FF7C4' : '#778078' })),
