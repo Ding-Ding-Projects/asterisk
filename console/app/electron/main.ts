@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
-import { readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve as resolvePath } from 'node:path';
+import { existsSync, lstatSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve as resolvePath } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import * as keytar from 'keytar';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
@@ -23,7 +23,17 @@ let probeAuthorizationConsumed = false;
 const probeModeRequested = process.argv.some((value) => value.startsWith('--school-vault-probe-result='));
 const requestedProbeUserData = probeModeRequested ? process.argv.find((value) => value.startsWith('--user-data-dir='))?.slice('--user-data-dir='.length) : undefined;
 if (probeModeRequested && !requestedProbeUserData) throw new Error('Probe mode requires an isolated user-data path.');
+function assertNoSymlinkAncestors(target: string): void {
+  let current = resolvePath(target);
+  while (true) {
+    if (existsSync(current) && lstatSync(current).isSymbolicLink()) throw new Error(`Probe user-data path contains a symlink or reparse point: ${current}`);
+    const parent = dirname(current);
+    if (parent === current) return;
+    current = parent;
+  }
+}
 if (requestedProbeUserData) {
+  assertNoSymlinkAncestors(requestedProbeUserData);
   app.setPath('userData', resolvePath(requestedProbeUserData));
   const actualProbeUserData = resolvePath(app.getPath('userData'));
   if (actualProbeUserData !== resolvePath(requestedProbeUserData)) throw new Error(`Probe user-data equality failed: requested and actual paths are both present but equality is ${actualProbeUserData === resolvePath(requestedProbeUserData)}.`);
@@ -266,17 +276,37 @@ ipcMain.handle('school:packaged-vault-probe', async (_event, authorization: unkn
   let readMatched = false;
   let deleteSucceeded = false;
   let absentAfterDelete = false;
+  let deleteAttempts = 0;
+  let cleanupError: string | undefined;
+  const cleanupProbe = async (): Promise<void> => {
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      deleteAttempts = attempt;
+      try {
+        const deleted = await keytar.deletePassword(service, account);
+        const absent = (await keytar.getPassword(service, account)) === null;
+        if (deleted && absent) {
+          deleteSucceeded = true;
+          absentAfterDelete = true;
+          cleanupError = undefined;
+          return;
+        }
+        cleanupError = `Vault deletion attempt ${attempt} did not prove both deletion and absence.`;
+      } catch (error) {
+        cleanupError = error instanceof Error ? error.message : String(error);
+      }
+    }
+  };
   try {
     await keytar.setPassword(service, account, value);
     writeSucceeded = true;
     readMatched = (await keytar.getPassword(service, account)) === value;
-    deleteSucceeded = await keytar.deletePassword(service, account);
-    absentAfterDelete = (await keytar.getPassword(service, account)) === null;
+    await cleanupProbe();
   } finally {
-    if (!deleteSucceeded) await keytar.deletePassword(service, account).catch(() => false);
+    if (!deleteSucceeded || !absentAfterDelete) await cleanupProbe();
   }
   return {
     provenanceMatched, writeSucceeded, readMatched, deleteSucceeded, absentAfterDelete,
+    cleanup: { deleteAttempts, cleanupError },
     artifact: { product: String(candidate.product ?? ''), packageVersion: String(candidate.packageVersion ?? ''), candidateCommit: String(candidate.candidateCommit ?? ''), appId: String(candidate.appId ?? ''), provenanceSha256, probeUserDataMatches },
   };
 });

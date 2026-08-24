@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, lstatSync, readFileSync, rmSync } from 'node:fs';
+import { dirname, join, resolve as resolvePath } from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createHash, randomUUID } from 'node:crypto';
@@ -25,7 +25,7 @@ const expected = {
   appId: process.env.DING_PBX_EXPECTED_APP_ID,
 };
 if (!expected.product || !expected.packageVersion || !expected.candidateCommit || !expected.appId) throw new Error('Packaging controller did not supply independent product, candidate, version, and app identity values.');
-if (releaseIdentity.product !== expected.product || releaseIdentity.version !== expected.packageVersion || releaseIdentity.candidateCommit !== expected.candidateCommit) throw new Error('Final release identity does not match the independent packaging-controller identity.');
+if (releaseIdentity.product !== expected.product || releaseIdentity.appId !== expected.appId || releaseIdentity.version !== expected.packageVersion || releaseIdentity.candidateCommit !== expected.candidateCommit) throw new Error('Final release identity does not match the independent packaging-controller identity.');
 if (provenance.schemaVersion !== 1 || provenance.product !== 'ding-pbx-console' || !/^[0-9a-f]{40}$/u.test(provenance.candidateCommit) || !/^\d+\.\d+\.\d+$/u.test(provenance.packageVersion) || provenance.appId !== 'org.dingdingprojects.dingpbxconsole') {
   throw new Error('Final packaged School provenance is malformed.');
 }
@@ -33,9 +33,19 @@ if (provenance.product !== expected.product || provenance.packageVersion !== exp
 
 const resultPath = join(process.env.TEMP || process.env.TMP || consoleRoot, `ding-pbx-keytar-probe-${randomUUID()}.json`);
 const profilePath = join(process.env.TEMP || process.env.TMP || consoleRoot, `ding-pbx-keytar-profile-${randomUUID()}`);
+function assertNoSymlinkAncestors(target) {
+  let current = resolvePath(target);
+  while (true) {
+    if (existsSync(current) && lstatSync(current).isSymbolicLink()) throw new Error(`Probe profile path contains a symlink or reparse point: ${current}`);
+    const parent = dirname(current);
+    if (parent === current) return;
+    current = parent;
+  }
+}
+assertNoSymlinkAncestors(profilePath);
 let child;
 let childExitProven = false;
-const cleanup = { childExit: null, childExitProven: false, childKillRequested: false, resultRead: false, resultDeleted: false, profileDeleted: false, profileRetainedForensics: false };
+const cleanup = { childExit: null, childExitProven: false, childKillRequested: false, resultRead: false, resultDeleted: false, profileDeleted: false, profileRetainedForensics: false, resultPath, profilePath };
 try {
   child = spawn(executable, [
     `--user-data-dir=${profilePath}`,
@@ -66,9 +76,11 @@ try {
   for (const key of ['provenanceMatched', 'writeSucceeded', 'readMatched', 'deleteSucceeded', 'absentAfterDelete']) {
     if (result[key] !== true) throw new Error(`Packaged main-process IPC keytar probe did not prove ${key}.`);
   }
+  if (!result.cleanup || !Number.isInteger(result.cleanup.deleteAttempts) || result.cleanup.deleteAttempts < 1 || result.cleanup.cleanupError) throw new Error('Packaged main-process IPC keytar probe did not return strict deletion evidence.');
   const artifact = result.artifact;
   const provenanceSha256 = createHash('sha256').update(readFileSync(provenancePath)).digest('hex');
   if (!artifact || artifact.product !== expected.product || artifact.packageVersion !== expected.packageVersion || artifact.candidateCommit !== expected.candidateCommit || artifact.appId !== expected.appId || artifact.provenanceSha256 !== provenanceSha256 || artifact.probeUserDataMatches !== true) throw new Error('Packaged main-process IPC probe returned mismatched or unredacted artifact identity.');
+  if (!result.cleanup || result.cleanup.deleteAttempts < 1 || result.cleanup.cleanupError) throw new Error('Packaged main-process IPC probe returned incomplete cleanup evidence.');
 } finally {
   if (child && !child.killed) { cleanup.childKillRequested = true; child.kill(); }
   try { rmSync(resultPath, { force: true }); cleanup.resultDeleted = true; } catch { cleanup.resultDeleted = false; }

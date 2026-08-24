@@ -11,6 +11,7 @@ const inventorySource = readFileSync(join(root, 'app', 'renderer', 'src', 'event
 const localeSource = readFileSync(join(root, 'app', 'renderer', 'src', 'locale-yue.ts'), 'utf8');
 const census = JSON.parse(readFileSync(join(root, 'inventories', 'event-copy-census.json'), 'utf8'));
 if (census.status !== 'implemented-unverified' || census.sources.length !== 3 || census.templates.length !== 12) throw new Error('Dynamic event census is missing its exact source or template rows.');
+if (!inventorySource.includes('census.calls') || !inventorySource.includes('callIds') || !inventorySource.includes('dynamicEventCopyRecordByCallId')) throw new Error('Runtime event inventory is not derived from every censused call record.');
 const compilerPath = join(root, 'scripts', 'compile-design.mjs');
 const compilerHash = createHash('sha256').update(readFileSync(compilerPath)).digest('hex');
 const localeKeys = new Set([...localeSource.matchAll(/^  '([^']+)':/gm)].map((match) => match[1]));
@@ -66,6 +67,15 @@ for (let index = 0; index < exactCalls.length; index += 1) {
 const records = new Map([...inventorySource.matchAll(/key: '([^']+)'[^\n]*status: '(localized|english-fallback)'/g)].map((match) => [match[1], match[2]]));
 for (const template of census.templates) {
   if (!template.id || template.sourceId !== 'app-event-source' || !Number.isInteger(template.location) || !Array.isArray(template.placeholders) || template.placeholders.length === 0 || template.fallback !== 'plain-english-track' || !records.has(template.id)) throw new Error(`Dynamic template inventory row is incomplete: ${template.id}`);
+  const sourceLines = appSource.split('\n');
+  const line = sourceLines[template.location - 1] ?? '';
+  const templateTexts = [...line.matchAll(/`([^`]*)`/g)].map((match) => match[1]);
+  const siblingTemplates = census.templates.filter((candidate) => candidate.location === template.location);
+  const siblingIndex = siblingTemplates.findIndex((candidate) => candidate.id === template.id);
+  const sourceTemplate = templateTexts[siblingIndex];
+  if (sourceTemplate === undefined) throw new Error(`Dynamic template source is missing at ${template.id}.`);
+  const placeholders = [...sourceTemplate.matchAll(/\$\{\s*([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)/g)].map((match) => match[1].replace(/^this\./u, ''));
+  if (JSON.stringify([...new Set(placeholders)].sort()) !== JSON.stringify([...new Set(template.placeholders)].sort())) throw new Error(`Dynamic template placeholder drift at ${template.id}.`);
 }
 for (const [key, status] of records) {
   if (status === 'localized' && !localeKeys.has(key)) throw new Error(`Inventory marks ${key} localized, but no exact Cantonese entry exists.`);

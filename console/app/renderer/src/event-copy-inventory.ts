@@ -8,16 +8,24 @@
  * its evidence disappear with it.
  */
 
+import census from '../../../inventories/event-copy-census.json';
+
 export type EventCopyStatus = 'localized' | 'english-fallback';
 
 export interface DynamicEventCopyRecord {
   key: string;
   kind: 'toast' | 'dialog-title' | 'dialog-body';
   status: EventCopyStatus;
+  callId?: string;
+  callIds?: readonly string[];
+  sourceId?: string;
+  location?: number;
+  shape?: 'literal' | 'template' | 'expression';
+  fallback?: 'plain-english-track';
   reason?: string;
 }
 
-export const DYNAMIC_EVENT_COPY_INVENTORY: readonly DynamicEventCopyRecord[] = [
+const EXPLICIT_EVENT_COPY_INVENTORY: readonly DynamicEventCopyRecord[] = [
   { key: 'Starting the phone system…', kind: 'toast', status: 'english-fallback', reason: 'Runtime progress includes machine-specific state.' },
   { key: 'Vocabulary file rejected', kind: 'dialog-title', status: 'english-fallback', reason: 'Not yet in the Cantonese event catalog.' },
   { key: 'Vocabulary file not read', kind: 'dialog-title', status: 'english-fallback', reason: 'Not yet in the Cantonese event catalog.' },
@@ -89,6 +97,60 @@ export const DYNAMIC_EVENT_COPY_INVENTORY: readonly DynamicEventCopyRecord[] = [
   { key: 'Dialplan canvas is read-only', kind: 'dialog-title', status: 'english-fallback', reason: 'The canvas diagnosis remains plain.' },
 ] as const;
 
-export function dynamicEventCopyRecord(key: string): DynamicEventCopyRecord | undefined {
-  return DYNAMIC_EVENT_COPY_INVENTORY.find((record) => record.key === key);
+type CensusCall = {
+  id: string;
+  sourceId: string;
+  location: number;
+  kind: 'toast' | 'dialog';
+  shape: 'literal' | 'template' | 'expression';
+  literal?: string;
+  template?: string;
+  status: EventCopyStatus;
+  fallback: 'plain-english-track';
+};
+
+const censusRecords: DynamicEventCopyRecord[] = [];
+const censusRecordByKey = new Map<string, DynamicEventCopyRecord>();
+for (const call of census.calls as CensusCall[]) {
+  const key = call.literal ?? call.id;
+  const existing = censusRecordByKey.get(key);
+  if (existing) {
+    const updated = { ...existing, callIds: [...(existing.callIds ?? [existing.callId!]), call.id] };
+    censusRecordByKey.set(key, updated);
+    const index = censusRecords.findIndex((record) => record.key === key);
+    if (index >= 0) censusRecords[index] = updated;
+    continue;
+  }
+  const record: DynamicEventCopyRecord = {
+    key,
+    kind: call.kind === 'toast' ? 'toast' : 'dialog-title',
+    status: call.status,
+    callId: call.id,
+    callIds: [call.id],
+    sourceId: call.sourceId,
+    location: call.location,
+    shape: call.shape,
+    fallback: call.fallback,
+    reason: call.status === 'english-fallback' ? 'The source census requires the plain English track.' : undefined,
+  };
+  censusRecordByKey.set(key, record);
+  censusRecords.push(record);
+}
+
+const recordsByKey = new Map<string, DynamicEventCopyRecord>();
+for (const record of censusRecords) recordsByKey.set(record.key, record);
+for (const record of EXPLICIT_EVENT_COPY_INVENTORY) {
+  if (!recordsByKey.has(record.key)) recordsByKey.set(record.key, record);
+}
+
+export const DYNAMIC_EVENT_COPY_INVENTORY: readonly DynamicEventCopyRecord[] = Object.freeze([...recordsByKey.values()]);
+
+export function dynamicEventCopyRecord(key: string, kind?: DynamicEventCopyRecord['kind']): DynamicEventCopyRecord | undefined {
+  const record = recordsByKey.get(key);
+  if (!record || !kind || record.kind === kind) return record;
+  return undefined;
+}
+
+export function dynamicEventCopyRecordByCallId(callId: string): DynamicEventCopyRecord | undefined {
+  return censusRecords.find((record) => record.callIds?.includes(callId));
 }

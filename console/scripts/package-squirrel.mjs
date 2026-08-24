@@ -61,6 +61,7 @@ const record = (entry) => ({ name: entry.name, size: statSync(entry.path).size, 
 writeFileSync(join(output, 'release-identity.json'), JSON.stringify({
   schemaVersion: 1,
   product: 'ding-pbx-console',
+  appId: 'org.dingdingprojects.dingpbxconsole',
   version,
   candidateCommit,
   tag,

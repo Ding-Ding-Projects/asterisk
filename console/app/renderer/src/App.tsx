@@ -634,10 +634,10 @@ ${resolution.disclosure}`);
     if (isLanguageMode(saved)) setLanguageMode(saved);
   }
 
-  private currentFunnyEvent(text: string): { display: string; enText: string; yueText: string } {
+  private currentFunnyEvent(text: string, kind: 'toast' | 'dialog-title' | 'dialog-body' = 'toast'): { display: string; enText: string; yueText: string } {
     const event = localizeEventText(text, this.renameSchoolText);
     const enText = styleFunnyText(event.enText, 'en', this.funnyLevels.en);
-    const inventory = dynamicEventCopyRecord(text);
+    const inventory = dynamicEventCopyRecord(text, kind);
     const yueText = event.translated && inventory?.status !== 'english-fallback'
       ? styleFunnyText(event.yueText, 'yue', this.funnyLevels.yue)
       : event.yueText;
@@ -680,8 +680,8 @@ ${resolution.disclosure}`);
   };
 
   private localizedFire = (title: string, body: string): void => {
-    const titleEvent = this.currentFunnyEvent(title);
-    const bodyEvent = this.currentFunnyEvent(body);
+    const titleEvent = this.currentFunnyEvent(title, 'dialog-title');
+    const bodyEvent = this.currentFunnyEvent(body, 'dialog-body');
     this.baseFire(titleEvent.display, bodyEvent.display);
     this.narrator?.enqueue('dialog', `${titleEvent.display}. ${bodyEvent.display}`, {
       isError: /not |failed|error|cannot|could not|rejected|unavailable/iu.test(body),
