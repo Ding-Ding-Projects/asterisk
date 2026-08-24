@@ -55,6 +55,7 @@ import {
   buildPalette, isPaletteChord, moveSelection, searchPalette,
   type PaletteEntry, type PaletteMatch,
 } from './command-palette';
+import { runHostAction, type HostActionKind, type HostActionRequest } from './host-actions';
 import { applyResponse, isRejected, MIN_REFRESH_MS } from './external-settings-sources';
 import {
   buildSource, loadSources, saveSources, sourcesStatusLine,
@@ -163,6 +164,8 @@ interface Shell {
   componentWillUnmount?(): void;
   showInfo(title: string, body: string, plain: string, x: string, y: string): void;
   ceremony(title: string, command: string): void;
+  /** Set by the app; the compiled menus call it for anything with a real effect. */
+  hostAction?: (kind: HostActionKind, payload: Record<string, unknown>) => void;
   set(key: string, value: unknown): void;
   setState(update: Record<string, unknown>): void;
   moveNode(id: string, dx: number, dy: number): void;
@@ -833,6 +836,75 @@ What you can do: ${offered}.` : ''}`);
     this.forceUpdate();
   }
 
+  // ---------------------------------------------------------------- real menu actions
+
+  /**
+   * Carries out a menu item that used to only announce itself.
+   *
+   * Fourteen of them claimed to copy, export, import or save and did none of it. The
+   * decisions live in host-actions.ts so they can be tested without a clipboard or a
+   * filesystem; this supplies the doing, and reports what came back either way. A refusal
+   * named plainly is worth far more than a cheerful message about work that never happened,
+   * which is exactly what these controls used to be.
+   */
+  hostAction = (kind: HostActionKind, payload: Record<string, unknown> = {}): void => {
+    const request = { ...payload, kind } as HostActionRequest;
+    void runHostAction(request, {
+      writeClipboard: async (text: string) => {
+        const clipboard = (globalThis as { navigator?: { clipboard?: { writeText(t: string): Promise<void> } } })
+          .navigator?.clipboard;
+        if (!clipboard) return false;
+        try { await clipboard.writeText(text); return true; } catch { return false; }
+      },
+      offerFile: async (name: string, mimeType: string, contents: string) => {
+        const doc = (globalThis as { document?: Document }).document;
+        const url = (globalThis as { URL?: typeof URL }).URL;
+        if (!doc || !url?.createObjectURL) return false;
+        try {
+          const href = url.createObjectURL(new Blob([contents], { type: mimeType }));
+          const link = doc.createElement('a');
+          link.href = href;
+          link.download = name;
+          doc.body.appendChild(link);
+          link.click();
+          link.remove();
+          /* Revoked on the next turn rather than immediately: revoking before the click has
+           * been serviced cancels the download on some platforms, and a download that
+           * silently does not happen is the defect this whole change is about. */
+          setTimeout(() => url.revokeObjectURL(href), 0);
+          return true;
+        } catch { return false; }
+      },
+      requestFile: async (accept: string) => {
+        const doc = (globalThis as { document?: Document }).document;
+        if (!doc) return undefined;
+        return new Promise<{ name: string; text: string } | undefined>((resolve) => {
+          const input = doc.createElement('input');
+          input.type = 'file';
+          input.accept = accept;
+          input.addEventListener('change', () => {
+            const file = input.files?.[0];
+            if (!file) { resolve(undefined); return; }
+            void file.text()
+              .then((text) => resolve({ name: file.name, text }))
+              .catch(() => resolve(undefined));
+          });
+          /* A cancelled picker fires no change event on most platforms, so a promise that
+           * only waits for one would never settle and the menu would appear to hang. */
+          input.addEventListener('cancel', () => resolve(undefined));
+          input.click();
+        });
+      },
+      store: (key: string, value: string) => {
+        try { this.durableStorage.storage.setItem(key, value); return true; } catch { return false; }
+      },
+      now: () => new Date().toISOString().slice(0, 10),
+    }).then((outcome) => {
+      if (outcome.ok) this.toast(`${outcome.title} — ${outcome.detail}`);
+      else this.fire(outcome.title, outcome.detail);
+    });
+  };
+
   // ---------------------------------------------------------------- command palette
 
   /**
@@ -1413,6 +1485,7 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'schedule-status') return this.scheduleStatusLine;
     if (action === 'school-status') return this.schoolStatusLine;
     if (action === 'contrast-status') return this.contrastStatus();
+    if (action === 'appearance-scope') return this.appearanceScope();
     if (action === 'deploy-progress') return this.deployProgressLine;
     if (action === 'source-status') return this.sourceStatusLine;
     if (action === 'narration-status') return this.narrationStatusLine;
@@ -2345,6 +2418,33 @@ It is shown once. The phone needs it to register.`);
   // that renders -- the compiled markup has no selector for an individual element or
   // tab to receive its own override, so those controls remain design-only.
 
+  /**
+   * Says which of this panel's controls actually reach the console.
+   *
+   * The panel offers a great many; six of them are applied to the real root element and
+   * persisted, and the rest move only its preview swatch because the compiled markup gives
+   * an individual element no selector to receive an override. That was recorded in a comment
+   * here and nowhere the person using it could see, which is the same defect as a button
+   * that announces work it did not do -- the code being honest with itself is not the same
+   * as the interface being honest with somebody.
+   *
+   * Counted from the applied list rather than written as a number, so the sentence cannot
+   * drift away from the code the way a hand-typed count would.
+   */
+  private appearanceScope(): string {
+    const applied = App.APPLIED_APPEARANCE.length;
+    return `${applied} of these controls change the console itself and are kept when you `
+      + 'relaunch: the accent colour, the font family, its weight and its size. Every other '
+      + 'control here moves the preview only -- the interface gives an individual element no '
+      + 'way to receive its own override yet, so those choices are not saved and change '
+      + 'nothing outside this panel.';
+  }
+
+  /** The appearance keys that genuinely reach the document and survive a relaunch. Named
+   *  once so the readout above, the persistence below and the restore path cannot disagree
+   *  about which those are. */
+  private static readonly APPLIED_APPEARANCE = ['ap_hue', 'ap_sat', 'ap_light', 'ap_family', 'ap_weight', 'ap_size'] as const;
+
   /** The actual rendered root: the compiled design's outermost div, found via the
    *  window drag-region marker on its first child rather than a hard-coded ref,
    *  since the generated file assigns it no id or class of its own. */
@@ -2423,7 +2523,7 @@ It is shown once. The phone needs it to register.`);
       return;
     }
     const restored: Record<string, unknown> = {};
-    for (const key of ['ap_hue', 'ap_sat', 'ap_light', 'ap_family', 'ap_weight', 'ap_size']) {
+    for (const key of App.APPLIED_APPEARANCE) {
       if (key in parsed) restored[key] = parsed[key];
     }
     if (Object.keys(restored).length === 0) return;
@@ -2507,7 +2607,7 @@ It is shown once. The phone needs it to register.`);
     this.appearanceLastSerialised = '';
     this.setState((st: { values: Record<string, unknown> }) => {
       const next = { ...st.values };
-      for (const key of ['ap_hue', 'ap_sat', 'ap_light', 'ap_family', 'ap_weight', 'ap_size']) delete next[key];
+      for (const key of App.APPLIED_APPEARANCE) delete next[key];
       return { values: next };
     });
     this.applyAppearanceToDom(resetAll(this.buildAppearanceTheme(this.currentAppearanceValues())));

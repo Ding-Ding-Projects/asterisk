@@ -3589,6 +3589,9 @@ const REGEX_GROUPS = [
 const APPEAR_STATES = ['Default','Hover','Active','Focus','Disabled'];
 
 const APPEAR_GROUPS = [
+  { icon:'help', title:'What this panel changes', ctls:[
+    ctl('ap_scope_status','Applies right now','text','',{ action:'appearance-scope', info:'Names exactly which of these controls reach the console and which only move the preview swatch. A panel that shows fifty controls and quietly honours six is telling you it did something it did not do.' })
+  ] },
   { icon:'text_fields', title:'Typography', ctls:[
     ctl('ap_family','Font family','select','Roboto',{ options:['Roboto','Roboto Mono','Roboto Serif','Roboto Condensed'] }),
     ctl('ap_weight','Weight','segmented','500',{ options:['300','400','500','700'] }),
@@ -5087,7 +5090,7 @@ class ConsoleShell extends DCLogic {
       diffActions:[
         { icon:'restore', label:'Restore this', bg:'#82D9A5', fg:'#00391F', run:() => this.areYouSure('Restore this commit', 'The configuration returns to this exact state. A new commit records the restore, so nothing is lost either way.', 3, () => this.ceremony('Restore configuration', 'git revert --no-commit ' + (s.histSel || 'HEAD'))) },
         { icon:'undo', label:'Revert just this option', bg:'#262B26', fg:'#9FF7C4', run:() => this.toast('Only this one option is reverted; everything else stays') },
-        { icon:'content_copy', label:'Copy diff', bg:'#262B26', fg:'#9FF7C4', run:() => this.toast('Diff copied') },
+        { icon:'content_copy', label:'Copy diff', bg:'#262B26', fg:'#9FF7C4', run:() => this.hostAction('copy', { what:'diff', text:S(v.diffText) }) },
         { icon:'call_split', label:'Branch from here', bg:'#262B26', fg:'#9FF7C4', run:() => this.fire('Branched', 'Experiment freely — main is untouched.') }
       ],
       blameRows:s.commits.slice(0, 5).map(c => ({ sha:c.sha, what:c.file + ' · ' + c.label, who:c.author })),
@@ -5278,7 +5281,7 @@ class ConsoleShell extends DCLogic {
         { icon:'auto_fix_high', label:'Escape literals', title:'Treat what you typed as plain text', run:() => { const v = (s.rxText || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); const p = Object.assign({}, s.patterns); p[s.regexTarget] = [v]; this.setState({ rxText:v, patterns:p }); } },
         { icon:'data_array', label:'Wrap in group', title:'Wrap the whole pattern in a capture group', run:() => { const v = '(' + (s.rxText || '') + ')'; const p = Object.assign({}, s.patterns); p[s.regexTarget] = [v]; this.setState({ rxText:v, patterns:p }); } },
         { icon:'swap_horiz', label:'Anchor both ends', title:'Require a full match', run:() => { let v = s.rxText || ''; if (v.indexOf('^') !== 0) v = '^' + v; if (v.slice(-1) !== '$') v = v + '$'; const p = Object.assign({}, s.patterns); p[s.regexTarget] = [v]; this.setState({ rxText:v, patterns:p }); } },
-        { icon:'bookmark_add', label:'Save pattern', title:'Save to the palette', run:() => this.fire('Pattern saved', 'It is in the command palette now.') },
+        { icon:'bookmark_add', label:'Save pattern', title:'Save this pattern', run:() => this.hostAction('save', { bucket:'regex-pattern', name:S(v.regexValue) }) },
         { icon:'library_books', label:'Cheatsheet', title:'Explain every token', run:() => this.showInfo('Regex cheatsheet', 'Anchors pin the match to the start (^) or end ($). Character classes stand in for kinds of character: \\d a digit, \\w a letter or digit, \\s a space, and a dot for anything at all. Quantifiers say how many: + is one or more, * is any number including none, ? makes the piece optional, and {2,4} means between two and four. Brackets are a set of allowed characters, parentheses group things together, and a bar between two options means either will do.', 'Think of it as a sentence describing what the text should look like, written in shorthand. You never have to write it by hand here — the buttons build it.') }
       ],
       regexValue:(s.patterns[s.regexTarget] || []).join('') || '(everything)',
@@ -5313,16 +5316,16 @@ class ConsoleShell extends DCLogic {
         ];
         if (s.ctxSub === 'gtabs') return g.tabs.map(t => ({ icon:SCREENS[t] ? SCREENS[t].icon : 'tab', label:s.tabNames[t] || (SCREENS[t] ? SCREENS[t].title : t), run:() => { close(); this.openScreen(t); } }));
         if (s.ctxSub === 'gsave') return [
-          { icon:'download', label:'Export group as JSON', run:() => { close(); this.fire('Group exported', g.name + ' with ' + g.tabs.length + ' tabs.'); } },
-          { icon:'upload', label:'Import a group…', run:() => { close(); this.toast('Pick a group file to import'); } },
-          { icon:'bookmark_add', label:'Save as a workspace', run:() => { close(); this.fire('Workspace saved', 'Reopen it from the palette.'); } },
+          { icon:'download', label:'Export group as JSON', run:() => { close(); this.hostAction('export-json', { name:g.name, subject:'group', data:g }); } },
+          { icon:'upload', label:'Import a group…', run:() => { close(); this.hostAction('import-json', { subject:'group' }); } },
+          { icon:'bookmark_add', label:'Save as a workspace', run:() => { close(); this.hostAction('save', { bucket:'workspace', name:'Workspace' }); } },
           { icon:'restore', label:'Restore last session', run:() => { close(); this.toast('Previous tabs and groups restored'); } }
         ];
         if (s.ctxSub === 'tabexport') return [
-          { icon:'download', label:'Export this tab', run:() => { close(); this.toast('Tab exported as JSON'); } },
-          { icon:'download_for_offline', label:'Export all tabs', run:() => { close(); this.fire('Exported', s.tabs.length + ' tabs and ' + s.groups.length + ' groups.'); } },
-          { icon:'upload', label:'Import tabs…', run:() => { close(); this.toast('Pick a tab set to import'); } },
-          { icon:'content_copy', label:'Copy tab list to clipboard', run:() => { close(); this.toast('Tab list copied'); } }
+          { icon:'download', label:'Export this tab', run:() => { close(); this.hostAction('export-json', { name:t.label, subject:'tab', data:t }); } },
+          { icon:'download_for_offline', label:'Export all tabs', run:() => { close(); this.hostAction('export-json', { name:'tabs', subject:'tabs and groups', data:{ tabs:s.tabs, groups:s.groups } }); } },
+          { icon:'upload', label:'Import tabs…', run:() => { close(); this.hostAction('import-json', { subject:'tabs' }); } },
+          { icon:'content_copy', label:'Copy tab list to clipboard', run:() => { close(); this.hostAction('copy', { what:'the tab list', text:s.tabs.map(t => t.label).join('\n') }); } }
         ];
         if (s.ctxSub !== 'closetabs') return [];
         const k = s.ctxTabKey || s.screen, i = s.tabs.indexOf(k);
@@ -5396,7 +5399,7 @@ class ConsoleShell extends DCLogic {
             { icon:'check_box', label:'Select this row', hint:'', run:() => { close(); this.set('selected', sel.indexOf(name) >= 0 ? sel : sel.concat([name])); } },
             { icon:'content_copy', label:'Duplicate', hint:'⌃D', run:() => { close(); this.bulk('Duplicated', [name]); } },
             { icon:'refresh', label:'Reload just this', hint:'', run:() => { close(); this.ceremony('Reload ' + name, 'reload ' + name); } },
-            { icon:'download', label:'Export as configuration', hint:'', run:() => { close(); this.toast(name + ' exported'); } },
+            { icon:'download', label:'Export as configuration', hint:'', run:() => { close(); this.hostAction('export-config', { name:name }); } },
             { icon:'history', label:'Version history for this', hint:'', run:() => { close(); this.openScreen('history'); } },
             { icon:'delete', label:'Delete ' + name, hint:'⌦', run:() => { close(); this.areYouSure('Delete ' + name, sc.kind === 'servers' ? 'This connection profile is removed from the console. It does not touch or reconfigure the target machine.' : 'This object and everything referencing it are removed. The four gates still apply after the minigame.', 3, () => (sc.kind === 'servers' && this.onRemoveServerRow ? this.onRemoveServerRow(name) : this.ceremony('Delete ' + name, 'delete ' + name))); } },
             common[0], common[1]
@@ -5407,7 +5410,7 @@ class ConsoleShell extends DCLogic {
             { icon:'data_object', label:'Open regex builder…', hint:'⌃R', run:() => this.setState({ ctxOpen:false, regexOpen:true, regexTarget:'table', regexX:s.ctxX, regexY:s.ctxY }) },
             { icon:'match_case', label:'Match case', hint:'', run:() => { close(); this.set('regexFlags', s.regexFlags.filter(f => f !== 'i')); } },
             { icon:'select_all', label:'Whole word only', hint:'', run:() => { close(); this.toast('Whole-word matching on'); } },
-            { icon:'bookmark_add', label:'Save this search', hint:'', run:() => { close(); this.fire('Search saved', 'It is in the palette now.'); } },
+            { icon:'bookmark_add', label:'Save this search', hint:'', run:() => { close(); this.hostAction('save', { bucket:'search', name:S(v.tableQuery) }); } },
             { icon:'clear', label:'Clear search', hint:'⎋', run:() => { close(); const p = Object.assign({}, s.patterns); p.table = []; p.nav = []; this.setState({ patterns:p }); } },
             common[0], common[1]
           ]);
@@ -5429,7 +5432,7 @@ class ConsoleShell extends DCLogic {
           { icon:'add', label:'New tab here', hint:'⌃T', run:() => { close(); this.setState({ tabs:s.tabs.concat([s.screen]) }); } },
           { icon:'history', label:'Version history', hint:'', run:() => { close(); this.openScreen('history'); } },
           { icon:'notifications', label:'Notification centre', hint:'', run:() => { close(); this.openScreen('notifications'); } },
-          { icon:'content_copy', label:'Copy as configuration', hint:'⌃C', run:() => { close(); this.toast('Configuration block copied'); } }
+          { icon:'content_copy', label:'Copy as configuration', hint:'⌃C', run:() => { close(); this.hostAction('copy-config', { what:'this configuration block' }); } }
         ].concat(common));
       })(),
 
@@ -5527,9 +5530,9 @@ class ConsoleShell extends DCLogic {
         { icon:'casino', label:'Randomise this element', run:() => this.randomAppearance(false) },
         { icon:'shuffle', label:'Randomise every element', run:() => this.randomAppearance(true) },
         { icon:'restart_alt', label:'Reset', run:() => { this.setState({ values:{} }); this.toast('Appearance reset to the design system'); } },
-        { icon:'bookmark_add', label:'Save preset', run:() => this.fire('Preset saved', 'It is yours now.') },
+        { icon:'bookmark_add', label:'Save preset', run:() => this.hostAction('save', { bucket:'appearance-preset', name:'Appearance preset' }) },
         { icon:'download', label:'Export', run:() => this.toast('Appearance exported as JSON') },
-        { icon:'upload', label:'Import', run:() => this.toast('Pick an appearance file to import') }
+        { icon:'upload', label:'Import', run:() => this.hostAction('import-json', { subject:'appearance' }) }
       ],
       closeAppear:() => this.set('appearOpen', false),
 
