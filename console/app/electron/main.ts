@@ -2,12 +2,14 @@ import { app, BrowserWindow, dialog, ipcMain, type WebContents } from 'electron'
 import { stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { createServer, type Server } from 'node:net';
-import { randomBytes } from 'node:crypto';
+import { createHash } from 'node:crypto';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { existsSync, readFileSync } from 'node:fs';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
 import { createVaultReference } from '../../control-plane/status-hub-client.js';
-import type { ControlPlaneRequest, UpdaterRestartResult, UpdaterStatusForRenderer } from '../../shared/control-plane.js';
+import type { ControlPlaneRequest, NativeHostStatus, UpdaterRestartResult, UpdaterStatusForRenderer } from '../../shared/control-plane.js';
 import type { DownloadCommand, DownloadSurfaceKind, ExtensionDownloadHandoff } from '../../shared/download-transfer.js';
 import { isExtensionDownloadHandoff } from '../../shared/download-transfer.js';
 import { DOWNLOAD_NATIVE_MESSAGE_LIMIT, isNativeDownloadIngressMessage } from '../../shared/native-messaging.js';
@@ -29,6 +31,8 @@ let nativeIngressServer: Server | undefined;
 let nativeIngressConfig: { pipeName: string; challenge: string } | undefined;
 let nativeIngressConnections = 0;
 const MAX_NATIVE_INGRESS_CONNECTIONS = 2;
+const execFileAsync = promisify(execFile);
+let nativeHostStatus: NativeHostStatus = { state: 'unavailable', message: 'Native extension ingress has not been registered.', retryable: true };
 function vaultReferenceFromEnvironment(name: string) {
   const value = process.env[name];
   if (!value) return undefined;
@@ -220,25 +224,66 @@ async function acceptExtensionHandoff(handoff: ExtensionDownloadHandoff, senderW
   return result;
 }
 
-function readNativeIngressConfig(): { pipeName: string; challenge: string } | undefined {
+function readNativeIngressConfig(): { pipeName: string; challenge: string; executablePath: string; executableSha256: string; configPath: string } | undefined {
   const root = process.env.LOCALAPPDATA;
   if (!root) return undefined;
   const path = join(root, 'Ding-Ding-Projects', 'Asterisk', 'native-messaging', 'ingress-config.json');
   if (!existsSync(path)) return undefined;
   try {
-    const value = JSON.parse(readFileSync(path, 'utf8')) as { pipeName?: unknown; challenge?: unknown };
+    const value = JSON.parse(readFileSync(path, 'utf8')) as { pipeName?: unknown; challenge?: unknown; executablePath?: unknown; executableSha256?: unknown };
     if (typeof value.pipeName !== 'string' || !/^\\\\\.\\pipe\\ding-pbx-download-[a-z0-9]{32}$/u.test(value.pipeName)) return undefined;
     if (typeof value.challenge !== 'string' || !/^[0-9a-f]{64}$/iu.test(value.challenge)) return undefined;
-    return { pipeName: value.pipeName, challenge: value.challenge.toLowerCase() };
+    if (typeof value.executablePath !== 'string' || !/^([A-Za-z]:\\|\\\\)/u.test(value.executablePath)) return undefined;
+    if (typeof value.executableSha256 !== 'string' || !/^[0-9a-f]{64}$/iu.test(value.executableSha256)) return undefined;
+    if (!existsSync(value.executablePath)) return undefined;
+    const digest = createHash('sha256').update(readFileSync(value.executablePath)).digest('hex');
+    if (digest.toLowerCase() !== value.executableSha256.toLowerCase()) return undefined;
+    return { pipeName: value.pipeName, challenge: value.challenge.toLowerCase(), executablePath: value.executablePath, executableSha256: digest, configPath: path };
   } catch { return undefined; }
 }
 
-ipcMain.handle('download:submit-handoff', async (_event, handoff: ExtensionDownloadHandoff) => acceptExtensionHandoff(handoff, BrowserWindow.fromWebContents(_event.sender) ?? mainWindow));
+async function verifyNativeIngressAcl(configPath: string): Promise<boolean> {
+  const escaped = configPath.replace(/'/g, "''");
+  const script = `$acl=Get-Acl -LiteralPath '${escaped}'; $user=[System.Security.Principal.WindowsIdentity]::GetCurrent().User.Translate([System.Security.Principal.NTAccount]).Value; if ($acl.Owner -ne $user) { exit 1 }; $allowed=@($user,'NT AUTHORITY\\SYSTEM'); foreach ($rule in $acl.Access) { if ($allowed -notcontains $rule.IdentityReference.Value) { exit 1 } }; exit 0`;
+  try { await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { windowsHide: true, timeout: 3000, maxBuffer: 16 * 1024 }); return true; } catch { return false; }
+}
 
-function startNativeDownloadIngress(): void {
+function publishNativeHostStatus(status: NativeHostStatus): void {
+  nativeHostStatus = status;
+  for (const window of BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send('native-host:status', status);
+}
+
+function nativeHostScriptPath(): string {
+  const packaged = join(process.resourcesPath, 'native-messaging', 'register-native-host.ps1');
+  return existsSync(packaged) ? packaged : join(app.getAppPath(), 'native-messaging', 'register-native-host.ps1');
+}
+
+async function registerNativeHost(): Promise<NativeHostStatus> {
+  publishNativeHostStatus({ state: 'starting', message: 'Registering the native extension ingress.', retryable: true });
+  const installRoot = app.isPackaged ? dirname(process.resourcesPath) : app.getAppPath();
+  try {
+    const result = await execFileAsync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', nativeHostScriptPath(), '-InstallRoot', installRoot, '-Browser', 'all'], { windowsHide: true, timeout: 30_000, maxBuffer: 64 * 1024 });
+    const receipt = JSON.parse(String(result.stdout).trim()) as { accepted?: unknown; browsers?: unknown; executablePath?: unknown; executableSha256?: unknown };
+    if (receipt.accepted !== true || !Array.isArray(receipt.browsers) || receipt.browsers.length !== 2) throw new Error('The registration helper did not return a verified Chrome and Edge receipt.');
+    await reloadNativeDownloadIngress();
+    if (nativeHostStatus.state !== 'ready') return nativeHostStatus;
+    return nativeHostStatus;
+  } catch (error) {
+    const status = { state: 'error' as const, message: error instanceof Error ? error.message : 'Native extension ingress registration failed.', retryable: true };
+    publishNativeHostStatus(status);
+    return status;
+  }
+}
+
+ipcMain.handle('download:submit-handoff', async (_event, handoff: ExtensionDownloadHandoff) => acceptExtensionHandoff(handoff, BrowserWindow.fromWebContents(_event.sender) ?? mainWindow));
+ipcMain.handle('native-host:get-status', async () => nativeHostStatus);
+ipcMain.handle('native-host:register', async () => registerNativeHost());
+
+async function startNativeDownloadIngress(): Promise<void> {
   if (process.platform !== 'win32' || nativeIngressServer) return;
   nativeIngressConfig = readNativeIngressConfig();
-  if (!nativeIngressConfig) return;
+  if (!nativeIngressConfig) { publishNativeHostStatus({ state: 'unavailable', message: 'The native ingress configuration or executable proof is unavailable.', retryable: true }); return; }
+  if (!await verifyNativeIngressAcl(nativeIngressConfig.configPath)) { nativeIngressConfig = undefined; publishNativeHostStatus({ state: 'error', message: 'The native ingress configuration owner or ACL could not be verified.', retryable: true }); return; }
   nativeIngressServer = createServer((socket) => {
     if (nativeIngressConnections >= MAX_NATIVE_INGRESS_CONNECTIONS) { socket.end(JSON.stringify({ accepted: false, detail: 'The native ingress connection limit was reached.' }) + '\n'); return; }
     nativeIngressConnections += 1;
@@ -266,9 +311,19 @@ function startNativeDownloadIngress(): void {
     });
     socket.on('error', () => { if (!settled) finish({ accepted: false, detail: 'The native ingress connection failed.' }); });
   });
-  nativeIngressServer.on('error', () => { nativeIngressServer = undefined; });
-  nativeIngressServer.listen({ path: nativeIngressConfig.pipeName, readableAll: false, writableAll: false, backlog: MAX_NATIVE_INGRESS_CONNECTIONS });
+  nativeIngressServer.on('error', (error) => { nativeIngressServer = undefined; publishNativeHostStatus({ state: 'error', message: error.message, retryable: true }); });
+  nativeIngressServer.listen({ path: nativeIngressConfig.pipeName, readableAll: false, writableAll: false, backlog: MAX_NATIVE_INGRESS_CONNECTIONS }, () => publishNativeHostStatus({ state: 'ready', message: 'The native extension ingress is ready.', retryable: true, executablePath: nativeIngressConfig?.executablePath, executableSha256: nativeIngressConfig?.executableSha256, browsers: ['chrome', 'edge'] }));
 }
+
+function stopNativeDownloadIngress(): void {
+  if (!nativeIngressServer) return;
+  nativeIngressServer.close();
+  nativeIngressServer = undefined;
+  nativeIngressConfig = undefined;
+  publishNativeHostStatus({ state: 'unavailable', message: 'The native extension ingress is stopped.', retryable: true });
+}
+
+async function reloadNativeDownloadIngress(): Promise<void> { stopNativeDownloadIngress(); await startNativeDownloadIngress(); }
 
 function windowRecordForContents(contents: WebContents): DownloadWindowRecord | undefined {
   return [...downloadWindows.values()].find((record) => record.window.webContents === contents);
@@ -421,7 +476,7 @@ ipcMain.handle('converter:confirm-overwrite', async (_event, request: { destinat
 if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
   app.quit();
 } else {
-  app.whenReady().then(() => { createWindow(); startNativeDownloadIngress(); }).then(async () => {
+  app.whenReady().then(async () => { createWindow(); await startNativeDownloadIngress(); }).then(async () => {
     await downloadTransfers.initialize();
     const latest = downloadTransfers.getLatestSnapshot();
     if (latest?.status === 'partial') openDownloadWindow('progress', { handoffId: latest.handoffId, transferId: latest.transferId, origin: mainWindow });

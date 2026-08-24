@@ -181,6 +181,7 @@ export function SurfaceMounts() {
 
 function PrimarySurfaceMounts() {
   const [route, setRoute] = useState<SurfaceRoute | undefined>(() => routeFromHash());
+  const [nativeHostStatus, setNativeHostStatus] = useState(() => ({ state: 'unavailable', message: 'Native extension ingress status is loading.', retryable: true }));
   const statusPersistence = useMemo<StatusHubRegistrationPersistence>(() => ({
     async load(): Promise<StatusHubPersistenceResult<StatusHubPersistedRegistration | undefined>> {
       const response = await window.dingDesktop?.controlPlane.request({ requestId: crypto.randomUUID(), action: 'settings.snapshot' });
@@ -213,6 +214,12 @@ function PrimarySurfaceMounts() {
     window.addEventListener('hashchange', onHash);
     return () => { window.removeEventListener('hashchange', onHash); };
   }, []);
+  useEffect(() => {
+    const host = window.dingDesktop?.nativeHost;
+    if (!host) return;
+    void host.getStatus().then(setNativeHostStatus);
+    return host.onStatus(setNativeHostStatus);
+  }, []);
 
   const links = useMemo(() => ['converter', 'ollama', 'docs', 'changelog', 'status'] as const, []);
   return (
@@ -221,6 +228,8 @@ function PrimarySurfaceMounts() {
         {links.map((item) => <a key={item} href={`#surface=${item}`} aria-current={route === item ? 'page' : undefined}>{item}</a>)}
         {route ? <a href="#" aria-label="Close mounted feature surface">Close</a> : null}
         <button type="button" onClick={() => void window.dingDesktop?.downloads.openWindow('start')}>Open download window</button>
+        <span role="status" aria-live="polite">Extension ingress: {nativeHostStatus.state}</span>
+        {nativeHostStatus.state !== 'ready' ? <button type="button" onClick={() => void window.dingDesktop?.nativeHost.register()}>Register extension ingress</button> : null}
       </nav>
       {route === 'converter' ? <ConverterSurface client={converterClient} /> : null}
       {route === 'ollama' ? <OllamaSuite client={ollamaClient} /> : null}

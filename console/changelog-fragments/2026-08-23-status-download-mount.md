@@ -11,4 +11,6 @@
 - Pending handoffs now use a durable ordered queue, and every dedicated window action and close is bound to its exact handoff or transfer id. Complete publication records an exact size and SHA-256 digest before retry publication.
 - Status Hub receipt persistence returns typed failures and keeps live registration visible with a warning. Stale or not-found receipts get one bounded clear and re-registration attempt.
 - Added the packaged `Ding-PBX-Console-NativeMessagingHost.exe`, allowlisted 32-character extension identity, bounded handoff schema, named-pipe ingress, Chrome and Edge registration script with typed receipt, MSVC build path, and installer resource entry. Transfer commands and state remain unavailable to the ingress.
+- Added first-run in-app registration and typed ready, starting, unavailable, and retry states with hot ingress reload. Registration verifies regular executable and manifest files, stable executable digest, protected challenge config, current-user ACL, and both browser registry records.
+- Added the native verified-directory helper contract for reparse-safe parent handles and no-follow temporary creation.
 - Verification remains pending. This lane ran no tests, lint, type checks, builds, packaging, runtime interaction, extension launch, or captures.

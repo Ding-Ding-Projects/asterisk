@@ -11,6 +11,15 @@ const api = Object.freeze({
     request: request => ipcRenderer.invoke('control-plane:request', request),
   }),
   statusHub: Object.freeze({ baseUrl: process.env.STATUS_HUB_URL }),
+  nativeHost: Object.freeze({
+    getStatus: () => ipcRenderer.invoke('native-host:get-status'),
+    register: () => ipcRenderer.invoke('native-host:register'),
+    onStatus: listener => {
+      const handler = (_event, status) => listener(status);
+      ipcRenderer.on('native-host:status', handler);
+      return () => ipcRenderer.removeListener('native-host:status', handler);
+    },
+  }),
   downloads: Object.freeze({
     listPendingHandoffs: () => ipcRenderer.invoke('download:handoffs'),
     start: handoff => ipcRenderer.invoke('download:start', handoff),

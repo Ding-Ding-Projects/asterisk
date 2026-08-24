@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { ControlPlaneRequest, ControlPlaneResponse, DingDesktopApi, UpdaterStatusForRenderer, UpdaterRestartResult } from '../../shared/control-plane.js';
+import type { ControlPlaneRequest, ControlPlaneResponse, DingDesktopApi, NativeHostStatus, UpdaterStatusForRenderer, UpdaterRestartResult } from '../../shared/control-plane.js';
 import type { DownloadCommand, DownloadSurfaceKind, DownloadTransferReceipt, DownloadTransferSnapshot, ExtensionDownloadHandoff } from '../../shared/download-transfer.js';
 
 const api: DingDesktopApi = {
@@ -13,6 +13,15 @@ const api: DingDesktopApi = {
     request: (request: ControlPlaneRequest) => ipcRenderer.invoke('control-plane:request', request) as Promise<ControlPlaneResponse>,
   },
   statusHub: { baseUrl: process.env.STATUS_HUB_URL },
+  nativeHost: {
+    getStatus: () => ipcRenderer.invoke('native-host:get-status') as Promise<NativeHostStatus>,
+    register: () => ipcRenderer.invoke('native-host:register') as Promise<NativeHostStatus>,
+    onStatus: (listener: (status: NativeHostStatus) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, status: NativeHostStatus) => listener(status);
+      ipcRenderer.on('native-host:status', handler);
+      return () => ipcRenderer.removeListener('native-host:status', handler);
+    },
+  },
   downloads: {
     listPendingHandoffs: () => ipcRenderer.invoke('download:handoffs') as Promise<ExtensionDownloadHandoff[]>,
     start: (handoff: ExtensionDownloadHandoff) => ipcRenderer.invoke('download:start', handoff) as Promise<DownloadTransferReceipt>,

@@ -1,5 +1,14 @@
 import type { DownloadSurfaceKind, DownloadTransferClient, DownloadTransferSnapshot, ExtensionDownloadHandoff } from './download-transfer.js';
 
+export interface NativeHostStatus {
+  state: 'ready' | 'starting' | 'unavailable' | 'error';
+  message: string;
+  retryable: boolean;
+  browsers?: readonly string[];
+  executablePath?: string;
+  executableSha256?: string;
+}
+
 /**
  * `runtime.*` manage the console's own WSL distribution, created from the Asterisk
  * payload inside the installer. They replace an earlier `server.provision-bundled`
@@ -96,6 +105,11 @@ export interface DingDesktopApi {
   window: { minimize(): void; toggleMaximize(): void; close(): void };
   controlPlane: { request(request: ControlPlaneRequest): Promise<ControlPlaneResponse> };
   statusHub: { baseUrl?: string };
+  nativeHost: {
+    getStatus(): Promise<NativeHostStatus>;
+    register(): Promise<NativeHostStatus>;
+    onStatus(listener: (status: NativeHostStatus) => void): () => void;
+  };
   downloads: DownloadTransferClient & {
     listPendingHandoffs(): Promise<ExtensionDownloadHandoff[]>;
     getSnapshot(transferId: string): Promise<DownloadTransferSnapshot | undefined>;
