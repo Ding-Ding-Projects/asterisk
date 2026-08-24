@@ -400,9 +400,10 @@ application data path before dispatcher initialization, uses the shared producti
 validator, waits for a bounded post-kill exit deadline, records each cleanup result, and retains
 the forensic profile when child exit cannot be proven. The event census has one runtime record and
 stable call ID for each of 276 App, design, and generated event calls, plus the 12 App template
-records, with an explicit localized or plain-English fallback status for each. These records and
-the release checks remain `implemented-unverified` because package execution was not run in this
-lane.
+records, with an explicit localized or plain-English fallback status for each. The 98 generated
+records carry one-to-one design-source pairing metadata, and text lookup is reserved for
+non-census fallback paths. These records and the release checks remain `implemented-unverified`
+because package execution was not run in this lane.
 
 
 ## Next owner actions

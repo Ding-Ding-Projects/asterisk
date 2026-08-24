@@ -56,6 +56,13 @@ for (const source of census.sources) {
     });
   }
 }
+const designCalls = exactCalls.filter((call) => call.sourceId === 'design-event-source');
+const generatedCalls = exactCalls.filter((call) => call.sourceId === 'generated-event-source');
+if (designCalls.length !== generatedCalls.length) throw new Error(`Design/generated event pairing count drift: ${designCalls.length} design calls, ${generatedCalls.length} generated calls.`);
+for (let index = 0; index < generatedCalls.length; index += 1) {
+  if (generatedCalls[index].kind !== designCalls[index].kind || generatedCalls[index].shape !== designCalls[index].shape) throw new Error(`Design/generated event pairing shape drift at generated call ${generatedCalls[index].id}.`);
+  generatedCalls[index].pairedDesignId = designCalls[index].id;
+}
 if (!Array.isArray(census.calls) || census.calls.length !== exactCalls.length) throw new Error(`Dynamic event census call count drift: expected ${census.calls?.length ?? 0}, found ${exactCalls.length}.`);
 for (let index = 0; index < exactCalls.length; index += 1) {
   const actual = exactCalls[index];
@@ -64,6 +71,7 @@ for (let index = 0; index < exactCalls.length; index += 1) {
     if (actual[field] !== expected[field]) throw new Error(`Dynamic event census call drift at ${actual.id}: ${field} differs.`);
   }
   if (actual.literal !== expected.literal || actual.template !== expected.template) throw new Error(`Dynamic event census literal/template drift at ${actual.id}.`);
+  if (actual.pairedDesignId !== expected.pairedDesignId) throw new Error(`Dynamic event census design/generated pairing drift at ${actual.id}.`);
   if (actual.status === 'localized' && !localeKeys.has(actual.literal)) throw new Error(`Dynamic event census marks ${actual.id} localized without an exact Cantonese entry.`);
   if (actual.status === 'english-fallback' && actual.fallback !== 'plain-english-track') throw new Error(`Dynamic event census fallback is not explicit at ${actual.id}.`);
 }
