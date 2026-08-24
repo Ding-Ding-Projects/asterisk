@@ -7,9 +7,10 @@
  * directly now takes those two paths as constructor options instead, so this module has
  * no dependency on Electron and can run inside a plain Node.js process on a VM.
  */
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync, unlinkSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import { spawn } from 'node:child_process';
 import { WslProvisioning, MANAGED_DISTRIBUTION } from './wsl-provisioning.js';
 import { AsteriskService } from './asterisk-service.js';
 import {
@@ -19,9 +20,11 @@ import {
 } from './asterisk-parsers.js';
 import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory, MediaLibrary, LocalHistory } from './index.js';
 import { ServerInventory } from './index.js';
-import type { ServerInventoryStore, ServerRecord } from './index.js';
+import type { ServerInventoryStore } from './index.js';
+import type { ServerInventorySnapshot } from './server-inventory.js';
+import type { ConfigurableResource, RawConfigReader } from './wsl-config-transport.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
-import type { ReadOnlyCommand, TargetProfile } from './index.js';
+import type { ChangePlan, ReadOnlyCommand, TargetProfile } from './index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
 
 /**
@@ -34,6 +37,32 @@ import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../
 export const HOSTED_UNSUPPORTED_ACTIONS = new Set<string>([
   'runtime.status', 'runtime.provision', 'runtime.stop', 'runtime.remove',
 ]);
+
+const CONTROL_PLANE_ACTIONS = new Set<string>([
+  'server.list', 'server.connect', 'pbx.snapshot', 'pbx.apply', 'pbx.plan', 'pbx.read', 'pbx.command', 'pbx.config',
+  'server.inventory.list', 'server.inventory.add', 'server.inventory.update', 'server.inventory.remove', 'server.inventory.set-active',
+  'runtime.status', 'runtime.provision', 'runtime.stop', 'runtime.remove',
+  'daemon.status', 'daemon.start', 'daemon.stop', 'daemon.restart',
+  'history.list', 'history.restore', 'media.list', 'media.upload', 'media.remove',
+  'local-history.list', 'local-history.record', 'local-history.restore',
+]);
+
+function validateRequestSchema(request: ControlPlaneRequest): string | undefined {
+  if (!request || typeof request !== 'object') return 'The request body must be an object.';
+  if (typeof request.requestId !== 'string' || !/^[A-Za-z0-9._:-]{1,128}$/u.test(request.requestId)) {
+    return 'The request id is missing or invalid.';
+  }
+  if (typeof request.action !== 'string' || !CONTROL_PLANE_ACTIONS.has(request.action)) {
+    return 'The requested action is not part of the control-plane schema.';
+  }
+  if (request.serverId !== undefined && (typeof request.serverId !== 'string' || request.serverId.length > 256)) {
+    return 'The server id is invalid.';
+  }
+  if (request.payload !== undefined && (typeof request.payload !== 'object' || request.payload === null || Array.isArray(request.payload))) {
+    return 'The request payload must be an object.';
+  }
+  return undefined;
+}
 
 export interface ControlPlaneDispatcherOptions {
   /** Where per-installation state (server inventory, local history) is written. */
@@ -50,17 +79,85 @@ export interface ControlPlaneDispatcherOptions {
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
   const { userDataPath, resourcesPath, hosted } = options;
   const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker'] });
-  const asteriskService = new AsteriskService({ executor: processExecutor });
   const targetDiscovery = new TargetDiscovery(processExecutor);
   const cliGateway = new LocalAsteriskCliGateway(processExecutor);
   const readings = new AsteriskReadings(cliGateway);
   const dialplanReadings = new DialplanReadings(cliGateway);
+
+  /** Raw configuration bytes stay inside the privileged transport and are never logged or returned. */
+  const rawConfigRead: RawConfigReader = async (distribution, resource, signal) => await new Promise((resolve, reject) => {
+    const child = spawn('wsl.exe', ['-d', distribution, '--', 'cat', resource], {
+      windowsHide: true,
+      shell: false,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const stdout: Buffer[] = [];
+    const stderr: Buffer[] = [];
+    let outputBytes = 0;
+    let settled = false;
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+      if (error) reject(error);
+    };
+    const onAbort = () => {
+      child.kill('SIGTERM');
+      finish(new DOMException('Operation cancelled', 'AbortError'));
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+    const timer = setTimeout(() => {
+      child.kill('SIGTERM');
+      finish(new Error(`Reading ${resource} timed out.`));
+    }, 30_000);
+    const collect = (target: Buffer[], chunk: Buffer) => {
+      outputBytes += chunk.byteLength;
+      if (outputBytes > 4 * 1024 * 1024) {
+        child.kill('SIGTERM');
+        finish(new Error(`Reading ${resource} exceeded the 4 MiB safety limit.`));
+        return;
+      }
+      target.push(chunk);
+    };
+    child.stdout.on('data', (chunk: Buffer) => collect(stdout, chunk));
+    child.stderr.on('data', (chunk: Buffer) => collect(stderr, chunk));
+    child.once('error', () => finish(new Error(`The target process for ${resource} could not be started.`)));
+    child.once('close', (exitCode) => {
+      if (settled) return;
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+      settled = true;
+      if (exitCode === 0) {
+        resolve({ state: 'present', text: Buffer.concat(stdout).toString('utf8') });
+        return;
+      }
+      const reason = Buffer.concat(stderr).toString('utf8');
+      if (/No such file or directory/u.test(reason)) resolve({ state: 'absent' });
+      else reject(new Error(`The target refused the read of ${resource} with exit code ${exitCode}.`));
+    });
+  });
+
+  const configTransport = (target: TargetProfile) => new WslConfigTransport({
+    executor: processExecutor,
+    distribution: target.wslDistribution!,
+    targetId: target.id,
+    rawRead: rawConfigRead,
+  });
+
+  const serviceFor = (target: TargetProfile) => new AsteriskService({
+    executor: processExecutor,
+    distribution: target.wslDistribution!,
+  });
 
   async function resolveTarget(serverId: string | undefined): Promise<TargetProfile> {
     const requested = serverId?.trim();
     if (!requested) throw new Error('Select a server first.');
 
     const registered = serverInventory().get(requested);
+    if (registered && registered.connectionKind !== 'wsl') {
+      throw new Error(`The ${registered.connectionKind} transport is registered but not yet wired to configuration and daemon operations.`);
+    }
     const distribution = (registered?.wslDistribution ?? requested).trim();
     if (!distribution) throw new Error('Select a discovered WSL distribution first.');
 
@@ -146,7 +243,26 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     if (!existsSync(rootfs) || !existsSync(provenance)) return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime is missing.' };
     try {
       const record = JSON.parse(readFileSync(provenance, 'utf8')) as Record<string, unknown>;
-      return { state: 'available', rootfs, provenance, record };
+      const valid = record.schemaVersion === 1
+        && typeof record.sourceCommit === 'string' && /^[0-9a-f]{40}$/iu.test(record.sourceCommit)
+        && record.runtime === 'wsl2-linux-amd64'
+        && typeof record.sha256 === 'string' && /^[0-9a-f]{64}$/iu.test(record.sha256)
+        && typeof record.bytes === 'number' && Number.isSafeInteger(record.bytes) && record.bytes > 0
+        && statSync(rootfs).size === record.bytes;
+      if (!valid) return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime provenance schema or file size is invalid.' };
+      return {
+        state: 'available',
+        rootfs,
+        provenance,
+        record: {
+          schemaVersion: record.schemaVersion,
+          sourceCommit: record.sourceCommit,
+          runtime: record.runtime,
+          sha256: record.sha256,
+          bytes: record.bytes,
+          generatedAt: typeof record.generatedAt === 'string' ? record.generatedAt : undefined,
+        },
+      };
     } catch {
       return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime provenance is invalid.' };
     }
@@ -170,6 +286,11 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     try {
       const record = JSON.parse(readFileSync(manifest, 'utf8')) as { url?: string; sha256?: string };
       if (typeof record.url !== 'string' || !/^[0-9a-f]{64}$/iu.test(record.sha256 ?? '')) return undefined;
+      const parsed = new URL(record.url);
+      const allowedOrigin = parsed.protocol === 'https:'
+        && (parsed.hostname === 'cloud-images.ubuntu.com' || parsed.hostname === 'cdimage.ubuntu.com' || parsed.hostname === 'releases.ubuntu.com')
+        && parsed.username === '' && parsed.password === '';
+      if (!allowedOrigin) return undefined;
       return { url: record.url, sha256: record.sha256 as string, downloadPath: join(userDataPath, 'base-image.tar') };
     } catch {
       return undefined;
@@ -198,15 +319,50 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     read() {
       if (!existsSync(this.path)) return undefined;
       try {
-        return JSON.parse(readFileSync(this.path, 'utf8')) as { servers: ServerRecord[]; activeServerId?: string };
-      } catch {
-        return undefined;
+        const parsed = JSON.parse(readFileSync(this.path, 'utf8')) as Partial<ServerInventorySnapshot>;
+        if (parsed.schemaVersion === undefined && Array.isArray(parsed.servers)) {
+          return { schemaVersion: 1, servers: parsed.servers, activeServerId: parsed.activeServerId };
+        }
+        return parsed as ServerInventorySnapshot;
+      } catch (error) {
+        throw new Error(`The saved server inventory could not be read, so it will not be overwritten: ${error instanceof Error ? error.message : 'invalid JSON'}`);
       }
     }
-    write(snapshot: { servers: ServerRecord[]; activeServerId?: string }) {
+    write(snapshot: ServerInventorySnapshot) {
       mkdirSync(dirname(this.path), { recursive: true });
-      writeFileSync(this.path, JSON.stringify(snapshot, null, 2));
+      if (existsSync(this.path)) {
+        try {
+          JSON.parse(readFileSync(this.path, 'utf8'));
+        } catch (error) {
+          throw new Error(`The saved server inventory changed into unreadable data, so it was not overwritten: ${error instanceof Error ? error.message : 'invalid JSON'}`);
+        }
+      }
+      const temporary = `${this.path}.tmp-${randomUUID()}`;
+      writeFileSync(temporary, `${JSON.stringify(snapshot, null, 2)}\n`, { encoding: 'utf8', flag: 'wx' });
+      try {
+        let lastError: unknown;
+        for (let attempt = 0; attempt < 5; attempt += 1) {
+          try {
+            renameSync(temporary, this.path);
+            return;
+          } catch (error) {
+            lastError = error;
+            const code = (error as { code?: string }).code;
+            if (!['EPERM', 'EACCES', 'EBUSY'].includes(code ?? '') || attempt === 4) throw error;
+            Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20 * (attempt + 1));
+          }
+        }
+        throw lastError;
+      } finally {
+        if (existsSync(temporary)) unlinkSync(temporary);
+      }
     }
+  }
+
+  function runtimeForResponse(runtime: ReturnType<typeof bundledAsteriskRuntime>) {
+    return 'record' in runtime
+      ? { state: 'available', record: runtime.record }
+      : { state: 'unavailable', reason: runtime.reason };
   }
 
   let cachedServerInventory: ServerInventory | undefined;
@@ -218,8 +374,55 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     return cachedServerInventory;
   }
 
+  async function runTargetCli(target: TargetProfile, command: string): Promise<string> {
+    const result = await processExecutor.execute({
+      executable: 'wsl.exe',
+      args: ['-d', target.wslDistribution!, '--', 'asterisk', '-rx', command],
+      timeoutMs: 30_000,
+      maxOutputBytes: 1024 * 1024,
+    });
+    const output = result.stdout.trim();
+    if (result.status !== 'succeeded' || output.length === 0 || /Unable to connect to remote asterisk/iu.test(output)) {
+      throw new Error(result.stderr.trim() || output || `Asterisk did not accept "${command}".`);
+    }
+    return output;
+  }
+
+  async function reloadAndVerifyRuntime(target: TargetProfile, plan: ChangePlan): Promise<void> {
+    if (target.id !== plan.targetId) {
+      throw new Error(`Runtime verification targets ${target.id}, but the plan targets ${plan.targetId}.`);
+    }
+    const resources = new Set(plan.diffs.map((diff) => diff.resource));
+    if (resources.has('/etc/asterisk/pjsip.conf')) {
+      await runTargetCli(target, 'pjsip reload');
+      const observed = await runTargetCli(target, 'pjsip show endpoints');
+      if (!/(?:Endpoint:|Objects found:|No objects found)/iu.test(observed)) {
+        throw new Error('PJSIP reloaded but its endpoint inventory could not be verified.');
+      }
+    }
+    if (resources.has('/etc/asterisk/extensions.conf')) {
+      await runTargetCli(target, 'dialplan reload');
+      const observed = await runTargetCli(target, 'dialplan show');
+      if (!/(?:\[ Context|contexts?)/iu.test(observed)) {
+        throw new Error('The dialplan reloaded but its runtime inventory could not be verified.');
+      }
+    }
+    const remaining = [...resources].filter((resource) => resource !== '/etc/asterisk/pjsip.conf' && resource !== '/etc/asterisk/extensions.conf');
+    if (remaining.length > 0) {
+      await runTargetCli(target, 'core reload');
+    }
+    const identity = await runTargetCli(target, 'core show version');
+    if (!/^Asterisk\s+\d+(?:\.\d+)+/imu.test(identity)) {
+      throw new Error('The selected daemon did not return a valid identity after reload.');
+    }
+  }
+
   async function controlPlaneRequest(request: ControlPlaneRequest): Promise<ControlPlaneResponse> {
     try {
+      const schemaError = validateRequestSchema(request);
+      if (schemaError) {
+        return { ok: false, requestId: typeof request?.requestId === 'string' ? request.requestId : 'invalid', code: 'REQUEST_SCHEMA_INVALID', message: schemaError };
+      }
       if (hosted && HOSTED_UNSUPPORTED_ACTIONS.has(request.action)) {
         return {
           ok: false, requestId: request.requestId, code: 'ACTION_UNSUPPORTED_HOSTED',
@@ -230,7 +433,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
 
       if (request.action === 'runtime.status') {
         const { provisioning, payloadPresent, runtime } = wslProvisioning();
-        return { ok: true, requestId: request.requestId, data: { managedDistribution: MANAGED_DISTRIBUTION, bundledRuntime: runtime, status: await provisioning.status(payloadPresent) } };
+        return { ok: true, requestId: request.requestId, data: { managedDistribution: MANAGED_DISTRIBUTION, bundledRuntime: runtimeForResponse(runtime), status: await provisioning.status(payloadPresent) } };
       }
       if (request.action === 'runtime.provision') {
         const { provisioning, payloadPresent } = wslProvisioning();
@@ -250,23 +453,27 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         return { ok: step.ok, requestId: request.requestId, code: step.ok ? undefined : 'RUNTIME_REMOVE_REFUSED', message: step.ok ? undefined : step.detail, data: step } as ControlPlaneResponse;
       }
       if (request.action === 'daemon.status') {
-        const status = await asteriskService.status();
+        const target = await resolveTarget(request.serverId);
+        const status = await serviceFor(target).status();
         return { ok: true, requestId: request.requestId, data: { status } };
       }
       if (request.action === 'daemon.start') {
-        const outcome = await asteriskService.start();
+        const target = await resolveTarget(request.serverId);
+        const outcome = await serviceFor(target).start();
         const answering = outcome.status.state === 'daemonAnswering';
         return { ok: answering, requestId: request.requestId, code: answering ? undefined : 'DAEMON_START_FAILED', message: answering ? undefined : outcome.status.reason, data: outcome } as ControlPlaneResponse;
       }
       if (request.action === 'daemon.stop') {
+        const target = await resolveTarget(request.serverId);
         const force = (request.payload as { force?: boolean } | undefined)?.force === true;
-        const outcome = await asteriskService.stop({ force });
+        const outcome = await serviceFor(target).stop({ force });
         const stopped = outcome.status.state === 'daemonNotRunning';
         return { ok: stopped, requestId: request.requestId, code: stopped ? undefined : 'DAEMON_STOP_FAILED', message: stopped ? undefined : outcome.status.reason, data: outcome } as ControlPlaneResponse;
       }
       if (request.action === 'daemon.restart') {
+        const target = await resolveTarget(request.serverId);
         const force = (request.payload as { force?: boolean } | undefined)?.force === true;
-        const outcome = await asteriskService.restart({ force });
+        const outcome = await serviceFor(target).restart({ force });
         const answering = outcome.status.state === 'daemonAnswering';
         return { ok: answering, requestId: request.requestId, code: answering ? undefined : 'DAEMON_RESTART_FAILED', message: answering ? undefined : outcome.status.reason, data: outcome } as ControlPlaneResponse;
       }
@@ -275,7 +482,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           targetDiscovery.discoverWslDistributions().catch(error => ({ unavailable: error instanceof Error ? error.message : 'WSL discovery failed' })),
           targetDiscovery.discoverLocalDocker('ding-pbx-console').catch(error => ({ unavailable: error instanceof Error ? error.message : 'Docker discovery failed' })),
         ]);
-        return { ok: true, requestId: request.requestId, data: { observedAt: new Date().toISOString(), bundledRuntime: bundledAsteriskRuntime(), wsl, containers } };
+        return { ok: true, requestId: request.requestId, data: { observedAt: new Date().toISOString(), bundledRuntime: runtimeForResponse(bundledAsteriskRuntime()), wsl, containers } };
       }
       if (request.action === 'server.inventory.list') {
         const inventory = serverInventory();
@@ -324,6 +531,11 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         if (!requested) return { ok: false, requestId: request.requestId, code: 'TARGET_REQUIRED', message: 'Select a server to connect to.' };
 
         const registered = serverInventory().get(requested);
+        if (registered && registered.connectionKind !== 'wsl') {
+          const reason = `The ${registered.connectionKind} transport is saved but is not yet wired to the connection probe.`;
+          serverInventory().setState(registered.id, 'refused', reason);
+          return { ok: false, requestId: request.requestId, code: 'CONNECTION_KIND_NOT_WIRED', message: reason };
+        }
         const distribution = (registered?.wslDistribution ?? requested).trim();
         if (registered) serverInventory().setState(registered.id, 'connecting');
 
@@ -337,18 +549,45 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           processExecutor.execute({ executable: 'wsl.exe', args: ['-d', distribution, '--', 'cat', '/etc/os-release'], timeoutMs: 10_000 }),
           processExecutor.execute({ executable: 'wsl.exe', args: ['-d', distribution, '--', 'asterisk', '-rx', 'core show version'], timeoutMs: 10_000 }),
         ]);
+        const operatingSystem = os.status === 'succeeded'
+          ? targetDiscovery.parseDebianOperatingSystem(os.stdout)
+          : { state: 'unavailable' as const, reason: os.stderr || 'The WSL distribution refused the connection.', observedAt: new Date().toISOString() };
+        const asteriskOutput = asterisk.stdout.trim();
+        const asteriskAvailable = asterisk.status === 'succeeded' && /^Asterisk\s+\d+(?:\.\d+)+/imu.test(asteriskOutput);
+        const asteriskReason = asterisk.stderr.trim() || asteriskOutput || 'Asterisk is not installed, is not running, or returned an invalid identity.';
+        const asteriskObservation = asteriskAvailable
+          ? { state: 'available' as const, value: asteriskOutput, observedAt: new Date().toISOString() }
+          : { state: 'unavailable' as const, reason: asteriskReason, observedAt: new Date().toISOString() };
+        const operatingSystemAvailable = operatingSystem.state === 'available';
+        const connected = operatingSystemAvailable && asteriskAvailable;
         if (registered) {
-          if (os.status === 'succeeded') {
-            serverInventory().setState(registered.id, 'connected');
+          if (connected) {
+            serverInventory().setState(registered.id, 'connected', undefined, {
+              targetId: registered.id,
+              operatingSystem: true,
+              asterisk: true,
+            });
           } else {
-            serverInventory().setState(registered.id, 'refused', os.stderr || 'The WSL distribution refused the connection.');
+            const reason = [
+              operatingSystemAvailable ? undefined : `Operating system: ${operatingSystem.reason ?? 'unavailable'}`,
+              asteriskAvailable ? undefined : `Asterisk: ${asteriskReason}`,
+            ].filter(Boolean).join(' ');
+            serverInventory().setState(registered.id, os.status === 'succeeded' ? 'unreachable' : 'refused', reason);
           }
         }
-        return { ok: true, requestId: request.requestId, data: {
+        const data = {
           target: { connectionKind: 'wsl', distribution },
-          operatingSystem: os.status === 'succeeded' ? targetDiscovery.parseDebianOperatingSystem(os.stdout) : { state: 'unavailable', reason: os.stderr, observedAt: new Date().toISOString() },
-          asterisk: asterisk.status === 'succeeded' ? { state: 'available', value: asterisk.stdout.trim(), observedAt: new Date().toISOString() } : { state: 'unavailable', reason: asterisk.stderr || 'Asterisk is not installed or not running.', observedAt: new Date().toISOString() },
-        } };
+          operatingSystem,
+          asterisk: asteriskObservation,
+        };
+        if (!connected) {
+          const message = [
+            operatingSystemAvailable ? undefined : `Operating system: ${operatingSystem.reason ?? 'unavailable'}`,
+            asteriskAvailable ? undefined : `Asterisk: ${asteriskReason}`,
+          ].filter(Boolean).join(' ');
+          return { ok: false, requestId: request.requestId, code: 'TARGET_NOT_READY', message };
+        }
+        return { ok: true, requestId: request.requestId, data };
       }
       if (request.action === 'pbx.command') {
         const command = typeof request.payload?.command === 'string' ? request.payload.command.trim() : '';
@@ -365,10 +604,13 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       }
       if (request.action === 'pbx.config') {
         const resource = typeof request.payload?.resource === 'string' ? request.payload.resource : '';
+        if (!(CONFIGURABLE_RESOURCES as ReadonlyArray<string>).includes(resource)) {
+          return { ok: false, requestId: request.requestId, code: 'RESOURCE_NOT_CONFIGURABLE', message: `"${resource}" is not a configurable resource.` };
+        }
         const target = await resolveTarget(request.serverId);
-        const transport = new WslConfigTransport({ executor: processExecutor, distribution: target.wslDistribution! });
-        const value = await transport.read(resource);
-        return { ok: true, requestId: request.requestId, data: { resource, value, observedAt: new Date().toISOString() } };
+        const transport = configTransport(target);
+        const reading = await transport.readState(resource);
+        return { ok: true, requestId: request.requestId, data: { resource, ...reading, observedAt: new Date().toISOString() } };
       }
       if (request.action === 'pbx.plan' || request.action === 'pbx.apply') {
         const documents = Array.isArray(request.payload?.documents) ? request.payload.documents : [];
@@ -382,28 +624,40 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         }
 
         const target = await resolveTarget(request.serverId);
-        const transport = new WslConfigTransport({ executor: processExecutor, distribution: target.wslDistribution! });
+        const transport = configTransport(target);
         const plan = await new StructuredConfigPlanner().createPlan(
           `plan-${request.requestId}`,
           target.id,
           documents as ReadonlyArray<{ resource: string; value: unknown }>,
           transport,
         );
+        const publicPlan: ChangePlan = {
+          ...plan,
+          diffs: plan.diffs.map((diff) => ({
+            ...diff,
+            before: transport.projectForRead(diff.resource, diff.before),
+            after: transport.projectForRead(diff.resource, diff.after),
+          })),
+        };
 
         if (request.action === 'pbx.plan') {
-          return { ok: true, requestId: request.requestId, data: { plan } };
+          return { ok: true, requestId: request.requestId, data: { plan: publicPlan } };
         }
         if (plan.diffs.length === 0) {
-          return { ok: true, requestId: request.requestId, data: { plan, result: { status: 'applied', message: 'Nothing to change; the target already matches.' } } };
+          return { ok: true, requestId: request.requestId, data: { plan: publicPlan, result: { status: 'applied', message: 'Nothing to change; the target already matches.' } } };
         }
 
-        const result = await new ConfigTransaction(transport).apply(plan);
+        const result = await new ConfigTransaction(
+          transport,
+          () => new Date(),
+          async (runtimePlan) => await reloadAndVerifyRuntime(target, runtimePlan),
+        ).apply(plan);
         return {
           ok: result.status === 'applied',
           requestId: request.requestId,
           code: result.status === 'applied' ? undefined : 'CONFIG_APPLY_FAILED',
           message: result.status === 'applied' ? undefined : result.message,
-          data: { plan, result },
+          data: { plan: publicPlan, result },
         } as ControlPlaneResponse;
       }
       if (request.action === 'history.list' || request.action === 'history.restore') {

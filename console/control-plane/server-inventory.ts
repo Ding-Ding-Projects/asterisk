@@ -19,6 +19,9 @@
  * secret value itself — only the stable key that names where to find it.
  */
 import type { ConnectionKind, TargetProfile } from "./contracts.js";
+import { CONNECTION_KINDS } from "./contracts.js";
+
+export const SERVER_INVENTORY_SCHEMA_VERSION = 1 as const;
 
 /** The honest states a server's connection can be in — never a guessed success. */
 export const SERVER_CONNECTION_STATES = [
@@ -60,17 +63,23 @@ export interface ServerRecord extends ServerRecordInput {
 
 export interface ServerInventoryStore {
   /** Returns `undefined` when nothing has been persisted yet. */
-  read(): { servers: ServerRecord[]; activeServerId?: string } | undefined;
-  write(snapshot: { servers: ServerRecord[]; activeServerId?: string }): void;
+  read(): ServerInventorySnapshot | undefined;
+  write(snapshot: ServerInventorySnapshot): void;
+}
+
+export interface ServerInventorySnapshot {
+  schemaVersion: typeof SERVER_INVENTORY_SCHEMA_VERSION;
+  servers: ServerRecord[];
+  activeServerId?: string;
 }
 
 /** A store that keeps nothing — the default when a caller does not need persistence (tests). */
 export class InMemoryServerInventoryStore implements ServerInventoryStore {
-  private snapshot: { servers: ServerRecord[]; activeServerId?: string } | undefined;
+  private snapshot: ServerInventorySnapshot | undefined;
   read() {
     return this.snapshot;
   }
-  write(snapshot: { servers: ServerRecord[]; activeServerId?: string }) {
+  write(snapshot: ServerInventorySnapshot) {
     this.snapshot = snapshot;
   }
 }
@@ -93,10 +102,82 @@ function defaultId(): string {
   return `srv-${Math.random().toString(36).slice(2, 10)}-${Date.now().toString(36)}`;
 }
 
-function distributionKey(input: Pick<ServerRecordInput, "connectionKind" | "wslDistribution" | "dockerProject" | "host" | "port" | "user">): string {
-  if (input.connectionKind === "wsl") return `wsl:${input.wslDistribution ?? ""}`;
-  if (input.connectionKind === "localDocker" || input.connectionKind === "remoteDocker") return `docker:${input.dockerProject ?? ""}`;
-  return `remote:${input.user ?? ""}@${input.host ?? ""}:${input.port ?? ""}`;
+function distributionKey(input: Pick<ServerRecordInput, "connectionKind" | "wslDistribution" | "dockerContext" | "dockerProject" | "host" | "port" | "user">): string {
+  if (input.connectionKind === "wsl") return `wsl:${input.wslDistribution!.toLocaleLowerCase()}`;
+  if (input.connectionKind === "localDocker") {
+    return `localDocker:${(input.dockerContext ?? "default").toLocaleLowerCase()}:${input.dockerProject!.toLocaleLowerCase()}`;
+  }
+  if (input.connectionKind === "remoteDocker") {
+    return `remoteDocker:${input.user!.toLocaleLowerCase()}@${input.host!.toLocaleLowerCase()}:${input.port ?? 22}:${(input.dockerContext ?? "default").toLocaleLowerCase()}:${input.dockerProject!.toLocaleLowerCase()}`;
+  }
+  return `remoteLinux:${input.user!.toLocaleLowerCase()}@${input.host!.toLocaleLowerCase()}:${input.port ?? 22}`;
+}
+
+const INPUT_KEYS = new Set([
+  "name", "connectionKind", "host", "port", "user", "wslDistribution", "dockerContext",
+  "dockerProject", "knownHostsPath", "credentialKey",
+]);
+const RECORD_KEYS = new Set([...INPUT_KEYS, "id", "createdAt", "state", "reason", "lastSeenAt"]);
+
+function text(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function normalizeInput(input: ServerRecordInput): ServerRecordInput {
+  const raw = input as unknown as Record<string, unknown>;
+  for (const key of Object.keys(raw)) {
+    if (!INPUT_KEYS.has(key)) throw new ServerInventoryError("INVALID_FIELD", `Server field "${key}" is not allowed.`);
+  }
+  const name = text(raw.name);
+  if (!name) throw new ServerInventoryError("NAME_REQUIRED", "A server needs a name.");
+  const connectionKind = raw.connectionKind;
+  if (typeof connectionKind !== "string" || !(CONNECTION_KINDS as ReadonlyArray<string>).includes(connectionKind)) {
+    throw new ServerInventoryError("INVALID_CONNECTION_KIND", "Choose a supported server connection type.");
+  }
+  const kind = connectionKind as ConnectionKind;
+  const port = raw.port === undefined ? undefined : Number(raw.port);
+  if (port !== undefined && (!Number.isInteger(port) || port < 1 || port > 65_535)) {
+    throw new ServerInventoryError("INVALID_PORT", "The server port must be an integer from 1 to 65535.");
+  }
+  const host = text(raw.host);
+  const user = text(raw.user);
+  const wslDistribution = text(raw.wslDistribution);
+  const dockerContext = text(raw.dockerContext);
+  const dockerProject = text(raw.dockerProject);
+  const knownHostsPath = text(raw.knownHostsPath);
+  const credentialKey = text(raw.credentialKey);
+
+  if (kind === "wsl") {
+    if (!wslDistribution) throw new ServerInventoryError("WSL_DISTRIBUTION_REQUIRED", "Choose a discovered WSL distribution.");
+    return { name, connectionKind: kind, wslDistribution };
+  }
+  if (kind === "localDocker") {
+    if (!dockerProject) throw new ServerInventoryError("DOCKER_PROJECT_REQUIRED", "Choose a local Docker project.");
+    if (!/^[A-Za-z0-9_.-]+$/u.test(dockerProject) || (dockerContext && !/^[A-Za-z0-9_.-]+$/u.test(dockerContext))) {
+      throw new ServerInventoryError("INVALID_DOCKER_TARGET", "Docker context and project names may use letters, digits, dots, underscores, and hyphens.");
+    }
+    return { name, connectionKind: kind, dockerContext, dockerProject };
+  }
+  if (!host || !user) throw new ServerInventoryError("REMOTE_TARGET_REQUIRED", "A remote server needs both a host and user.");
+  if (!/^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])$/u.test(host)) {
+    throw new ServerInventoryError("INVALID_HOST", "The remote host must be an exact DNS name or IP address.");
+  }
+  if (kind === "remoteDocker" && !dockerProject) {
+    throw new ServerInventoryError("DOCKER_PROJECT_REQUIRED", "Choose the Docker project on the remote server.");
+  }
+  if (kind === "remoteDocker" && (!/^[A-Za-z0-9_.-]+$/u.test(dockerProject!) || (dockerContext && !/^[A-Za-z0-9_.-]+$/u.test(dockerContext)))) {
+    throw new ServerInventoryError("INVALID_DOCKER_TARGET", "Docker context and project names may use letters, digits, dots, underscores, and hyphens.");
+  }
+  return {
+    name,
+    connectionKind: kind,
+    host,
+    user,
+    port: port ?? 22,
+    knownHostsPath,
+    credentialKey,
+    ...(kind === "remoteDocker" ? { dockerContext, dockerProject } : {}),
+  };
 }
 
 /**
@@ -122,14 +203,62 @@ export class ServerInventory {
   private load(): void {
     const snapshot = this.store.read();
     if (!snapshot) return;
-    this.servers = new Map(snapshot.servers.map(server => [server.id, server]));
+    if (snapshot.schemaVersion !== SERVER_INVENTORY_SCHEMA_VERSION || !Array.isArray(snapshot.servers)) {
+      throw new ServerInventoryError("INVENTORY_SCHEMA_INVALID", "The saved server inventory schema is unsupported or corrupt.");
+    }
+    const records = snapshot.servers.map((server) => this.validateRecord(server));
+    this.servers = new Map(records.map(server => [server.id, server]));
+    if (this.servers.size !== records.length) {
+      throw new ServerInventoryError("INVENTORY_DUPLICATE_ID", "The saved server inventory contains duplicate ids.");
+    }
     if (snapshot.activeServerId && this.servers.has(snapshot.activeServerId)) {
       this.activeServerId = snapshot.activeServerId;
     }
   }
 
   private persist(): void {
-    this.store.write({ servers: this.list(), activeServerId: this.activeServerId });
+    this.store.write({ schemaVersion: SERVER_INVENTORY_SCHEMA_VERSION, servers: this.list(), activeServerId: this.activeServerId });
+  }
+
+  private validateRecord(server: ServerRecord): ServerRecord {
+    if (typeof server !== "object" || server === null) {
+      throw new ServerInventoryError("INVENTORY_RECORD_INVALID", "The saved server inventory contains an invalid record.");
+    }
+    for (const key of Object.keys(server)) {
+      if (!RECORD_KEYS.has(key)) {
+        throw new ServerInventoryError("INVENTORY_RECORD_INVALID", `Saved server field "${key}" is not allowed.`);
+      }
+    }
+    const id = text((server as { id?: unknown }).id);
+    const createdAt = text((server as { createdAt?: unknown }).createdAt);
+    if (!id || !/^[A-Za-z0-9._:-]{1,128}$/u.test(id) || !createdAt || Number.isNaN(Date.parse(createdAt))) {
+      throw new ServerInventoryError("INVENTORY_RECORD_INVALID", "A saved server record has an invalid id or timestamp.");
+    }
+    if (!CONNECTION_STATE_SET.has(server.state)) {
+      throw new ServerInventoryError("INVENTORY_RECORD_INVALID", `Saved server ${id} has an invalid state.`);
+    }
+    const normalized = normalizeInput({
+      name: server.name,
+      connectionKind: server.connectionKind,
+      host: server.host,
+      port: server.port,
+      user: server.user,
+      wslDistribution: server.wslDistribution,
+      dockerContext: server.dockerContext,
+      dockerProject: server.dockerProject,
+      knownHostsPath: server.knownHostsPath,
+      credentialKey: server.credentialKey,
+    });
+    return { ...normalized, id, createdAt, state: server.state, reason: text(server.reason), lastSeenAt: text(server.lastSeenAt) };
+  }
+
+  private ensureUniqueTarget(candidate: ServerRecordInput, excludedId?: string): void {
+    const key = distributionKey(candidate);
+    for (const existing of this.servers.values()) {
+      if (existing.id !== excludedId && distributionKey(existing) === key) {
+        throw new ServerInventoryError("DUPLICATE_TARGET", `A server named "${existing.name}" already points at the same target.`);
+      }
+    }
   }
 
   list(): ServerRecord[] {
@@ -154,17 +283,10 @@ export class ServerInventory {
    * host is refused rather than silently accepted and reconciled later.
    */
   add(input: ServerRecordInput): ServerRecord {
-    const name = input.name.trim();
-    if (!name) throw new ServerInventoryError("NAME_REQUIRED", "A server needs a name.");
-    const key = distributionKey(input);
-    for (const existing of this.servers.values()) {
-      if (distributionKey(existing) === key) {
-        throw new ServerInventoryError("DUPLICATE_TARGET", `A server named "${existing.name}" already points at the same target.`);
-      }
-    }
+    const normalized = normalizeInput(input);
+    this.ensureUniqueTarget(normalized);
     const record: ServerRecord = {
-      ...input,
-      name,
+      ...normalized,
       id: this.generateId(),
       createdAt: this.now(),
       state: "idle",
@@ -175,12 +297,32 @@ export class ServerInventory {
     return record;
   }
 
-  /** Edits a server's connection details. Never touches `state`/`reason`/`lastSeenAt` — use `setState`. */
+  /** Edits connection details and invalidates stale connection evidence when routing changes. */
   update(id: string, patch: Partial<ServerRecordInput>): ServerRecord {
     const existing = this.mustGet(id);
-    const name = patch.name !== undefined ? patch.name.trim() : existing.name;
-    if (!name) throw new ServerInventoryError("NAME_REQUIRED", "A server needs a name.");
-    const updated: ServerRecord = { ...existing, ...patch, name };
+    const candidate = { ...existing, ...patch };
+    const normalized = normalizeInput({
+      name: candidate.name,
+      connectionKind: candidate.connectionKind,
+      host: candidate.host,
+      port: candidate.port,
+      user: candidate.user,
+      wslDistribution: candidate.wslDistribution,
+      dockerContext: candidate.dockerContext,
+      dockerProject: candidate.dockerProject,
+      knownHostsPath: candidate.knownHostsPath,
+      credentialKey: candidate.credentialKey,
+    });
+    this.ensureUniqueTarget(normalized, id);
+    const targetChanged = distributionKey(existing) !== distributionKey(normalized);
+    const updated: ServerRecord = {
+      ...normalized,
+      id: existing.id,
+      createdAt: existing.createdAt,
+      state: targetChanged ? "idle" : existing.state,
+      reason: targetChanged ? undefined : existing.reason,
+      lastSeenAt: targetChanged ? undefined : existing.lastSeenAt,
+    };
     this.servers.set(id, updated);
     this.persist();
     return updated;
@@ -214,11 +356,22 @@ export class ServerInventory {
    * reporting `connected` must not also supply a `reason`, and `unreachable`/`refused`
    * must supply the real one rather than leaving the previous server's reason in place.
    */
-  setState(id: string, state: ServerConnectionState, reason?: string): ServerRecord {
+  setState(
+    id: string,
+    state: ServerConnectionState,
+    reason?: string,
+    evidence?: { targetId: string; operatingSystem: boolean; asterisk: boolean },
+  ): ServerRecord {
     if (!CONNECTION_STATE_SET.has(state)) {
       throw new ServerInventoryError("INVALID_STATE", `"${state}" is not a recognised connection state.`);
     }
     const existing = this.mustGet(id);
+    if (state === "connected" && (!evidence || evidence.targetId !== id || !evidence.operatingSystem || !evidence.asterisk)) {
+      throw new ServerInventoryError("CONNECTED_EVIDENCE_REQUIRED", "A server is connected only after both operating-system and Asterisk probes succeed for that exact target.");
+    }
+    if ((state === "unreachable" || state === "refused") && !text(reason)) {
+      throw new ServerInventoryError("STATE_REASON_REQUIRED", `The ${state} state needs the observed reason.`);
+    }
     const updated: ServerRecord = {
       ...existing,
       state,

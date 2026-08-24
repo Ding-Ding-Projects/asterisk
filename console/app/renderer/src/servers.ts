@@ -17,6 +17,12 @@ export interface ServerSummary {
   name: string;
   connectionKind: string;
   wslDistribution?: string;
+  dockerContext?: string;
+  dockerProject?: string;
+  host?: string;
+  port?: number;
+  user?: string;
+  knownHostsPath?: string;
   state: ServerConnectionState;
   reason?: string;
   lastSeenAt?: string;
@@ -25,6 +31,8 @@ export interface ServerSummary {
 export interface ServerListState {
   servers: ServerSummary[];
   activeServerId?: string;
+  state: 'loaded' | 'unavailable';
+  reason?: string;
 }
 
 type Requester = (action: string, extra?: Record<string, unknown>) => Promise<ControlPlaneResponse | undefined>;
@@ -45,6 +53,8 @@ export class ServerSwitcher {
   private readonly request: Requester;
   servers: ServerSummary[] = [];
   activeServerId: string | undefined;
+  loadState: 'loading' | 'loaded' | 'unavailable' = 'loading';
+  loadReason: string | undefined;
 
   constructor(request: Requester) {
     this.request = request;
@@ -61,14 +71,30 @@ export class ServerSwitcher {
 
   async load(): Promise<ServerListState> {
     const response = await this.request('server.inventory.list');
-    if (!response?.ok) return { servers: this.servers, activeServerId: this.activeServerId };
-    const data = response.data as ServerListState;
+    if (!response?.ok) {
+      this.loadState = 'unavailable';
+      this.loadReason = response?.message ?? 'The server inventory could not be read.';
+      return { servers: this.servers, activeServerId: this.activeServerId, state: this.loadState, reason: this.loadReason };
+    }
+    const data = response.data as { servers?: ServerSummary[]; activeServerId?: string };
     this.servers = data.servers ?? [];
     this.activeServerId = data.activeServerId;
-    return { servers: this.servers, activeServerId: this.activeServerId };
+    this.loadState = 'loaded';
+    this.loadReason = undefined;
+    return { servers: this.servers, activeServerId: this.activeServerId, state: this.loadState };
   }
 
-  async add(input: { name: string; connectionKind: string; wslDistribution?: string }): Promise<ServerSummary | undefined> {
+  async add(input: {
+    name: string;
+    connectionKind: string;
+    wslDistribution?: string;
+    dockerContext?: string;
+    dockerProject?: string;
+    host?: string;
+    port?: number;
+    user?: string;
+    knownHostsPath?: string;
+  }): Promise<ServerSummary | undefined> {
     const response = await this.request('server.inventory.add', { payload: input });
     if (!response?.ok) return undefined;
     await this.load();
@@ -88,5 +114,9 @@ export class ServerSwitcher {
     if (!response?.ok) return undefined;
     await this.load();
     return (response.data as { server: ServerSummary }).server;
+  }
+
+  async connect(id: string): Promise<ControlPlaneResponse | undefined> {
+    return await this.request('server.connect', { serverId: id });
   }
 }

@@ -10,10 +10,10 @@ import { configSummary, renderForDisplay, resourceForFile, type ConfigReading, t
 import { readControlValues, unmappedControls } from './control-keys';
 import { canProvision, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
 import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
-import { ServerSwitcher } from './servers';
-import { buildEndpointDraft, endpointDocument, PJSIP_RESOURCE, WIZARD_CONTROLS } from './endpoint-create';
+import { ServerSwitcher, type ServerSummary } from './servers';
+import { buildEndpointDraft, endpointDocument, PJSIP_RESOURCE } from './endpoint-create';
 import {
-  applyControlValues, controlValuesFor, editDocument, findEndpoint, removeEndpoint,
+  applyControlValues, controlValuesFor, editDocument, ENDPOINT_CONTROLS, findEndpoint, removeEndpoint,
 } from './endpoint-edit';
 import {
   clearVocabulary, createMemoryStorage, loadVocabularyFile, vocabularyStatus, type VocabularyStorage,
@@ -32,7 +32,7 @@ import { CHANGELOG_MARKDOWN, CHANGELOG_REPOSITORY_URL } from './generated/change
  * design cannot: the real frameless-window controls, and real readings in place of the
  * design's sample content. No screen ever shows a value the console has not read.
  */
-type Target = { id: string; label: string; detail: string; connected: boolean };
+type Target = { id: string; label: string; detail: string; connected: boolean; connectionKind?: string };
 
 type ConnectionObservation = { state?: string; reason?: string };
 
@@ -73,8 +73,8 @@ const BOUNDARY_PLAIN =
 const NO_READER = 'This screen has no live reading wired yet, so it stays empty.';
 
 const NO_HISTORY =
-  'No configuration change has been written this session. The console only reads a PBX right now — it has ' +
-  'no wired path that stages, applies or commits a change — so there is nothing yet for this screen to show.';
+  'This screen is not wired to the target backup records yet. Configuration writes use target-side backups and ' +
+  'verified rollback, but they are not indexed here, so this screen stays empty rather than inventing history.';
 
 const NO_MEMORY =
   'This console has no local agent-memory store wired in. There is no memory corpus to search, sync, or ' +
@@ -83,6 +83,13 @@ const NO_MEMORY =
 const NO_AUTH_REQUESTS =
   'There is no partner-request channel wired into this console. No trunk partner can reach it to ask for a ' +
   'change, so there is nothing pending or answered to show.';
+
+function resourcesForScreen(file: unknown): string[] {
+  if (typeof file !== 'string') return [];
+  const names = file.split(' · ').map((part) => part.trim());
+  const resources = names.map(resourceForFile);
+  return resources.every((resource): resource is string => typeof resource === 'string') ? resources : [];
+}
 
 /** Table screens whose design sample rows must never render. */
 const TABLE_SCREENS = Object.entries(SCREENS as Record<string, { table?: { rows: string[][] } }>)
@@ -129,6 +136,7 @@ export class App extends Base {
   /** Discovery and refresh are real operations, so the shell can show their current
    * state instead of leaving the generated setup card in its design-only idle state. */
   private discoveryPending = false;
+  private discoveredDistributions: string[] = [];
   private oneClickRunning = false;
   private oneClickStage = '';
   private oneClickPct = '0%';
@@ -155,8 +163,15 @@ export class App extends Base {
     /* The configured server list is not a reading from any PBX — it exists before
      * anything is reachable and must be on screen whether or not discovery finds a
      * target, so it is loaded independently of it. */
-    void this.servers.load().then(() => this.forceUpdate());
-    void this.discover();
+    const state = this.state as { values?: Record<string, unknown> };
+    this.setState({
+      values: {
+        ...(state.values ?? {}),
+        sv_host: '', sv_container: '', sv_user: '',
+        ob_host: '',
+      },
+    } as never);
+    void this.initializeTargets();
     this.refreshTimer = setInterval(() => {
       if (this.target.connected) {
         void this.refresh();
@@ -164,6 +179,15 @@ export class App extends Base {
       }
     }, 1000);
   }
+
+  private initializeTargets = async (): Promise<void> => {
+    const inventory = await this.servers.load();
+    if (inventory.state === 'unavailable') {
+      this.target = { ...NO_TARGET, label: 'inventory unavailable', detail: inventory.reason ?? 'the saved server inventory could not be read' };
+    }
+    this.forceUpdate();
+    await this.discover();
+  };
 
   componentWillUnmount() {
     super.componentWillUnmount?.();
@@ -207,6 +231,21 @@ export class App extends Base {
     }
     const data = response.data as { wsl?: string[] | { unavailable: string } };
     const distributions = Array.isArray(data.wsl) ? data.wsl : [];
+    this.discoveredDistributions = distributions;
+    const active = this.servers.servers.find((server) => server.id === this.servers.activeServerId);
+    const activeDistribution = active?.connectionKind === 'wsl' ? active.wslDistribution : undefined;
+    if (active && (active.connectionKind !== 'wsl' || !activeDistribution || !distributions.includes(activeDistribution))) {
+      const connected = await this.activateServer(active);
+      this.oneClickStage = connected ? 'Connection verified' : 'Selected target is not reachable';
+      this.oneClickPct = '100%';
+      this.oneClickLog = [{
+        icon: connected ? 'verified' : 'error',
+        text: connected ? `${active.name} answered both required probes` : this.target.detail,
+        color: connected ? '#9FF7C4' : '#FFB4AB',
+        ms: connected ? 'done' : 'failed',
+      }];
+      return;
+    }
     if (!distributions.length) {
       /* Finding nothing was a dead end: it reported that no target existed and stopped,
        * while the installer was carrying a complete Asterisk runtime the console could
@@ -222,8 +261,11 @@ export class App extends Base {
       this.forceUpdate();
       return;
     }
-    const distribution = distributions[0]!;
-    this.target = { id: distribution, label: distribution, detail: 'connecting to the discovered target', connected: false };
+    const configuredDistribution = active?.connectionKind === 'wsl' ? active.wslDistribution : undefined;
+    const distribution = configuredDistribution ?? distributions[0]!;
+    const selectedId = configuredDistribution === distribution && active ? active.id : distribution;
+    const selectedLabel = configuredDistribution === distribution && active ? active.name : distribution;
+    this.target = { id: selectedId, label: selectedLabel, detail: 'connecting to the selected target', connected: false, connectionKind: 'wsl' };
     this.oneClickStage = 'Connecting to the discovered target';
     this.oneClickPct = '55%';
     this.oneClickLog = [
@@ -235,16 +277,16 @@ export class App extends Base {
     /* Discovery only finds a name. It is not proof that the target is reachable. Ask
      * the real connection action before marking the target connected. If the daemon is
      * merely stopped, start it through the existing lifecycle path and retry once. */
-    let connected = await this.request('server.connect', { serverId: distribution });
+    let connected = await this.request('server.connect', { serverId: selectedId });
     let connectionReason = connectionFailureReason(connected);
     if (!connectionVerified(connected)) {
       await this.ensureDaemon();
-      connected = await this.request('server.connect', { serverId: distribution });
+      connected = await this.request('server.connect', { serverId: selectedId });
       connectionReason = connectionFailureReason(connected);
     }
     if (!connectionVerified(connected)) {
       const reason = connectionReason;
-      this.target = { id: distribution, label: distribution, detail: reason, connected: false };
+      this.target = { id: selectedId, label: selectedLabel, detail: reason, connected: false, connectionKind: 'wsl' };
       this.oneClickStage = 'Target connection unavailable';
       this.oneClickPct = '100%';
       this.oneClickLog = [
@@ -254,12 +296,12 @@ export class App extends Base {
       this.forceUpdate();
       return;
     }
-    this.target = { id: distribution, label: distribution, detail: `${distributions.length} local target(s), connection verified`, connected: true };
+    this.target = { id: selectedId, label: selectedLabel, detail: `${distribution} answered both required probes`, connected: true, connectionKind: 'wsl' };
     this.oneClickStage = 'Connection verified';
     this.oneClickPct = '100%';
     this.oneClickLog = [
       { icon: 'search', text: `${distributions.length} local target${distributions.length === 1 ? '' : 's'} discovered`, color: '#9FF7C4', ms: 'read' },
-      { icon: 'verified', text: `${distribution} answered the connection check`, color: '#9FF7C4', ms: 'done' },
+      { icon: 'verified', text: `${selectedLabel} answered both required connection probes`, color: '#9FF7C4', ms: 'done' },
     ];
     void this.ensureDaemon();
     this.readings = {};
@@ -286,7 +328,9 @@ export class App extends Base {
    * what actually went wrong rather than leaving the screens quietly empty.
    */
   private ensureDaemon = async () => {
-    const answer = await this.request('daemon.status');
+    if (!this.target.id) return;
+    const serverId = this.target.id;
+    const answer = await this.request('daemon.status', { serverId });
     if (!answer?.ok) return;
     const state = (answer.data as { status?: { state?: string } }).status?.state;
     /* This is the same reading the Deploy & servers status line shows, so it is
@@ -295,7 +339,7 @@ export class App extends Base {
     if (state === 'daemonAnswering') return;
 
     this.toast('Starting the phone system…');
-    const started = await this.request('daemon.start');
+    const started = await this.request('daemon.start', { serverId });
     if (!started?.ok) {
       this.fire('The phone system did not start', started?.message ?? 'Asterisk did not answer after it was started.');
       return;
@@ -351,9 +395,17 @@ export class App extends Base {
       return;
     }
     this.toast(`${verb === 'start' ? 'Starting' : verb === 'stop' ? 'Stopping' : 'Restarting'} the phone system…`);
-    const response = await this.request(`daemon.${verb}`);
+    const serverId = this.target.id;
+    const response = await this.request(`daemon.${verb}`, { serverId });
     if (!response?.ok) {
       this.fire('Not done', response?.message ?? `The phone system did not ${verb}.`);
+      await this.refreshDaemonStatus();
+      return;
+    }
+    const observed = (response.data as { status?: { state?: string; reason?: string; distribution?: string } }).status;
+    const expectedState = verb === 'stop' ? 'daemonNotRunning' : 'daemonAnswering';
+    if (observed?.state !== expectedState || this.target.id !== serverId) {
+      this.fire('State not verified', observed?.reason ?? `The ${verb} request returned without the expected daemon state on the selected target.`);
       await this.refreshDaemonStatus();
       return;
     }
@@ -361,11 +413,21 @@ export class App extends Base {
     this.readings = {};
     this.canvasReadings = undefined;
     await this.refreshDaemonStatus();
-    this.fire(`Phone system ${verb === 'start' ? 'started' : verb === 'stop' ? 'stopped' : 'restarted'}`, `Asterisk on ${this.target.label} answered after the ${verb}.`);
+    const detail = verb === 'stop'
+      ? `Asterisk on ${this.target.label} was independently observed as not running after the stop.`
+      : `Asterisk on ${this.target.label} returned a valid daemon identity after the ${verb}.`;
+    this.fire(`Phone system ${verb === 'start' ? 'started' : verb === 'stop' ? 'stopped' : 'restarted'}`, detail);
   };
 
   private refreshDaemonStatus = async (): Promise<void> => {
-    const response = await this.request('daemon.status');
+    if (!this.target.id) {
+      this.daemonStatusLine = 'Unknown: no target selected yet.';
+      this.forceUpdate();
+      return;
+    }
+    const serverId = this.target.id;
+    const response = await this.request('daemon.status', { serverId });
+    if (this.target.id !== serverId) return;
     if (!response?.ok) {
       this.daemonStatusLine = response?.message ?? 'The control plane did not answer.';
       this.forceUpdate();
@@ -401,24 +463,75 @@ export class App extends Base {
 
   // ---------------------------------------------------------------- server add / remove
 
+  private activateServer = async (server: ServerSummary): Promise<boolean> => {
+    const selected = await this.servers.setActive(server.id);
+    if (!selected) {
+      this.fire('Not selected', 'The control plane refused to make that server active.');
+      return false;
+    }
+    this.target = {
+      id: server.id,
+      label: server.name,
+      detail: 'verifying the selected target',
+      connected: false,
+      connectionKind: server.connectionKind,
+    };
+    this.readings = {};
+    this.canvasReadings = undefined;
+    this.configs = {};
+    this.pending = '';
+    this.configPending = '';
+    this.canvasPending = false;
+    this.seeded.clear();
+    this.forceUpdate();
+    const response = await this.servers.connect(server.id);
+    if (!connectionVerified(response)) {
+      this.target = { ...this.target, detail: connectionFailureReason(response), connected: false };
+      await this.servers.load();
+      this.forceUpdate();
+      return false;
+    }
+    this.target = { ...this.target, detail: 'both required connection probes succeeded', connected: true };
+    await this.servers.load();
+    this.forceUpdate();
+    void this.refreshDaemonStatus();
+    return true;
+  };
+
   /** Reads the already-bound `sv_*` connection controls straight out of component state —
    *  the same values the form on screen is showing — and adds the configured server. */
   onAddServer = async (): Promise<void> => {
     const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
     const kindLabel = String(values.sv_kind ?? 'Local');
-    const kindMap: Record<string, string> = { Local: 'local', 'Local Docker': 'local-docker', SSH: 'ssh', 'SSH Docker': 'ssh-docker' };
-    const connectionKind = kindMap[kindLabel] ?? 'local';
-    const host = String(values.sv_host ?? '');
-    const input: { name: string; connectionKind: string; wslDistribution?: string; host?: string; user?: string; port?: number } = {
-      name: host || `connection-${this.servers.servers.length + 1}`,
-      connectionKind,
+    const kindMap: Record<string, ServerSummary['connectionKind']> = {
+      Local: 'wsl', 'Local Docker': 'localDocker', SSH: 'remoteLinux', 'SSH Docker': 'remoteDocker',
     };
-    if (connectionKind !== 'local') input.host = host;
-    if (connectionKind === 'ssh' || connectionKind === 'ssh-docker') {
-      input.user = String(values.sv_user ?? '');
-      input.port = Number(values.sv_sshport ?? 22);
+    const connectionKind = kindMap[kindLabel] ?? 'wsl';
+    const host = String(values.sv_host ?? '').trim();
+    const container = String(values.sv_container ?? '').trim();
+    const activeDistribution = this.servers.servers.find((server) => server.id === this.servers.activeServerId)?.wslDistribution;
+    const chosenDistribution = this.discoveredDistributions.includes(host)
+      ? host
+      : activeDistribution && this.discoveredDistributions.includes(activeDistribution)
+        ? activeDistribution
+        : this.discoveredDistributions.length === 1 ? this.discoveredDistributions[0] : '';
+    if (connectionKind === 'wsl' && !chosenDistribution) {
+      this.fire('Not added', 'Choose one of the WSL distributions found by discovery before adding a local server.');
+      return;
     }
-    const created = await this.servers.add(input as never);
+    const input = {
+      name: connectionKind === 'wsl' ? chosenDistribution : host || container,
+      connectionKind,
+      ...(connectionKind === 'wsl' ? { wslDistribution: chosenDistribution } : {}),
+      ...(connectionKind === 'localDocker' ? { dockerProject: container } : {}),
+      ...(connectionKind === 'remoteLinux' || connectionKind === 'remoteDocker' ? {
+        host,
+        user: String(values.sv_user ?? '').trim(),
+        port: Number(values.sv_sshport ?? 22),
+      } : {}),
+      ...(connectionKind === 'remoteDocker' ? { dockerProject: container } : {}),
+    };
+    const created = await this.servers.add(input);
     this.forceUpdate();
     if (created) this.fire('Connection added', `${created.name} is now in the server list below.`);
     else this.fire('Not added', 'The control plane did not accept that connection.');
@@ -461,8 +574,13 @@ export class App extends Base {
   private async readOnboardInputs(serverId: string): Promise<OnboardPlanInputs> {
     const read = async (resource: string): Promise<ConfigValue> => {
       const response = await this.request('pbx.config', { serverId, payload: { resource } });
-      const value = (response as { data?: { value?: ConfigValue } } | undefined)?.data?.value;
-      return Array.isArray(value) ? value : [];
+      if (!response?.ok) throw new Error(response?.message ?? `${resource} could not be read.`);
+      const data = response.data as { state?: string; value?: ConfigValue };
+      if (data.state === 'absent') return [];
+      if (data.state !== 'present' || !Array.isArray(data.value)) {
+        throw new Error(`${resource} returned an invalid or partial configuration reading.`);
+      }
+      return data.value;
     };
     const [pjsip, extensions, http] = await Promise.all([
       read('/etc/asterisk/pjsip.conf'),
@@ -478,19 +596,27 @@ export class App extends Base {
   private async onboardConnect(): Promise<void> {
     const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
     const whereLabel = String(values.ob_where ?? 'This machine');
-    const whereMap: Record<string, string> = { 'This machine': 'local', 'Local Docker': 'local-docker', SSH: 'ssh', 'SSH Docker': 'ssh-docker' };
-    const connectionKind = whereMap[whereLabel] ?? 'local';
-    const host = String(values.ob_host ?? '');
-    const input: { name: string; connectionKind: string; host?: string } = {
-      name: host || `connection-${this.servers.servers.length + 1}`,
-      connectionKind,
-    };
-    if (connectionKind !== 'local') input.host = host;
-    const created = await this.servers.add(input as never);
+    if (whereLabel !== 'This machine') {
+      this.fire('Not connected', 'This compact wizard does not collect the user, trust store, and container details required for that route. Add it from Deploy & servers instead.');
+      return;
+    }
+    const requested = String(values.ob_host ?? '').trim();
+    const distribution = this.discoveredDistributions.includes(requested)
+      ? requested
+      : this.discoveredDistributions.length === 1 ? this.discoveredDistributions[0] : '';
+    if (!distribution) {
+      this.fire('Not connected', 'Choose one of the WSL distributions returned by discovery. No connection profile was written.');
+      return;
+    }
+    const created = await this.servers.add({ name: distribution, connectionKind: 'wsl', wslDistribution: distribution });
     this.forceUpdate();
     if (created) {
-      this.fire('Connected', `${created.name} was added to the server list and is available on Deploy & servers.`);
-      void this.discover();
+      const connected = await this.activateServer(created);
+      if (!connected) {
+        this.fire('Configured, not connected', `${created.name} was saved, but the required operating-system and Asterisk probes did not both succeed.`);
+        return;
+      }
+      this.fire('Connected', `${created.name} was saved, selected, and answered both required connection probes.`);
       this.set('onboardOpen', false);
       this.set('screen', 'servers');
       this.set('railId', 'app');
@@ -524,7 +650,14 @@ export class App extends Base {
     }
 
     const answers = this.onboardAnswers();
-    const inputs = await this.readOnboardInputs(this.target.id);
+    const serverId = this.target.id;
+    let inputs: OnboardPlanInputs;
+    try {
+      inputs = await this.readOnboardInputs(serverId);
+    } catch (error) {
+      this.fire('Deploy not planned', `${error instanceof Error ? error.message : 'A required configuration file could not be read.'} Nothing was written.`);
+      return;
+    }
     const plan = buildOnboardPlan(answers, inputs);
 
     const summaryLines = [
@@ -533,7 +666,7 @@ export class App extends Base {
       ...plan.skipped.map((line) => `• ${line}`),
       `Business hours: ${ONBOARD_HOURS_NOTE}`,
       '',
-      'Every file is backed up before it is touched, and this is recorded in local history so it can be restored.',
+      'Every file is backed up on the selected target before it is touched. This flow does not create a local-history entry.',
     ].filter((line, i, arr) => line !== '' || arr[i - 1] !== '');
 
     if (plan.summary.length === 0) {
@@ -549,7 +682,11 @@ export class App extends Base {
       this.onboardBusy = true;
       void (async () => {
         try {
-          const response = await this.request('pbx.apply', { serverId: this.target.id, payload: { documents: plan.documents } });
+          if (this.target.id !== serverId) {
+            this.fire('Deploy not applied', 'The selected target changed after the plan was reviewed. Nothing was written.');
+            return;
+          }
+          const response = await this.request('pbx.apply', { serverId, payload: { documents: plan.documents } });
           const result = (response as { data?: { result?: { status: string; message?: string } }; message?: string } | undefined);
           if (!response?.ok) {
             this.fire('Deploy not applied', `${response?.message ?? result?.data?.result?.message ?? 'The target refused the change.'}`);
@@ -562,7 +699,7 @@ export class App extends Base {
               `Applied: ${plan.summary.join('; ')}.`,
               plan.newExtensions.length > 0 ? `New extension secrets (shown once — write these down):\n${secretLines}` : '',
               plan.skipped.length > 0 ? `Not applied: ${plan.skipped.join(' ')}` : '',
-              'Every changed file was backed up first and is in local history if you need to undo this.',
+              'Every changed file was backed up on the selected target before it was touched. This flow did not create a local-history entry.',
             ].filter(Boolean).join('\n\n'),
           );
           this.set('onboardOpen', false);
@@ -591,13 +728,28 @@ export class App extends Base {
    * loaded and the toast was simply untrue.
    */
   onPickRow = (name: string): void => {
+    const screen = (this.state as { screen?: string }).screen;
+    if (screen === 'servers') {
+      const server = this.servers.servers.find((candidate) => candidate.name === name);
+      if (!server) { this.fire('Not selected', `${name} is no longer in the saved server inventory.`); return; }
+      void this.activateServer(server).then((connected) => {
+        if (connected) this.toast(`${server.name} is now the selected, verified target.`);
+        else this.fire('Selected, not connected', `${server.name} is active, but it did not pass both required connection probes.`);
+      });
+      return;
+    }
+    if (screen !== 'endpoints') {
+      this.fire('Read-only row', `${name} has no reviewed editor on this screen.`);
+      return;
+    }
     const value = this.pjsipValue();
     if (!value) { this.fire('Not loaded', 'The pjsip.conf on this target has not been read yet.'); return; }
     const endpoint = findEndpoint(value, name);
     if (!endpoint) { this.fire('Not loaded', `${name} is not in this target's pjsip.conf.`); return; }
     this.editingEndpoint = name;
     const state = this.state as { values: Record<string, unknown> };
-    this.setState({ values: { ...state.values, ...controlValuesFor(endpoint) } } as never);
+    const cleared = Object.fromEntries(Object.values(ENDPOINT_CONTROLS).map((id) => [id, undefined]));
+    this.setState({ values: { ...state.values, ...cleared, ...controlValuesFor(endpoint) }, selected: [name] } as never);
     this.toast(`${name} loaded into the editor below.`);
   };
 
@@ -619,22 +771,26 @@ export class App extends Base {
     const removal = removeEndpoint(value, name);
     if ('error' in removal) { this.fire('Not removed', removal.error); return; }
     this.areYouSure('Remove ' + name, removal.summary.join('\n'), 3, () => {
-      void this.writePjsip(editDocument(removal, PJSIP_RESOURCE), removal.summary, `${name} removed`).then(() => {
-        this.editingEndpoint = '';
+      void this.writePjsip(editDocument(removal, PJSIP_RESOURCE), removal.summary, `${name} removed`).then((applied) => {
+        if (applied) this.editingEndpoint = '';
       });
     });
   };
 
   /** Creating one from the guided wizard's own answers. */
   onCreateEndpoint = async (): Promise<void> => {
-    const value = this.pjsipValue() ?? [];
+    const value = this.pjsipValue();
+    if (!value) {
+      this.fire('Not created', 'The selected target\'s pjsip.conf has not been read successfully. Refresh the endpoints screen before creating anything.');
+      return;
+    }
     const draft = buildEndpointDraft(value, (this.state as { values: Record<string, unknown> }).values);
     if ('error' in draft) { this.fire('Not created', draft.error); return; }
     const applied = await this.writePjsip(endpointDocument(draft), draft.summary, `${draft.view.endpoints.slice(-1)[0].name} created`);
     /* Shown once, and deliberately never in the plan above: a plan gets read aloud and
      * screenshotted, and a password has no business in one. */
     if (applied) {
-      this.fire('Write this password down', `${String((this.state as { values: Record<string, unknown> }).values[WIZARD_CONTROLS.name] ?? '')}: ${draft.secret}
+      this.fire('Write this password down', `${draft.created.name}: ${draft.secret}
 
 It is shown once. The phone needs it to register.`);
     }
@@ -642,14 +798,33 @@ It is shown once. The phone needs it to register.`);
 
   /** One write path for all three, so none of them can skip the backup and read-back. */
   private async writePjsip(document: { resource: string; value: ConfigValue }, summary: string[], done: string): Promise<boolean> {
-    const payload = { documents: [{ resource: document.resource, value: document.value }] };
-    const planned = await this.request('pbx.plan', { serverId: this.target.id, payload });
+    if (!this.target.connected || !this.target.id) {
+      this.fire('Not written', 'No verified target is selected. Nothing was changed.');
+      return false;
+    }
+    const serverId = this.target.id;
+    const expectedBefore = this.pjsipValue();
+    if (!expectedBefore) {
+      this.fire('Not written', 'The source reading is stale or unavailable. Read pjsip.conf again before writing.');
+      return false;
+    }
+    const payload = { documents: [{ resource: document.resource, value: document.value, expectedBefore }] };
+    const planned = await this.request('pbx.plan', { serverId, payload });
     if (!planned?.ok) { this.fire('Not written', planned?.message ?? 'The control plane did not answer.'); return false; }
-    const applied = await this.request('pbx.apply', { serverId: this.target.id, payload });
+    if (this.target.id !== serverId) {
+      this.fire('Not written', 'The selected target changed after planning. Review the change again for the newly selected target.');
+      return false;
+    }
+    const applied = await this.request('pbx.apply', { serverId, payload });
     if (!applied?.ok) { this.fire('Not written', applied?.message ?? 'The change was planned but not applied.'); return false; }
     /* The reading is now stale, and a stale reading is how the next edit gets built on a
      * value that is no longer there. */
-    delete this.configs.endpoints;
+    this.configs.endpoints = {
+      resource: PJSIP_RESOURCE,
+      state: 'unavailable',
+      reason: 'The write and running-daemon reload were verified. Re-reading pjsip.conf before another edit.',
+      observedAt: new Date().toISOString(),
+    };
     this.seeded.delete('endpoints');
     this.fire(done, summary.join('\n'));
     this.forceUpdate();
@@ -671,8 +846,10 @@ It is shown once. The phone needs it to register.`);
       const canvasAvailable = this.canvasReadings?.dialplan?.result.state === 'available';
       if (canvasAvailable || this.canvasPending || !mayStartRead('canvas')) return;
       this.canvasPending = true;
-      const response = await this.request('pbx.read', { serverId: this.target.id, view: 'canvas' as PbxReadView });
+      const serverId = this.target.id;
+      const response = await this.request('pbx.read', { serverId, view: 'canvas' as PbxReadView });
       this.canvasPending = false;
+      if (this.target.id !== serverId) return;
       this.canvasReadings = response?.ok
         ? (response.data as CanvasReadings)
         : { dialplan: { command: 'pbx.read', result: { state: 'unavailable', observedAt: new Date().toISOString(), reason: response?.message ?? 'the control plane did not answer' } } };
@@ -682,14 +859,46 @@ It is shown once. The phone needs it to register.`);
     /* A configuration screen names the file it edits. Read that file from the target so
      * the screen can show what the machine actually has, instead of standing there
      * displaying the design's own defaults as though they were settings in force. */
-    const resource = resourceForFile((SCREENS as Record<string, { file?: unknown }>)[screen]?.file);
-    if (resource && (!this.configs[screen] || this.configs[screen]?.state === 'unavailable') && this.configPending !== screen && mayStartRead(`config:${screen}`)) {
+    const resources = resourcesForScreen((SCREENS as Record<string, { file?: unknown }>)[screen]?.file);
+    if (resources.length > 0 && (!this.configs[screen] || this.configs[screen]?.state === 'unavailable') && this.configPending !== screen && mayStartRead(`config:${screen}`)) {
       this.configPending = screen;
-      const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+      const serverId = this.target.id;
+      const responses = await Promise.all(resources.map(async (resource) => ({
+        resource,
+        response: await this.request('pbx.config', { serverId, payload: { resource } }),
+      })));
       this.configPending = '';
-      this.configs[screen] = response?.ok
-        ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
-        : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+      if (this.target.id !== serverId) return;
+      const failed = responses.filter(({ response }) => !response?.ok);
+      if (failed.length > 0) {
+        this.configs[screen] = {
+          resource: resources.join(' · '),
+          state: 'unavailable',
+          reason: `Partial read refused. ${failed.map(({ resource, response }) => `${resource}: ${response?.message ?? 'the control plane did not answer'}`).join(' ')}`,
+          observedAt: new Date().toISOString(),
+        };
+      } else {
+        const readings = responses.map(({ response }) => (response as { ok: true; data: unknown }).data as { state?: 'present' | 'absent'; value?: ConfigValue });
+        if (readings.some((reading) => !['present', 'absent'].includes(reading.state ?? '') || !Array.isArray(reading.value))) {
+          this.configs[screen] = {
+            resource: resources.join(' · '),
+            state: 'unavailable',
+            reason: 'One or more resources returned an invalid or partial configuration reading.',
+            observedAt: new Date().toISOString(),
+          };
+        } else {
+          this.configs[screen] = {
+            resource: resources.join(' · '),
+            state: 'read',
+            value: readings.flatMap((reading, index) => (reading.value ?? []).map((section) => ({
+              ...section,
+              name: resources.length > 1 ? `${resources[index].split('/').pop()} :: ${section.name}` : section.name,
+            }))),
+            observedAt: new Date().toISOString(),
+            presence: readings.every((reading) => reading.state === 'absent') ? 'absent' : 'present',
+          } as ConfigReading;
+        }
+      }
 
       /* Seed the bound controls from the file that was just read. The design reads a
        * control as `values[id]` falling back to its own default, so putting the target's
@@ -753,6 +962,10 @@ It is shown once. The phone needs it to register.`);
   }
 
   private note(screen: string): string {
+    if (screen === 'servers' && this.servers.loadState === 'loading') return 'Reading the saved server inventory…';
+    if (screen === 'servers' && this.servers.loadState === 'unavailable') {
+      return `The saved server inventory is unavailable and will not be overwritten: ${this.servers.loadReason ?? 'read failed'}`;
+    }
     if (screen === 'history') return NO_HISTORY;
     if (screen === 'memory') return NO_MEMORY;
     if (screen === 'trunkauth') return NO_AUTH_REQUESTS;
@@ -761,8 +974,12 @@ It is shown once. The phone needs it to register.`);
      * says what was read; it does not claim the controls below are bound to it, because
      * they are not yet, and implying otherwise would be the same untruth the
      * confirmation dialog used to tell. */
-    if (resourceForFile((SCREENS as Record<string, { file?: unknown }>)[screen]?.file)) {
-      const summary = configSummary(this.configs[screen], this.target.connected);
+    if (resourcesForScreen((SCREENS as Record<string, { file?: unknown }>)[screen]?.file).length > 0) {
+      const config = this.configs[screen] as (ConfigReading & { presence?: 'present' | 'absent' }) | undefined;
+      if (config?.state === 'read' && config.presence === 'absent') {
+        return `${config.resource} does not exist on this target. No missing or failed read was presented as an empty file.`;
+      }
+      const summary = configSummary(config, this.target.connected);
       /* Say how many controls on this screen are genuinely bound to that file. A screen
        * that reads its file but leaves half its switches on design defaults must not let
        * a reader assume every control below is live — that is the same untruth as the
@@ -949,6 +1166,14 @@ It is shown once. The phone needs it to register.`);
       liveConfigResource: this.configs[screen]?.resource ?? '',
       liveConfigText: renderForDisplay(this.configs[screen]?.value),
       liveConfigState: this.configs[screen]?.state ?? (this.target.connected ? 'reading' : 'disconnected'),
+      ...(screen === 'endpoints' && this.editingEndpoint ? {
+        hasSelection: true,
+        selectionLabel: `${this.editingEndpoint} loaded for editing`,
+        bulkActions: [
+          { icon: 'save', label: `Save ${this.editingEndpoint}`, run: () => { void this.onSaveEndpoint(); } },
+          { icon: 'delete', label: `Delete ${this.editingEndpoint}`, run: () => this.onDeleteEndpoint() },
+        ],
+      } : {}),
 
       /**
        * Creating the console's own Asterisk runtime, from the payload in the installer.
@@ -1000,8 +1225,10 @@ It is shown once. The phone needs it to register.`);
       superEasy: () => {
         this.setState((st: { values: Record<string, unknown> }) => ({
           values: { ...st.values, ob_intent: 'Deploy a new server', ob_ease: 'Super easy', ob_phones: 8, ob_menu: true, ob_hours: true, ob_tls: true },
+          onboardOpen: true,
+          onboardStep: 0,
         }));
-        void this.onboardDeploy();
+        this.toast('Review each onboarding answer. Nothing is planned or written until the final confirmation.');
       },
       onboardNext: () => {
         const step = (this.state as { onboardStep: number }).onboardStep;
@@ -1048,8 +1275,7 @@ It is shown once. The phone needs it to register.`);
       // invented per-destination numbers.
       sections: this.badges(values.sections as Array<Record<string, unknown>>),
 
-      // History & git has no real source: nothing in this app stages, applies or commits
-      // a configuration change yet, so the screen never shows the design's invented commits.
+      // History & git has no indexed source yet, so it never shows the design's invented commits.
       ...(screen === 'history' ? {
         commits: [], commitRows: [], diffLines: [], diffFile: 'no commit selected', blameRows: [],
         branches: [], branchName: '', commitCount: '0 commits',
