@@ -1,0 +1,68 @@
+.dim-sum-surprise {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 1000;
+  max-width: min(24rem, calc(100vw - 2rem));
+  pointer-events: none;
+  animation: dim-sum-surprise-in 180ms ease-out both;
+}
+
+.dim-sum-surprise__card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem;
+  border: 1px solid color-mix(in srgb, #d8b57a 54%, transparent);
+  border-radius: 1rem;
+  background: #201b17;
+  color: #fff7e8;
+  box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 32%);
+}
+
+.dim-sum-surprise__image {
+  width: 4.5rem;
+  height: 4.5rem;
+  flex: 0 0 auto;
+  object-fit: cover;
+  border-radius: 0.75rem;
+  background: #493a2a;
+}
+
+.dim-sum-surprise__copy {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.dim-sum-surprise__copy strong,
+.dim-sum-surprise__copy span {
+  overflow-wrap: anywhere;
+}
+
+.dim-sum-surprise__copy strong { font-size: 1rem; }
+.dim-sum-surprise__copy > span:not(.dim-sum-surprise__eyebrow) { color: #f0d9b2; font-size: 0.95rem; }
+.dim-sum-surprise__eyebrow { color: #d8b57a; font-size: 0.72rem; letter-spacing: 0.03em; text-transform: uppercase; }
+
+.dim-sum-surprise--unavailable {
+  pointer-events: none;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #7e6b4f;
+  border-radius: 0.8rem;
+  background: #201b17;
+  color: #f0d9b2;
+  box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 24%);
+  font-size: 0.82rem;
+}
+
+.dim-sum-surprise--reduced-motion { animation: none; }
+
+@keyframes dim-sum-surprise-in {
+  from { opacity: 0; transform: translateY(0.35rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dim-sum-surprise { animation: none; }
+}
+
