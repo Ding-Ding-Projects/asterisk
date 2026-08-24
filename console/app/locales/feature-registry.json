@@ -1,7 +1,7 @@
 {
   "surface": "windows-console",
   "schemaVersion": 1,
-  "readme": "Localization evidence, one row per canonical feature. `labels` names the design labels this feature renders; a row is `localized` only when every one of them has a Cantonese entry, so this file is checkable against the catalog instead of asserted. The contract test in console/tests/contracts/language-modes.test.mjs recomputes each state from the catalog and fails on any row that disagrees -- a row cannot be marked localized by editing this file alone. English is always the fallback: an untranslated string renders as English rather than as a placeholder or a guess.",
+  "readme": "Localization evidence, one row per canonical feature. `labels` names the design labels this feature renders; a row is `localized` only when every one of them has a Cantonese entry, so this file is checkable against the catalog instead of asserted. The contract test in console/tests/contracts/language-modes.test.mjs recomputes each state from the catalog and fails on any row that disagrees -- a row cannot be marked localized by editing this file alone. English is always the fallback: an untranslated string renders as English rather than as a placeholder or a guess. A not-localized row also carries blockedBy: \"not-implemented\" when the feature has no implementation to localize, or \"no-label-surface\" when it is implemented but renders no design label. Those are different amounts of work and a bare not-localized hides both. Localization coverage is therefore capped by implementation coverage, and cannot be raised by translating harder.",
   "languageModes": [
     "en",
     "yue",
@@ -38,7 +38,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "school-mode": {
       "state": "not-localized",
@@ -46,7 +47,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "narration": {
       "state": "not-localized",
@@ -54,7 +56,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Implemented as partial, but it contributes no label to the compiled design, so there is no string for the catalog to key against. The boundary already reaches any copy it does render; this is a missing surface rather than a missing translation.",
+      "blockedBy": "no-label-surface"
     },
     "scheduled-settings": {
       "state": "not-localized",
@@ -62,7 +65,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "external-settings-sources": {
       "state": "not-localized",
@@ -70,7 +74,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "dim-sum-surprise": {
       "state": "not-localized",
@@ -78,7 +83,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "regex-builder": {
       "state": "localized",
@@ -133,7 +139,10 @@
         "Open colour picker…",
         "Hue",
         "Lightness",
-        "Fix contrast"
+        "Fix contrast",
+        "Random appearance for every element",
+        "Revert just this option",
+        "Edit together"
       ],
       "localizedLabels": [
         "Appearance",
@@ -141,7 +150,10 @@
         "Open colour picker…",
         "Hue",
         "Lightness",
-        "Fix contrast"
+        "Fix contrast",
+        "Random appearance for every element",
+        "Revert just this option",
+        "Edit together"
       ],
       "untranslatedLabels": [],
       "note": "Every listed label has a Cantonese entry."
@@ -152,7 +164,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "local-file-converter": {
       "state": "not-localized",
@@ -160,7 +173,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "ollama-suite-manager": {
       "state": "not-localized",
@@ -168,7 +182,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "browser-style-tabs": {
       "state": "localized",
@@ -179,7 +194,10 @@
         "Rename tab…",
         "New tab here",
         "Dock left",
-        "Dock right"
+        "Dock right",
+        "Dock this tab right",
+        "Close group and its tabs",
+        "Reload just this"
       ],
       "localizedLabels": [
         "Close tab",
@@ -187,7 +205,10 @@
         "Rename tab…",
         "New tab here",
         "Dock left",
-        "Dock right"
+        "Dock right",
+        "Dock this tab right",
+        "Close group and its tabs",
+        "Reload just this"
       ],
       "untranslatedLabels": [],
       "note": "Every listed label has a Cantonese entry."
@@ -201,7 +222,11 @@
         "Wrap in group",
         "Tabs in group",
         "Group colour",
-        "Clear search"
+        "Clear search",
+        "Export group as JSON",
+        "Lock every tab in group",
+        "Reload every tab in group",
+        "Tab colour…"
       ],
       "localizedLabels": [
         "Rename group…",
@@ -209,7 +234,11 @@
         "Wrap in group",
         "Tabs in group",
         "Group colour",
-        "Clear search"
+        "Clear search",
+        "Export group as JSON",
+        "Lock every tab in group",
+        "Reload every tab in group",
+        "Tab colour…"
       ],
       "untranslatedLabels": [],
       "note": "Every listed label has a Cantonese entry."
@@ -220,7 +249,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Implemented as partial, but it contributes no label to the compiled design, so there is no string for the catalog to key against. The boundary already reaches any copy it does render; this is a missing surface rather than a missing translation.",
+      "blockedBy": "no-label-surface"
     },
     "destructive-action-confirmation": {
       "state": "localized",
@@ -240,12 +270,16 @@
       "labels": [
         "Version history",
         "Restore this",
-        "Tag this state"
+        "Tag this state",
+        "Version history for this",
+        "Save as a workspace"
       ],
       "localizedLabels": [
         "Version history",
         "Restore this",
-        "Tag this state"
+        "Tag this state",
+        "Version history for this",
+        "Save as a workspace"
       ],
       "untranslatedLabels": [],
       "note": "Every listed label has a Cantonese entry."
@@ -268,7 +302,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "complete-exports": {
       "state": "localized",
@@ -277,13 +312,15 @@
         "Export",
         "Import",
         "Export bundle",
-        "Export as configuration"
+        "Export as configuration",
+        "Export group as JSON"
       ],
       "localizedLabels": [
         "Export",
         "Import",
         "Export bundle",
-        "Export as configuration"
+        "Export as configuration",
+        "Export group as JSON"
       ],
       "untranslatedLabels": [],
       "note": "Every listed label has a Cantonese entry."
@@ -296,14 +333,18 @@
         "Select this row",
         "All others",
         "All unpinned",
-        "Close tabs"
+        "Close tabs",
+        "Edit together",
+        "Delete "
       ],
       "localizedLabels": [
         "Select all rows",
         "Select this row",
         "All others",
         "All unpinned",
-        "Close tabs"
+        "Close tabs",
+        "Edit together",
+        "Delete "
       ],
       "untranslatedLabels": [],
       "note": "Every listed label has a Cantonese entry."
@@ -314,7 +355,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "responsive-sizing": {
       "state": "localized",
@@ -354,14 +396,16 @@
         "Lock this tab…",
         "Lock this group…",
         "Password only",
-        "PIN only"
+        "PIN only",
+        "Password + PIN + one-time code"
       ],
       "localizedLabels": [
         "Lock this element…",
         "Lock this tab…",
         "Lock this group…",
         "Password only",
-        "PIN only"
+        "PIN only",
+        "Password + PIN + one-time code"
       ],
       "untranslatedLabels": [],
       "note": "Every listed label has a Cantonese entry."
@@ -372,7 +416,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "unlock-ladder": {
       "state": "not-localized",
@@ -380,7 +425,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Implemented as partial, but it contributes no label to the compiled design, so there is no string for the catalog to key against. The boundary already reaches any copy it does render; this is a missing surface rather than a missing translation.",
+      "blockedBy": "no-label-surface"
     },
     "built-in-authenticator": {
       "state": "localized",
@@ -402,7 +448,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "browser-extension-download-surfaces": {
       "state": "not-localized",
@@ -410,7 +457,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "offline-documentation-browser": {
       "state": "localized",
@@ -434,7 +482,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "guided-forms": {
       "state": "localized",
@@ -454,7 +503,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "context-menu-shortcuts": {
       "state": "not-localized",
@@ -462,7 +512,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "long-operation-progress": {
       "state": "not-localized",
@@ -470,7 +521,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "in-context-recovery": {
       "state": "localized",
@@ -490,7 +542,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "No UI copy of this feature is in the Cantonese catalog. The mechanism reaches it automatically once entries are added -- every string it renders already passes through the boundary -- so this is missing translation, not missing wiring. It renders English in every mode, which is the honest fallback rather than a placeholder."
+      "note": "Implemented as partial, but it contributes no label to the compiled design, so there is no string for the catalog to key against. The boundary already reaches any copy it does render; this is a missing surface rather than a missing translation.",
+      "blockedBy": "no-label-surface"
     },
     "forge-publishing": {
       "state": "localized",

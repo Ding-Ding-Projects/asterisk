@@ -115,3 +115,70 @@ test('the console honestly reports partial coverage rather than rounding up', ()
   assert.ok(states.includes('localized'), 'no feature is localized, so the mechanism is not actually in use');
   assert.ok(states.includes('not-localized'), 'every feature claims localization, which the catalog does not support');
 });
+
+/* --- coverage of the design's own labels ------------------------------------
+ * The registry rows above say what IS translated. This says what MUST be: every
+ * label the compiled design renders, except the identifiers that have to stay
+ * literal. Without it a newly added destination renders English beside translated
+ * neighbours and every other test in this file still passes. */
+
+/** Values a person has to read back, type, or paste into a command. Never translated. */
+const IDENTIFIERS_EXEMPT_FROM_TRANSLATION = new Set([
+  'opus', 'ulaw', 'g729', 'max_contacts', 'media_encryption', 'strategy',
+  'sip:1001@10.20.4.31', '1001',
+]);
+
+const designLabels = () => {
+  const src = read('app/renderer/src/generated/console.tsx');
+  return new Set([...src.matchAll(/label: *'([^']{2,60})'/gu)].map((m) => m[1]));
+};
+
+test('every design label is either translated or an identifier that must stay literal', () => {
+  const present = catalogKeys();
+  const labels = designLabels();
+  assert.ok(labels.size > 50, 'the label scan found almost nothing, so this would pass vacuously');
+  const untranslated = [...labels]
+    .filter((label) => !present.has(label))
+    .filter((label) => !IDENTIFIERS_EXEMPT_FROM_TRANSLATION.has(label));
+  assert.deepEqual(untranslated, [],
+    `these labels render English while their neighbours do not: ${untranslated.join(', ')}`);
+});
+
+test('every exempt identifier is genuinely still a label, so the list cannot rot', () => {
+  /* An exemption for a label that no longer exists is an exemption nobody will notice
+   * has stopped applying, and it quietly widens what may go untranslated. */
+  const labels = designLabels();
+  for (const id of IDENTIFIERS_EXEMPT_FROM_TRANSLATION) {
+    assert.ok(labels.has(id), `"${id}" is exempted from translation but is no longer a design label`);
+  }
+});
+
+test('every unlocalized row says which of the two things is blocking it', () => {
+  /* "not-localized" alone hides the distinction that matters to whoever picks the row
+   * up: a feature with no implementation has nothing to translate, while one that is
+   * implemented but renders no design label needs a surface first. Neither is fixed by
+   * translating harder, and the registry has to say which. */
+  const implementation = json('app/feature-registry.json').features;
+  for (const [id, row] of Object.entries(consoleLocales.features)) {
+    if (row.state !== 'not-localized') {
+      assert.equal(row.blockedBy, undefined, `${id} is ${row.state} but still records a blocker`);
+      continue;
+    }
+    assert.ok(['not-implemented', 'no-label-surface'].includes(row.blockedBy),
+      `${id} is unlocalized with no recorded blocker`);
+    const expected = implementation[id].state === 'absent' ? 'not-implemented' : 'no-label-surface';
+    assert.equal(row.blockedBy, expected,
+      `${id} claims "${row.blockedBy}" but the implementation registry says it is ${implementation[id].state}`);
+  }
+});
+
+test('a row blocked on implementation is genuinely absent from the implementation registry', () => {
+  /* Guards the excuse rather than the claim: "nothing to localize" is only honest while
+   * the feature really is unimplemented. Once it ships, this fails until the row moves. */
+  const implementation = json('app/feature-registry.json').features;
+  for (const [id, row] of Object.entries(consoleLocales.features)) {
+    if (row.blockedBy !== 'not-implemented') continue;
+    assert.equal(implementation[id].state, 'absent',
+      `${id} is excused from localization as unimplemented, but it is now ${implementation[id].state}`);
+  }
+});

@@ -203,4 +203,33 @@ export const CANTONESE: Catalog = {
   'All uncoloured': '所有未上色嘅',
   'CLI builder': '指令產生器',
   'Arcade': '遊戲機',
+
+  /* The destinations and controls added after the first pass: Feature codes, IAX
+   * peers and the HTTP server, plus the tab and appearance labels the sweep found
+   * still rendering English while their neighbours did not. */
+  'Feature codes': '功能碼',
+  'HTTP server': 'HTTP 伺服器',
+  'IAX peers': 'IAX 對端',
+  'PBX': '電話系統',
+  'Anchor both ends': '兩邊都固定',
+  'Auto-collapse when inactive': '冇用嗰陣自動收埋',
+  'By colour…': '按顏色…',
+  'Clear queue stats': '清除隊列統計',
+  'Close group and its tabs': '閂咗成組同埋佢啲分頁',
+  'Copy tab list to clipboard': '複製分頁清單',
+  'Delete ': '刪除 ',
+  'Dock this tab right': '將呢個分頁泊右',
+  'Edit ': '編輯 ',
+  'Edit together': '一齊改',
+  'Export group as JSON': '將成組匯出做 JSON',
+  'Import a group…': '匯入一組…',
+  'Lock every tab in group': '🔒 組入面每個分頁',
+  'Password + PIN + one-time code': '密碼加 PIN 加一次性密碼',
+  'Random appearance for every element': '每個元素隨機外觀',
+  'Reload every tab in group': '重新載入組入面每個分頁',
+  'Reload just this': '淨係重新載入呢個',
+  'Revert just this option': '淨係還原呢個選項',
+  'Save as a workspace': '儲存做工作區',
+  'Tab colour…': '分頁顏色…',
+  'Version history for this': '呢個嘅版本紀錄',
 };
