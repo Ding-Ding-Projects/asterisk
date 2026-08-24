@@ -84,11 +84,14 @@ function isPathStart(value: string, index: number): boolean {
 function isSensitiveQuoted(value: string): boolean {
   return isUrlStart(value, 0) || /^(?:[A-Za-z]:[\\/]|\\\\|\/(?:etc|var|home|tmp|opt|srv|mnt|usr)(?:\/|$)|\.{1,2}[\\/])/u.test(value) || PBX_BASENAME.test(value);
 }
-function scanToDelimiter(value: string, start: number, url: boolean): number {
+function scanToDelimiter(value: string, start: number, _url: boolean): number {
   let index = start;
   while (index < value.length) {
     const ch = value[index];
-    if (/[,;\r\n"'`<>()[\]{}]/u.test(ch)) break;
+    /* Unquoted paths and URLs may legally contain spaces, parentheses, brackets,
+     * commas, and semicolons. A line boundary or a new quote is the only bounded
+     * delimiter we can trust without leaving a suffix behind. */
+    if (/[\r\n"'`]/u.test(ch)) break;
     index += 1;
   }
   return index;
@@ -307,7 +310,6 @@ export function verifyAttentionMutationInventory(sources: { app: string; generat
   for (const entry of inventory) {
     if (!discovered.has(`${entry.file}:${entry.argument}:${entry.occurrence}`)) throw new Error(`Mutation inventory entry is absent from source: ${entry.file}:${entry.line}.`);
   }
-  if (inventory.length !== 61) throw new Error(`Mutation inventory must enumerate 61 callbacks, found ${inventory.length}.`);
 }
 
 export interface ModeStorage {

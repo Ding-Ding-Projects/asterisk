@@ -13,7 +13,7 @@ function verifyAttentionWiring() {
   const source = `
     import { readFileSync } from 'node:fs';
     import { resolve } from 'node:path';
-    import { ATTENTION_MUTATION_INVENTORY, ATTENTION_SEVERITY_PRODUCERS, ATTENTION_SEVERITY_ROUTES, ATTENTION_WIRING, verifyAttentionMutationInventory, verifyAttentionSeverityProducers, verifyAttentionWiring } from './console/app/renderer/src/attention-modes.ts';
+    import { ATTENTION_MUTATION_INVENTORY, ATTENTION_SEVERITY_PRODUCERS, ATTENTION_SEVERITY_ROUTES, ATTENTION_WIRING, redactNoticeText, verifyAttentionMutationInventory, verifyAttentionSeverityProducers, verifyAttentionWiring } from './console/app/renderer/src/attention-modes.ts';
     const root = resolve(${JSON.stringify(root)});
     const sources = {
       design: readFileSync(resolve(root, 'design/Asterisk Console M3.dc.html'), 'utf8'),
@@ -49,9 +49,27 @@ function verifyAttentionWiring() {
       next[key] = lines.join('\\n');
       return next;
     };
+    const replaceMutationArgument = (input, row, replacement) => {
+      const key = row.file === 'App.tsx' ? 'app' : 'generated';
+      const call = 'onUserMutation(' + row.argument + ')';
+      const replacementCall = 'onUserMutation(' + replacement + ')';
+      const next = { ...input };
+      const lines = next[key].split(/\\r?\\n/);
+      const current = lines[row.line - 1];
+      if (current.split(call).length - 1 !== 1) throw new Error('Mutation callback replacement span drift at ' + row.file + ':' + row.line);
+      lines[row.line - 1] = current.replace(call, replacementCall);
+      next[key] = lines.join('\\n');
+      return next;
+    };
     verifyAttentionWiring(sources);
     verifyAttentionMutationInventory({ app: sources.app, generated: sources.generated });
     verifyAttentionSeverityProducers(sources);
+    for (const [input, expected] of [
+      ['path C:/Program Files/Ding PBX/settings (old),semi;tail', 'path [path omitted]'],
+      ['url https://example.invalid/Program Files/(old)[x],semi;tail', 'url [url omitted]'],
+    ]) {
+      if (redactNoticeText(input) !== expected) throw new Error('Redaction span fixture failed: ' + input);
+    }
     for (const row of ATTENTION_WIRING) {
       const markers = [row.designMarker, row.controlConstruction, row.durableKey, ...row.writerMarkers, ...row.setterMarkers, ...row.consumerMarkers];
       for (const marker of markers) {
@@ -69,6 +87,12 @@ function verifyAttentionWiring() {
       if (!sourceTurnedRed) throw new Error('Mutation source negative fixture stayed green at ' + row.file + ':' + row.line);
       verifyAttentionMutationInventory({ app: sources.app, generated: sources.generated });
     }
+    const unlistedRow = ATTENTION_MUTATION_INVENTORY[0];
+    const unlistedSource = replaceMutationArgument(sources, unlistedRow, "'unlisted-source-callback'");
+    let unlistedTurnedRed = false;
+    try { verifyAttentionMutationInventory({ app: unlistedSource.app, generated: unlistedSource.generated }); } catch { unlistedTurnedRed = true; }
+    if (!unlistedTurnedRed) throw new Error('Source-unlisted callback fixture stayed green.');
+    verifyAttentionMutationInventory({ app: sources.app, generated: sources.generated });
     for (const row of ATTENTION_MUTATION_INVENTORY) {
       const brokenInventory = ATTENTION_MUTATION_INVENTORY.filter((candidate) => candidate !== row);
       let turnedRed = false;
