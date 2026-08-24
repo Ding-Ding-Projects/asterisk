@@ -18,7 +18,7 @@ A new pairing would be confirmed by entering one live code back before the entry
 
 ## Failure modes
 
-A malformed or short Base32 secret is rejected before storage. Secrets are never included in ordinary export. Clock-skew diagnostics, QR image rendering, and server-side pairing confirmation remain unavailable in this static equivalent.
+A malformed or short Base32 secret is rejected before storage. Secrets are never included in ordinary export. Local QR rendering and local pairing confirmation exist; platform-vault storage, clock-skew diagnostics, and trusted server-side pairing confirmation remain unavailable in this static equivalent.
 
 ## Accessibility and localization
 

@@ -1297,8 +1297,8 @@
       }
     },
     "tab-groups-and-searches": {
-      "status": "implemented-unverified",
-      "note": "The tab manager now persists groups, pinning, reorder actions, and four independently searchable views: current strip, group members, group names, and all open tabs. Each search has its own adjacent regex-builder trigger.",
+      "status": "partial",
+      "note": "The tab manager persists groups, group metadata, collapse, pinning, reorder actions, four independently searchable views, and local bulk-close controls. Closed-route persistence, super-confirmation, group color rendering, and runtime proof remain incomplete.",
       "implementation": {
         "paths": ["console/site/app.js", "console/site/styles.css"],
         "symbols": [{"path": "console/site/app.js", "name": "renderTabManager", "kind": "function"}]
@@ -1527,8 +1527,8 @@
       }
     },
     "local-version-history": {
-      "status": "implemented-unverified",
-      "note": "settings.html now receives a local append-only browser history surface with stable revision IDs, bounded retention, text/action/date filters, diff view, append-only restore records, bulk selection, and redacted export. Runtime proof remains unverified.",
+      "status": "partial",
+      "note": "settings.html now receives a bounded browser history surface with filters, diff output, redacted export, and a restore record path. Per-mutation recording for tabs, appearance, locks, authenticator entries, tickets, ladder, and status remains incomplete, and restore application is still limited. Runtime proof remains unverified.",
       "implementation": {
         "paths": [],
         "symbols": []
@@ -2301,7 +2301,7 @@
     },
     "unlock-ladder": {
       "status": "partial",
-      "note": "settings.html and site/app.js now provide a local waiting-period ladder equivalent with a generated arithmetic challenge, bounded attempts, no session or cookie mutation, and no attempt refund. The dim-sum, whack-a-mole, server nonce, and server-side grading rungs are unavailable on this static surface and remain unimplemented.",
+      "note": "settings.html and site/app.js now provide a lockout-bound local ladder equivalent with worker-issued dim-sum, mixed arithmetic, timed mole, clock fallback, School-mode start, nonce consumption, and a rolling local budget. Trusted server-side grading remains unavailable, so this row stays partial.",
       "implementation": {
         "paths": ["console/site/settings.html", "console/site/app.js"],
         "symbols": [{"path": "console/site/app.js", "name": "initUnlockLadder", "kind": "function"}]

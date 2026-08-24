@@ -14,7 +14,7 @@ Every answer would be generated and graded independently of the browser, using a
 
 **Desktop application:** Partial. A lockout timer exists after repeated wrong password attempts on the desktop application's launch gate, but there are no unlock-ladder games, no attempt-budget mechanic, and no server-side challenge grading.
 
-**Documentation website:** Partial, local equivalent implemented and runtime proof unverified. Settings provides a local waiting timer and arithmetic challenge with three attempts. A correct answer clears only the local timer, never signs in, creates a cookie, or refunds attempts. The dim-sum, whack-a-mole, server nonce, and server-side grading rungs are unavailable on this static surface.
+**Documentation website:** Partial, local equivalent implemented and runtime proof unverified. Settings provides a lockout-bound local waiting timer, dim-sum choices, ten arithmetic questions, a timed mole round, a clock fallback, a rolling local budget, and School-mode sum entry. A correct answer clears only the local timer, never signs in, creates a cookie, or refunds attempts. Trusted server-side grading remains unavailable on this static surface.
 
 ## Failure modes
 
