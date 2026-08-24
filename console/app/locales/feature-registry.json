@@ -67,13 +67,18 @@
       "blockedBy": "no-label-surface"
     },
     "scheduled-settings": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [],
-      "localizedLabels": [],
+      "labels": [
+        "Scheduled settings",
+        "What is in force now"
+      ],
+      "localizedLabels": [
+        "Scheduled settings",
+        "What is in force now"
+      ],
       "untranslatedLabels": [],
-      "note": "Implemented as partial, and contributes no label to the compiled design because no surface consumes it yet. The boundary will reach its copy the moment one does; this is a missing surface rather than a missing translation.",
-      "blockedBy": "no-label-surface"
+      "note": "Every listed label has a Cantonese entry."
     },
     "external-settings-sources": {
       "state": "not-localized",

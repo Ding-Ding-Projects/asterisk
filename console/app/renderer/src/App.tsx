@@ -33,6 +33,8 @@ import { setEmojisEnabled } from './dialog-emojis';
 import { isAttentionMode, setModeEnabled } from './attention-modes';
 import { openTicket, resolutionFor, type TicketCategory, type TicketSeverity } from './support-tickets';
 import { KNOWN_EDITORS, chooseEditor, clearEditorChoice } from './external-editor';
+import { loadRules } from './scheduled-settings';
+import { EMPTY_RUNNER_STATE, statusLine, tick, type RunnerState } from './schedule-runner';
 import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
 import { listArticles, resolveLink, search as docsSearch, suggested as docsSuggestedFor } from './docs-browser';
 import { DOCS_BUNDLE } from './generated/docs-bundle';
@@ -190,6 +192,23 @@ export class App extends Base {
 
   private static readonly LANGUAGE_SETTING = 'console.languageMode';
 
+  /** How often the schedule is re-evaluated. A window boundary is noticed within
+   *  this, which is close enough for a setting and cheap enough to run forever. */
+  private static readonly SCHEDULE_TICK_MS = 30_000;
+
+  /** What the runner is holding between ticks: the base value of every key it has
+   *  overridden, and what it last applied. */
+  private scheduleState: RunnerState = EMPTY_RUNNER_STATE;
+
+  /** Read by the compiled `text`-kind control marked `action:'schedule-status'`. */
+  private scheduleStatusLine = 'No schedule is in force; your own settings are in effect.';
+
+  private scheduleTimer: ReturnType<typeof setInterval> | undefined;
+
+  /** The values the person themselves chose, which every override is measured against
+   *  and restored to. A scheduled change never writes into this. */
+  private scheduleBase: Record<string, string> = {};
+
   /** Control id to attention mode. Each mode is independent, so this is a flat map
    *  rather than anything that could switch two of them together. */
   private static readonly ATTENTION_CONTROLS: Record<string, string> = {
@@ -263,6 +282,7 @@ export class App extends Base {
     void this.durableStorage.bootstrap().then(() => {
       this.restoreLanguageMode();
       this.restoreDisplayName();
+      this.startScheduler();
       this.restoreAppearance();
       this.forceUpdate();
     });
@@ -283,6 +303,8 @@ export class App extends Base {
     super.componentWillUnmount?.();
     if (this.refreshTimer) clearInterval(this.refreshTimer);
     this.refreshTimer = undefined;
+    if (this.scheduleTimer) clearInterval(this.scheduleTimer);
+    this.scheduleTimer = undefined;
   }
 
   componentDidUpdate() {
@@ -526,6 +548,49 @@ ${resolution.consequence}
 ${resolution.disclosure}`);
   }
 
+  // ---------------------------------------------------------------- scheduled settings
+
+  /** Starts the schedule tick and runs one immediately, so a window already in force at
+   *  launch applies now rather than up to a tick later. */
+  private startScheduler(): void {
+    this.runScheduleTick();
+    this.scheduleTimer = setInterval(() => this.runScheduleTick(), App.SCHEDULE_TICK_MS);
+  }
+
+  /**
+   * One tick: work out what should be in force now, and apply only what changed.
+   *
+   * Every change goes through baseSetVal -- the same path a person's own edit takes -- so
+   * a scheduled change is validated, persisted and noticed by the language, emoji and
+   * attention interceptions exactly as a manual one is. Writing the values directly would
+   * bypass all of that and let the two paths drift apart.
+   */
+  private runScheduleTick(): void {
+    const rules = loadRules(this.durableStorage.storage);
+    if (rules.length === 0 && Object.keys(this.scheduleState.applied).length === 0) {
+      return;
+    }
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    /* A key the runner is not currently overriding is the person's own, so its current
+     * value is the base. A key it IS overriding must not be re-read, or the override
+     * would be mistaken for the base the moment the window ends. */
+    for (const [key, value] of Object.entries(values)) {
+      if (key in this.scheduleState.applied) continue;
+      if (typeof value === 'string') this.scheduleBase[key] = value;
+    }
+
+    const result = tick(this.scheduleBase, rules, new Date(), this.scheduleState);
+    this.scheduleState = result.state;
+    this.scheduleStatusLine = statusLine(
+      result,
+      Object.fromEntries(rules.map((rule) => [rule.id, rule.label])),
+    );
+    for (const [key, value] of Object.entries(result.changes)) {
+      this.baseSetVal({ id: key, label: key, kind: 'text' }, value);
+    }
+    this.forceUpdate();
+  }
+
   // ---------------------------------------------------------------- display name
 
   /** Seeds the rename field with the stored name. An unset name leaves the control on
@@ -603,6 +668,7 @@ ${resolution.disclosure}`);
   /** Read by the compiled `text`-kind control marked `action:'daemon-status'`/`'vocab-status'`. */
   controlActionText = (action: string): string => {
     if (action === 'daemon-status') return this.daemonStatusLine;
+    if (action === 'schedule-status') return this.scheduleStatusLine;
     if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
     return '';
   };

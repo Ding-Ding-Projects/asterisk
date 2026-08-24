@@ -3358,6 +3358,9 @@ const SCREENS = {
       ctl('sup_description','What happened','text','',{ placeholder:'I cannot remember the PIN', info:'Nobody will read it, but the form insists.' }),
       ctl('sup_open','Open a ticket','switch',false,{ info:'Files the ticket locally and shows the resolution: this console opens your application-data folder so you can delete it yourself. Deleting it clears every toy lock on this machine, not only the one you are locked out of, along with your saved settings. Toy locks were never security, and this is the reset that was always available.' })
     ]},
+    { title:'Scheduled settings', desc:'Settings that change themselves at a time you choose, and change back when the window ends. A scheduled change goes through exactly the same path as one you make by hand, so it is validated and recorded the same way.', ctls:[
+      ctl('sch_status','What is in force now','text','No schedule is in force; your own settings are in effect.',{ action:'schedule-status', info:'Names the rules currently applying and the settings they are overriding. Your own values are never overwritten -- they are put back when the window ends, including if you delete the rule while it is running.' })
+    ]},
     { title:'Attention', desc:'Five accommodations, each independent and each off until you switch it on. They change how the interface behaves, nothing else, and none of them says anything about you.', ctls:[
       ctl('att_focus','Focus','switch',false,{ info:'Dims everything except what you are working on. Nothing is hidden; the rest is still one click away.' }),
       ctl('att_low','Low stimulation','switch',false,{ info:'Fewer moving things, quieter colour, and only the notifications that genuinely need a person. If your system already asks for reduced motion, that is honoured whether or not this is on.' }),

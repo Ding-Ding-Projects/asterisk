@@ -47,13 +47,15 @@
       ]
     },
     "scheduled-settings": {
-      "state": "partial",
-      "note": "Implemented 2026-08-24 as app/renderer/src/scheduled-settings.ts: rules with optional date and time windows and either every day or explicit weekdays, validated with every problem reported at once, matched against an explicit instant rather than a clock, with deterministic precedence when several match and base settings recoverable when a temporary override ends. Cross-midnight windows, equal start and end values, partial input and an empty schedule all have tested semantics rather than silent guesses. 38 tests. The module is complete and its guards are proven, but NOTHING IMPORTS IT YET -- no surface in the renderer calls it, so today it constrains nothing that ships. Recorded as partial rather than implemented for exactly that reason: a module wired at one end and consumed at neither is the defect this project has shipped a dozen times, and marking it done would be that same claim.",
+      "state": "implemented",
+      "note": "Implemented 2026-08-24 as app/renderer/src/scheduled-settings.ts: rules with optional date and time windows and either every day or explicit weekdays, validated with every problem reported at once, matched against an explicit instant rather than a clock, with deterministic precedence when several match and base settings recoverable when a temporary override ends. Cross-midnight windows, equal start and end values, partial input and an empty schedule all have tested semantics rather than silent guesses. 38 tests. Wired 2026-08-24 through app/renderer/src/schedule-runner.ts, which is the half that actually changes something: it computes what should be in force at an instant, applies only what changed, and puts the base back when a window ends. App runs it on a tick and pushes every change through baseSetVal -- the same path a person’s own edit takes -- so a scheduled change is validated, persisted and noticed by the language, emoji and attention interceptions exactly as a manual one is. The property the feature rests on is that an override never becomes the base: the remembered value is read from the base and fixed when a key is first overridden, so two overlapping windows cannot promote the first window’s value into the permanent setting when the second ends. A rule deleted mid-window still restores its key, and a key with no base value restores nothing rather than being written to an empty string. Status control sch_status reports the rules in force and the keys they override, by name rather than as a count.",
       "files": [
+        "app/renderer/src/App.tsx",
+        "app/renderer/src/schedule-runner.ts",
         "app/renderer/src/scheduled-settings.ts",
+        "tests/ui/schedule-runner.test.tsx",
         "tests/ui/scheduled-settings.test.tsx"
-      ],
-      "blockedBy": "BLOCKED ON AN APPLY PATH. The module deliberately never mutates the base settings, so something has to take the computed effective values and drive the real controls, then restore the base when a window ends. The drafted wiring computed and displayed which rules were active and which keys they would override, and stopped there -- which reads as a working scheduler and schedules nothing. Real consumption needs a scheduler tick in App that calls effectiveSettings against the current instant, applies each overridden key through the same setVal interception a person would, and remembers the pre-override value so it can be put back -- plus a test proving a window ending restores the base rather than leaving the override in place."
+      ]
     },
     "external-settings-sources": {
       "state": "absent",
