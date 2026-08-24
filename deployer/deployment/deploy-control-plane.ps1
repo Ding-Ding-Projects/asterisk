@@ -47,6 +47,11 @@ function Assert-ProtectedExternalPath([string]$Path, [string]$Kind) {
     $full = [System.IO.Path]::GetFullPath($Path)
     $rootWithSeparator = $repoRoot.TrimEnd('\') + '\'
     if ($full.StartsWith($rootWithSeparator, [StringComparison]::OrdinalIgnoreCase) -or $full.Equals($repoRoot, [StringComparison]::OrdinalIgnoreCase)) { throw "$Kind path must be outside the repository." }
+    $cursor = $full
+    while ($cursor -and $cursor -ne [System.IO.Path]::GetPathRoot($cursor)) {
+        if (Test-Path -LiteralPath $cursor) { if ((Get-Item -LiteralPath $cursor).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "$Kind path cannot traverse a link or reparse point." } }
+        $cursor = [System.IO.Path]::GetDirectoryName($cursor)
+    }
     return $full
 }
 
@@ -119,9 +124,12 @@ function Read-Provenance([string]$Reference, [bool]$InspectEmbedded, $ExpectedMa
         }
         $labelRevision = (& docker image inspect $Reference --format '{{index .Config.Labels "org.opencontainers.image.revision"}}').Trim()
         $labelVersion = (& docker image inspect $Reference --format '{{index .Config.Labels "org.opencontainers.image.version"}}').Trim()
+        $imageId = (& docker image inspect $Reference --format '{{.Id}}').Trim()
+        $repoDigests = (& docker image inspect $Reference --format '{{json .RepoDigests}}').Trim() | ConvertFrom-Json
+        if ($imageId -notmatch '^sha256:[0-9a-f]{64}$' -or @($repoDigests).Count -eq 0) { throw 'The immutable image inspection did not return a local image id and RepoDigests.' }
         if ($labelRevision -notmatch '^[0-9a-f]{40}$' -or [string]::IsNullOrWhiteSpace($labelVersion)) { throw 'The final image is missing its source revision or version label.' }
         if ($labelRevision -ne $ExpectedManifest.sourceCommit -or $labelVersion -ne $ExpectedManifest.version) { throw 'The image labels do not match the external deployment manifest.' }
-        if (-not $InspectEmbedded) { return [pscustomobject]@{ sourceCommit = [string]$ExpectedManifest.sourceCommit; imageVersion = [string]$ExpectedManifest.version; schemaVersion = 0 } }
+        if (-not $InspectEmbedded) { return [pscustomobject]@{ sourceCommit = [string]$ExpectedManifest.sourceCommit; imageVersion = [string]$ExpectedManifest.version; schemaVersion = 0; imageId = $imageId; repoDigests = @($repoDigests); planOnly = $true } }
         & docker create --label io.ding.pbx.inspect=true --name $container $Reference | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "docker create exited with $LASTEXITCODE" }
         $created = $true
@@ -254,9 +262,12 @@ function Write-RecoveryTransaction($Transaction) {
     Move-Item -LiteralPath $temporary -Destination $recoveryTransactionPath -Force
 }
 
-function Get-SnapshotEncryptionKey {
+function Get-SnapshotEncryptionKeys {
     $bytes = [System.IO.File]::ReadAllBytes($SnapshotEncryptionKeyFile)
-    return ([System.Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)
+    $salt = [System.Text.Encoding]::UTF8.GetBytes('ding-pbx-snapshot-hkdf-v1')
+    $extract = [System.Security.Cryptography.HMACSHA256]::new($salt); try { $prk = $extract.ComputeHash($bytes) } finally { $extract.Dispose() }
+    $expand = [System.Security.Cryptography.HMACSHA256]::new($prk); try { $enc = $expand.ComputeHash([System.Text.Encoding]::UTF8.GetBytes('encryption-v1')); $mac = $expand.ComputeHash([System.Text.Encoding]::UTF8.GetBytes('integrity-v1')) } finally { $expand.Dispose() }
+    return [pscustomobject]@{ encryption = $enc; integrity = $mac; formatVersion = 1; keyDerivation = 'HKDF-SHA256' }
 }
 
 function Get-FileHmacSha256([string]$Path, [byte[]]$Key) {
@@ -268,7 +279,7 @@ function Get-FileHmacSha256([string]$Path, [byte[]]$Key) {
 function Get-BytesHmacSha256([byte[]]$Bytes, [int]$Length, [byte[]]$Key) { $hmac = [System.Security.Cryptography.HMACSHA256]::new($Key); try { return $hmac.ComputeHash($Bytes, 0, $Length) } finally { $hmac.Dispose() } }
 
 function Protect-SnapshotArchive([string]$PlainPath) {
-    $key = Get-SnapshotEncryptionKey
+    $keys = Get-SnapshotEncryptionKeys; $key = $keys.encryption
     $encryptedPath = "$PlainPath.enc"
     $iv = New-Object byte[] 16
     $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create(); $rng.GetBytes($iv); $rng.Dispose()
@@ -279,19 +290,19 @@ function Protect-SnapshotArchive([string]$PlainPath) {
         $aes = [System.Security.Cryptography.Aes]::Create(); $aes.Key = $key; $aes.IV = $iv; $aes.Mode = 'CBC'; $aes.Padding = 'PKCS7'
         try { $crypto = [System.Security.Cryptography.CryptoStream]::new($output, $aes.CreateEncryptor(), [System.Security.Cryptography.CryptoStreamMode]::Write); try { $input.CopyTo($crypto); $crypto.FlushFinalBlock() } finally { $crypto.Dispose() } } finally { $aes.Dispose() }
     } finally { $input.Dispose(); $output.Dispose() }
-    $mac = Get-FileHmacSha256 $encryptedPath $key
+    $mac = Get-FileHmacSha256 $encryptedPath $keys.integrity
     $append = [System.IO.File]::Open($encryptedPath, [System.IO.FileMode]::Append, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None); try { $append.Write($mac, 0, $mac.Length) } finally { $append.Dispose() }
     $encryptedItem = Get-Item -LiteralPath $encryptedPath
     Remove-Item -LiteralPath $PlainPath -Force
-    [pscustomobject]@{ path = $encryptedPath; bytes = [long]$encryptedItem.Length; sha256 = (Get-FileHash -LiteralPath $encryptedPath -Algorithm SHA256).Hash.ToLowerInvariant() }
+    [pscustomobject]@{ path = $encryptedPath; bytes = [long]$encryptedItem.Length; sha256 = (Get-FileHash -LiteralPath $encryptedPath -Algorithm SHA256).Hash.ToLowerInvariant(); formatVersion = $keys.formatVersion; keyDerivation = $keys.keyDerivation; algorithm = 'AES-256-CBC+HMAC-SHA256' }
 }
 
 function Unprotect-SnapshotArchive([string]$EncryptedPath) {
-    $key = Get-SnapshotEncryptionKey
+    $keys = Get-SnapshotEncryptionKeys; $key = $keys.encryption
     $bytes = [System.IO.File]::ReadAllBytes($EncryptedPath)
     if ($bytes.Length -lt 16 + 32) { throw 'Encrypted snapshot archive is truncated.' }
     $iv = $bytes[0..15]; $macExpected = $bytes[($bytes.Length - 32)..($bytes.Length - 1)]
-    $macActual = Get-BytesHmacSha256 $bytes ($bytes.Length - 32) $key
+    $macActual = Get-BytesHmacSha256 $bytes ($bytes.Length - 32) $keys.integrity
     $same = $true; for ($i = 0; $i -lt $macExpected.Length; $i++) { if ($macExpected[$i] -ne $macActual[$i]) { $same = $false } }; if (-not $same) { throw 'Encrypted snapshot archive integrity validation failed.' }
     $cipherLength = $bytes.Length - 16 - 32
     $temporary = Join-Path $SnapshotDirectory ("snapshot-decrypted.{0}.tar" -f ([guid]::NewGuid().ToString('N')))
@@ -367,7 +378,7 @@ function Snapshot-Volumes {
     $SnapshotDirectory = Assert-ProtectedSnapshotDirectory $SnapshotDirectory
     $snapshotRunId = ([guid]::NewGuid().ToString('N'))
     $volumes = @('ding-pbx-control-plane-data', 'ding-pbx-control-plane-asterisk-etc', 'ding-pbx-control-plane-asterisk-lib', 'ding-pbx-control-plane-asterisk-log', 'ding-pbx-control-plane-asterisk-spool')
-    $journal = [ordered]@{ schemaVersion = 1; snapshotId = $snapshotRunId; state = 'started'; createdAt = [DateTimeOffset]::UtcNow.ToString('o'); volumeResults = @(); retention = [ordered]@{ keepDays = $SnapshotRetentionDays; cleanup = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\cleanup-volume-snapshots.ps1`" -SnapshotParent `"$([System.IO.Path]::GetDirectoryName($SnapshotDirectory))`" -RetentionDays $SnapshotRetentionDays -Execute; remove only complete, recoverability-verified snapshot directories" } }
+    $journal = [ordered]@{ schemaVersion = 1; snapshotId = $snapshotRunId; state = 'started'; createdAt = [DateTimeOffset]::UtcNow.ToString('o'); volumeResults = @(); retention = [ordered]@{ keepDays = $SnapshotRetentionDays; cleanup = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\cleanup-volume-snapshots.ps1`" -SnapshotParent `"$([System.IO.Path]::GetDirectoryName($SnapshotDirectory))`" -SnapshotEncryptionKeyFile `"<protected-key-path>`" -RetentionDays $SnapshotRetentionDays -Execute; remove only complete, recoverability-verified snapshot directories" } }
     Write-SnapshotJournal $journal
     foreach ($volume in $volumes) {
         $safe = $volume.Replace('-', '_')
@@ -386,7 +397,7 @@ function Snapshot-Volumes {
             if ($exitCode -ne '0') { throw "Volume snapshot helper failed for $volume." }
             $archive = Read-AndValidateSnapshotTar $destination
             $protected = Protect-SnapshotArchive $destination
-            $journal.volumeResults += [ordered]@{ volume = $volume; archive = [System.IO.Path]::GetFileName($protected.path); bytes = $archive.bytes; sha256 = $archive.sha256; encryptedBytes = $protected.bytes; encryptedSha256 = $protected.sha256; encryption = 'AES-256-CBC with HMAC-SHA256 integrity; operator key supplied through protected file'; entries = $archive.entries; state = 'complete' }
+            $journal.volumeResults += [ordered]@{ volume = $volume; archive = [System.IO.Path]::GetFileName($protected.path); bytes = $archive.bytes; sha256 = $archive.sha256; encryptedBytes = $protected.bytes; encryptedSha256 = $protected.sha256; encryption = $protected.algorithm; formatVersion = $protected.formatVersion; keyDerivation = $protected.keyDerivation; entries = $archive.entries; state = 'complete' }
             $journal.state = 'in-progress'
             Write-SnapshotJournal $journal
         } catch {
@@ -399,9 +410,15 @@ function Snapshot-Volumes {
                 $owned = (& docker inspect --format '{{index .Config.Labels "io.ding.pbx.snapshot"}}' $helperId 2>$null).Trim()
                 if ($owned -eq 'true') { & docker rm --force $helperId | Out-Null }
             }
+            $recorded = @($journal.volumeResults | Where-Object volume -eq $volume).Count -gt 0
+            if (-not $recorded) {
+                if (Test-Path -LiteralPath $destination) { Remove-Item -LiteralPath $destination -Force }
+                $partialEncrypted = "$destination.enc"
+                if (Test-Path -LiteralPath $partialEncrypted) { Remove-Item -LiteralPath $partialEncrypted -Force }
+            }
         }
     }
-    $snapshotRecord = [ordered]@{ schemaVersion = 1; snapshotId = $snapshotRunId; sourceImage = $ImageRef; sourceCommit = $manifest.sourceCommit; sourceVersion = $manifest.version; volumeSchemaVersion = $manifest.volumeSchemaVersion; mountProfile = $manifest.mountProfile; volumes = $volumes; archives = $journal.volumeResults; createdAt = [DateTimeOffset]::UtcNow.ToString('o'); compatibility = 'restore only into the same volume schema, mount profile, and ordered volume names'; restoreCommand = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\restore-volume-snapshots.ps1`" -SnapshotDirectory `"$SnapshotDirectory`" -ManifestPath `"<compatible-manifest-path>`" -PreflightEvidencePath `"<fresh-preflight-path>`" -SnapshotEncryptionKeyFile `"<protected-key-path>`" -TlsCertificateSha256 `"<certificate-pin>`" -SessionCookieFile `"<fresh-readiness-credential>`" -Execute"; retention = $journal.retention }
+    $snapshotRecord = [ordered]@{ schemaVersion = 1; snapshotId = $snapshotRunId; sourceImage = $ImageRef; sourceCommit = $manifest.sourceCommit; sourceVersion = $manifest.version; sourceTreeSha256 = $manifest.sourceTreeSha256; dockerfileSha256 = $manifest.dockerfileSha256; consoleLockSha256 = $manifest.consoleLockSha256; inputManifestSha256 = $manifest.inputManifestSha256; aptSbomSha256 = $manifest.aptSbomSha256; ubuntuSnapshot = $manifest.ubuntuSnapshot; runtimeBaseImage = $manifest.runtimeBaseImage; nodeBuildBaseImage = $manifest.nodeBuildBaseImage; volumeSchemaVersion = $manifest.volumeSchemaVersion; mountProfile = $manifest.mountProfile; volumes = $volumes; archives = $journal.volumeResults; createdAt = [DateTimeOffset]::UtcNow.ToString('o'); compatibility = 'restore only into the same volume schema, mount profile, and ordered volume names'; restoreCommand = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\restore-volume-snapshots.ps1`" -SnapshotDirectory `"$SnapshotDirectory`" -ManifestPath `"<compatible-manifest-path>`" -PreflightEvidencePath `"<fresh-preflight-path>`" -SnapshotEncryptionKeyFile `"<protected-key-path>`" -TlsCertificateSha256 `"<certificate-pin>`" -SessionCookieFile `"<fresh-readiness-credential>`" -Execute"; retention = $journal.retention }
     [System.IO.File]::WriteAllText((Join-Path $SnapshotDirectory 'snapshot-record.json'), ($snapshotRecord | ConvertTo-Json -Depth 8), [System.Text.UTF8Encoding]::new($false))
     $journal.state = 'complete'
     $journal.snapshotRecordSha256 = (Get-FileHash -LiteralPath (Join-Path $SnapshotDirectory 'snapshot-record.json') -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -476,10 +493,13 @@ function Assert-OwnedDeployment([string]$ContainerId, [string]$ExpectedImageRef)
     if (-not $networks.'ding-pbx-control-plane_control-plane') { throw 'Live container is not attached to the internal control-plane network.' }
 }
 
+Assert-OperationDeadline
 $record = Read-Provenance $ImageRef $Execute $manifest
+Assert-OperationDeadline
 Set-ComposeEnvironment $ImageRef $record $manifest
 Write-Host "Prepared immutable image $ImageRef from source commit $($record.sourceCommit), version $($record.imageVersion)."
 if (-not $Execute) {
+    Write-Host "Plan-only image inspection: local image id and RepoDigests were checked; embedded provenance, snapshot recoverability, Compose state, and runtime readiness remain unverified."
     Write-Host 'Plan only. No Compose state changed. Re-run with -Execute after reviewing the preflight and provenance.'
     exit 0
 }
@@ -489,9 +509,11 @@ $recoveryTransactionPath = Join-Path $SnapshotDirectory 'recovery-transaction.js
 $recoveryTransaction = [ordered]@{ schemaVersion = 1; transactionId = ([guid]::NewGuid().ToString('N')); state = 'started'; serviceState = 'unknown'; snapshotState = 'not-started'; restoreState = 'not-started'; previousStartState = 'not-started'; startedAt = [DateTimeOffset]::UtcNow.ToString('o') }
 Write-RecoveryTransaction $recoveryTransaction
 try {
+    Assert-OperationDeadline
     $preChangeImageRef = Stop-OwnedServiceForSnapshot $recoveryTransaction
     $recoveryTransaction.snapshotState = 'started'; Write-RecoveryTransaction $recoveryTransaction
     Snapshot-Volumes
+    Assert-OperationDeadline
     $recoveryTransaction.snapshotState = 'complete'; Write-RecoveryTransaction $recoveryTransaction
 } catch {
     $recoveryTransaction.state = 'snapshot-failed'
@@ -510,6 +532,7 @@ try {
 $env:DING_PBX_SNAPSHOT_RECORD = (Join-Path $SnapshotDirectory 'snapshot-record.json')
 $composeArgs = @('compose', '--project-name', $ProjectName, '--file', $ComposeFile, 'up', '--detach', '--no-build')
 & docker @composeArgs
+Assert-OperationDeadline
 if ($LASTEXITCODE -ne 0) {
     $composeExitCode = $LASTEXITCODE
     $recoveryTransaction.state = 'compose-failed'; $recoveryTransaction.failure = "docker compose exited with $composeExitCode"; $recoveryTransaction.restoreState = 'started'; Write-RecoveryTransaction $recoveryTransaction

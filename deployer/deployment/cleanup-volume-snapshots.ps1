@@ -1,6 +1,7 @@
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [Parameter(Mandatory)] [string]$SnapshotParent,
+    [Parameter(Mandatory)] [string]$SnapshotEncryptionKeyFile,
     [int]$RetentionDays = 14,
     [switch]$Execute
 )
@@ -11,7 +12,14 @@ if ($RetentionDays -lt 1) { throw 'RetentionDays must be positive.' }
 if (-not [System.IO.Path]::IsPathRooted($SnapshotParent)) { throw 'SnapshotParent must be an absolute path.' }
 $parent = [System.IO.Path]::GetFullPath($SnapshotParent)
 if ($parent.StartsWith($repoRoot.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase) -or $parent.Equals($repoRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'SnapshotParent must be outside the repository.' }
+$cursor = $parent
+while ($cursor -and $cursor -ne [System.IO.Path]::GetPathRoot($cursor)) { if ((Test-Path -LiteralPath $cursor) -and ((Get-Item -LiteralPath $cursor).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'SnapshotParent cannot traverse a link or reparse point.' }; $cursor = [System.IO.Path]::GetDirectoryName($cursor) }
 if (-not (Test-Path -LiteralPath $parent -PathType Container)) { throw 'SnapshotParent does not exist.' }
+if (-not [System.IO.Path]::IsPathRooted($SnapshotEncryptionKeyFile) -or [System.IO.Path]::GetFullPath($SnapshotEncryptionKeyFile).StartsWith($repoRoot.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase) -or -not (Test-Path -LiteralPath $SnapshotEncryptionKeyFile -PathType Leaf)) { throw 'SnapshotEncryptionKeyFile must be an existing protected file outside the repository.' }
+$keyItem = Get-Item -LiteralPath $SnapshotEncryptionKeyFile
+if ($keyItem.Length -lt 16 -or $keyItem.Length -gt 128) { throw 'SnapshotEncryptionKeyFile has an invalid size.' }
+$keyAcl = Get-Acl -LiteralPath $SnapshotEncryptionKeyFile
+if (@($keyAcl.Access | Where-Object { $_.AccessControlType -eq 'Allow' -and $_.IdentityReference -match 'Everyone|BUILTIN\\Users|Authenticated Users|^Users$' }).Count -gt 0) { throw 'SnapshotEncryptionKeyFile is readable by a broad group.' }
 $cutoff = [DateTimeOffset]::UtcNow.AddDays(-$RetentionDays)
 $candidates = @()
 foreach ($directory in @(Get-ChildItem -LiteralPath $parent -Directory -Filter 'snapshot-*')) {
@@ -31,7 +39,8 @@ foreach ($directory in @(Get-ChildItem -LiteralPath $parent -Directory -Filter '
         $archiveDigest = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
         if ([long]$archiveItem.Length -ne [long]$archive.encryptedBytes -or $archiveDigest -ne [string]$archive.encryptedSha256) { $archivesValid = $false; break }
     }
-    if ($record.schemaVersion -ne 1 -or $journal.schemaVersion -ne 1 -or $journal.state -ne 'complete' -or $journal.recoverability -ne 'verified' -or $transaction.state -ne 'complete' -or -not $archivesValid -or $recordItem.LastWriteTimeUtc -gt $cutoff) { continue }
+    $expectedVolumes = @('ding-pbx-control-plane-data', 'ding-pbx-control-plane-asterisk-etc', 'ding-pbx-control-plane-asterisk-lib', 'ding-pbx-control-plane-asterisk-log', 'ding-pbx-control-plane-asterisk-spool')
+    if ($record.schemaVersion -ne 1 -or $record.sourceImage -notmatch '@sha256:[0-9a-f]{64}$' -or $record.mountProfile -ne 'five-volumes-plus-run-tmpfs' -or (@($record.volumes) -join '|') -ne ($expectedVolumes -join '|') -or $journal.schemaVersion -ne 1 -or $journal.state -ne 'complete' -or $journal.recoverability -ne 'verified' -or $transaction.state -ne 'complete' -or -not $archivesValid -or $recordItem.LastWriteTimeUtc -gt $cutoff) { continue }
     $candidates += $directory
 }
 if (-not $Execute) { $candidates | ForEach-Object { Write-Host "Retention candidate: $($_.FullName)" }; exit 0 }
