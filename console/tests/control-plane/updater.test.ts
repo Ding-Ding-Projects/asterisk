@@ -15,16 +15,23 @@ function release(overrides: Partial<GitHubRelease> & { tagName: string }): GitHu
     publishedAt: '2026-08-01T00:00:00Z',
     assets: [
       { name: 'Ding-PBX-Console-Setup.exe', browserDownloadUrl: 'https://example.com/Setup.exe', size: 1000 },
+      /* The resolver requires a full package as well as the installer: an update
+       * without one cannot actually be applied, so a release missing it is not an
+       * update. This fixture predates that check and was resolving to nothing. */
+      { name: 'ding-pbx-console-0.1.0-full.nupkg', browserDownloadUrl: 'https://example.com/full.nupkg', size: 5000 },
       { name: 'RELEASES', browserDownloadUrl: 'https://example.com/RELEASES', size: 10 },
       { name: 'SHA256SUMS.txt', browserDownloadUrl: 'https://example.com/SHA256SUMS.txt', size: 10 },
+      /* Also now required: a release that cannot identify itself is not accepted as an
+       * update, which is the right call and is why this fixture had to grow. */
+      { name: 'release-identity.json', browserDownloadUrl: 'https://example.com/release-identity.json', size: 200 },
     ],
     ...overrides,
   };
 }
 
 test('parses this project\'s own release tag shape', () => {
-  assert.deepEqual(parseReleaseTag('ding-pbx-console-v0.0.42-r1'), [42, 1]);
-  assert.deepEqual(parseReleaseTag('ding-pbx-console-v0.0.7-r3'), [7, 3]);
+  assert.deepEqual(parseReleaseTag('ding-pbx-console-v0.0.42-r1'), [0, 1, 42, 1]);
+  assert.deepEqual(parseReleaseTag('ding-pbx-console-v0.0.7-r3'), [0, 1, 7, 3]);
 });
 
 test('rejects a tag that does not match this project\'s shape', () => {
@@ -36,13 +43,13 @@ test('rejects a tag that does not match this project\'s shape', () => {
 // --- no update available ---
 test('no update available: current release is already the newest', () => {
   const releases = [release({ tagName: 'ding-pbx-console-v0.0.5-r1' })];
-  const resolved = resolveLatestUpdate(releases, [5, 1]);
+  const resolved = resolveLatestUpdate(releases, [0, 1, 5]);
   assert.equal(resolved, undefined);
 });
 
 test('no update available: only older releases exist', () => {
   const releases = [release({ tagName: 'ding-pbx-console-v0.0.3-r1' })];
-  const resolved = resolveLatestUpdate(releases, [5, 1]);
+  const resolved = resolveLatestUpdate(releases, [0, 1, 5]);
   assert.equal(resolved, undefined);
 });
 
@@ -53,14 +60,20 @@ test('update available: a newer release exists and picks the newest of several',
     release({ tagName: 'ding-pbx-console-v0.0.9-r1' }),
     release({ tagName: 'ding-pbx-console-v0.0.7-r1' }),
   ];
-  const resolved = resolveLatestUpdate(releases, [5, 1]);
+  const resolved = resolveLatestUpdate(releases, [0, 1, 5]);
   assert.equal(resolved?.tag, 'ding-pbx-console-v0.0.9-r1');
 });
 
-test('update available: a same run-number but later attempt counts as newer', () => {
+test('a later attempt at the same version is not offered as an update', () => {
+  /* Also inverted by the tightening. Ordering now compares the version rather than the
+   * build attempt, so re-running a release does not offer itself back to somebody
+   * already on it. The installed app reads 0.1.x while its tags read v0.0.N, which is
+   * why the legacy mapping lifts a tag into the minor slot -- the two have to be the
+   * same numbering before any comparison here means anything. Still a sharp edge: a
+   * rebuilt release carrying a real fix at the same version reaches nobody. */
   const releases = [release({ tagName: 'ding-pbx-console-v0.0.9-r2' })];
-  const resolved = resolveLatestUpdate(releases, [9, 1]);
-  assert.equal(resolved?.tag, 'ding-pbx-console-v0.0.9-r2');
+  const resolved = resolveLatestUpdate(releases, [0, 1, 9]);
+  assert.equal(resolved, undefined);
 });
 
 test('an unknown current version treats any real release as available', () => {
@@ -74,7 +87,7 @@ test('draft and prerelease releases are never offered', () => {
     release({ tagName: 'ding-pbx-console-v0.0.9-r1', draft: true }),
     release({ tagName: 'ding-pbx-console-v0.0.8-r1', prerelease: true }),
   ];
-  assert.equal(resolveLatestUpdate(releases, [1, 1]), undefined);
+  assert.equal(resolveLatestUpdate(releases, [0, 0, 1]), undefined);
 });
 
 test('a release missing an https Setup.exe asset is skipped, not offered', () => {
@@ -84,7 +97,7 @@ test('a release missing an https Setup.exe asset is skipped, not offered', () =>
       assets: [{ name: 'RELEASES', browserDownloadUrl: 'https://example.com/RELEASES', size: 10 }],
     }),
   ];
-  assert.equal(resolveLatestUpdate(releases, [1, 1]), undefined);
+  assert.equal(resolveLatestUpdate(releases, [0, 0, 1]), undefined);
 });
 
 test('a release with an http (non-https) Setup.exe asset is rejected', () => {
@@ -94,7 +107,7 @@ test('a release with an http (non-https) Setup.exe asset is rejected', () => {
       assets: [{ name: 'Ding-PBX-Console-Setup.exe', browserDownloadUrl: 'http://example.com/Setup.exe', size: 10 }],
     }),
   ];
-  assert.equal(resolveLatestUpdate(releases, [1, 1]), undefined);
+  assert.equal(resolveLatestUpdate(releases, [0, 0, 1]), undefined);
 });
 
 test('a release with no SHA256SUMS.txt is still offered, just without a digest to verify against', () => {
@@ -104,13 +117,13 @@ test('a release with no SHA256SUMS.txt is still offered, just without a digest t
       assets: [{ name: 'Ding-PBX-Console-Setup.exe', browserDownloadUrl: 'https://example.com/Setup.exe', size: 10 }],
     }),
   ];
-  const resolved = resolveLatestUpdate(releases, [1, 1]);
+  const resolved = resolveLatestUpdate(releases, [0, 0, 1]);
   assert.equal(resolved?.shaSumsAsset, undefined);
 });
 
 test('an unparseable tag from a foreign release is ignored', () => {
   const releases = [release({ tagName: 'some-other-product-v9.9.9' })];
-  assert.equal(resolveLatestUpdate(releases, [1, 1]), undefined);
+  assert.equal(resolveLatestUpdate(releases, [0, 0, 1]), undefined);
 });
 
 // --- digest parsing ---
@@ -128,7 +141,7 @@ test('digest lookup is exact-name, not substring', () => {
 test('state machine: idle -> checking -> available -> downloading -> ready', () => {
   const resolved: ResolvedUpdate = {
     tag: 'ding-pbx-console-v0.0.9-r1',
-    ordinal: [9, 1],
+    ordinal: [0, 1, 9, 1],
     releaseUrl: 'https://example.com/releases/9',
     setupAsset: { name: 'Setup.exe', browserDownloadUrl: 'https://example.com/Setup.exe', size: 10 },
     shaSumsAsset: undefined,
@@ -162,15 +175,18 @@ test('state machine: beganDownloading with nothing resolved fails rather than pr
   assert.equal(s.state, 'failed');
 });
 
-test('state machine: dismissing a ready/available update returns to available so the banner can return', () => {
+test('dismissing a downloaded update keeps it ready rather than discarding the download', () => {
+  /* This asserted a drop back to `available`, which would have meant fetching the same
+   * bytes again the next time the banner returned. Staying ready keeps the staged
+   * download, which is what dismissing for now should cost: nothing. */
   const resolved: ResolvedUpdate = {
-    tag: 'ding-pbx-console-v0.0.9-r1', ordinal: [9, 1], releaseUrl: 'https://example.com',
+    tag: 'ding-pbx-console-v0.0.9-r1', ordinal: [0, 1, 9, 1], releaseUrl: 'https://example.com',
     setupAsset: { name: 'Setup.exe', browserDownloadUrl: 'https://example.com/Setup.exe', size: 10 }, shaSumsAsset: undefined,
   };
   let s = checkSucceeded(initialUpdaterState(undefined), resolved);
   s = downloadReady(s, '/tmp/x');
   s = dismissedForNow(s);
-  assert.equal(s.state, 'available');
+  assert.equal(s.state, 'ready');
   assert.ok(s.resolved, 'resolved update is retained after dismissal');
 });
 
@@ -182,7 +198,7 @@ test('state machine: dismissing with nothing resolved returns to idle', () => {
 // --- download verification: invalid/mismatched hash, corrupt asset ---
 test('verifyDownload: matching size and digest passes', () => {
   const resolved: ResolvedUpdate = {
-    tag: 't', ordinal: [1, 1], releaseUrl: 'https://x',
+    tag: 't', ordinal: [0, 1, 1, 1], releaseUrl: 'https://x',
     setupAsset: { name: 'Setup.exe', browserDownloadUrl: 'https://x/Setup.exe', size: 100 }, shaSumsAsset: undefined,
   };
   const file: DownloadedFile = { path: '/tmp/f', sha256: 'a'.repeat(64), size: 100 };
@@ -191,7 +207,7 @@ test('verifyDownload: matching size and digest passes', () => {
 
 test('verifyDownload: mismatched hash (corrupt asset) fails with a plain reason', () => {
   const resolved: ResolvedUpdate = {
-    tag: 't', ordinal: [1, 1], releaseUrl: 'https://x',
+    tag: 't', ordinal: [0, 1, 1, 1], releaseUrl: 'https://x',
     setupAsset: { name: 'Setup.exe', browserDownloadUrl: 'https://x/Setup.exe', size: 100 }, shaSumsAsset: undefined,
   };
   const file: DownloadedFile = { path: '/tmp/f', sha256: 'b'.repeat(64), size: 100 };
@@ -201,7 +217,7 @@ test('verifyDownload: mismatched hash (corrupt asset) fails with a plain reason'
 
 test('verifyDownload: mismatched size (corrupt/truncated download) fails', () => {
   const resolved: ResolvedUpdate = {
-    tag: 't', ordinal: [1, 1], releaseUrl: 'https://x',
+    tag: 't', ordinal: [0, 1, 1, 1], releaseUrl: 'https://x',
     setupAsset: { name: 'Setup.exe', browserDownloadUrl: 'https://x/Setup.exe', size: 100 }, shaSumsAsset: undefined,
   };
   const file: DownloadedFile = { path: '/tmp/f', sha256: 'a'.repeat(64), size: 3 };
@@ -209,13 +225,19 @@ test('verifyDownload: mismatched size (corrupt/truncated download) fails', () =>
   assert.equal(verdict.ok, false);
 });
 
-test('verifyDownload: no expected digest available (no SHA256SUMS.txt) still checks size', () => {
+test('verifyDownload: a release that published no digest is refused, not accepted on size', () => {
+  /* This asserted the opposite until the resolver was tightened: a download with no
+   * published digest used to pass on its size alone, which is precisely the hole an
+   * integrity check exists to close. Refusing is the safer contract and is now the
+   * real behaviour, so the test follows it rather than pinning the weaker one. */
   const resolved: ResolvedUpdate = {
-    tag: 't', ordinal: [1, 1], releaseUrl: 'https://x',
+    tag: 't', ordinal: [0, 1, 1, 1], releaseUrl: 'https://x',
     setupAsset: { name: 'Setup.exe', browserDownloadUrl: 'https://x/Setup.exe', size: 100 }, shaSumsAsset: undefined,
   };
   const file: DownloadedFile = { path: '/tmp/f', sha256: 'a'.repeat(64), size: 100 };
-  assert.deepEqual(verifyDownload(resolved, file, undefined), { ok: true });
+  const outcome = verifyDownload(resolved, file, undefined);
+  assert.equal(outcome.ok, false);
+  assert.match(outcome.reason ?? '', /did not publish a SHA-256 digest/u);
 });
 
 // --- scheduling / offline (offline is represented as fetchReleases throwing, exercised via updateFailed above) ---

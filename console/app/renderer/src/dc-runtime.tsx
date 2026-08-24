@@ -1,5 +1,7 @@
 import { Component, createElement, Fragment, type ReactNode } from 'react';
 
+import { localizedCreateElement } from './text-boundary';
+
 /**
  * Runtime for the compiled design reference.
  *
@@ -19,7 +21,15 @@ export abstract class DCLogic<P = Record<string, unknown>, S = Record<string, un
   }
 }
 
-export const h = createElement;
+/**
+ * The element factory the entire generated tree is built from -- and therefore the
+ * single point every rendered string passes through. It is the localized factory
+ * rather than React's own so that language modes and the personal vocabulary apply
+ * to the compiled design without any generated file being edited. With no catalog
+ * loaded and no vocabulary wired it is `createElement` with one string check, which
+ * is what the English default costs.
+ */
+export const h = localizedCreateElement;
 
 export function F(...children: ReactNode[]): ReactNode {
   return createElement(Fragment, null, ...children);

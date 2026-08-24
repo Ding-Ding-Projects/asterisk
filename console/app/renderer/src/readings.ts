@@ -11,6 +11,7 @@ import {
   type TableCell,
   type TableReading,
 } from './table-state';
+import type { Codec, TranslationRow } from '../../../control-plane/asterisk-parsers.ts';
 
 /**
  * Turns control-plane readings into the row shapes the design's own screens consume.
@@ -54,6 +55,11 @@ export interface ViewReadings {
   mohClasses?: Reading<MohClass[]>;
   managerUsers?: Reading<{ users: ManagerUser[]; total?: number }>;
   ariApps?: Reading<AriApp[]>;
+  /** `core show codecs` / `core show translation` — the dispatcher already reads both
+   *  for the `codecs` screen (see `control-plane/dispatch.ts`); these two fields are
+   *  what let the codec translation graph (`codec-graph.ts`) actually reach them. */
+  codecs?: Reading<Codec[]>;
+  translations?: Reading<TranslationRow[]>;
 }
 
 /**

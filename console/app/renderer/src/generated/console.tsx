@@ -1529,6 +1529,63 @@ function Template(v: any) {
                       )))
                   )))
               ) : null),
+            (v.isCodecGraph ? h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:16px 18px; margin-bottom:14px;`) },
+                h("div", { style: sty(`display:flex; align-items:center; gap:8px; margin-bottom:4px;`) },
+                  h("span", { style: sty(`font-size:19px; color:#82D9A5;`), className: "msym" },
+                    "hub"
+                  ),
+                  h("span", { style: sty(`font-size:14.5px; font-weight:500;`) },
+                    "Codec translation graph"
+                  )
+                ),
+                h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11.5px; color:#9AA39B; margin-bottom:10px;`) },
+                  S(v.codecGraphStatus)
+                ),
+                (v.codecGraphHasData ? h("div", { style: sty(`position:relative; width:100%; max-width:640px; height:300px;`) },
+                    h("svg", { viewBox: `0 0 460 300`, style: sty(`position:absolute; left:0; top:0; width:100%; height:300px; pointer-events:none;`) },
+                      A(v.codecGraphEdges).map(($e, $e$i) => R($e$i, h("path", { d: $e.d, fill: `none`, stroke: `#37483D`, strokeWidth: `1.4` })))
+                    ),
+                    A(v.codecGraphNodes).map(($n, $n$i) => R($n$i, h("div", { style: sty(`position:absolute; left:${S($n.x)}; top:${S($n.y)}; width:72px; height:72px; border-radius:50%; background:#1B211C; border:2px solid ${S($n.fill)}; display:flex; align-items:center; justify-content:center; text-align:center; padding:4px;`) },
+                        h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10px; color:#DFE4DC; overflow:hidden; word-break:break-all;`) },
+                          S($n.label)
+                        )
+                      )))
+                  ) : null),
+                (v.codecGraphUnreachableLabel ? h("div", { style: sty(`font-size:11.5px; color:#FFB4AB; margin-top:8px;`) },
+                    S(v.codecGraphUnreachableLabel)
+                  ) : null)
+              ) : null),
+            (v.isEndpointGraph ? h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:16px 18px; margin-bottom:14px;`) },
+                h("div", { style: sty(`display:flex; align-items:center; gap:8px; margin-bottom:4px;`) },
+                  h("span", { style: sty(`font-size:19px; color:#82D9A5;`), className: "msym" },
+                    "device_hub"
+                  ),
+                  h("span", { style: sty(`font-size:14.5px; font-weight:500;`) },
+                    "Endpoint reachability graph"
+                  )
+                ),
+                h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11.5px; color:#9AA39B; margin-bottom:10px;`) },
+                  S(v.endpointGraphStatus)
+                ),
+                (v.endpointGraphHasData ? h("div", { style: sty(`position:relative; overflow:auto; max-height:420px; border-radius:12px; background:#0C110D;`) },
+                    h("div", { style: sty(`position:relative; width:${S(v.endpointGraphWidth)}; height:${S(v.endpointGraphHeight)};`) },
+                      h("svg", { style: sty(`position:absolute; left:0; top:0; width:${S(v.endpointGraphWidth)}; height:${S(v.endpointGraphHeight)}; pointer-events:none;`) },
+                        A(v.endpointGraphEdges).map(($e, $e$i) => R($e$i, h("path", { d: $e.d, fill: `none`, stroke: `#37483D`, strokeWidth: `1.6` })))
+                      ),
+                      A(v.endpointGraphNodes).map(($n, $n$i) => R($n$i, h("div", { title: $n.detail, style: sty(`position:absolute; left:${S($n.x)}; top:${S($n.y)}; width:168px; border-radius:10px; background:#1B211C; border:2px solid ${S($n.fill)}; padding:6px 9px;`) },
+                          h("div", { style: sty(`font-size:11.5px; font-weight:500; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
+                            S($n.label)
+                          ),
+                          h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10px; color:#9AA39B; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
+                            S($n.detail)
+                          )
+                        )))
+                    )
+                  ) : null),
+                A(v.endpointGraphBroken).map(($b, $b$i) => R($b$i, h("div", { style: sty(`font-size:11.5px; color:#FFB4AB; margin-top:4px;`) },
+                    S($b)
+                  )))
+              ) : null),
             A(v.groups).map(($g, $g$i) => R($g$i, h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:18px 20px; margin-bottom:12px; animation:m3Rise .36s cubic-bezier(.2,0,0,1) both; ${S($g.rnd)}`) },
                 h("div", { style: sty(`display:flex; align-items:flex-start; gap:12px; margin-bottom:16px;`) },
                   h("div", { style: sty(`flex:1;`) },
@@ -2823,6 +2880,30 @@ function pjsipCtls() {
       ctl('e_expiry','Registration expiry','slider',3600,{ min:60, max:7200, step:60, unit:'s' }),
       ctl('e_codecs','Allowed codecs','order',['opus','g722','ulaw','alaw'],{ pool:['opus','g722','ulaw','alaw','g729','gsm'] })
     ]},
+    { title:'Media streams', desc:'Stream ceilings and opportunistic encryption. These write pjsip.conf keys directly; a control left untouched writes nothing at all.', ctls:[
+      ctl('e_maxaudio','max_audio_streams','stepper',1,{ min:0, max:10, info:'How many simultaneous audio streams this endpoint may negotiate.' }),
+      ctl('e_maxvideo','max_video_streams','stepper',1,{ min:0, max:10, info:'The same ceiling for video. Zero refuses video outright.' }),
+      ctl('e_optimistic','media_encryption_optimistic','switch',false,{ info:'Opportunistic SRTP: offer encryption, but do not refuse the call when the far end cannot do it. Encryption becomes best-effort rather than required, which is a real downgrade and not merely a compatibility setting.' })
+    ]},
+    { title:'Session timers', desc:'Whether Asterisk keeps proving a call is still alive, and how often.', ctls:[
+      ctl('e_timers','timers','segmented','yes',{ options:['no','yes','required','always'] }),
+      ctl('e_timers_min_se','timers_min_se','slider',90,{ min:90, max:1800, step:10, unit:'s', info:'The shortest refresh interval this endpoint will accept. Asterisk refuses anything below 90.' }),
+      ctl('e_timers_sess','timers_sess_expires','slider',1800,{ min:90, max:7200, step:30, unit:'s', info:'The session expires after this long without a refresh.' })
+    ]},
+    { title:'Timeouts & device state', desc:'When Asterisk gives up on silent media, and when this endpoint counts as busy.', ctls:[
+      ctl('e_rtp_timeout','rtp_timeout','slider',0,{ min:0, max:300, step:5, unit:'s', info:'Hang up after this long with no RTP arriving. Zero disables the check entirely.' }),
+      ctl('e_rtp_hold','rtp_timeout_hold','slider',0,{ min:0, max:600, step:5, unit:'s', info:'The same, while the call is on hold, where silence is expected and the timeout usually wants to be longer.' }),
+      ctl('e_busy_at','device_state_busy_at','stepper',0,{ min:0, max:20, info:'Report this endpoint busy once it has this many calls. Zero means never report busy on count.' }),
+      ctl('e_refer_blind','refer_blind_progress','switch',true,{ info:'Whether a blind transfer reports its progress back to the transferring party.' })
+    ]},
+    { title:'MWI', desc:'How message-waiting notifications are delivered to this endpoint.', ctls:[
+      ctl('e_aggregate_mwi','aggregate_mwi','switch',true,{ info:'Send one summary for every mailbox rather than a separate notification each.' }),
+      ctl('e_mwi_replaces','mwi_subscribe_replaces_unsolicited','switch',false,{ info:'When the endpoint subscribes for MWI, stop sending it unsolicited notifications as well.' })
+    ]},
+    { title:'Outbound', desc:'Where outbound requests from this endpoint go, and what authenticates them.', ctls:[
+      ctl('e_outbound_proxy','outbound_proxy','text','',{ placeholder:'sip:proxy.example.net:5060\;lr', info:'A full SIP URI. Asterisk requires the lr parameter, and it must be escaped in the config file.' }),
+      ctl('e_outbound_auth','outbound_auth','text','',{ placeholder:'auth-section-name', info:'Names an auth section used for outbound requests. Left empty, nothing is written.' })
+    ]},
     { title:'Voicemail', desc:'Where this endpoint sends message-waiting notifications.', ctls:[
       ctl('e_mailboxes','mailboxes','text','',{ info:'Comma-separated mailbox@context pairs, e.g. 6001@default. Asterisk NOTIFYs this endpoint whenever any of them changes.' }),
       ctl('e_voicemail_ext','voicemail_extension','text','',{ info:'The extension sent in the NOTIFY Message-Account header. Leave blank to use the global default_voicemail_extension.' })
@@ -3182,7 +3263,9 @@ const SCREENS = {
     ]}] },
   customise:{ rail:'app', icon:'auto_awesome', label:'Customise everything', badge:'∞', title:'Customise everything', file:'console profile', kind:'generic',
     sub:'The global layer. Every one of these reaches across the whole console, and every individual element can still override it from its own right-click menu.',
-    groups:[{ title:'Fun', desc:'How playful the console is allowed to be. This is a real setting, not a joke — it scales celebrations, copy and randomness together.', ctls:[
+    groups:[{ title:'Language', desc:'Which language the console speaks. Bilingual keeps English primary and adds the Cantonese beside it. Technical identifiers -- codecs, config keys, section names, SIP URIs -- stay literal in every mode, because they have to survive being read back and typed.', ctls:[
+      ctl('lang_mode','Language','segmented','English',{ options:['English','廣東話','English + 廣東話'], info:'A string with no translation yet renders as English rather than as a placeholder, so an incomplete catalog looks unfinished instead of broken.' }),
+    ]},{ title:'Fun', desc:'How playful the console is allowed to be. This is a real setting, not a joke — it scales celebrations, copy and randomness together.', ctls:[
       ctl('fun_level','Fun level','slider',2,{ min:0, max:4, info:'0 is a bank. 1 is polite. 2 is the default — celebrations on meaningful wins. 3 adds jokes and bolder motion. 4 is confetti for changing a slider, rainbow fills and an app that will not stop congratulating you.' }),
       ctl('fun_copy','Copy tone','segmented','Warm',{ options:['Terse','Neutral','Warm','Comedian'] }),
       ctl('fun_celebrate','Celebrate on','chips',['Big wins','Security improvements'],{ options:['Every change','Big wins','Security improvements','Minigame wins','Nothing'] }),
@@ -4355,6 +4438,9 @@ class ConsoleShell extends DCLogic {
       openWizard:() => (sc.kind === 'servers' && this.onAddServer ? this.onAddServer() : this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null })),
 
       isDashboard:sc.kind === 'dashboard', isCanvas:sc.kind === 'canvas', isTable:sc.kind === 'table', isCli:sc.kind === 'cli', isMemory:sc.kind === 'memory', isDocs:sc.kind === 'docs', isChangelog:sc.kind === 'changelog',
+      // Additive, not kind-exclusive: codecs (kind:'generic') and endpoints (kind:'table')
+      // keep their own screen, this just adds a graph panel on top of it.
+      isCodecGraph:s.screen === 'codecs', isEndpointGraph:s.screen === 'endpoints',
       /* The servers screen has its own hero (One Click Setup) above this, but its
        * configured connections are a real table too, so it shares the generic table
        * markup — search, filters, the add button, and every row's own context menu. */
@@ -4571,6 +4657,31 @@ class ConsoleShell extends DCLogic {
       docsOutline:[],
       docsHasSuggested:false,
       docsSuggested:[],
+
+      codecGraphHasData:true,
+      codecGraphStatus:'6 codecs - 9 translation paths',
+      codecGraphNodes:[
+        { id:'opus', label:'opus', x:'274px', y:'26px', fill:'#82D9A5' },
+        { id:'ulaw', label:'ulaw', x:'380px', y:'150px', fill:'#82D9A5' },
+        { id:'g729', label:'g729', x:'274px', y:'274px', fill:'#FFB4AB' }
+      ],
+      codecGraphEdges:[
+        { d:'M310 62 L380 150' },
+        { d:'M380 150 L310 238' }
+      ],
+      codecGraphUnreachableLabel:'',
+
+      endpointGraphHasData:true,
+      endpointGraphStatus:'12 endpoints - 11 reachable - 1 broken',
+      endpointGraphWidth:'948px',
+      endpointGraphHeight:'214px',
+      endpointGraphNodes:[
+        { id:'1001', label:'1001', detail:'Not in use', x:'20px', y:'26px', fill:'#82D9A5' },
+        { id:'aor:1001', label:'1001', detail:'Configured address-of-record', x:'210px', y:'26px', fill:'#9AA39B' },
+        { id:'contact:1001', label:'sip:1001@10.20.4.31', detail:'Live contact, OK', x:'400px', y:'26px', fill:'#7FD1F0' }
+      ],
+      endpointGraphEdges:[{ d:'M104 38 C157 38 157 38 210 38' }, { d:'M294 38 C347 38 347 38 400 38' }],
+      endpointGraphBroken:['Address-of-record 1003 has a contact, but it is not reachable.'],
 
       changelogQuery:'',
       setChangelogQuery:(e) => this.set('changelogQuery', e.target.value),

@@ -5,6 +5,8 @@ import {
   type ViewReadings,
 } from './readings';
 import { canvasReason, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
+import { buildCodecGraph, layoutCodecs, unreachable as unreachableCodecs } from './codec-graph';
+import { buildEndpointGraph, brokenLinks as brokenEndpointLinks, layoutTopology, summarise as summariseEndpointGraph } from './endpoint-graph';
 import { runCeremonyCommand, type CeremonyResponse } from './ceremony';
 import { configSummary, renderForDisplay, resourceForFile, type ConfigReading, type ConfigValue } from './configuration';
 import { readControlValues, unmappedControls } from './control-keys';
@@ -19,6 +21,11 @@ import {
   clearVocabulary, loadVocabularyFile, vocabularyStatus, type VocabularyStorage,
 } from './personal-vocabulary';
 import { createDurableStorage, type DurableStorageHandle } from './durable-storage';
+import {
+  isLanguageMode, languageMode, setCatalog, setLanguageMode, setVocabularyStorage,
+  type LanguageMode,
+} from './text-boundary';
+import { CANTONESE } from './locale-yue';
 import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
 import { listArticles, resolveLink, search as docsSearch, suggested as docsSuggestedFor } from './docs-browser';
 import { DOCS_BUNDLE } from './generated/docs-bundle';
@@ -116,6 +123,9 @@ const TABLE_SCREENS = Object.entries(SCREENS as Record<string, { table?: { rows:
 /** The generated shell is untyped; this is the surface the console builds on. */
 interface Shell {
   renderVals(): Record<string, unknown>;
+  /** Every control change routes through here, which is why it is the one place a
+   *  cross-cutting setting can be noticed without touching a compiled file. */
+  setVal: (control: ControlRef, value: unknown) => void;
   componentDidMount?(): void;
   componentWillUnmount?(): void;
   showInfo(title: string, body: string, plain: string, x: string, y: string): void;
@@ -128,6 +138,9 @@ interface Shell {
   areYouSure(title: string, body: string, seconds: number, onConfirm: () => void): void;
   fire(title: string, body: string): void;
 }
+
+/** The shape the compiled shell hands every control callback. */
+interface ControlRef { id?: string; label?: string; kind?: string }
 
 const Base = ConsoleShell as unknown as new (props: Record<string, never>) => Component<Record<string, never>> & Shell;
 
@@ -168,6 +181,29 @@ export class App extends Base {
    *  stored yet", exactly like a missing settings file. */
   private durableStorage: DurableStorageHandle = createDurableStorage(this.bridge());
   private vocabStorage: VocabularyStorage = this.durableStorage.storage;
+
+  /* The design's `lang_mode` control, mapped to the boundary's own mode names. The
+   * control names each language in that language, which is the one label a person
+   * hunting for it can read whatever mode the console is currently in. */
+  private static readonly LANGUAGE_CHOICES: Record<string, LanguageMode> = {
+    English: 'en', '廣東話': 'yue', 'English + 廣東話': 'both',
+  };
+
+  private static readonly LANGUAGE_SETTING = 'console.languageMode';
+
+  /** The shell's own `setVal`, captured so the override below can delegate to it.
+   *  It is a class property rather than a prototype method, so `super.setVal` does not
+   *  exist and the only way to wrap it is to take a copy before replacing it. That has
+   *  to happen in the constructor: field initializers all run before the constructor
+   *  body, so by then an override declared as a field would already have replaced the
+   *  shell's and the copy would point at itself -- a recursion with no base case. */
+  private readonly baseSetVal: (control: ControlRef, value: unknown) => void;
+
+  constructor(props: Record<string, never>) {
+    super(props);
+    this.baseSetVal = this.setVal as (control: ControlRef, value: unknown) => void;
+    this.setVal = this.languageAwareSetVal;
+  }
   /** The chosen file's own name, kept only for display — never its contents. */
   private pickedFileNames = new Map<string, string>();
   /** The daemon lifecycle group on Deploy & servers has no reading of its own until a
@@ -207,7 +243,13 @@ export class App extends Base {
      * persisted state from it (the appearance editor's restore below), so the whole
      * bootstrap-then-restore sequence is awaited before touching either. Everything
      * else on mount does not depend on it and proceeds immediately. */
+    setCatalog(CANTONESE);
+    /* Until this runs the boundary applies language only. Wiring it here rather than
+     * at construction keeps the uploaded file and the rendered text reading from one
+     * storage handle instead of two that can disagree. */
+    setVocabularyStorage(this.vocabStorage);
     void this.durableStorage.bootstrap().then(() => {
+      this.restoreLanguageMode();
       this.restoreAppearance();
       this.forceUpdate();
     });
@@ -495,6 +537,30 @@ export class App extends Base {
     const label = labels[state] ?? state ?? 'Unknown';
     this.daemonStatusLine = status?.reason ? `${label} — ${status.reason}` : label;
     this.forceUpdate();
+  };
+
+  // ---------------------------------------------------------------- language mode
+
+  /** Restores the saved mode. An unrecognised or absent value leaves English in place
+   *  rather than guessing, so a hand-edited settings file cannot strand somebody in a
+   *  language they never chose. */
+  private restoreLanguageMode(): void {
+    const saved = this.durableStorage.storage.getItem(App.LANGUAGE_SETTING);
+    if (isLanguageMode(saved)) setLanguageMode(saved);
+  }
+
+  /** Every control change routes through the compiled shell's `setVal`; this notices
+   *  the language one on its way past, applies it live and persists it, then hands the
+   *  change on unchanged so the control behaves like every other control. */
+  private languageAwareSetVal = (control: ControlRef, value: unknown): void => {
+    if (control?.id === 'lang_mode') {
+      const mode = App.LANGUAGE_CHOICES[String(value)];
+      if (mode && mode !== languageMode()) {
+        setLanguageMode(mode);
+        this.durableStorage.storage.setItem(App.LANGUAGE_SETTING, mode);
+      }
+    }
+    this.baseSetVal(control, value);
   };
 
   /** Read by the compiled `text`-kind control marked `action:'daemon-status'`/`'vocab-status'`. */
@@ -1432,6 +1498,138 @@ It is shown once. The phone needs it to register.`);
     };
   }
 
+  // ---------------------------------------------------------------- Codec & endpoint graphs
+  //
+  // Two visualisations for screens that already exist, not new destinations: the codec
+  // translation graph belongs on `codecs` (drawn from the same `core show translation` /
+  // `core show codecs` readings the dispatcher already fetches for that screen -- see
+  // `control-plane/dispatch.ts`), and the endpoint reachability graph belongs on
+  // `endpoints` (drawn from `pjsip show endpoints` / `contacts` / `registrations`, the
+  // last of which the `endpoints` view now also reads for exactly this). Both engines
+  // (`codec-graph.ts`, `endpoint-graph.ts`) refuse to invent an edge the reading did not
+  // report; an empty graph here means the reading genuinely came back empty, and says so
+  // rather than rendering a blank box that reads as broken.
+
+  /** Real codec translation graph for the `codecs` screen, drawn as computed SVG edges
+   *  over a deterministic ring layout (`layoutCodecs`) rather than hand-authored path
+   *  data. Nodes are plain positioned circles (the same div-overlay idiom the dialplan
+   *  canvas already uses), offset here so the design markup never has to subtract. */
+  private codecGraphVals(): Record<string, unknown> {
+    const readings = this.readings.codecs;
+    const translations = valueOf(readings?.translations) ?? [];
+    const codecs = valueOf(readings?.codecs);
+    const reason = reasonFor(readings, ['translations', 'codecs']);
+
+    if (translations.length === 0) {
+      return {
+        codecGraphHasData: false,
+        codecGraphStatus: reason || 'No codec translation paths have been read from this target yet.',
+        codecGraphNodes: [],
+        codecGraphEdges: [],
+        codecGraphUnreachableLabel: '',
+      };
+    }
+
+    const graph = buildCodecGraph(translations, codecs);
+    const laidOut = layoutCodecs(graph.nodes, { radius: 118, centerX: 230, centerY: 150 });
+    const byId = new Map(laidOut.map((node) => [node.id, node]));
+
+    const edges = graph.edges.map((edge) => {
+      const a = byId.get(edge.from);
+      const b = byId.get(edge.to);
+      if (!a || !b) return { d: '' };
+      return { d: `M${a.x.toFixed(1)} ${a.y.toFixed(1)} L${b.x.toFixed(1)} ${b.y.toFixed(1)}` };
+    });
+
+    const strandedIds = new Set(unreachableCodecs(graph).map((node) => node.id));
+    const NODE_SIZE = 72;
+    const nodes = laidOut.map((node) => ({
+      id: node.id,
+      label: node.name,
+      x: `${(node.x - NODE_SIZE / 2).toFixed(1)}px`,
+      y: `${(node.y - NODE_SIZE / 2).toFixed(1)}px`,
+      fill: strandedIds.has(node.id) ? '#FFB4AB' : '#82D9A5',
+    }));
+
+    const unreachableNames = unreachableCodecs(graph).map((node) => node.name);
+
+    return {
+      codecGraphHasData: true,
+      codecGraphStatus: `${graph.nodes.length} codec${graph.nodes.length === 1 ? '' : 's'} - ${graph.edges.length} translation path${graph.edges.length === 1 ? '' : 's'}${strandedIds.size ? ` - ${strandedIds.size} stranded` : ''}`,
+      codecGraphNodes: nodes,
+      codecGraphEdges: edges,
+      codecGraphUnreachableLabel: unreachableNames.length
+        ? `Stranded (no translation path in or out): ${unreachableNames.join(', ')}`
+        : '',
+    };
+  }
+
+  /** Real endpoint reachability graph for the `endpoints` screen, drawn as computed SVG
+   *  edges over a deterministic layered layout (`layoutTopology`) rather than hand-
+   *  authored path data. Every broken link `brokenLinks` reports is surfaced as its own
+   *  line, not merely absent from the picture. */
+  private endpointGraphVals(): Record<string, unknown> {
+    const readings = this.readings.endpoints;
+    const endpoints = valueOf(readings?.endpoints) ?? [];
+    const contacts = valueOf(readings?.contacts) ?? [];
+    const registrations = valueOf(readings?.registrations) ?? [];
+    const reason = reasonFor(readings, ['endpoints', 'contacts', 'registrations']);
+
+    if (endpoints.length === 0) {
+      return {
+        endpointGraphHasData: false,
+        endpointGraphStatus: reason || 'No endpoints have been read from this target yet.',
+        endpointGraphWidth: '0px',
+        endpointGraphHeight: '0px',
+        endpointGraphNodes: [],
+        endpointGraphEdges: [],
+        endpointGraphBroken: [],
+      };
+    }
+
+    const graph = buildEndpointGraph({ endpoints, contacts, registrations });
+    const laidOut = layoutTopology(graph.nodes, { columnWidth: 190, rowHeight: 74, originX: 20, originY: 26 });
+    const byId = new Map(laidOut.map((node) => [node.id, node]));
+    const NODE_KIND_FILL: Record<string, string> = {
+      endpoint: '#82D9A5', aor: '#9AA39B', contact: '#7FD1F0', registration: '#FFCC80',
+    };
+
+    const edges = graph.edges.map((edge) => {
+      const a = byId.get(edge.from);
+      const b = byId.get(edge.to);
+      if (!a || !b) return { d: '' };
+      const x1 = a.x + 84, y1 = a.y + 12, x2 = b.x, y2 = b.y + 12;
+      const m = (x1 + x2) / 2;
+      return { d: `M${x1} ${y1} C${m} ${y1} ${m} ${y2} ${x2} ${y2}` };
+    });
+
+    const nodes = laidOut.map((node) => ({
+      id: node.id,
+      label: node.label,
+      detail: node.detail,
+      x: `${node.x}px`,
+      y: `${node.y}px`,
+      fill: NODE_KIND_FILL[node.kind] ?? '#9AA39B',
+    }));
+
+    const summary = summariseEndpointGraph(graph);
+    const width = 20 + 4 * 190 + 168;
+    const rowsPerColumn = new Map<number, number>();
+    for (const node of laidOut) rowsPerColumn.set(node.x, (rowsPerColumn.get(node.x) ?? 0) + 1);
+    const maxRows = Math.max(1, ...rowsPerColumn.values());
+    const height = 26 + maxRows * 74 + 40;
+
+    return {
+      endpointGraphHasData: true,
+      endpointGraphStatus: `${summary.nodeCounts.endpoint} endpoint${summary.nodeCounts.endpoint === 1 ? '' : 's'} - ${summary.chainsComplete} reachable - ${summary.chainsBroken} broken`,
+      endpointGraphWidth: `${width}px`,
+      endpointGraphHeight: `${height}px`,
+      endpointGraphNodes: nodes,
+      endpointGraphEdges: edges,
+      endpointGraphBroken: brokenEndpointLinks(graph).map((link) => link.message),
+    };
+  }
+
   // ---------------------------------------------------------------- Appearance
   //
   // Wires the compiled design's "Edit appearance..." panel (context menu on any
@@ -1828,6 +2026,13 @@ It is shown once. The phone needs it to register.`);
       // The changelog viewer: every released version, built from this repository's
       // own tag history (see scripts/bundle-changelog.mjs), never invented.
       ...(screen === 'changelog' ? this.changelogVals() : {}),
+
+      // The codec translation graph (codec-graph.ts) on the codecs screen, and the
+      // endpoint reachability graph (endpoint-graph.ts) on the endpoints screen --
+      // real graphs from the readings already fetched for those screens, drawn as
+      // computed SVG, never invented edges.
+      ...(screen === 'codecs' ? this.codecGraphVals() : {}),
+      ...(screen === 'endpoints' ? this.endpointGraphVals() : {}),
 
       // Real selection mechanics and bulk-action plans (bulk.ts) plus a real file
       // export (export.ts) for every table-like screen -- see bulkSelectionVals above.

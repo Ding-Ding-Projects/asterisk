@@ -185,8 +185,13 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     }
     if (view === 'live') return { channels: await readings.channels(target) };
     if (view === 'endpoints') {
-      const [endpoints, contacts] = await Promise.all([readings.endpoints(target), readings.contacts(target)]);
-      return { endpoints, contacts };
+      // Registrations are read here too (not only for `trunks`) so the endpoint
+      // reachability graph can draw the outbound-registration edge for an endpoint
+      // that is also a trunk identity, exactly as `pjsip show registrations` reports it.
+      const [endpoints, contacts, registrations] = await Promise.all([
+        readings.endpoints(target), readings.contacts(target), readings.registrations(target),
+      ]);
+      return { endpoints, contacts, registrations };
     }
     if (view === 'trunks') return { registrations: await readings.registrations(target) };
     if (view === 'queues') return { queues: await readings.queues(target) };
