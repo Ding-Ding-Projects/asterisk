@@ -46,6 +46,8 @@
     ['narratorEnabled', 'Narrator enabled'], ['displayName', 'Display name']
   ];
   const DEFAULTS = {
+    theme: 'dark',
+    density: 'comfortable',
     language: 'en',
     englishFunny: 5,
     cantoneseFunny: 5,
@@ -64,6 +66,8 @@
     displayName: 'Ding PBX Console',
     visited: false,
     dimSumShown: 0,
+    dimSumCacheReason: 'not-loaded',
+    notifications: [],
     quietHours: false,
     reducedSound: false,
     screenReaderActive: false
@@ -130,11 +134,15 @@
     const safe = { ...DEFAULTS };
     ['language', 'schoolName', 'schoolCredentialDigest', 'narratorLanguage', 'narratorEnglishVoice', 'narratorCantoneseVoice', 'displayName'].forEach((key) => { if (typeof raw[key] === 'string') safe[key] = raw[key].slice(0, key === 'schoolName' ? 48 : 256); });
     if (!['en', 'zh', 'both'].includes(safe.language)) safe.language = 'en';
+    if (!['light', 'dark', 'contrast'].includes(raw.theme)) safe.theme = document.documentElement.dataset.theme || 'dark'; else safe.theme = raw.theme;
+    if (!['compact', 'comfortable', 'spacious'].includes(raw.density)) safe.density = document.documentElement.dataset.density || 'comfortable'; else safe.density = raw.density;
     ['dialogEmoji', 'schoolMode', 'narratorEnabled', 'visited', 'quietHours', 'reducedSound', 'screenReaderActive'].forEach((key) => { if (typeof raw[key] === 'boolean') safe[key] = raw[key]; });
     ['englishFunny', 'cantoneseFunny'].forEach((key) => { safe[key] = Math.min(5, Math.max(1, Number(raw[key]) || 5)); });
     safe.narratorRate = Math.min(2, Math.max(0.5, Number(raw.narratorRate) || 1));
     safe.narratorPitch = Math.min(2, Math.max(0, Number(raw.narratorPitch) || 1));
     safe.dimSumShown = Math.min(100000, Math.max(0, Number(raw.dimSumShown) || 0));
+    safe.dimSumCacheReason = typeof raw.dimSumCacheReason === 'string' ? raw.dimSumCacheReason.slice(0, 120) : 'not-loaded';
+    safe.notifications = Array.isArray(raw.notifications) ? raw.notifications.slice(-100).filter((item) => item && typeof item.id === 'string' && item.source && typeof item.source.enTitle === 'string' && typeof item.source.zhTitle === 'string' && typeof item.source.enBody === 'string' && typeof item.source.zhBody === 'string').map((item) => ({ id: item.id.slice(0, 128), time: Number(item.time) || Date.now(), source: { enTitle: item.source.enTitle.slice(0, 256), zhTitle: item.source.zhTitle.slice(0, 256), enBody: item.source.enBody.slice(0, 1024), zhBody: item.source.zhBody.slice(0, 1024) } })) : [];
     const schedule = raw.schedule || {};
     safe.schedule = { schemaVersion: 1, lastAppliedRule: typeof schedule.lastAppliedRule === 'string' ? schedule.lastAppliedRule.slice(0, 128) : '', lastAppliedSignature: typeof schedule.lastAppliedSignature === 'string' ? schedule.lastAppliedSignature.slice(0, 256) : '', effectiveTuple: schedule.effectiveTuple && typeof schedule.effectiveTuple === 'object' ? { language: ['en', 'zh', 'both'].includes(schedule.effectiveTuple.language) ? schedule.effectiveTuple.language : 'en', theme: ['light', 'dark', 'contrast'].includes(schedule.effectiveTuple.theme) ? schedule.effectiveTuple.theme : 'dark', density: ['compact', 'comfortable', 'spacious'].includes(schedule.effectiveTuple.density) ? schedule.effectiveTuple.density : 'comfortable', narratorEnabled: schedule.effectiveTuple.narratorEnabled === true, displayName: String(schedule.effectiveTuple.displayName || 'Ding PBX Console').slice(0, 80), sourceValidity: String(schedule.effectiveTuple.sourceValidity || 'validated').slice(0, 64) } : undefined, paused: schedule.paused === true, invalidTimezones: [], rules: Array.isArray(schedule.rules) ? schedule.rules.slice(0, MAX_RULES).map((rule) => ({ id: String(rule?.id || '').slice(0, 128), target: String(rule?.target || '').slice(0, 64), value: String(rule?.value || '').slice(0, 120), startDate: String(rule?.startDate || '').slice(0, 10), endDate: String(rule?.endDate || '').slice(0, 10), startTime: String(rule?.startTime || '').slice(0, 5), endTime: String(rule?.endTime || '').slice(0, 5), allDay: rule?.allDay === true, weekdays: Array.isArray(rule?.weekdays) ? rule.weekdays.filter((day) => WEEKDAYS.some(([id]) => id === day)).slice(0, 7) : [], everyDay: rule?.everyDay === true, timezone: String(rule?.timezone || '').slice(0, 80), precedence: Math.min(100, Math.max(0, Number(rule?.precedence) || 0)), source: ['local', 'https', 'home-assistant'].includes(rule?.source) ? rule.source : 'local', endpoint: String(rule?.endpoint || '').slice(0, 512), entity: String(rule?.entity || '').slice(0, 128), disabled: rule?.disabled === true })) : [] };
     safe.schedule.invalidTimezones = safe.schedule.rules.filter((rule) => !isValidTimezone(rule.timezone)).map((rule) => rule.id);
@@ -145,7 +153,7 @@
     return safe;
   }
   const state = sanitizeState(load());
-  const baseSettings = { language: state.language, theme: document.documentElement.dataset.theme || 'dark', density: document.documentElement.dataset.density || 'comfortable', narratorEnabled: state.narratorEnabled, displayName: state.displayName };
+  const baseSettings = { language: state.language, theme: state.theme, density: state.density, narratorEnabled: state.narratorEnabled, displayName: state.displayName };
   const effectiveSettings = { ...baseSettings };
   let scheduleTimer;
   let scheduleBoundaryTimer;
@@ -251,10 +259,10 @@
       if (parsed.schemaVersion !== DIM_SUM_CACHE.schemaVersion || parsed.sourceUrl !== DIM_SUM_CACHE.sourceUrl || parsed.catalogRevision !== DIM_SUM_CACHE.releaseNamespace || !Array.isArray(parsed.dishes) || parsed.dishes.length > 32) throw new Error('Dim-sum cache schema or source revision is not accepted.');
       DISHES = parsed.dishes.filter((dish) => { if (!dish || typeof dish.id !== 'string' || typeof dish.imageUrl !== 'string' || typeof dish.sha256 !== 'string' || dish.sha256.length !== 64 || dish.releaseTag !== DIM_SUM_CACHE.releaseNamespace || typeof dish.catalogRevision !== 'string' || !dish.name || typeof dish.name.en !== 'string' || typeof dish.name.zhHant !== 'string') return false; try { const url = new URL(dish.imageUrl); const filename = url.pathname.split('/').pop() || ''; const expectedPath = `/Ding-Ding-Projects/dim-sum-photos/releases/download/catalog-v1/${filename}`; return url.protocol === 'https:' && url.hostname === 'github.com' && url.pathname === expectedPath && filename === `hk-dish-${dish.id.slice(-4)}-${filename.split('-').slice(3).join('-')}` && /^hk-dish-\d{4}-[a-z0-9-]+\.png$/.test(filename); } catch { return false; } }).map((dish) => ({ id: dish.id, en: dish.name.en, zh: dish.name.zhHant, imageUrl: dish.imageUrl, sha256: dish.sha256, releaseTag: dish.releaseTag, catalogRevision: dish.catalogRevision }));
       let cached = {};
-      try { const cacheRaw = localStorage.getItem(DIM_SUM_IMAGE_CACHE_KEY) || '{}'; if (new TextEncoder().encode(cacheRaw).byteLength > 6291456) throw new Error('image cache too large'); cached = parseUniqueJson(cacheRaw); if (cached.schemaVersion !== 1 || cached.sourceUrl !== DIM_SUM_CACHE.sourceUrl || cached.catalogRevision !== DIM_SUM_CACHE.releaseNamespace || !Array.isArray(cached.entries) || cached.entries.length > 32) throw new Error('stale image cache'); } catch { localStorage.removeItem(DIM_SUM_IMAGE_CACHE_KEY); cached = {}; }
+      try { const cacheRaw = localStorage.getItem(DIM_SUM_IMAGE_CACHE_KEY) || '{}'; if (new TextEncoder().encode(cacheRaw).byteLength > 6291456) throw new Error('image cache too large'); cached = parseUniqueJson(cacheRaw); if (cached.schemaVersion !== 1 || cached.sourceUrl !== DIM_SUM_CACHE.sourceUrl || cached.catalogRevision !== DIM_SUM_CACHE.releaseNamespace || !Array.isArray(cached.entries) || cached.entries.length > 32) throw new Error('stale image cache'); } catch { localStorage.removeItem(DIM_SUM_IMAGE_CACHE_KEY); state.dimSumCacheReason = 'cache-purged'; cached = {}; }
       const usable = [];
       for (const dish of DISHES) { const local = cached?.entries?.find((entry) => entry.id === dish.id && entry.sha256 === dish.sha256 && entry.releaseTag === dish.releaseTag && entry.catalogRevision === dish.catalogRevision && typeof entry.mime === 'string' && /^image\/(?:png|jpeg)$/.test(entry.mime) && typeof entry.dataUrl === 'string' && entry.dataUrl.length <= 1398104 && new RegExp(`^data:${entry.mime.replace('/', '\\/')};base64,[A-Za-z0-9+/]+={0,2}$`).test(entry.dataUrl)); if (local) { try { const encoded = local.dataUrl.split(',')[1] || ''; const bytes = Uint8Array.from(atob(encoded), (char) => char.charCodeAt(0)); if (bytes.length > 1048576 || detectImageMime(bytes, local.mime) !== local.mime) continue; if (await sha256Hex(bytes) === dish.sha256 && await decodeImage(local.dataUrl)) usable.push({ ...dish, dataUrl: local.dataUrl, mime: local.mime }); } catch { /* purge below if no usable entry */ } } }
-      if (usable.length) { DISHES = usable; return true; }
+      if (usable.length) { DISHES = usable; state.dimSumCacheReason = 'verified'; return true; }
       localStorage.removeItem(DIM_SUM_IMAGE_CACHE_KEY);
       const candidates = fisherYates(DISHES).slice(0, 5);
       const verified = [];
@@ -267,9 +275,9 @@
           const dataUrl = `data:${mime};base64,${bytesToBase64(bytes)}`; if (!await decodeImage(dataUrl)) continue; verified.push({ ...candidate, dataUrl, mime });
         } catch { /* try the next bounded candidate */ }
       }
-      if (!verified.length) return false;
-      localStorage.setItem(DIM_SUM_IMAGE_CACHE_KEY, JSON.stringify({ schemaVersion: 1, sourceUrl: DIM_SUM_CACHE.sourceUrl, catalogRevision: DIM_SUM_CACHE.releaseNamespace, entries: verified.map((candidate) => ({ id: candidate.id, sha256: candidate.sha256, releaseTag: candidate.releaseTag, catalogRevision: candidate.catalogRevision, mime: candidate.mime, dataUrl: candidate.dataUrl })) })); DISHES = verified; return true;
-    } catch { DISHES = []; return false; }
+      if (!verified.length) { state.dimSumCacheReason = 'first-use-required'; return false; }
+      localStorage.setItem(DIM_SUM_IMAGE_CACHE_KEY, JSON.stringify({ schemaVersion: 1, sourceUrl: DIM_SUM_CACHE.sourceUrl, catalogRevision: DIM_SUM_CACHE.releaseNamespace, entries: verified.map((candidate) => ({ id: candidate.id, sha256: candidate.sha256, releaseTag: candidate.releaseTag, catalogRevision: candidate.catalogRevision, mime: candidate.mime, dataUrl: candidate.dataUrl })) })); DISHES = verified; state.dimSumCacheReason = 'verified'; return true;
+    } catch { DISHES = []; state.dimSumCacheReason = 'fetch-failed'; return false; }
   }
   function applyPanelCopy() {
     Object.entries(PANEL_COPY).forEach(([id, [en, zh]]) => {
@@ -736,7 +744,7 @@
     const updateStatus = $('global-update-status');
     if (updateStatus) updateStatus.textContent = copy('No verified installer or release manifest is published for this static page. No update action is available.', '此靜態頁未有已驗證安裝程式或者發行清單，暫時冇更新操作。', 'en');
     const dishStatus = $('global-dimsum-status');
-    if (dishStatus) dishStatus.textContent = state.dimSumShown ? copy(`One catalog dish has been shown during a later visit. Total shown on this browser: ${state.dimSumShown}.`, `之後訪問已顯示一款目錄點心，此瀏覽器總數：${state.dimSumShown}。`, 'en') : copy('No catalog dish has been shown on this browser yet.', '此瀏覽器暫時未顯示目錄點心。', 'en');
+    if (dishStatus) { const cacheReasons = { verified: ['Verified local catalog image cache is active.', '已驗證本地目錄圖片快取已啟用。'], 'cache-purged': ['An invalid dim-sum cache was purged. First use must verify a new image.', '無效點心快取已清除，首次使用必須重新驗證圖片。'], 'first-use-required': ['No verified local image is available yet. First use requires a bounded catalog fetch.', '暫時未有已驗證本地圖片，首次使用需要受限目錄要求。'], 'fetch-failed': ['The catalog image fetch failed safely. The surprise remains unavailable.', '目錄圖片要求安全失敗，小驚喜暫時不可用。'], 'not-loaded': ['The local catalog cache has not loaded yet.', '本地目錄快取尚未載入。'] }; const cacheReason = cacheReasons[state.dimSumCacheReason] || cacheReasons['not-loaded']; const countText = state.dimSumShown ? ` One catalog dish has been shown during a later visit. Total shown on this browser: ${state.dimSumShown}.` : ' No catalog dish has been shown on this browser yet.'; const countZh = state.dimSumShown ? ` 之後訪問已顯示一款目錄點心，此瀏覽器總數：${state.dimSumShown}。` : ' 此瀏覽器暫時未顯示目錄點心。'; setLocalizedText(dishStatus, `${cacheReason[0]}${countText}`, `${cacheReason[1]}${countZh}`, 'en'); }
     applyDisplayName(); applyPanelCopy(); applySchoolMode(); filterSettings(); decorateDialogs();
   }
   function scheduleClock(now, timezone) {
@@ -932,13 +940,13 @@
     if ($('palette-results')) paletteObserver.observe($('palette-results'), { childList: true });
     augmentPalette();
     if (speechSynthesisAvailable()) { voiceListener = () => { refreshVoices(); }; speechSynthesis.addEventListener('voiceschanged', voiceListener); refreshVoices(); }
-    pageEventListener = (event) => { const detail = event.detail; if (detail?.eventId && detail?.enTitle && detail?.zhTitle && detail?.enBody && detail?.zhBody) announce(`${String(detail.enTitle)}. ${String(detail.enBody)}`, `${String(detail.zhTitle)}。${String(detail.zhBody)}`, String(detail.category || 'page-event')); };
+    pageEventListener = (event) => { const detail = event.detail; if (detail?.eventId && detail?.enTitle && detail?.zhTitle && detail?.enBody && detail?.zhBody) { const source = { enTitle: String(detail.enTitle).slice(0, 256), zhTitle: String(detail.zhTitle).slice(0, 256), enBody: String(detail.enBody).slice(0, 1024), zhBody: String(detail.zhBody).slice(0, 1024) }; state.notifications = [...state.notifications.filter((item) => item.id !== detail.eventId), { id: String(detail.eventId).slice(0, 128), time: Date.now(), source }].slice(-100); save(); window.dispatchEvent(new CustomEvent('ding-notification-history-change')); announce(`${source.enTitle}. ${source.enBody}`, `${source.zhTitle}。${source.zhBody}`, String(detail.category || 'page-event')); } };
     window.addEventListener('ding-page-event', pageEventListener);
-    pageStateListener = (event) => { if (!event.detail) return; if (['en', 'zh', 'both'].includes(event.detail.language)) { state.language = event.detail.language; baseSettings.language = state.language; } if (Number.isFinite(event.detail.englishFunny)) state.englishFunny = Math.min(5, Math.max(1, Number(event.detail.englishFunny))); if (Number.isFinite(event.detail.cantoneseFunny)) state.cantoneseFunny = Math.min(5, Math.max(1, Number(event.detail.cantoneseFunny))); if (['light', 'dark', 'contrast'].includes(event.detail.theme)) baseSettings.theme = event.detail.theme; if (['compact', 'comfortable', 'spacious'].includes(event.detail.density)) baseSettings.density = event.detail.density; save(); applyState(); };
+    pageStateListener = (event) => { if (!event.detail) return; if (['en', 'zh', 'both'].includes(event.detail.language)) { state.language = event.detail.language; baseSettings.language = state.language; } if (Number.isFinite(event.detail.englishFunny)) state.englishFunny = Math.min(5, Math.max(1, Number(event.detail.englishFunny))); if (Number.isFinite(event.detail.cantoneseFunny)) state.cantoneseFunny = Math.min(5, Math.max(1, Number(event.detail.cantoneseFunny))); if (['light', 'dark', 'contrast'].includes(event.detail.theme)) { baseSettings.theme = event.detail.theme; state.theme = event.detail.theme; } if (['compact', 'comfortable', 'spacious'].includes(event.detail.density)) { baseSettings.density = event.detail.density; state.density = event.detail.density; } save(); applyState(); };
     window.addEventListener('ding-page-state-change', pageStateListener);
     save();
     applyState();
-    dimSumReady = loadDimSumCatalog();
+    dimSumReady = loadDimSumCatalog().then((result) => { save(); applyState(); return result; });
     maybeDimSum();
     scheduleTimer = window.setInterval(refreshScheduledState, 30000);
     scheduleNextBoundary();

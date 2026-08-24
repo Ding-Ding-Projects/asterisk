@@ -10,6 +10,7 @@
     if (Number.isFinite(event.detail.cantoneseFunny)) globalSettingsBridgeState.cantoneseFunny = Math.min(5, Math.max(1, Number(event.detail.cantoneseFunny)));
     globalBridgeWrite = true; save(); globalBridgeWrite = false; applyState();
   });
+  window.addEventListener('ding-notification-history-change', () => { if (typeof renderNotifications === 'function') renderNotifications($('notification-search')?.value || ''); });
 
   // Register the page-owned global settings surface on every route. The module
   // is local and deliberately independent from this app's existing state key.

@@ -38,7 +38,7 @@
     },
     "scheduled-settings": {
       "state": "partial",
-      "note": "global-settings.js provides a versioned bounded visitor-local rule list with target/value, date/time, weekdays or Every day, timezone-aware matching, cross-midnight handling, precedence, apply/remove, boundary timer, visibility refresh, and separate base/effective values. Theme and density rules consume document root data attributes. External values never silently become permanent base settings.",
+      "note": "global-settings.js provides a partial versioned bounded visitor-local rule list with target/value, date/time, weekdays or Every day, timezone-aware matching, cross-midnight handling, precedence, apply/remove, a complete effective tuple, boundary timer, visibility refresh, and separate base/effective values. Canonical theme and density state consume document root data attributes. The regex overlay remains bounded by panel geometry and source responses remain byte limited. External values never silently become permanent base settings.",
       "files": [
         "site/app.js",
         "site/global-settings.js",
