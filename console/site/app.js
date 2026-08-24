@@ -1,6 +1,15 @@
 (() => {
   'use strict';
 
+  // Register the page-owned global settings surface on every route. The module
+  // is local and deliberately independent from this app's existing state key.
+  if (!document.querySelector('script[data-global-settings]')) {
+    const globalSettingsScript = document.createElement('script');
+    globalSettingsScript.src = new URL('global-settings.js', document.baseURI).href;
+    globalSettingsScript.dataset.globalSettings = 'true';
+    document.head.append(globalSettingsScript);
+  }
+
   const DESTINATIONS = [
     {id:'servers',name:'Deploy a server',icon:'▣',group:'App',article:'app/servers',description:'Guided WSL, local container, and approved remote Linux provisioning.'},
     {id:'dash',name:'Dashboard',icon:'⌂',group:'PBX',article:'pbx/dash',description:'System summary, alerts, recent activity, and guided next actions.'},

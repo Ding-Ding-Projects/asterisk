@@ -9,3 +9,4 @@ Deploy & application: stand up a new server, then appearance, updates and the co
 - [Customise everything](customise.md)
 - [Appearance](appearance.md)
 - [About & policy](about.md)
+- [Site global settings](site-global-settings.md)

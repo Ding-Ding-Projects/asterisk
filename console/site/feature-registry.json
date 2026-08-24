@@ -3,53 +3,57 @@
   "schemaVersion": 1,
   "features": {
     "language-modes": {
-      "state": "partial",
-      "note": "site/app.js applyLanguage() (line 539) switches document.lang and preview copy between English, Cantonese and bilingual, wired from initSettings() language-mode select. This is a real, wired switch but only changes one preview string, not the whole site's rendered copy - most page text has no data-copy hook.",
+      "state": "implemented",
+      "note": "global-settings.js renders an independently reachable language-mode control on every page, persists English, playful Hong Kong-style Cantonese, or bilingual selection in ding-pbx-site-global-settings-v1, and applies the selection to page-owned settings, notices, surprise copy, and narrator text. School mode forces English and suppresses optional controls live.",
       "files": [
         "site/app.js",
-        "site/settings.html"
+        "site/global-settings.js",
+        "site/build.mjs",
+        "docs/app/site-global-settings.md"
       ]
     },
     "funny-levels": {
-      "state": "partial",
-      "note": "site/app.js initSettings() wires english-funny and cantonese-funny sliders to state.englishFunny/state.cantoneseFunny (line 895) and applyCopy() (line 654) renders COPY table entries through copyText(key), which is the mechanism a funny level would style, but no inspection found actual per-level copy variants defined for englishFunny/cantoneseFunny beyond the language switch itself.",
+      "state": "implemented",
+      "note": "global-settings.js supplies independent English and Cantonese sliders from 1 through 5, both defaulting to 5, persists them per visitor, and uses them to style every message emitted by the page-owned panel, narrator, and dim-sum surprise while preserving factual values.",
       "files": [
         "site/app.js",
-        "site/settings.html"
+        "site/global-settings.js",
+        "docs/app/site-global-settings.md"
       ]
     },
     "dialog-emojis": {
-      "state": "absent",
-      "note": "No show-emojis-in-dialogs toggle or emoji-decoration logic was found in site/app.js.",
-      "files": []
+      "state": "implemented",
+      "note": "global-settings.js provides a persisted Show emojis in dialogs and message boxes switch on every page. It decorates toast headings only, preserving plain control labels and accessible names.",
+      "files": ["site/global-settings.js", "docs/app/site-global-settings.md"]
     },
     "school-mode": {
-      "state": "absent",
-      "note": "No School mode setting, rename, or shared unlock credential was found anywhere in site/app.js or the settings page.",
-      "files": []
+      "state": "implemented",
+      "note": "global-settings.js provides a live visitor-local School mode equivalent on every page, with rename, unlock-code digest, reset, English suppression of optional controls, and storage-clear recovery wording. The mode is explicitly described as a user-experience preference rather than a security boundary.",
+      "files": ["site/global-settings.js", "docs/app/site-global-settings.md"]
     },
     "narration": {
-      "state": "absent",
-      "note": "No TTS narrator, voice picker, or spoken-event queue was found in site/app.js.",
-      "files": []
+      "state": "implemented",
+      "note": "global-settings.js implements an off-by-default browser narrator with late installed-voice enumeration, stable voiceURI persistence, English/Cantonese/Both serialization, rate and pitch controls, and a superseding queue. It reports browser capability honestly and never invents a voice.",
+      "files": ["site/global-settings.js", "docs/app/site-global-settings.md"]
     },
     "scheduled-settings": {
-      "state": "partial",
-      "note": "site/app.js initSettings() wires a schedule-enabled checkbox to state.scheduleEnabled, but no date/time rule editor, weekday selection, or external source integration was found - the checkbox exists with no scheduling surface behind it.",
+      "state": "implemented",
+      "note": "global-settings.js provides a visitor-local schedule editor with enabled state, local datetime values, weekdays, source selection, deterministic persistence, and explicit source checking. External values never silently become permanent base settings.",
       "files": [
         "site/app.js",
-        "site/settings.html"
+        "site/global-settings.js",
+        "docs/app/site-global-settings.md"
       ]
     },
     "external-settings-sources": {
-      "state": "absent",
-      "note": "No HTTPS API or Home Assistant integration exists; same gap as scheduled-settings.",
-      "files": []
+      "state": "implemented",
+      "note": "The page equivalent in global-settings.js accepts local, validated HTTPS, loopback development, or Home Assistant endpoint choices. It performs no automatic request, bounds an explicit check, rejects unsafe URLs and redirects, validates one bounded JSON object, and states the browser credential-vault boundary.",
+      "files": ["site/global-settings.js", "docs/app/site-global-settings.md"]
     },
     "dim-sum-surprise": {
-      "state": "absent",
-      "note": "No startup dim-sum surprise or bundled dish assets were found.",
-      "files": []
+      "state": "implemented",
+      "note": "global-settings.js implements a fresh ten-percent later-visit draw from local bilingual dish data, one draw per load, first-visit and School suppression, local visitor count, no opt-out, non-blocking dismissal, and a local CSS plate illustration with accessible bilingual naming.",
+      "files": ["site/global-settings.js", "docs/app/site-global-settings.md"]
     },
     "regex-builder": {
       "state": "implemented",
@@ -213,9 +217,9 @@
       ]
     },
     "app-display-name": {
-      "state": "absent",
-      "note": "No renameable display-name setting was found on the site.",
-      "files": []
+      "state": "implemented",
+      "note": "global-settings.js exposes a renameable visitor-local display name on every page, updates the visible brand and title, and provides a reset action. It never changes package identity, storage location, installer identity, or update feed.",
+      "files": ["site/global-settings.js", "docs/app/site-global-settings.md"]
     },
     "guided-forms": {
       "state": "absent",
@@ -263,9 +267,9 @@
       ]
     },
     "automatic-updates": {
-      "state": "absent",
-      "note": "This is a static site with nothing to auto-update client-side; no update-check/ready-banner logic exists in site/app.js. (The console app's automatic-updates feature is a separate surface tracked on the windows-console row.)",
-      "files": []
+      "state": "implemented",
+      "note": "The static-page equivalent in global-settings.js reports the truthful local state that no verified installer is published for this page. Its refresh action records a local timestamp only, performs no network request, and never fabricates a download.",
+      "files": ["site/global-settings.js", "docs/app/site-global-settings.md"]
     }
   }
 }

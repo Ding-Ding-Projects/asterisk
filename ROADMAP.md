@@ -173,3 +173,13 @@ is a wish rather than a proposal. Two survived on merit.
 - [x] Split the static experience into compact Home, Product, Documentation, Downloads, Status, and Settings routes with shared local assets and anchored article navigation.
 - [x] Publish and independently verify the first unique non-draft Ding PBX Console release and downloadable assets. Verified at `ding-pbx-console-v0.0.5-r1`: non-draft, non-prerelease, target `50dad7aadbc8c8c3b79ecc844245ea977509daf3`, carrying `Ding-PBX-Console-Setup.exe` (422,853,632 bytes), `ding-pbx-console-0.1.0-full.nupkg` (422,856,987 bytes), `RELEASES`, `SHA256SUMS.txt`, and both line-count evidence files. `RELEASES` and `SHA256SUMS.txt` were downloaded and read back, and the size `RELEASES` records for the full package matches the published asset exactly.
 - [x] Add real built-artifact updater evidence for the old `0.1.0` baseline and installed `0.1.84` draft-blocked state, with source commits `745d7425df791646aef4a6972c96dcf279a6004a`, `870be47d6708b32f7fed154abf0ca3779f1fe3bb`, and `b29850dd1ae63553dc6c60ecdedc60adb6707a77`, exact release tags, SHA-256 image records, dimensions, hidden-desktop CDP method, direct installer launch, restart, Later persistence, and draft blocking documented in `console/docs/platform/automatic-updates-evidence.md`.
+
+### Pages global settings equivalents
+
+- [x] Load one local-only global settings module on every published page, with an independently reachable settings panel, persistent visitor state, and an anchored regex builder.
+- [x] Provide English, playful Hong Kong-style Cantonese, and bilingual modes, independent English and Cantonese funny levels defaulting to 5, and the dialog emoji decoration switch.
+- [x] Provide visitor-local School mode with rename, unlock-code digest, live suppression, reset, and storage-clear recovery wording.
+- [x] Provide off-by-default browser narration with late installed-voice enumeration, per-language stable voice choices, English/Cantonese/Both serialization, rate, pitch, and a superseding queue.
+- [x] Provide local schedule rules plus explicit, validated HTTPS and Home Assistant-equivalent source checks with bounded failure handling and no automatic network request.
+- [x] Provide the later-visit ten-percent local dim-sum surprise, display-name rename and reset, and truthful static-page update/download state.
+- [x] Document the page contract in `console/docs/app/site-global-settings.md` and record the feature rows in `console/site/feature-registry.json`.

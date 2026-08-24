@@ -419,3 +419,19 @@ one-page target preflight. The run also recorded direct `Setup.exe` launch succe
 repaired restart path, Later hiding the banner while retaining the staged candidate, and
 the visible review, apply, or discard block for two drafts. The detailed public article is
 `console/docs/platform/automatic-updates-evidence.md`. No new capture was made in this lane.
+
+## Pages global settings lane, 2026-08-24
+
+The isolated `codex/site-global-settings` branch adds `console/site/global-settings.js`, registered by
+the existing `console/site/app.js` on every static page and copied by `console/site/build.mjs`.
+The module owns a visitor-local settings panel with language modes, independent funny levels at
+5 by default, dialog emoji decoration, School mode rename and unlock digest, browser narrator
+voice enumeration and queue, local schedule rules, explicit validated external-source checks,
+later-visit dim-sum surprise, display-name rename, and truthful local update status. It uses no
+third-party assets and makes no automatic network request. The feature registry and the new
+`console/docs/app/site-global-settings.md` article record the scope and browser credential boundary.
+
+Verification was limited to `node --check` for `console/site/global-settings.js` and
+`console/site/app.js`, plus `git diff --check`. No tests, lint, build, browser, UI, capture,
+hosting, or release work was run in this lane. The source remains uncommitted on the task branch
+until the owning agent reviews and commits it.
