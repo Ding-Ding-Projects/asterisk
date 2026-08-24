@@ -45,6 +45,9 @@ function Has-DockerLabel($Container, [string]$Name, [string]$Value) {
     $labels = @([string]$Container.Labels -split ',')
     return @($labels | Where-Object { $_ -eq "$Name=$Value" }).Count -eq 1
 }
+function Test-WorkloadRecord($Container) {
+    return $null -ne $Container.ID -and $null -ne $Container.Names -and $null -ne $Container.Image -and $null -ne $Container.State -and $null -ne $Container.Labels
+}
 
 function Convert-EngineStorageBytes([string]$Value) {
     $match = [regex]::Match($Value.Trim(), '^(?<number>[0-9]+(?:\.[0-9]+)?)\s*(?<unit>B|kB|MB|GB|TB)$')
@@ -118,6 +121,7 @@ if ($Mode -in @('docker', 'all')) {
     $managedConflict = @($workloads.items | Where-Object { Has-DockerLabel $_ 'io.ding.pbx.project' 'ding-pbx-control-plane' }).Count -gt 0
     Add-Check $result 'local-managed-workload-conflict' (-not $managedConflict) 'No existing managed workload conflict was observed.'
     Add-Check $result 'local-workload-json-lines' ($workloads.valid -and $dockerProbe[2].exitCode -eq 0) "Parsed workload JSON lines=$($workloads.items.Count)"
+    Add-Check $result 'local-workload-record-shape' (@($workloads.items | Where-Object { -not (Test-WorkloadRecord $_) }).Count -eq 0) 'Every local workload record carries ID, name, image, state, and labels.'
 }
 
 if ($Mode -in @('host', 'all') -and -not [string]::IsNullOrWhiteSpace($ApprovedHost)) {
@@ -172,6 +176,7 @@ if ($Mode -in @('host', 'all') -and -not [string]::IsNullOrWhiteSpace($ApprovedH
     $hostManagedConflict = @($hostWorkloads.items | Where-Object { Has-DockerLabel $_ 'io.ding.pbx.project' 'ding-pbx-control-plane' }).Count -gt 0
     Add-Check $result 'approved-host-workload-inventory' (-not $hostManagedConflict) 'No existing managed workload conflict was observed.'
     Add-Check $result 'approved-host-workload-json-lines' ($hostWorkloads.valid -and $workloadMarker -ge 0) "Parsed workload JSON lines=$($hostWorkloads.items.Count)"
+    Add-Check $result 'approved-host-workload-record-shape' (@($hostWorkloads.items | Where-Object { -not (Test-WorkloadRecord $_) }).Count -eq 0) 'Every approved-host workload record carries ID, name, image, state, and labels.'
 } elseif ($Mode -eq 'host') {
     throw '-Mode host requires an explicitly approved host, user, and persistent known-hosts path.'
 }

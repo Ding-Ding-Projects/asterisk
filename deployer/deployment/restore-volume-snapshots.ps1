@@ -10,10 +10,16 @@ param(
     [string]$ComposeFile = "$PSScriptRoot\docker-compose.yml",
     [int]$AdminPort = 8088,
     [string]$ProjectName = 'ding-pbx-control-plane',
+    [int]$OperationTimeoutMinutes = 30,
     [switch]$Execute
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'provenance.ps1')
+$operationDeadline = [DateTimeOffset]::UtcNow.AddMinutes($OperationTimeoutMinutes)
+function Assert-OperationDeadline { if ($OperationTimeoutMinutes -lt 1 -or [DateTimeOffset]::UtcNow -gt $operationDeadline) { throw 'Restore operation exceeded its bounded deadline.' } }
+$MaxEncryptedArchiveBytes = 4GB
+$MaxPlainArchiveBytes = 4GB
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
 if (-not [System.IO.Path]::IsPathRooted($SnapshotDirectory)) { throw 'SnapshotDirectory must be an absolute path.' }
 $snapshotPath = [System.IO.Path]::GetFullPath($SnapshotDirectory)
@@ -41,19 +47,21 @@ if ($Execute) {
     if (@($sessionAcl.Access | Where-Object { $_.AccessControlType -eq 'Allow' -and $_.IdentityReference -match 'Everyone|BUILTIN\\Users|Authenticated Users|^Users$' }).Count -gt 0) { throw 'Readiness credential file is readable by a broad group.' }
 }
 
-function Get-Keys { $master=[System.IO.File]::ReadAllBytes($SnapshotEncryptionKeyFile); $salt=[Text.Encoding]::UTF8.GetBytes('ding-pbx-snapshot-hkdf-v1'); $extract=[Security.Cryptography.HMACSHA256]::new($salt); try{$prk=$extract.ComputeHash($master)}finally{$extract.Dispose()}; $expand=[Security.Cryptography.HMACSHA256]::new($prk); try{$enc=$expand.ComputeHash([Text.Encoding]::UTF8.GetBytes('encryption-v1'));$mac=$expand.ComputeHash([Text.Encoding]::UTF8.GetBytes('integrity-v1'))}finally{$expand.Dispose()}; return [pscustomobject]@{ encryption=$enc; integrity=$mac; formatVersion=1; keyDerivation='HKDF-SHA256'; algorithm='AES-256-CBC+HMAC-SHA256' } }
-function Get-Hmac([string]$Path, [byte[]]$Key) { $all=[System.IO.File]::ReadAllBytes($Path); $h=[System.Security.Cryptography.HMACSHA256]::new($Key); try { $h.ComputeHash($all, 0, $all.Length - 32) } finally { $h.Dispose() } }
+function Get-Keys { $master=[System.IO.File]::ReadAllBytes($SnapshotEncryptionKeyFile); $salt=[Text.Encoding]::UTF8.GetBytes('ding-pbx-snapshot-hkdf-v1'); $extract=[Security.Cryptography.HMACSHA256]::new($salt); try{$prk=$extract.ComputeHash($master)}finally{$extract.Dispose()}; function Expand([byte[]]$prk,[byte[]]$info,[int]$length){$result=New-Object byte[] $length;$previous=[byte[]]::new(0);$offset=0;[byte]$counter=1;while($offset -lt $length){$input=New-Object byte[] ($previous.Length+$info.Length+1);[Buffer]::BlockCopy($previous,0,$input,0,$previous.Length);[Buffer]::BlockCopy($info,0,$input,$previous.Length,$info.Length);$input[$input.Length-1]=$counter;$h=[Security.Cryptography.HMACSHA256]::new($prk);try{$previous=$h.ComputeHash($input)}finally{$h.Dispose()};$copy=[Math]::Min($previous.Length,$length-$offset);[Buffer]::BlockCopy($previous,0,$result,$offset,$copy);$offset+=$copy;$counter++};return $result};$enc=Expand $prk ([Text.Encoding]::UTF8.GetBytes('encryption-v1')) 32;$mac=Expand $prk ([Text.Encoding]::UTF8.GetBytes('integrity-v1')) 32;return [pscustomobject]@{ encryption=$enc; integrity=$mac; formatVersion=1; keyDerivation='HKDF-SHA256'; algorithm='AES-256-CBC+HMAC-SHA256' } }
+function Get-Hmac([string]$Path, [byte[]]$Key) { $stream=[System.IO.File]::OpenRead($Path); $h=[System.Security.Cryptography.HMACSHA256]::new($Key); $remaining=$stream.Length-32; $buffer=New-Object byte[] 1048576; try { while($remaining -gt 0){$read=$stream.Read($buffer,0,[int][Math]::Min($buffer.Length,$remaining)); if($read -le 0){throw 'Encrypted snapshot archive ended before its integrity trailer.'};$h.TransformBlock($buffer,0,$read,$buffer,0)|Out-Null;$remaining-=$read};$h.TransformFinalBlock([byte[]]::new(0),0,0)|Out-Null;return $h.Hash } finally {$stream.Dispose();$h.Dispose()} }
+function Read-Exact($Stream, [byte[]]$Buffer) { $offset=0; while($offset -lt $Buffer.Length){$read=$Stream.Read($Buffer,$offset,$Buffer.Length-$offset);if($read -le 0){throw 'Encrypted snapshot archive ended before the required bytes.'};$offset+=$read} }
+function Test-ConstantTimeEqual([byte[]]$Left, [byte[]]$Right) { if($Left.Length -ne $Right.Length){return $false};$difference=0;for($i=0;$i -lt $Left.Length;$i++){$difference=$difference -bor ($Left[$i]-bxor $Right[$i])};return $difference -eq 0 }
 function Unprotect-Archive([string]$Path) {
-    $bytes=[System.IO.File]::ReadAllBytes($Path); if($bytes.Length -lt 48){throw 'Encrypted snapshot archive is truncated.'}; $keys=Get-Keys; $key=$keys.encryption; $iv=$bytes[0..15]; $expected=$bytes[($bytes.Length-32)..($bytes.Length-1)]; $actual=Get-Hmac $Path $keys.integrity
-    $same=$true; for($i=0;$i -lt $expected.Length;$i++){if($expected[$i] -ne $actual[$i]){$same=$false}}; if(-not $same){throw 'Encrypted snapshot archive integrity validation failed.'}
-    $plain=Join-Path $snapshotPath ("restore-decrypted.{0}.tar" -f ([guid]::NewGuid().ToString('N'))); $out=[System.IO.File]::Create($plain); $aes=[System.Security.Cryptography.Aes]::Create(); $aes.Key=$key; $aes.IV=$iv; $aes.Mode='CBC'; $aes.Padding='PKCS7'
-    try{$crypto=[System.Security.Cryptography.CryptoStream]::new($out,$aes.CreateDecryptor(),[System.Security.Cryptography.CryptoStreamMode]::Write); try{$crypto.Write($bytes,16,$bytes.Length-48);$crypto.FlushFinalBlock()}finally{$crypto.Dispose()}}finally{$aes.Dispose();$out.Dispose()}; return $plain
+    $item=Get-Item -LiteralPath $Path; if($item.Length -lt 48 -or $item.Length -gt $MaxEncryptedArchiveBytes){throw 'Encrypted snapshot archive is outside the size bound.'}; $keys=Get-Keys; $stream=[System.IO.File]::OpenRead($Path); $iv=New-Object byte[] 16; try{Read-Exact $stream $iv}finally{$stream.Dispose()}; $expected=New-Object byte[] 32; $stream=[System.IO.File]::OpenRead($Path); try{$stream.Seek(-32,[IO.SeekOrigin]::End)|Out-Null;Read-Exact $stream $expected}finally{$stream.Dispose()};$actual=Get-Hmac $Path $keys.integrity; if(-not (Test-ConstantTimeEqual $expected $actual)){throw 'Encrypted snapshot archive integrity validation failed.'}
+    $plain=Join-Path $snapshotPath ("restore-decrypted.{0}.tar" -f ([guid]::NewGuid().ToString('N'))); $out=[System.IO.File]::Create($plain); $aes=[System.Security.Cryptography.Aes]::Create(); $aes.Key=$keys.encryption; $aes.IV=$iv; $aes.Mode='CBC'; $aes.Padding='PKCS7'; $input=[System.IO.File]::OpenRead($Path)
+    try{$input.Seek(16,[IO.SeekOrigin]::Begin)|Out-Null;$crypto=[System.Security.Cryptography.CryptoStream]::new($out,$aes.CreateDecryptor(),[System.Security.Cryptography.CryptoStreamMode]::Write); try{$remaining=$input.Length-48;$buffer=New-Object byte[] 1048576;while($remaining -gt 0){$read=$input.Read($buffer,0,[int][Math]::Min($buffer.Length,$remaining));if($read -le 0){throw 'Encrypted snapshot archive ended before ciphertext completed.'};$crypto.Write($buffer,0,$read);$remaining-=$read};$crypto.FlushFinalBlock()}finally{$crypto.Dispose()}}catch{if(Test-Path -LiteralPath $plain){Remove-Item -LiteralPath $plain -Force};throw}finally{$input.Dispose();$aes.Dispose();$out.Dispose()};if((Get-Item -LiteralPath $plain).Length -gt $MaxPlainArchiveBytes){Remove-Item -LiteralPath $plain -Force;throw 'Decrypted snapshot archive exceeds the size bound.'};return $plain
 }
 function Assert-ReadinessCredential {
     $cookie = [System.IO.File]::ReadAllText($SessionCookieFile)
     if ($cookie -match '[\r\n]' -or $cookie -notmatch '^ding_session=[A-Za-z0-9._~-]{16,512}$') { throw 'Readiness credential must contain exactly one server-issued session cookie.' }
     return $cookie
 }
+function Register-PlaintextPath([string]$Path, [string]$State) { $journalPath=Join-Path $snapshotPath 'plaintext-recovery-journal.json';$journal=if(Test-Path -LiteralPath $journalPath){Get-Content -Raw -LiteralPath $journalPath|ConvertFrom-Json}else{[pscustomobject]@{schemaVersion=1;paths=@()}};$journal.paths=@($journal.paths|Where-Object path -ne $Path)+@([pscustomobject]@{path=$Path;state=$State;recordedAt=[DateTimeOffset]::UtcNow.ToString('o')});$tmp="$journalPath.$([guid]::NewGuid().ToString('N')).tmp";[IO.File]::WriteAllText($tmp,($journal|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false));Move-Item -LiteralPath $tmp -Destination $journalPath -Force }
 function Invoke-AuthenticatedReadiness {
     $cookie = Assert-ReadinessCredential
     $handler = [System.Net.Http.HttpClientHandler]::new()
@@ -75,26 +83,32 @@ function Get-TarExecutable {
 function Validate-Archive([string]$Path, $Expected) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "Snapshot archive is missing: $Path" }
     $plainPath = Unprotect-Archive $Path
-    $plainItem = Get-Item -LiteralPath $plainPath
-    $plainDigest = (Get-FileHash -LiteralPath $plainPath -Algorithm SHA256).Hash.ToLowerInvariant()
-    $encryptedItem = Get-Item -LiteralPath $Path
-    $encryptedDigest = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
-    try { $entries = @(& (Get-TarExecutable) -tf $plainPath 2>&1) } finally { if (Test-Path -LiteralPath $plainPath) { Remove-Item -LiteralPath $plainPath -Force } }
-    if ($LASTEXITCODE -ne 0 -or $entries.Count -eq 0) { throw "Snapshot archive could not be reopened: $Path" }
-    foreach ($entry in $entries) {
-        $text = ([string]$entry).Trim()
-        if ($text -match '(^/|^[A-Za-z]:|(^|/)\.\.(?:/|$))') { throw "Snapshot archive contains an unsafe path: $text" }
-    }
-    if ($Expected.formatVersion -ne 1 -or $Expected.keyDerivation -ne 'HKDF-SHA256' -or $Expected.encryption -ne 'AES-256-CBC+HMAC-SHA256' -or [long]$plainItem.Length -ne [long]$Expected.bytes -or $plainDigest -ne [string]$Expected.sha256 -or $Expected.encryptedBytes -and [long]$encryptedItem.Length -ne [long]$Expected.encryptedBytes -or $Expected.encryptedSha256 -and $encryptedDigest -ne [string]$Expected.encryptedSha256) { throw "Snapshot archive integrity changed for $($Expected.volume)." }
+    Register-PlaintextPath $plainPath 'created'
+    try {
+        $plainItem = Get-Item -LiteralPath $plainPath
+        if ($plainItem.Length -gt $MaxPlainArchiveBytes) { throw 'Decrypted snapshot archive exceeds the plaintext size bound.' }
+        $plainDigest = (Get-FileHash -LiteralPath $plainPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        $encryptedItem = Get-Item -LiteralPath $Path
+        $encryptedDigest = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+        $entries = @(& (Get-TarExecutable) -tf $plainPath 2>&1)
+        if ($LASTEXITCODE -ne 0 -or $entries.Count -eq 0) { throw "Snapshot archive could not be reopened: $Path" }
+        foreach ($entry in $entries) {
+            Assert-OperationDeadline
+            $text = ([string]$entry).Trim()
+            if ($text -match '(^/|^[A-Za-z]:|(^|/)\.\.(?:/|$))') { throw "Snapshot archive contains an unsafe path: $text" }
+        }
+        if ($Expected.formatVersion -ne 1 -or $Expected.keyDerivation -ne 'HKDF-SHA256' -or $Expected.encryption -ne 'AES-256-CBC+HMAC-SHA256' -or [long]$plainItem.Length -ne [long]$Expected.bytes -or $plainDigest -ne [string]$Expected.sha256 -or $Expected.encryptedBytes -and [long]$encryptedItem.Length -ne [long]$Expected.encryptedBytes -or $Expected.encryptedSha256 -and $encryptedDigest -ne [string]$Expected.encryptedSha256) { throw "Snapshot archive integrity changed for $($Expected.volume)." }
+    } finally { if (Test-Path -LiteralPath $plainPath) { Remove-Item -LiteralPath $plainPath -Force }; Register-PlaintextPath $plainPath 'erased' }
 }
 
-foreach ($archive in @($record.archives)) { Validate-Archive (Join-Path $snapshotPath $archive.archive) $archive }
+foreach ($archive in @($record.archives)) { Assert-OperationDeadline; Validate-Archive (Join-Path $snapshotPath $archive.archive) $archive }
 if (-not $Execute) {
     Write-Host "Plan only. Restore command is: powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\restore-volume-snapshots.ps1`" -SnapshotDirectory `"$snapshotPath`" -ImageRef `"$ImageRef`" -ManifestPath `"$ManifestPath`" -PreflightEvidencePath `"$PreflightEvidencePath`" -SnapshotEncryptionKeyFile `"$SnapshotEncryptionKeyFile`" -TlsCertificateSha256 `"$TlsCertificateSha256`" -SessionCookieFile `"$SessionCookieFile`" -ComposeFile `"$ComposeFile`" -ProjectName `"$ProjectName`" -AdminPort $AdminPort -Execute"
     exit 0
 }
 
 $manifest = Get-Content -Raw -LiteralPath $ManifestPath | ConvertFrom-Json
+Assert-ExternalDeploymentManifest -Manifest $manifest -ManifestPath $ManifestPath -ImageReference $ImageRef -ProjectName $ProjectName -Port $AdminPort | Out-Null
 if ($manifest.image -ne $ImageRef -or $manifest.sourceCommit -ne $record.sourceCommit -or [int]$manifest.adminPort -ne $AdminPort -or $manifest.volumeSchemaVersion -ne $record.volumeSchemaVersion -or $manifest.mountProfile -ne $record.mountProfile -or $manifest.sourceTreeSha256 -ne $record.sourceTreeSha256 -or $manifest.dockerfileSha256 -ne $record.dockerfileSha256 -or $manifest.consoleLockSha256 -ne $record.consoleLockSha256 -or $manifest.inputManifestSha256 -ne $record.inputManifestSha256 -or $manifest.aptSbomSha256 -ne $record.aptSbomSha256 -or $manifest.ubuntuSnapshot -ne $record.ubuntuSnapshot -or $manifest.runtimeBaseImage -ne $record.runtimeBaseImage -or $manifest.nodeBuildBaseImage -ne $record.nodeBuildBaseImage) { throw 'Restore image is not the snapshot source or a manifest-declared compatible image.' }
 if ($manifest.preflightEvidencePath -ne $PreflightEvidencePath -or (Get-FileHash -LiteralPath $PreflightEvidencePath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $manifest.preflightEvidenceSha256) { throw 'Restore preflight evidence does not match the external deployment manifest.' }
 $evidence = Get-Content -Raw -LiteralPath $PreflightEvidencePath | ConvertFrom-Json
@@ -115,7 +129,7 @@ $restoreJournalPath = Join-Path $snapshotPath 'standalone-restore-journal.json'
 $restoreJournal = [ordered]@{ schemaVersion = 1; transactionId = ([guid]::NewGuid().ToString('N')); state = 'started'; snapshotId = $record.snapshotId; volumeResults = @(); startedAt = [DateTimeOffset]::UtcNow.ToString('o') }
 [System.IO.File]::WriteAllText($restoreJournalPath, ($restoreJournal | ConvertTo-Json -Depth 8), [System.Text.UTF8Encoding]::new($false))
 
-try { foreach ($archive in @($record.archives)) {
+try { foreach ($archive in @($record.archives)) { Assert-OperationDeadline
     $plainPath = Unprotect-Archive (Join-Path $snapshotPath $archive.archive)
     $helperName = "ding-pbx-restore-$([guid]::NewGuid().ToString('N'))"
     $helperId = $null

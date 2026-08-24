@@ -40,11 +40,17 @@ foreach ($directory in @(Get-ChildItem -LiteralPath $parent -Directory -Filter '
         if ([long]$archiveItem.Length -ne [long]$archive.encryptedBytes -or $archiveDigest -ne [string]$archive.encryptedSha256) { $archivesValid = $false; break }
     }
     $expectedVolumes = @('ding-pbx-control-plane-data', 'ding-pbx-control-plane-asterisk-etc', 'ding-pbx-control-plane-asterisk-lib', 'ding-pbx-control-plane-asterisk-log', 'ding-pbx-control-plane-asterisk-spool')
-    if ($record.schemaVersion -ne 1 -or $record.sourceImage -notmatch '@sha256:[0-9a-f]{64}$' -or $record.mountProfile -ne 'five-volumes-plus-run-tmpfs' -or (@($record.volumes) -join '|') -ne ($expectedVolumes -join '|') -or $journal.schemaVersion -ne 1 -or $journal.state -ne 'complete' -or $journal.recoverability -ne 'verified' -or $transaction.state -ne 'complete' -or -not $archivesValid -or $recordItem.LastWriteTimeUtc -gt $cutoff) { continue }
+    if ($record.schemaVersion -ne 1 -or $record.snapshotId -notmatch '^[0-9a-f]{32}$' -or $journal.snapshotId -ne $record.snapshotId -or $record.sourceImage -notmatch '@sha256:[0-9a-f]{64}$' -or $record.mountProfile -ne 'five-volumes-plus-run-tmpfs' -or (@($record.volumes) -join '|') -ne ($expectedVolumes -join '|') -or $journal.schemaVersion -ne 1 -or $journal.state -ne 'complete' -or $journal.recoverability -ne 'verified' -or $transaction.state -ne 'complete' -or -not $archivesValid -or $recordItem.LastWriteTimeUtc -gt $cutoff) { continue }
+    $probe = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'restore-volume-snapshots.ps1') -SnapshotDirectory $directory.FullName -SnapshotEncryptionKeyFile $SnapshotEncryptionKeyFile 2>&1
+    if ($LASTEXITCODE -ne 0) { continue }
     $candidates += $directory
 }
 if (-not $Execute) { $candidates | ForEach-Object { Write-Host "Retention candidate: $($_.FullName)" }; exit 0 }
 foreach ($directory in $candidates) {
-    if ($PSCmdlet.ShouldProcess($directory.FullName, 'Remove verified expired snapshot directory')) { Remove-Item -LiteralPath $directory.FullName -Recurse -Force }
+    if ($PSCmdlet.ShouldProcess($directory.FullName, 'Remove verified expired snapshot directory')) {
+        $latest = Get-Item -LiteralPath $directory.FullName -ErrorAction Stop
+        if ($latest.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Snapshot candidate became a reparse point before removal: $($directory.FullName)" }
+        Remove-Item -LiteralPath $directory.FullName -Recurse -Force
+    }
 }
 Write-Host "Removed $($candidates.Count) verified expired snapshot directories."
