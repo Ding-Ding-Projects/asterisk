@@ -4,6 +4,7 @@
   const STORAGE_KEY = 'ding-pbx-site-history-delivery-v1';
   const STATE_SCHEMA_VERSION = 3;
   const HISTORY_EXPORT_SCHEMA_VERSION = 2;
+  const MAX_IMPORT_BYTES = 512 * 1024;
   const HISTORY_IMPORT_AUDIT_KEY = `${STORAGE_KEY}-import-audit`;
   const DELIVERY_STATES = new Set(['idle', 'preparing', 'prepared', 'handoff-started', 'handoff-unverified', 'handoff-cancelled', 'handoff-failed']);
   const MAX_HISTORY = 250;
@@ -169,10 +170,11 @@
     const panel = document.createElement('details'); panel.id = 'migration-audit'; panel.className = 'delivery-migration-audit'; panel.innerHTML = '<summary>State migration refusal audit</summary><p>Future saved-state versions are refused without applying their records. This audit is stored separately from ordinary history, contains only schema status, version, and time, and is omitted from ordinary history exports.</p><ul id="migration-audit-list"></ul>';
     status.after(panel); renderMigrationAudit();
   }
-  function appendHistoryImportAudit(params, reason) {
+  function appendHistoryImportAudit(params, reason, schemaVersion, eventSchemaVersion) {
     try {
+      if (schemaVersion !== HISTORY_EXPORT_SCHEMA_VERSION || eventSchemaVersion !== STATE_SCHEMA_VERSION) return false;
       const audit = JSON.parse(localStorage.getItem(HISTORY_IMPORT_AUDIT_KEY) || '[]');
-      audit.push({ schemaVersion: 1, imported: params.imported, refused: params.refused, existingTruncated: params.existingTruncated, importTruncated: params.importTruncated, reason: scrubSummary(reason).slice(0, 160), timestamp: new Date().toISOString() });
+      audit.push({ auditSchemaVersion: 1, schemaVersion, eventSchemaVersion, imported: params.imported, refused: params.refused, existingTruncated: params.existingTruncated, importTruncated: params.importTruncated, reason: scrubSummary(reason).slice(0, 160), timestamp: new Date().toISOString() });
       localStorage.setItem(HISTORY_IMPORT_AUDIT_KEY, JSON.stringify(audit.slice(-20)));
       renderHistoryImportAudit();
       return true;
@@ -184,7 +186,7 @@
     const host = document.querySelector('#history-import-audit-list'); if (!host) return;
     try {
       const audit = JSON.parse(localStorage.getItem(HISTORY_IMPORT_AUDIT_KEY) || '[]');
-      host.innerHTML = audit.length ? audit.slice().reverse().map(item => `<li>Imported ${escapeHtml(item.imported || 0)}, refused ${escapeHtml(item.refused || 0)}, existing truncated ${escapeHtml(item.existingTruncated || 0)}, import truncated ${escapeHtml(item.importTruncated || 0)} · ${escapeHtml(item.reason || 'no-op import')} · ${escapeHtml(formatDate(item.timestamp))}</li>`).join('') : '<li>No separate no-op import audits.</li>';
+      host.innerHTML = audit.length ? audit.slice().reverse().map(item => `<li>Export schema ${escapeHtml(item.schemaVersion || '?')}, event schema ${escapeHtml(item.eventSchemaVersion || '?')}: imported ${escapeHtml(item.imported || 0)}, refused ${escapeHtml(item.refused || 0)}, existing truncated ${escapeHtml(item.existingTruncated || 0)}, import truncated ${escapeHtml(item.importTruncated || 0)} · ${escapeHtml(item.reason || 'no-op import')} · ${escapeHtml(formatDate(item.timestamp))}</li>`).join('') : '<li>No separate no-op import audits.</li>';
     } catch { host.textContent = 'The separate no-op import audit is unavailable because local audit storage could not be read.'; }
   }
 
@@ -444,19 +446,27 @@
       const input = panel.querySelector('#history-import-file'); const status = panel.querySelector('#history-import-status'); const file = input.files?.[0];
       if (!file) { status.textContent = 'Choose one local JSON export before importing.'; return; }
       try {
-        const rawBytes = await file.arrayBuffer();
-        if (rawBytes.byteLength > 512 * 1024) throw new Error('the JSON file exceeds the 512 KiB byte limit');
+        if (!Number.isSafeInteger(file.size) || file.size > MAX_IMPORT_BYTES) throw new Error('the JSON file exceeds the 512 KiB byte limit');
+        const rawBytes = await file.slice(0, MAX_IMPORT_BYTES).arrayBuffer();
+        if (rawBytes.byteLength !== file.size) throw new Error('the selected file could not be read completely within the byte limit');
         const raw = new TextDecoder('utf-8', { fatal: true }).decode(rawBytes);
         const parsed = validateImportPayload(raw, rawBytes.byteLength);
         const existing = new Set(state.history.map(event => event.id)); const duplicates = parsed.valid.filter(event => existing.has(event.id)).length; const candidates = parsed.valid.filter(event => !existing.has(event.id));
         const refused = parsed.refused + duplicates;
         if (!candidates.length) {
           const auditParams = { imported: 0, refused, existingTruncated: 0, importTruncated: 0 };
-          const auditStored = appendHistoryImportAudit(auditParams, duplicates ? 'duplicate-only' : 'refused-only');
-          status.textContent = `No events appended. Refused ${refused}; all live events were preserved. ${auditStored ? 'The no-op audit was stored separately.' : 'The separate no-op audit could not be stored.'}`;
+          const reason = duplicates ? 'duplicate-only' : parsed.events.length ? 'refused-only' : 'empty-import';
+          const auditStored = appendHistoryImportAudit(auditParams, reason, parsed.schemaVersion, parsed.eventSchemaVersion);
+          status.textContent = `No events appended (${reason}). Refused ${refused}; all live events were preserved. ${auditStored ? 'The no-op audit was stored separately.' : 'The separate no-op audit could not be stored.'}`;
           return;
         }
         const merged = [...state.history, ...candidates]; const kept = merged.slice(-(MAX_HISTORY - 1)); const keptIds = new Set(kept.map(event => event.id)); const imported = candidates.filter(event => keptIds.has(event.id)).length; const importTruncated = candidates.length - imported; const existingTruncated = state.history.filter(event => !keptIds.has(event.id)).length;
+        if (!imported) {
+          const auditParams = { imported: 0, refused, existingTruncated: 0, importTruncated: candidates.length };
+          const auditStored = appendHistoryImportAudit(auditParams, 'zero-retained', parsed.schemaVersion, parsed.eventSchemaVersion);
+          status.textContent = `No events appended (zero-retained). Refused ${refused}, import truncated ${candidates.length}; all live events were preserved. ${auditStored ? 'The no-op audit was stored separately.' : 'The separate no-op audit could not be stored.'}`;
+          return;
+        }
         const historyImportParams = { imported, refused, existingTruncated, importTruncated };
         const previous = state.history; state.history = kept; persist(); const result = record('history-import', historyImportParams);
         if (!result?.ok) { state.history = previous; persist(); status.textContent = result?.reason || 'The import event was not appended, so success was not reported. Live state was restored.'; return; }
@@ -499,7 +509,7 @@
     value(0); whitespace(); if (index !== raw.length) throw new Error('trailing JSON data');
   }
   function validateImportPayload(raw, byteLength = new TextEncoder().encode(raw).byteLength) {
-    if (!Number.isSafeInteger(byteLength) || byteLength > 512 * 1024) throw new Error('the JSON file exceeds the 512 KiB byte limit');
+    if (!Number.isSafeInteger(byteLength) || byteLength > MAX_IMPORT_BYTES) throw new Error('the JSON file exceeds the 512 KiB byte limit');
     duplicateJsonKey(raw);
     const parsed = JSON.parse(raw);
     const topKeys = new Set(['schemaVersion', 'eventSchemaVersion', 'exportedAt', 'privateVocabulary', 'credentials', 'events']);
