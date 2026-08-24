@@ -249,6 +249,7 @@ export const CANTONESE: Catalog = {
   'Choose another editor': '揀另一個編輯器',
   'Use explicit Visual Studio Code download': '使用明確嘅 Visual Studio Code 下載',
   'No editor selected': '未揀編輯器',
+  'Editor not selected': '編輯器未能揀選',
   'Generic editor download opened': '一般編輯器下載已開啟',
   'Download link not opened': '下載連結未有開啟',
   'Visual Studio Code download opened': 'Visual Studio Code 下載已開啟',

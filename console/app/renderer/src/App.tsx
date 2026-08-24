@@ -1935,7 +1935,7 @@ It is shown once. The phone needs it to register.`);
                 void bridge?.externalEditor.choose(editor.id).then((next) => {
                   this.externalEditorStatus = next;
                   this.forceUpdate();
-                }).catch((error) => this.fire('Editor not selected', error instanceof Error ? error.message : String(error)));
+                }).catch((error) => this.fire(localizeText('Editor not selected'), error instanceof Error ? error.message : String(error)));
               },
             })),
           };
