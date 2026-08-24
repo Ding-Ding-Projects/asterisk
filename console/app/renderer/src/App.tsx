@@ -170,6 +170,8 @@ export class App extends Base {
   private oneClickStage = '';
   private oneClickPct = '0%';
   private oneClickLog: Array<{ text: string; color: string; icon: string; ms: string }> = [];
+  private oneClickStatus = 'Idle. No discovery is running.';
+  private oneClickCancelled = false;
   private refreshTimer: ReturnType<typeof setInterval> | undefined;
   private readStartedAt = new Map<string, number>();
   /** Durable storage for everything that must survive a relaunch (the
@@ -299,6 +301,8 @@ export class App extends Base {
   private discover = async () => {
     if (this.discoveryPending) return;
     this.discoveryPending = true;
+    this.oneClickCancelled = false;
+    this.oneClickStatus = 'Working. Completed observations remain recorded; later steps have not run.';
     this.oneClickRunning = true;
     this.oneClickStage = 'Reading local targets';
     this.oneClickPct = '15%';
@@ -339,6 +343,7 @@ export class App extends Base {
     const distribution = distributions[0]!;
     this.target = { id: distribution, label: distribution, detail: 'connecting to the discovered target', connected: false };
     this.oneClickStage = 'Connecting to the discovered target';
+    this.oneClickStatus = 'Reading targets completed. Verifying the discovered target through the control plane.';
     this.oneClickPct = '55%';
     this.oneClickLog = [
       { icon: 'search', text: `${distributions.length} local target${distributions.length === 1 ? '' : 's'} discovered`, color: '#9FF7C4', ms: 'read' },
@@ -360,6 +365,7 @@ export class App extends Base {
       const reason = connectionReason;
       this.target = { id: distribution, label: distribution, detail: reason, connected: false };
       this.oneClickStage = 'Target connection unavailable';
+      this.oneClickStatus = 'Stopped after the connection check. No later discovery step was attempted.';
       this.oneClickPct = '100%';
       this.oneClickLog = [
         { icon: 'search', text: `${distributions.length} local target${distributions.length === 1 ? '' : 's'} discovered`, color: '#9FF7C4', ms: 'read' },
@@ -370,6 +376,7 @@ export class App extends Base {
     }
     this.target = { id: distribution, label: distribution, detail: `${distributions.length} local target(s), connection verified`, connected: true };
     this.oneClickStage = 'Connection verified';
+    this.oneClickStatus = 'Completed. The target answered the connection check.';
     this.oneClickPct = '100%';
     this.oneClickLog = [
       { icon: 'search', text: `${distributions.length} local target${distributions.length === 1 ? '' : 's'} discovered`, color: '#9FF7C4', ms: 'read' },
@@ -382,8 +389,16 @@ export class App extends Base {
     } finally {
       this.discoveryPending = false;
       this.oneClickRunning = false;
+      if (this.oneClickCancelled) this.oneClickStatus = 'Cancelled. Completed observations are preserved; no later step was attempted.';
       this.forceUpdate();
     }
+  };
+
+  private cancelOneClick = (): void => {
+    if (!this.discoveryPending) return;
+    this.oneClickCancelled = true;
+    this.oneClickStatus = 'Cancellation requested. The current bounded control-plane request will settle before the UI closes the operation.';
+    this.forceUpdate();
   };
 
   /**
@@ -1866,7 +1881,9 @@ It is shown once. The phone needs it to register.`);
       oneClickStage: this.oneClickStage,
       oneClickPct: this.oneClickPct,
       oneClickLog: this.oneClickLog,
+      oneClickStatus: this.oneClickStatus,
       runOneClick: this.discover,
+      cancelOneClick: this.cancelOneClick,
 
       // Nav-rail badges: only a count this session actually read, never the design's
       // invented per-destination numbers.

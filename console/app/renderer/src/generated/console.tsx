@@ -60,6 +60,14 @@ function Template(v: any) {
               "search"
             )
           ),
+          h("button", { onClick: fn(v.openNotifications), title: `Open notification history`, "aria-label": `Open notification history`, style: sty(`width:44px; height:44px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center;`), className: "k-h4" },
+            h("span", { style: sty(`font-size:19px;`), className: "msym" },
+              "notifications"
+            ),
+            h("span", { "aria-live": `polite`, style: sty(`font-family:'Roboto Mono',monospace; font-size:10px; margin-left:-4px;`) },
+              S(v.unreadNotificationCount)
+            )
+          ),
           h("div", { style: sty(`display:flex;`) },
             h("div", { style: sty(`width:34px; height:32px; display:flex; align-items:center; justify-content:center; color:#9AA39B; border-radius:8px;`), onClick: fn(v.__window?.minimize), "data-window-button": ``, title: `Minimize`, className: "k-h1" },
               h("span", { style: sty(`font-size:17px;`), className: "msym" },
@@ -901,6 +909,14 @@ function Template(v: any) {
                       S(v.oneClickPct)
                     )
                   ),
+                  h("div", { style: sty(`display:flex; align-items:center; gap:10px; margin-bottom:12px;`) },
+                    h("span", { role: `status`, "aria-live": `polite`, style: sty(`flex:1; font-size:12px; color:#9AA39B;`) },
+                      S(v.oneClickStatus)
+                    ),
+                    h("button", { onClick: fn(v.cancelOneClick), "aria-label": `Cancel deployment`, style: sty(`min-height:44px; background:transparent; border:1px solid #FFB4AB; border-radius:999px; padding:8px 16px; color:#FFB4AB; font:inherit; font-size:12px; cursor:pointer;`) },
+                      "Cancel"
+                    )
+                  ),
                   h("div", { style: sty(`height:8px; border-radius:4px; background:#262B26; overflow:hidden; margin-bottom:14px;`) },
                     h("div", { style: sty(`height:100%; background:#82D9A5; border-radius:4px; width:${S(v.oneClickPct)}; transition:width .4s ease;`) })
                   ),
@@ -1131,20 +1147,31 @@ function Template(v: any) {
                       )
                     ),
                     h("span", { style: sty(`width:1px; height:20px; background:#333B34; flex:0 0 auto;`) }),
-                    h("span", { style: sty(`font-size:12.5px; color:#9AA39B; flex:0 0 auto;`) },
-                      "Filter"
+                    h("button", { onClick: fn(v.toggleFilters), "aria-expanded": v.filtersOpen, title: `Show or hide filters`, style: sty(`min-height:44px; background:transparent; border:1px solid #414942; border-radius:8px; padding:6px 10px; color:#C4CBC2; font:inherit; font-size:11px; cursor:pointer;`) },
+                      h("span", { style: sty(`font-size:15px;`), className: "msym" },
+                        "tune"
+                      ),
+                      S(v.filtersOpen ? 'Hide filters' : 'Show filters')
                     ),
-                    A(v.tableFilters).map(($f, $f$i) => R($f$i, F(
-                      ($f.on ? h("button", { onClick: fn($f.pick), style: sty(`display:flex; align-items:center; gap:5px; background:#005230; border:0; border-radius:8px; padding:5px 12px; color:#9FF7C4; font:inherit; font-size:12px; font-weight:500; cursor:pointer;`) },
-                          h("span", { style: sty(`font-size:15px;`), className: "msym" },
-                            "check"
-                          ),
-                          S($f.label)
-                        ) : null),
-                      ($f.off ? h("button", { onClick: fn($f.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:5px 12px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h1" },
-                          S($f.label)
-                        ) : null)
-                    )))
+                    (v.filtersOpen ? F(
+                      h("span", { style: sty(`font-size:12.5px; color:#9AA39B; flex:0 0 auto;`) },
+                        "Filter"
+                      ),
+                      A(v.tableFilters).map(($f, $f$i) => R($f$i, F(
+                        ($f.on ? h("button", { onClick: fn($f.pick), style: sty(`display:flex; align-items:center; gap:5px; background:#005230; border:0; border-radius:8px; padding:5px 12px; color:#9FF7C4; font:inherit; font-size:12px; font-weight:500; cursor:pointer;`) },
+                            h("span", { style: sty(`font-size:15px;`), className: "msym" },
+                              "check"
+                            ),
+                            S($f.label)
+                          ) : null),
+                        ($f.off ? h("button", { onClick: fn($f.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:5px 12px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;`), className: "k-h1" },
+                            S($f.label)
+                          ) : null)
+                      )))
+                    ) : null),
+                    (v.filtersCollapsedWarning ? h("span", { role: `status`, style: sty(`font-size:11px; color:#FFD68A;`) },
+                        S(v.filtersCollapsedWarning)
+                      ) : null)
                   ),
                   h("button", { onClick: fn(v.openWizard), style: sty(`display:flex; align-items:center; gap:7px; background:#1B4D33; border:0; border-radius:999px; padding:10px 18px 10px 14px; color:#9FF7C4; font:inherit; font-size:13px; font-weight:500; cursor:pointer;`), className: "k-h3" },
                     h("span", { style: sty(`font-size:18px;`), className: "msym" },
@@ -2255,9 +2282,17 @@ function Template(v: any) {
       ) : null),
       (v.ctxOpen ? F(
         h("div", { onClick: fn(v.closeCtx), onContextMenu: fn(v.closeCtx), style: sty(`position:absolute; inset:0; z-index:78;`) }),
-        h("div", { style: sty(`position:absolute; left:${S(v.ctxX)}; top:${S(v.ctxY)}; width:274px; background:#252B25; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:79; animation:dlgCtx .14s cubic-bezier(.2,1.3,.4,1);`) },
+        h("div", { "data-overlay": `menu`, role: `menu`, "aria-label": `Actions for ${S(v.ctxTarget)}`, style: sty(`position:absolute; left:${S(v.ctxX)}; top:${S(v.ctxY)}; width:274px; border-radius:14px; padding:6px; z-index:79; animation:dlgCtx .14s cubic-bezier(.2,1.3,.4,1);`) },
           h("div", { style: sty(`padding:8px 12px 6px; font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394; border-bottom:1px solid #333B34; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
             S(v.ctxTarget)
+          ),
+          h("div", { style: sty(`display:flex; align-items:center; gap:6px; padding:5px 6px 7px;`) },
+            h("input", { type: `search`, value: v.ctxFilter, onInput: fn(v.onCtxFilter), onChange: fn(v.onCtxFilter), "aria-label": `Search this context menu`, placeholder: `Search actions`, style: sty(`flex:1; min-width:0; background:#141A15; border:1px solid #414942; border-radius:8px; padding:7px 9px; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:11px;`) }),
+            h("button", { onClick: fn(v.openCtxRegex), title: `Build a regex for this menu`, "aria-label": `Build a regex for this context menu`, style: sty(`width:34px; height:34px; border-radius:8px; background:#262B26; border:0; color:#9FF7C4; cursor:pointer; display:flex; align-items:center; justify-content:center;`) },
+              h("span", { style: sty(`font-size:16px;`), className: "msym" },
+                "data_object"
+              )
+            )
           ),
           A(v.ctxItems).map(($i, $i$i) => R($i$i, h("button", { onClick: fn($i.act), onMouseEnter: fn($i.hover), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:${S($i.bg)}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
               h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
@@ -2266,12 +2301,20 @@ function Template(v: any) {
               h("span", { style: sty(`flex:1;`) },
                 S($i.label)
               ),
-              h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; color:#778078;`) },
+              h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; color:#778078;`), className: "m3-shortcut" },
                 S($i.hint)
               )
             )))
         ),
-        (v.subOpen ? h("div", { style: sty(`position:absolute; left:${S(v.subX)}; top:${S(v.subY)}; width:230px; background:#252B25; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:80; animation:dlgCtx .13s cubic-bezier(.2,1.3,.4,1);`) },
+        (v.subOpen ? h("div", { "data-overlay": `menu`, role: `menu`, "aria-label": `More actions`, style: sty(`position:absolute; left:${S(v.subX)}; top:${S(v.subY)}; width:230px; border-radius:14px; padding:6px; z-index:80; animation:dlgCtx .13s cubic-bezier(.2,1.3,.4,1);`) },
+            h("div", { style: sty(`display:flex; align-items:center; gap:6px; padding:5px 6px 7px;`) },
+              h("input", { type: `search`, value: v.subFilter, onInput: fn(v.onSubFilter), onChange: fn(v.onSubFilter), "aria-label": `Search submenu actions`, placeholder: `Search actions`, style: sty(`flex:1; min-width:0; background:#141A15; border:1px solid #414942; border-radius:8px; padding:7px 9px; color:#DFE4DC; font-size:11px;`) }),
+              h("button", { onClick: fn(v.openSubRegex), title: `Build a regex for this submenu`, "aria-label": `Build a regex for this submenu`, style: sty(`width:32px; height:32px; border-radius:8px; background:#262B26; border:0; color:#9FF7C4; cursor:pointer;`) },
+                h("span", { style: sty(`font-size:15px;`), className: "msym" },
+                  "data_object"
+                )
+              )
+            ),
             A(v.subItems).map(($i, $i$i) => R($i$i, h("button", { onClick: fn($i.run), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
                 h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                   S($i.icon)
@@ -2282,6 +2325,40 @@ function Template(v: any) {
               )))
           ) : null)
       ) : null),
+      (v.recoveryOpen ? h("div", { "data-overlay": `recovery`, role: `dialog`, "aria-modal": `false`, "aria-labelledby": `recovery-title`, style: sty(`position:absolute; left:50%; top:96px; transform:translateX(-50%); width:460px; background:#252B25; border:1px solid #FFB4AB; border-radius:18px; padding:18px 20px; box-shadow:0 14px 40px rgba(0,0,0,.7); z-index:86;`) },
+          h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },
+            h("span", { style: sty(`font-size:22px; color:#FFB4AB;`), className: "msym" },
+              "error"
+            ),
+            h("h2", { id: `recovery-title`, style: sty(`margin:0; font-size:17px;`) },
+              S(v.recoveryTitle)
+            ),
+            h("div", { style: sty(`flex:1;`) }),
+            h("button", { onClick: fn(v.closeRecovery), "aria-label": `Close recovery actions`, style: sty(`min-width:44px; width:44px; height:44px; border:0; border-radius:50%; background:transparent; color:#C4CBC2; cursor:pointer;`) },
+              h("span", { className: "msym" },
+                "close"
+              )
+            )
+          ),
+          h("p", { style: sty(`color:#DFE4DC; line-height:1.55; margin:12px 0 8px;`) },
+            S(v.recoveryBody)
+          ),
+          h("p", { role: `status`, "aria-live": `polite`, style: sty(`color:#FFD68A; font-family:'Roboto Mono',monospace; font-size:11px;`) },
+            S(v.recoveryStatus)
+          ),
+          h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;`) },
+            h("button", { onClick: fn(v.recoveryRetry), style: sty(`min-height:44px; border:1px solid #414942; border-radius:999px; padding:9px 16px; background:#1B4D33; color:#9FF7C4; font:inherit; cursor:pointer;`) },
+              "Retry"
+            ),
+            h("button", { onClick: fn(v.recoveryReauth), style: sty(`min-height:44px; border:1px solid #82D9A5; border-radius:999px; padding:9px 16px; background:transparent; color:#9FF7C4; font:inherit; cursor:pointer;`) },
+              "Re-authenticate"
+            ),
+            h("div", { style: sty(`flex:1;`) }),
+            h("button", { onClick: fn(v.closeRecovery), style: sty(`min-height:44px; border:1px solid #414942; border-radius:999px; padding:9px 16px; background:transparent; color:#C4CBC2; font:inherit; cursor:pointer;`) },
+              "Keep it open"
+            )
+          )
+        ) : null),
       (v.lockOpen ? h("div", { style: sty(`position:absolute; ${S(v.lockChrome)} max-height:88vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:82;`) },
           h("div", { onMouseDown: fn(v.dragLock), style: sty(`display:flex; align-items:center; gap:9px; cursor:grab; margin:-18px -20px 0; padding:16px 20px 8px;`) },
             h("span", { style: sty(`font-size:18px; color:#778078;`), className: "msym" },
@@ -3961,12 +4038,12 @@ class ConsoleShell extends DCLogic {
     wizardOpen:false, wizardStep:0, wizardCtl:null, paletteOpen:false,
     ceremonyOpen:false, cStep:0, keyTurned:false, holdMs:0, slideVal:0, moleHits:0, moleTime:15, moleIdx:-1, ceremonyTitle:'', ceremonyCmd:'',
     onboardOpen:true, onboardStep:0, tourOpen:false, tourStep:0,
-    toastOpen:false, toastText:'', nodeId:'n1', zoom:100, tableFilter:'All',
+    toastOpen:false, toastText:'', nodeId:'n1', zoom:100, tableFilter:'All', filtersOpen:true,
     cli:{ verb:'pjsip', obj:'show', target:'endpoints' },
     regex:['^memory/', 'projects', '\\.md$'],
-    patterns:{ nav:[], table:[], memory:['^memory/', 'projects'] },
+    patterns:{ nav:[], table:[], memory:['^memory/', 'projects'], ctx:[], sub:[] },
     regexOpen:false, regexTarget:'nav', regexX:'300px', regexY:'120px', regexFlags:['i'],
-    ctxOpen:false, ctxX:'0px', ctxY:'0px', ctxTarget:'', ctxKind:'screen',
+    ctxOpen:false, ctxX:'0px', ctxY:'0px', ctxTarget:'', ctxKind:'screen', ctxFilter:'', subFilter:'', recoveryOpen:false, recoveryTitle:'', recoveryBody:'', recoveryStatus:'No retry or re-authentication has run yet.',
     locks:{}, lockOpen:false, lockTarget:'', lockKey:'', lockStep:0, lockMethod:'PIN', pin:'', password:'', pinReveal:false, lockX:'40%', lockY:'22%',
     credits:3, game:'whack', gameScore:0, gameTime:0, gameCell:-1, gamePlaying:false,
     dtmfSeq:['4','7','2','9'], dtmfIn:[], dtmfShow:true,
@@ -3990,19 +4067,20 @@ class ConsoleShell extends DCLogic {
     drag:null, dlgPos:{}, dlgDock:{ appear:'right', wizard:'right' }, dlgSize:{}, resize:null,
     unlockOpen:false, unlockKey:'', unlockPin:'', unlockPw:'',
     appearOpen:false, appearTarget:'', appearState:'Default',
-    oneClickMode:'Funny', oneClickRunning:false, oneClickStep:0,
-    celebrate:false, celebrateTitle:'', celebrateSub:''
+    oneClickMode:'Funny', oneClickRunning:false, oneClickStep:0, oneClickStatus:'Working. The completed steps remain recorded; later steps have not run.',
+    celebrate:false, celebrateTitle:'', celebrateSub:'', notifications:[]
   };
 
   fire = (title, sub) => {
-    this.setState({ celebrate:true, celebrateTitle:title, celebrateSub:sub });
+    const notice = { id:Math.random().toString(16).slice(2, 10), source:'console', message:title + ': ' + sub, when:'just now', state:'Unread' };
+    this.setState(st => ({ celebrate:true, celebrateTitle:title, celebrateSub:sub, notifications:[notice].concat(st.notifications || []).slice(0, 200) }));
     clearTimeout(this._cf);
     this._cf = setTimeout(() => this.setState({ celebrate:false }), 2600);
   };
 
   set = (k, v) => this.setState(s => ({ [k]:v }));
   val = (c) => (this.state.values[c.id] !== undefined ? this.state.values[c.id] : c.value);
-  toast = (t) => { this.setState({ toastOpen:true, toastText:t }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toastOpen:false }), 4200); };
+  toast = (t) => { const notice = { id:Math.random().toString(16).slice(2, 10), source:'console', message:t, when:'just now', state:'Unread' }; this.setState(st => ({ toastOpen:true, toastText:t, notifications:[notice].concat(st.notifications || []).slice(0, 200) })); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toastOpen:false }), 4200); };
 
   commit = (c, v) => {
     const file = (SCREENS[this.state.screen] || {}).file || 'console';
@@ -4514,6 +4592,9 @@ class ConsoleShell extends DCLogic {
     const sel = s.selected || [];
 
     const tbl = sc.table || { cols:[], rows:[], grid:'1fr', add:'Add' };
+    const liveTableRows = s.screen === 'notifications'
+      ? (s.notifications || []).map(n => [n.id, n.message, n.when, n.state])
+      : tbl.rows;
     const chipOK = { 'Reachable':1, 'Registered':1, 'Running':1, 'Up':1, 'Active':1, 'Connected':1, 'Signed':1, 'Enabled':1, 'Published':1, 'Sealed':1, 'Locked':1 };
 
     return {
@@ -4522,6 +4603,8 @@ class ConsoleShell extends DCLogic {
       openConnection:() => this.showInfo('Connection', 'The console is attached to pbx-hq over the manager interface on port 5038, secured with TLS. Losing this connection makes every live number on the dashboard grey out — configuration screens keep working from the last read.', 'The app is talking to your phone system over the network. If the little dot stops being green, the two are no longer talking.', '38%', '70px'),
       modeOpts:['Beginner','Expert'].map(m => ({ label:m, on:s.mode === m, off:s.mode !== m, pick:() => this.setState({ mode:m }) })),
       togglePalette:() => this.set('paletteOpen', !s.paletteOpen),
+      openNotifications:() => this.setState({ railId:'app', screen:'notifications' }),
+      unreadNotificationCount:(s.notifications || []).filter(n => n.state === 'Unread').length,
       startOnboarding:() => this.setState({ onboardOpen:true, onboardStep:0 }),
 
       rail:RAIL.map(r => ({ icon:r.icon, label:r.label, on:r.id === s.railId, off:r.id !== s.railId, pick:() => this.setState({ railId:r.id, screen:ORDER.find(k => SCREENS[k].rail === r.id) }) })),
@@ -4668,13 +4751,20 @@ class ConsoleShell extends DCLogic {
 
       tableCols:tbl.cols, tableGrid:tbl.grid, tableAddLabel:tbl.add,
       tableFilters:['All','Healthy','Attention'].map(f => ({ label:f, on:s.tableFilter === f, off:s.tableFilter !== f, pick:() => this.set('tableFilter', f) })),
+      filtersOpen:!!s.filtersOpen,
+      toggleFilters:() => this.set('filtersOpen', !s.filtersOpen),
+      filtersCollapsedWarning:!s.filtersOpen && s.tableFilter !== 'All' ? 'Active filter: ' + s.tableFilter : '',
       hasSelection:sel.length > 0,
-      selectionLabel:sel.length + ' of ' + tbl.rows.length + ' selected',
+      selectionLabel:sel.length + ' of ' + liveTableRows.length + ' selected',
       allBorder:sel.length ? '#82D9A5' : '#8B938C', allBg:sel.length ? '#82D9A5' : 'transparent',
-      allIcon:sel.length === tbl.rows.length && tbl.rows.length ? 'check' : (sel.length ? 'remove' : ''),
-      toggleAll:() => this.set('selected', sel.length === tbl.rows.length ? [] : tbl.rows.map(r => r[0])),
+      allIcon:sel.length === liveTableRows.length && liveTableRows.length ? 'check' : (sel.length ? 'remove' : ''),
+      toggleAll:() => this.set('selected', sel.length === liveTableRows.length ? [] : liveTableRows.map(r => r[0])),
       clearSelection:() => this.set('selected', []),
-      bulkActions:[
+      bulkActions:s.screen === 'notifications' ? [
+        { icon:'done_all', label:'Mark read', run:() => this.setState(st => ({ notifications:(st.notifications || []).map(n => sel.indexOf(n.id) >= 0 ? Object.assign({}, n, { state:'Read' }) : n), selected:[] })) },
+        { icon:'delete_sweep', label:'Dismiss', run:() => this.setState(st => ({ notifications:(st.notifications || []).filter(n => sel.indexOf(n.id) < 0), selected:[] })) },
+        { icon:'download', label:'Export', run:() => this.toast('Selected notifications are ready for export') },
+      ] : [
         { icon:'play_arrow', label:'Enable', run:() => this.bulk('Enabled', sel) },
         { icon:'pause', label:'Disable', run:() => this.bulk('Disabled', sel) },
         { icon:'refresh', label:'Reload', run:() => this.ceremony('Reload ' + sel.length + ' objects', 'reload ' + sel.join(' ')) },
@@ -4684,14 +4774,14 @@ class ConsoleShell extends DCLogic {
         { icon:'download', label:'Export', run:() => this.bulk('Exported', sel) },
         { icon:'delete', label:'Delete', run:() => this.ceremony('Delete ' + sel.length + ' objects', 'delete ' + sel.join(' ')) }
       ],
-      tableRows:tbl.rows.map(r => ({
+      tableRows:liveTableRows.map(r => ({
         // This announced that the row had been loaded into the editor below and loaded
         // nothing at all — a toast asserting something that had not happened. A screen
         // that can really load a row supplies its own handler; the rest say plainly that
         // they cannot rather than claiming they did.
         pick:() => { if (this.onPickRow) { this.onPickRow(r[0]); return; }
           this.toast(r[0] + ' cannot be loaded into the editor on this screen yet'); },
-        rnd:this.rnd(80 + tbl.rows.indexOf(r)),
+        rnd:this.rnd(80 + liveTableRows.indexOf(r)),
         bg:sel.indexOf(r[0]) >= 0 ? '#1D2A22' : 'transparent',
         border:sel.indexOf(r[0]) >= 0 ? '#82D9A5' : '#8B938C',
         checkBg:sel.indexOf(r[0]) >= 0 ? '#82D9A5' : 'transparent',
@@ -5169,16 +5259,23 @@ class ConsoleShell extends DCLogic {
       oneClickLog:ONE_CLICK_LOG.slice(0, s.oneClickStep).reverse().map((l, i) => ({ text:l.text, ms:l.ms, icon:i === 0 ? 'pending' : 'check_circle', color:i === 0 ? '#DFE4DC' : '#82D9A5' })),
       runOneClick:() => {
         if (s.oneClickRunning) return;
-        this.setState({ oneClickRunning:true, oneClickStep:0 });
+        this.setState({ oneClickRunning:true, oneClickStep:0, oneClickStatus:'Working. The completed steps remain recorded; later steps have not run.' });
         clearInterval(this._oc);
         this._oc = setInterval(() => {
           const n = this.state.oneClickStep + 1;
           if (n >= ONE_CLICK_LOG.length) {
             clearInterval(this._oc);
-            this.setState({ oneClickStep:n, oneClickRunning:false });
+            this.setState({ oneClickStep:n, oneClickRunning:false, oneClickStatus:'Completed. Every listed step reached its end state.' });
             this.fire('It is alive', 'Four extensions, one queue, TLS everywhere. Try dialling 1001.');
           } else this.setState({ oneClickStep:n });
         }, 780);
+      },
+      cancelOneClick:() => {
+        if (!this.state.oneClickRunning) return;
+        clearInterval(this._oc);
+        const done = this.state.oneClickStep;
+        this.setState({ oneClickRunning:false, oneClickStatus:'Cancelled. ' + done + ' step(s) completed; no later step was attempted.' });
+        this.toast('Deployment cancelled with partial progress preserved');
       },
 
       screenLocked:!!s.locks[s.screen], lockedTitle:sc.title,
@@ -5205,7 +5302,7 @@ class ConsoleShell extends DCLogic {
       openTableRegex:() => this.setState({ regexOpen:true, regexTarget:'table', regexX:'420px', regexY:'180px' }),
       regexOpen:s.regexOpen,
       regexX:this.pos('regex', s.regexX, s.regexY)[0], regexY:this.pos('regex', s.regexX, s.regexY)[1],
-      regexTargetLabel:s.regexTarget === 'nav' ? 'section list' : (s.regexTarget === 'table' ? 'row filter' : 'memory search'),
+      regexTargetLabel:s.regexTarget === 'nav' ? 'section list' : (s.regexTarget === 'table' ? 'row filter' : (s.regexTarget === 'ctx' ? 'context menu' : (s.regexTarget === 'sub' ? 'submenu' : 'memory search'))),
       rxText:s.rxText || (s.patterns[s.regexTarget] || []).join(''),
       onRxText:(e) => { const v = e.target.value; const p = Object.assign({}, s.patterns); p[s.regexTarget] = v ? [v] : []; this.setState({ rxText:v, patterns:p }); },
       regexFlagStr:s.regexFlags.join(''),
@@ -5244,45 +5341,57 @@ class ConsoleShell extends DCLogic {
       regexCount:(() => { const pat = (s.patterns[s.regexTarget] || []).join(''); if (!pat) return 'no filter'; try { new RegExp(pat); return 'valid pattern'; } catch (e) { return 'invalid pattern'; } })(),
       regexPreview:(() => {
         const pat = (s.patterns[s.regexTarget] || []).join('');
-        const pool = s.regexTarget === 'nav' ? ORDER.map(k => SCREENS[k].label) : (sc.table ? sc.table.rows.map(r => r[0]) : ORDER.map(k => SCREENS[k].label));
+        const pool = s.regexTarget === 'nav' ? ORDER.map(k => SCREENS[k].label) : (s.regexTarget === 'ctx' ? (this._ctxItems || []).map(i => i.label) : (s.regexTarget === 'sub' ? (this._subItems || []).map(i => i.label) : (sc.table ? sc.table.rows.map(r => r[0]) : ORDER.map(k => SCREENS[k].label))));
         let re = null; try { re = pat ? new RegExp(pat, s.regexFlags.filter(f => f !== 'g').join('')) : null; } catch (e) { return [{ text:'pattern is not valid yet', icon:'error', color:'#FFB4AB' }]; }
         return pool.slice(0, 6).map(x => ({ text:x, icon:(!re || re.test(x)) ? 'check_circle' : 'remove_circle_outline', color:(!re || re.test(x)) ? '#82D9A5' : '#778078' }));
       })(),
       clearRegex:() => { const p = Object.assign({}, s.patterns); p[s.regexTarget] = []; this.setState({ patterns:p }); },
-      closeRegex:() => this.set('regexOpen', false),
+      closeRegex:() => {
+        if (s.regexTarget === 'ctx') this.setState({ ctxFilter:(s.patterns.ctx || []).join(''), regexOpen:false });
+        else if (s.regexTarget === 'sub') this.setState({ subFilter:(s.patterns.sub || []).join(''), regexOpen:false });
+        else this.set('regexOpen', false);
+      },
 
       ctxOpen:s.ctxOpen, ctxX:s.ctxX, ctxY:s.ctxY, ctxTarget:s.ctxTarget,
       subOpen:!!s.ctxSub,
       subItems:(() => {
         const close = () => this.setState({ ctxOpen:false, ctxSub:'' });
+        const filterSub = (list) => {
+          const q = String(s.subFilter || '').trim();
+          if (!q) { this._subItems = list; return list; }
+          let re = null; try { re = new RegExp(q, 'i'); } catch (e) {}
+          const filtered = list.filter(i => re ? re.test(i.label) : String(i.label).toLowerCase().includes(q.toLowerCase()));
+          this._subItems = filtered;
+          return filtered;
+        };
         const g = s.groups.find(x => x.id === s.ctxGroupId) || { id:'', tabs:[], name:'', colour:'#82D9A5' };
         const upd = (patch) => this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, patch) : x), ctxOpen:false, ctxSub:'' });
-        if (s.ctxSub === 'gcolour') return [{ icon:'colorize', label:'Open colour picker…', run:() => this.setState({ ctxOpen:false, ctxSub:'', tabColourOpen:true, renameKey:'group:' + g.id }) }]
+        if (s.ctxSub === 'gcolour') return filterSub([{ icon:'colorize', label:'Open colour picker…', run:() => this.setState({ ctxOpen:false, ctxSub:'', tabColourOpen:true, renameKey:'group:' + g.id }) }]
           .concat(['#82D9A5', '#FFD68A', '#FFB4AB', '#8AB4F8', '#D8A9F0', '#DFE4DC'].map(c => ({ icon:'circle', label:c, run:() => upd({ colour:c }) })));
-        if (s.ctxSub === 'gbehave') return [
+        if (s.ctxSub === 'gbehave') return filterSub([
           { icon:'unfold_less', label:g.collapsed ? 'Expand' : 'Collapse', run:() => upd({ collapsed:!g.collapsed }) },
           { icon:'compress', label:'Auto-collapse when inactive', run:() => upd({ auto:true }) },
           { icon:'push_pin', label:'Pin whole group', run:() => { close(); this.set('pinned', s.pinned.concat(g.tabs)); } },
           { icon:'lock', label:'Lock every tab in group', run:() => { close(); this.toast('Each tab gets its own credential in the next step'); } },
           { icon:'sync', label:'Reload every tab in group', run:() => { close(); this.ceremony('Reload group ' + g.name, 'reload ' + g.tabs.join(' ')); } },
           { icon:'visibility_off', label:'Hide from the strip', run:() => upd({ hidden:true }) }
-        ];
-        if (s.ctxSub === 'gtabs') return g.tabs.map(t => ({ icon:SCREENS[t] ? SCREENS[t].icon : 'tab', label:s.tabNames[t] || (SCREENS[t] ? SCREENS[t].title : t), run:() => { close(); this.openScreen(t); } }));
-        if (s.ctxSub === 'gsave') return [
+        ]);
+        if (s.ctxSub === 'gtabs') return filterSub(g.tabs.map(t => ({ icon:SCREENS[t] ? SCREENS[t].icon : 'tab', label:s.tabNames[t] || (SCREENS[t] ? SCREENS[t].title : t), run:() => { close(); this.openScreen(t); } })));
+        if (s.ctxSub === 'gsave') return filterSub([
           { icon:'download', label:'Export group as JSON', run:() => { close(); this.fire('Group exported', g.name + ' with ' + g.tabs.length + ' tabs.'); } },
           { icon:'upload', label:'Import a group…', run:() => { close(); this.toast('Pick a group file to import'); } },
           { icon:'bookmark_add', label:'Save as a workspace', run:() => { close(); this.fire('Workspace saved', 'Reopen it from the palette.'); } },
           { icon:'restore', label:'Restore last session', run:() => { close(); this.toast('Previous tabs and groups restored'); } }
-        ];
-        if (s.ctxSub === 'tabexport') return [
+        ]);
+        if (s.ctxSub === 'tabexport') return filterSub([
           { icon:'download', label:'Export this tab', run:() => { close(); this.toast('Tab exported as JSON'); } },
           { icon:'download_for_offline', label:'Export all tabs', run:() => { close(); this.fire('Exported', s.tabs.length + ' tabs and ' + s.groups.length + ' groups.'); } },
           { icon:'upload', label:'Import tabs…', run:() => { close(); this.toast('Pick a tab set to import'); } },
           { icon:'content_copy', label:'Copy tab list to clipboard', run:() => { close(); this.toast('Tab list copied'); } }
-        ];
+        ]);
         if (s.ctxSub !== 'closetabs') return [];
         const k = s.ctxTabKey || s.screen, i = s.tabs.indexOf(k);
-        return [
+        return filterSub([
           { icon:'first_page', label:'To the left', run:() => { close(); this.setState({ tabs:s.tabs.slice(i) }); } },
           { icon:'last_page', label:'To the right', run:() => { close(); this.setState({ tabs:s.tabs.slice(0, i + 1) }); } },
           { icon:'tab_close_right', label:'All others', run:() => { close(); this.setState({ tabs:[k], screen:k }); } },
@@ -5300,16 +5409,25 @@ class ConsoleShell extends DCLogic {
       closeCtx:(e) => { if (e && e.preventDefault) e.preventDefault(); this.set('ctxOpen', false); },
       ctxItems:(() => {
         const close = () => this.setState({ ctxOpen:false, ctxSub:'' });
-        const decorate = (list) => list.map(it => Object.assign({}, it, {
+        const decorate = (list) => {
+          const decorated = list.map(it => Object.assign({}, it, {
           bg:it.sub && s.ctxSub === it.sub ? '#333B34' : 'transparent',
           hover:() => this.set('ctxSub', it.sub || ''),
           act:it.sub ? (() => this.set('ctxSub', it.sub)) : it.run
-        }));
+          }));
+          const q = String(s.ctxFilter || '').trim();
+          if (!q) { this._ctxItems = decorated; return decorated; }
+          let re = null; try { re = new RegExp(q, 'i'); } catch (e) {}
+          const filtered = decorated.filter(i => re ? re.test(i.label) : String(i.label).toLowerCase().includes(q.toLowerCase()));
+          this._ctxItems = filtered;
+          return filtered;
+        };
         this._dec = decorate;
         const common = [
           { icon:'lock', label:'Lock this element…', hint:'⌃L', run:() => this.setState({ ctxOpen:false, lockOpen:true, lockTarget:s.ctxTarget, lockKey:s.screen, lockStep:0, pin:'', password:'', lockX:s.ctxX, lockY:s.ctxY }) },
           { icon:'brush', label:'Edit appearance…', hint:'⌃E', run:() => this.setState({ ctxOpen:false, appearOpen:true, appearTarget:s.ctxTarget }) },
-          { icon:'help', label:'Explain this…', hint:'F1', run:() => { close(); this.showInfo(s.ctxTarget, sc.sub, null, s.ctxX, s.ctxY); } }
+          { icon:'help', label:'Explain this…', hint:'F1', run:() => { close(); this.showInfo(s.ctxTarget, sc.sub, null, s.ctxX, s.ctxY); } },
+          { icon:'key', label:'Recover or re-authenticate…', hint:'', run:() => this.setState({ ctxOpen:false, recoveryOpen:true, recoveryTitle:'Recovery for ' + s.ctxTarget, recoveryBody:'The failed action stays unchanged. Choose Retry to run it again, or Re-authenticate to refresh the local credential before retrying.', recoveryStatus:'No retry or re-authentication has run yet.' }) }
         ];
         if (s.ctxKind === 'group') {
           const g = s.groups.find(x => x.id === s.ctxGroupId) || { tabs:[], name:'' };
@@ -5388,6 +5506,19 @@ class ConsoleShell extends DCLogic {
           { icon:'content_copy', label:'Copy as configuration', hint:'⌃C', run:() => { close(); this.toast('Configuration block copied'); } }
         ].concat(common));
       })(),
+      ctxFilter:s.ctxFilter,
+      subFilter:s.subFilter,
+      onCtxFilter:(e) => this.setState({ ctxFilter:e.target.value }),
+      onSubFilter:(e) => this.setState({ subFilter:e.target.value }),
+      openCtxRegex:() => this.setState({ regexOpen:true, regexTarget:'ctx', regexX:s.ctxX, regexY:s.ctxY }),
+      openSubRegex:() => this.setState({ regexOpen:true, regexTarget:'sub', regexX:(parseInt(s.ctxX, 10) + 266) + 'px', regexY:(parseInt(s.ctxY, 10) + 84) + 'px' }),
+      recoveryOpen:s.recoveryOpen,
+      recoveryTitle:s.recoveryTitle,
+      recoveryBody:s.recoveryBody,
+      recoveryStatus:s.recoveryStatus,
+      closeRecovery:() => this.setState({ recoveryOpen:false }),
+      recoveryRetry:() => this.setState({ recoveryStatus:'Retry requested. The action remains pending until the control plane confirms it.' }),
+      recoveryReauth:() => this.setState({ recoveryStatus:'Re-authentication requested. No credential is displayed or copied into the recovery record.' }),
 
       lockChrome:this.dockChrome('lock', s.lockX, s.lockY, 392).style,
       lockDockOpts:this.dockChrome('lock', s.lockX, s.lockY, 392).options,

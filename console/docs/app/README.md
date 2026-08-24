@@ -5,6 +5,7 @@ Deploy & application: stand up a new server, then appearance, updates and the co
 - [Deploy & servers](servers.md)
 - [Arcade](arcade.md)
 - [Notifications](notifications.md)
+- [Accessibility, overlays, and recovery](accessibility-overlays.md)
 - [History & git](history.md)
 - [Customise everything](customise.md)
 - [Appearance](appearance.md)

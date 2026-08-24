@@ -79,18 +79,48 @@ function Template(v: any) {
               ) : null)
           )))
         ) : null),
-      (v.isSelect ? h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px;`) },
-          A(v.ctl.options).map(($o, $o$i) => R($o$i, F(
-            ($o.on ? h("button", { onClick: fn($o.pick), style: sty(`display:flex; align-items:center; gap:5px; background:#005230; border:0; border-radius:8px; padding:7px 13px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; font-weight:500; cursor:pointer;`) },
-                h("span", { style: sty(`font-size:14px;`), className: "msym" },
-                  "check"
-                ),
-                S($o.label)
-              ) : null),
-            ($o.off ? h("button", { onClick: fn($o.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:7px 13px; color:#C4CBC2; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`), className: "c-h1" },
-                S($o.label)
+      (v.isSelect ? h("div", { style: sty(`display:flex; flex-direction:column; gap:8px;`) },
+          h("div", { style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:8px 10px;`) },
+            h("span", { style: sty(`font-size:17px; color:#82D9A5;`), className: "msym" },
+              "search"
+            ),
+            h("input", { type: `search`, value: v.selectQuery, onInput: fn(v.onSelectQuery), onChange: fn(v.onSelectQuery), "aria-label": `Filter ${S(v.ctl.label)} options`, placeholder: `Filter options`, style: sty(`flex:1; min-width:0; background:transparent; border:0; outline:none; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:12px;`) }),
+            h("button", { onClick: fn(v.toggleSelectBuilder), title: `Build a regex for this option list`, "aria-label": `Build a regex for ${S(v.ctl.label)} options`, style: sty(`width:32px; height:32px; border-radius:8px; background:#262B26; border:0; color:#9FF7C4; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`) },
+              h("span", { style: sty(`font-size:16px;`), className: "msym" },
+                "data_object"
+              )
+            )
+          ),
+          (v.selectBuilderOpen ? h("div", { style: sty(`display:flex; flex-direction:column; gap:7px; background:#0C110D; border:1px solid #333B34; border-radius:10px; padding:10px;`), role: `region`, "aria-label": `Regex builder for ${S(v.ctl.label)} options` },
+              h("label", { style: sty(`font-size:11px; color:#9AA39B;`) },
+                "Pattern",
+                h("input", { type: `text`, value: v.selectPattern, onInput: fn(v.onSelectPattern), onChange: fn(v.onSelectPattern), "aria-label": `Regex pattern for ${S(v.ctl.label)} options`, style: sty(`display:block; width:100%; margin-top:4px; background:#141A15; border:1px solid #414942; border-radius:7px; padding:7px 9px; color:#DFE4DC; font-family:'Roboto Mono',monospace;`) })
+              ),
+              h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px;`) },
+                A(v.selectFlags).map(($f, $f$i) => R($f$i, h("button", { onClick: fn($f.toggle), "aria-pressed": $f.on, style: sty(`background:${S($f.bg)}; border:1px solid #414942; border-radius:7px; padding:6px 9px; color:#C4CBC2; font-size:11px; cursor:pointer;`) },
+                    S($f.label)
+                  )))
+              ),
+              h("div", { role: `status`, "aria-live": `polite`, style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:${S(v.selectFeedbackColour)};`) },
+                S(v.selectFeedback)
+              )
+            ) : null),
+          h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px;`), role: `listbox`, "aria-label": `${S(v.ctl.label)} options` },
+            A(v.selectOptions).map(($o, $o$i) => R($o$i, F(
+              ($o.on ? h("button", { onClick: fn($o.pick), style: sty(`display:flex; align-items:center; gap:5px; background:#005230; border:0; border-radius:8px; padding:7px 13px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; font-weight:500; cursor:pointer;`) },
+                  h("span", { style: sty(`font-size:14px;`), className: "msym" },
+                    "check"
+                  ),
+                  S($o.label)
+                ) : null),
+              ($o.off ? h("button", { onClick: fn($o.pick), style: sty(`background:transparent; border:1px solid #414942; border-radius:8px; padding:7px 13px; color:#C4CBC2; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;`), className: "c-h1" },
+                  S($o.label)
+                ) : null)
+            ))),
+            (v.selectNoMatches ? h("span", { style: sty(`font-size:12px; color:#9AA39B; padding:8px;`) },
+                "No matching options"
               ) : null)
-          )))
+          )
         ) : null),
       (v.isChips ? h("div", { style: sty(`display:flex; flex-wrap:wrap; gap:6px;`) },
           A(v.ctl.options).map(($o, $o$i) => R($o$i, F(
@@ -233,7 +263,7 @@ function Template(v: any) {
   );
 }
 class M3Control extends DCLogic {
-  state = { dragFrom:-1, over:-1, padOpen:false, padBuf:'' };
+  state = { dragFrom:-1, over:-1, padOpen:false, padBuf:'', selectQuery:'', selectPattern:'', selectFlags:['i'], selectBuilderOpen:false };
   renderVals() {
     const c = this.props.ctl || {};
     const st = this.state;
@@ -246,6 +276,32 @@ class M3Control extends DCLogic {
       onDrop: (e) => { e.preventDefault(); if (st.dragFrom >= 0 && st.dragFrom !== i && c.move) c.move(st.dragFrom, i); this.setState({ dragFrom:-1, over:-1 }); },
       onDragEnd: () => this.setState({ dragFrom:-1, over:-1 })
     }));
+    const selectFlags = [['i', 'Ignore case'], ['m', 'Multiline'], ['u', 'Unicode']].map(([flag, label]) => ({
+      label:flag + ' · ' + label,
+      on:this.state.selectFlags.indexOf(flag) >= 0,
+      bg:this.state.selectFlags.indexOf(flag) >= 0 ? '#1B4D33' : 'transparent',
+      toggle:() => this.setState(st => ({ selectFlags:st.selectFlags.indexOf(flag) >= 0 ? st.selectFlags.filter(x => x !== flag) : st.selectFlags.concat([flag]) })),
+    }));
+    const selectPattern = this.state.selectBuilderOpen ? this.state.selectPattern : this.state.selectQuery;
+    let selectRegex;
+    let selectFeedback = '';
+    let selectFeedbackColour = '#9AA39B';
+    try {
+      selectRegex = this.state.selectBuilderOpen && selectPattern ? new RegExp(selectPattern, this.state.selectFlags.join('')) : null;
+      selectFeedback = selectPattern ? (this.state.selectBuilderOpen ? 'Pattern is valid' : 'Plain text mode. Open the builder to opt into regex.') : 'Plain text mode. Open the builder to opt into regex.';
+      selectFeedbackColour = '#82D9A5';
+    } catch (error) {
+      selectRegex = null;
+      selectFeedback = 'Pattern is not valid yet';
+      selectFeedbackColour = '#FFB4AB';
+    }
+    const selectOptions = (c.options || []).map(option => typeof option === 'string'
+      ? { label:option, on:option === c.value, off:option !== c.value, pick:() => c.set && c.set(option) }
+      : option).filter(option => {
+      if (!selectPattern) return true;
+      if (this.state.selectBuilderOpen && !selectRegex) return false;
+      return selectRegex ? selectRegex.test(option.label) : option.label.toLowerCase().includes(selectPattern.toLowerCase());
+    });
     const clamp = (n) => {
       let x = parseFloat(n);
       if (isNaN(x)) return c.value;
@@ -269,6 +325,17 @@ class M3Control extends DCLogic {
       isSegmented: c.kind === 'segmented' && !c.narrow,
       isSegNarrow: c.kind === 'segmented' && !!c.narrow,
       isSelect: c.kind === 'select',
+      selectQuery:this.state.selectQuery,
+      selectPattern:this.state.selectPattern,
+      selectBuilderOpen:this.state.selectBuilderOpen,
+      selectFlags,
+      selectOptions,
+      selectNoMatches:selectOptions.length === 0,
+      selectFeedback,
+      selectFeedbackColour,
+      onSelectQuery:(e) => this.setState({ selectQuery:e.target.value, selectPattern:'' }),
+      onSelectPattern:(e) => this.setState({ selectPattern:e.target.value, selectQuery:'' }),
+      toggleSelectBuilder:() => this.setState(st => ({ selectBuilderOpen:!st.selectBuilderOpen, selectPattern:st.selectPattern || st.selectQuery })),
       isChips: c.kind === 'chips',
       isStepper: c.kind === 'stepper',
       isSlider: c.kind === 'slider',

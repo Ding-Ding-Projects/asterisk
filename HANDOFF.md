@@ -419,3 +419,18 @@ one-page target preflight. The run also recorded direct `Setup.exe` launch succe
 repaired restart path, Later hiding the banner while retaining the staged candidate, and
 the visible review, apply, or discard block for two drafts. The detailed public article is
 `console/docs/platform/automatic-updates-evidence.md`. No new capture was made in this lane.
+
+## Accessibility and overlay lane on 2026-08-24
+
+This lane changed the checked-in design source and regenerated the renderer. It added:
+
+- shared focus-visible outlines, 44px minimum control targets, viewport-safe overlay bounds, internal overlay scrolling, narrow-layout collision handling, and reduced-motion rules;
+- searchable context menus and submenus, shortcut labels, and local regex builders;
+- searchable select controls with plain-text-first filtering, opt-in regex flags, invalid-pattern feedback, and honest empty results;
+- one-click deployment progress with stage, percentage, completed-step history, cancellation, partial-state copy, and a re-entry guard;
+- an anchored recovery panel beside context targets with explicit Retry and Re-authenticate actions and credential-safe status copy;
+- runtime notification history with read and dismiss bulk actions, a toolbar entry point, and active-filter warnings when table filters collapse.
+
+Changed source files are `design/Asterisk Console M3.dc.html`, `design/M3 Control.dc.html`, and regenerated files under `console/app/renderer/src/generated/`. Documentation and the feature registry were updated in `console/docs/app/accessibility-overlays.md`, `console/docs/app/README.md`, and `console/app/feature-registry.json`.
+
+Verification boundary: `npm run compile:design` completed in this lane. Tests, lint, broad build, packaging, desktop interaction, browser interaction, and captures were intentionally not run for this lane. The parent task must independently review the generated diff before integration.

@@ -282,24 +282,24 @@
       ]
     },
     "bounded-overlays": {
-      "state": "absent",
-      "note": "No dedicated overlay-bounding/viewport-clamping logic was found; overlays in the compiled console use plain fixed-position styling with no evidence of viewport-boundary handling.",
-      "files": []
+      "state": "implemented",
+      "note": "The checked-in design source now marks context menus, submenus, and recovery panels as self-painted overlays with bounded max width and height, internal scrolling, viewport collision rules at narrow widths, and reduced-motion fallbacks. Shared focus-visible styling and 44px minimum targets cover keyboard and scale consumers.",
+      "files": ["design/Asterisk Console M3.dc.html", "app/renderer/src/generated/console.tsx", "app/renderer/src/generated/design-styles.css"]
     },
     "context-menu-shortcuts": {
-      "state": "absent",
-      "note": "The compiled console context menu (ctxOpen/ctxSub) renders labels and icons only; no keyboard-shortcut column was found alongside its menu items.",
-      "files": []
+      "state": "implemented",
+      "note": "Context menus and submenus retain their declared shortcut hints in an aligned shortcut column and now each owns a keyboard-focusable plain-text search field plus an adjacent anchored regex builder. Filtering is local to the open menu and preserves action handlers.",
+      "files": ["design/Asterisk Console M3.dc.html", "design/M3 Control.dc.html", "app/renderer/src/generated/console.tsx", "app/renderer/src/generated/m3-control.tsx"]
     },
     "long-operation-progress": {
-      "state": "absent",
-      "note": "No dialog reporting real long-operation progress (queue/index/clone-style progress inside a start dialog) was found; ceremony.ts runs a bounded confirmation flow, not a progress-reporting operation.",
-      "files": []
+      "state": "implemented",
+      "note": "The one-click deployment dialog reports the current stage, percentage, completed log entries, and an honest live status. A re-entry guard refuses duplicate starts; Cancel stops the timer and reports exactly how many steps completed without claiming later work.",
+      "files": ["design/Asterisk Console M3.dc.html", "app/renderer/src/App.tsx", "app/renderer/src/generated/console.tsx"]
     },
     "in-context-recovery": {
-      "state": "absent",
-      "note": "No surface-level recovery route (for example re-authentication offered directly beside a refused push/credential error) was found.",
-      "files": []
+      "state": "implemented",
+      "note": "Every shared context-menu target now exposes Recover or re-authenticate. The anchored recovery panel names the target, keeps the failed action unchanged, and exposes separate Retry and Re-authenticate actions with live status that does not display credentials or claim completion.",
+      "files": ["design/Asterisk Console M3.dc.html", "app/renderer/src/generated/console.tsx"]
     },
     "provider-markup-rendering": {
       "state": "partial",
@@ -315,9 +315,9 @@
       "files": []
     },
     "collapsible-filters": {
-      "state": "absent",
-      "note": "No evidence of a collapsible filter/statistics row was found; the compiled console tab filter (tabFilterOpen) is a modal overlay, not a collapsible inline row.",
-      "files": []
+      "state": "implemented",
+      "note": "Every table-like screen now has a session-state filter disclosure button. Collapsing the row retains an active-filter warning, so filtered results are never silently presented as complete.",
+      "files": ["design/Asterisk Console M3.dc.html", "app/renderer/src/generated/console.tsx"]
     },
     "automatic-updates": {
       "state": "implemented",

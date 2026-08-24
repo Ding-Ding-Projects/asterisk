@@ -61,8 +61,21 @@
   </sc-if>
 
   <sc-if value="{{ isSelect }}">
-    <div style="display:flex; flex-wrap:wrap; gap:6px;">
-      <sc-for list="{{ ctl.options }}" as="o" hint-placeholder-count="4">
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <div style="display:flex; align-items:center; gap:8px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:8px 10px;">
+        <span class="msym" style="font-size:17px; color:#82D9A5;">search</span>
+        <input type="search" value="{{ selectQuery }}" onInput="{{ onSelectQuery }}" onChange="{{ onSelectQuery }}" aria-label="Filter {{ ctl.label }} options" placeholder="Filter options" style="flex:1; min-width:0; background:transparent; border:0; outline:none; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:12px;" />
+        <button onClick="{{ toggleSelectBuilder }}" title="Build a regex for this option list" aria-label="Build a regex for {{ ctl.label }} options" style="width:32px; height:32px; border-radius:8px; background:#262B26; border:0; color:#9FF7C4; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><span class="msym" style="font-size:16px;">data_object</span></button>
+      </div>
+      <sc-if value="{{ selectBuilderOpen }}">
+        <div style="display:flex; flex-direction:column; gap:7px; background:#0C110D; border:1px solid #333B34; border-radius:10px; padding:10px;" role="region" aria-label="Regex builder for {{ ctl.label }} options">
+          <label style="font-size:11px; color:#9AA39B;">Pattern<input type="text" value="{{ selectPattern }}" onInput="{{ onSelectPattern }}" onChange="{{ onSelectPattern }}" aria-label="Regex pattern for {{ ctl.label }} options" style="display:block; width:100%; margin-top:4px; background:#141A15; border:1px solid #414942; border-radius:7px; padding:7px 9px; color:#DFE4DC; font-family:'Roboto Mono',monospace;" /></label>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;"><sc-for list="{{ selectFlags }}" as="f" hint-placeholder-count="4"><button onClick="{{ f.toggle }}" aria-pressed="{{ f.on }}" style="background:{{ f.bg }}; border:1px solid #414942; border-radius:7px; padding:6px 9px; color:#C4CBC2; font-size:11px; cursor:pointer;">{{ f.label }}</button></sc-for></div>
+          <div role="status" aria-live="polite" style="font-family:'Roboto Mono',monospace; font-size:11px; color:{{ selectFeedbackColour }};">{{ selectFeedback }}</div>
+        </div>
+      </sc-if>
+      <div style="display:flex; flex-wrap:wrap; gap:6px;" role="listbox" aria-label="{{ ctl.label }} options">
+      <sc-for list="{{ selectOptions }}" as="o" hint-placeholder-count="4">
         <sc-if value="{{ o.on }}" hint-placeholder-val="{{ true }}">
           <button onClick="{{ o.pick }}" style="display:flex; align-items:center; gap:5px; background:#005230; border:0; border-radius:8px; padding:7px 13px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; font-weight:500; cursor:pointer;"><span class="msym" style="font-size:14px;">check</span>{{ o.label }}</button>
         </sc-if>
@@ -70,6 +83,8 @@
           <button onClick="{{ o.pick }}" style="background:transparent; border:1px solid #414942; border-radius:8px; padding:7px 13px; color:#C4CBC2; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;" style-hover="background:#262B26;">{{ o.label }}</button>
         </sc-if>
       </sc-for>
+      <sc-if value="{{ selectNoMatches }}"><span style="font-size:12px; color:#9AA39B; padding:8px;">No matching options</span></sc-if>
+      </div>
     </div>
   </sc-if>
 
@@ -168,7 +183,7 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:120},&quot;ctl&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;}}">
 class Component extends DCLogic {
-  state = { dragFrom:-1, over:-1, padOpen:false, padBuf:'' };
+  state = { dragFrom:-1, over:-1, padOpen:false, padBuf:'', selectQuery:'', selectPattern:'', selectFlags:['i'], selectBuilderOpen:false };
   renderVals() {
     const c = this.props.ctl || {};
     const st = this.state;
@@ -181,6 +196,32 @@ class Component extends DCLogic {
       onDrop: (e) => { e.preventDefault(); if (st.dragFrom >= 0 && st.dragFrom !== i && c.move) c.move(st.dragFrom, i); this.setState({ dragFrom:-1, over:-1 }); },
       onDragEnd: () => this.setState({ dragFrom:-1, over:-1 })
     }));
+    const selectFlags = [['i', 'Ignore case'], ['m', 'Multiline'], ['u', 'Unicode']].map(([flag, label]) => ({
+      label:flag + ' · ' + label,
+      on:this.state.selectFlags.indexOf(flag) >= 0,
+      bg:this.state.selectFlags.indexOf(flag) >= 0 ? '#1B4D33' : 'transparent',
+      toggle:() => this.setState(st => ({ selectFlags:st.selectFlags.indexOf(flag) >= 0 ? st.selectFlags.filter(x => x !== flag) : st.selectFlags.concat([flag]) })),
+    }));
+    const selectPattern = this.state.selectBuilderOpen ? this.state.selectPattern : this.state.selectQuery;
+    let selectRegex;
+    let selectFeedback = '';
+    let selectFeedbackColour = '#9AA39B';
+    try {
+      selectRegex = this.state.selectBuilderOpen && selectPattern ? new RegExp(selectPattern, this.state.selectFlags.join('')) : null;
+      selectFeedback = selectPattern ? (this.state.selectBuilderOpen ? 'Pattern is valid' : 'Plain text mode. Open the builder to opt into regex.') : 'Plain text mode. Open the builder to opt into regex.';
+      selectFeedbackColour = '#82D9A5';
+    } catch (error) {
+      selectRegex = null;
+      selectFeedback = 'Pattern is not valid yet';
+      selectFeedbackColour = '#FFB4AB';
+    }
+    const selectOptions = (c.options || []).map(option => typeof option === 'string'
+      ? { label:option, on:option === c.value, off:option !== c.value, pick:() => c.set && c.set(option) }
+      : option).filter(option => {
+      if (!selectPattern) return true;
+      if (this.state.selectBuilderOpen && !selectRegex) return false;
+      return selectRegex ? selectRegex.test(option.label) : option.label.toLowerCase().includes(selectPattern.toLowerCase());
+    });
     const clamp = (n) => {
       let x = parseFloat(n);
       if (isNaN(x)) return c.value;
@@ -204,6 +245,17 @@ class Component extends DCLogic {
       isSegmented: c.kind === 'segmented' && !c.narrow,
       isSegNarrow: c.kind === 'segmented' && !!c.narrow,
       isSelect: c.kind === 'select',
+      selectQuery:this.state.selectQuery,
+      selectPattern:this.state.selectPattern,
+      selectBuilderOpen:this.state.selectBuilderOpen,
+      selectFlags,
+      selectOptions,
+      selectNoMatches:selectOptions.length === 0,
+      selectFeedback,
+      selectFeedbackColour,
+      onSelectQuery:(e) => this.setState({ selectQuery:e.target.value, selectPattern:'' }),
+      onSelectPattern:(e) => this.setState({ selectPattern:e.target.value, selectQuery:'' }),
+      toggleSelectBuilder:() => this.setState(st => ({ selectBuilderOpen:!st.selectBuilderOpen, selectPattern:st.selectPattern || st.selectQuery })),
       isChips: c.kind === 'chips',
       isStepper: c.kind === 'stepper',
       isSlider: c.kind === 'slider',
