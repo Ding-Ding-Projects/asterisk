@@ -22,6 +22,7 @@ import { boundedRegexWorkerAvailable, evaluateBoundedRegexInWorker } from './bou
 import { exportFreePbxCatalog as buildFreePbxCatalogExport, type FreePbxExportFormat } from './freepbx-catalog-export';
 import { SCREENS } from './generated/console';
 import { transformText } from './text-boundary';
+import { freePbxDetailTemplate, type FreePbxDetailTemplateId } from './freepbx-messages';
 
 registerPbxAdminScreens();
 
@@ -452,6 +453,15 @@ export class PbxAdminApp extends App {
     this.fire(transformText(title), `${transformText('FreePBX detail')}: ${detail}`);
   }
 
+  private freePbxFireKnown(title: string, templateId: FreePbxDetailTemplateId, factual = ''): void {
+    const template = transformText(freePbxDetailTemplate(templateId));
+    this.fire(transformText(title), `${transformText('FreePBX known detail')}: ${template}${factual ? ` ${factual}` : ''}`);
+  }
+
+  private freePbxFireServer(title: string, serverDetail: string): void {
+    this.fire(transformText(title), `${transformText('FreePBX server detail')}: ${serverDetail}`);
+  }
+
   private selectedFreePbxCatalogRecord(): { recordId: string; moduleId: string; excluded: boolean; module?: FreePbxModuleCatalogEntry } | undefined {
     const recordId = String(this.stateValues().values[this.freePbxCatalogRecordId] ?? '').split(' · ')[0]!.trim();
     return this.freePbxCatalogRecords().find((record) => record.id === recordId);
@@ -541,9 +551,9 @@ export class PbxAdminApp extends App {
 
   private readFreePbxBackupJobs = async (): Promise<void> => {
     const target = this.selectedTarget(this.stateValues().screen);
-    if (!target) { this.freePbxFire('FreePBX backup jobs unavailable', 'Select a discovered target first.'); return; }
+    if (!target) { this.freePbxFireKnown('FreePBX backup jobs unavailable', 'select-target'); return; }
     const response = await this.adminRequest('freepbx.backup.list', { serverId: target });
-    if (!response?.ok) { this.freePbxFire('FreePBX backup jobs unavailable', response?.message ?? 'The target backup catalog did not answer.'); return; }
+    if (!response?.ok) { this.freePbxFireServer('FreePBX backup jobs unavailable', response?.message ?? 'The target backup catalog did not answer.'); return; }
     this.freePbxBackupJobs = (response.data as { jobs?: FreePbxBackupJob[] }).jobs ?? [];
     this.freePbxCatalogStatus = `${this.freePbxBackupJobs.length} official backup job${this.freePbxBackupJobs.length === 1 ? '' : 's'} read from the target.`;
     this.forceUpdate();
@@ -569,9 +579,9 @@ export class PbxAdminApp extends App {
     const selected = this.selectedFreePbxCatalogRecord();
     const action = String(this.stateValues().values[this.freePbxBackupActionId] ?? 'update');
     const module = selected && !selected.excluded ? selected.module : undefined;
-    if (!target || !jobId || !module || !['install', 'enable', 'disable', 'update', 'remove'].includes(action)) { this.freePbxFire('FreePBX backup unavailable', 'Select a published module, one module action, an official backup job, and the current catalog revision before creating a receipt.'); return; }
+    if (!target || !jobId || !module || !['install', 'enable', 'disable', 'update', 'remove'].includes(action)) { this.freePbxFireKnown('FreePBX backup unavailable', 'select-module-action-backup-revision'); return; }
     const response = await this.adminRequest('freepbx.backup', { serverId: target, payload: { jobId, moduleId: module.moduleId, action, catalogRevision: module.source.revision } });
-    if (!response?.ok) { this.freePbxFire('FreePBX backup unavailable', response?.message ?? 'The official backup did not confirm both file and database coverage.'); return; }
+    if (!response?.ok) { this.freePbxFireServer('FreePBX backup unavailable', response?.message ?? 'The official backup did not confirm both file and database coverage.'); return; }
     this.freePbxBackupReceipt = response.data as FreePbxBackupReceipt;
     this.freePbxCatalogStatus = 'Official file and database backup receipt is ready for one module action.';
     this.forceUpdate();
@@ -633,8 +643,9 @@ export class PbxAdminApp extends App {
         .map((entry) => {
           const parts = entry.subject!.slice('FreePBX module '.length).split(' ');
           const payload = entry.payload && typeof entry.payload === 'object' ? entry.payload as { typedResult?: Record<string, unknown>; result?: Record<string, unknown> } : undefined;
-          const result = payload?.typedResult ?? payload?.result;
-          return { schemaVersion: 1, recordType: 'freepbx-action', observedAt: entry.timestamp ?? '', moduleId: String(result?.moduleId ?? parts.shift() ?? ''), action: String(result?.action ?? parts.join(' ')), status: String(result?.status ?? 'recorded'), message: String(result?.message ?? entry.subject), result, backup: result?.backup, before: result?.before, after: result?.after, rollback: result?.rollback };
+          const rawResult = payload?.typedResult ?? payload?.result;
+          const result = rawResult?.result && typeof rawResult.result === 'object' ? rawResult.result as Record<string, unknown> : rawResult;
+          return { schemaVersion: 1, recordType: 'freepbx-action', observedAt: entry.timestamp ?? '', moduleId: String(result?.moduleId ?? parts.shift() ?? ''), action: String(result?.action ?? parts.join(' ')), status: String(result?.status ?? 'recorded'), message: String(result?.message ?? entry.subject), result, backup: result?.backup ?? rawResult?.backup, before: result?.before, after: result?.after, rollback: result?.rollback };
         });
     }
   };
@@ -659,7 +670,7 @@ export class PbxAdminApp extends App {
     anchor.download = exported.filename;
     anchor.click();
     URL.revokeObjectURL(url);
-    this.freePbxFire('FreePBX catalog exported', `${records.length} filtered module or exclusion record${records.length === 1 ? '' : 's'} exported as ${format}. ${exported.omitted.join(' ')}`);
+    this.freePbxFireKnown('FreePBX catalog exported', 'catalog-exported', `records=${records.length}; format=${format}; ${exported.omitted.join(' ')}`);
   };
 
   private refreshAdminScreen = async (screen: string, feature: PbxFeatureDefinition): Promise<void> => {
@@ -1234,7 +1245,7 @@ export class PbxAdminApp extends App {
     const target = context?.target || this.selectedTarget(this.stateValues().screen);
     const module = FREEPBX_MODULE_CATALOG.modules.find((candidate) => candidate.moduleId === moduleId);
     if (!module || !target) {
-      this.freePbxFire('FreePBX module action unavailable', 'Select a discovered target and a published catalog module first.');
+      this.freePbxFireKnown('FreePBX module action unavailable', 'module-action-unavailable');
       return;
     }
     const execute = async (confirmed: boolean): Promise<void> => {
@@ -1243,13 +1254,13 @@ export class PbxAdminApp extends App {
         if (!jobId) {
           const message = 'Create an official file and database backup receipt before this module action.';
           this.freePbxCatalogHistory = [...this.freePbxCatalogHistory, { schemaVersion: 1, recordType: 'freepbx-action', observedAt: new Date().toISOString(), moduleId, action, status: 'refused', message }].slice(-200);
-          this.freePbxFire('FreePBX module action refused', message);
+          this.freePbxFireServer('FreePBX module action refused', message);
           return;
         }
         const backupResponse = await this.adminRequest('freepbx.backup', { serverId: target, payload: { jobId, moduleId, action, catalogRevision: module.source.revision } });
         if (!backupResponse?.ok) {
           const message = backupResponse?.message ?? 'The official backup did not confirm both file and database coverage.';
-          this.freePbxFire('FreePBX module action refused', message);
+          this.freePbxFireServer('FreePBX module action refused', message);
           return;
         }
         this.freePbxBackupReceipt = backupResponse.data as FreePbxBackupReceipt;
@@ -1262,14 +1273,14 @@ export class PbxAdminApp extends App {
       if (!response?.ok) {
         const message = response?.message ?? 'The FreePBX runtime did not confirm the action.';
         this.freePbxCatalogHistory = [...this.freePbxCatalogHistory, { schemaVersion: 1, recordType: 'freepbx-action', observedAt: new Date().toISOString(), moduleId, action, status: 'refused', message }].slice(-200);
-        this.freePbxFire('FreePBX module action refused', message);
+        this.freePbxFireServer('FreePBX module action refused', message);
         return;
       }
       const result = response.data as { moduleId?: string; action?: string; after?: FreePbxRuntimeModule; before?: FreePbxRuntimeModule; status?: string; message?: string; backup?: FreePbxBackupReceipt; rollback?: unknown };
       if (result.after) this.freePbxRuntimeModules.set(moduleId, result.after);
       this.freePbxCatalogStatus = result.message ?? `fwconsole returned ${result.status ?? 'an unknown result'}.`;
       this.freePbxCatalogHistory = [...this.freePbxCatalogHistory, { schemaVersion: 1, recordType: 'freepbx-action', observedAt: new Date().toISOString(), moduleId, action, status: result.status ?? 'unknown', message: this.freePbxCatalogStatus, result, backup: result.backup, before: result.before, after: result.after, rollback: result.rollback }].slice(-200);
-      this.freePbxFire('FreePBX module action result', this.freePbxCatalogStatus);
+      this.freePbxFireServer('FreePBX module action result', this.freePbxCatalogStatus);
       this.forceUpdate();
     };
     if (action === 'remove' || action === 'disable') {
@@ -1282,7 +1293,7 @@ export class PbxAdminApp extends App {
   private runFreePbxFamilyAction = (moduleId: string, action: 'read' | 'plan' | 'apply', target: string): void => {
     const schema = this.freePbxFamilySchemas.get(this.freePbxFamilySchemaKey(moduleId, target));
     if (!schema || schema.backend !== 'config-transaction') {
-      this.freePbxFire('FreePBX family action unavailable', schema?.unavailableReason ?? 'This family has no executable configuration backend.');
+      this.freePbxFireKnown('FreePBX family action unavailable', 'family-action-unavailable', schema?.unavailableReason ?? '');
       return;
     }
     const execute = async (): Promise<void> => {
@@ -1294,21 +1305,21 @@ export class PbxAdminApp extends App {
       let backup: FreePbxBackupReceipt | undefined;
       if (action === 'apply') {
         const jobId = String(this.stateValues().values[this.freePbxBackupJobId] ?? '').split(' · ')[0]!.trim();
-        if (!module || !jobId) { this.freePbxFire('FreePBX family apply unavailable', 'Select an official backup job before a family mutation.'); return; }
+        if (!module || !jobId) { this.freePbxFireKnown('FreePBX family apply unavailable', 'family-apply-unavailable'); return; }
         const backupResponse = await this.adminRequest('freepbx.backup', { serverId: target, payload: { jobId, moduleId, action: 'update', catalogRevision: module.source.revision } });
-        if (!backupResponse?.ok) { this.freePbxFire('FreePBX family apply unavailable', backupResponse?.message ?? 'The official backup did not return a receipt.'); return; }
+        if (!backupResponse?.ok) { this.freePbxFireServer('FreePBX family apply unavailable', backupResponse?.message ?? 'The official backup did not return a receipt.'); return; }
         backup = backupResponse.data as FreePbxBackupReceipt;
       }
       if (action === 'read') {
         const response = await this.adminRequest('freepbx.family.read', { serverId: target, payload: { moduleId } });
         if (response?.ok) { this.freePbxFamilyValues.set(this.freePbxFamilySchemaKey(moduleId, target), (response.data as { values?: Record<string, ConfigValue> }).values ?? {}); this.forceUpdate(); }
-        else this.freePbxFire('FreePBX family read unavailable', response?.message ?? 'The family target read did not answer.');
+        else this.freePbxFireServer('FreePBX family read unavailable', response?.message ?? 'The family target read did not answer.');
         return;
       }
       const route = action === 'read' ? FREEPBX_FAMILY_ACTIONS[1] : action === 'plan' ? FREEPBX_FAMILY_ACTIONS[2] : FREEPBX_FAMILY_ACTIONS[3];
       const response = await this.adminRequest(route, { serverId: target, payload: { moduleId, documents, backup } });
-      if (!response?.ok) this.freePbxFire(`FreePBX family ${action} unavailable`, response?.message ?? 'The family route refused the request.');
-      else this.freePbxFire(`FreePBX family ${action}`, 'The target returned a structured family result.');
+      if (!response?.ok) this.freePbxFireServer(`FreePBX family ${action} unavailable`, response?.message ?? 'The family route refused the request.');
+      else this.freePbxFireServer(`FreePBX family ${action}`, 'The target returned a structured family result.');
     };
     if (action === 'apply') this.areYouSure(`Apply ${moduleId} family changes`, 'The target must pass its FreePBX handshake and one-time backup receipt before a family mutation is sent.', 3, () => { void execute(); });
     else void execute();
@@ -1329,9 +1340,9 @@ export class PbxAdminApp extends App {
       const selected = this.selectedFreePbxCatalogRecord();
       const moduleId = selected && !selected.excluded ? selected.moduleId : '';
       const target = this.selectedTarget(context.screen);
-      if (!moduleId || !target) { this.freePbxFire('FreePBX module state unavailable', selected?.excluded ? 'Excluded catalog records are non-actionable dispositions.' : 'Select a module and discovered target first.'); return; }
+      if (!moduleId || !target) { this.freePbxFireKnown('FreePBX module state unavailable', 'module-state-unavailable', selected?.excluded ? 'Excluded catalog records are non-actionable dispositions.' : ''); return; }
       void this.adminRequest('freepbx.module.state', { serverId: target, payload: { moduleId } }).then((response) => {
-        if (!response?.ok) { this.freePbxFire('FreePBX module state unavailable', response?.message ?? 'The target did not answer module state.'); return; }
+        if (!response?.ok) { this.freePbxFireServer('FreePBX module state unavailable', response?.message ?? 'The target did not answer module state.'); return; }
         const module = response.data as FreePbxRuntimeModule;
         this.freePbxRuntimeModules.set(module.moduleId, module);
         this.freePbxCatalogStatus = `Read ${module.moduleId} from fwconsole.`;
@@ -1343,7 +1354,7 @@ export class PbxAdminApp extends App {
       const match = /^freepbx-catalog-(install|enable|disable|update|remove)$/u.exec(action);
       const selected = this.selectedFreePbxCatalogRecord();
       if (match && selected && !selected.excluded) { this.runFreePbxModuleAction(selected.moduleId, match[1] as 'install' | 'enable' | 'disable' | 'update' | 'remove'); return; }
-      if (selected?.excluded) { this.freePbxFire('FreePBX module action unavailable', 'Excluded catalog records are non-actionable dispositions.'); return; }
+      if (selected?.excluded) { this.freePbxFireKnown('FreePBX module action unavailable', 'module-action-unavailable', 'Excluded catalog records are non-actionable dispositions.'); return; }
     }
     if (action.startsWith('freepbx-family-')) {
       const match = /^freepbx-family-(read|plan|apply)$/u.exec(action);
@@ -1352,14 +1363,14 @@ export class PbxAdminApp extends App {
       const module = selectedCatalog && !selectedCatalog.excluded ? selectedCatalog.module : this.freePbxModuleForFeature(feature);
       const target = this.selectedTarget(context.screen);
       if (match && module && target) { void this.runFreePbxFamilyAction(module.moduleId, match[1] as 'read' | 'plan' | 'apply', target); return; }
-      this.freePbxFire('FreePBX family action unavailable', 'Select a mapped module and a registered target first.');
+      this.freePbxFireKnown('FreePBX family action unavailable', 'family-action-unavailable', 'Select a mapped module and a registered target first.');
       return;
     }
     if (action.startsWith('freepbx-module-')) {
       const module = this.freePbxModuleForFeature(context.feature);
       const mapped = /freepbx-module-(install|enable|disable|update|remove)$/u.exec(action);
       if (mapped && module) { this.runFreePbxModuleAction(module.moduleId, mapped[1] as 'install' | 'enable' | 'disable' | 'update' | 'remove'); return; }
-      this.freePbxFire('FreePBX module action unavailable', module?.availability.reason ?? 'The catalog has no verified module metadata for this destination.');
+      this.freePbxFireKnown('FreePBX module action unavailable', 'module-action-unavailable', module?.availability.reason ?? '');
       return;
     }
     switch (action) {

@@ -15,6 +15,7 @@ const generatedDocsSource = readFileSync(resolve(root, 'console/app/renderer/src
 const rendererSource = readFileSync(resolve(root, 'console/app/renderer/src/PbxAdminApp.tsx'), 'utf8');
 const regexWorkerSource = readFileSync(resolve(root, 'console/app/renderer/src/bounded-regex-worker.ts'), 'utf8');
 const localeSource = readFileSync(resolve(root, 'console/app/renderer/src/locale-yue.ts'), 'utf8');
+const messageSource = readFileSync(resolve(root, 'console/app/renderer/src/freepbx-messages.ts'), 'utf8');
 const historyTestSource = readFileSync(resolve(root, 'console/tests/ui/freepbx-catalog-history.test.mjs'), 'utf8');
 
 function unique(values, label) {
@@ -128,6 +129,11 @@ function verifyDynamicLocalization(source, locale) {
   for (const marker of ['FreePBX detail', 'FreePBX search unavailable', 'FreePBX module action unavailable', 'FreePBX module action refused', 'FreePBX module action result', 'FreePBX family action unavailable', 'FreePBX family apply', 'FreePBX family read', 'FreePBX family plan']) if (!locale.includes(`'${marker}'`)) throw new Error(`FreePBX dynamic localization record is missing ${marker}.`);
 }
 
+function verifyKnownMessageTemplates(source, locale) {
+  if (!source.includes('freePbxDetailTemplateId')) throw new Error('FreePBX known message IDs are missing.');
+  for (const template of ['Select a discovered target.', 'The filtered catalog export completed.', 'The module action returned a typed result.', 'The family route returned a typed result.', 'A one-time target-bound backup receipt is required before mutation.']) if (!locale.includes(`'${template}'`)) throw new Error(`FreePBX known message localization is missing ${template}.`);
+}
+
 function verifyGeneratedDocs(source) {
   if (!source.includes('platform/freepbx-module-surface')) throw new Error('The generated offline docs bundle is missing the FreePBX surface article.');
   const privateCaptureWord = String.fromCharCode(72, 117, 105, 83, 104, 111, 116);
@@ -144,6 +150,7 @@ verifyDocumentationAnchors(catalog, inventory, docsSource);
 verifyProductionBindings(rendererSource);
 verifyRegexWorker(regexWorkerSource);
 verifyDynamicLocalization(rendererSource, localeSource);
+verifyKnownMessageTemplates(messageSource, localeSource);
 verifyGeneratedDocs(generatedDocsSource);
 verifyHistoryRegression(historyTestSource);
 if (process.argv.includes('--probe-negative')) {
@@ -169,6 +176,9 @@ if (process.argv.includes('--probe-negative')) {
   let localizationFailedClosed = false;
   try { verifyDynamicLocalization(rendererSource.replaceAll('freePbxFire', 'removedFreePbxFire'), localeSource); } catch { localizationFailedClosed = true; }
   if (!localizationFailedClosed) throw new Error('negative dynamic-localization regression did not fail closed.');
+  let knownMessageFailedClosed = false;
+  try { verifyKnownMessageTemplates(messageSource.replaceAll('freePbxDetailTemplateId', 'removedTemplateId'), localeSource); } catch { knownMessageFailedClosed = true; }
+  if (!knownMessageFailedClosed) throw new Error('negative known-message regression did not fail closed.');
   let generatedDocsFailedClosed = false;
   try { verifyGeneratedDocs(generatedDocsSource.replace('platform/freepbx-module-surface', 'removed-freepbx-surface')); } catch { generatedDocsFailedClosed = true; }
   if (!generatedDocsFailedClosed) throw new Error('negative generated-docs regression did not fail closed.');

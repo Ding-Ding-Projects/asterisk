@@ -37,3 +37,12 @@ test('a typed result round trip preserves exact action facts and explicitly omit
   assert.deepEqual(restored, result);
   assert.match(exportSource, /credentials,private paths/iu);
 });
+
+test('known FreePBX detail templates have stable IDs and localized entries', async () => {
+  const messages = await read('app/renderer/src/freepbx-messages.ts');
+  const locale = await read('app/renderer/src/locale-yue.ts');
+  for (const template of ['Select a discovered target.', 'The filtered catalog export completed.', 'The module action returned a typed result.', 'The family route returned a typed result.', 'A one-time target-bound backup receipt is required before mutation.']) {
+    assert.match(messages, new RegExp(template.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
+    assert.match(locale, new RegExp(template.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
+  }
+});
