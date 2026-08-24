@@ -1,9 +1,7 @@
 import { createHash } from 'node:crypto';
 import { createReadStream, existsSync, lstatSync, readFileSync } from 'node:fs';
-import { mkdir, open, stat, unlink } from 'node:fs/promises';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { execFile } from 'node:child_process';
+import { mkdir, stat, unlink } from 'node:fs/promises';
+import { execFile, spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { promisify } from 'node:util';
 import { basename, dirname, isAbsolute, join, parse, relative, resolve, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -30,7 +28,6 @@ const REPARSE_INSPECTION_DEADLINE_MS = 10_000;
 const INTEGRITY_READ_DEADLINE_MS = 30_000;
 const SNAPSHOT_STATUSES = new Set(['queued', 'downloading', 'paused', 'completed', 'failed', 'cancelled', 'partial']);
 const TIMEOUT_KINDS = new Set(['header', 'body-idle', 'total']);
-const execFileAsync = promisify(execFile);
 const execFileAsync = promisify(execFile);
 
 type SnapshotListener = (snapshot: DownloadTransferSnapshot) => void;
@@ -300,12 +297,37 @@ export class DownloadTransferManager implements DownloadTransferClient {
       return { cleanupCompleted: false, cleanupError: { code: 'CLEANUP_FAILED', message: error instanceof Error ? error.message : 'The temporary file could not be removed.', retryable: true, observedAt: observedAt() } };
     }
   }
-  private async createSecureTemp(parentPath: string, tempPath: string): Promise<void> {
-    if (process.platform !== 'win32') return;
-    if (!this.secureTempHelperPath || !existsSync(this.secureTempHelperPath)) throw new Error('SECURE_TEMP_HELPER_UNAVAILABLE: The verified native temporary-file helper is unavailable.');
-    const result = await execFileAsync(this.secureTempHelperPath, ['--create', parentPath, tempPath], { windowsHide: true, timeout: 5000, maxBuffer: 16 * 1024 });
-    const receipt = JSON.parse(String(result.stdout).trim()) as { accepted?: unknown; code?: unknown };
-    if (receipt.accepted !== true || receipt.code !== 'SECURE_TEMP_CREATED') throw new Error(`SECURE_TEMP_CREATE_FAILED: ${String(receipt.code ?? 'The helper refused temporary creation.')}`);
+  private async streamSecureTemp(parentPath: string, tempPath: string, resume: boolean, reader: ReadableStreamDefaultReader<Uint8Array>, controller: AbortController, onIdleTimeout: () => void, onChunk: (chunk: Uint8Array) => Promise<void>): Promise<void> {
+    if (process.platform !== 'win32' || !this.secureTempHelperPath) throw new Error('SECURE_TEMP_HELPER_UNAVAILABLE: The native secure temp writer is unavailable.');
+    const signal = controller.signal;
+    const child: ChildProcessWithoutNullStreams = spawn(this.secureTempHelperPath, [resume ? '--resume-stream' : '--stream', parentPath, basename(tempPath)], { windowsHide: true, stdio: 'pipe' });
+    let output = '';
+    child.stdout.setEncoding('utf8');
+    child.stdout.on('data', (value: string) => { output += value; });
+    signal.addEventListener('abort', () => { if (!child.killed) child.kill(); }, { once: true });
+    const finished = new Promise<void>((resolveFinished, rejectFinished) => {
+      child.once('error', rejectFinished);
+      child.once('close', (code) => code === 0 ? resolveFinished() : rejectFinished(new Error(`SECURE_TEMP_STREAM_FAILED: Native writer exited with ${code ?? 'unknown'}.`)));
+    });
+    try {
+      for (;;) {
+        if (signal.aborted) throw new Error('SECURE_TEMP_STREAM_ABORTED: The secure writer was cancelled.');
+        const idleTimer = setTimeout(() => { onIdleTimeout(); controller.abort(); }, BODY_IDLE_DEADLINE_MS);
+        let part: ReadableStreamReadResult<Uint8Array>;
+        try { part = await reader.read(); } finally { clearTimeout(idleTimer); }
+        if (part.done) break;
+        await new Promise<void>((resolveWrite, rejectWrite) => {
+          const accepted = child.stdin.write(Buffer.from(part.value), (error) => error ? rejectWrite(error) : resolveWrite());
+          if (!accepted) child.stdin.once('drain', resolveWrite);
+        });
+        await onChunk(part.value);
+      }
+      child.stdin.end();
+      await finished;
+      if (!output.includes('SECURE_TEMP_STREAMED')) throw new Error('SECURE_TEMP_STREAM_FAILED: The native writer did not return a typed receipt.');
+    } finally {
+      if (!child.killed) child.kill();
+    }
   }
   private async inspectCompleteTemp(path: string, expectedSize: number, signal?: AbortSignal): Promise<{ size: number; sha256: string }> {
     const stream = createReadStream(path);
@@ -375,18 +397,15 @@ export class DownloadTransferManager implements DownloadTransferClient {
       if (!response.body) throw new Error('The source did not provide a readable transfer body.');
       await mkdir(dirname(snapshot.destinationPath), { recursive: true });
       await this.assertNoReparseComponents(dirname(snapshot.destinationPath));
-      if (!resume) await this.createSecureTemp(dirname(snapshot.destinationPath), task.tempPath);
-      const handle = await open(task.tempPath, resume ? 'a' : 'a'); const reader = response.body.getReader(); const started = Date.now(); const resumeSupport: DownloadResumeSupport = { acceptRanges, etag, lastModified };
+      const reader = response.body.getReader(); const started = Date.now(); const resumeSupport: DownloadResumeSupport = { acceptRanges, etag, lastModified };
       snapshot = { ...snapshot, status: 'downloading', totalBytes, resume: resumeSupport, canPause: supportsResume, canResume: false, canCancel: true, resumeDisabledReason: supportsResume ? undefined : 'The source did not provide both byte ranges and an ETag or Last-Modified validator.', deadlineAt: new Date(deadlineAtMs).toISOString(), observedAt: observedAt() }; this.emit(snapshot);
       try {
-        while (true) {
-          const idleTimer = setTimeout(() => { timeoutKind = 'body-idle'; controller.abort(); }, BODY_IDLE_DEADLINE_MS); let part: ReadableStreamReadResult<Uint8Array>;
-          try { part = await reader.read(); } catch (error) { if (timeoutKind) throw new TransferTimeoutError(timeoutKind); throw error; } finally { clearTimeout(idleTimer); }
-          if (part.done) break; if (part.value.byteLength + snapshot.bytesTransferred > MAX_DOWNLOAD_BYTES) throw new Error('The transfer exceeded the bounded size.');
-          await handle.write(part.value); const bytesTransferred = snapshot.bytesTransferred + part.value.byteLength; const elapsedSeconds = Math.max((Date.now() - started) / 1000, 0.001); const rateBytesPerSecond = bytesTransferred / elapsedSeconds; const etaSeconds = totalBytes && rateBytesPerSecond > 0 ? Math.max(0, (totalBytes - bytesTransferred) / rateBytesPerSecond) : undefined;
+        await this.streamSecureTemp(dirname(snapshot.destinationPath), task.tempPath, resume, reader, controller, () => { timeoutKind = 'body-idle'; }, async (chunk) => {
+          if (chunk.byteLength + snapshot.bytesTransferred > MAX_DOWNLOAD_BYTES) throw new Error('The transfer exceeded the bounded size.');
+          const bytesTransferred = snapshot.bytesTransferred + chunk.byteLength; const elapsedSeconds = Math.max((Date.now() - started) / 1000, 0.001); const rateBytesPerSecond = bytesTransferred / elapsedSeconds; const etaSeconds = totalBytes && rateBytesPerSecond > 0 ? Math.max(0, (totalBytes - bytesTransferred) / rateBytesPerSecond) : undefined;
           snapshot = { ...snapshot, bytesTransferred, rateBytesPerSecond, etaSeconds, observedAt: observedAt() }; this.emit(snapshot);
-        }
-      } finally { reader.releaseLock(); await handle.close(); }
+        });
+      } finally { reader.releaseLock(); }
       const latest = this.snapshots.get(snapshot.transferId);
       if (task.pauseRequested || latest?.status === 'paused') { this.emit({ ...snapshot, status: 'paused', canPause: false, canResume: supportsResume, canCancel: true, canRetry: false, partial: { bytesTransferred: snapshot.bytesTransferred, reason: 'Paused by the user with the resumable temporary file retained.', canResume: supportsResume }, observedAt: observedAt() }); return; }
       if (latest?.status === 'cancelled') { const cleanup = await this.cleanTemp(task.tempPath); this.emit({ ...latest, ...cleanup, canRetry: !cleanup.cleanupCompleted, observedAt: observedAt() }); return; }

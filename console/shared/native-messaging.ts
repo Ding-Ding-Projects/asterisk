@@ -10,9 +10,12 @@ export interface NativeIngressConfig {
   extensionId: typeof DOWNLOAD_EXTENSION_ID;
   executablePath: string;
   executableSha256: string;
+  brokerPath: string;
+  brokerSha256: string;
   secureHelperPath: string;
   secureHelperSha256: string;
   manifestPath: string;
+  configPath: string;
 }
 
 export interface NativeDownloadIngressMessage {

@@ -10,6 +10,8 @@ $packagedHostPath = Join-Path $InstallRoot 'resources\native-messaging\Ding-PBX-
 $digestPath = Join-Path $InstallRoot 'resources\native-messaging\Ding-PBX-Console-NativeMessagingHost.exe.sha256'
 $packagedHelperPath = Join-Path $InstallRoot 'resources\native-messaging\Ding-PBX-Console-SecureTempHelper.exe'
 $helperDigestPath = Join-Path $InstallRoot 'resources\native-messaging\Ding-PBX-Console-SecureTempHelper.exe.sha256'
+$packagedBrokerPath = Join-Path $InstallRoot 'resources\native-messaging\Ding-PBX-Console-NativeIngressBroker.exe'
+$brokerDigestPath = Join-Path $InstallRoot 'resources\native-messaging\Ding-PBX-Console-NativeIngressBroker.exe.sha256'
 $manifestRoot = Join-Path $env:LOCALAPPDATA 'Ding-Ding-Projects\Asterisk\native-messaging'
 $manifestPath = Join-Path $manifestRoot "$hostName.json"
 $configPath = Join-Path $manifestRoot 'ingress-config.json'
@@ -30,11 +32,18 @@ if (-not (Test-Path -LiteralPath $helperDigestPath -PathType Leaf)) { throw "The
 $expectedHelperDigest = ((Get-Content -LiteralPath $helperDigestPath -Raw).Trim() -split '\s+')[0].ToLowerInvariant()
 $actualHelperDigest = (Get-FileHash -LiteralPath $packagedHelperPath -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($expectedHelperDigest -notmatch '^[0-9a-f]{64}$' -or $expectedHelperDigest -ne $actualHelperDigest) { throw "The packaged secure temp helper digest did not match the recorded digest." }
+if (-not (Test-Path -LiteralPath $packagedBrokerPath -PathType Leaf) -or (Get-Item -LiteralPath $packagedBrokerPath).PSIsContainer) { throw "The packaged native ingress broker is missing or is not a regular file: $packagedBrokerPath" }
+if (-not (Test-Path -LiteralPath $brokerDigestPath -PathType Leaf)) { throw "The packaged native ingress broker digest is missing: $brokerDigestPath" }
+$expectedBrokerDigest = ((Get-Content -LiteralPath $brokerDigestPath -Raw).Trim() -split '\s+')[0].ToLowerInvariant()
+$actualBrokerDigest = (Get-FileHash -LiteralPath $packagedBrokerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($expectedBrokerDigest -notmatch '^[0-9a-f]{64}$' -or $expectedBrokerDigest -ne $actualBrokerDigest) { throw "The packaged native ingress broker digest did not match the recorded digest." }
 New-Item -ItemType Directory -Force -Path $manifestRoot | Out-Null
 $hostPath = Join-Path $manifestRoot 'Ding-PBX-Console-NativeMessagingHost.exe'
 $helperPath = Join-Path $manifestRoot 'Ding-PBX-Console-SecureTempHelper.exe'
+$brokerPath = Join-Path $manifestRoot 'Ding-PBX-Console-NativeIngressBroker.exe'
 Copy-Item -LiteralPath $packagedHostPath -Destination $hostPath -Force
 Copy-Item -LiteralPath $packagedHelperPath -Destination $helperPath -Force
+Copy-Item -LiteralPath $packagedBrokerPath -Destination $brokerPath -Force
 $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
 $challengeBytes = New-Object byte[] 32
 $rng.GetBytes($challengeBytes)
@@ -46,22 +55,41 @@ $rng.GetBytes($pipeBytes)
 $rng.Dispose()
 $pipeSuffix = ([BitConverter]::ToString($pipeBytes) -replace '-', '').ToLowerInvariant()
 $pipeName = "\\.\pipe\ding-pbx-download-$pipeSuffix"
-$config = @{ schemaVersion = 1; pipeName = $pipeName; challenge = $challenge; extensionId = 'dnpkplcgjmipnndmghkhljjoefjhidab'; executablePath = $hostPath; executableSha256 = $actualDigest; secureHelperPath = $helperPath; secureHelperSha256 = $actualHelperDigest; manifestPath = $manifestPath }
+$config = @{ schemaVersion = 1; pipeName = $pipeName; challenge = $challenge; extensionId = 'dnpkplcgjmipnndmghkhljjoefjhidab'; executablePath = $hostPath; executableSha256 = $actualDigest; brokerPath = $brokerPath; brokerSha256 = $actualBrokerDigest; secureHelperPath = $helperPath; secureHelperSha256 = $actualHelperDigest; manifestPath = $manifestPath }
 Write-AtomicUtf8 $configPath ($config | ConvertTo-Json -Compress)
-$acl = Get-Acl -LiteralPath $manifestRoot
-$acl.SetAccessRuleProtection($true, $false)
 $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
-$rule = New-Object System.Security.AccessControl.FileSystemAccessRule($identity, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
-$acl.SetAccessRule($rule)
-Set-Acl -LiteralPath $manifestRoot -AclObject $acl
-Set-Acl -LiteralPath $hostPath -AclObject $acl
-Set-Acl -LiteralPath $helperPath -AclObject $acl
+function Set-RestrictedAcl([string]$Path, [bool]$Directory) {
+  $security = New-Object System.Security.AccessControl.DirectorySecurity
+  if (-not $Directory) { $security = New-Object System.Security.AccessControl.FileSecurity }
+  $security.SetAccessRuleProtection($true, $false)
+  $inheritance = if ($Directory) { 'ContainerInherit,ObjectInherit' } else { 'None' }
+  foreach ($sid in @($identity, ([System.Security.Principal.SecurityIdentifier]'S-1-5-18'))) {
+    $security.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule($sid, 'FullControl', $inheritance, 'None', 'Allow')))
+  }
+  Set-Acl -LiteralPath $Path -AclObject $security
+}
+Set-RestrictedAcl $manifestRoot $true
+Set-RestrictedAcl $hostPath $false
+Set-RestrictedAcl $helperPath $false
+Set-RestrictedAcl $brokerPath $false
 $manifest = Get-Content -LiteralPath $manifestSource -Raw | ConvertFrom-Json
 $manifest.path = $hostPath
 $manifestText = $manifest | ConvertTo-Json -Depth 8
 Write-AtomicUtf8 $manifestPath $manifestText
-Set-Acl -LiteralPath $configPath -AclObject $acl
-Set-Acl -LiteralPath $manifestPath -AclObject $acl
+Set-RestrictedAcl $configPath $false
+Set-RestrictedAcl $manifestPath $false
+function Assert-RestrictedAcl([string]$Path, [bool]$Directory) {
+  $security = Get-Acl -LiteralPath $Path
+  if (-not $security.AreAccessRulesProtected) { throw "ACL inheritance is not protected for $Path" }
+  $owner = $identity.Translate([System.Security.Principal.NTAccount]).Value
+  if ($security.Owner -ne $owner) { throw "The ACL owner could not be verified for $Path" }
+  $expected = @($owner, 'NT AUTHORITY\SYSTEM')
+  foreach ($ruleCheck in @($security.Access)) {
+    $inheritanceOk = if ($Directory) { $ruleCheck.InheritanceFlags -eq 'ContainerInherit, ObjectInherit' -and $ruleCheck.PropagationFlags -eq 'None' } else { $ruleCheck.InheritanceFlags -eq 'None' -and $ruleCheck.PropagationFlags -eq 'None' }
+    if ($expected -notcontains $ruleCheck.IdentityReference.Value -or $ruleCheck.AccessControlType -ne 'Allow' -or ($ruleCheck.FileSystemRights -band [System.Security.AccessControl.FileSystemRights]::FullControl) -ne [System.Security.AccessControl.FileSystemRights]::FullControl -or $ruleCheck.IsInherited -or -not $inheritanceOk) { throw "The effective ACL is not restricted to explicit full-control allow rules for $Path" }
+  }
+  if (@($security.Access).Count -ne 2) { throw "The effective ACL rule count was not exact for $Path" }
+}
 $browsers = if ($Browser -eq 'all') { @('chrome', 'edge') } else { @($Browser) }
 $registered = @()
 foreach ($browserName in $browsers) {
@@ -72,12 +100,6 @@ foreach ($browserName in $browsers) {
   $registered += $browserName
 }
 if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) { throw 'The ingress configuration was not written.' }
-$configAcl = Get-Acl -LiteralPath $configPath
-if ($configAcl.Owner -ne $identity.Translate([System.Security.Principal.NTAccount]).Value) { throw 'The ingress configuration owner could not be verified.' }
-$manifestAcl = Get-Acl -LiteralPath $manifestPath
-if ($manifestAcl.Owner -ne $identity.Translate([System.Security.Principal.NTAccount]).Value) { throw 'The native host manifest owner could not be verified.' }
-$allowedIdentities = @($identity.Translate([System.Security.Principal.NTAccount]).Value, 'NT AUTHORITY\SYSTEM')
-foreach ($ruleCheck in @($configAcl.Access) + @($manifestAcl.Access)) {
-  if ($allowedIdentities -notcontains $ruleCheck.IdentityReference.Value) { throw "An unexpected identity is present on the native ingress registration files: $($ruleCheck.IdentityReference.Value)" }
-}
-@{ accepted = $true; hostName = $hostName; extensionId = $manifest.allowed_origins[0].Split('/')[2]; manifestPath = $manifestPath; executablePath = $hostPath; executableSha256 = $actualDigest; secureHelperPath = $helperPath; secureHelperSha256 = $actualHelperDigest; browsers = $registered; challengeConfigured = $true } | ConvertTo-Json -Compress
+Assert-RestrictedAcl $manifestRoot $true
+foreach ($aclPath in @($configPath, $manifestPath, $hostPath, $helperPath, $brokerPath)) { Assert-RestrictedAcl $aclPath $false }
+@{ accepted = $true; hostName = $hostName; extensionId = $manifest.allowed_origins[0].Split('/')[2]; manifestPath = $manifestPath; executablePath = $hostPath; executableSha256 = $actualDigest; brokerPath = $brokerPath; brokerSha256 = $actualBrokerDigest; secureHelperPath = $helperPath; secureHelperSha256 = $actualHelperDigest; browsers = $registered; challengeConfigured = $true } | ConvertTo-Json -Compress
