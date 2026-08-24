@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include <windows.h>
+#include <cstdint>
 #include <string>
 #include <iostream>
 
@@ -64,13 +65,20 @@ int main(int argc, char** argv) {
   }
   const bool resume = std::string(argv[1]) == "--resume-stream";
   const HANDLE child = CreateNoFollowTemp(parent, childName.c_str(), resume);
+  std::uint64_t acknowledgedBytes = 0;
   if (std::string(argv[1]) == "--stream" || resume) {
     if (child == INVALID_HANDLE_VALUE) { CloseHandle(parent); std::cout << R"({"accepted":false,"code":"SECURE_TEMP_CREATE_FAILED"})" << std::endl; return 1; }
+    LARGE_INTEGER size{};
+    acknowledgedBytes = GetFileSizeEx(child, &size) ? static_cast<std::uint64_t>(size.QuadPart) : 0;
+    std::cout << R"({"accepted":true,"code":"SECURE_TEMP_SIZE_ACK","bytes":)" << acknowledgedBytes << "}\n" << std::flush;
     char buffer[64 * 1024];
     DWORD read = 0;
     while (ReadFile(GetStdHandle(STD_INPUT_HANDLE), buffer, sizeof(buffer), &read, nullptr) && read != 0) {
       DWORD written = 0;
       if (!WriteFile(child, buffer, read, &written, nullptr) || written != read) { CloseHandle(child); CloseHandle(parent); std::cout << R"({"accepted":false,"code":"SECURE_TEMP_WRITE_FAILED"})" << std::endl; return 1; }
+      if (!FlushFileBuffers(child)) { CloseHandle(child); CloseHandle(parent); std::cout << R"({"accepted":false,"code":"SECURE_TEMP_FLUSH_FAILED"})" << std::endl; return 1; }
+      acknowledgedBytes += written;
+      std::cout << R"({"accepted":true,"code":"SECURE_TEMP_WRITE_ACK","bytes":)" << acknowledgedBytes << "}\n" << std::flush;
     }
   }
   CloseHandle(parent);
@@ -79,7 +87,7 @@ int main(int argc, char** argv) {
     return 1;
   }
   CloseHandle(child);
-  if (std::string(argv[1]) == "--stream" || resume) std::cout << R"({"accepted":true,"code":"SECURE_TEMP_STREAMED"})" << std::endl;
+  if (std::string(argv[1]) == "--stream" || resume) std::cout << R"({"accepted":true,"code":"SECURE_TEMP_STREAMED","bytes":)" << acknowledgedBytes << "}" << std::endl;
   else std::cout << R"({"accepted":true,"code":"SECURE_TEMP_CREATED"})" << std::endl;
   return 0;
 }

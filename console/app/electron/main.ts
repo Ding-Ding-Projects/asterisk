@@ -274,7 +274,7 @@ async function registerNativeHost(): Promise<NativeHostStatus> {
     const receipt = JSON.parse(String(result.stdout).trim()) as { accepted?: unknown; browsers?: unknown; executablePath?: unknown; executableSha256?: unknown };
     if (receipt.accepted !== true || !Array.isArray(receipt.browsers) || receipt.browsers.length !== 2) throw new Error('The registration helper did not return a verified Chrome and Edge receipt.');
     await reloadNativeDownloadIngress();
-    if (nativeHostStatus.state !== 'ready') return nativeHostStatus;
+    if (!['ready', 'error', 'unavailable'].includes(nativeHostStatus.state)) return { state: 'error', message: 'Native ingress registration did not settle on a terminal readiness state.', retryable: true };
     return nativeHostStatus;
   } catch (error) {
     const status = { state: 'error' as const, message: error instanceof Error ? error.message : 'Native extension ingress registration failed.', retryable: true };
@@ -299,6 +299,16 @@ async function startNativeDownloadIngress(): Promise<void> {
   nativeIngressBroker = broker;
   let buffer = '';
   let ready = false;
+  let startupSettled = false;
+  let settleStartup: (error?: Error) => void = () => undefined;
+  const startup = new Promise<void>((resolve, reject) => { settleStartup = (error) => { startupSettled = true; error ? reject(error) : resolve(); }; });
+  const startupTimer = setTimeout(() => {
+    if (startupSettled) return;
+    if (nativeIngressBroker === broker) { broker.kill(); nativeIngressBroker = undefined; }
+    const error = new Error('The native ingress broker did not become ready before its startup deadline.');
+    publishNativeHostStatus({ state: 'error', message: error.message, retryable: true });
+    settleStartup(error);
+  }, 5_000);
   broker.stdout.setEncoding('utf8');
   broker.stdout.on('data', (chunk: string) => {
     buffer += chunk;
@@ -311,6 +321,7 @@ async function startNativeDownloadIngress(): Promise<void> {
       if (text === 'READY') {
         ready = true;
         publishNativeHostStatus({ state: 'ready', message: 'The native extension ingress is ready.', retryable: true, executablePath: nativeIngressConfig?.executablePath, executableSha256: nativeIngressConfig?.executableSha256, browsers: ['chrome', 'edge'] });
+        if (!startupSettled) { clearTimeout(startupTimer); settleStartup(); }
         continue;
       }
       try {
@@ -323,8 +334,9 @@ async function startNativeDownloadIngress(): Promise<void> {
       } catch { broker.stdin.write(`${JSON.stringify({ accepted: false, detail: 'The native ingress message was not valid JSON.' })}\n`); }
     }
   });
-  broker.on('error', (error) => { nativeIngressBroker = undefined; publishNativeHostStatus({ state: 'error', message: error.message, retryable: true }); });
-  broker.on('close', () => { if (nativeIngressBroker === broker) nativeIngressBroker = undefined; if (ready) publishNativeHostStatus({ state: 'error', message: 'The native ingress broker stopped before another handoff could be accepted.', retryable: true }); });
+  broker.on('error', (error) => { if (nativeIngressBroker === broker) nativeIngressBroker = undefined; if (!startupSettled) { clearTimeout(startupTimer); publishNativeHostStatus({ state: 'error', message: error.message, retryable: true }); settleStartup(error); } else publishNativeHostStatus({ state: 'error', message: error.message, retryable: true }); });
+  broker.on('close', () => { if (nativeIngressBroker === broker) nativeIngressBroker = undefined; if (!startupSettled) { clearTimeout(startupTimer); const error = new Error('The native ingress broker stopped before readiness.'); publishNativeHostStatus({ state: 'unavailable', message: error.message, retryable: true }); settleStartup(error); } else if (ready) publishNativeHostStatus({ state: 'error', message: 'The native ingress broker stopped before another handoff could be accepted.', retryable: true }); });
+  await startup.catch(() => undefined);
 }
 
 function stopNativeDownloadIngress(): void {

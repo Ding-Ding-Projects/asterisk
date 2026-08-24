@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { createReadStream, existsSync, lstatSync, readFileSync } from 'node:fs';
-import { mkdir, stat, unlink } from 'node:fs/promises';
+import { mkdir, stat } from 'node:fs/promises';
 import { execFile, spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { promisify } from 'node:util';
 import { basename, dirname, isAbsolute, join, parse, relative, resolve, sep } from 'node:path';
@@ -15,7 +15,7 @@ import {
   type ExtensionDownloadHandoff,
   type TransferTimeoutKind,
 } from '../shared/download-transfer.js';
-import { atomicWriteFileSync, renameWithRetrySync } from './atomic-file.js';
+import { atomicWriteFileSync, renameWithRetrySync, unlinkWithRetry } from './atomic-file.js';
 
 const SCHEMA_VERSION = 2;
 const MAX_SNAPSHOTS = 200;
@@ -32,7 +32,7 @@ const execFileAsync = promisify(execFile);
 
 type SnapshotListener = (snapshot: DownloadTransferSnapshot) => void;
 interface PersistedState { schemaVersion: number; snapshots: DownloadTransferSnapshot[]; handoffs: ExtensionDownloadHandoff[]; pendingQueue?: string[]; approvedRoots: string[]; }
-interface TransferTask { controller: AbortController; handoff: ExtensionDownloadHandoff; tempPath: string; pauseRequested: boolean; timeoutKind?: TransferTimeoutKind; }
+interface TransferTask { controller: AbortController; handoff: ExtensionDownloadHandoff; tempPath: string; pauseRequested: boolean; timeoutKind?: TransferTimeoutKind; helperClose?: Promise<void>; }
 
 class TransferTimeoutError extends Error {
   constructor(readonly kind: TransferTimeoutKind) { super(`The transfer exceeded its ${kind} deadline.`); this.name = 'TransferTimeoutError'; }
@@ -244,9 +244,13 @@ export class DownloadTransferManager implements DownloadTransferClient {
     if (command === 'cancel') {
       if (['completed'].includes(snapshot.status)) return this.receipt(command, snapshot.handoffId, false, at, 'DOWNLOAD_CANCEL_UNAVAILABLE', 'The transfer is no longer cancellable.', transferId);
       if (task) task.controller.abort();
-      const cleanup = task ? { cleanupCompleted: false } : await this.cleanTemp(`${snapshot.destinationPath}.${transferId}.part`);
+      let helperClosed = true;
+      if (task?.helperClose) {
+        helperClosed = await Promise.race([task.helperClose.then(() => true).catch(() => true), new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 5_000))]);
+      }
+      const cleanup = !helperClosed ? { cleanupCompleted: false, cleanupError: { code: 'SECURE_TEMP_CLOSE_TIMEOUT', message: 'The native secure writer did not close before the cancellation cleanup deadline.', retryable: true, observedAt: observedAt() } as DownloadTransferSnapshot['error'] } : task ? await this.cleanTemp(task.tempPath) : await this.cleanTemp(`${snapshot.destinationPath}.${transferId}.part`);
       this.emit({ ...snapshot, ...cleanup, status: 'cancelled', canPause: false, canResume: false, canCancel: false, canRetry: !cleanup.cleanupCompleted, observedAt: at });
-      return this.receipt(command, snapshot.handoffId, true, at, undefined, 'Cancellation was recorded and the temporary file was removed.', transferId);
+      return this.receipt(command, snapshot.handoffId, cleanup.cleanupCompleted, at, cleanup.cleanupCompleted ? undefined : 'DOWNLOAD_CLEANUP_FAILED', cleanup.cleanupCompleted ? 'Cancellation was recorded and the temporary file was removed.' : cleanup.cleanupError?.message, transferId);
     }
     if (command === 'discard') {
       if (!['failed', 'partial', 'cancelled'].includes(snapshot.status)) return this.receipt(command, snapshot.handoffId, false, at, 'DOWNLOAD_DISCARD_UNAVAILABLE', 'Discard is available only for a failed, partial, or cancelled transfer.', transferId);
@@ -291,25 +295,55 @@ export class DownloadTransferManager implements DownloadTransferClient {
   private receipt(command: DownloadCommand, handoffId: string, accepted: boolean, at: string, code?: string, detail?: string, transferId?: string): DownloadTransferReceipt { return { command, handoffId, transferId, accepted, observedAt: at, status: accepted ? (command === 'cancel' ? 'cancelled' : 'queued') : 'rejected', code, detail }; }
   private async cleanTemp(path: string | undefined): Promise<{ cleanupCompleted: boolean; cleanupError?: DownloadTransferSnapshot['error'] }> {
     if (!path) return { cleanupCompleted: true };
-    try { await unlink(path); return { cleanupCompleted: true }; }
+    try { await unlinkWithRetry(path); return { cleanupCompleted: true }; }
     catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { cleanupCompleted: true };
       return { cleanupCompleted: false, cleanupError: { code: 'CLEANUP_FAILED', message: error instanceof Error ? error.message : 'The temporary file could not be removed.', retryable: true, observedAt: observedAt() } };
     }
   }
-  private async streamSecureTemp(parentPath: string, tempPath: string, resume: boolean, reader: ReadableStreamDefaultReader<Uint8Array>, controller: AbortController, onIdleTimeout: () => void, onChunk: (chunk: Uint8Array) => Promise<void>): Promise<void> {
+  private async reconcileTempSize(path: string, recordedBytes: number): Promise<number> {
+    const info = await stat(path);
+    if (!Number.isSafeInteger(info.size) || info.size < recordedBytes || info.size > MAX_DOWNLOAD_BYTES) throw new Error('SECURE_TEMP_SIZE_RECONCILIATION_FAILED: The durable temporary size was not compatible with the last acknowledged byte count.');
+    return info.size;
+  }
+  private async streamSecureTemp(parentPath: string, tempPath: string, resume: boolean, task: TransferTask, reader: ReadableStreamDefaultReader<Uint8Array>, controller: AbortController, onIdleTimeout: () => void, onChunk: (chunk: Uint8Array, acknowledgedBytes: number) => Promise<void>): Promise<void> {
     if (process.platform !== 'win32' || !this.secureTempHelperPath) throw new Error('SECURE_TEMP_HELPER_UNAVAILABLE: The native secure temp writer is unavailable.');
     const signal = controller.signal;
     const child: ChildProcessWithoutNullStreams = spawn(this.secureTempHelperPath, [resume ? '--resume-stream' : '--stream', parentPath, basename(tempPath)], { windowsHide: true, stdio: 'pipe' });
     let output = '';
+    let lineBuffer = '';
+    const acknowledged: number[] = [];
+    let waitingAck: ((bytes: number) => void) | undefined;
+    const nextAck = (): Promise<number> => new Promise((resolveAck, rejectAck) => {
+      const bytes = acknowledged.shift();
+      if (bytes !== undefined) { resolveAck(bytes); return; }
+      const timer = setTimeout(() => { waitingAck = undefined; rejectAck(new Error('SECURE_TEMP_ACK_TIMEOUT: The native writer acknowledgement deadline expired.')); }, 5_000);
+      waitingAck = (value) => { clearTimeout(timer); waitingAck = undefined; resolveAck(value); };
+    });
     child.stdout.setEncoding('utf8');
-    child.stdout.on('data', (value: string) => { output += value; });
+    child.stdout.on('data', (value: string) => {
+      lineBuffer += value;
+      for (;;) {
+        const newline = lineBuffer.indexOf('\n');
+        if (newline < 0) return;
+        const line = lineBuffer.slice(0, newline); lineBuffer = lineBuffer.slice(newline + 1);
+        try {
+          const receipt = JSON.parse(line) as { code?: unknown; bytes?: unknown };
+          if ((receipt.code === 'SECURE_TEMP_SIZE_ACK' || receipt.code === 'SECURE_TEMP_WRITE_ACK') && Number.isSafeInteger(receipt.bytes) && Number(receipt.bytes) >= 0) {
+            if (waitingAck) { const resolveAck = waitingAck; waitingAck = undefined; resolveAck(Number(receipt.bytes)); } else acknowledged.push(Number(receipt.bytes));
+          } else output += line;
+        } catch { output += line; }
+      }
+    });
     signal.addEventListener('abort', () => { if (!child.killed) child.kill(); }, { once: true });
     const finished = new Promise<void>((resolveFinished, rejectFinished) => {
       child.once('error', rejectFinished);
-      child.once('close', (code) => code === 0 ? resolveFinished() : rejectFinished(new Error(`SECURE_TEMP_STREAM_FAILED: Native writer exited with ${code ?? 'unknown'}.`)));
+      child.once('close', (code) => code === 0 ? resolveFinished() : rejectFinished(new Error(`SECURE_TEMP_STREAM_FAILED: Native writer exited with ${code ?? 'unknown'}, ${output || 'no typed receipt'}.`)));
     });
+    task.helperClose = finished;
     try {
+      const initialAcknowledged = await nextAck();
+      await onChunk(new Uint8Array(0), initialAcknowledged);
       for (;;) {
         if (signal.aborted) throw new Error('SECURE_TEMP_STREAM_ABORTED: The secure writer was cancelled.');
         const idleTimer = setTimeout(() => { onIdleTimeout(); controller.abort(); }, BODY_IDLE_DEADLINE_MS);
@@ -320,7 +354,8 @@ export class DownloadTransferManager implements DownloadTransferClient {
           const accepted = child.stdin.write(Buffer.from(part.value), (error) => error ? rejectWrite(error) : resolveWrite());
           if (!accepted) child.stdin.once('drain', resolveWrite);
         });
-        await onChunk(part.value);
+        const acknowledgedBytes = await nextAck();
+        await onChunk(part.value, acknowledgedBytes);
       }
       child.stdin.end();
       await finished;
@@ -400,9 +435,9 @@ export class DownloadTransferManager implements DownloadTransferClient {
       const reader = response.body.getReader(); const started = Date.now(); const resumeSupport: DownloadResumeSupport = { acceptRanges, etag, lastModified };
       snapshot = { ...snapshot, status: 'downloading', totalBytes, resume: resumeSupport, canPause: supportsResume, canResume: false, canCancel: true, resumeDisabledReason: supportsResume ? undefined : 'The source did not provide both byte ranges and an ETag or Last-Modified validator.', deadlineAt: new Date(deadlineAtMs).toISOString(), observedAt: observedAt() }; this.emit(snapshot);
       try {
-        await this.streamSecureTemp(dirname(snapshot.destinationPath), task.tempPath, resume, reader, controller, () => { timeoutKind = 'body-idle'; }, async (chunk) => {
-          if (chunk.byteLength + snapshot.bytesTransferred > MAX_DOWNLOAD_BYTES) throw new Error('The transfer exceeded the bounded size.');
-          const bytesTransferred = snapshot.bytesTransferred + chunk.byteLength; const elapsedSeconds = Math.max((Date.now() - started) / 1000, 0.001); const rateBytesPerSecond = bytesTransferred / elapsedSeconds; const etaSeconds = totalBytes && rateBytesPerSecond > 0 ? Math.max(0, (totalBytes - bytesTransferred) / rateBytesPerSecond) : undefined;
+        await this.streamSecureTemp(dirname(snapshot.destinationPath), task.tempPath, resume, task, reader, controller, () => { timeoutKind = 'body-idle'; }, async (chunk, acknowledgedBytes) => {
+          if (!Number.isSafeInteger(acknowledgedBytes) || acknowledgedBytes < snapshot.bytesTransferred + chunk.byteLength || acknowledgedBytes > MAX_DOWNLOAD_BYTES) throw new Error('SECURE_TEMP_ACK_RECONCILIATION_FAILED: The native writer acknowledgement did not match the durable temporary size.');
+          const bytesTransferred = acknowledgedBytes; const elapsedSeconds = Math.max((Date.now() - started) / 1000, 0.001); const rateBytesPerSecond = bytesTransferred / elapsedSeconds; const etaSeconds = totalBytes && rateBytesPerSecond > 0 ? Math.max(0, (totalBytes - bytesTransferred) / rateBytesPerSecond) : undefined;
           snapshot = { ...snapshot, bytesTransferred, rateBytesPerSecond, etaSeconds, observedAt: observedAt() }; this.emit(snapshot);
         });
       } finally { reader.releaseLock(); }
@@ -421,7 +456,14 @@ export class DownloadTransferManager implements DownloadTransferClient {
       await this.assertNoReparseComponents(dirname(snapshot.destinationPath)); if (existsSync(snapshot.destinationPath)) throw new Error('DOWNLOAD_DESTINATION_EXISTS: The destination appeared before atomic publication.');
       renameWithRetrySync(task.tempPath, snapshot.destinationPath); this.emit({ ...snapshot, status: 'completed', bodyComplete: true, publicationPending: false, canPause: false, canResume: false, canCancel: false, canRetry: false, observedAt: observedAt() });
     } catch (error) {
-      const latest = this.snapshots.get(snapshot.transferId) ?? snapshot; if (latest.status === 'cancelled') { await this.cleanTemp(task.tempPath); return; } if (task.pauseRequested) return;
+      let latest = this.snapshots.get(snapshot.transferId) ?? snapshot;
+      if (error instanceof Error && error.message.startsWith('SECURE_TEMP_')) {
+        try { latest = { ...latest, bytesTransferred: await this.reconcileTempSize(task.tempPath, latest.bytesTransferred) }; } catch (reconcileError) {
+          this.emit({ ...latest, status: 'failed', canPause: false, canResume: false, canCancel: false, canRetry: true, observedAt: observedAt(), error: { code: 'SECURE_TEMP_SIZE_RECONCILIATION_FAILED', message: reconcileError instanceof Error ? reconcileError.message : 'The durable temporary size could not be reconciled.', retryable: true, observedAt: observedAt() } });
+          return;
+        }
+      }
+      if (latest.status === 'cancelled') { await this.cleanTemp(task.tempPath); return; } if (task.pauseRequested) return;
       if (error instanceof IntegrityReadError) {
         this.emit({ ...latest, status: 'failed', bodyComplete: true, publicationPending: false, canPause: false, canResume: false, canCancel: false, canRetry: true, observedAt: observedAt(), error: { code: error.code, message: error.message, retryable: true, observedAt: observedAt() } });
         return;
