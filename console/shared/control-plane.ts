@@ -82,7 +82,6 @@ export interface DingDesktopApi {
     setCredential(value: string): Promise<{ ok: boolean; reason?: string }>;
     verifyCredential(value: string): Promise<{ ok: boolean; reason?: string }>;
     recoveryPath(): Promise<{ ok: boolean; path?: string; reason?: string }>;
-    packagedVaultProbe?(expected: { product: string; packageVersion: string; candidateCommit: string; appId: string }): Promise<{ provenanceMatched: boolean; writeSucceeded: boolean; readMatched: boolean; deleteSucceeded: boolean; absentAfterDelete: boolean }>;
   };
   accessibility: { isScreenReaderActive(): Promise<boolean> };
   updater: {

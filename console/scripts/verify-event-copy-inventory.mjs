@@ -10,7 +10,7 @@ const designSource = readFileSync(join(root, '..', 'design', 'Asterisk Console M
 const inventorySource = readFileSync(join(root, 'app', 'renderer', 'src', 'event-copy-inventory.ts'), 'utf8');
 const localeSource = readFileSync(join(root, 'app', 'renderer', 'src', 'locale-yue.ts'), 'utf8');
 const census = JSON.parse(readFileSync(join(root, 'inventories', 'event-copy-census.json'), 'utf8'));
-if (census.status !== 'implemented-unverified' || census.sources.length !== 3 || census.templates.length !== 2) throw new Error('Dynamic event census is missing its exact source or template rows.');
+if (census.status !== 'implemented-unverified' || census.sources.length !== 3 || census.templates.length !== 12) throw new Error('Dynamic event census is missing its exact source or template rows.');
 const compilerPath = join(root, 'scripts', 'compile-design.mjs');
 const compilerHash = createHash('sha256').update(readFileSync(compilerPath)).digest('hex');
 const sourceIds = new Set();
@@ -22,7 +22,9 @@ for (const source of census.sources) {
   if (!/this\.(?:toast|fire)\(/u.test(sourceText)) throw new Error(`Dynamic event census source has no toast or dialog call form: ${source.path}`);
 }
 const records = new Map([...inventorySource.matchAll(/key: '([^']+)'[^\n]*status: '(localized|english-fallback)'/g)].map((match) => [match[1], match[2]]));
-if (!records.has('<dynamic-title>') || !records.has('<dynamic-body>')) throw new Error('Dynamic event inventory is missing its explicit template fallback records.');
+for (const template of census.templates) {
+  if (!template.id || template.sourceId !== 'app-event-source' || !Number.isInteger(template.location) || !Array.isArray(template.placeholders) || template.placeholders.length === 0 || template.fallback !== 'plain-english-track' || !records.has(template.id)) throw new Error(`Dynamic template inventory row is incomplete: ${template.id}`);
+}
 const localeKeys = new Set([...localeSource.matchAll(/^  '([^']+)':/gm)].map((match) => match[1]));
 for (const [key, status] of records) {
   if (status === 'localized' && !localeKeys.has(key)) throw new Error(`Inventory marks ${key} localized, but no exact Cantonese entry exists.`);
@@ -31,6 +33,7 @@ for (const [key, status] of records) {
 const callSites = [...appSource.matchAll(/this\.(?:toast|fire)\(\s*'([^']+)'/g)].map((match) => match[1]);
 const missing = [...new Set(callSites)].filter((key) => !records.has(key));
 if (missing.length > 0) throw new Error(`Dynamic event call sites are not covered: ${missing.join(', ')}`);
-const templateCalls = [appSource, designSource].filter((source) => /this\.(?:toast|fire)\(\s*`/u.test(source));
-if (templateCalls.length > 0 && !records.has('<dynamic-body>')) throw new Error('Template event call sites have no explicit fallback inventory row.');
-console.log(`Dynamic event census verified: ${records.size} rows, ${new Set(callSites).size} App call-site keys, ${templateCalls.length} template source(s), ${census.sources.length} censused source files.`);
+const templateCallLocations = [...appSource.matchAll(/this\.(?:toast|fire)\(\s*`/g)].map((match) => appSource.slice(0, match.index).split('\n').length);
+const templateLocations = [...new Set(templateCallLocations)];
+if (census.templates.some((template) => !templateLocations.includes(template.location))) throw new Error(`Template call-site census drift: found ${templateLocations.join(', ')} expected every template location to be present.`);
+console.log(`Dynamic event census verified: ${records.size} rows, ${new Set(callSites).size} App call-site keys, ${census.templates.length} exact template records across ${templateLocations.length} call locations, ${census.sources.length} censused source files.`);

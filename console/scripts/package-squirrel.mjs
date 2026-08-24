@@ -33,6 +33,7 @@ process.env.DING_PBX_CANDIDATE_COMMIT = candidateCommit;
 process.env.DING_PBX_EXPECTED_VERSION = version;
 process.env.DING_PBX_EXPECTED_COMMIT = candidateCommit;
 process.env.DING_PBX_EXPECTED_APP_ID = 'org.dingdingprojects.dingpbxconsole';
+process.env.DING_PBX_EXPECTED_PRODUCT = packageJson.name;
 if (existsSync(unpackedOutput)) rmSync(unpackedOutput, { recursive: true, force: true });
 if (existsSync(sourceProvenance)) throw new Error('The provenance staging file already exists. Refusing to overwrite user content.');
 writeFileSync(sourceProvenance, JSON.stringify({ schemaVersion: 1, product: packageJson.name, packageVersion: version, candidateCommit, appId: 'org.dingdingprojects.dingpbxconsole' }, null, 2) + '\n', 'utf8');

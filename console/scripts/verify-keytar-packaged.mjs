@@ -19,12 +19,12 @@ if (!existsSync(releaseIdentityPath)) throw new Error('Final release identity is
 const provenance = JSON.parse(readFileSync(provenancePath, 'utf8'));
 const releaseIdentity = JSON.parse(readFileSync(releaseIdentityPath, 'utf8'));
 const expected = {
-  product: process.env.DING_PBX_EXPECTED_PRODUCT || releaseIdentity.product,
+  product: process.env.DING_PBX_EXPECTED_PRODUCT,
   packageVersion: process.env.DING_PBX_EXPECTED_VERSION,
   candidateCommit: process.env.DING_PBX_EXPECTED_COMMIT,
   appId: process.env.DING_PBX_EXPECTED_APP_ID,
 };
-if (!expected.packageVersion || !expected.candidateCommit || !expected.appId) throw new Error('Packaging controller did not supply independent candidate identity values.');
+if (!expected.product || !expected.packageVersion || !expected.candidateCommit || !expected.appId) throw new Error('Packaging controller did not supply independent product, candidate, version, and app identity values.');
 if (releaseIdentity.product !== expected.product || releaseIdentity.version !== expected.packageVersion || releaseIdentity.candidateCommit !== expected.candidateCommit) throw new Error('Final release identity does not match the independent packaging-controller identity.');
 if (provenance.schemaVersion !== 1 || provenance.product !== 'ding-pbx-console' || !/^[0-9a-f]{40}$/u.test(provenance.candidateCommit) || !/^\d+\.\d+\.\d+$/u.test(provenance.packageVersion) || provenance.appId !== 'org.dingdingprojects.dingpbxconsole') {
   throw new Error('Final packaged School provenance is malformed.');
@@ -34,26 +34,43 @@ if (provenance.product !== expected.product || provenance.packageVersion !== exp
 const resultPath = join(process.env.TEMP || process.env.TMP || consoleRoot, `ding-pbx-keytar-probe-${randomUUID()}.json`);
 const profilePath = join(process.env.TEMP || process.env.TMP || consoleRoot, `ding-pbx-keytar-profile-${randomUUID()}`);
 let child;
+let childExitProven = false;
+const cleanup = { childExit: null, childExitProven: false, childKillRequested: false, resultRead: false, resultDeleted: false, profileDeleted: false, profileRetainedForensics: false };
 try {
   child = spawn(executable, [`--user-data-dir=${profilePath}`, `--school-vault-probe-result=${resultPath}`], { cwd: unpackedRoot, windowsHide: true, stdio: 'ignore' });
   const exitCode = await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => { child.kill(); reject(new Error('Packaged main-process IPC keytar probe timed out.')); }, 15000);
-    child.once('error', (error) => { clearTimeout(timer); reject(error); });
-    child.once('exit', (code) => { clearTimeout(timer); resolve(code ?? -1); });
+    let deadline;
+    let killDeadline;
+    let settled = false;
+    const finish = (fn, value) => { if (settled) return; settled = true; clearTimeout(deadline); if (killDeadline) clearTimeout(killDeadline); fn(value); };
+    child.once('error', (error) => finish(reject, error));
+    child.once('exit', (code) => { cleanup.childExit = code ?? -1; childExitProven = true; cleanup.childExitProven = true; finish(resolve, code ?? -1); });
+    deadline = setTimeout(() => {
+      cleanup.childKillRequested = true;
+      child.kill();
+      killDeadline = setTimeout(() => finish(reject, new Error(`Packaged main-process IPC keytar probe did not prove child exit after the bounded kill deadline: ${JSON.stringify(cleanup)}`)), 5000);
+    }, 15000);
   });
   if (exitCode !== 0) throw new Error(`Packaged main-process IPC keytar probe exited with code ${exitCode}.`);
   if (!existsSync(resultPath)) throw new Error('Packaged main-process IPC keytar probe did not write a result.');
   const result = JSON.parse(readFileSync(resultPath, 'utf8'));
+  cleanup.resultRead = true;
   if (result.error) throw new Error(`Packaged main-process IPC keytar probe failed: ${result.error}`);
   for (const key of ['provenanceMatched', 'writeSucceeded', 'readMatched', 'deleteSucceeded', 'absentAfterDelete']) {
     if (result[key] !== true) throw new Error(`Packaged main-process IPC keytar probe did not prove ${key}.`);
   }
   const artifact = result.artifact;
   const provenanceSha256 = createHash('sha256').update(readFileSync(provenancePath)).digest('hex');
-  if (!artifact || artifact.product !== expected.product || artifact.packageVersion !== expected.packageVersion || artifact.candidateCommit !== expected.candidateCommit || artifact.appId !== expected.appId || artifact.provenanceSha256 !== provenanceSha256) throw new Error('Packaged main-process IPC probe returned mismatched or unredacted artifact identity.');
+  if (!artifact || artifact.product !== expected.product || artifact.packageVersion !== expected.packageVersion || artifact.candidateCommit !== expected.candidateCommit || artifact.appId !== expected.appId || artifact.provenanceSha256 !== provenanceSha256 || artifact.probeUserDataMatches !== true) throw new Error('Packaged main-process IPC probe returned mismatched or unredacted artifact identity.');
 } finally {
-  if (child && !child.killed) child.kill();
-  rmSync(resultPath, { force: true });
-  rmSync(profilePath, { recursive: true, force: true });
+  if (child && !child.killed) { cleanup.childKillRequested = true; child.kill(); }
+  try { rmSync(resultPath, { force: true }); cleanup.resultDeleted = true; } catch { cleanup.resultDeleted = false; }
+  if (childExitProven) {
+    try { rmSync(profilePath, { recursive: true, force: true }); cleanup.profileDeleted = true; } catch { cleanup.profileDeleted = false; }
+  } else {
+    cleanup.profileRetainedForensics = true;
+  }
 }
-console.log('Packaged main-process IPC keytar load, provenance, vault round-trip, deletion, and post-delete absence verified.');
+if (!cleanup.resultDeleted || (!cleanup.profileDeleted && !cleanup.profileRetainedForensics)) throw new Error(`Packaged probe cleanup incomplete: ${JSON.stringify(cleanup)}`);
+if (!childExitProven) throw new Error(`Packaged probe child exit was not proven; forensic profile retained: ${JSON.stringify(cleanup)}`);
+console.log(`Packaged main-process IPC keytar proof verified: ${JSON.stringify({ provenance: 'matched', vault: 'round-trip-delete-absent', cleanup })}`);

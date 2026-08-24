@@ -31,6 +31,12 @@
       "evidence": "Launches the final artifact in probe mode and loads keytar through the packaged preload and main-process IPC handler, with the native binary presence checked before launch."
     },
     {
+      "id": "probe-preload-isolation",
+      "source": "console/app/electron/preload-probe.cjs",
+      "status": "implemented-unverified",
+      "evidence": "The probe-only preload is packaged separately; the normal preload and shared desktop API type contain no packaged-vault probe capability."
+    },
+    {
       "id": "candidate-provenance",
       "source": "console/scripts/package-squirrel.mjs",
       "status": "implemented-unverified",

@@ -46,15 +46,17 @@
     }
   ],
   "templates": [
-    {
-      "key": "<dynamic-title>",
-      "placeholders": ["title"],
-      "fallback": "plain-english-track"
-    },
-    {
-      "key": "<dynamic-body>",
-      "placeholders": ["body"],
-      "fallback": "plain-english-track"
-    }
+    { "id": "app-template-552-toast", "sourceId": "app-event-source", "location": 552, "form": "toast", "placeholders": ["verb"], "fallback": "plain-english-track" },
+    { "id": "app-template-563-title", "sourceId": "app-event-source", "location": 563, "form": "fire-title", "placeholders": ["verb"], "fallback": "plain-english-track" },
+    { "id": "app-template-563-body", "sourceId": "app-event-source", "location": 563, "form": "fire-body", "placeholders": ["target.label", "verb"], "fallback": "plain-english-track" },
+    { "id": "app-template-604-title", "sourceId": "app-event-source", "location": 604, "form": "fire-title", "placeholders": ["result.id", "result.status"], "fallback": "plain-english-track" },
+    { "id": "app-template-1013-toast", "sourceId": "app-event-source", "location": 1013, "form": "toast", "placeholders": ["schoolModeName"], "fallback": "plain-english-track" },
+    { "id": "app-template-1058-toast", "sourceId": "app-event-source", "location": 1058, "form": "toast", "placeholders": ["IDENTITY.productName"], "fallback": "plain-english-track" },
+    { "id": "app-template-1355-toast", "sourceId": "app-event-source", "location": 1355, "form": "toast", "placeholders": ["name"], "fallback": "plain-english-track" },
+    { "id": "app-template-1531-toast", "sourceId": "app-event-source", "location": 1531, "form": "toast", "placeholders": ["s.lockTarget", "s.lockMethod"], "fallback": "plain-english-track" },
+    { "id": "app-template-1559-toast", "sourceId": "app-event-source", "location": 1559, "form": "toast", "placeholders": ["message", "result.reason"], "fallback": "plain-english-track" },
+    { "id": "app-template-1563-toast", "sourceId": "app-event-source", "location": 1563, "form": "toast", "placeholders": ["message"], "fallback": "plain-english-track" },
+    { "id": "app-template-1567-toast", "sourceId": "app-event-source", "location": 1567, "form": "toast", "placeholders": ["message"], "fallback": "plain-english-track" },
+    { "id": "app-template-2202-toast", "sourceId": "app-event-source", "location": 2202, "form": "toast", "placeholders": ["text"], "fallback": "plain-english-track" }
   ]
 }

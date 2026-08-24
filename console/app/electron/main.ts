@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve as resolvePath } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import * as keytar from 'keytar';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
@@ -20,6 +20,15 @@ import {
 let mainWindow: BrowserWindow | null = null;
 let probeAuthorization: string | undefined;
 let probeAuthorizationConsumed = false;
+const probeModeRequested = process.argv.some((value) => value.startsWith('--school-vault-probe-result='));
+const requestedProbeUserData = probeModeRequested ? process.argv.find((value) => value.startsWith('--user-data-dir='))?.slice('--user-data-dir='.length) : undefined;
+if (probeModeRequested && !requestedProbeUserData) throw new Error('Probe mode requires an isolated user-data path.');
+if (requestedProbeUserData) {
+  app.setPath('userData', resolvePath(requestedProbeUserData));
+  const actualProbeUserData = resolvePath(app.getPath('userData'));
+  if (actualProbeUserData !== resolvePath(requestedProbeUserData)) throw new Error(`Probe user-data equality failed: requested and actual paths are both present but equality is ${actualProbeUserData === resolvePath(requestedProbeUserData)}.`);
+}
+const probeUserDataMatches = probeModeRequested && requestedProbeUserData ? resolvePath(app.getPath('userData')) === resolvePath(requestedProbeUserData) : false;
 const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false });
 const { controlPlaneRequest } = dispatcher;
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
@@ -162,11 +171,12 @@ ipcMain.handle('updater:restart-to-install', async (): Promise<UpdaterRestartRes
 });
 
 function createProbeWindow(): void {
+  registerPackagedProbeHandlers();
   probeAuthorization = randomUUID();
   mainWindow = new BrowserWindow({
     width: 1, height: 1, show: false, skipTaskbar: true,
     webPreferences: {
-      preload: join(import.meta.dirname, '../../../app/electron/preload.cjs'),
+      preload: join(import.meta.dirname, '../../../app/electron/preload-probe.cjs'),
       contextIsolation: true, nodeIntegration: false, sandbox: true,
       partition: 'temp:ding-pbx-school-vault-probe', backgroundThrottling: false,
       additionalArguments: ['--school-vault-probe-mode'],
@@ -221,6 +231,7 @@ ipcMain.handle('school:verify-credential', async (_event, candidate: unknown) =>
   }
 });
 ipcMain.handle('school:recovery-path', () => ({ ok: true, path: app.getPath('userData') }));
+function registerPackagedProbeHandlers(): void {
 ipcMain.handle('school:probe-authorize', () => {
   const resultPath = packagedProbeResultPath();
   if (!resultPath || !probeAuthorization || probeAuthorizationConsumed) return undefined;
@@ -230,7 +241,6 @@ ipcMain.handle('school:packaged-vault-probe', async (_event, authorization: unkn
   if (!probeAuthorization || probeAuthorizationConsumed || authorization !== probeAuthorization || !packagedProbeResultPath()) {
     return { provenanceMatched: false, writeSucceeded: false, readMatched: false, deleteSucceeded: false, absentAfterDelete: false, rejected: true };
   }
-  probeAuthorizationConsumed = true;
   const candidate = expected as { product?: unknown; packageVersion?: unknown; candidateCommit?: unknown; appId?: unknown };
   const provenancePath = join(process.resourcesPath, 'school-mode-provenance.json');
   let provenanceMatched = false;
@@ -247,6 +257,8 @@ ipcMain.handle('school:packaged-vault-probe', async (_event, authorization: unkn
   } catch {
     provenanceMatched = false;
   }
+  if (!provenanceMatched) return { provenanceMatched: false, writeSucceeded: false, readMatched: false, deleteSucceeded: false, absentAfterDelete: false, rejected: true };
+  probeAuthorizationConsumed = true;
   const service = `${SCHOOL_CREDENTIAL_SERVICE}:packaged-roundtrip:${String(candidate.packageVersion ?? '')}:${String(candidate.candidateCommit ?? '')}`;
   const account = `probe-${randomUUID()}`;
   const value = randomUUID();
@@ -265,9 +277,10 @@ ipcMain.handle('school:packaged-vault-probe', async (_event, authorization: unkn
   }
   return {
     provenanceMatched, writeSucceeded, readMatched, deleteSucceeded, absentAfterDelete,
-    artifact: { product: String(candidate.product ?? ''), packageVersion: String(candidate.packageVersion ?? ''), candidateCommit: String(candidate.candidateCommit ?? ''), appId: String(candidate.appId ?? ''), provenanceSha256 },
+    artifact: { product: String(candidate.product ?? ''), packageVersion: String(candidate.packageVersion ?? ''), candidateCommit: String(candidate.candidateCommit ?? ''), appId: String(candidate.appId ?? ''), provenanceSha256, probeUserDataMatches },
   };
 });
+}
 
 function packagedProbeResultPath(): string | undefined {
   const prefix = '--school-vault-probe-result=';
