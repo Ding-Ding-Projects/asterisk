@@ -44,10 +44,16 @@ function Write-State([object]$State) {
             if ($existing -and $existing.status -eq 'corrupt') { throw [string]$existing.corruption }
             $incomingSessionId = if ($State -is [hashtable]) { $State['sessionId'] } else { $State.sessionId }
             if ($existing -and $incomingSessionId -and $existing.sessionId -and [string]$existing.sessionId -ne [string]$incomingSessionId) { throw 'The ConPTY state belongs to a different session.' }
+            $expectedRevision = $null
+            if ($State -is [hashtable] -and $State.ContainsKey('expectedRevision')) { $expectedRevision = [long]$State['expectedRevision'] }
+            elseif ($State -isnot [hashtable] -and $null -ne $State.revision) { $expectedRevision = [long]$State.revision }
+            $actualRevision = if ($existing -and $null -ne $existing.revision) { [long]$existing.revision } else { 0L }
+            if ($null -ne $expectedRevision -and $actualRevision -ne $expectedRevision) { throw "The ConPTY state revision changed from expected $expectedRevision to actual $actualRevision." }
             $merged = @{}
             if ($existing) { foreach ($property in $existing.PSObject.Properties) { $merged[$property.Name] = $property.Value } }
             if ($State -is [hashtable]) { foreach ($key in $State.Keys) { $merged[$key] = $State[$key] } }
             else { foreach ($property in $State.PSObject.Properties) { $merged[$property.Name] = $property.Value } }
+            $merged.Remove('expectedRevision')
             if (-not $merged.ContainsKey('sessionId') -and $SessionId) { $merged.sessionId = $SessionId }
             if ($OperationId -and -not $merged.operationId) { $merged.operationId = $OperationId }
             if ($ExpiresAt -and -not $merged.expiresAt) { $merged.expiresAt = $ExpiresAt }
@@ -76,6 +82,7 @@ function Retire-Terminal-State {
     $prior = Read-State
     if (-not $prior) { return }
     if (@('pending','starting') -contains [string]$prior.status) { throw 'A prior ConPTY device session is still pending.' }
+    if ($prior.pid -and $prior.pidStartTicks -and (Test-ProcessIdentity ([int]$prior.pid) ([long]$prior.pidStartTicks))) { throw 'The prior ConPTY helper still has its recorded process identity.' }
     $retired = "$StatePath.retired.$([string]$prior.sessionId).$([string]$prior.revision).json"
     for ($attempt = 1; $attempt -le 8; $attempt++) {
         try { Move-Item -LiteralPath $StatePath -Destination $retired -Force; return }

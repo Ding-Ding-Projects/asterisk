@@ -315,6 +315,10 @@
       "files": [
         "control-plane/forge-publishing.ts",
         "control-plane/fixtures/gh-keyring-status.json",
+        "scripts/check-forge-keyring-fixture.mjs",
+        "control-plane/generated-forge-digests.ts",
+        "scripts/generate-forge-digests.mjs",
+        "scripts/check-forge-digest-manifest.mjs",
         "control-plane/executor.ts",
         "control-plane/dispatch.ts",
         "shared/control-plane.ts",

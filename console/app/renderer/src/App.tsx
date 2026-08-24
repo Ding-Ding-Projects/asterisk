@@ -330,6 +330,16 @@ export class App extends Base {
       this.forgeOwners = [];
       this.forgeActiveAccountId = '';
       this.forgeOwnerId = '';
+      this.forgeOwnerCanFork = false;
+      this.forgeOwnerCanCreate = false;
+      this.forgeReceipts = [];
+      this.forgeCorruption = '';
+      this.forgeSearch = '';
+      this.forgeRepositoryName = '';
+      this.forgeSourceRemote = '';
+      this.forgeSourcePath = '';
+      if (this.forgePollTimer) clearInterval(this.forgePollTimer);
+      this.forgePollTimer = undefined;
       this.forgeOperation = { id: 'idle', status: 'idle', progress: 0, message: capabilityResponse?.message ?? 'Forge publishing is unavailable on this surface.', cancellable: false };
       this.forgeDevice = { status: 'idle', operationId: 'idle', sessionId: '', revision: '0', message: capabilityResponse?.message ?? 'Forge publishing is unavailable on this surface.' };
       this.forgeStatus = capabilityResponse?.message ?? 'Forge publishing is unavailable on this surface.';
@@ -371,7 +381,15 @@ export class App extends Base {
   private async pollForgeProgress(): Promise<void> {
     const expectedOperationId = String(this.forgeOperation.id ?? 'idle');
     const response = await this.request('forge.operation.status', { payload: { operationId: expectedOperationId } });
-    if (!response?.ok) return;
+    if (!response?.ok) {
+      if (String(response?.code ?? '') === 'FORGE_STALE_OPERATION') {
+        if (this.forgePollTimer) clearInterval(this.forgePollTimer);
+        this.forgePollTimer = undefined;
+        await this.forgeLoad();
+        if (this.forgeOperation.status === 'running') this.startForgeProgressPolling();
+      }
+      return;
+    }
     const operation = (response.data as { operation?: Record<string, unknown> }).operation;
     const device = (response.data as { device?: Record<string, unknown> }).device;
     if (device) this.forgeDevice = { status: String(device.status ?? 'idle'), operationId: String(device.operationId ?? expectedOperationId), sessionId: String(device.sessionId ?? ''), revision: String(device.revision ?? '0'), exitCode: String(device.exitCode ?? ''), userCode: String(device.userCode ?? ''), verificationUri: String(device.verificationUri ?? ''), expiresAt: String(device.expiresAt ?? ''), message: String(device.message ?? '') };
