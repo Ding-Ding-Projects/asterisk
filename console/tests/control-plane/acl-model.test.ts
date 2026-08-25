@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  addRule,
   analyse,
   evaluate,
+  moveRule,
   parseAcl,
+  removeRule,
   toConfigValue,
   validateRule,
   type AclModel,
@@ -402,6 +405,105 @@ test("analyse reports multiple distinct findings on a badly written ACL", () => 
   const kinds = new Set(findings.map((f) => f.kind));
   assert.ok(kinds.has("shadowed"));
   assert.ok(kinds.has("open-tail"));
+});
+
+/* --------------------------------------------------------------------------------
+ * Mutation: addRule / removeRule / moveRule
+ * -------------------------------------------------------------------------------- */
+
+test("addRule appends to the end of an existing ACL's rule list", () => {
+  const model = parseAcl(SAMPLE_CONFIG);
+  const next = addRule(model, "example_named_acl1", { action: "permit", spec: "203.0.113.4" });
+  const acl = next.find((a) => a.name === "example_named_acl1")!;
+  assert.equal(acl.rules.length, model[0]!.rules.length + 1);
+  assert.deepEqual(acl.rules[acl.rules.length - 1], { action: "permit", spec: "203.0.113.4" });
+  // every earlier rule kept its exact position -- appended means appended, not inserted
+  assert.deepEqual(acl.rules.slice(0, -1), model[0]!.rules);
+});
+
+test("addRule creates the named ACL when it does not exist yet, appended after the others", () => {
+  const model = parseAcl(SAMPLE_CONFIG);
+  const next = addRule(model, "brand-new", { action: "deny", spec: "0.0.0.0/0" });
+  assert.equal(next.length, model.length + 1);
+  assert.deepEqual(next[next.length - 1], { name: "brand-new", rules: [{ action: "deny", spec: "0.0.0.0/0" }] });
+  // every existing ACL is untouched
+  assert.deepEqual(next.slice(0, model.length), model);
+});
+
+test("addRule never mutates its argument", () => {
+  const model = parseAcl(SAMPLE_CONFIG);
+  const before = JSON.parse(JSON.stringify(model));
+  addRule(model, "example_named_acl1", { action: "permit", spec: "203.0.113.4" });
+  assert.deepEqual(model, before);
+});
+
+test("removeRule removes exactly the named index and closes the gap, preserving order", () => {
+  const model = parseAcl(SAMPLE_CONFIG);
+  const acl = model.find((a) => a.name === "example_named_acl1")!;
+  assert.equal(acl.rules.length, 3); // deny 0.0.0.0/0.0.0.0, permit .0, permit .1
+  const next = removeRule(model, "example_named_acl1", 1); // drop the first permit
+  const edited = next.find((a) => a.name === "example_named_acl1")!;
+  assert.deepEqual(edited.rules, [acl.rules[0], acl.rules[2]]);
+});
+
+test("removeRule on an unknown ACL or an out-of-range index changes nothing", () => {
+  const model = parseAcl(SAMPLE_CONFIG);
+  assert.deepEqual(removeRule(model, "does-not-exist", 0), model);
+  assert.deepEqual(removeRule(model, "example_named_acl1", 99), model);
+  assert.deepEqual(removeRule(model, "example_named_acl1", -1), model);
+});
+
+test("removeRule leaves every other ACL exactly as it was", () => {
+  const model = parseAcl(SAMPLE_CONFIG);
+  const next = removeRule(model, "example_named_acl1", 0);
+  const untouched = model.filter((a) => a.name !== "example_named_acl1");
+  const stillThere = next.filter((a) => a.name !== "example_named_acl1");
+  assert.deepEqual(stillThere, untouched);
+});
+
+test("moveRule swaps a rule with its earlier neighbour, and only its neighbour", () => {
+  const model = parseAcl(SAMPLE_CONFIG);
+  const acl = model.find((a) => a.name === "example_named_acl1")!;
+  const next = moveRule(model, "example_named_acl1", 1, "up"); // move the first permit above the deny
+  const edited = next.find((a) => a.name === "example_named_acl1")!;
+  assert.deepEqual(edited.rules, [acl.rules[1], acl.rules[0], acl.rules[2]]);
+});
+
+test("moveRule swaps a rule with its later neighbour", () => {
+  const model = parseAcl(SAMPLE_CONFIG);
+  const acl = model.find((a) => a.name === "example_named_acl1")!;
+  const next = moveRule(model, "example_named_acl1", 0, "down"); // move the deny below the first permit
+  const edited = next.find((a) => a.name === "example_named_acl1")!;
+  assert.deepEqual(edited.rules, [acl.rules[1], acl.rules[0], acl.rules[2]]);
+});
+
+test("moveRule is a genuine no-op at either end of the list", () => {
+  const model = parseAcl(SAMPLE_CONFIG);
+  const acl = model.find((a) => a.name === "example_named_acl1")!;
+  const atTop = moveRule(model, "example_named_acl1", 0, "up");
+  const atBottom = moveRule(model, "example_named_acl1", acl.rules.length - 1, "down");
+  assert.deepEqual(atTop, model);
+  assert.deepEqual(atBottom, model);
+});
+
+test("moveRule on an unknown ACL or an out-of-range index changes nothing", () => {
+  const model = parseAcl(SAMPLE_CONFIG);
+  assert.deepEqual(moveRule(model, "does-not-exist", 0, "up"), model);
+  assert.deepEqual(moveRule(model, "example_named_acl1", 99, "up"), model);
+});
+
+test("moveRule actually changes the evaluation outcome -- reordering is not cosmetic", () => {
+  // deny 0.0.0.0/0.0.0.0, permit 209.16.236.0, permit 209.16.236.1 -- .0 is explicitly permitted
+  const model = parseAcl(SAMPLE_CONFIG);
+  assert.deepEqual(evaluate(model.find((a) => a.name === "example_named_acl1")!, "209.16.236.0"),
+    { verdict: "permit", matchedRule: 1 });
+  // Move the broad deny to the END: now it overwrites everything after it, including .0.
+  const reordered = moveRule(model, "example_named_acl1", 0, "down");
+  const acl = reordered.find((a) => a.name === "example_named_acl1")!;
+  // deny is now at index 1; move it again to reach the end (3-rule list, started at 0)
+  const acl2 = moveRule(reordered, "example_named_acl1", 1, "down").find((a) => a.name === "example_named_acl1")!;
+  void acl;
+  assert.deepEqual(evaluate(acl2, "209.16.236.0"), { verdict: "deny", matchedRule: 2 });
 });
 
 /* --------------------------------------------------------------------------------

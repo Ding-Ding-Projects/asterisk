@@ -85,6 +85,17 @@ export const TABLE_DESTINATION_READERS: Record<string, boolean> = {
   confbridge: true,
   moh: true,
   ami: true,
+  /* `security` is a genuine reader, just not THIS one. There is no read-only CLI command
+   * that prints one line per `permit=`/`deny=` rule inside a chosen named ACL -- `acl
+   * show` (parsed by `parseAclRules` above) only prints the bare list of ACL names, which
+   * is why `rowsFor` below has no `security` branch and never will. The rules themselves
+   * come from `acl.conf` through the structured `pbx.config` transport every
+   * configuration screen already uses, and `App.tsx`'s `applyRows` feeds the table from
+   * `aclRuleRows(this.aclConfigValue())` (`app/renderer/src/acl-editor.ts`) directly,
+   * bypassing `readings`/`rowsFor` entirely. `false` here is therefore accurate to what
+   * this specific inventory claims -- "can `rowsFor` put real rows on it" -- while the
+   * screen itself is fully wired through its own, more appropriate path. */
+  security: false,
 };
 
 export const READABLE_VIEWS: PbxReadView[] = [

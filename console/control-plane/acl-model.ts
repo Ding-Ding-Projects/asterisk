@@ -206,6 +206,66 @@ export function toConfigValue(acls: AclModel): ConfigValue {
 }
 
 /* ------------------------------------------------------------------------------------
+ * Mutation
+ *
+ * Pure, order-preserving edits over an `AclModel`. Every one returns a NEW model rather
+ * than touching its argument, so a caller building a plan can compare the result against
+ * what it started with. None of these validate a rule's address/mask shape themselves —
+ * `validateRule` above is what a caller runs first on anything a person typed, so a bad
+ * value is refused before it ever reaches here rather than being silently accepted into
+ * the model and only failing later, confusingly, inside `toConfigValue`/the transport.
+ * ------------------------------------------------------------------------------------ */
+
+/**
+ * Appends `rule` to the end of the named ACL's rule list, which is where a newly added
+ * rule belongs: `ast_apply_ha` is last-match-wins (see the module doc above), so a rule
+ * appended after everything else is the one that decides the outcome for any address it
+ * matches, exactly as "add a rule" should mean. Creates the ACL, appended after every
+ * existing one, when `aclName` does not yet exist — `acl.conf.sample` shows named ACLs
+ * as ordinary `[name]` sections with no special declaration beyond having at least one
+ * `permit=`/`deny=` line in them, so a first rule is enough to bring one into existence.
+ */
+export function addRule(acls: AclModel, aclName: string, rule: AclRule): AclModel {
+  const index = acls.findIndex((acl) => acl.name === aclName);
+  if (index === -1) return [...acls, { name: aclName, rules: [rule] }];
+  return acls.map((acl, i) => (i === index ? { ...acl, rules: [...acl.rules, rule] } : acl));
+}
+
+/**
+ * Removes rule `ruleIndex` from the named ACL. Returns the model UNCHANGED (by value; a
+ * new array is still returned, but with identical content) when `aclName` does not exist
+ * or `ruleIndex` is out of range, rather than guessing which rule a caller might have
+ * meant — the same "refuse rather than guess" rule `validateRule` documents above.
+ */
+export function removeRule(acls: AclModel, aclName: string, ruleIndex: number): AclModel {
+  return acls.map((acl) => {
+    if (acl.name !== aclName) return acl;
+    if (ruleIndex < 0 || ruleIndex >= acl.rules.length) return acl;
+    return { ...acl, rules: acl.rules.filter((_, i) => i !== ruleIndex) };
+  });
+}
+
+/**
+ * Swaps rule `ruleIndex` with its immediate neighbour one position earlier (`'up'`) or
+ * later (`'down'`) within its OWN ACL — never across ACLs, since evaluation order is
+ * scoped to one named list at a time (`ast_apply_ha` again). A no-op at either end of
+ * the list: there is nowhere further to move, and this module never reorders anything
+ * without being asked to move a specific rule a specific direction.
+ */
+export function moveRule(acls: AclModel, aclName: string, ruleIndex: number, direction: 'up' | 'down'): AclModel {
+  return acls.map((acl) => {
+    if (acl.name !== aclName) return acl;
+    const target = direction === 'up' ? ruleIndex - 1 : ruleIndex + 1;
+    if (ruleIndex < 0 || ruleIndex >= acl.rules.length || target < 0 || target >= acl.rules.length) return acl;
+    const rules = acl.rules.slice();
+    const moved = rules[ruleIndex]!;
+    rules[ruleIndex] = rules[target]!;
+    rules[target] = moved;
+    return { ...acl, rules };
+  });
+}
+
+/* ------------------------------------------------------------------------------------
  * Evaluation
  *
  * Mirrors `ast_apply_ha` (main/acl.c lines 806-868): start optimistic (permit), walk
