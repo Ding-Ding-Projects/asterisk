@@ -7,25 +7,59 @@ body,
   height: 100%;
 }
 
-/* GitHub-Desktop-style non-blocking update banner. Anchored to a screen corner and
- * never a modal — informational/success surfaces are non-blocking notifications per
- * house rule, and this one persists until the user acts rather than auto-dismissing,
- * because "an update is ready" is worth keeping visible. */
+/* The user agent's own 8px body margin, which otherwise sits underneath a console already
+ * sized to exactly the window and pushes the document 8px past its own bottom edge. */
+body {
+  margin: 0;
+}
+
+/* GitHub-Desktop-style non-blocking update banner: a strip across the top of the window,
+ * never a modal — informational surfaces are non-blocking per house rule, and this one
+ * persists until the user acts rather than auto-dismissing, because "an update is ready"
+ * is worth keeping visible.
+ *
+ * It was in the bottom-right corner until driving the built app showed it covering the
+ * primary action on every screen that has one. A corner is the right place for a toast that
+ * comes and goes; it is the wrong place for a bar that stays. */
+/* Room for the update banner, published by the banner itself while it is on screen and
+ * removed when it goes. Without it the banner -- fixed to the bottom-right corner -- sits on
+ * top of whatever the screen puts there, which in this console is always the primary action.
+ * Applied to both the document and the body because either may be the scrolling box
+ * depending on the screen, and reserving twice is harmless where reserving neither is not. */
+/* The banner publishes the exact room it occupies, and the console gives up precisely that
+ * much height. Both halves are needed: without the second the banner would push the console
+ * past the bottom of the window instead of sharing it. */
+#root {
+  height: calc(100vh - var(--update-banner-space, 0px));
+}
+
+/* The wrapper App.tsx puts between #root and the compiled console. Without a height of its
+ * own it is auto, and the console's `height:100%` then resolves against auto -- which is
+ * auto -- so the whole console grew to its content height and the document scrolled 2623px
+ * instead of the console's own pane scrolling. Measured, not guessed. */
+.app-root {
+  height: 100%;
+}
+
 .update-banner {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 9999;
-  max-width: 420px;
+  /* A bar across the top, not a floating card in a corner. See main.tsx for the measurement
+   * that forced the move: in the corner it sat squarely on top of the primary action.
+   *
+   * Flush, with no margin: a margin here collapses out of the host element, so the height
+   * the banner reports and the height it actually occupies stop agreeing and the document
+   * ends up a few pixels taller than the window. Padding on the bar itself gives the same
+   * breathing room without the collapse. */
+  margin: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px;
-  border-radius: 8px;
+  padding: 12px 20px;
+  border-radius: 0;
   background: #1b241b;
   color: #e6efe6;
-  border: 1px solid #33402f;
+  border: 0;
+  border-bottom: 1px solid #33402f;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   font-size: 13px;
   line-height: 1.4;

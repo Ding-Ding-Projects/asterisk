@@ -40,7 +40,14 @@ async function boot() {
    * `UpdateBanner.tsx` for why a persistent, cross-screen banner has no home there. */
   const bannerHost = document.createElement('div');
   bannerHost.id = 'update-banner-host';
-  document.body.appendChild(bannerHost);
+  /* Above the console, in normal flow, rather than floating over its bottom-right corner.
+   * Measured on the built app: at 1456x928 the banner occupied 1004-1424 x 787-904 and the
+   * wizard's Next button 1011-1100 x 798-839, so the notification completely covered the
+   * screen's primary action. Clearing it from that corner was not possible -- the banner
+   * would have had to start below the window's own bottom edge. So it takes a strip at the
+   * top and the console shrinks by exactly that much, which is what "a banner like GitHub
+   * Desktop" describes in the first place. */
+  document.body.insertBefore(bannerHost, document.getElementById('root'));
   createRoot(bannerHost).render(<React.StrictMode><UpdateBanner /></React.StrictMode>);
 }
 

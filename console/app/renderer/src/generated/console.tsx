@@ -6,7 +6,7 @@ import { DCLogic, h, F, A, R, S, fn, sty } from '../dc-runtime';
 import M3Control from './m3-control';
 function Template(v: any) {
   return F(
-    h("div", { style: sty(`height:100vh; display:flex; flex-direction:column; background:#0B0F0C; color:#DFE4DC; font-family:Roboto,system-ui,sans-serif; font-size:14px; overflow:hidden; position:relative;`) },
+    h("div", { style: sty(`height:100%; display:flex; flex-direction:column; background:#0B0F0C; color:#DFE4DC; font-family:Roboto,system-ui,sans-serif; font-size:14px; overflow:hidden; position:relative;`) },
       h("div", { style: sty(`height:40px; flex:0 0 40px; display:flex; align-items:stretch; background:#141A15; user-select:none; overflow:hidden; min-width:0;`), "data-window-drag": `` },
         h("div", { style: sty(`display:flex; align-items:center; gap:10px; padding:0 12px; flex:0 0 auto; white-space:nowrap;`) },
           h("span", { style: sty(`font-size:20px; color:#82D9A5; flex:0 0 auto;`), className: "msym" },
@@ -2077,22 +2077,35 @@ function Template(v: any) {
             h("div", { style: sty(`background:#1B211C; border-radius:20px; padding:22px 24px; display:flex; flex-direction:column; gap:18px;`) },
               A(v.onboardCtls).map(($c, $c$i) => R($c$i, h(M3Control, { ctl: $c })))
             ),
-            h("button", { onClick: fn(v.superEasy), style: sty(`display:flex; align-items:center; gap:14px; width:100%; margin-top:18px; background:#9FF7C4; border:0; border-radius:20px; padding:18px 22px; cursor:pointer; text-align:left; animation:m3Glow 2.6s ease-in-out infinite;`), className: "k-h19" },
-              h("span", { style: sty(`font-size:34px; color:#00391F;`), className: "msym" },
-                "bolt"
-              ),
-              h("div", { style: sty(`flex:1;`) },
-                h("div", { style: sty(`font-size:19px; font-weight:700; color:#00391F;`) },
-                  "Super easy mode — just build it for me"
+            (v.easyMode ? h("button", { onClick: fn(v.superEasy), style: sty(`display:flex; align-items:center; gap:14px; width:100%; margin-top:18px; background:#9FF7C4; border:0; border-radius:20px; padding:18px 22px; cursor:pointer; text-align:left; animation:m3Glow 2.6s ease-in-out infinite;`), className: "k-h19" },
+                h("span", { style: sty(`font-size:34px; color:#00391F;`), className: "msym" },
+                  "bolt"
                 ),
-                h("div", { style: sty(`font-size:13px; color:#1B4D33; margin-top:3px; line-height:1.5;`) },
-                  "Skip every question. Eight extensions, one menu, TLS if a certificate is already on the target, and hardened defaults. Business hours is not set up here — do that afterward in Configure. You can change all of it later, and nothing here is permanent."
+                h("div", { style: sty(`flex:1;`) },
+                  h("div", { style: sty(`font-size:19px; font-weight:700; color:#00391F;`) },
+                    "Super easy mode — just build it for me"
+                  ),
+                  h("div", { style: sty(`font-size:13px; color:#1B4D33; margin-top:3px; line-height:1.5;`) },
+                    "Skip every question. Eight extensions, one menu, TLS if a certificate is already on the target, and hardened defaults. Business hours is not set up here — do that afterward in Configure. You can change all of it later, and nothing here is permanent."
+                  )
+                ),
+                h("span", { style: sty(`font-size:26px; color:#00391F;`), className: "msym" },
+                  "arrow_forward"
                 )
-              ),
-              h("span", { style: sty(`font-size:26px; color:#00391F;`), className: "msym" },
-                "arrow_forward"
-              )
-            ),
+              ) : null),
+            (v.notEasy ? h("div", { style: sty(`display:flex; align-items:center; gap:14px; width:100%; margin-top:18px; background:#1B2A21; border:1px solid #2F4438; border-radius:20px; padding:18px 22px; text-align:left;`) },
+                h("span", { style: sty(`font-size:34px; color:#9FF7C4;`), className: "msym" },
+                  "checklist"
+                ),
+                h("div", { style: sty(`flex:1;`) },
+                  h("div", { style: sty(`font-size:19px; font-weight:700; color:#D6EDDD;`) },
+                    S(v.modeTitle)
+                  ),
+                  h("div", { style: sty(`font-size:13px; color:#9AA39B; margin-top:3px; line-height:1.5;`) },
+                    S(v.modeBody)
+                  )
+                )
+              ) : null),
             h("div", { style: sty(`display:flex; align-items:center; gap:12px; margin-top:20px;`) },
               h("button", { onClick: fn(v.skipOnboard), style: sty(`background:transparent; border:0; color:#9AA39B; font:inherit; font-size:13px; cursor:pointer; padding:12px 14px; border-radius:999px; white-space:nowrap; flex:0 0 auto;`), className: "k-h10" },
                 "Skip setup"
@@ -5612,6 +5625,9 @@ class ConsoleShell extends DCLogic {
       onboardCtls:ob.ctls.map(this.buildCtl),
       onboardNextLabel:s.onboardStep === ONBOARD.length - 1 ? 'Deploy it all now' : 'Next',
       easyMode:this.v('ob_ease', 'Super easy') === 'Super easy',
+      notEasy:this.v('ob_ease', 'Super easy') !== 'Super easy',
+      modeTitle:this.v('ob_ease', 'Super easy') === 'Guided' ? 'Guided — the questions that actually change something' : 'Every detail — nothing is chosen for you',
+      modeBody:this.v('ob_ease', 'Super easy') === 'Guided' ? 'You answer the handful of questions that change how the system behaves, and settled defaults cover the rest. Press Next to begin; you can go back at any point.' : 'Every question is asked, including the ones most people never need, and nothing is filled in on your behalf. Press Next to begin.',
       superEasy:() => { this.setState(st => ({ values:Object.assign({}, st.values, { ob_intent:'Deploy a new server', ob_ease:'Super easy', ob_phones:8, ob_menu:true, ob_hours:true, ob_tls:true }), onboardOpen:false, screen:'servers', railId:'app', oneClickMode:'Funny' })); this.fire('Super easy mode', 'Three defaults taken. Press the big button and walk away.'); },
       onboardNext:() => this.setState(st => (st.onboardStep >= ONBOARD.length - 1
         ? { onboardOpen:false, tourOpen:st.values.ob_tour !== false, tourStep:0, screen:'servers', railId:'app' }
