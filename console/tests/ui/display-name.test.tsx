@@ -11,7 +11,8 @@ import test from 'node:test';
 
 import {
   DISPLAY_NAME_SETTING, IDENTITY, MAX_DISPLAY_NAME_LENGTH, RENAME_DISCLOSURE,
-  displayName, isRenamed, nameFor, resetDisplayName, setDisplayName, validateDisplayName,
+  aboutIdentityLine, displayName, isRenamed, nameFor, resetDisplayName, setDisplayName,
+  validateDisplayName,
   type NameStorage,
 } from '../../app/renderer/src/display-name.ts';
 
@@ -78,6 +79,46 @@ test('the shipped name reaches anything a stranger has to read', () => {
 test('the disclosure states the boundary where the rename is offered', () => {
   assert.match(RENAME_DISCLOSURE, /does not move your data/u);
   assert.ok(RENAME_DISCLOSURE.includes(IDENTITY.productName));
+});
+
+/* --- the About screen's own line ----------------------------------------------- */
+
+test('the About line names the shipped console when nothing has been renamed', () => {
+  assert.equal(aboutIdentityLine(memory()), `This console is ${IDENTITY.productName}.`);
+  assert.equal(aboutIdentityLine(undefined), `This console is ${IDENTITY.productName}.`);
+});
+
+test('the About line names the chosen console once renamed, and still discloses the boundary', () => {
+  const storage = memory();
+  setDisplayName(storage, 'Reception');
+  const line = aboutIdentityLine(storage);
+  assert.ok(line.includes('renamed to Reception'), line);
+  /* The one screen a reader goes to for "what is this software" must not stop saying what
+   * a bug report will call it. */
+  assert.ok(line.includes(IDENTITY.productName), line);
+});
+
+test("the About line takes its name from the surface table, not from the setting behind it", () => {
+  /* Both resolve the same today. Asserting the relationship rather than the literal is what
+   * keeps the 'about' entry in NameSurface load-bearing: if it ever moves into the
+   * shipped-name-only set, this line has to follow it. */
+  const storage = memory();
+  setDisplayName(storage, 'Reception');
+  for (const store of [memory(), storage]) {
+    assert.ok(aboutIdentityLine(store).includes(nameFor('about', store)), aboutIdentityLine(store));
+  }
+});
+
+test('the About line never begins with the word the heading ends on', () => {
+  /* Guards the exact regression this line exists to prevent: the name used to sit in the
+   * <h1> as "About <name>", which cost the parity harness its settle condition. Rendered,
+   * the heading and this line sit adjacent, so a line starting with the name would read
+   * as "About Ding PBX Console" again -- correct in the markup, wrong on the screen. */
+  const storage = memory();
+  setDisplayName(storage, 'Reception');
+  for (const line of [aboutIdentityLine(memory()), aboutIdentityLine(storage)]) {
+    assert.equal(/^(Ding PBX Console|Reception)\b/u.test(line), false, line);
+  }
 });
 
 /* --- the setting itself -------------------------------------------------------- */
