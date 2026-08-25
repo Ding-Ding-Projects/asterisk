@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "commit": "d50822fbb689304fe4f52292c0457c51f9ef4f83",
+  "artifact": "console/dist/squirrel-windows/win-unpacked/Ding PBX Console.exe",
+  "artifactSha256": "bd9640b366240712a9953805be4589de71b0b7e5095dd81d1e0c834ec27a30ef",
+  "capture": "console/release/captures/windows-console/accessibility.png",
+  "captureSha256": "1981b40c4d86c977fe5f35a89cf62f84a86e9ec873d34a0b57c98d583c98a083",
+  "captureBytes": 69395,
+  "viewport": {
+    "width": 1440,
+    "height": 922,
+    "dpi": 144,
+    "scale": 1.5
+  },
+  "launch": {
+    "method": "Lowlevel hidden Windows desktop",
+    "desktop": "DingPBXEvidence",
+    "windowTitle": "Ding PBX Console",
+    "windowClass": "Chrome_WidgetWin_1",
+    "topLevelWindowsOnDesktop": 14,
+    "windowSelectedBy": "exact class Chrome_WidgetWin_1 with a non-empty title and non-zero size",
+    "isolatedProfile": "a task-scoped --user-data-dir created for this run only",
+    "driver": "loopback Chrome DevTools Protocol, exactly one page target verified before any evaluation"
+  },
+  "interaction": {
+    "route": "App > tuneApp > Customise everything > palette search 'readability' > Readability section",
+    "action": "opened the command palette with Ctrl+Shift+F, typed 'readability', clicked the 'Contrast of the current accent' result",
+    "observedTarget": "Contrast of the current accent",
+    "domBeforeClick": {
+      "elements": 964,
+      "inputs": 17
+    },
+    "domAfterClick": {
+      "elements": 1715,
+      "inputs": 19
+    },
+    "observedPanelControls": [],
+    "anchoredToOriginatingField": false
+  },
+  "contractPoints": [
+    "a Readability section exists with a live 'Contrast of the current accent' readout, and Reduced motion (captured separately as material-appearance) sits in the same Appearance destination, matching part of the required contrast and reduced-motion accessibility rules"
+  ],
+  "notInterrogatedHere": [
+    "keyboard reachability, visible focus and screen-reader names/roles across the app -- this capture only proves one contrast readout exists",
+    "adequate touch targets and no-clipping at narrow widths",
+    "the exact contrast ratio threshold enforced"
+  ],
+  "privacy": "no user desktop, cursor, foreground application or personal data is present; the application ran on an off-screen desktop under a throwaway profile",
+  "verification": "inspected-real-packaged-artifact"
+}

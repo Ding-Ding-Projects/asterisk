@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "commit": "d50822fbb689304fe4f52292c0457c51f9ef4f83",
+  "artifact": "console/dist/squirrel-windows/win-unpacked/Ding PBX Console.exe",
+  "artifactSha256": "bd9640b366240712a9953805be4589de71b0b7e5095dd81d1e0c834ec27a30ef",
+  "capture": "console/release/captures/windows-console/personal-vocabulary-upload.png",
+  "captureSha256": "3cdba7520a5aedcfa6e3945ffca2011f489d8f4c27c427358530bd5cd81625eb",
+  "captureBytes": 40194,
+  "viewport": {
+    "width": 1440,
+    "height": 922,
+    "dpi": 144,
+    "scale": 1.5
+  },
+  "launch": {
+    "method": "Lowlevel hidden Windows desktop",
+    "desktop": "DingPBXEvidence",
+    "windowTitle": "Ding PBX Console",
+    "windowClass": "Chrome_WidgetWin_1",
+    "topLevelWindowsOnDesktop": 14,
+    "windowSelectedBy": "exact class Chrome_WidgetWin_1 with a non-empty title and non-zero size",
+    "isolatedProfile": "a task-scoped --user-data-dir created for this run only",
+    "driver": "loopback Chrome DevTools Protocol, exactly one page target verified before any evaluation"
+  },
+  "interaction": {
+    "route": "App > tuneApp > Appearance > palette search 'vocabulary' > Personal vocabulary section",
+    "action": "opened the command palette with Ctrl+Shift+F, typed 'vocabulary', clicked the 'Vocabulary file' result",
+    "observedTarget": "Vocabulary file",
+    "domBeforeClick": {
+      "elements": 869,
+      "inputs": 1
+    },
+    "domAfterClick": {
+      "elements": 549,
+      "inputs": 3
+    },
+    "observedPanelControls": [],
+    "anchoredToOriginatingField": false
+  },
+  "contractPoints": [
+    "a Personal vocabulary section exists under Appearance with a 'Vocabulary file' control, a live 'Status' readout and a 'Reset' action, matching the requirement for a visible local personal-vocabulary JSON upload control with loaded/no-file/clear states",
+    "a separate 'Vocabulary & guard' area was independently indexed by the same search, with 'Vocabulary lock', 'Guard enabled', 'On violation', 'Scan surfaces' and 'Report drift daily' controls, matching the private-vocabulary emission-guard machinery"
+  ],
+  "notInterrogatedHere": [
+    "actually loading a valid JSON file and observing applied wording",
+    "invalid-file and duplicate-key rejection behaviour",
+    "confirming no network request occurs during load"
+  ],
+  "privacy": "no user desktop, cursor, foreground application or personal data is present; the application ran on an off-screen desktop under a throwaway profile",
+  "verification": "inspected-real-packaged-artifact"
+}

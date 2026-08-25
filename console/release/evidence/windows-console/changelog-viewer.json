@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "commit": "d50822fbb689304fe4f52292c0457c51f9ef4f83",
+  "artifact": "console/dist/squirrel-windows/win-unpacked/Ding PBX Console.exe",
+  "artifactSha256": "bd9640b366240712a9953805be4589de71b0b7e5095dd81d1e0c834ec27a30ef",
+  "capture": "console/release/captures/windows-console/changelog-viewer.png",
+  "captureSha256": "a5d4538c0e7986d63501119855c8cae352a6cf8da2d6719358948a1ec4f7fbbe",
+  "captureBytes": 118188,
+  "viewport": {
+    "width": 1440,
+    "height": 922,
+    "dpi": 144,
+    "scale": 1.5
+  },
+  "launch": {
+    "method": "Lowlevel hidden Windows desktop",
+    "desktop": "DingPBXEvidence",
+    "windowTitle": "Ding PBX Console",
+    "windowClass": "Chrome_WidgetWin_1",
+    "topLevelWindowsOnDesktop": 14,
+    "windowSelectedBy": "exact class Chrome_WidgetWin_1 with a non-empty title and non-zero size",
+    "isolatedProfile": "a task-scoped --user-data-dir created for this run only",
+    "driver": "loopback Chrome DevTools Protocol, exactly one page target verified before any evaluation"
+  },
+  "interaction": {
+    "route": "App > tuneApp > Changelog (command palette search 'changelog' > Changelog)",
+    "action": "opened the command palette with Ctrl+Shift+F, typed 'changelog', clicked the 'Changelog' result to land on the Changelog destination",
+    "observedTarget": "Changelog",
+    "domBeforeClick": {
+      "elements": 259,
+      "inputs": 2
+    },
+    "domAfterClick": {
+      "elements": 414,
+      "inputs": 3
+    },
+    "observedPanelControls": [],
+    "anchoredToOriginatingField": false
+  },
+  "contractPoints": [
+    "the Changelog destination states it is built from the tag history of this repository and that every change links to the real commit that made it",
+    "a FROM/TO date range picker (YYYY-MM-DD) with All time / Last 30 days / Last 90 days / This year presets is present, matching the required advanced calendar/typed-date filter",
+    "a Search changelog text field sits beside its own regex-builder affordance, and Copy and Export actions are both present",
+    "real entries are rendered with version, date, a category tag (GENERAL), a description and a linked short commit SHA (for example a4537d8f7d), matching the requirement that every changelog entry links to the commit that made the change",
+    "a live 20 versions counter and a Range: 2026-08-24 to 2026-08-25 readout are shown, proving the list and the filter summary are wired to real data rather than placeholders"
+  ],
+  "notInterrogatedHere": [
+    "actually typing a date range or a search query and confirming the list narrows",
+    "exercising the regex-builder affordance itself",
+    "the Copy and Export actions actual output and whether they honour the active filter"
+  ],
+  "privacy": "no user desktop, cursor, foreground application or personal data is present; the application ran on an off-screen desktop under a throwaway profile",
+  "verification": "inspected-real-packaged-artifact"
+}
