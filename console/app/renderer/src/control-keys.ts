@@ -325,6 +325,13 @@ function sFrom(control: string, sectionFrom: string, key: string, file?: string)
   const base = { control, section: sectionFrom, sectionFrom, key, kind: 'string' as const };
   return file ? { ...base, file } : base;
 }
+/** The same, for a `number`-kind control -- res_odbc.conf's per-connection numeric
+ *  settings (max_connections, connect_timeout, ...) need this and neither `bFrom` nor
+ *  `sFrom` carries the right kind for them. */
+function nFrom(control: string, sectionFrom: string, key: string, file?: string): ControlBinding {
+  const base = { control, section: sectionFrom, sectionFrom, key, kind: 'number' as const };
+  return file ? { ...base, file } : base;
+}
 
 function b(control: string, section: string, key: string, invert?: boolean, file?: string): ControlBinding {
   const base = invert ? { control, section, key, kind: 'boolean' as const, invert } : { control, section, key, kind: 'boolean' as const };
@@ -854,6 +861,66 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     s('s_cafile', 'verification', 'ca_file', 'stir_shaken.conf'),
     s('s_capath', 'verification', 'ca_path', 'stir_shaken.conf'),
   ],
+  // configs/samples/res_pgsql.conf.sample — the screen's own primary file, [general]
+  // section, no override needed. db_pgpassword is deliberately unbound: it is
+  // write-only, exactly like res_odbc.conf's db_odbcpassword below and iax.conf's
+  // ix_secret_set before it -- a real database password must never travel through an
+  // ordinary binding into renderer state, from where an export, history entry or
+  // screenshot could reach it. App.tsx takes it, writes it, and blanks the field in
+  // one step (the same consumeCredential shape credential-field.ts already uses for
+  // this console's own unlock PIN), and db_pgpasswordstatus reports only whether a
+  // password line exists on the target, never what it holds.
+  //
+  // configs/samples/res_odbc.conf.sample — every db_odbc* key below is read from the
+  // [asterisk] example section (enabled, dsn, pre-connect are uncommented there; the
+  // rest are commented defaults shown the same way http.conf's own sample comments
+  // its optional keys). Every one binds through `sectionFrom: 'db_odbcname'`, the
+  // same mechanism the security screen's PJSIP-transport TLS fields use for a named
+  // section chosen by a picker rather than declared in this table: res_odbc.conf
+  // names an ODBC connection after an arbitrary [section], not a fixed one, and
+  // extconfig.conf/func_odbc.conf refer to it by that same name. db_odbccachetype's
+  // three options (stack/roundrobin/queue) are the sample's own words: "setting this
+  // value to any of rr, roundrobin or queue will result in a round-robin queue being
+  // used" -- rr is left off the list as a bare alias for roundrobin, not a fourth
+  // distinct behaviour.
+  //
+  // extconfig.conf and sorcery.conf are NOT in this table. Both name a family or an
+  // object type as the KEY itself (`ps_endpoints => odbc,asterisk`; `endpoint =
+  // realtime,ps_endpoints`), which nothing here can express: `sectionFrom` picks a
+  // SECTION by another control's value, and neither of these two files varies its
+  // section that way (extconfig.conf's is always [settings]; sorcery.conf's section
+  // is the module name, which sectionFrom could pick, but the mapping's own VALUE is
+  // two logically separate fields -- driver/database/table/priority, or
+  // wizard/wizard-config -- joined by commas, which is more than the two-part
+  // `composite` mechanism tlsbindaddr already uses was built to carry, and extending
+  // it for two call sites risked every other composite binding in this table for a
+  // net decrease in clarity). Both are instead a hand-rolled read/edit/write pair in
+  // App.tsx, over the pure functions in control-plane/realtime-mappings-model.ts --
+  // the same shape control-plane/acl-model.ts already established for a file whose
+  // structure this single-key table cannot carry, wired through the identical
+  // pbx.plan/pbx.apply transaction every other write in this console uses.
+  dbrealtime: [
+    s('db_pghost', 'general', 'hostname'),  // ;hostname=localhost
+    n('db_pgport', 'general', 'port'),  // ;port=5432
+    s('db_pgdbname', 'general', 'dbname'),  // ;dbname=asterisk
+    s('db_pguser', 'general', 'user'),  // ;user=postgres
+    s('db_pgsocket', 'general', 'socket'),  // ;socket=/tmp
+    s('db_pgappname', 'general', 'appname'),  // ;appname=asterisk
+    s('db_pgrequirements', 'general', 'requirements'),  // requirements=warn (uncommented in the sample)
+    b('db_pgorderby', 'general', 'order_multi_row_results_by_initial_column'),  // ;order_multi_row_results_by_initial_column=no -- absent means yes, so the switch's own design default is true
+    bFrom('db_odbcenabled', 'db_odbcname', 'enabled', 'res_odbc.conf'),  // enabled => no
+    sFrom('db_odbcdsn', 'db_odbcname', 'dsn', 'res_odbc.conf'),  // dsn => asterisk
+    sFrom('db_odbcusername', 'db_odbcname', 'username', 'res_odbc.conf'),  // ;username => myuser
+    bFrom('db_odbcpreconnect', 'db_odbcname', 'pre-connect', 'res_odbc.conf'),  // pre-connect => yes
+    nFrom('db_odbcmaxconn', 'db_odbcname', 'max_connections', 'res_odbc.conf'),  // ;max_connections => 20
+    nFrom('db_odbcconntimeout', 'db_odbcname', 'connect_timeout', 'res_odbc.conf'),  // ;connect_timeout => 10
+    nFrom('db_odbcnegcache', 'db_odbcname', 'negative_connection_cache', 'res_odbc.conf'),  // ;negative_connection_cache => 300
+    bFrom('db_odbclogging', 'db_odbcname', 'logging', 'res_odbc.conf'),  // ;logging => yes
+    nFrom('db_odbcslowquery', 'db_odbcname', 'slow_query_limit', 'res_odbc.conf'),  // ;slow_query_limit => 5000
+    bFrom('db_odbcbackslash', 'db_odbcname', 'backslash_is_escape', 'res_odbc.conf'),  // ;backslash_is_escape => yes
+    sFrom('db_odbcisolation', 'db_odbcname', 'isolation', 'res_odbc.conf'),  // ;isolation => repeatable_read
+    sFrom('db_odbccachetype', 'db_odbcname', 'cache_type', 'res_odbc.conf'),  // ;cache_type => roundrobin
+  ],
 };
 
 function bindingsFor(screen: string): ReadonlyArray<ControlBinding> {
@@ -1181,5 +1248,25 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     's_treqclientcert', 's_tsave',
     's_stir', 's_level', 's_verifyin', 's_failaction',
     's_privkey', 's_certurl', 's_loadsyscerts', 's_cafile', 's_capath', 's_stirsave',
+  ],
+  /* res_odbc.conf, extconfig.conf, sorcery.conf, res_pgsql.conf -- see the long comment
+   * above CONTROL_BINDINGS.dbrealtime for which of these are bound and why the rest
+   * (every one of the db_family and db_sorcery controls, both picker names, both
+   * passwords, both password-status readouts, and every Load/Save/Remove action) are
+   * not: pickers and write-only fields carry no key of their own, and the family and
+   * sorcery mapping editors are a hand-rolled read/write pair over
+   * control-plane/realtime-mappings-model.ts rather than a single-key binding, the same
+   * way the security screen's ACL rules are. */
+  dbrealtime: [
+    'db_pghost', 'db_pgport', 'db_pgdbname', 'db_pguser', 'db_pgpassword', 'db_pgpasswordstatus',
+    'db_pgsocket', 'db_pgappname', 'db_pgrequirements', 'db_pgorderby', 'db_pgsave',
+    'db_odbcname', 'db_odbcload', 'db_odbcenabled', 'db_odbcdsn', 'db_odbcusername',
+    'db_odbcpassword', 'db_odbcpasswordstatus', 'db_odbcpreconnect', 'db_odbcmaxconn',
+    'db_odbcconntimeout', 'db_odbcnegcache', 'db_odbclogging', 'db_odbcslowquery',
+    'db_odbcbackslash', 'db_odbcisolation', 'db_odbccachetype', 'db_odbcsave',
+    'db_family', 'db_mappingload', 'db_driver', 'db_database', 'db_table', 'db_priority',
+    'db_mappingsave', 'db_mappingremove',
+    'db_sorcerymodule', 'db_sorceryload', 'db_sorceryobjtype', 'db_sorcerywizard',
+    'db_sorceryconfig', 'db_sorcerysave', 'db_sorceryremove',
   ],
 };
