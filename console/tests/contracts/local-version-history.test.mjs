@@ -59,10 +59,45 @@ test('list, restore, actionCounts, and prune are real async methods', () => {
   }
 });
 
-test('there is no diff-between-two-points method and no user-applied label concept -- real, named gaps', () => {
-  const src = read(HISTORY);
-  assert.doesNotMatch(src, /\basync diff\(/u, 'an async diff(...) method now exists -- the diff gap may have been closed');
-  assert.doesNotMatch(src, /\blabel\(|applyLabel|setLabel/u, 'a label concept now exists -- the labelling gap may have been closed');
+test('the diff method exists and is reachable, and the labelling gap is still open', () => {
+  /* This replaced a pin asserting that BOTH gaps were open. Its own failure message said
+   * the diff gap may have been closed, and it had been: a later lane added a diff method
+   * and a two-point comparison, each shaped against real version-control output. The pin
+   * was doing its job by firing.
+   *
+   * It is inverted rather than deleted, because deleting it would leave nothing watching a
+   * method the History screen now depends on. The half that is still honestly missing keeps
+   * its original pin, so this goes red in either direction: if the diff disappears, or if
+   * labelling arrives and this test stops telling the truth.
+   *
+   * Deliberately no regular expressions. Matching whole trimmed lines cannot be satisfied
+   * by a renamed symbol that contains the old name, nor by a commented-out declaration,
+   * and it survives a checkout that rewrites line endings. */
+  /* Split on a newline built from its character code: a backslash escape does not
+   * reliably survive being written through a shell into a source file, and the failure
+   * is silent -- it produced a real line break inside a string literal here. */
+  const NEWLINE = String.fromCharCode(10);
+  const declarations = read(HISTORY).split(NEWLINE).map((line) => line.trim());
+  assert.ok(declarations.length > 0, 'the history module read back empty');
+  assert.ok(
+    declarations.includes('async diff(commitId: string): Promise<HistoryDiff> {'),
+    'the diff-between-two-points method is gone; the History screen reads it',
+  );
+  assert.ok(
+    declarations.some((line) => line.startsWith('async compareFiles(')),
+    'compareFiles is gone; it is what makes a two-point comparison possible',
+  );
+  assert.ok(
+    !declarations.some((line) => {
+      /* Strip a leading async before matching. Checking the bare name alone let a method
+       * declared as an async one walk straight past this, which a deliberate break caught
+       * before it shipped -- the exact reason each guard is broken on its own. */
+      const declaration = line.startsWith('async ') ? line.slice(6) : line;
+      return ['label(', 'applyLabel(', 'setLabel(']
+        .some((name) => declaration.startsWith(name));
+    }),
+    'a label concept now exists -- the labelling gap has closed and this test should say so',
+  );
 });
 
 test('history.list and history.restore are real dispatch actions', () => {

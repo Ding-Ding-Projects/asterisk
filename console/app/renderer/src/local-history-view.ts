@@ -14,16 +14,14 @@
  * of anything guessed.
  */
 
-/** Mirrors `control-plane/local-history.ts`'s `HistoryCommit` without importing the
- *  control-plane module into the renderer bundle -- the same boundary `readings.ts`
- *  already keeps for every other reading shape. */
-export interface HistoryCommit {
-  id: string;
-  timestamp: string;
-  action: string;
-  subject: string;
-  message: string;
-}
+/** Re-exported from control-plane/local-history.ts rather than mirrored. A copy was
+ *  written here first, to keep the control-plane module out of the renderer bundle -- but
+ *  an import-type declaration is erased at build time and never reaches the bundle at all,
+ *  which is exactly how local-history-screen.ts already crosses the same boundary. The copy
+ *  had loosened action to a plain string, so integrating the two lanes produced two
+ *  incompatible HistoryCommit types and a duplicate identifier. One type, one authority. */
+export type { HistoryCommit } from '../../../control-plane/local-history';
+import type { HistoryCommit } from '../../../control-plane/local-history';
 
 export interface HistoryDiffLine {
   text: string;
