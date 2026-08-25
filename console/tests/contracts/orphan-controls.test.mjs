@@ -29,8 +29,12 @@ const app = read('../../app/renderer/src/App.tsx') + read('../../app/renderer/sr
  *
  * Lowered to 343 by the http.conf and features.conf bindings, then to 318 by the IAX peers
  * screen and the six partner-request settings, then to 279 by seven appearance controls
- * reaching the live preview and by the readout that names them. Each time this check is
- * what forced it.
+ * reaching the live preview and by the readout that names them, then to 258 by the
+ * appearance/notifications/history app-settings pass: p_scale, p_motion and p_mono applied
+ * live to the document root, p_start and p_tour driving real launch behaviour, nt_toast and
+ * nt_sound gating and augmenting every toast, and every remaining control in those three
+ * groups persisted through a relaunch via CONSOLE_SETTINGS even where nothing yet acts on
+ * the value. Each time this check is what forced it.
  *
  * Originally 364, and lowered by the twenty-one http.conf and features.conf bindings that
  * brought two whole screens into the table for the first time. The check below is what forced
@@ -40,7 +44,7 @@ const app = read('../../app/renderer/src/App.tsx') + read('../../app/renderer/sr
  * It only ever goes down. If a change makes it rise, that change is adding a control nobody
  * reads, and the honest options are to wire it or to leave it out.
  */
-const ORPHAN_CEILING = 279;
+const ORPHAN_CEILING = 258;
 const TOTAL_CONTROLS = 599;
 
 function classify() {
