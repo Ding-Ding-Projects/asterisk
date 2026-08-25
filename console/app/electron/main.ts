@@ -12,6 +12,7 @@ import {
   readCurrentIdentity, fetchReleases, fetchReleaseIdentity, fetchShaSumsText, downloadAsset,
   discardDownload, sweepStaleDownloads, launchInstaller, releaseIdentityDigest,
 } from './updater-runtime.js';
+import { MAX_DISPLAY_NAME_LENGTH } from '../renderer/src/display-name.js';
 
 let mainWindow: BrowserWindow | null = null;
 const dispatcher = createControlPlaneDispatcher({
@@ -180,6 +181,17 @@ function createWindow(): void {
 ipcMain.on('window:minimize', () => mainWindow?.minimize());
 ipcMain.on('window:toggle-maximize', () => mainWindow?.isMaximized() ? mainWindow.unmaximize() : mainWindow?.maximize());
 ipcMain.on('window:close', () => mainWindow?.close());
+/* The native OS window title (taskbar, Alt+Tab) is the one identity-adjacent surface a
+ * rename cannot reach by re-rendering the page, because it lives here rather than in
+ * anything the renderer draws. The renderer already validates the name against
+ * `validateDisplayName` before it is ever stored; this bound is a second, independent
+ * check on the value actually crossing the process boundary, not a trust of the first. */
+ipcMain.on('window:set-title', (_event, title: unknown) => {
+  if (typeof title !== 'string') return;
+  const trimmed = title.trim();
+  if (!trimmed || trimmed.length > MAX_DISPLAY_NAME_LENGTH) return;
+  mainWindow?.setTitle(trimmed);
+});
 ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequest) => controlPlaneRequest(request));
 
 /* Forwarded so the renderer's narrator can duck under a real screen reader rather than

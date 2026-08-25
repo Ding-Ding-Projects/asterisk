@@ -28,8 +28,9 @@ import {
 } from './text-boundary';
 import { CANTONESE } from './locale-yue';
 import {
-  IDENTITY, displayName, resetDisplayName, setDisplayName,
+  IDENTITY, displayName, nameFor, renamedConfirmation, resetConfirmation, resetDisplayName, setDisplayName,
 } from './display-name';
+import { withTitleBarName } from './title-bar-name';
 import { setEmojisEnabled } from './dialog-emojis';
 import {
   classifyDialogKind, copyLanguageFor, styledDialog, styledToastText, type MessageStorage,
@@ -1425,8 +1426,13 @@ What you can do: ${offered}.` : ''}`);
 
   render(): ReactNode {
     /* Wrapping the compiled shell rather than replacing it: the palette is the only thing
-     * added, and it sits above everything because it is rendered after. */
-    return h('div', { class: 'app-root' }, super.render(), this.paletteOverlay());
+     * added, and it sits above everything because it is rendered after.
+     *
+     * The compiled title bar text has no bound value to override through renderVals(),
+     * so the chosen name is applied to the already-built tree instead -- see
+     * title-bar-name.ts for why, and for why that is safer than editing the design. */
+    const shell = withTitleBarName(super.render(), nameFor('titleBar', this.durableStorage.storage));
+    return h('div', { class: 'app-root' }, shell, this.paletteOverlay());
   }
 
   /**
@@ -1983,10 +1989,25 @@ What you can do: ${offered}.` : ''}`);
    *  had chosen it, so the difference between default and chosen stays visible. */
   private restoreDisplayName(): void {
     const current = displayName(this.durableStorage.storage);
+    this.syncWindowTitle();
     if (current === IDENTITY.productName) return;
     this.setState((prior: { values?: Record<string, unknown> }) => ({
       values: { ...(prior.values ?? {}), id_name: current },
     }) as never);
+  }
+
+  /**
+   * Pushes the chosen name to the native OS window title -- the one surface a rename
+   * cannot reach by re-rendering, because it lives in the main process rather than in
+   * anything React draws. Every other surface (the in-app title bar, the About heading,
+   * the confirmation toast) recomputes from storage on its own next render; this is the
+   * one that has to be told.
+   *
+   * Safe to call before the bridge exists (a test, or a host with no preload): it is
+   * simply a no-op then, exactly like every other `this.bridge()?.` call in this file.
+   */
+  private syncWindowTitle(): void {
+    this.bridge()?.window.setTitle(nameFor('windowTitle', this.durableStorage.storage));
   }
 
   // ---------------------------------------------------------------- language mode
@@ -2014,10 +2035,25 @@ What you can do: ${offered}.` : ''}`);
         this.fire('That name will not work', problems[0].message);
         return;
       }
+      /* baseSetVal is called explicitly (and skipped at the bottom of this method,
+       * below) rather than left to the shared fall-through: it records the change in
+       * history and shows its own generic "<label> set to <value>" toast, and that
+       * toast would otherwise win the race and silently replace the one below with a
+       * less useful message, since both land in the same synchronous state update. */
+      this.baseSetVal(control, value);
+      /* The title bar and the About heading pick the new name up on their own next
+       * render (both read straight from storage), but the native window title lives
+       * in the main process and has to be told directly. */
+      this.syncWindowTitle();
+      this.toast(renamedConfirmation(nameFor('notification', this.durableStorage.storage)));
+      return;
     }
     if (control?.id === 'id_name_reset' && value === true) {
       resetDisplayName(this.durableStorage.storage);
-      this.toast(`Name restored to ${IDENTITY.productName}`);
+      this.baseSetVal(control, value);
+      this.syncWindowTitle();
+      this.toast(resetConfirmation());
+      return;
     }
     /* The five attention modes share one prefix and one handler, so adding a sixth is
      * a registry entry rather than another branch here. */
@@ -3493,6 +3529,11 @@ It is shown once. The phone needs it to register.`);
       connUptime: this.target.detail,
       openConnection: () => this.showInfo('Connection', BOUNDARY, BOUNDARY_PLAIN, '38%', '70px'),
       screenSub: note ? `${values.screenSub as string}\n\n${note}` : values.screenSub,
+      /* The compiled About screen is generic policy content with no app-identity
+       * heading of its own. Its title is a bound value, so unlike the title bar this
+       * needs no tree surgery -- just naming the console in the heading it already has,
+       * the same way "About <app>" reads everywhere else. */
+      screenTitle: screen === 'about' ? `About ${nameFor('about', this.durableStorage.storage)}` : values.screenTitle,
 
       // Dashboard tiles, live rows and health bars come only from observed readings.
       stats: dashboardStats(readings),
@@ -3913,6 +3954,6 @@ It is shown once. The phone needs it to register.`);
 
 interface DesktopBridge {
   platform: string;
-  window: { minimize: () => void; toggleMaximize: () => void; close: () => void };
+  window: { minimize: () => void; toggleMaximize: () => void; close: () => void; setTitle: (title: string) => void };
   controlPlane: { request: (request: Record<string, unknown>) => Promise<ControlPlaneResponse | undefined> };
 }
