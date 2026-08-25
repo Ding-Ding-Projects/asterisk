@@ -2928,6 +2928,8 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'cel-odbc-load') { this.onLoadCelOdbc(); return; }
     if (action === 'cel-odbc-save') { void this.onSaveCelOdbc(); return; }
     if (action === 'cel-pgsql-save') { void this.onSaveCelPgsql(); return; }
+    if (action === 'fax-save') { void this.onSaveFax(); return; }
+    if (action === 'fax-udptl-save') { void this.onSaveFaxUdptl(); return; }
   };
 
   // ---------------------------------------------------------------- server add / remove
@@ -3695,6 +3697,31 @@ It is shown once. The phone needs it to register.`);
       }
     }
 
+    /* The Fax screen's six fx_udptl* fields live in udptl.conf -- the transport T.38
+     * rides on -- not in res_fax.conf, which is this screen's own declared `file` and
+     * already covered by the generic per-screen block above. Same shape as security's
+     * stir_shaken.conf read just above: its own fetch, its own seeded-once guard, merged
+     * into `values` through readControlValues's `elsewhere` map once it lands. */
+    if (screen === 'fax') {
+      if ((!this.configs.udptl || this.configs.udptl.state === 'unavailable')
+          && !this.extraConfigPending.has('udptl.conf') && mayStartRead('config:fax-udptl')) {
+        this.extraConfigPending.add('udptl.conf');
+        const resource = resourceForFile('udptl.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('udptl.conf');
+        this.configs.udptl = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if (this.configs.udptl?.state === 'read' && !this.seeded.has('fax-udptl')) {
+        const state = this.state as { values: Record<string, unknown> };
+        const bound = readControlValues('fax', [], { 'udptl.conf': this.configs.udptl.value ?? [] });
+        if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
+        this.seeded.add('fax-udptl');
+      }
+    }
+
     if (!isReadable(screen)) return;
     const existing = this.readings[screen];
     const hasUnavailableReading = existing && Object.values(existing).some((reading) => reading?.result.state === 'unavailable');
@@ -4120,6 +4147,54 @@ It is shown once. The phone needs it to register.`);
       'stir_shaken.conf updated on the target.',
       'STIR/SHAKEN settings saved',
       () => { delete this.configs.stirShaken; this.seeded.delete('security-stir'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Fax screen
+
+  /** The bound control ids the Fax engine group's own Save writes -- named explicitly,
+   *  the same reason the Security screen's TLS and STIR/SHAKEN lists are: unlike
+   *  `httpd`, `CONTROL_BINDINGS.fax` spans two files (res_fax.conf and udptl.conf), so
+   *  passing the whole `values` state to `applyControlValues` would happily write
+   *  udptl.conf's own keys into res_fax.conf's `[general]` section -- `applyControlValues`
+   *  has no notion of a binding's `file` at all, only `readControlValues` does. */
+  private static readonly FAX_CONTROLS = [
+    'fx_maxrate', 'fx_minrate', 'fx_statusevents', 'fx_modems', 'fx_ecm', 'fx_t38timeout',
+  ] as const;
+
+  private static readonly FAX_UDPTL_CONTROLS = [
+    'fx_udptlstart', 'fx_udptlend', 'fx_udptlchecksums', 'fx_udptlfecentries', 'fx_udptlfecspan', 'fx_udptleven',
+  ] as const;
+
+  onSaveFax = async (): Promise<void> => {
+    const current = this.configs.fax?.state === 'read' ? this.configs.fax.value : undefined;
+    if (!current) { this.fire('Not written', 'res_fax.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.FAX_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('fax', current, changes);
+    await this.writeConfigResource(
+      this.configs.fax?.resource ?? (resourceForFile('res_fax.conf') as string),
+      next,
+      'res_fax.conf updated on the target.',
+      'Fax engine settings saved',
+      () => { delete this.configs.fax; this.seeded.delete('fax'); },
+    );
+  };
+
+  onSaveFaxUdptl = async (): Promise<void> => {
+    const current = this.configs.udptl?.state === 'read' ? this.configs.udptl.value : undefined;
+    if (!current) { this.fire('Not written', 'udptl.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.FAX_UDPTL_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('fax', current, changes);
+    await this.writeConfigResource(
+      this.configs.udptl?.resource ?? (resourceForFile('udptl.conf') as string),
+      next,
+      'udptl.conf updated on the target.',
+      'T.38/UDPTL transport settings saved',
+      () => { delete this.configs.udptl; this.seeded.delete('fax-udptl'); },
     );
   };
 

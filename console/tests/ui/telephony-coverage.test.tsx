@@ -88,10 +88,20 @@ function deliveredByAction(id: string): boolean {
  * was ever actually reachable, so their count does not move even though their behaviour
  * just went from silently inert to genuinely live.
  *
+ * Then 222: the new Fax screen, fourteen controls -- twelve bound in CONTROL_BINDINGS.fax
+ * (six res_fax.conf, six udptl.conf) plus fx_save/fx_udptlsave, two action buttons
+ * recognised via `deliveredByAction` the same way as httpd-save above, each writing
+ * through its own `onSaveFax`/`onSaveFaxUdptl`. All fourteen work.
+ *
+ * Merged: both lanes moved the floor independently from 208 (228 and 222 respectively),
+ * so the reconciled number is neither -- it is 208 + 20 + 14, confirmed the same way as
+ * control-keys.test.tsx's controlCount: a deliberately wrong value run through this test,
+ * and the real figure it reported read back, rather than adding the two deltas by hand.
+ *
  * It may rise freely and may not fall.
  */
-const WORKING_FLOOR = 228;
-const TELEPHONY_TOTAL = 228;
+const WORKING_FLOOR = 242;
+const TELEPHONY_TOTAL = 242;
 
 function measure() {
   const files = readdirSync(srcDir).filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'));
@@ -131,13 +141,13 @@ function measure() {
 }
 
 test('an action-delivered control is recognised even though its id never appears as a quoted literal', () => {
-  for (const id of ['s_tload', 's_tsave', 's_stirsave', 'ht_save']) {
+  for (const id of ['s_tload', 's_tsave', 's_stirsave', 'ht_save', 'fx_save', 'fx_udptlsave']) {
     assert.ok(deliveredByAction(id), `${id} should be recognised via its design-declared action`);
   }
   // These really do write for real -- their ACTION names, not their control ids, are the
   // quoted literals App.tsx actually contains.
   const app = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'app', 'renderer', 'src', 'App.tsx'), 'utf8');
-  for (const action of ['security-transport-load', 'security-transport-save', 'security-stir-save', 'httpd-save']) {
+  for (const action of ['security-transport-load', 'security-transport-save', 'security-stir-save', 'httpd-save', 'fax-save', 'fax-udptl-save']) {
     assert.ok(app.includes(`'${action}'`), `onControlAction should handle '${action}'`);
   }
   assert.ok(!deliveredByAction('s_transport'), 's_transport has no action -- it is a plain text picker, not a one-shot button');

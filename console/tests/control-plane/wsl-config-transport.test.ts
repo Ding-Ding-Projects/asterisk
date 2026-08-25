@@ -32,6 +32,14 @@ const build = (script: (request: CommandRequest) => Partial<CommandResult>) => {
   return { executor, transport };
 };
 
+/**
+ * The transport reads a file with base64, not cat, so that the executor own redaction
+ * cannot rewrite the bytes on their way to being written back. A fake that still answered
+ * cat would be testing a command the transport no longer runs, so these fakes encode the
+ * same way the real one does.
+ */
+const encoded = (text: string) => Buffer.from(text, "utf8").toString("base64");
+
 const SAMPLE = `; a comment
 [general]
 context = default
@@ -66,10 +74,12 @@ test('a resource outside the allowlist is refused by name', () => {
 });
 
 test('read fetches the real file from the named distribution', async () => {
-  const { executor, transport } = build((r) => (verb(r) === 'cat' ? { stdout: SAMPLE } : {}));
+  const { executor, transport } = build((r) => (verb(r) === 'base64' ? { stdout: encoded(SAMPLE) } : {}));
   const value = await transport.read(PJSIP);
   assert.equal(value.length, 2);
-  assert.deepEqual([...executor.calls[0].args], ['-d', 'ding-pbx-console', '--', 'cat', '/etc/asterisk/pjsip.conf']);
+  /* base64 rather than cat, deliberately: the executor redacts stdout, and a redacted
+   * read written back replaces a real credential with the word that hides it. */
+  assert.deepEqual([...executor.calls[0].args], ['-d', 'ding-pbx-console', '--', 'base64', '-w', '0', '/etc/asterisk/pjsip.conf']);
 });
 
 test('read refuses a resource outside the allowlist before running anything', async () => {
@@ -88,7 +98,11 @@ test('backup is timestamped so a second failure cannot destroy the first backup'
 test('staged content travels on standard input, never as an argument', async () => {
   const { executor, transport } = build(() => ({}));
   await transport.stage(PJSIP, parseConfig(SAMPLE));
-  const call = executor.calls[0];
+  /* Find the write by its verb rather than by position. The transport reads the file
+   * before rendering over it, so the write is no longer the first call, and pinning an
+   * index would make this test about ordering instead of about what it is checking. */
+  const call = executor.calls.find((c) => c.args.includes('tee'));
+  assert.ok(call, 'nothing was written through tee');
   assert.equal(call.input?.includes('context = default'), true);
   for (const arg of call.args) assert.ok(!arg.includes('context = default'), 'content leaked into an argument');
 });
@@ -120,7 +134,7 @@ test('a failing command surfaces the target\'s own error rather than a generic o
 });
 
 test('every command uses the allowlisted executable with no shell metacharacters', async () => {
-  const { executor, transport } = build((r) => (verb(r) === 'cat' ? { stdout: SAMPLE } : {}));
+  const { executor, transport } = build((r) => (verb(r) === 'base64' ? { stdout: encoded(SAMPLE) } : {}));
   const staged = await transport.stage(PJSIP, parseConfig(SAMPLE));
   await transport.validate(staged);
   await transport.apply(staged);
@@ -133,9 +147,16 @@ test('every command uses the allowlisted executable with no shell metacharacters
 });
 
 test('the planner and transaction run end to end against the transport', async () => {
-  let current = SAMPLE;
+  /* A small in-memory filesystem rather than a single string. The transaction writes a
+   * staged file and then reads it back, so a fake that answers every read with the
+   * original cannot tell a successful apply from a failed one -- it would report a
+   * mismatch for a write that worked perfectly. */
+  const files = new Map<string, string>([[PJSIP, SAMPLE]]);
   const { transport } = build((r) => {
-    if (verb(r) === 'cat') return { stdout: r.args[4] === '/etc/asterisk/pjsip.conf' ? current : r.input ?? current };
+    if (verb(r) === 'base64') return { stdout: encoded(files.get(r.args[6]) ?? '') };
+    if (verb(r) === 'tee') { files.set(r.args[4], r.input ?? ''); return { stdout: r.input ?? '' }; }
+    if (verb(r) === 'mv') { files.set(r.args[5], files.get(r.args[4]) ?? ''); return {}; }
+    if (verb(r) === 'cp') { files.set(r.args[6], files.get(r.args[5]) ?? ''); return {}; }
     return {};
   });
 
@@ -153,10 +174,14 @@ test('the planner and transaction run end to end against the transport', async (
 
   /* Once applied, a read must answer with the new content, or the transaction's own
    * post-read verification would be comparing against the old file. */
+  const applied = new Map<string, string>([[PJSIP, SAMPLE]]);
   const applying = new WslConfigTransport({
     executor: new FakeExecutor((r) => {
-      if (verb(r) === 'tee') { current = r.input ?? current; return {}; }
-      if (verb(r) === 'cat') return { stdout: current };
+      /* Its own filesystem, so the post-read sees what the apply actually wrote. */
+      if (verb(r) === 'tee') { applied.set(r.args[4], r.input ?? ''); return {}; }
+      if (verb(r) === 'mv') { applied.set(r.args[5], applied.get(r.args[4]) ?? ''); return {}; }
+      if (verb(r) === 'cp') { applied.set(r.args[6], applied.get(r.args[5]) ?? ''); return {}; }
+      if (verb(r) === 'base64') return { stdout: encoded(applied.get(r.args[6]) ?? '') };
       return {};
     }),
     distribution: 'ding-pbx-console',
@@ -179,7 +204,7 @@ test('a post-read mismatch rolls back rather than reporting success', async () =
   /* The target keeps answering with the old content, which is exactly the case the
    * post-read exists to catch: the apply reported success and nothing changed. */
   const stubborn = new WslConfigTransport({
-    executor: new FakeExecutor((r) => (verb(r) === 'cat' ? { stdout: '[general]\npersistentmembers = no\n' } : {})),
+    executor: new FakeExecutor((r) => (verb(r) === 'base64' ? { stdout: encoded('[general]\npersistentmembers = no\n') } : {})),
     distribution: 'ding-pbx-console',
     now: () => new Date('2026-08-23T01:02:03.000Z'),
   });

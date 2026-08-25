@@ -39,7 +39,7 @@ test('every bound screen exists in the generated SCREENS object', () => {
 test('total bound-screen and control counts are what this pass produced', () => {
   const screenCount = Object.keys(CONTROL_BINDINGS).length;
   const controlCount = allBindings().length;
-  assert.equal(screenCount, 16);
+  assert.equal(screenCount, 17);
   // 82 from the first pass, plus a_origin (ami/allowed_origins) and s_failaction
   // (security/failure_action) found on the second look, plus 21 on 2026-08-24: the eight
   // http.conf keys and the thirteen features.conf ones, which brought two whole screens
@@ -90,18 +90,32 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // sixteen carries an explicit `file: 'res_parking.conf'` override, the same way the four
   // stir_shaken.conf bindings on the security screen do, because the feature-codes screen's
   // own primary resource stays features.conf.
-  // And 191 once the CDR/CEL screen's own broken read got fixed and CEL's two database
-  // backends got real fields: 12 new bindings, all on the 'cdr' screen, none of them
-  // replacing what was already there. l_enable/l_events/l_apps/l_date do not recount --
-  // they moved from a synthetic 'cel' section (a workaround for the screen's own `file`
-  // once being the non-existent combined resource "cdr.conf · cel.conf", which meant
-  // nothing on this screen had ever actually been read from a real target) to cel.conf's
-  // real [general] section, same four controls, same count. The twelve new ones are
-  // cel_odbc.conf's show_user_defined plus its per-context connection/table (a
-  // sectionFrom pair, the same shape the security screen's PJSIP-transport TLS fields
-  // use) and cel_pgsql.conf's whole [global] section bar password, which stays
-  // deliberately unbound -- see the unmapped-control note on CONTROL_BINDINGS.cdr.
-  assert.equal(controlCount, 191);
+  // Then two lanes moved it from 179 independently, both landing on 191 by coincidence
+  // of arithmetic (12 new bindings each) rather than by touching the same controls --
+  // the CDR/CEL screen's own broken read got fixed, with CEL getting two real database
+  // backends, and a brand new Fax screen arrived bound end to end. Both merge into 203
+  // (179 + 12 + 12), confirmed by running this test with a deliberately wrong number and
+  // reading back the real one it reported, rather than adding the two deltas by hand.
+  //
+  // The CDR/CEL twelve: cel_odbc.conf's show_user_defined plus its per-context
+  // connection/table (a sectionFrom pair, the same shape the security screen's
+  // PJSIP-transport TLS fields use) and cel_pgsql.conf's whole [global] section bar
+  // password, which stays deliberately unbound -- see the unmapped-control note on
+  // CONTROL_BINDINGS.cdr. l_enable/l_events/l_apps/l_date do not recount: they moved
+  // from a synthetic 'cel' section (a workaround for the screen's own `file` once being
+  // the non-existent combined resource "cdr.conf · cel.conf", which meant nothing on
+  // this screen had ever actually been read from a real target) to cel.conf's real
+  // [general] section, same four controls, same count.
+  //
+  // The Fax twelve: six from res_fax.conf.sample's [general] (the screen's own primary
+  // file, no override needed) and six from udptl.conf.sample's own [general] -- the
+  // transport T.38 rides on -- each carrying an explicit `file: 'udptl.conf'` override
+  // for the same reason the stir_shaken.conf and res_parking.conf ones above do: the
+  // screen's own generic read only ever supplies its declared `file`, so a key living
+  // anywhere else has to say so or it is read from the wrong document. A dedicated
+  // App.tsx fetch (mirroring `configs.stirShaken`) supplies udptl.conf's own ConfigValue
+  // through `readControlValues`'s `elsewhere` map.
+  assert.equal(controlCount, 203);
   // And 163 with the TLS and certificate-management lane: ten PJSIP-transport TLS
   // fields (protocol, cert_file, priv_key_file, ca_list_file, ca_list_path, cipher,
   // method, verify_client, verify_server, require_client_cert), each bound through
