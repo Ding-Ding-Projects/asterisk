@@ -17,7 +17,16 @@ let mainWindow: BrowserWindow | null = null;
 const dispatcher = createControlPlaneDispatcher({
   /* Straight onto the same channel the updater already uses: one send, no new
    * privilege, and the renderer decides what to do with it. */
-  onProvisionStep: (step) => mainWindow?.webContents.send('provision:step', step), userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false })
+  onProvisionStep: (step) => mainWindow?.webContents.send('provision:step', step), userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false,
+  /* `allowedSettingsSourceHosts` is deliberately left unset here rather than passed as
+   * an empty array: an unset value tells the dispatcher to load whatever is persisted
+   * under `console.settingsSourceAllowlist` in THIS installation's own settings.json --
+   * the exact file the settings-sources screen's allowlist controls write to through
+   * `settings.write` -- instead of hard-coding an empty, permanently-refuses-everything
+   * list at this call site the way this used to. See `createControlPlaneDispatcher`'s own
+   * comment beside its settings-source fetcher for the full account of why that used to
+   * be silently empty forever. */
+})
 const { controlPlaneRequest } = dispatcher;
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 let updateCheckInFlight: Promise<void> | undefined;

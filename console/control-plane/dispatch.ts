@@ -13,6 +13,7 @@ import { createHash } from 'node:crypto';
 import { WslProvisioning, MANAGED_DISTRIBUTION } from './wsl-provisioning.js';
 import type { ProvisionStep } from './wsl-provisioning.js';
 import { SettingsSourceFetcher } from './settings-source-fetcher.js';
+import { SETTINGS_SOURCE_ALLOWLIST_KEY, parseAllowlist } from './settings-source-allowlist.js';
 import { AsteriskService } from './asterisk-service.js';
 import {
   parseVoicemailUsers, parseVoicemailZones, parseConfbridgeList, parseMohClasses, parseCodecs,
@@ -49,7 +50,11 @@ export interface ControlPlaneDispatcherOptions {
   /** True when running under the hosted HTTP server rather than the desktop app. Gates
    *  the WSL-only actions above with an honest, named refusal instead of a stack trace. */
   hosted: boolean;
-  /** Hosts an external settings source may reach. Empty refuses every source. */
+  /** Hosts an external settings source may reach. Given explicitly, used exactly as
+   *  given (an empty array here still refuses every source). Omitted, the fetcher falls
+   *  back to whatever is persisted under `console.settingsSourceAllowlist` in this
+   *  installation's own `settings.json` -- the list the settings-sources screen's
+   *  allowlist controls write to. Either way an empty result refuses everything. */
   allowedSettingsSourceHosts?: readonly string[];
   /** Reads a settings-source token from the OS credential vault. */
   readSettingsSourceToken?: (credentialKey: string) => Promise<string | undefined>;
@@ -63,11 +68,72 @@ export interface ControlPlaneDispatcherOptions {
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
   const { userDataPath, resourcesPath, hosted, onProvisionStep } = options;
-  /* Built once. The allowlist starts empty, which refuses every source rather than
-   * permitting every source -- a fetcher configured with nothing is not a fetcher
-   * configured with no restrictions, and that is the safe direction for a default. */
+
+  /**
+   * The durable settings store backing every renderer control that must survive a
+   * relaunch (the appearance editor, the personal-vocabulary cache, the settings-source
+   * allowlist below, and any future caller) -- see `control-plane/settings-store.ts`.
+   * Written atomically: a plain `writeFileSync` here would leave a truncated
+   * `settings.json` behind if the process were killed mid-write, or fail outright on
+   * Windows when Defender/the indexer/a sync client has the destination momentarily
+   * open. Declared here, ahead of the settings-source fetcher below, because the
+   * fetcher's default allowlist is read out of this same registry -- see there for why.
+   */
+  class FileSettingsStore implements SettingsSnapshotStore {
+    constructor(private readonly path: string) {}
+    read(): Record<string, string> | undefined {
+      if (!existsSync(this.path)) return undefined;
+      try {
+        const parsed = JSON.parse(readFileSync(this.path, 'utf8')) as unknown;
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
+        const out: Record<string, string> = {};
+        for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+          if (typeof value === 'string') out[key] = value;
+        }
+        return out;
+      } catch {
+        // Corrupt or truncated JSON fails closed to "nothing persisted" -- every
+        // renderer default applies -- rather than throwing at startup.
+        return undefined;
+      }
+    }
+    write(snapshot: Record<string, string>): void {
+      atomicWriteFileSync(this.path, JSON.stringify(snapshot, null, 2));
+    }
+  }
+
+  let cachedSettingsRegistry: SettingsRegistry | undefined;
+  function settingsRegistry(): SettingsRegistry {
+    if (!cachedSettingsRegistry) {
+      const path = join(userDataPath, 'settings.json');
+      cachedSettingsRegistry = new SettingsRegistry(new FileSettingsStore(path));
+    }
+    return cachedSettingsRegistry;
+  }
+
+  /*
+   * Built once, at construction. The allowlist an explicit caller supplies is used
+   * exactly as given -- that is how the tests below pin a fixed set of hosts, and how a
+   * hosted server could supply its own without touching a settings file at all. Absent
+   * that, the default is read out of the SAME persisted settings registry the renderer's
+   * allowlist-management screen writes to (`console.settingsSourceAllowlist`, via
+   * `settings.write`) -- this is the fix for the defect this file used to ship with: the
+   * allowlist option was never threaded from `app/electron/main.ts` at all, so in every
+   * real install the allowlist was permanently empty and every external settings source
+   * was refused forever, however many hosts a person believed they had allowed.
+   *
+   * If NEITHER supplies anything, this still resolves to an empty list, which still
+   * refuses every source rather than permitting every source -- a fetcher configured
+   * with nothing is not a fetcher configured with no restrictions, and that stays the
+   * safe direction for the default. What changed is that a person now has a real way to
+   * widen it on purpose, and that widening actually reaches this fetcher.
+   *
+   * Read once, at construction, like every other consumer of `settingsRegistry()` --
+   * a host added after this process started takes effect on the next restart, which the
+   * allowlist-management screen says plainly rather than implying the change is live.
+   */
   const settingsSourceFetcher = new SettingsSourceFetcher({
-    allowedHosts: options.allowedSettingsSourceHosts ?? [],
+    allowedHosts: options.allowedSettingsSourceHosts ?? parseAllowlist(settingsRegistry().get(SETTINGS_SOURCE_ALLOWLIST_KEY)),
     readToken: options.readSettingsSourceToken,
   });
   const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker'] });
@@ -245,45 +311,9 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     return cachedServerInventory;
   }
 
-  /**
-   * The durable settings store backing every renderer control that must survive a
-   * relaunch (the appearance editor, the personal-vocabulary cache, and any future
-   * caller) -- see `control-plane/settings-store.ts`. Written atomically: a plain
-   * `writeFileSync` here would leave a truncated `settings.json` behind if the process
-   * were killed mid-write, or fail outright on Windows when Defender/the indexer/a
-   * sync client has the destination momentarily open.
-   */
-  class FileSettingsStore implements SettingsSnapshotStore {
-    constructor(private readonly path: string) {}
-    read(): Record<string, string> | undefined {
-      if (!existsSync(this.path)) return undefined;
-      try {
-        const parsed = JSON.parse(readFileSync(this.path, 'utf8')) as unknown;
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
-        const out: Record<string, string> = {};
-        for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
-          if (typeof value === 'string') out[key] = value;
-        }
-        return out;
-      } catch {
-        // Corrupt or truncated JSON fails closed to "nothing persisted" -- every
-        // renderer default applies -- rather than throwing at startup.
-        return undefined;
-      }
-    }
-    write(snapshot: Record<string, string>): void {
-      atomicWriteFileSync(this.path, JSON.stringify(snapshot, null, 2));
-    }
-  }
-
-  let cachedSettingsRegistry: SettingsRegistry | undefined;
-  function settingsRegistry(): SettingsRegistry {
-    if (!cachedSettingsRegistry) {
-      const path = join(userDataPath, 'settings.json');
-      cachedSettingsRegistry = new SettingsRegistry(new FileSettingsStore(path));
-    }
-    return cachedSettingsRegistry;
-  }
+  // `FileSettingsStore` and `settingsRegistry()` moved up beside the settings-source
+  // fetcher above, because the fetcher's default allowlist now reads from this same
+  // registry and needs it to exist before that point in the function body.
 
   async function controlPlaneRequest(request: ControlPlaneRequest): Promise<ControlPlaneResponse> {
     try {
