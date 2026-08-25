@@ -55,7 +55,7 @@ to the control plane.
 
 ### Major gaps — no destination exists at all
 
-- [ ] **Access control rules** (`acl.conf`) — the highest-value gap by far. SIP scanning is constant and toll fraud is the expensive failure; the security screen currently edits no rule at all.
+- [x] **Access control rules** (`acl.conf`) — the highest-value gap by far. SIP scanning is constant and toll fraud is the expensive failure; the security screen currently edits no rule at all Shipped as a table of every `permit=`/`deny=` rule across every named ACL in file evaluation order, with add, edit, remove and reorder writing through the existing plan-and-apply path. Deliberately not bound through the single-key control table: that table is permit-only and would have silently dropped any interleaved `deny=` line.
 - [ ] **Sound prompt management** — upload, list, audition and remove prompts. Every IVR and voicemail screen references prompts it cannot create.
 - [ ] **TLS and certificate management** (`http.conf` TLS, PJSIP transport certificates, STIR/SHAKEN keys) — every other screen assumes certificates that nothing can install or rotate.
 - [ ] **Hardware trunks** (`chan_dahdi.conf`) — analogue lines, T1/E1 and PRI.
