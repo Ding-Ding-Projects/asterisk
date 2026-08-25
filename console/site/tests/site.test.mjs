@@ -116,7 +116,11 @@ test('build composes deterministic local output without fetches', async () => {
   // references rather than by sweeping a directory, so a capture the page never uses cannot
   // quietly add megabytes to every visit, and a renamed file fails the build instead of
   // rendering as a broken image. Both of those refusals were broken on purpose and watched.
-  assert.equal(manifest.outputFiles.length, 185);
+  // 187 from 2026-08-25, for an operations category: an index and one article recording how
+  // this repository is built, packaged, driven, captured and released, and what each of those
+  // does when it fails. It is the article half of the operational skill, mirrored here because
+  // the skill directory is not tracked, so a skill committed there would travel with nobody.
+  assert.equal(manifest.outputFiles.length, 187);
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');
