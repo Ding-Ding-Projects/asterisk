@@ -20,9 +20,13 @@ import { createHash } from 'node:crypto';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-const OUT = 'C:/Users/cntow/AppData/Local/Temp/dingdrive/clean';
+/* Port and output directory are arguments so a repeated drive gets a fresh window and a
+ * fresh directory each pass. Driving an instance that has already had a thousand clicks
+ * put through it proves nothing: it is no longer the application, it is the wreckage. */
+const PORT = Number(process.argv[2] || 9555);
+const OUT = process.argv[3] || 'C:/Users/cntow/AppData/Local/Temp/dingdrive/clean';
 mkdirSync(join(OUT, 'shots'), { recursive: true });
-const { send, evaluate, close } = await connect(9555);
+const { send, evaluate, close } = await connect(PORT);
 const settle = (ms = 360) => new Promise((r) => setTimeout(r, ms));
 
 const clickByText = (text) => evaluate(`(() => {
