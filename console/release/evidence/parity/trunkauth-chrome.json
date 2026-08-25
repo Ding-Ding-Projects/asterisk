@@ -14,19 +14,25 @@
     }
   },
   "totalPixels": 1440000,
-  "comparedPixels": 425832,
-  "comparedFraction": 0.2957166666666667,
+  "comparedPixels": 404472,
+  "comparedFraction": 0.2808833333333333,
   "minimumComparedFraction": 0.25,
-  "diffPixelCount": 43919,
-  "diffPercentage": 10.313691784553534,
+  "diffPixelCount": 35588,
+  "diffPercentage": 8.798631302043157,
   "boundingBox": {
     "x0": 0,
-    "y0": 5,
+    "y0": 11,
     "x1": 1437,
     "y1": 999
   },
   "excluded": {
     "rectangles": [
+      {
+        "x": 538,
+        "y": 0,
+        "width": 534,
+        "height": 40
+      },
       {
         "x": 1072,
         "y": 0,
@@ -40,10 +46,10 @@
         "height": 922
       }
     ],
-    "pixels": 1014168,
+    "pixels": 1035528,
     "clippedAway": [],
-    "diffPixelCount": 781959,
-    "diffPercentage": 77.10349764536053
+    "diffPixelCount": 790290,
+    "diffPercentage": 76.31758870836907
   },
   "areas": {
     "brandCell": {
@@ -52,14 +58,9 @@
       "diffPercentage": 15.559006211180124
     },
     "menuCell": {
-      "comparedPixels": 15720,
+      "comparedPixels": 15360,
       "diffPixelCount": 1886,
-      "diffPercentage": 11.997455470737913
-    },
-    "commandCell": {
-      "comparedPixels": 21360,
-      "diffPixelCount": 8331,
-      "diffPercentage": 39.002808988764045
+      "diffPercentage": 12.278645833333334
     },
     "tabStrip": {
       "comparedPixels": 54720,
@@ -84,8 +85,8 @@
   "stalenessCheck": {
     "checked": true,
     "stale": false,
-    "builtCaptureMtimeMs": 1787692753521.3804,
-    "newestBuildSourceMtimeMs": 1787691669082.8162
+    "builtCaptureMtimeMs": 1787695988257.1584,
+    "newestBuildSourceMtimeMs": 1787691669082.816
   },
   "generatedBy": "console/scripts/design-parity-capture-run.mjs --side=chrome",
   "tuple": {

@@ -65,16 +65,17 @@ than as 32 per-destination masks, so the judgement stays small enough to review:
 - **`brandCell`** — *chrome*. The product mark and name; the same on every destination. It is
   guaranteed to differ and is compared anyway — see [the brand cell](#the-brand-cell-is-7px-wider-and-that-is-not-geometry).
 - **`menuCell`** — *chrome*. A fixed set of menu titles. Its divergence is the brand cell's, displaced.
-- **`commandCell`** — *chrome*, **and this declaration is wrong**. It used to read "carries its own
-  label, not a reading". It renders `connLabel` and `connUptime`: the design invents `pbx-hq · AMI
-  5038` / `up 14d 06:22`, the application shows what its target reports. That is data-bearing in
-  exactly the sense `statusCell` is, and it is the worst area on all 32 destinations at an identical
-  39.00%. It is still compared rather than excluded, deliberately and provisionally: reclassifying an
-  area as data narrows the bar, and narrowing it in the same pass that repaired the harness would
-  leave one number nobody could attribute to either change. Whether it becomes data is its own
-  roadmap item, with this measurement behind it.
-- **`statusCell`** — **data**. Live connection status. The design invents a healthy value; the
-  application shows what the target reports, which with no target configured is nothing at all.
+- **`commandCell`** — **data**, and this is the decision the roadmap asked for — see
+  [the connection pill](#the-connection-pill-is-data-and-that-decision-cost-two-surprises).
+- **`statusCell`** — **data**, on a description that is now known to be wrong. It used to read "live
+  connection status … the design invents a healthy value" — but that sentence describes
+  `commandCell`. The fourth top cell is the Beginner/Expert mode picker, the confirmation-credits
+  pill, the command-palette button and the three window controls: local application state and fixed
+  chrome, with no target reading in it at all. Its role has deliberately **not** been changed in the
+  pass that corrected its text, for the reason `commandCell`'s was not changed in the pass that
+  corrected `commandCell`'s: two areas moving at once leaves one compared fraction nobody can
+  attribute to either move. On this corrected description the cell reads as chrome and its exclusion
+  is a narrowing nobody argued for, which is its own roadmap item.
 - **`tabStrip`** — *chrome*. Tab titles come from the navigation catalogue, itself compiled from the
   design, so both sides are naming the same screens.
 - **`rail`** — *chrome*. Six fixed rail icons and labels, compiled from the design's catalogue.
@@ -159,14 +160,21 @@ Every record below came from that same run: one full pass per side against one b
 The `--side=chrome` stage itself takes no pictures — it reads the two region measurements and the
 captures off disk.
 
+The last two rows were **re-derived** when `commandCell` moved from chrome to data. No capture was
+retaken and no rectangle was re-measured: the same 64 PNGs and the same two region files went in, and
+only the mask changed. The re-run was made against the exact build output the built captures were
+taken from — the newest build mtime it recorded is `1787691669082.816`, against the `1787691669082.8162`
+the superseded records carry — so its staleness check compares the same two things the superseded one
+did, and means neither more nor less.
+
 | State | Record | Run from commit | Coverage | Result |
 | --- | --- | --- | --- | --- |
 | Reference-side rectangles | `release/evidence/parity/regions-reference.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 of 32 | 8 area rectangles each; every shell exactly 1440x1000 at the origin |
 | Built-side rectangles | `release/evidence/parity/regions-built.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 of 32 | every shell exactly 1440x1000 at the origin |
 | Whole-frame visual diff | `release/evidence/parity/{id}-diff.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 records | 0 match, 32 diff, 0 refused; 23.07%-60.98% of pixels differ |
-| Per-destination region ledger | `release/evidence/parity/{id}-regions.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 ledgers | 2 data areas excluded, 6 chrome areas compared |
-| Per-destination chrome-parity comparison | `release/evidence/parity/{id}-chrome.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 records | 0 match, 32 diff, 0 refused; 6.34%-14.95% of the compared region differs |
-| Run ledger for the comparison stage | `release/evidence/parity/run-chrome.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 compared, 0 skipped | exactly 29.57% of the frame compared, against a declared floor of 25% |
+| Per-destination region ledger | `release/evidence/parity/{id}-regions.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 ledgers | 3 data areas excluded, 5 chrome areas compared |
+| Per-destination chrome-parity comparison | `release/evidence/parity/{id}-chrome.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 records | 0 match, 32 diff, 0 refused; 4.62%-13.68% of the compared region differs |
+| Run ledger for the comparison stage | `release/evidence/parity/run-chrome.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 compared, 0 skipped | exactly 28.0883% of the frame compared, against a declared floor of 25% |
 
 ## Verification boundary
 
@@ -229,6 +237,52 @@ and a built measurement whose shell does not sit at the window origin is refused
 whatever is above it. The second guard is not about the banner -- it catches any surface that
 displaces the shell, including one nobody has thought of yet.
 
+## The connection pill is data, and that decision cost two surprises
+
+The roadmap asked one question: should `commandCell` be excluded as data? The answer is **yes**, and
+the argument is short.
+
+The cell renders `connLabel` and `connUptime`, which are `this.target.label` and
+`this.target.detail` — what the console's own discovery reports about the target it found. With none
+configured that is `no target` / `nothing discovered yet`; once one answers it is the discovered
+distribution name and `N local target(s), connection verified`. The design invents `pbx-hq · AMI
+5038` and `up 14d 06:22` in the same two spans. That is this bar's founding sentence word for word:
+*the design shows invented sample content exactly where the application shows a real reading.*
+
+It is **not** the `brandCell` or `sectionList` case, which is the objection worth answering, because
+those two are also guaranteed to differ and are deliberately still compared. They differ where this
+product renders different **chrome** from the design's chrome — a product name one word longer, a
+per-row badge this application removed — and reporting that is what the bar is for. This cell differs
+because the design invented a **reading**, which is what the bar is for excluding.
+
+**What it costs, measured.** The compared fraction falls from exactly **29.5717%** to exactly
+**28.0883%** of the frame — 404,472 pixels of 1,440,000 — still above the declared 25% floor. The
+compared-region divergence falls from 6.34%–14.95% to **4.62%–13.68%**. That fall is not an
+improvement in the application: nothing about the built artifact changed between those two figures.
+
+**What it also hides, said plainly.** The region probe measures cells, not text runs, so excluding
+this rectangle also excludes the pill's own border, radius, pulse dot and separator, which are
+chrome. 61.00% of the cell already matched, so most of what the mask now covers is pixels that
+agreed — and `excluded.diffPercentage` goes on reporting whatever it covers, 29.76%–81.88% across
+the 32 against 29.56%–82.79% before.
+
+**Two results contradicted what was expected of the move, and are recorded because they did.**
+
+*Removing the worst area did not leave one uniform worst area behind it.* The expectation was that
+`brandCell`'s identical 15.56% would become the worst everywhere. It did not: the worst compared area
+is now `brandCell` on 21 destinations, `tabStrip` on 7 and `sectionList` on 4, where before it was
+this cell on all 32. One area being worst on every destination at an identical figure was the
+signature of a single cause; underneath it was a spread.
+
+*`menuCell`'s divergence rose, from 12.00% to 12.28%, without one new differing pixel.* Its differing
+count is 1,886 before and after. Union rectangles overlap, so excluding this cell clipped nine
+columns off `menuCell`'s compared strip, and all 360 of those pixels matched. **Excluding an area can
+raise a neighbour's reported percentage by removing agreement rather than by finding disagreement**,
+and a reading of these numbers that misses that will attribute the rise to a regression.
+
+**No destination moved to `verified`, and none could.** All 32 still report a real chrome divergence,
+and the Material Design 3 audit still reports all 32 nonconforming.
+
 ### The brand cell is 7px wider, and that is not geometry
 
 `Ding PBX Console` measures **106.63px** where the design's `Asterisk Console` measures **100.27px**,
@@ -242,9 +296,13 @@ is that one number -- `menuCell` moves right by 7, `commandCell` is squeezed by 
 application's to fix -- the name is the product's own. Not the design's -- it is the reference, and
 is never edited. Not the harness's -- it is reporting the difference correctly.
 
-So `brandCell` differs by **15.56%** and `menuCell` by **12.00%** on every one of the 32,
+So `brandCell` differs by **15.56%** and `menuCell` by **12.28%** on every one of the 32,
 permanently. Both stay inside the compared region, on the same principle `sectionList` does: a
 divergence worth reading in the result is not one worth hiding in a mask.
+
+`menuCell`'s figure read **12.00%** while `commandCell` was still compared, on the same 1,886
+differing pixels. Reclassifying `commandCell` as data clipped nine columns of matching pixels off
+`menuCell`'s compared strip, which raised the ratio without changing one pixel of either artifact.
 
 ### What the repairs changed
 
@@ -258,6 +316,11 @@ every table row to name the commit its capture came from, and these are not capt
 - **Compared-region diff** — 6.67%-26.78%, now **6.34%-14.95%**.
 - **Compared fraction** — 29.5%-29.6%, now **exactly 29.57% on every one of the 32**.
 - **Destinations with records** — 31, now **32**.
+
+Those last two figures are what the harness repairs left behind, and they are **not** the current
+ones: the `commandCell` decision above moved them to 4.62%-13.68% and exactly 28.0883%. They are kept
+as written because this list records what one pass changed, and rewriting it would make it describe
+a different pass.
 
 `statusCell`, `tabStrip`, `rail`, `sectionList` and `contentPane` now measure the **same rectangle**
 on both sides on every destination. The only geometric difference left anywhere in the application

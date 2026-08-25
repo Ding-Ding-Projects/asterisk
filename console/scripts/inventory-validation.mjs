@@ -15,9 +15,15 @@ const parityAreaRoles = ['chrome', 'data'];
  * validator that only asked "is the role one of two words" would wave that through. Changing
  * the bar should mean changing this line and arguing for it, exactly as changing a rail count
  * does above.
+ *
+ * One area has moved since this map was written. `commandCell` was pinned `chrome` on a
+ * declared reason that turned out to be false — it renders `connLabel` and `connUptime`,
+ * which are readings — and is now pinned `data`. The argument is in the area's own `why` in
+ * design-parity.json and in docs/evidence/design-parity-chrome-bar.md; this line is only
+ * where it is held.
  */
 const parityAreaRoleMap = {
-  brandCell: 'chrome', menuCell: 'chrome', commandCell: 'chrome', statusCell: 'data',
+  brandCell: 'chrome', menuCell: 'chrome', commandCell: 'data', statusCell: 'data',
   tabStrip: 'chrome', rail: 'chrome', sectionList: 'chrome', contentPane: 'data',
 };
 

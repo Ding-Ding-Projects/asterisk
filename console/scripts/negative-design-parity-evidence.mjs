@@ -48,21 +48,22 @@ const honestDiff = (id) => JSON.stringify({
   stalenessCheck: { checked: true, stale: false },
 });
 
-/** The two data rectangles this application's chromeParityBar declares, at the capture tuple. */
+/** The three data rectangles this application's chromeParityBar declares, at the capture tuple. */
 const EXCLUSIONS = [
   { area: 'contentPane', x: 356, y: 78, width: 1084, height: 946 },
+  { area: 'commandCell', x: 538, y: 0, width: 534, height: 40 },
   { area: 'statusCell', x: 1060, y: 0, width: 380, height: 40 },
 ];
 const honestLedger = (id, overrides = {}) => JSON.stringify({
   destinationId: id,
   bar: 'chrome-parity',
   areas: {
-    brandCell: { role: 'chrome' }, menuCell: { role: 'chrome' }, commandCell: { role: 'chrome' },
+    brandCell: { role: 'chrome' }, menuCell: { role: 'chrome' }, commandCell: { role: 'data' },
     statusCell: { role: 'data' }, tabStrip: { role: 'chrome' }, rail: { role: 'chrome' },
     sectionList: { role: 'chrome' }, contentPane: { role: 'data' },
   },
   exclusions: EXCLUSIONS,
-  comparedAreas: ['brandCell', 'menuCell', 'commandCell', 'tabStrip', 'rail', 'sectionList'],
+  comparedAreas: ['brandCell', 'menuCell', 'tabStrip', 'rail', 'sectionList'],
   ...overrides,
 });
 const honestChrome = (id, overrides = {}) => JSON.stringify({

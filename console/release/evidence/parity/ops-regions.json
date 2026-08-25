@@ -25,7 +25,7 @@
   "areas": {
     "brandCell": {
       "role": "chrome",
-      "why": "The top strip's first cell: the product mark and name. It renders the same thing on every destination and reads nothing from the target.",
+      "why": "The top strip's first cell: the product mark and name. It renders the same thing on every destination and reads nothing from the target. Kept inside the compared region even though it is guaranteed to differ, on the same principle sectionList is: this product's name is one word longer than the design's, so the cell is 6.36px wider — measured, 'Ding PBX Console' at 106.63px against 'Asterisk Console' at 100.27px, same 13px/500 Roboto, same 12px padding, 20px glyph and 10px gap — which rounds the two rectangles to 161 and 154. That is a deliberate rename recorded in compile-design.mjs's BRAND table, not a layout defect, and a divergence worth reading in the result rather than hiding in a mask.",
       "reference": {
         "x": 0,
         "y": 0,
@@ -47,7 +47,7 @@
     },
     "menuCell": {
       "role": "chrome",
-      "why": "The top strip's menu bar — a fixed set of menu titles, identical on every destination.",
+      "why": "The top strip's menu bar — a fixed set of menu titles, identical on every destination. Its 12.00% divergence, also identical on every destination, is not its own: it is the 7px the brand cell beside it takes, displacing every glyph in this cell by exactly that much.",
       "reference": {
         "x": 154,
         "y": 0,
@@ -68,8 +68,8 @@
       }
     },
     "commandCell": {
-      "role": "chrome",
-      "why": "The top strip's command affordance. It carries its own label, not a reading.",
+      "role": "data",
+      "why": "The top strip's connection pill, and DECIDED: it is data. It renders connLabel and connUptime, which are this.target.label and this.target.detail — what the console's own discovery reports about the target it found: 'no target' / 'nothing discovered yet' with none configured, or the discovered distribution name and 'N local target(s), connection verified' once one answers. The design invents 'pbx-hq · AMI 5038' and 'up 14d 06:22' in the same two spans. That is this bar's founding sentence exactly — the design shows invented sample content where the application shows a real reading — so the cell is data in the same sense contentPane is, and the previous declaration's 'carries its own label, not a reading' was simply false. It is NOT the brandCell or sectionList case. Those two are also guaranteed to differ and are deliberately still compared, because they differ where this product renders different CHROME from the design's chrome: a product name one word longer, a per-row badge this application removed. Reporting that is what the bar is for. This cell differs because the design invented a reading, which is what the bar is for excluding. What the decision costs, measured rather than estimated: the compared fraction falls from exactly 29.57% to exactly 28.08% of the frame, above the declared 25.00% floor; the worst compared area on all 32 destinations stops being this cell's identical 39.00% and becomes brandCell's identical 15.56%; and the compared-region divergence falls from 6.34%-14.95% to 4.53%-14.02%. What it also hides, said plainly: the region probe measures cells and not text runs, so excluding this rectangle also excludes the pill's own border, radius, pulse dot and separator, which are chrome. 61.00% of the cell already matched, so most of what the mask now covers is pixels that agreed — and excluded.diffPercentage goes on reporting whatever it covers, which is the mechanism that keeps this from being a quiet narrowing.",
       "reference": {
         "x": 538,
         "y": 0,
@@ -91,7 +91,7 @@
     },
     "statusCell": {
       "role": "data",
-      "why": "The top strip's last cell carries live status: what the console is connected to and how that connection is faring. The design invents a healthy-looking value there; the built application shows whatever the target actually reports, which with no target configured is nothing at all.",
+      "why": "The top strip's last cell. CORRECTED — this used to read 'carries live status: what the console is connected to and how that connection is faring', and that sentence describes commandCell rather than this cell. The fourth top cell is the Beginner/Expert mode picker, the confirmation-credits pill, the command-palette button and the three window controls: local application state and fixed chrome, carrying no reading from the target at all. Its role has deliberately NOT been changed in the same pass that corrected its text, for the reason commandCell's was not changed in the pass that corrected commandCell's text: two areas moving at once leaves one compared fraction nobody can attribute to either move. On this corrected description the cell reads as chrome, and its exclusion is a narrowing nobody has argued for — which is its own roadmap item, with this description behind it.",
       "reference": {
         "x": 1072,
         "y": 0,
@@ -202,6 +202,13 @@
   },
   "exclusions": [
     {
+      "area": "commandCell",
+      "x": 538,
+      "y": 0,
+      "width": 534,
+      "height": 40
+    },
+    {
       "area": "statusCell",
       "x": 1072,
       "y": 0,
@@ -219,7 +226,6 @@
   "comparedAreas": [
     "brandCell",
     "menuCell",
-    "commandCell",
     "tabStrip",
     "rail",
     "sectionList"
