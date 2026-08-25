@@ -811,7 +811,12 @@ export class PbxAdminApp extends App {
   onControlAction = (action: string, _control?: { id?: string }, selected?: string): void => {
     const context = this.currentAdminContext();
     if (!context) {
-      this.appControlAction(action);
+      // Forwards all three arguments -- not just `action` -- so a base-class action
+      // reached from a non-PBX-Admin screen (the servers/local-history runtime and
+      // history controls added in `App.tsx`) still receives the picked option's label.
+      // Dropping `selected` here silently reintroduces the exact "wired at one end"
+      // shape this module's own commit history has repeatedly had to fix elsewhere.
+      this.appControlAction(action, _control, selected);
       return;
     }
     switch (action) {
@@ -863,7 +868,7 @@ export class PbxAdminApp extends App {
       }
       case 'pbxadmin-media-refresh': void this.loadAdminMedia(context.screen, true); return;
       case 'pbxadmin-media-remove': void this.removeAdminMedia(); return;
-      default: this.appControlAction(action);
+      default: this.appControlAction(action, _control, selected);
     }
   };
 
