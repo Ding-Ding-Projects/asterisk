@@ -223,3 +223,27 @@ test('BREAK CHECK proof: calling the SHELL\'s own unwrapped fire() (bypassing Ap
   assert.throws(() => assert.notEqual(level1, level5), assert.AssertionError,
     'the wired test above would not have failed against the unfixed, unwrapped implementation');
 });
+
+/* --- showInfo(): the explain surface -----------------------------------------------
+ * Added after an independent check found this one wiring line unguarded. Commenting out
+ * `this.showInfo = this.styledShowInfo` on its own left every other assertion in this
+ * file green: breaking all three wraps together turned five tests red and hid the fact
+ * that none of them was watching this one. Individual breaks are the only kind that
+ * prove individual coverage, which is why each wiring line now has its own assertion. */
+test('showInfo() styles its heading and body, and keeps the fact it was explaining', () => {
+  const instance = freshApp();
+  const storage = instance.durableStorage.storage;
+  setEmojisEnabled(storage, false);
+  setFunnyLevel(storage, 'en', 1);
+  instance.showInfo('Reload PJSIP', 'Reloading pjsip re-reads pjsip.conf on the target.', '', '0', '0');
+  const plainBody = instance.state.infoBody as string;
+  assert.ok(plainBody.includes('pjsip.conf'), 'the configuration file name dropped out of the explanation at level 1');
+
+  setFunnyLevel(storage, 'en', 5);
+  setEmojisEnabled(storage, true);
+  instance.showInfo('Reload PJSIP', 'Reloading pjsip re-reads pjsip.conf on the target.', '', '0', '0');
+  const loudBody = instance.state.infoBody as string;
+  assert.notEqual(loudBody, plainBody,
+    'showInfo() rendered identical text across level 1 and level 5 with emoji on, so App.tsx is not wrapping it');
+  assert.ok(loudBody.includes('pjsip.conf'), 'the configuration file name dropped out of the explanation at level 5');
+});
