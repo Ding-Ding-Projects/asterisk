@@ -21,6 +21,7 @@
     "updater-runtime.ts",
     "../../shared/**/*.ts",
     "../../control-plane/**/*.ts",
-    "../../server/**/*.ts"
+    "../../server/**/*.ts",
+    "../renderer/src/display-name.ts"
   ]
 }

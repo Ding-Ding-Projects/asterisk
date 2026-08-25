@@ -6,6 +6,7 @@ const api = Object.freeze({
     minimize: () => ipcRenderer.send('window:minimize'),
     toggleMaximize: () => ipcRenderer.send('window:toggle-maximize'),
     close: () => ipcRenderer.send('window:close'),
+    setTitle: title => ipcRenderer.send('window:set-title', title),
   }),
   controlPlane: Object.freeze({
     request: request => ipcRenderer.invoke('control-plane:request', request),
