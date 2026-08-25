@@ -6,6 +6,12 @@ import {
   type ViewReadings,
 } from './readings';
 import { canvasReason, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
+import {
+  blameRows as historyBlameRows, commitCountLabel, commitRows as historyCommitRows, compareLabel as historyCompareLabel,
+  diffFileLabel, diffLineViews, filterChips as historyFilterChips, filteredEntries as historyFilteredEntries,
+  toggleCompare as toggleHistoryCompareIds,
+  type HistoryCommit, type HistoryDiff, type LocalHistoryReading,
+} from './local-history-view';
 import { buildCodecGraph, layoutCodecs, unreachable as unreachableCodecs } from './codec-graph';
 import { buildEndpointGraph, brokenLinks as brokenEndpointLinks, layoutTopology, summarise as summariseEndpointGraph } from './endpoint-graph';
 import { runCeremonyCommand, type CeremonyResponse } from './ceremony';
@@ -151,9 +157,22 @@ const BOUNDARY_PLAIN =
 
 const NO_READER = 'This screen has no live reading wired yet, so it stays empty.';
 
+/* Shown only before the History screen's first real read has resolved (or in a static
+ * render that never mounts, such as `app-no-sample-data.test.tsx`'s disconnected
+ * check) -- once `historyReading` exists, `HISTORY_EMPTY` below replaces it with the
+ * honest post-read reason instead. */
 const NO_HISTORY =
   'No configuration change has been written this session. The console only reads a PBX right now — it has ' +
   'no wired path that stages, applies or commits a change — so there is nothing yet for this screen to show.';
+
+/* The console genuinely can read its own local history store now (`local-history.list`
+ * -- see `historyVals`), and this is what it found there: nothing yet, because nothing
+ * outside this reading path calls `local-history.record` when it changes something.
+ * That is a different, truer reason than NO_HISTORY's "there is no wired path" once a
+ * real read has actually happened, so the two must never be conflated. */
+const HISTORY_EMPTY =
+  'The console’s own local history repository was just read and is genuinely empty: nothing that changes ' +
+  'an endpoint, a queue, or another record calls into this store yet, so there is nothing to show.';
 
 const NO_MEMORY =
   'This console has no local agent-memory store wired in. There is no memory corpus to search, sync, or ' +
@@ -213,6 +232,23 @@ export class App extends Base {
   private pending = '';
   private canvasReadings: CanvasReadings | undefined;
   private canvasPending = false;
+  /**
+   * The History screen's real source: the console's own local, append-only git
+   * repository (`LocalHistory`, `control-plane/local-history.ts`) -- not a PBX
+   * reading, so it is fetched independently of `this.target.connected` in `refresh`
+   * below. `undefined` means "not read yet", not "empty"; `entries.length === 0`
+   * once it has resolved means the honest opposite: read, and genuinely nothing has
+   * been recorded there yet.
+   */
+  private historyReading: LocalHistoryReading | undefined;
+  private historyPending = false;
+  private historySelectedId = '';
+  private historyDiff: HistoryDiff | undefined;
+  private historyDiffPending = false;
+  private historyFilterAction = '';
+  private historyCompareIds: string[] = [];
+  private historyCompareFiles: string[] | undefined;
+  private historyComparePending = false;
   /** Live configuration per screen, keyed by screen id. */
   private configs: Partial<Record<string, ConfigReading>> = {};
   private configPending = '';
@@ -419,9 +455,13 @@ export class App extends Base {
    * weaken the destructive-action ceremony, which is mandatory everywhere in this app;
    * p_tray has no tray implementation in the main process to hand it to; nt_levels has no
    * per-toast severity to filter by; nt_quiet has no configured quiet-hours window; nt_keep
-   * and every hi_* control describe a local Git-backed notification/config history this
-   * console does not implement yet (the History screen renders mock rows against a
-   * '/etc/asterisk/.git' path with no real repository behind it).
+   * and every hi_* control describe tracking the *target's own* configuration files
+   * (`/etc/asterisk/.git`, a real per-machine repository these settings would name a
+   * commit author/message template for) under version control, which nothing in this
+   * console does yet -- a different, unbuilt feature from the History screen itself,
+   * which now shows real commits from this application's own local, append-only
+   * `LocalHistory` store (see `historyVals`, `control-plane/local-history.ts`) rather
+   * than the design's invented rows.
    */
   private static readonly CONSOLE_SETTINGS: Readonly<Record<string, readonly string[]>> = {
     partner: ['ta_auto', 'ta_expire', 'ta_notify', 'ta_mutual', 'ta_sign', 'ta_log'],
@@ -3029,7 +3069,6 @@ It is shown once. The phone needs it to register.`);
   /** Reads the screen currently on top, once per screen change. */
   private refresh = async () => {
     const screen = (this.state as { screen: string }).screen;
-    if (!this.target.connected) return;
     const now = Date.now();
     const mayStartRead = (key: string): boolean => {
       const previous = this.readStartedAt.get(key) ?? 0;
@@ -3037,6 +3076,22 @@ It is shown once. The phone needs it to register.`);
       this.readStartedAt.set(key, now);
       return true;
     };
+    /*
+     * The History screen's own local git repository is not a PBX reading -- it lives
+     * beside this application's data and answers the same way whether or not a target
+     * is connected -- so it is read here, ahead of the `target.connected` guard below
+     * that everything else in this method depends on.
+     */
+    if (screen === 'history' && this.historyReading === undefined && !this.historyPending && mayStartRead('history')) {
+      this.historyPending = true;
+      const response = await this.request('local-history.list', {});
+      this.historyPending = false;
+      this.historyReading = response?.ok
+        ? (response.data as LocalHistoryReading)
+        : { entries: [], counts: {}, branch: '' };
+      this.forceUpdate();
+    }
+    if (!this.target.connected) return;
     if (screen === 'canvas') {
       const canvasAvailable = this.canvasReadings?.dialplan?.result.state === 'available';
       if (canvasAvailable || this.canvasPending || !mayStartRead('canvas')) return;
@@ -3123,7 +3178,10 @@ It is shown once. The phone needs it to register.`);
   }
 
   private note(screen: string): string {
-    if (screen === 'history') return NO_HISTORY;
+    if (screen === 'history') {
+      if (this.historyReading === undefined) return NO_HISTORY;
+      return this.historyReading.entries.length > 0 ? '' : HISTORY_EMPTY;
+    }
     if (screen === 'memory') return NO_MEMORY;
     if (screen === 'trunkauth') return NO_AUTH_REQUESTS;
     if (!this.target.connected) return `No target is connected — ${this.target.detail}.`;
@@ -3279,6 +3337,123 @@ It is shown once. The phone needs it to register.`);
       ].map((item) => ({ ...item, add: readOnlyCanvas })),
       canvasBgClick: () => this.set('nodeId', ''),
       ...(canvasContextItems ? { ctxItems: canvasContextItems } : {}),
+    };
+  }
+
+  // ---------------------------------------------------------------- History screen
+  //
+  // The History screen's real source is the console's own local, append-only git
+  // repository (`LocalHistory`, `control-plane/local-history.ts`) -- see the comment
+  // beside `historyReading` above. Nothing here invents a branch, a commit, a diff
+  // line, or an author: `local-history-view.ts` maps exactly what that store answers,
+  // and the screen stays honestly empty until something outside this reading path
+  // (none of it exists yet -- see ROADMAP.md) starts calling `local-history.record`.
+
+  /** Fetches the diff for one commit, dropping a stale answer for a commit the user
+   *  has since clicked away from. */
+  private loadHistoryDiff = async (id: string): Promise<void> => {
+    if (this.historyDiffPending) return;
+    this.historyDiffPending = true;
+    const response = await this.request('local-history.diff', { commitId: id });
+    this.historyDiffPending = false;
+    if (this.historySelectedId !== id) return;
+    this.historyDiff = response?.ok ? (response.data as HistoryDiff) : { files: [], lines: [] };
+    this.forceUpdate();
+  };
+
+  private selectHistoryCommit = (id: string): void => {
+    this.historySelectedId = id;
+    this.historyDiff = undefined;
+    this.forceUpdate();
+    void this.loadHistoryDiff(id);
+  };
+
+  /** Fetches which files differ between the two commits currently held for
+   *  comparison, dropping a stale answer if the pair has since changed. */
+  private loadHistoryCompare = async (fromId: string, toId: string): Promise<void> => {
+    if (this.historyComparePending) return;
+    this.historyComparePending = true;
+    const response = await this.request('local-history.compare', { fromId, toId });
+    this.historyComparePending = false;
+    if (this.historyCompareIds[0] !== fromId || this.historyCompareIds[1] !== toId) return;
+    this.historyCompareFiles = response?.ok ? (response.data as { files: string[] }).files : [];
+    this.forceUpdate();
+  };
+
+  private toggleHistoryCompareRow = (id: string): void => {
+    this.historyCompareIds = toggleHistoryCompareIds(this.historyCompareIds, id);
+    this.historyCompareFiles = undefined;
+    this.forceUpdate();
+    if (this.historyCompareIds.length === 2) void this.loadHistoryCompare(this.historyCompareIds[0], this.historyCompareIds[1]);
+  };
+
+  /** `LocalHistory.restore` never rewrites the commit it restores from -- it records a
+   *  brand-new one on top -- so this never needs a destructive-action gate; it only
+   *  needs to be truthful about what happened. */
+  private restoreHistoryCommit = async (id: string): Promise<void> => {
+    const response = await this.request('local-history.restore', { commitId: id });
+    if (response?.ok) {
+      this.toast('Restored that version as a new entry — nothing was overwritten.');
+      this.historyReading = undefined;
+      this.historySelectedId = '';
+      this.historyDiff = undefined;
+      this.forceUpdate();
+    } else {
+      this.fire('Restore failed', response?.message ?? 'The control plane did not answer.', true);
+    }
+  };
+
+  private copyHistoryCommitId = (id: string): void => {
+    const clipboard = (navigator as { clipboard?: { writeText?: (text: string) => Promise<void> } }).clipboard;
+    if (!clipboard?.writeText) { this.fire('Could not reach the clipboard', 'This browser context has no clipboard API available.', true); return; }
+    void clipboard.writeText(id).then(() => this.toast('Commit id copied to the clipboard'));
+  };
+
+  private setHistoryFilter = (action: string): void => {
+    this.historyFilterAction = action;
+    this.forceUpdate();
+  };
+
+  /** Forces a real refetch on the next `refresh()` pass -- `refresh` only reads
+   *  `local-history.list` again once `historyReading` is `undefined`. */
+  private refreshHistoryNow = (): void => {
+    this.historyReading = undefined;
+    this.forceUpdate();
+  };
+
+  private historyVals(): Record<string, unknown> {
+    const reading = this.historyReading;
+    const entries: HistoryCommit[] = (reading?.entries as ReadonlyArray<HistoryCommit> | undefined)?.slice() ?? [];
+    const visible = historyFilteredEntries(entries, this.historyFilterAction);
+    const rows = historyCommitRows(visible, this.historySelectedId, this.historyCompareIds).map((row) => ({
+      ...row,
+      bg: row.selected ? 'rgba(130,217,165,0.08)' : 'transparent',
+      cmpFg: row.comparing ? '#82D9A5' : '#9AA39B',
+      pick: () => this.selectHistoryCommit(row.id),
+      ctx: (e: MouseEvent) => { e.preventDefault(); this.selectHistoryCommit(row.id); },
+      compare: () => this.toggleHistoryCompareRow(row.id),
+    }));
+    const selectedCommit = entries.find((entry) => entry.id === this.historySelectedId);
+    const diffActions = selectedCommit ? [
+      { icon: 'restore', label: 'Restore this version', bg: '#1B4D33', fg: '#9FF7C4', run: () => void this.restoreHistoryCommit(selectedCommit.id) },
+      { icon: 'content_copy', label: 'Copy commit id', bg: 'transparent', fg: '#C4CBC2', run: () => this.copyHistoryCommitId(selectedCommit.id) },
+    ] : [];
+    return {
+      branchName: reading?.branch || '(no branch read yet)',
+      // There is exactly one real branch: `LocalHistory` never creates another, so a
+      // chip strip implying a choice between branches would be decoration, not a
+      // control. `branchName` above already names the one that exists.
+      branches: [],
+      histActions: [{ icon: 'refresh', label: 'Refresh', run: this.refreshHistoryNow }],
+      commitCount: commitCountLabel(visible),
+      histFilters: historyFilterChips(reading?.counts ?? {}, this.historyFilterAction)
+        .map((chip) => ({ ...chip, off: !chip.on, pick: () => this.setHistoryFilter(chip.action) })),
+      commitRows: rows,
+      diffFile: diffFileLabel(this.historySelectedId, this.historyDiff, this.historyDiffPending),
+      diffLines: diffLineViews(this.historyDiff),
+      diffActions,
+      blameRows: historyBlameRows(entries, this.historySelectedId, this.historyDiff),
+      compareLabel: historyCompareLabel(entries, this.historyCompareIds, this.historyCompareFiles, this.historyComparePending),
     };
   }
 
@@ -3847,13 +4022,13 @@ It is shown once. The phone needs it to register.`);
       // invented per-destination numbers.
       sections: this.badges(values.sections as Array<Record<string, unknown>>),
 
-      // History & git has no real source: nothing in this app stages, applies or commits
-      // a configuration change yet, so the screen never shows the design's invented commits.
-      ...(screen === 'history' ? {
-        commits: [], commitRows: [], diffLines: [], diffFile: 'no commit selected', blameRows: [],
-        branches: [], branchName: '', commitCount: '0 commits',
-        compareLabel: NO_HISTORY,
-      } : {}),
+      // History & git: real rows from the console's own local git repository
+      // (`LocalHistory`) once `refresh()` has read it -- see `historyVals` and the
+      // `historyReading` field above. Before that first read resolves (including in
+      // this component's own disconnected static render, which never mounts) every
+      // field below is the same honest empty shape the design's own defaults were
+      // replaced with, so nothing here can render an invented commit either way.
+      ...(screen === 'history' ? this.historyVals() : {}),
 
       // The agent rail has no local memory store wired in, so its rows and metrics stay empty.
       ...(screen === 'memory' ? {
