@@ -91,17 +91,27 @@ test('HONEST GAP: App.tsx never imports dim-sum-surprise at all', () => {
   assert.doesNotMatch(app, /\bsurpriseFor\(/, 'surpriseFor(...) must never be called from App.tsx');
 });
 
-test('HONEST GAP: no mounted component anywhere in the renderer imports it either', () => {
-  /* Checks every .tsx entry point the app actually mounts, not just App.tsx, so this
-   * cannot pass merely because the wiring moved to a sibling file. PbxAdminApp.tsx and
-   * PbxAdminIntegratedApp.tsx both extend App and are what main.tsx actually renders. */
+test('a mounted component really imports it, so the surprise can actually happen', () => {
+  /* This replaces a pin that asserted the opposite, and scanned every .tsx entry point to
+   * prove it -- deliberately, so it could not pass merely because the wiring had moved to
+   * a sibling file. The module was complete and tested and imported by nothing at all, so
+   * the feature had never once run in a shipped build. The pin was right to exist and
+   * right to fire when the mounting landed.
+   *
+   * Inverted rather than deleted: it now requires at least one entry point to reference
+   * the module, which keeps the same breadth of scan working in the opposite direction. */
   const entryPoints = readdirSync(resolve(root, RENDERER_SRC_DIR))
     .filter((name) => name.endsWith('.tsx'));
   assert.ok(entryPoints.length >= 5, 'expected to find the renderer entry-point files');
-  for (const name of entryPoints) {
-    const src = read(`${RENDERER_SRC_DIR}/${name}`);
-    assert.doesNotMatch(src, /dim-sum-surprise/, `${name} must not reference dim-sum-surprise if it is truly unwired`);
-  }
+  /* An IMPORT, not a mention. A first version of this accepted any occurrence of the
+   * module name, and stayed green when the whole component file was deleted -- because
+   * main.tsx still names it in a comment. A guard a comment can satisfy is not a guard,
+   * which is the same failure this file's original pin was careful to avoid. */
+  const importing = entryPoints.filter((name) =>
+    /^import[^;]*from '[^']*[Dd]im[Ss]um[^']*';$/m.test(read(`${RENDERER_SRC_DIR}/${name}`))
+    || /^import[^;]*from '[^']*dim-sum-surprise';$/m.test(read(`${RENDERER_SRC_DIR}/${name}`)));
+  assert.ok(importing.length > 0,
+    'no renderer entry point imports the dim sum surface, so the module is unreachable and the surprise can never fire');
 });
 
 test('main.tsx mounts PbxAdminIntegratedApp, which extends PbxAdminApp, which extends App', () => {
