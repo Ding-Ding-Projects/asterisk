@@ -51,9 +51,15 @@ const anchoredPresent = { exists: () => true, read: () => 'contains language-mod
 
 verifyEvidenceOnDisk(source, { root });
 
+/* Absence is forced rather than assumed. This case used to rely on the first row
+ * happening to have no evidence on disk, which stopped being true the moment a lane
+ * supplied it -- so genuine progress turned a deliberate break green and failed the
+ * build. The check is about what the verifier does when an artifact is missing, not
+ * about which rows currently lack one. */
 mustFail(
   'claim verified while every evidence artifact is absent',
   (data) => { data.surfaces[0].features[0].status = 'verified'; },
+  { exists: () => false, read: () => String() },
 );
 
 mustFail(
