@@ -75,20 +75,14 @@ const app = appSourceWithoutInventories();
  * reads, and the honest options are to wire it or to leave it out.
  */
 /*
- * 241 after two lanes landed together on 2026-08-24. Neither lane's own number was right
- * for the merged tree -- one measured 274 before twenty-seven console-settings controls
- * were wired, the other measured 252 with the classifier that still counted a control
- * named in a documentation list as reached. The merge resolution is the figure measured
- * on the merged tree itself, which is the only one either side could not have known.
+ * 178 with all four lanes landed. Two of the drop's causes are not controls being wired at
+ * all: the appearance inventory lists stopped counting as consumers (which raised it), and
+ * dot access now counts as reached (which lowered it by nine controls that were working the
+ * whole time and being reported as dead). A ratchet that reports upward invites somebody to
+ * fix what already works, which is worse than one that reports downward.
  */
-/*
- * 220 once the appearance, notifications and history lane landed on top -- twenty-one more
- * controls that now persist and are read back. Measured on the merged tree for the same
- * reason as 241 before it: every lane's own figure describes a tree that stopped existing
- * the moment a sibling landed.
- */
-const ORPHAN_CEILING = 220;
-const TOTAL_CONTROLS = 599;
+const ORPHAN_CEILING = 178;
+const TOTAL_CONTROLS = 580;
 
 function classify() {
   const ids = [...new Set([...design.matchAll(/ctl\('([a-z0-9_]+)'/g)].map((m) => m[1]))].sort();
@@ -102,7 +96,11 @@ function classify() {
   for (const id of ids) {
     const quoted = `'${id}'`;
     if (bound.has(id) || acted.has(id)) continue;
-    if (app.includes(quoted)) continue;
+    /* Both spellings. A control read as `values.sup_category` is every bit as wired as one
+     * read as `values['sup_category']`, and counting only the quoted form reported nine
+     * genuinely-working controls as reaching nothing -- a ratchet that lies upward, inviting
+     * somebody to "fix" what already worked. */
+    if (app.includes(quoted) || new RegExp(`\.${id}\b`).test(app)) continue;
     if (generated.split(quoted).length - 1 > 1 || generated.includes(`v.${id}`)) continue;
     orphans.push(id);
   }

@@ -33,7 +33,10 @@ import {
 import { setEmojisEnabled } from './dialog-emojis';
 import { isAttentionMode, setModeEnabled } from './attention-modes';
 import { openTicket, resolutionFor, type TicketCategory, type TicketSeverity } from './support-tickets';
-import { KNOWN_EDITORS, chooseEditor, clearEditorChoice } from './external-editor';
+import {
+  KNOWN_EDITORS, chooseEditor, clearEditorChoice, saveCustomEditor, validateCustomEditor, CUSTOM_EDITOR_ID,
+} from './external-editor';
+import type { CustomEditor } from './external-editor';
 import { loadRules } from './scheduled-settings';
 import {
   activateSchoolMode, deactivateSchoolMode, hasCredential, renameSchoolMode,
@@ -394,6 +397,34 @@ export class App extends Base {
     appearance: ['p_density', 'p_theme', 'p_scale', 'p_motion', 'p_mono', 'p_start', 'p_tour', 'p_tray', 'p_confirm'],
     notifications: ['nt_toast', 'nt_sound', 'nt_levels', 'nt_quiet', 'nt_keep'],
     history: ['hi_msg', 'hi_author', 'hi_hook', 'hi_keep', 'hi_diff', 'hi_branch', 'hi_reload'],
+    /* Customise > Fun's remaining controls, once `fun_level`/`fun_level_yue` (the two
+     * playfulness dials) and `fun_random*` (the per-element appearance editor's own
+     * randomiser, already applied through `applyAppearanceToDom`) are set aside. These
+     * are the tone, celebration and effect controls the dials themselves do not cover
+     * yet: real settings, persisted and restored, without a renderer for confetti or a
+     * mascot behind them yet. */
+    fun: ['fun_copy', 'fun_celebrate', 'fun_confetti', 'fun_sound', 'fun_mascot', 'fun_easter'],
+    /* Customise > Motion. `ap_anim`/`ap_dur`/`ap_ease` already drive the per-element
+     * appearance editor's own transitions; these are the console-wide defaults a
+     * screen transition or a dialog entrance falls back to before any per-element
+     * override applies. */
+    motion: ['mo_speed', 'mo_screen', 'mo_reduce', 'mo_hover'],
+    /* Customise > Layout. Global defaults for rail position, density and the tab
+     * strip -- distinct from the Quick settings screen's own `p_density`, which is
+     * that screen's own working copy rather than the console-wide default. */
+    layout: ['ly_dock', 'ly_density', 'ly_tabs', 'ly_mono'],
+    /* Customise > Theme's global accent, mode and rainbow settings. These sit
+     * alongside, and do not replace, the per-element appearance editor's own
+     * `ap_hue`/`ap_sat`/`ap_rainbow` -- the screen's own intro says every element can
+     * still override this global layer from its own right-click menu. */
+    accentTheme: ['th_mode', 'th_hue', 'th_sat', 'th_contrast', 'th_rainbow', 'th_rbspeed'],
+    /* Customise > Behaviour. What the console opens to, how much ceremony a
+     * destructive action gets, and whether the wizard and tour offer themselves. */
+    behavior: ['bh_start', 'bh_confirm', 'bh_commit', 'bh_lockdefault', 'bh_wizard', 'bh_explain', 'bh_tour'],
+    /* Customise > Profiles. Which named profile is active and whether it follows
+     * agent memory. `pr_perscreen` and `pr_export` are a separate piece of work: the
+     * classifier that scoped this batch already counted them as reaching something. */
+    profile: ['pr_active', 'pr_sync'],
   };
 
   private static readonly CONSOLE_SETTING_PREFIX = 'console.setting.';
@@ -849,9 +880,9 @@ export class App extends Base {
   private fileSupportTicket(): void {
     const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
     const result = openTicket({
-      category: String(values.sup_category ?? 'Something else') as TicketCategory,
-      description: String(values.sup_description ?? ''),
-      severity: String(values.sup_severity ?? 'Normal') as TicketSeverity,
+      category: String(values['sup_category'] ?? 'Something else') as TicketCategory,
+      description: String(values['sup_description'] ?? ''),
+      severity: String(values['sup_severity'] ?? 'Normal') as TicketSeverity,
       openedAt: new Date().toISOString(),
       draw: Math.random(),
     });
@@ -1000,7 +1031,7 @@ What you can do: ${offered}.` : ''}`);
       this.fire(name, 'Type a PIN or password in the field above first.');
       return;
     }
-    const raw = (this.state as { values?: Record<string, unknown> }).values?.school_method;
+    const raw = (this.state as { values?: Record<string, unknown> }).values?.['school_method'];
     const method: CredentialMethod = raw === 'password' ? 'password' : 'pin';
     setCredential(this.durableStorage.storage, method, secret);
     this.refreshSchoolStatus();
@@ -1614,11 +1645,11 @@ What you can do: ${offered}.` : ''}`);
   private addSettingsSource(): void {
     const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
     const draft: SourceDraft = {
-      url: String(values.src_url ?? ''),
-      kind: values.src_kind === 'home-assistant' ? 'home-assistant' : 'https-api',
-      entityId: String(values.src_entity ?? ''),
-      allowedKeys: String(values.src_keys ?? ''),
-      credentialKey: String(values.src_credential ?? ''),
+      url: String(values['src_url'] ?? ''),
+      kind: values['src_kind'] === 'home-assistant' ? 'home-assistant' : 'https-api',
+      entityId: String(values['src_entity'] ?? ''),
+      allowedKeys: String(values['src_keys'] ?? ''),
+      credentialKey: String(values['src_credential'] ?? ''),
     };
     const existing = loadSources(this.durableStorage.storage);
     const built = buildSource(draft, `src-${existing.length + 1}-${Date.now()}`);
@@ -1875,6 +1906,23 @@ What you can do: ${offered}.` : ''}`);
     if (control?.id === 'ed_choice' && typeof value === 'string') {
       const editor = KNOWN_EDITORS.find((candidate) => candidate.name === value);
       if (editor) chooseEditor(this.durableStorage.storage, editor.id);
+    }
+    if (control?.id === 'ed_custom_name' || control?.id === 'ed_custom_path') {
+      /* Neither field alone names an editor; a candidate is built from both, using the
+       * value this change is carrying for the one that just changed and whatever the
+       * other field already held. Saved only once it passes the same validation the
+       * editor screen's info text promises -- a bare executable, never a command line. */
+      const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+      const candidate: CustomEditor = {
+        name: String(control.id === 'ed_custom_name' ? value : values['ed_custom_name'] ?? ''),
+        executable: String(control.id === 'ed_custom_path' ? value : values['ed_custom_path'] ?? ''),
+      };
+      if (validateCustomEditor(candidate).length === 0) {
+        saveCustomEditor(this.durableStorage.storage, candidate);
+        chooseEditor(this.durableStorage.storage, CUSTOM_EDITOR_ID);
+      }
+      /* Falls through to baseSetVal: the field must keep showing what was typed even
+       * before both halves are complete enough to save. */
     }
     if (control?.id === 'ed_clear' && value === true) {
       clearEditorChoice(this.durableStorage.storage);
