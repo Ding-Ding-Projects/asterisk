@@ -65,7 +65,16 @@ body {
   line-height: 1.4;
 }
 
-.update-banner a { color: #8fd08f; }
+/* The link is one line of text, so its box was 15px tall -- under the 24px floor this app
+ * declares for itself in accessibility-contract.ts. Padding grows the clickable region
+ * without changing where the text sits. */
+.update-banner a {
+  color: #8fd08f;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 2px;
+}
 
 .update-banner button {
   border: 1px solid #4a5a44;

@@ -105,7 +105,7 @@ function Template(v: any) {
               ($t.pinned ? h("span", { style: sty(`font-size:14px; color:#8FA394;`), className: "msym" },
                   "push_pin"
                 ) : null),
-              h("button", { onClick: fn($t.close), style: sty(`width:20px; height:20px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h6" },
+              h("button", { onClick: fn($t.close), style: sty(`width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h6" },
                 h("span", { style: sty(`font-size:14px;`), className: "msym" },
                   "close"
                 )
@@ -122,7 +122,7 @@ function Template(v: any) {
               ($t.pinned ? h("span", { style: sty(`font-size:14px; color:#778078;`), className: "msym" },
                   "push_pin"
                 ) : null),
-              h("button", { onClick: fn($t.close), style: sty(`width:20px; height:20px; border-radius:50%; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h6" },
+              h("button", { onClick: fn($t.close), style: sty(`width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h6" },
                 h("span", { style: sty(`font-size:14px;`), className: "msym" },
                   "close"
                 )
@@ -1097,7 +1097,7 @@ function Template(v: any) {
                               h("span", { style: sty(`flex:1; font-size:11.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
                                 S($e.to)
                               ),
-                              h("button", { onClick: fn($e.del), title: `Remove`, style: sty(`width:22px; height:22px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h5" },
+                              h("button", { onClick: fn($e.del), title: `Remove`, style: sty(`width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h5" },
                                 h("span", { style: sty(`font-size:14px;`), className: "msym" },
                                   "close"
                                 )
@@ -1178,7 +1178,7 @@ function Template(v: any) {
                     )
                   ) : null),
                 h("div", { style: sty(`display:grid; grid-template-columns:44px ${S(v.tableGrid)}; gap:10px; padding:8px 16px; background:#141A15; font-size:11px; letter-spacing:.7px; text-transform:uppercase; color:#8FA394; font-weight:500; align-items:center;`) },
-                  h("button", { onClick: fn(v.toggleAll), title: `Select all`, style: sty(`width:20px; height:20px; border-radius:5px; border:2px solid ${S(v.allBorder)}; background:${S(v.allBg)}; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;`) },
+                  h("button", { onClick: fn(v.toggleAll), title: `Select all`, style: sty(`width:24px; height:24px; border-radius:5px; border:2px solid ${S(v.allBorder)}; background:${S(v.allBg)}; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;`) },
                     h("span", { style: sty(`font-size:15px; color:#00391F;`), className: "msym" },
                       S(v.allIcon)
                     )
@@ -1188,7 +1188,7 @@ function Template(v: any) {
                     )))
                 ),
                 A(v.tableRows).map(($r, $r$i) => R($r$i, h("div", { onContextMenu: fn($r.ctx), style: sty(`display:grid; grid-template-columns:44px ${S(v.tableGrid)}; gap:10px; padding:12px 16px; border-top:1px solid #262B26; cursor:pointer; align-items:center; background:${S($r.bg)}; animation:m3Slide .26s cubic-bezier(.2,0,0,1) both; ${S($r.rnd)}`), className: "k-h16" },
-                    h("button", { onClick: fn($r.toggle), style: sty(`width:20px; height:20px; border-radius:5px; border:2px solid ${S($r.border)}; background:${S($r.checkBg)}; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;`) },
+                    h("button", { onClick: fn($r.toggle), style: sty(`width:24px; height:24px; border-radius:5px; border:2px solid ${S($r.border)}; background:${S($r.checkBg)}; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;`) },
                       h("span", { style: sty(`font-size:15px; color:#00391F;`), className: "msym" },
                         S($r.checkIcon)
                       )
@@ -1226,7 +1226,7 @@ function Template(v: any) {
                           h("span", { style: sty(`font-size:12px; font-weight:500; color:#C4CBC2;`) },
                             S($s.label)
                           ),
-                          h("button", { onClick: fn($s.info), style: sty(`width:20px; height:20px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center;`), className: "k-h11" },
+                          h("button", { onClick: fn($s.info), style: sty(`width:24px; height:24px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center;`), className: "k-h11" },
                             h("span", { style: sty(`font-size:14px;`), className: "msym" },
                               "info"
                             )

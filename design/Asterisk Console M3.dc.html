@@ -124,7 +124,7 @@
           <span class="msym" style="font-size:16px; color:#82D9A5; flex:0 0 auto;">{{ t.icon }}</span>
           <span style="flex:1; font-size:12.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ t.label }}</span>
           <sc-if value="{{ t.pinned }}" hint-placeholder-val="{{ true }}"><span class="msym" style="font-size:14px; color:#8FA394;">push_pin</span></sc-if>
-          <button onClick="{{ t.close }}" style="width:20px; height:20px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#333B34; color:#FFB4AB;"><span class="msym" style="font-size:14px;">close</span></button>
+          <button onClick="{{ t.close }}" style="width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#333B34; color:#FFB4AB;"><span class="msym" style="font-size:14px;">close</span></button>
         </div>
       </sc-if>
       <sc-if value="{{ t.off }}">
@@ -133,7 +133,7 @@
           <span class="msym" style="font-size:16px; color:#8FA394; flex:0 0 auto;">{{ t.icon }}</span>
           <span style="flex:1; font-size:12.5px; color:#9AA39B; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ t.label }}</span>
           <sc-if value="{{ t.pinned }}" hint-placeholder-val="{{ true }}"><span class="msym" style="font-size:14px; color:#778078;">push_pin</span></sc-if>
-          <button onClick="{{ t.close }}" style="width:20px; height:20px; border-radius:50%; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#333B34; color:#FFB4AB;"><span class="msym" style="font-size:14px;">close</span></button>
+          <button onClick="{{ t.close }}" style="width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#333B34; color:#FFB4AB;"><span class="msym" style="font-size:14px;">close</span></button>
         </div>
       </sc-if>
     </sc-for>
@@ -748,7 +748,7 @@
                           <span style="flex:1; font-size:11.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ e.from }}</span>
                           <span class="msym" style="font-size:15px; color:#82D9A5;">arrow_forward</span>
                           <span style="flex:1; font-size:11.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ e.to }}</span>
-                          <button onClick="{{ e.del }}" title="Remove" style="width:22px; height:22px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;" style-hover="background:#93000A; color:#fff;"><span class="msym" style="font-size:14px;">close</span></button>
+                          <button onClick="{{ e.del }}" title="Remove" style="width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;" style-hover="background:#93000A; color:#fff;"><span class="msym" style="font-size:14px;">close</span></button>
                         </div>
                         <div style="font-size:10.5px; color:#8FA394; margin-top:7px;">Goes to</div>
                         <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;">
@@ -802,12 +802,12 @@
               </div>
             </sc-if>
             <div style="display:grid; grid-template-columns:44px {{ tableGrid }}; gap:10px; padding:8px 16px; background:#141A15; font-size:11px; letter-spacing:.7px; text-transform:uppercase; color:#8FA394; font-weight:500; align-items:center;">
-              <button onClick="{{ toggleAll }}" title="Select all" style="width:20px; height:20px; border-radius:5px; border:2px solid {{ allBorder }}; background:{{ allBg }}; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;"><span class="msym" style="font-size:15px; color:#00391F;">{{ allIcon }}</span></button>
+              <button onClick="{{ toggleAll }}" title="Select all" style="width:24px; height:24px; border-radius:5px; border:2px solid {{ allBorder }}; background:{{ allBg }}; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;"><span class="msym" style="font-size:15px; color:#00391F;">{{ allIcon }}</span></button>
               <sc-for list="{{ tableCols }}" as="h" hint-placeholder-count="5"><div>{{ h }}</div></sc-for>
             </div>
             <sc-for list="{{ tableRows }}" as="r" hint-placeholder-count="6">
               <div onContextMenu="{{ r.ctx }}" style="display:grid; grid-template-columns:44px {{ tableGrid }}; gap:10px; padding:12px 16px; border-top:1px solid #262B26; cursor:pointer; align-items:center; background:{{ r.bg }}; animation:m3Slide .26s cubic-bezier(.2,0,0,1) both; {{ r.rnd }}" style-hover="background:#232A24;">
-                <button onClick="{{ r.toggle }}" style="width:20px; height:20px; border-radius:5px; border:2px solid {{ r.border }}; background:{{ r.checkBg }}; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;"><span class="msym" style="font-size:15px; color:#00391F;">{{ r.checkIcon }}</span></button>
+                <button onClick="{{ r.toggle }}" style="width:24px; height:24px; border-radius:5px; border:2px solid {{ r.border }}; background:{{ r.checkBg }}; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;"><span class="msym" style="font-size:15px; color:#00391F;">{{ r.checkIcon }}</span></button>
                 <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="5">
                   <sc-if value="{{ c.isChip }}" hint-placeholder-val="{{ true }}">
                     <div><span style="display:inline-flex; align-items:center; gap:5px; background:{{ c.bg }}; color:{{ c.fg }}; border-radius:8px; padding:3px 10px; font-size:11.5px; font-weight:500;"><span style="width:6px; height:6px; border-radius:50%; background:{{ c.fg }};"></span>{{ c.text }}</span></div>
@@ -835,7 +835,7 @@
                   <div>
                     <div style="display:flex; align-items:center; gap:7px; margin-bottom:7px;">
                       <span style="font-size:12px; font-weight:500; color:#C4CBC2;">{{ s.label }}</span>
-                      <button onClick="{{ s.info }}" style="width:20px; height:20px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center;" style-hover="background:#005230;"><span class="msym" style="font-size:14px;">info</span></button>
+                      <button onClick="{{ s.info }}" style="width:24px; height:24px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center;" style-hover="background:#005230;"><span class="msym" style="font-size:14px;">info</span></button>
                     </div>
                     <div style="display:flex; flex-wrap:wrap; gap:7px;">
                       <sc-for list="{{ s.options }}" as="o" hint-placeholder-count="4">

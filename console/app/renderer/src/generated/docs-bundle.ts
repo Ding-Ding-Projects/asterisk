@@ -24,7 +24,7 @@ export interface DocsBundle {
 
 export const DOCS_BUNDLE: DocsBundle = {
   "generatedAt": "1970-01-01T00:00:00.000Z",
-  "articleCount": 86,
+  "articleCount": 87,
   "articles": [
     {
       "id": "agent/hub",
@@ -1363,6 +1363,41 @@ export const DOCS_BUNDLE: DocsBundle = {
         "README.md"
       ],
       "body": "# Bounded, self-painting overlays\n\nEvery popover, menu, and tooltip paints its own background and elevation and stays fully inside the viewport, scrolling internally rather than clipping content.\n\n## Behavior\n\nOverlays are meant to never render transparent over whatever sits behind them, and to bound their height to the available space, scrolling their own content rather than silently truncating it.\n\n## Configuration\n\nAn overlay would never cover the control that opened it and would remain reachable and legible at every supported display scale.\n\n## Current status\n\n**Desktop application:** Partial. The desktop application's menus and popovers generally paint an opaque background and stay within the window, but have not been systematically verified against the viewport-bounding and internal-scroll requirements at every scale.\n\n**Documentation website:** Partial. The site has a small number of overlay elements, such as the command-palette filter overlay, that paint an opaque surface and stay within the viewport in ordinary use, but have not been stress-tested at extreme viewport sizes.\n\n## Failure modes\n\nAn overlay taller than the available viewport is meant to scroll its own content rather than clip the bottom entries silently out of view; this has not been verified as the actual behavior on either surface at extreme sizes.\n\n## Accessibility and localization\n\nThis feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.\n\n## Verification\n\nNo automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.\n\n## Suggested articles\n\n[Material appearance system](material-appearance.md), [Command palette](command-palette.md), [Platform feature index](README.md).\n"
+    },
+    {
+      "id": "platform/branch-integration",
+      "category": "platform",
+      "title": "Why forty-eight branches are still unmerged",
+      "headings": [
+        {
+          "title": "Behavior",
+          "id": "behavior"
+        },
+        {
+          "title": "Configuration",
+          "id": "configuration"
+        },
+        {
+          "title": "Failure modes",
+          "id": "failure-modes"
+        },
+        {
+          "title": "Security considerations",
+          "id": "security-considerations"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Suggested articles",
+          "id": "suggested-articles"
+        }
+      ],
+      "links": [
+        "unbound-controls.md"
+      ],
+      "body": "# Why forty-eight branches are still unmerged\n\nForty-eight branches sit beside `master`, none of them an ancestor of it, every one holding\ncommits that are not on the default branch. That looks like a backlog nobody has got round to.\nIt is not: it was measured on 2026-08-24, and the reason each group is still separate is\nrecorded here so the same afternoon is not spent again.\n\n## Behavior\n\nNothing is at risk. Every one of the forty-eight is byte-identical on the remote — checked\nbranch by branch with `git ls-remote`, not assumed — so the work exists in two places and\ncleanup can never be the thing that loses it.\n\nThe branches divide cleanly:\n\n| Group | Count | State |\n| --- | --- | --- |\n| Conflict on merge | 26 | `git merge-tree` reports conflicts against `master` |\n| Merge cleanly, tree does not build | 20 | merged into a scratch branch; 57 type errors |\n| Merge refused during the batch | 2 | conflicted against an earlier branch in the same batch |\n\nThe middle group is the interesting one, because \"merges cleanly\" reads as \"ready to land\" and\nis not the same claim at all. Git merging without conflict means no two branches touched the\nsame lines. It says nothing about whether the result compiles, and here it does not.\n\n## Configuration\n\nNothing here is configurable. Reproduce the measurement with:\n\n```\ngit merge-tree --write-tree origin/master <branch>\n```\n\nfor the conflict split, then merge the clean ones onto a scratch branch and run the ordinary\nbuild.\n\n## Failure modes\n\nThe 57 errors are not scattered noise. Twenty-six of them are TS2339 — a property that does\nnot exist — across thirteen files, which is the signature of two branches carrying different\nversions of the same API rather than of one broken file. Two smaller instances were fixed\nwhile measuring, and both had that same shape:\n\n- Three changelog articles arrived without a top-level `# Title`, which the documentation\n  bundler requires. Straightforward, and they only exist on those branches.\n- `applyVocabularyText` was changed on one branch to take a classified boundary\n  (`{ text, boundary }`) instead of a bare string, while a caller on another branch still\n  passed a string. The fix is not to pick a boundary and hard-code it: `transformText` serves\n  both what a person reads and what a screen reader announces, so the caller has to say which,\n  and `alt` is an accessible name despite carrying no `aria-` prefix.\n\nFixing the remaining fifty-odd would mean reconciling two API generations across other\nsessions' work, blind, in a console that configures a real telephone exchange. A tree that\ncompiles is not evidence that it still behaves; that is a project with its own verification,\nnot a step in a cleanup pass.\n\n**So none of them were deleted, and none were force-merged.** A tidy branch list is not worth\nlosing work, and an integration nobody verified is worse than an unmerged branch, because it\nlooks finished.\n\n## Security considerations\n\nNone specific. The usual rule applies with more force than usual here: never resolve a merge\nconflict in a configuration writer by picking whichever side compiles. A wrong Asterisk key\ndoes not fail loudly — it writes a line that looks correct and the exchange obeys it.\n\n## Verification\n\n`git merge-base --is-ancestor <branch> origin/master` is the proof that must pass before any\nbranch is removed. On 2026-08-24 it passed for none of them, which is exactly why the cleanup\nhalf of that pass deleted nothing.\n\n## Suggested articles\n\n[Controls that do not write to a file](unbound-controls.md).\n"
     },
     {
       "id": "platform/browser-extension-download-surfaces",
