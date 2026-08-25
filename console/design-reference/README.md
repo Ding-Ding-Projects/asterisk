@@ -139,10 +139,18 @@ built application shows the target's real — and usually empty — readings. Th
 divergence: 47% to 64% of pixels differ, none was refused as unpainted or stale, and the
 side-by-side images show the same chrome beside different data.
 
-Moving a row to `verified` therefore needs two things that do not exist yet: a parity bar that
+Moving a row to `verified` therefore needs two things beyond the captures: a parity bar that
 compares chrome and layout with the data-bearing regions excluded, and a real Material Design 3
-conformance audit per destination. No `materialAudit` file was written, deliberately — a generated
-audit nobody performed would be an invented verdict, and the guard is right to refuse a row without
+conformance audit per destination. **Both now exist.** The bar is described in
+[docs/evidence/design-parity-chrome-bar.md](../docs/evidence/design-parity-chrome-bar.md); the audit
+in [docs/evidence/design-parity-material-audit.md](../docs/evidence/design-parity-material-audit.md).
+
+The audit was withheld for several passes on the grounds that a generated audit nobody performed
+would be an invented verdict. That objection is right, and it is what shaped the auditor rather than
+what prevented it: `conforms` is computed as `defects.length === 0` from findings taken out of the
+rendered markup, no argument can set it, and every check can only ever add a defect. It cannot
+report a conformance it did not measure. Run over all 32 destinations it found **none of them
+conforming**, so the guard still refuses every row — now for a measured reason rather than an absent
 one.
 
 One destination has no built capture at all: the built application's `<h1>` on About reads

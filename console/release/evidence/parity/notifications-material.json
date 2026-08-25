@@ -1,0 +1,1611 @@
+{
+  "destinationId": "notifications",
+  "bar": "material-design-3",
+  "conforms": false,
+  "defects": [
+    "typeScale: 46 divergence(s) from the Material Design 3 specification (e.g. 13px, 12.5px, 11.5px)",
+    "iconSize: 59 divergence(s) from the Material Design 3 specification (e.g. 15px, 16px, 19px)",
+    "shapeScale: 11 divergence(s) from the Material Design 3 specification (e.g. 10px, 7px, 18px)",
+    "elevation: 1 divergence(s) from the Material Design 3 specification (e.g. 0 2px 6px rgba(0,0,0,.4))",
+    "stateLayer: 35 divergence(s) from the Material Design 3 specification (e.g. #34412f, #333b34, #005230)",
+    "touchTarget: 29 divergence(s) from the Material Design 3 specification (e.g. height 28px, width 32px, height 32px, width 34px, height 32px)",
+    "motion: 28 divergence(s) from the Material Design 3 specification (e.g. 2400ms, 220ms, cubic-bezier(.2,1.3,.4,1))"
+  ],
+  "elementsAudited": 265,
+  "interactionRulesAudited": 57,
+  "checks": [
+    {
+      "check": "typeScale",
+      "divergences": 46,
+      "conforms": false
+    },
+    {
+      "check": "iconSize",
+      "divergences": 59,
+      "conforms": false
+    },
+    {
+      "check": "shapeScale",
+      "divergences": 11,
+      "conforms": false
+    },
+    {
+      "check": "elevation",
+      "divergences": 1,
+      "conforms": false
+    },
+    {
+      "check": "stateLayer",
+      "divergences": 35,
+      "conforms": false
+    },
+    {
+      "check": "touchTarget",
+      "divergences": 29,
+      "conforms": false
+    },
+    {
+      "check": "motion",
+      "divergences": 28,
+      "conforms": false
+    }
+  ],
+  "findings": {
+    "typeScale": [
+      {
+        "element": "<span> (element 6)",
+        "property": "font-size",
+        "measured": "13px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<button.k-h0> (element 8)",
+        "property": "font-size",
+        "measured": "13px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<button.k-h0> (element 9)",
+        "property": "font-size",
+        "measured": "13px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<button.k-h0> (element 10)",
+        "property": "font-size",
+        "measured": "13px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<button.k-h0> (element 11)",
+        "property": "font-size",
+        "measured": "13px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<button.k-h0> (element 12)",
+        "property": "font-size",
+        "measured": "13px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<button.k-h0> (element 13)",
+        "property": "font-size",
+        "measured": "13px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<button.k-h0> (element 14)",
+        "property": "font-size",
+        "measured": "13px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 40)",
+        "property": "font-size",
+        "measured": "12.5px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 46)",
+        "property": "font-size",
+        "measured": "12.5px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 51)",
+        "property": "font-size",
+        "measured": "12.5px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<div> (element 99)",
+        "property": "font-size",
+        "measured": "12.5px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 103)",
+        "property": "font-size",
+        "measured": "11.5px",
+        "nearestSpecValue": "11px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 109)",
+        "property": "font-size",
+        "measured": "13.5px",
+        "nearestSpecValue": "14px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 113)",
+        "property": "font-size",
+        "measured": "13.5px",
+        "nearestSpecValue": "14px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 117)",
+        "property": "font-size",
+        "measured": "13.5px",
+        "nearestSpecValue": "14px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 121)",
+        "property": "font-size",
+        "measured": "13.5px",
+        "nearestSpecValue": "14px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 125)",
+        "property": "font-size",
+        "measured": "13.5px",
+        "nearestSpecValue": "14px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 129)",
+        "property": "font-size",
+        "measured": "13.5px",
+        "nearestSpecValue": "14px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 133)",
+        "property": "font-size",
+        "measured": "13.5px",
+        "nearestSpecValue": "14px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 137)",
+        "property": "font-size",
+        "measured": "13.5px",
+        "nearestSpecValue": "14px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 141)",
+        "property": "font-size",
+        "measured": "13.5px",
+        "nearestSpecValue": "14px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 145)",
+        "property": "font-size",
+        "measured": "13.5px",
+        "nearestSpecValue": "14px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 149)",
+        "property": "font-size",
+        "measured": "11.5px",
+        "nearestSpecValue": "11px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<p> (element 155)",
+        "property": "font-size",
+        "measured": "13px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<button.k-h10> (element 157)",
+        "property": "font-size",
+        "measured": "13px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<button.k-h12> (element 159)",
+        "property": "font-size",
+        "measured": "13px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<div> (element 165)",
+        "property": "font-size",
+        "measured": "13.5px",
+        "nearestSpecValue": "14px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<div> (element 166)",
+        "property": "font-size",
+        "measured": "11.5px",
+        "nearestSpecValue": "11px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<button> (element 167)",
+        "property": "font-size",
+        "measured": "12.5px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 176)",
+        "property": "font-size",
+        "measured": "12.5px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<button.k-h3> (element 181)",
+        "property": "font-size",
+        "measured": "13px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<div> (element 190)",
+        "property": "font-size",
+        "measured": "13px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<div> (element 194)",
+        "property": "font-size",
+        "measured": "15.5px",
+        "nearestSpecValue": "16px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<div> (element 195)",
+        "property": "font-size",
+        "measured": "12.5px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<button.k-h1> (element 196)",
+        "property": "font-size",
+        "measured": "12.5px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 201)",
+        "property": "font-size",
+        "measured": "12.5px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 211)",
+        "property": "font-size",
+        "measured": "12.5px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 214)",
+        "property": "font-size",
+        "measured": "12.5px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 223)",
+        "property": "font-size",
+        "measured": "12.5px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 226)",
+        "property": "font-size",
+        "measured": "12.5px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 241)",
+        "property": "font-size",
+        "measured": "12.5px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 250)",
+        "property": "font-size",
+        "measured": "12.5px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 253)",
+        "property": "font-size",
+        "measured": "12.5px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<span> (element 259)",
+        "property": "font-size",
+        "measured": "12.5px",
+        "nearestSpecValue": "12px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      },
+      {
+        "element": "<input> (element 262)",
+        "property": "font-size",
+        "measured": "13.5px",
+        "nearestSpecValue": "14px",
+        "why": "the Material Design 3 type scale has 15 sizes and this is not one of them"
+      }
+    ],
+    "iconSize": [
+      {
+        "element": "<span.msym> (element 24)",
+        "property": "font-size (icon glyph)",
+        "measured": "15px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 27)",
+        "property": "font-size (icon glyph)",
+        "measured": "16px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 29)",
+        "property": "font-size (icon glyph)",
+        "measured": "19px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 32)",
+        "property": "font-size (icon glyph)",
+        "measured": "17px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 34)",
+        "property": "font-size (icon glyph)",
+        "measured": "15px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 36)",
+        "property": "font-size (icon glyph)",
+        "measured": "17px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 39)",
+        "property": "font-size (icon glyph)",
+        "measured": "16px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 41)",
+        "property": "font-size (icon glyph)",
+        "measured": "14px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 43)",
+        "property": "font-size (icon glyph)",
+        "measured": "14px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 45)",
+        "property": "font-size (icon glyph)",
+        "measured": "16px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 48)",
+        "property": "font-size (icon glyph)",
+        "measured": "14px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 50)",
+        "property": "font-size (icon glyph)",
+        "measured": "16px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 53)",
+        "property": "font-size (icon glyph)",
+        "measured": "14px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 55)",
+        "property": "font-size (icon glyph)",
+        "measured": "18px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 60)",
+        "property": "font-size (icon glyph)",
+        "measured": "16px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 62)",
+        "property": "font-size (icon glyph)",
+        "measured": "16px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 64)",
+        "property": "font-size (icon glyph)",
+        "measured": "16px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 66)",
+        "property": "font-size (icon glyph)",
+        "measured": "16px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 71)",
+        "property": "font-size (icon glyph)",
+        "measured": "22px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 75)",
+        "property": "font-size (icon glyph)",
+        "measured": "22px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 79)",
+        "property": "font-size (icon glyph)",
+        "measured": "22px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 83)",
+        "property": "font-size (icon glyph)",
+        "measured": "22px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 87)",
+        "property": "font-size (icon glyph)",
+        "measured": "22px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 91)",
+        "property": "font-size (icon glyph)",
+        "measured": "22px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 102)",
+        "property": "font-size (icon glyph)",
+        "measured": "17px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 105)",
+        "property": "font-size (icon glyph)",
+        "measured": "15px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 108)",
+        "property": "font-size (icon glyph)",
+        "measured": "19px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 112)",
+        "property": "font-size (icon glyph)",
+        "measured": "19px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 116)",
+        "property": "font-size (icon glyph)",
+        "measured": "19px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 120)",
+        "property": "font-size (icon glyph)",
+        "measured": "19px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 124)",
+        "property": "font-size (icon glyph)",
+        "measured": "19px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 128)",
+        "property": "font-size (icon glyph)",
+        "measured": "19px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 132)",
+        "property": "font-size (icon glyph)",
+        "measured": "19px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 136)",
+        "property": "font-size (icon glyph)",
+        "measured": "19px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 140)",
+        "property": "font-size (icon glyph)",
+        "measured": "19px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 144)",
+        "property": "font-size (icon glyph)",
+        "measured": "19px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 148)",
+        "property": "font-size (icon glyph)",
+        "measured": "17px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 158)",
+        "property": "font-size (icon glyph)",
+        "measured": "18px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 160)",
+        "property": "font-size (icon glyph)",
+        "measured": "18px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 171)",
+        "property": "font-size (icon glyph)",
+        "measured": "18px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 174)",
+        "property": "font-size (icon glyph)",
+        "measured": "16px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 178)",
+        "property": "font-size (icon glyph)",
+        "measured": "15px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 182)",
+        "property": "font-size (icon glyph)",
+        "measured": "18px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 185)",
+        "property": "font-size (icon glyph)",
+        "measured": "15px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 197)",
+        "property": "font-size (icon glyph)",
+        "measured": "16px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 203)",
+        "property": "font-size (icon glyph)",
+        "measured": "14px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 205)",
+        "property": "font-size (icon glyph)",
+        "measured": "14px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 210)",
+        "property": "font-size (icon glyph)",
+        "measured": "16px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 216)",
+        "property": "font-size (icon glyph)",
+        "measured": "14px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 218)",
+        "property": "font-size (icon glyph)",
+        "measured": "14px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 228)",
+        "property": "font-size (icon glyph)",
+        "measured": "14px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 230)",
+        "property": "font-size (icon glyph)",
+        "measured": "14px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 234)",
+        "property": "font-size (icon glyph)",
+        "measured": "14px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 236)",
+        "property": "font-size (icon glyph)",
+        "measured": "14px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 243)",
+        "property": "font-size (icon glyph)",
+        "measured": "14px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 245)",
+        "property": "font-size (icon glyph)",
+        "measured": "14px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 255)",
+        "property": "font-size (icon glyph)",
+        "measured": "14px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 257)",
+        "property": "font-size (icon glyph)",
+        "measured": "14px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      },
+      {
+        "element": "<span.msym> (element 264)",
+        "property": "font-size (icon glyph)",
+        "measured": "17px",
+        "nearestSpecValue": "20px",
+        "why": "Material Design 3 icons are drawn at 20/24/40/48dp"
+      }
+    ],
+    "shapeScale": [
+      {
+        "element": "<div.k-h7> (element 38)",
+        "property": "border-radius",
+        "measured": "10px",
+        "nearestSpecValue": "8px",
+        "why": "the Material Design 3 shape scale is none/4/8/12/16/28dp plus full"
+      },
+      {
+        "element": "<div.k-h7> (element 44)",
+        "property": "border-radius",
+        "measured": "10px",
+        "nearestSpecValue": "8px",
+        "why": "the Material Design 3 shape scale is none/4/8/12/16/28dp plus full"
+      },
+      {
+        "element": "<div.k-h7> (element 49)",
+        "property": "border-radius",
+        "measured": "10px",
+        "nearestSpecValue": "8px",
+        "why": "the Material Design 3 shape scale is none/4/8/12/16/28dp plus full"
+      },
+      {
+        "element": "<button> (element 59)",
+        "property": "border-radius",
+        "measured": "7px",
+        "nearestSpecValue": "8px",
+        "why": "the Material Design 3 shape scale is none/4/8/12/16/28dp plus full"
+      },
+      {
+        "element": "<button.k-h9> (element 61)",
+        "property": "border-radius",
+        "measured": "7px",
+        "nearestSpecValue": "8px",
+        "why": "the Material Design 3 shape scale is none/4/8/12/16/28dp plus full"
+      },
+      {
+        "element": "<button.k-h9> (element 63)",
+        "property": "border-radius",
+        "measured": "7px",
+        "nearestSpecValue": "8px",
+        "why": "the Material Design 3 shape scale is none/4/8/12/16/28dp plus full"
+      },
+      {
+        "element": "<button.k-h9> (element 65)",
+        "property": "border-radius",
+        "measured": "7px",
+        "nearestSpecValue": "8px",
+        "why": "the Material Design 3 shape scale is none/4/8/12/16/28dp plus full"
+      },
+      {
+        "element": "<button.k-h3> (element 94)",
+        "property": "border-radius",
+        "measured": "18px",
+        "nearestSpecValue": "16px",
+        "why": "the Material Design 3 shape scale is none/4/8/12/16/28dp plus full"
+      },
+      {
+        "element": "<button> (element 184)",
+        "property": "border-radius",
+        "measured": "5px",
+        "nearestSpecValue": "4px",
+        "why": "the Material Design 3 shape scale is none/4/8/12/16/28dp plus full"
+      },
+      {
+        "element": "<input> (element 262)",
+        "property": "border-radius",
+        "measured": "10px",
+        "nearestSpecValue": "8px",
+        "why": "the Material Design 3 shape scale is none/4/8/12/16/28dp plus full"
+      },
+      {
+        "element": "<button.c-h0> (element 263)",
+        "property": "border-radius",
+        "measured": "9px",
+        "nearestSpecValue": "8px",
+        "why": "the Material Design 3 shape scale is none/4/8/12/16/28dp plus full"
+      }
+    ],
+    "elevation": [
+      {
+        "element": "<button.k-h3> (element 94)",
+        "property": "box-shadow",
+        "measured": "0 2px 6px rgba(0,0,0,.4)",
+        "nearestSpecValue": "a two-layer Material Design 3 elevation (a key shadow plus an ambient shadow) at one of levels 0-5",
+        "why": "every Material Design 3 elevation level is drawn as two shadow layers; this declares 1"
+      }
+    ],
+    "stateLayer": [
+      {
+        "element": ".update-banner button:hover",
+        "property": "background",
+        "measured": "#34412f",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".attn-rail-momentum-dismiss:hover",
+        "property": "background",
+        "measured": "#34412f",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".palette-row:hover",
+        "property": "background",
+        "measured": "#333b34",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": "/* The arrow-key highlight. Real DOM focus stays on .palette-field the whole time the\n * palette is open (see listenForPaletteChord in App.tsx, which drives selection off\n * window-level keydown rather than moving focus row to row), so this class is the ONLY\n * visible sign of which row Enter will activate -- it gets the app's accent treatment\n * rather than the plain grey of an ordinary hover, so it reads as a selection and not a\n * mouse-over that happens to be sitting there. */\n.palette-row-on,\n.palette-row-on:hover",
+        "property": "background",
+        "measured": "#005230",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": "/* style-hover and style-active from the design reference. */\n.c-h0:hover",
+        "property": "background",
+        "measured": "#005230",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".c-h1:hover",
+        "property": "background",
+        "measured": "#262B26",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".c-h2:hover",
+        "property": "background",
+        "measured": "#262B26",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".c-h3:hover",
+        "property": "background",
+        "measured": "#005230",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".c-h4:hover",
+        "property": "background",
+        "measured": "#005230",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".c-h5:hover",
+        "property": "background",
+        "measured": "#262B26",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".c-h6:hover",
+        "property": "background",
+        "measured": "#93000A",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".c-h9:hover",
+        "property": "background",
+        "measured": "#262B26",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h0:hover",
+        "property": "background",
+        "measured": "#262B26",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h1:hover",
+        "property": "background",
+        "measured": "#262B26",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h2:hover",
+        "property": "background",
+        "measured": "#1B211C",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h3:hover",
+        "property": "background",
+        "measured": "#22633f",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h4:hover",
+        "property": "background",
+        "measured": "#262B26",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h5:hover",
+        "property": "background",
+        "measured": "#93000A",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h6:hover",
+        "property": "background",
+        "measured": "#333B34",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h7:hover",
+        "property": "background",
+        "measured": "#141A15",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h8:hover",
+        "property": "background",
+        "measured": "#1B211C",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h9:hover",
+        "property": "background",
+        "measured": "#1B211C",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h10:hover",
+        "property": "background",
+        "measured": "#1B211C",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h11:hover",
+        "property": "background",
+        "measured": "#005230",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h12:hover",
+        "property": "background",
+        "measured": "#9FF7C4",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h13:hover",
+        "property": "background",
+        "measured": "#005230",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h16:hover",
+        "property": "background",
+        "measured": "#232A24",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h18:hover",
+        "property": "background",
+        "measured": "#B3261E",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h19:hover",
+        "property": "background",
+        "measured": "#C3EFD5",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h21:hover",
+        "property": "background",
+        "measured": "#005230",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h22:hover",
+        "property": "background",
+        "measured": "#20281F",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h30:hover",
+        "property": "background",
+        "measured": "#333B34",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h31:hover",
+        "property": "background",
+        "measured": "#262B26",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h32:hover",
+        "property": "background",
+        "measured": "#333B34",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      },
+      {
+        "element": ".k-h33:hover",
+        "property": "background",
+        "measured": "#005230",
+        "nearestSpecValue": "a state layer: the element's own on-colour at 8% over its existing surface",
+        "why": "Material Design 3 communicates an interaction state with a translucent state layer, not by swapping the element to a different opaque colour"
+      }
+    ],
+    "touchTarget": [
+      {
+        "element": "<button.k-h1> (element 16)",
+        "property": "touch target",
+        "measured": "height 28px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.k-h3> (element 26)",
+        "property": "touch target",
+        "measured": "height 28px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.k-h4> (element 28)",
+        "property": "touch target",
+        "measured": "width 32px, height 32px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<div.k-h1> (element 31)",
+        "property": "touch target",
+        "measured": "width 34px, height 32px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<div.k-h1> (element 33)",
+        "property": "touch target",
+        "measured": "width 34px, height 32px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<div.k-h5> (element 35)",
+        "property": "touch target",
+        "measured": "width 34px, height 32px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.k-h6> (element 42)",
+        "property": "touch target",
+        "measured": "width 24px, height 24px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.k-h6> (element 47)",
+        "property": "touch target",
+        "measured": "width 24px, height 24px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.k-h6> (element 52)",
+        "property": "touch target",
+        "measured": "width 24px, height 24px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.k-h8> (element 54)",
+        "property": "touch target",
+        "measured": "width 30px, height 30px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button> (element 59)",
+        "property": "touch target",
+        "measured": "width 26px, height 26px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.k-h9> (element 61)",
+        "property": "touch target",
+        "measured": "width 26px, height 26px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.k-h9> (element 63)",
+        "property": "touch target",
+        "measured": "width 26px, height 26px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.k-h9> (element 65)",
+        "property": "touch target",
+        "measured": "width 26px, height 26px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.k-h11> (element 104)",
+        "property": "touch target",
+        "measured": "width 26px, height 26px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.k-h11> (element 173)",
+        "property": "touch target",
+        "measured": "width 28px, height 28px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button> (element 184)",
+        "property": "touch target",
+        "measured": "width 24px, height 24px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.c-h0> (element 202)",
+        "property": "touch target",
+        "measured": "width 24px, height 24px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.c-h0> (element 204)",
+        "property": "touch target",
+        "measured": "width 24px, height 24px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.c-h0> (element 215)",
+        "property": "touch target",
+        "measured": "width 24px, height 24px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.c-h0> (element 217)",
+        "property": "touch target",
+        "measured": "width 24px, height 24px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.c-h0> (element 227)",
+        "property": "touch target",
+        "measured": "width 24px, height 24px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.c-h0> (element 229)",
+        "property": "touch target",
+        "measured": "width 24px, height 24px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.c-h0> (element 242)",
+        "property": "touch target",
+        "measured": "width 24px, height 24px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.c-h0> (element 244)",
+        "property": "touch target",
+        "measured": "width 24px, height 24px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.c-h0> (element 254)",
+        "property": "touch target",
+        "measured": "width 24px, height 24px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.c-h0> (element 256)",
+        "property": "touch target",
+        "measured": "width 24px, height 24px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<input> (element 261)",
+        "property": "touch target",
+        "measured": "height 22px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      },
+      {
+        "element": "<button.c-h0> (element 263)",
+        "property": "touch target",
+        "measured": "width 32px, height 32px",
+        "nearestSpecValue": "48px",
+        "why": "Material Design 3 requires an interactive element to reach 48dp in both axes, and no expanded target is declared here"
+      }
+    ],
+    "motion": [
+      {
+        "element": "<span> (element 17)",
+        "property": "animation (duration)",
+        "measured": "2400ms",
+        "nearestSpecValue": "beyond the longest Material Design 3 duration token (1000ms)",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "<div.k-h7> (element 38)",
+        "property": "animation (duration)",
+        "measured": "220ms",
+        "nearestSpecValue": "200ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "<div.k-h7> (element 38)",
+        "property": "animation (easing)",
+        "measured": "cubic-bezier(.2,1.3,.4,1)",
+        "nearestSpecValue": "one of the Material Design 3 easing tokens (0.2,0,0,1 | 0,0,0,1 | 0.3,0,1,1 | 0.05,0.7,0.1,1 | 0.3,0,0.8,0.15)",
+        "why": "Material Design 3 motion uses its own easing tokens rather than an arbitrary curve"
+      },
+      {
+        "element": "<div.k-h7> (element 44)",
+        "property": "animation (duration)",
+        "measured": "220ms",
+        "nearestSpecValue": "200ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "<div.k-h7> (element 44)",
+        "property": "animation (easing)",
+        "measured": "cubic-bezier(.2,1.3,.4,1)",
+        "nearestSpecValue": "one of the Material Design 3 easing tokens (0.2,0,0,1 | 0,0,0,1 | 0.3,0,1,1 | 0.05,0.7,0.1,1 | 0.3,0,0.8,0.15)",
+        "why": "Material Design 3 motion uses its own easing tokens rather than an arbitrary curve"
+      },
+      {
+        "element": "<div.k-h7> (element 49)",
+        "property": "animation (duration)",
+        "measured": "220ms",
+        "nearestSpecValue": "200ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "<div.k-h7> (element 49)",
+        "property": "animation (easing)",
+        "measured": "cubic-bezier(.2,1.3,.4,1)",
+        "nearestSpecValue": "one of the Material Design 3 easing tokens (0.2,0,0,1 | 0,0,0,1 | 0.3,0,1,1 | 0.05,0.7,0.1,1 | 0.3,0,0.8,0.15)",
+        "why": "Material Design 3 motion uses its own easing tokens rather than an arbitrary curve"
+      },
+      {
+        "element": "<button> (element 115)",
+        "property": "animation (duration)",
+        "measured": "320ms",
+        "nearestSpecValue": "300ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "<button> (element 115)",
+        "property": "animation (easing)",
+        "measured": "cubic-bezier(.2,1.3,.4,1)",
+        "nearestSpecValue": "one of the Material Design 3 easing tokens (0.2,0,0,1 | 0,0,0,1 | 0.3,0,1,1 | 0.05,0.7,0.1,1 | 0.3,0,0.8,0.15)",
+        "why": "Material Design 3 motion uses its own easing tokens rather than an arbitrary curve"
+      },
+      {
+        "element": "<div> (element 191)",
+        "property": "animation (duration)",
+        "measured": "360ms",
+        "nearestSpecValue": "350ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "stylesheet rule `/* The dim sum surprise: a small, non-blocking, auto-dismissing corner toast (see * DimSumSurprise.tsx and dim-sum-surprise.ts). Bottom-left rather than bottom-right -- * the update banner above used to sit bottom-right and was moved off it after driving * the built app showed that corner sitting squarely on top of this console's primary * action on every screen that has one. This surface auto-dismisses in a few seconds * rather than persisting, but there is no reason to reintroduce the same collision. */ .dim-sum-surprise`",
+        "property": "animation (duration)",
+        "measured": "240ms",
+        "nearestSpecValue": "250ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "stylesheet rule `/* Bounded by the viewport, never by a hard-coded height: the 88px top offset above plus * this max-height together mean the card can never be taller than the window at any * display scale. .palette-results is where the actual scrolling happens (below), so the * search field and the result count stay on screen while only the list moves -- capping * height and hiding overflow here instead would delete rows off the bottom with no * scrollbar to say anything was cut, which is exactly what these rules exist to avoid. */ .palette-card`",
+        "property": "animation (duration)",
+        "measured": "220ms",
+        "nearestSpecValue": "200ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "stylesheet rule `button`",
+        "property": "transition (duration)",
+        "measured": "160ms",
+        "nearestSpecValue": "150ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "stylesheet rule `button`",
+        "property": "transition (duration)",
+        "measured": "160ms",
+        "nearestSpecValue": "150ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "stylesheet rule `button`",
+        "property": "transition (duration)",
+        "measured": "160ms",
+        "nearestSpecValue": "150ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "stylesheet rule `button`",
+        "property": "transition (duration)",
+        "measured": "120ms",
+        "nearestSpecValue": "100ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "stylesheet rule `button`",
+        "property": "transition (duration)",
+        "measured": "180ms",
+        "nearestSpecValue": "200ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "stylesheet rule `button`",
+        "property": "transition (easing)",
+        "measured": "cubic-bezier(.2,1.4,.4,1)",
+        "nearestSpecValue": "one of the Material Design 3 easing tokens (0.2,0,0,1 | 0,0,0,1 | 0.3,0,1,1 | 0.05,0.7,0.1,1 | 0.3,0,0.8,0.15)",
+        "why": "Material Design 3 motion uses its own easing tokens rather than an arbitrary curve"
+      },
+      {
+        "element": "stylesheet rule `h1`",
+        "property": "animation (duration)",
+        "measured": "280ms",
+        "nearestSpecValue": "300ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "stylesheet rule `a, span, div`",
+        "property": "transition (duration)",
+        "measured": "180ms",
+        "nearestSpecValue": "200ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "stylesheet rule `a, span, div`",
+        "property": "transition (duration)",
+        "measured": "180ms",
+        "nearestSpecValue": "200ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "stylesheet rule `a, span, div`",
+        "property": "transition (duration)",
+        "measured": "180ms",
+        "nearestSpecValue": "200ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "stylesheet rule `a, span, div`",
+        "property": "transition (duration)",
+        "measured": "240ms",
+        "nearestSpecValue": "250ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "stylesheet rule `a, span, div`",
+        "property": "transition (duration)",
+        "measured": "240ms",
+        "nearestSpecValue": "250ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "stylesheet rule `a, span, div`",
+        "property": "transition (duration)",
+        "measured": "220ms",
+        "nearestSpecValue": "200ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "stylesheet rule `input`",
+        "property": "transition (duration)",
+        "measured": "180ms",
+        "nearestSpecValue": "200ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "stylesheet rule `input`",
+        "property": "transition (duration)",
+        "measured": "180ms",
+        "nearestSpecValue": "200ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      },
+      {
+        "element": "stylesheet rule `input`",
+        "property": "transition (duration)",
+        "measured": "180ms",
+        "nearestSpecValue": "200ms",
+        "why": "Material Design 3 durations come from a fixed token set; this is not one of them"
+      }
+    ]
+  },
+  "specification": {
+    "typeScalePx": [
+      11,
+      12,
+      14,
+      16,
+      22,
+      24,
+      28,
+      32,
+      36,
+      45,
+      57
+    ],
+    "iconSizesPx": [
+      20,
+      24,
+      40,
+      48
+    ],
+    "shapeScalePx": [
+      0,
+      4,
+      8,
+      12,
+      16,
+      28
+    ],
+    "minimumTouchTargetPx": 48,
+    "stateLayerOpacity": {
+      "hover": 0.08,
+      "focus": 0.1,
+      "pressed": 0.1,
+      "dragged": 0.16
+    },
+    "easingTokens": {
+      "standard": "0.2,0,0,1",
+      "standard-decelerate": "0,0,0,1",
+      "standard-accelerate": "0.3,0,1,1",
+      "emphasized-decelerate": "0.05,0.7,0.1,1",
+      "emphasized-accelerate": "0.3,0,0.8,0.15",
+      "linear": "linear"
+    },
+    "durationsMs": [
+      50,
+      100,
+      150,
+      200,
+      250,
+      300,
+      350,
+      400,
+      450,
+      500,
+      550,
+      600,
+      700,
+      800,
+      900,
+      1000
+    ]
+  },
+  "notMeasured": [
+    "component anatomy: whether a control whose numbers are correct is a real Material Design 3 component or a custom lookalike sharing its measurements",
+    "post-layout geometry: the rendered size of an element that declares none, which only exists after layout in a real engine",
+    "runtime-injected style: anything a script sets on an element after render",
+    "observed motion: that a declared transition or animation actually runs, and runs for the duration it declares",
+    "colour roles: whether a hard-coded colour corresponds to the Material Design 3 colour role its position calls for — this audit measures no colour tokens"
+  ],
+  "source": {
+    "renderer": "console/app/renderer/src/App.tsx (the built product renderer, not the bare compiled shell)",
+    "stylesheets": [
+      "console/app/renderer/src/styles.css",
+      "console/app/renderer/src/generated/design-styles.css"
+    ],
+    "auditor": "console/scripts/design-parity-material.mjs (auditMaterial)",
+    "runner": "npx tsx console/scripts/audit-design-parity-material.mjs",
+    "method": "static audit of the rendered markup and the effective stylesheet — see notMeasured for what that structurally cannot decide"
+  }
+}

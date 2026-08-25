@@ -124,7 +124,12 @@ test('build composes deterministic local output without fetches', async () => {
   // which states the chrome-parity bar a design-parity row now has to meet, and what the
   // first run of it measured. One article in, one HTML page out.
   // Merged: 188, re-derived from the build rather than by adding the two deltas above.
-  assert.equal(manifest.outputFiles.length, 188);
+  // 189 from 2026-08-25, for a second evidence record:
+  // docs/evidence/design-parity-material-audit.md, which states the per-destination Material
+  // Design 3 conformance audit a design-parity row also has to meet, why a machine is allowed
+  // to write that one, and what the first run of it measured across all 32 destinations.
+  // One article in, one HTML page out.
+  assert.equal(manifest.outputFiles.length, 189);
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');
