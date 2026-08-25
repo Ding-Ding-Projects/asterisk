@@ -40,6 +40,21 @@
     "test": "console/tests/ui/design-parity.test.tsx",
     "coverage": "Renders all 32 destinations from the generated design model and asserts each one's design title, description, owning source file (Expert mode), its control groups (including the design M3 control's slider/stepper/order affordances), Beginner-mode plain wording, and all 17 transient-state overlay families."
   },
+  "captureContract": {
+    "status": "route and diff tooling exist; no destination has real captures yet — all 32 remain compiled, none verified",
+    "harness": "console/design-reference/index.html",
+    "harnessDriver": "console/design-reference/route.mjs",
+    "destinationLabels": "console/design-reference/destination-labels.generated.json",
+    "destinationLabelsGenerator": "npx tsx console/scripts/generate-design-parity-labels.mjs [--check]",
+    "captureManifest": "console/design-reference/capture-manifest.generated.json",
+    "captureManifestGenerator": "node console/scripts/generate-design-parity-capture-manifest.mjs [--check]",
+    "captureTuple": {"state": "default", "theme": "dark", "width": 1440, "height": 1000, "scale": 1},
+    "diffTool": "console/scripts/design-parity-diff.mjs (compareCaptures)",
+    "evidenceGuard": "console/scripts/design-parity-evidence-on-disk.mjs (verifyDesignParityEvidence)",
+    "evidenceGuardNegativeProof": "console/scripts/negative-design-parity-evidence.mjs",
+    "knownGap": "design/*.dc.html expects window.React/window.ReactDOM supplied by its host before support.js boots; this repository vendors neither and design/ is out of scope for supplying one. See console/design-reference/README.md.",
+    "builtRouteStatus": "ding-pbx:// is a committed route template only; no custom protocol handler is registered in console/app/ yet."
+  },
   "destinations": [
     {"rail":"pbx","id":"dash","status":"compiled"},{"rail":"pbx","id":"live","status":"compiled"},{"rail":"pbx","id":"endpoints","status":"compiled"},{"rail":"pbx","id":"trunks","status":"compiled"},{"rail":"pbx","id":"trunkauth","status":"compiled"},{"rail":"pbx","id":"canvas","status":"compiled"},{"rail":"pbx","id":"ivr","status":"compiled"},{"rail":"pbx","id":"queues","status":"compiled"},
     {"rail":"media","id":"voicemail","status":"compiled"},{"rail":"media","id":"confbridge","status":"compiled"},{"rail":"media","id":"moh","status":"compiled"},{"rail":"media","id":"codecs","status":"compiled"},
