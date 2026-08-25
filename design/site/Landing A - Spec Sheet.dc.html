@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+body{margin:0;background:#0C0D0F;color:#E8EAED;font-family:'Space Grotesk',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#E8EAED;text-decoration:none}a:hover{color:#52FF7A}
+::selection{background:#52FF7A;color:#0C0D0F}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#0C0D0F">
+  <header style="position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:32px;padding:0 40px;height:64px;background:rgba(12,13,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid #1F2328">
+    <a href="#top" style="display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:-.01em">
+      <span style="width:28px;height:28px;background:#52FF7A;color:#0C0D0F;display:grid;place-items:center;font-family:'JetBrains Mono',monospace;font-weight:600;font-size:14px">D</span>
+      Ding PBX Console
+    </a>
+    <nav style="display:flex;gap:28px;margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:12px;color:#8A9099">
+      <a href="#control-plane" style="color:#8A9099" style-hover="color:#52FF7A">01 CONTROL PLANE</a>
+      <a href="#runtime" style="color:#8A9099" style-hover="color:#52FF7A">02 RUNTIME</a>
+      <a href="#surface" style="color:#8A9099" style-hover="color:#52FF7A">03 SURFACE</a>
+      <a href="#status" style="color:#8A9099" style-hover="color:#52FF7A">04 STATUS</a>
+      <a href="#download" style="color:#8A9099" style-hover="color:#52FF7A">05 DOWNLOAD</a>
+    </nav>
+    <a href="https://github.com/Ding-Ding-Projects/asterisk" style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:8px 16px;border:1px solid #2A2F36;color:#E8EAED" style-hover="border-color:#52FF7A;color:#52FF7A">GITHUB ↗</a>
+  </header>
+
+  <section id="top" style="display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;padding:88px 40px 72px;max-width:1280px;margin:0 auto">
+    <div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#52FF7A;letter-spacing:.12em;margin-bottom:24px">WINDOWS DESKTOP CONSOLE FOR ASTERISK — IN ACTIVE DEVELOPMENT</div>
+      <h1 style="margin:0;font-size:64px;line-height:1.02;letter-spacing:-.03em;font-weight:700;text-wrap:balance">Administer Asterisk without an open shell.</h1>
+      <p style="margin:28px 0 0;font-size:18px;line-height:1.6;color:#8A9099;max-width:54ch">One Windows desktop console for observing and configuring an Asterisk PBX — 32 destinations across dialplan, endpoints, trunks, queues, voicemail, and security. Every action goes through a bounded, allowlisted control plane. There is no path to an unrestricted shell.</p>
+      <div style="display:flex;gap:14px;margin-top:36px;align-items:center">
+        <a href="#download" style="background:#52FF7A;color:#0C0D0F;font-weight:600;padding:14px 28px;font-size:15px" style-hover="background:#7DFF9B;color:#0C0D0F">Get the installer</a>
+        <a href="#control-plane" style="border:1px solid #2A2F36;padding:13px 28px;font-size:15px" style-hover="border-color:#52FF7A;color:#52FF7A">Read the safety model</a>
+      </div>
+      <div style="display:flex;gap:28px;margin-top:40px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#5C636B">
+        <span>UBUNTU 24.04 BUNDLED</span><span>GPL-2.0</span><span>NO ANALYTICS</span>
+      </div>
+    </div>
+    <div>
+      <div style="border:1px solid #1F2328;background:#121417">
+        <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #1F2328">
+          <span style="width:10px;height:10px;border-radius:50%;background:#2A2F36"></span><span style="width:10px;height:10px;border-radius:50%;background:#2A2F36"></span><span style="width:10px;height:10px;border-radius:50%;background:#2A2F36"></span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5C636B;margin-left:8px">DING PBX CONSOLE — OVERVIEW</span>
+        </div>
+        <div style="aspect-ratio:16/10">
+          <image-slot id="shot-a" shape="rect" placeholder="Drop a real console screenshot here"></image-slot>
+        </div>
+      </div>
+      <p style="margin:12px 2px 0;font-family:'JetBrains Mono',monospace;font-size:11px;color:#5C636B">NO FABRICATED SCREENSHOTS. THIS FRAME WAITS FOR A REAL CAPTURE OF THE BUILT APPLICATION.</p>
+    </div>
+  </section>
+
+  <section style="border-top:1px solid #1F2328;border-bottom:1px solid #1F2328">
+    <div style="max-width:1280px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)">
+      <div style="padding:28px 40px;border-right:1px solid #1F2328"><div style="font-size:40px;font-weight:700;letter-spacing:-.02em">32</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5C636B;letter-spacing:.1em">DESTINATIONS · 6 NAV RAILS</div></div>
+      <div style="padding:28px 40px;border-right:1px solid #1F2328"><div style="font-size:40px;font-weight:700;letter-spacing:-.02em">63</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5C636B;letter-spacing:.1em">ALLOWLISTED READ COMMANDS</div></div>
+      <div style="padding:28px 40px;border-right:1px solid #1F2328"><div style="font-size:40px;font-weight:700;letter-spacing:-.02em">41</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5C636B;letter-spacing:.1em">WRITABLE CONFIG RESOURCES</div></div>
+      <div style="padding:28px 40px"><div style="font-size:40px;font-weight:700;letter-spacing:-.02em">791<span style="color:#5C636B;font-size:22px">/794</span></div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5C636B;letter-spacing:.1em">TESTS PASSING · 3 KNOWN</div></div>
+    </div>
+  </section>
+
+  <section id="control-plane" style="max-width:1280px;margin:0 auto;padding:88px 40px;display:grid;grid-template-columns:320px 1fr;gap:56px">
+    <div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#52FF7A;letter-spacing:.12em">01 — CONTROL PLANE</div>
+      <h2 style="margin:14px 0 0;font-size:34px;line-height:1.1;letter-spacing:-.02em">No free-text commands. Ever.</h2>
+      <p style="margin:18px 0 0;color:#8A9099;line-height:1.6;font-size:15px">Observation runs through 63 read-only CLI commands, each verified against Asterisk's own source. Change runs through 41 writable configuration resources — nothing else is reachable.</p>
+    </div>
+    <div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#5C636B;letter-spacing:.1em;margin-bottom:16px">EVERY WRITE IS A TRANSACTION</div>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px">
+        <div style="border:1px solid #2A2F36;padding:16px 12px;background:#121417"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#52FF7A">1</div><div style="font-weight:600;margin-top:8px;font-size:14px">Backup</div></div>
+        <div style="border:1px solid #2A2F36;padding:16px 12px;background:#121417"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#52FF7A">2</div><div style="font-weight:600;margin-top:8px;font-size:14px">Stage</div></div>
+        <div style="border:1px solid #2A2F36;padding:16px 12px;background:#121417"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#52FF7A">3</div><div style="font-weight:600;margin-top:8px;font-size:14px">Validate</div></div>
+        <div style="border:1px solid #2A2F36;padding:16px 12px;background:#121417"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#52FF7A">4</div><div style="font-weight:600;margin-top:8px;font-size:14px">Apply</div></div>
+        <div style="border:1px solid #2A2F36;padding:16px 12px;background:#121417"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#52FF7A">5</div><div style="font-weight:600;margin-top:8px;font-size:14px">Post-read</div></div>
+        <div style="border:1px solid #2A2F36;padding:16px 12px;background:#121417"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#52FF7A">6</div><div style="font-weight:600;margin-top:8px;font-size:14px">Compare</div></div>
+      </div>
+      <p style="margin:20px 0 0;color:#8A9099;font-size:15px;line-height:1.6">If the post-read doesn't match what was written, the transaction rolls back automatically. Every destructive action goes through one confirmation flow that reports its real outcome — including refusals.</p>
+    </div>
+  </section>
+
+  <section id="runtime" style="border-top:1px solid #1F2328">
+    <div style="max-width:1280px;margin:0 auto;padding:88px 40px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#52FF7A;letter-spacing:.12em">02 — RUNTIME</div>
+      <h2 style="margin:14px 0 0;font-size:34px;letter-spacing:-.02em;max-width:20ch;line-height:1.15">A PBX exists the moment you install.</h2>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:40px">
+        <div style="border:1px solid #2A2F36;background:#121417;padding:28px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#52FF7A;letter-spacing:.1em">BUNDLED · DEFAULT</div>
+          <h3 style="margin:14px 0 10px;font-size:19px">WSL 2 Ubuntu</h3>
+          <p style="margin:0;color:#8A9099;font-size:14px;line-height:1.6">The installer carries a complete Ubuntu 24.04 root filesystem with Asterisk already compiled in — verified by checking the closure of dynamic-library dependencies, not just a successful compile. Created, verified, stopped, and removed entirely from the app.</p>
+        </div>
+        <div style="border:1px solid #2A2F36;background:#121417;padding:28px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5C636B;letter-spacing:.1em">LOCAL</div>
+          <h3 style="margin:14px 0 10px;font-size:19px">Docker container</h3>
+          <p style="margin:0;color:#8A9099;font-size:14px;line-height:1.6">A local container discovered by project label, reached through the same bounded control plane as every other route.</p>
+        </div>
+        <div style="border:1px solid #2A2F36;background:#121417;padding:28px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5C636B;letter-spacing:.1em">REMOTE</div>
+          <h3 style="margin:14px 0 10px;font-size:19px">SSH host</h3>
+          <p style="margin:0;color:#8A9099;font-size:14px;line-height:1.6">A remote Debian or Ubuntu host over SSH with scoped trust-on-first-use host-key handling. No route reaches a target through an unrestricted shell.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="surface" style="border-top:1px solid #1F2328">
+    <div style="max-width:1280px;margin:0 auto;padding:88px 40px;display:grid;grid-template-columns:320px 1fr;gap:56px">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#52FF7A;letter-spacing:.12em">03 — SURFACE</div>
+        <h2 style="margin:14px 0 0;font-size:34px;letter-spacing:-.02em;line-height:1.15">32 destinations. One place.</h2>
+        <p style="margin:18px 0 0;color:#8A9099;line-height:1.6;font-size:15px">Six navigation rails, tabbed navigation, searchable lists, an anchored regex builder, a command palette, guided flows, and guarded destructive-action previews. The dialplan view is drawn from the target's own <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#E8EAED">dialplan show</span> output.</p>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start">
+        <span style="border:1px solid #2A2F36;padding:9px 16px;font-size:14px;color:#C9CED4">Channels</span><span style="border:1px solid #2A2F36;padding:9px 16px;font-size:14px;color:#C9CED4">Endpoints</span><span style="border:1px solid #2A2F36;padding:9px 16px;font-size:14px;color:#C9CED4">Trunks</span><span style="border:1px solid #2A2F36;padding:9px 16px;font-size:14px;color:#C9CED4">Registrations</span><span style="border:1px solid #2A2F36;padding:9px 16px;font-size:14px;color:#C9CED4">Queues</span><span style="border:1px solid #2A2F36;padding:9px 16px;font-size:14px;color:#C9CED4">Contacts</span><span style="border:1px solid #2A2F36;padding:9px 16px;font-size:14px;color:#C9CED4">Modules</span><span style="border:1px solid #2A2F36;padding:9px 16px;font-size:14px;color:#C9CED4">Dialplan</span><span style="border:1px solid #2A2F36;padding:9px 16px;font-size:14px;color:#C9CED4">Voicemail</span><span style="border:1px solid #2A2F36;padding:9px 16px;font-size:14px;color:#C9CED4">Conferences</span><span style="border:1px solid #2A2F36;padding:9px 16px;font-size:14px;color:#C9CED4">Music on hold</span><span style="border:1px solid #2A2F36;padding:9px 16px;font-size:14px;color:#C9CED4">Codecs</span><span style="border:1px solid #2A2F36;padding:9px 16px;font-size:14px;color:#C9CED4">Access control</span><span style="border:1px solid #2A2F36;padding:9px 16px;font-size:14px;color:#C9CED4">Call records</span><span style="border:1px solid #2A2F36;padding:9px 16px;font-size:14px;color:#C9CED4">Logging</span><span style="border:1px solid #2A2F36;padding:9px 16px;font-size:14px;color:#C9CED4">AMI / REST</span>
+        <span style="padding:9px 16px;font-size:14px;font-family:'JetBrains Mono',monospace;color:#5C636B">+ 16 more · 82 offline documentation articles ship in the installer</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="status" style="border-top:1px solid #1F2328;background:#0F1113">
+    <div style="max-width:1280px;margin:0 auto;padding:88px 40px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#52FF7A;letter-spacing:.12em">04 — STATUS</div>
+      <h2 style="margin:14px 0 0;font-size:34px;letter-spacing:-.02em">Evidence, not promises.</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:56px;margin-top:40px">
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5C636B;letter-spacing:.1em;margin-bottom:14px">TEST SUITES — MEASURED ON THIS TREE</div>
+          <div style="display:grid;grid-template-columns:1fr auto auto;font-size:14px;border-top:1px solid #2A2F36">
+            <div style="padding:13px 0;border-bottom:1px solid #1F2328">Renderer</div><div style="padding:13px 16px;border-bottom:1px solid #1F2328;font-family:'JetBrains Mono',monospace;color:#8A9099">424 / 424</div><div style="padding:13px 0;border-bottom:1px solid #1F2328;font-family:'JetBrains Mono',monospace;color:#52FF7A">PASS</div>
+            <div style="padding:13px 0;border-bottom:1px solid #1F2328">Control plane</div><div style="padding:13px 16px;border-bottom:1px solid #1F2328;font-family:'JetBrains Mono',monospace;color:#8A9099">345 / 348</div><div style="padding:13px 0;border-bottom:1px solid #1F2328;font-family:'JetBrains Mono',monospace;color:#FFB224">3 KNOWN</div>
+            <div style="padding:13px 0;border-bottom:1px solid #1F2328">Inventory / drift</div><div style="padding:13px 16px;border-bottom:1px solid #1F2328;font-family:'JetBrains Mono',monospace;color:#8A9099">12 / 12</div><div style="padding:13px 0;border-bottom:1px solid #1F2328;font-family:'JetBrains Mono',monospace;color:#52FF7A">PASS</div>
+            <div style="padding:13px 0;border-bottom:1px solid #1F2328">Static site</div><div style="padding:13px 16px;border-bottom:1px solid #1F2328;font-family:'JetBrains Mono',monospace;color:#8A9099">10 / 10</div><div style="padding:13px 0;border-bottom:1px solid #1F2328;font-family:'JetBrains Mono',monospace;color:#52FF7A">PASS</div>
+          </div>
+          <p style="margin:16px 0 0;color:#5C636B;font-size:13px;line-height:1.6">The three failures are all in access-control-list address matching — expected, since ACL rule editing is one of the largest unimplemented gaps and its evaluator is still under construction.</p>
+        </div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5C636B;letter-spacing:.1em;margin-bottom:14px">STATED PLAINLY — WHAT IS NOT DONE</div>
+          <ul style="margin:0;padding:0;list-style:none;display:grid;gap:12px;font-size:14px;line-height:1.55;color:#C9CED4">
+            <li style="display:flex;gap:12px"><span style="color:#FFB224;font-family:'JetBrains Mono',monospace">—</span>Nothing has been written to a real Asterisk exchange yet; every write path is proved only against a disposable test distribution.</li>
+            <li style="display:flex;gap:12px"><span style="color:#FFB224;font-family:'JetBrains Mono',monospace">—</span>16 of 32 destinations are backed by live data. The rest render honestly empty screens, never sample content.</li>
+            <li style="display:flex;gap:12px"><span style="color:#FFB224;font-family:'JetBrains Mono',monospace">—</span>48 of 130 bound controls remain deliberately unwired — each screen states its own count.</li>
+            <li style="display:flex;gap:12px"><span style="color:#FFB224;font-family:'JetBrains Mono',monospace">—</span>The desktop interface has no accessibility attributes yet.</li>
+            <li style="display:flex;gap:12px"><span style="color:#FFB224;font-family:'JetBrains Mono',monospace">—</span>ACL rules, sound prompts, TLS certificates, hardware trunks, fax, STIR/SHAKEN and more — see ROADMAP.md.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="download" style="border-top:1px solid #1F2328">
+    <div style="max-width:1280px;margin:0 auto;padding:88px 40px;display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#52FF7A;letter-spacing:.12em">05 — DOWNLOAD</div>
+        <h2 style="margin:14px 0 0;font-size:34px;letter-spacing:-.02em">Unsigned, on purpose.</h2>
+        <p style="margin:18px 0 0;color:#8A9099;line-height:1.6;font-size:15px">Every published Windows installer is deliberately unsigned — code signing is out of scope by policy — so Windows will show an unknown-publisher warning. This is expected and does not indicate tampering. Verify the SHA-256 against <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#E8EAED">SHA256SUMS.txt</span> on the same release for independent confirmation.</p>
+      </div>
+      <div style="border:1px solid #2A2F36;background:#121417;padding:32px">
+        <sc-if value="{{ installerPublished }}" hint-placeholder-val="{{ false }}">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#52FF7A;letter-spacing:.1em">LATEST RELEASE</div>
+          <div style="font-size:22px;font-weight:600;margin:12px 0 18px">Windows installer · Setup.exe</div>
+          <a href="https://github.com/Ding-Ding-Projects/asterisk/releases/latest" style="display:inline-flex;background:#52FF7A;color:#0C0D0F;font-weight:600;padding:14px 28px" style-hover="background:#7DFF9B;color:#0C0D0F">Download from Releases ↗</a>
+        </sc-if>
+        <sc-if value="{{ installerNotPublished }}" hint-placeholder-val="{{ true }}">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#FFB224;letter-spacing:.1em">INSTALLER STATUS</div>
+          <div style="font-size:22px;font-weight:600;margin:12px 0 10px">Check the Releases page</div>
+          <p style="margin:0 0 18px;color:#8A9099;font-size:14px;line-height:1.6">Download the latest unsigned Windows installer from the repository's Releases page and run it.</p>
+          <a href="https://github.com/Ding-Ding-Projects/asterisk/releases/latest" style="display:inline-flex;border:1px solid #52FF7A;color:#52FF7A;font-weight:600;padding:13px 28px" style-hover="background:#52FF7A;color:#0C0D0F">Releases page ↗</a>
+        </sc-if>
+      </div>
+    </div>
+  </section>
+
+  <footer style="border-top:1px solid #1F2328">
+    <div style="max-width:1280px;margin:0 auto;padding:48px 40px;display:grid;grid-template-columns:1fr auto;gap:32px;align-items:start">
+      <div style="max-width:70ch">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#5C636B;letter-spacing:.1em;margin-bottom:10px">A FORK OF ASTERISK</div>
+        <p style="margin:0;color:#8A9099;font-size:14px;line-height:1.6">This repository is a fork of the <a href="https://www.asterisk.org/" style="color:#E8EAED;text-decoration:underline">Asterisk</a> Open Source PBX project, licensed under GPL v2. Ding PBX Console is additive software built on top — it does not replace, relicense, or claim authorship of Asterisk itself. The full upstream source tree remains at the repository root.</p>
+      </div>
+      <div style="display:grid;gap:8px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#8A9099;text-align:right">
+        <a href="https://github.com/Ding-Ding-Projects/asterisk" style="color:#8A9099" style-hover="color:#52FF7A">SOURCE</a>
+        <a href="https://github.com/Ding-Ding-Projects/asterisk/releases/latest" style="color:#8A9099" style-hover="color:#52FF7A">RELEASES</a>
+        <a href="https://www.asterisk.org/" style="color:#8A9099" style-hover="color:#52FF7A">UPSTREAM ASTERISK</a>
+      </div>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;installerPublished&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Release&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const published = this.props.installerPublished ?? false;
+    return { installerPublished: published, installerNotPublished: !published };
+  }
+}
+</script>
+</body>
+</html>
