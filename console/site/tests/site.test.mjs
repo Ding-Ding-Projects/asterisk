@@ -106,7 +106,11 @@ test('build composes deterministic local output without fetches', async () => {
   // to the nearest plausible key.
   // 147 from 2026-08-24, for docs/platform/branch-integration.md: why forty-eight branches are
   // still unmerged, measured branch by branch, so the same afternoon is not spent again.
-  assert.equal(manifest.outputFiles.length, 147);
+  // 179 from 2026-08-24, for the homepage's Blueprint reskin adopting the "Landing C"
+  // design export: 30 vendored Archivo / IBM Plex Mono font files plus their own
+  // fonts.css and manifest.json, copied in by build.mjs exactly as the app's own
+  // vendored Roboto set already is, so the published pages reach them too.
+  assert.equal(manifest.outputFiles.length, 179);
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');
@@ -123,12 +127,17 @@ test('the vendored fonts are published inside dist and every page reaches them',
   assert.ok(files.includes('fonts.css'), 'dist carries no fonts.css, so the published pages fall back silently');
   const faces = files.filter((file) => file.endsWith('.woff2')).length;
   assert.ok(faces >= 40, 'the published output carries only ' + faces + ' font faces; the vendored set is 49');
+  const siteFiles = await readdir(join(root, 'dist', 'assets', 'site-fonts'));
+  assert.ok(siteFiles.includes('fonts.css'), 'dist carries no site-fonts fonts.css, so Archivo/IBM Plex Mono fall back silently');
+  const siteFaces = siteFiles.filter((file) => file.endsWith('.woff2')).length;
+  assert.equal(siteFaces, 30, 'the published site-fonts set carries ' + siteFaces + ' faces; the vendored export declares 30 (15 Archivo weights/subsets + 15 IBM Plex Mono)');
   for (const page of ['index.html', 'product.html', 'downloads.html', 'documentation.html', 'status.html', 'settings.html']) {
     const html = await readFile(join(root, 'dist', page), 'utf8');
     // Plain string checks rather than patterns: the needles here are all slashes and
     // dots, and a mangled pattern would match nothing while still reporting a pass.
     assert.ok(!html.includes('../assets/'), page + ' still points outside the published tree');
     assert.ok(html.includes('href="assets/fonts/fonts.css"'), page + ' does not reference the published fonts');
+    assert.ok(html.includes('href="assets/site-fonts/fonts.css"'), page + ' does not reference the published Blueprint fonts');
   }
 });
 

@@ -38,9 +38,26 @@ if (!fontFiles.includes('fonts.css')) {
   throw new Error(`No fonts.css in ${fontSource}; the published pages would fall back silently.`);
 }
 
+/*
+ * The site's own Archivo / IBM Plex Mono set, vendored from the "Landing C - Blueprint"
+ * design export by console/scripts/download-site-fonts.mjs. Same reasoning as the block
+ * above: pages reference `../assets/site-fonts/` from the source directory, which serves
+ * fine locally and would 404 once published unless copied and rewritten here too.
+ */
+const siteFontSource = resolve(root, '..', 'assets', 'site-fonts');
+const siteFontOutput = join(output, 'assets', 'site-fonts');
+await mkdir(siteFontOutput, { recursive: true });
+const siteFontFiles = await readdir(siteFontSource);
+for (const file of siteFontFiles) {
+  await copyFile(join(siteFontSource, file), join(siteFontOutput, file));
+}
+if (!siteFontFiles.includes('fonts.css')) {
+  throw new Error(`No fonts.css in ${siteFontSource}; the published pages would fall back silently.`);
+}
+
 for (const asset of assets) {
   let content = await readFile(join(root, asset));
-  let text = content.toString('utf8').replaceAll('../assets/fonts/', 'assets/fonts/');
+  let text = content.toString('utf8').replaceAll('../assets/fonts/', 'assets/fonts/').replaceAll('../assets/site-fonts/', 'assets/site-fonts/');
   if (asset === 'index.html') {
     text = text.replaceAll('../docs/', 'docs/').replaceAll('.md"', '.html"');
   }
