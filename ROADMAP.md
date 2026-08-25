@@ -128,7 +128,26 @@ actions are implemented**. When this work began it was 7 and 3.
 - [x] Give ten previously unreadable destinations a real reader: voicemail, conferences, music on hold, codecs, access control, call records, logging, manager and REST, and the two system screens. Fourteen parsers, each shaped from the literal format string in Asterisk's own source rather than a guess — a guessed parser returns an empty list, which is what those screens already showed, so the defect would have been invisible.
 - [x] Add media management so a screen offering a custom prompt can accept a file, refusing by name before a command is built and confirming what landed.
 - [x] Add a real append-only local history where a restore is a new record rather than a rewrite.
-- [ ] **Exercise an approved write plan against a real exchange.** Nothing here has yet written to anything but a disposable distribution, so no configuration change may be called verified.
+- [x] **Exercise an approved write plan end to end against a running Asterisk.** The console provisioned
+      its own distribution from the bundled root filesystem, digest verified against the recorded
+      provenance, and a plan ran backup, stage, validate, apply and post-read through the real
+      `StructuredConfigPlanner` and `ConfigTransaction`. The Asterisk command line -- a channel independent
+      of the transport that performed the write -- reported the new dialplan context before, during and
+      after, and the exchange was restored to its exact prior state. Evidence:
+      `console/release/evidence/live-exchange/write-plan.json`.
+- [ ] **Repeat that write against a non-disposable exchange.** The run above proved the path against an
+      Asterisk the console created for the purpose, which is still one it may safely destroy. A write to an
+      exchange somebody depends on needs a target and an authorization only the repository owner can
+      supply, so this is annotated rather than attempted.
+- [ ] **Stop corrupting `key =>` lines on every write.** Reading a resource and writing the identical value
+      back rewrites `exten => 8100` as `exten = > 8100`, which Asterisk parses as an extension literally
+      named `>8100`. An unchanged round trip of `extensions.conf` took it from 61 `exten =>` lines to 0 and
+      changed all 161 dialplan and include lines. Thirteen shipped sample files use the arrow form, 419
+      lines in total. `validate` and `post-read` both compare the parsed structure, which round-trips
+      consistently, so neither can see it -- the transaction reported "Configuration applied and verified".
+- [ ] **Return the backup handle from `ApplyResult`.** The transaction takes a backup and completes its
+      `backup:` action, but the result exposes no handle, so a caller can only undo a *failed* apply. A
+      deliberate undo after a successful one has no supported route.
 - [ ] Bind the remaining 48 controls, each from a key justified in the samples, or state on the screen exactly which setting it cannot write. None may be guessed.
 - [ ] Call the media, local-history and runtime actions from their screens. The actions exist; the interface does not yet reach them.
 - [ ] Remove or gate `server.connect`, which is implemented in the main process and never called from the interface.
