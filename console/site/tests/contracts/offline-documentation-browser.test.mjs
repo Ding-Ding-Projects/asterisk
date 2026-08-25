@@ -14,8 +14,13 @@
  *
  * The real gap: each result links OUT to a separate static article page
  * (`docs/${item.article}.html`) rather than rendering parsed article content
- * in place. There is no in-page Markdown-to-block renderer here at all --
- * that is the console app's docs-markdown.ts, a different module entirely.
+ * in place. `site/app.js` does now carry a shared Markdown renderer
+ * (parseMarkdown/renderMarkdownBlock, see provider-markup-rendering.test.mjs)
+ * -- but it renders downloads.html's release notes, an unrelated surface, and
+ * is never called from renderDestinations() for article content. So the gap
+ * this file is about is unchanged: there is still no in-page documentation-
+ * ARTICLE renderer here, which remains the console app's docs-markdown.ts, a
+ * different module entirely.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -49,11 +54,27 @@ test('renderDestinations genuinely searches the real catalogue and reports a rea
     'renderDestinations no longer filters the real catalogue by name/group/description');
 });
 
-test('each result links OUT to a separate static article page -- there is no in-page Markdown block renderer', () => {
+test('each result still links OUT to a separate static article page -- provider-markup-rendering added a shared Markdown renderer elsewhere, but renderDestinations does not use it for articles', () => {
   assert.match(app, /href="\$\{BASE\}docs\/\$\{item\.article\}\.html"/u,
     'each result no longer links out to a static per-article page -- an in-page renderer may have been added, which would change this row');
-  assert.doesNotMatch(app, /parseMarkdown|renderMarkdownBlock|docsBlocks/iu,
-    'an in-page Markdown-to-block renderer now exists on the site -- update this row toward the console app\'s richer implementation');
+  /* parseMarkdown/renderMarkdownBlock now exist in app.js (see
+   * provider-markup-rendering.test.mjs), wired to downloads.html's release-notes
+   * region -- an unrelated surface. What still does NOT exist is an in-page
+   * documentation-ARTICLE renderer: renderDestinations() builds each destination
+   * card from escapeHtml(item.description) plus an outbound docs/*.html link, never
+   * from parseMarkdown/renderMarkdownBlock. Confirm that directly rather than by a
+   * blind absence check now that those identifiers legitimately appear elsewhere. */
+  const start = app.indexOf('function renderDestinations(');
+  assert.ok(start !== -1, 'renderDestinations() not found');
+  let depth = 0, i = app.indexOf('{', start);
+  for (; i < app.length; i += 1) {
+    if (app[i] === '{') depth += 1;
+    else if (app[i] === '}') { depth -= 1; if (depth === 0) { i += 1; break; } }
+  }
+  const body = app.slice(start, i);
+  assert.doesNotMatch(body, /parseMarkdown|renderMarkdownBlock|docsBlocks/iu,
+    'renderDestinations() now calls the Markdown renderer for article content -- an in-page renderer may have been added, which would change this row');
+  assert.match(body, /escapeHtml\(item\.description\)/u, 'renderDestinations no longer builds cards from plain escaped description text');
 });
 
 test('per-article export exists as a real function, initDocumentationExport', () => {
