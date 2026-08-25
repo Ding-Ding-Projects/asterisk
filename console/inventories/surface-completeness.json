@@ -92,7 +92,7 @@
         },
         {
           "id": "regex-builder",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "non-blocking-notifications",
