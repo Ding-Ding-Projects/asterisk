@@ -79,6 +79,29 @@ function Get-AsteriskImageRegistry {
     return 'ghcr.io'
 }
 
+function Get-AsteriskRepositorySlug([string]$RepoRoot) {
+    # owner/repo as GitHub spells it, for the release command line -- deliberately NOT
+    # lowercased, unlike the image-repository owner below. A registry path must be
+    # lowercase; a repository slug is matched case-insensitively but is clearer left as
+    # written, and the two are different enough that one shared helper would eventually
+    # get one of them wrong.
+    #
+    # Split rather than match. A pattern written into this file through a shell arrived
+    # truncated once already, and a broken pattern here would silently stop finding the
+    # published root filesystem and quietly fall back to a four-minute compile.
+    if ($env:GITHUB_REPOSITORY) { return $env:GITHUB_REPOSITORY }
+    $remote = $null
+    try { $remote = (& git -C $RepoRoot remote get-url origin 2>$null) } catch { $remote = $null }
+    if ($remote) {
+        $trimmed = $remote.Trim()
+        if ($trimmed.EndsWith(".git")) { $trimmed = $trimmed.Substring(0, $trimmed.Length - 4) }
+        $parts = $trimmed.Split(@("/", ":"), [System.StringSplitOptions]::RemoveEmptyEntries)
+        if ($parts.Count -ge 2) {
+            return "{0}/{1}" -f $parts[$parts.Count - 2], $parts[$parts.Count - 1]
+        }
+    }
+    return "Ding-Ding-Projects/asterisk"
+}
 function Get-AsteriskImageRepositoryOwner([string]$RepoRoot) {
     # OCI registries require an all-lowercase repository path even when the GitHub
     # owner name carries uppercase letters (this project's own owner does), so the

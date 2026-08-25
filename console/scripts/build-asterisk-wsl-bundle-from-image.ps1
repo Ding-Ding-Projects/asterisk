@@ -44,6 +44,53 @@ if (-not $Force -and (Test-Path -LiteralPath $bundlePath) -and (Test-Path -Liter
     }
 }
 
+# Route 2a: a published release asset for this exact commit.
+#
+# Preferred over the registry because it needs no container engine and no registry
+# credential at all - a release asset is a plain HTTPS download that anyone who can see
+# the repository can fetch. That matters more than it sounds: the registry push has been
+# refused for lack of a package-write scope on every release so far, so the pull route it
+# feeds has never had anything to pull.
+#
+# The digest is checked against the provenance that travels beside the tar, and a
+# mismatch discards both rather than accepting a payload that does not match its own
+# record. A wrong root filesystem is worse than a slow one.
+if (-not $Force) {
+    try {
+        $gh = Get-Command gh -ErrorAction SilentlyContinue
+        if ($gh) {
+            $tag = (& gh release list --repo (Get-AsteriskRepositorySlug -RepoRoot $repoRoot) --limit 40 --json tagName --jq '.[].tagName' 2>$null)
+            foreach ($candidate in $tag) {
+                $names = (& gh release view $candidate --repo (Get-AsteriskRepositorySlug -RepoRoot $repoRoot) --json assets --jq '.assets[].name' 2>$null)
+                if ($names -notcontains 'asterisk-wsl-rootfs.json') { continue }
+                $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("ding-rootfs-" + [System.Guid]::NewGuid().ToString('N'))
+                New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+                try {
+                    & gh release download $candidate --repo (Get-AsteriskRepositorySlug -RepoRoot $repoRoot) --pattern 'asterisk-wsl-rootfs.json' --dir $tmp 2>$null | Out-Host
+                    $candidateProvenance = [System.IO.File]::ReadAllText((Join-Path $tmp 'asterisk-wsl-rootfs.json'), [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+                    if ($candidateProvenance.sourceCommit -ne $sourceCommit) { continue }
+                    & gh release download $candidate --repo (Get-AsteriskRepositorySlug -RepoRoot $repoRoot) --pattern 'asterisk-wsl-rootfs.tar' --dir $tmp 2>$null | Out-Host
+                    $downloaded = Join-Path $tmp 'asterisk-wsl-rootfs.tar'
+                    if (-not (Test-Path -LiteralPath $downloaded)) { continue }
+                    $actual = Get-Sha256 $downloaded
+                    if ($actual -ne $candidateProvenance.sha256) {
+                        Write-Warning "Release asset on $candidate does not match its own recorded digest; discarding it."
+                        continue
+                    }
+                    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $bundlePath) | Out-Null
+                    Move-Item -Force -LiteralPath $downloaded -Destination $bundlePath
+                    Move-Item -Force -LiteralPath (Join-Path $tmp 'asterisk-wsl-rootfs.json') -Destination $provenancePath
+                    Write-Host "Reused the published root filesystem from release $candidate for $sourceCommit - no compile, no container engine."
+                    exit 0
+                } finally {
+                    Remove-Item -Recurse -Force -LiteralPath $tmp -ErrorAction SilentlyContinue
+                }
+            }
+        }
+    } catch {
+        Write-Warning "No usable published root filesystem asset for $sourceCommit ($($_.Exception.Message)). Trying the registry, then a local compile."
+    }
+}
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     throw 'Docker is required to obtain the complete WSL rootfs payload, either by pulling the published image or by compiling it locally.'
 }
