@@ -81,19 +81,70 @@ test('the title bar renders on every screen, not only the one it happened to be 
 
 /* --- the About screen -------------------------------------------------------------- */
 
-test('the About heading shows the shipped name until the app is renamed', () => {
+/**
+ * Two halves, pinned separately, because they used to be one and that was the defect.
+ *
+ * The name lived in the `<h1>`, which made the heading read `About Ding PBX Console`
+ * where the design's own reads `About`. The parity capture driver settles on the heading
+ * to prove it arrived at the destination it clicked towards, so About was the single
+ * destination of thirty-two with no built capture at all -- recorded in
+ * `release/evidence/parity/run-built.json` as `heading settled on 'About Ding PBX
+ * Console', not 'About'`.
+ *
+ * So the heading is now the design's, and the rename reaches the About screen's body
+ * instead. Both facts need their own assertion: a test that only checked the name was
+ * somewhere on the screen would pass again the moment somebody moved it back into the
+ * heading, which is exactly the regression that would silently cost the capture a second
+ * time.
+ */
+
+/** The `<h1>` text, read the way the capture driver reads it rather than off the whole
+ *  screen -- `strip()` flattens the heading and the subheading into one run of words, so
+ *  a name that moved from one to the other would be invisible to it. */
+function heading(markup: string): string {
+  const match = markup.match(/<h1[^>]*>([\s\S]*?)<\/h1>/u);
+  assert.ok(match, 'the rendered screen has no <h1> at all');
+  return match[1].replace(/<[^>]*>/gu, '').trim();
+}
+
+test("the About heading is exactly the design's own 'About', so the parity driver can settle on it", () => {
+  assert.equal(heading(renderAppScreen('about')), 'About');
+});
+
+test('the About heading stays exactly "About" even once the app has been renamed', () => {
+  assert.equal(heading(renderAppScreen('about', 'Reception')), 'About');
+});
+
+test('the About screen still names the shipped console in its body until the app is renamed', () => {
   const text = strip(renderAppScreen('about'));
-  assert.ok(text.includes(`About ${IDENTITY.productName}`), `expected "About ${IDENTITY.productName}" in: ${text.slice(0, 300)}`);
+  assert.ok(
+    text.includes(`This console is ${IDENTITY.productName}.`),
+    `expected the shipped name on the About screen: ${text.slice(0, 400)}`,
+  );
 });
 
-test('the About heading shows the chosen name once the app has been renamed', () => {
+test('the About screen shows the chosen name in its body once the app has been renamed', () => {
   const text = strip(renderAppScreen('about', 'Reception'));
-  assert.ok(text.includes('About Reception'), `expected "About Reception" in: ${text.slice(0, 300)}`);
+  assert.ok(
+    text.includes('This console has been renamed to Reception.'),
+    `expected the chosen name on the About screen: ${text.slice(0, 400)}`,
+  );
 });
 
-test('the About screen never shows a bare "About" once renamed -- the heading actually moved, not merely grew a second line', () => {
+test('the renamed About screen keeps stating the shipped-name-only boundary, where a reader would look for it', () => {
   const text = strip(renderAppScreen('about', 'Reception'));
-  assert.equal(/\bAbout\s+Ding PBX Console\b/u.test(text), false, `the shipped name is still in the heading: ${text.slice(0, 300)}`);
+  assert.ok(
+    text.includes(`Diagnostics and bug reports still say ${IDENTITY.productName}`),
+    `the About screen no longer discloses the boundary: ${text.slice(0, 400)}`,
+  );
+});
+
+test("the About screen keeps the design's own subheading rather than displacing it", () => {
+  const text = strip(renderAppScreen('about', 'Reception'));
+  assert.ok(
+    text.includes('Build provenance and the policies this console is bound by.'),
+    `the design's About subheading was displaced: ${text.slice(0, 400)}`,
+  );
 });
 
 /* --- shipped-name-only surfaces stay exactly that, even from inside a renamed app --- */

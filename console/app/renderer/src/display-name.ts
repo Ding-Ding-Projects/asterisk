@@ -131,6 +131,34 @@ export const RENAME_DISCLOSURE =
   + `${IDENTITY.productName} so anyone reading one knows what software it came from.`;
 
 /**
+ * The sentence the About screen adds under its heading to say what this console calls
+ * itself.
+ *
+ * The name used to live in the About screen's `<h1>`, which read `About Ding PBX Console`
+ * where the design's own heading reads `About`. That divergence cost more than it looked
+ * worth: the parity capture driver settles on the heading to prove it arrived at the right
+ * destination, so About was the one destination of thirty-two that could never be captured
+ * from the built application at all.
+ *
+ * Moving the name into the body keeps both halves. The heading is the design's, and the
+ * rename still reaches an About surface -- which is the whole claim this module's header
+ * comment makes about where a chosen name shows up.
+ *
+ * It also puts the shipped-name-only boundary on the screen a reader would go to for it:
+ * once renamed, the line says outright that a bug report will still name the real product.
+ */
+export function aboutIdentityLine(storage: NameStorage | undefined): string {
+  /* Through `nameFor('about', ...)` rather than `displayName(...)` directly, so the surface
+   * table above stays the thing that decides. It resolves identically today, and it means
+   * moving 'about' into SHIPPED_NAME_SURFACES would actually change this line rather than
+   * leaving a dead entry that says it governs a surface it no longer reaches. */
+  const chosen = nameFor('about', storage);
+  if (chosen === IDENTITY.productName) return `This console is ${IDENTITY.productName}.`;
+  return `This console has been renamed to ${chosen}. Diagnostics and bug reports still say `
+    + `${IDENTITY.productName}, so anyone reading one knows what software it came from.`;
+}
+
+/**
  * The two confirmations the console shows on its notification surface (a toast) when a
  * rename takes effect. Pulled out as named, independently testable functions rather than
  * inline template literals so the exact wording is pinned in one place -- both by this

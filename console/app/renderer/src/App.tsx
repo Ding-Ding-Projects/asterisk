@@ -48,7 +48,8 @@ import {
 } from './text-boundary';
 import { CANTONESE } from './locale-yue';
 import {
-  IDENTITY, displayName, nameFor, renamedConfirmation, resetConfirmation, resetDisplayName, setDisplayName,
+  IDENTITY, aboutIdentityLine, displayName, nameFor, renamedConfirmation, resetConfirmation,
+  resetDisplayName, setDisplayName,
 } from './display-name';
 import { withTitleBarName } from './title-bar-name';
 import { setEmojisEnabled } from './dialog-emojis';
@@ -4722,6 +4723,15 @@ It is shown once. The phone needs it to register.`);
     const bridge = this.bridge();
     const readings = this.readings[screen];
     const note = this.note(screen);
+    /* The About screen says what this console calls itself in its body, not in its
+     * heading. The heading is a bound value, so it was cheap to write `About <app>` into
+     * it -- and that cost the parity harness the one thing it uses to prove a driver
+     * arrived at the right destination, because it settles on the heading matching the
+     * design's. About was the only destination of thirty-two with no built capture at all
+     * as a result. See aboutIdentityLine(). */
+    const sub = screen === 'about'
+      ? `${values.screenSub as string} ${aboutIdentityLine(this.durableStorage.storage)}`
+      : (values.screenSub as string);
 
     return {
       ...values,
@@ -4831,12 +4841,7 @@ It is shown once. The phone needs it to register.`);
       connLabel: this.target.label,
       connUptime: this.target.detail,
       openConnection: () => this.showInfo('Connection', BOUNDARY, BOUNDARY_PLAIN, '38%', '70px'),
-      screenSub: note ? `${values.screenSub as string}\n\n${note}` : values.screenSub,
-      /* The compiled About screen is generic policy content with no app-identity
-       * heading of its own. Its title is a bound value, so unlike the title bar this
-       * needs no tree surgery -- just naming the console in the heading it already has,
-       * the same way "About <app>" reads everywhere else. */
-      screenTitle: screen === 'about' ? `About ${nameFor('about', this.durableStorage.storage)}` : values.screenTitle,
+      screenSub: note ? `${sub}\n\n${note}` : sub,
 
       // Dashboard tiles, live rows and health bars come only from observed readings.
       stats: dashboardStats(readings),
