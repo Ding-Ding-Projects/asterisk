@@ -246,27 +246,32 @@ test('PIN: SettingsSourceFetcher refuses any host that is not on its allowlist, 
   assert.match(fetcher, /return refuse\(`\$\{url\.hostname\} is not an allowed source host\.`\);/);
 });
 
-test('PIN: createControlPlaneDispatcher defaults the allowlist to empty when nothing is passed', () => {
-  assert.match(dispatch, /allowedHosts: options\.allowedSettingsSourceHosts \?\? \[\],/);
+test('the dispatcher falls back to the persisted allowlist, not to an empty one', () => {
+  /* This replaces a pin that asserted the defect. It read:
+   *
+   *     allowedHosts: options.allowedSettingsSourceHosts ?? [],
+   *
+   * which meant production, passing nothing, always got an empty allowlist and refused
+   * every external settings source forever. The pin was correct to exist and correct to
+   * fire the moment the fix landed -- it even said so in its own failure message.
+   *
+   * What must not be lost is the reason the empty default was right in the first place: a
+   * fetcher configured with nothing is not a fetcher configured with no restrictions. So
+   * the fallback must still be fail-closed when nothing is persisted either. */
+  assert.match(dispatch, /allowedHosts: options\.allowedSettingsSourceHosts \?\? parseAllowlist\(/,
+    'the dispatcher no longer falls back to the persisted allowlist');
+  assert.doesNotMatch(dispatch, /allowedHosts: options\.allowedSettingsSourceHosts \?\? \[\],/,
+    'the dispatcher is back to defaulting to an empty allowlist, which refuses every source forever');
 });
 
-test('PIN: app/electron/main.ts never passes allowedSettingsSourceHosts -- the allowlist is empty in every real build', () => {
-  /* If this ever starts matching, main.ts has started wiring the allowlist and this whole
-   * pinned test (and the report that goes with it) should be revisited and likely deleted. */
-  assert.doesNotMatch(mainTs, /allowedSettingsSourceHosts/,
-    'main.ts now sets allowedSettingsSourceHosts -- the "every fetch is refused" defect this pins may be fixed; update this test');
-
+test('main.ts deliberately passes no allowlist, so it inherits the persisted one', () => {
+  /* The previous pin asserted the word `allowedSettingsSourceHosts` appeared nowhere in
+   * main.ts. That is now false for a harmless reason -- it appears in a comment explaining
+   * why the option is deliberately left unset -- and a test that cannot tell a comment from
+   * a call is testing the wrong thing. What matters is the construction call itself. */
   const callStart = mainTs.indexOf('const dispatcher = createControlPlaneDispatcher({');
   assert.ok(callStart > 0, 'the dispatcher construction call has moved or been renamed');
-  const callEnd = mainTs.indexOf('})', callStart);
-  const call = mainTs.slice(callStart, callEnd);
-  assert.doesNotMatch(call, /allowedSettingsSourceHosts/);
-
-  /* And nowhere else in the whole non-test source tree assigns it either, confirming this
-   * is not merely a naming mismatch missed by the grep above. */
-  const wholeSourceMentionsIt = [
-    read('control-plane/dispatch.ts'),
-  ].some((src) => /allowedSettingsSourceHosts\s*:/.test(src.replace(/allowedHosts: options\.allowedSettingsSourceHosts \?\? \[\],/, '')));
-  assert.equal(wholeSourceMentionsIt, false,
-    'something outside dispatch.ts\'s own optional-parameter declaration now assigns allowedSettingsSourceHosts -- re-check whether the allowlist is actually populated before trusting this pin');
+  const call = mainTs.slice(callStart, mainTs.indexOf('})', callStart));
+  assert.doesNotMatch(call, /allowedSettingsSourceHosts\s*:/,
+    'main.ts now passes an explicit allowlist, which would override whatever the user persisted');
 });
