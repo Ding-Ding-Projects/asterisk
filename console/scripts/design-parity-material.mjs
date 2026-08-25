@@ -506,7 +506,19 @@ export function serializeAudit(record) {
  *
  * `read` is injected so a negative regression can plant exactly one stale record without
  * touching the committed evidence it is supposed to be protecting.
+ *
+ * CARRIAGE RETURNS ARE STRIPPED FROM BOTH SIDES BEFORE COMPARING, and that is load-bearing
+ * rather than tidy. This checkout runs with `core.autocrlf=true`, so a record written here
+ * with LF is materialised with CRLF in every other checkout of the same commit — a fresh
+ * clone, a linked working tree, a build runner. Comparing the bytes as read would then
+ * report all 32 records stale on every machine except the one that happened to write them,
+ * which is a check that is green exactly where it is least needed. It was found that way:
+ * the suite passed in the tree that generated the records, and the identical commit failed
+ * in the primary checkout beside it. What this check is actually about is whether a record
+ * still says what the renderer produces, and a line ending is not part of that.
  */
+const withoutCarriageReturns = (text) => (typeof text === 'string' ? text.replaceAll('\r', '') : text);
+
 export function findStaleRecords(records, { pathFor, read } = {}) {
   if (typeof pathFor !== 'function' || typeof read !== 'function') {
     throw new Error('design-parity-material: findStaleRecords requires pathFor and read');
@@ -516,9 +528,9 @@ export function findStaleRecords(records, { pathFor, read } = {}) {
   }
   const stale = [];
   for (const record of records) {
-    const expected = serializeAudit(record);
+    const expected = withoutCarriageReturns(serializeAudit(record));
     let onDisk;
-    try { onDisk = read(pathFor(record.destinationId)); } catch { onDisk = null; }
+    try { onDisk = withoutCarriageReturns(read(pathFor(record.destinationId))); } catch { onDisk = null; }
     if (onDisk === expected) continue;
     stale.push({ destinationId: record.destinationId, reason: onDisk === null ? 'absent or unreadable' : 'differs from what the current renderer produces' });
   }

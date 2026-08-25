@@ -96,6 +96,18 @@ screen without re-auditing it turns the suite red — a conformance verdict left
 that has since changed is a statement about a screen nobody can reach, which is the same staleness
 the capture harness refuses everywhere else.
 
+**The comparison strips carriage returns from both sides, and that is load-bearing rather than
+tidy.** This checkout runs with `core.autocrlf=true`, so a record written with LF is materialised
+with CRLF in every other checkout of the same commit — a fresh clone, a linked working tree, a
+build runner. The first version compared the bytes as read, and it was found the only way a defect
+like that ever is: the whole suite passed in the tree that generated the records, and the identical
+commit reported all 32 of them stale in the primary checkout beside it. Green where it was written
+and red everywhere it matters is the worst direction for a freshness check to be wrong in. What the
+check is actually about is whether a record still says what the renderer produces, and a line
+ending is not part of that — so both directions are now planted in the red-then-green proof: a CRLF
+record must not be called stale, and stripping carriage returns must not blind the check to a real
+edit.
+
 ## Verification boundary
 
 This audit reads declarations, not pixels. Five limits travel inside every record's own

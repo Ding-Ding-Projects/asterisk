@@ -21,6 +21,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   auditMaterial, scanElements, parseInlineStyle, parseInteractionRules,
+  serializeAudit, findStaleRecords,
   M3_CHECKS, M3_TYPE_SCALE_PX, M3_ICON_SIZES_PX, M3_SHAPE_SCALE_PX,
   M3_MIN_TOUCH_TARGET_PX, M3_STATE_LAYER_OPACITY, M3_EASING, M3_DURATIONS_MS, NOT_MEASURED,
 } from '../../scripts/design-parity-material.mjs';
@@ -259,6 +260,34 @@ test('every audit states what a static audit structurally cannot decide', () => 
   assert.ok(audit.notMeasured.length >= 5);
   assert.ok(audit.notMeasured.some((limit) => limit.startsWith('component anatomy:')));
   assert.ok(audit.notMeasured.some((limit) => limit.startsWith('colour roles:')));
+});
+
+/* The freshness check, and specifically the line-ending case that made it green only on
+ * the machine that wrote the records.
+ *
+ * This checkout runs with core.autocrlf=true, so a record written with LF here is
+ * materialised with CRLF in every other checkout of the same commit. The first version of
+ * this check compared the bytes as read, so the whole suite passed in the tree that
+ * generated the evidence and the identical commit reported all 32 records stale in the
+ * primary checkout beside it. That is the worst possible direction for a freshness check
+ * to be wrong in: green where it was written, red everywhere it actually matters. */
+test('a record materialised with CRLF is the same record, not a stale one', () => {
+  const records = [auditFixture({ destinationId: 'alpha' })];
+  const pathFor = (id) => `/evidence/${id}-material.json`;
+  const asCommitted = serializeAudit(records[0]);
+  const asCheckedOut = asCommitted.replaceAll('\n', '\r\n');
+  assert.notEqual(asCheckedOut, asCommitted, 'the CRLF fixture is identical to the LF one, so this test would prove nothing');
+  assert.deepEqual(findStaleRecords(records, { pathFor, read: () => asCheckedOut }), []);
+  assert.deepEqual(findStaleRecords(records, { pathFor, read: () => asCommitted }), []);
+});
+
+test('the freshness check still notices a record whose content genuinely changed', () => {
+  const records = [auditFixture({ destinationId: 'alpha' })];
+  const pathFor = (id) => `/evidence/${id}-material.json`;
+  const tampered = serializeAudit(records[0]).replace('"conforms": true', '"conforms": false').replaceAll('\n', '\r\n');
+  const stale = findStaleRecords(records, { pathFor, read: () => tampered });
+  assert.equal(stale.length, 1, 'stripping carriage returns must not blind the check to a real edit');
+  assert.equal(stale[0].destinationId, 'alpha');
 });
 
 /* The committed evidence. Deliberately asserted on what it IS rather than on a verdict:
