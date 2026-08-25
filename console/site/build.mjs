@@ -34,6 +34,34 @@ const fontFiles = await readdir(fontSource);
 for (const file of fontFiles) {
   await copyFile(join(fontSource, file), join(fontOutput, file));
 }
+/*
+ * Product screenshots. The landing page references `screens/<file>.png`, so the files
+ * have to be copied into the published tree for the same reason the fonts are: a source
+ * directory that serves perfectly is exactly what makes a published 404 easy to miss.
+ *
+ * Copied by name from an explicit list rather than by sweeping the directory, so a
+ * capture the page never references cannot quietly add megabytes to every visit, and so
+ * a renamed file fails the build here instead of rendering as a broken image.
+ */
+const screenSource = resolve(root, '..', 'release', 'captures', 'gallery');
+const screenOutput = join(output, 'screens');
+const indexMarkup = await readFile(resolve(root, "index.html"), "utf8");
+/* Split on the literal reference rather than matching a pattern: a backslash does not
+ * reliably survive being written into a source file, and a mangled pattern that matches
+ * nothing looks exactly like a page with no screenshots. */
+const SCREEN_MARKER = "src=\"screens/";
+const screensReferenced = indexMarkup
+  .split(SCREEN_MARKER)
+  .slice(1)
+  .map((part) => part.slice(0, part.indexOf(String.fromCharCode(34))))
+  .filter((name) => name.endsWith(".png"));
+if (screensReferenced.length === 0) {
+  throw new Error("index.html references no screenshots; the gallery would publish empty.");
+}
+await mkdir(screenOutput, { recursive: true });
+for (const file of screensReferenced) {
+  await copyFile(join(screenSource, file), join(screenOutput, file));
+}
 if (!fontFiles.includes('fonts.css')) {
   throw new Error(`No fonts.css in ${fontSource}; the published pages would fall back silently.`);
 }

@@ -508,7 +508,7 @@ function Template(v: any) {
                     ) : null)
                 ))),
                 h("div", { style: sty(`flex:1;`) }),
-                A(v.histActions).map(($a, $a$i) => R($a$i, h("button", { onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:6px; background:#1B211C; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h13" },
+                A(v.histActions).map(($a, $a$i) => R($a$i, h("button", { onClick: fn($a.run), title: $a.hint, style: sty(`display:flex; align-items:center; gap:6px; background:#1B211C; border:0; border-radius:999px; padding:8px 14px 8px 11px; color:${S($a.fg)}; font:inherit; font-size:12.5px; cursor:pointer;`), className: "k-h13" },
                     h("span", { style: sty(`font-size:16px;`), className: "msym" },
                       S($a.icon)
                     ),
@@ -578,7 +578,7 @@ function Template(v: any) {
                         )))
                     ),
                     h("div", { style: sty(`display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;`) },
-                      A(v.diffActions).map(($a, $a$i) => R($a$i, h("button", { onClick: fn($a.run), style: sty(`display:flex; align-items:center; gap:6px; background:${S($a.bg)}; border:0; border-radius:999px; padding:9px 15px 9px 12px; color:${S($a.fg)}; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;`) },
+                      A(v.diffActions).map(($a, $a$i) => R($a$i, h("button", { onClick: fn($a.run), title: $a.hint, style: sty(`display:flex; align-items:center; gap:6px; background:${S($a.bg)}; border:0; border-radius:999px; padding:9px 15px 9px 12px; color:${S($a.fg)}; font:inherit; font-size:12.5px; font-weight:500; cursor:pointer;`) },
                           h("span", { style: sty(`font-size:16px;`), className: "msym" },
                             S($a.icon)
                           ),
@@ -658,7 +658,7 @@ function Template(v: any) {
                             ),
                             "Send NO"
                           ),
-                          h("button", { onClick: fn($a.ask), style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 18px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;`), className: "k-h1" },
+                          h("button", { onClick: fn($a.ask), title: $a.askHint, style: sty(`background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 18px; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;`), className: "k-h1" },
                             "Ask for detail"
                           ),
                           h("button", { onClick: fn($a.defer), style: sty(`background:transparent; border:0; color:#9AA39B; font:inherit; font-size:12.5px; cursor:pointer; padding:10px 12px;`) },
@@ -3769,6 +3769,18 @@ const NODES = [
 const EDGES = [['n1','n2'],['n2','n3'],['n3','n4'],['n3','n5'],['n2','n6']];
 const NW = 196, NH = 68;
 
+/* One list, two readers: the dashboard's Quick actions panel and the PBX menu. Both used
+ * to hand-copy the same six commands, which is exactly how a seventh command gets added
+ * to one and forgotten in the other. */
+const QUICK_ACTIONS = [
+  { icon:'refresh', label:'Reload dialplan', cmd:'dialplan reload' },
+  { icon:'refresh', label:'Reload PJSIP', cmd:'pjsip reload' },
+  { icon:'restart_alt', label:'Graceful restart', cmd:'core restart gracefully' },
+  { icon:'phone_forwarded', label:'Originate test call', cmd:'channel originate PJSIP/1001 extension 1000@from-internal' },
+  { icon:'cleaning_services', label:'Clear queue stats', cmd:'queue reset stats' },
+  { icon:'bug_report', label:'Capture debug bundle', cmd:'core show settings' }
+];
+
 const NODE_CTLS = {
   n1:[ctl('dp_ctx','Context','select','from-external',{ options:['from-external','from-internal','from-trunk'] }), ctl('dp_pat','Match pattern','segmented','Any number',{ options:['Exact','Prefix','Any number'] }), ctl('dp_cid','Screen caller ID','switch',true)],
   n2:[ctl('dp_days','Days','chips',['mon','tue','wed','thu','fri'],{ options:['mon','tue','wed','thu','fri','sat','sun'] }), ctl('dp_from','Opens','slider',9,{ min:0, max:23, unit:':00' }), ctl('dp_to','Closes','slider',17,{ min:0, max:23, unit:':00' }), ctl('dp_hol','Respect holiday list','switch',true)],
@@ -4090,7 +4102,7 @@ class ConsoleShell extends DCLogic {
     regex:['^memory/', 'projects', '\\.md$'],
     patterns:{ nav:[], table:[], memory:['^memory/', 'projects'] },
     regexOpen:false, regexTarget:'nav', regexX:'300px', regexY:'120px', regexFlags:['i'],
-    ctxOpen:false, ctxX:'0px', ctxY:'0px', ctxTarget:'', ctxKind:'screen',
+    ctxOpen:false, ctxX:'0px', ctxY:'0px', ctxTarget:'', ctxKind:'screen', ctxMenuId:'',
     locks:{}, lockOpen:false, lockTarget:'', lockKey:'', lockStep:0, lockMethod:'PIN', pin:'', password:'', pinReveal:false, lockX:'40%', lockY:'22%',
     credits:3, game:'whack', gameScore:0, gameTime:0, gameCell:-1, gamePlaying:false,
     dtmfSeq:['4','7','2','9'], dtmfIn:[], dtmfShow:true,
@@ -4641,7 +4653,10 @@ class ConsoleShell extends DCLogic {
     const chipOK = { 'Reachable':1, 'Registered':1, 'Running':1, 'Up':1, 'Active':1, 'Connected':1, 'Signed':1, 'Enabled':1, 'Published':1, 'Sealed':1, 'Locked':1, 'Playable':1 };
 
     return {
-      menus:['File','Edit','View','PBX','Agent','Window','Help'].map(l => ({ label:l, open:() => this.toast(l + ' menu') })),
+      // Each of the seven menus opens the same context-menu overlay everything else on this
+      // screen already uses, keyed by which label was clicked (ctxItems' 'menubar' branch,
+      // below) -- rather than a toast that announced a menu and never opened one.
+      menus:['File','Edit','View','PBX','Agent','Window','Help'].map(l => ({ label:l, open:(e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ ctxOpen:true, ctxKind:'menubar', ctxMenuId:l, ctxTarget:l, ctxSub:'', ctxX:(e ? e.clientX : 12) + 'px', ctxY:'46px' }); } })),
       connLabel:'pbx-hq · AMI 5038', connUptime:'up 14d 06:22',
       openConnection:() => this.showInfo('Connection', 'The console is attached to pbx-hq over the manager interface on port 5038, secured with TLS. Losing this connection makes every live number on the dashboard grey out — configuration screens keep working from the last read.', 'The app is talking to your phone system over the network. If the little dot stops being green, the two are no longer talking.', '38%', '70px'),
       modeOpts:['Beginner','Expert'].map(m => ({ label:m, on:s.mode === m, off:s.mode !== m, pick:() => this.setState({ mode:m }) })),
@@ -4700,14 +4715,7 @@ class ConsoleShell extends DCLogic {
         { label:'SIP registrations', value:'11 of 12', pct:'92%' },
         { label:'Trunk capacity', value:'4 of 60', pct:'7%' }
       ],
-      quickActions:[
-        { icon:'refresh', label:'Reload dialplan', cmd:'dialplan reload' },
-        { icon:'refresh', label:'Reload PJSIP', cmd:'pjsip reload' },
-        { icon:'restart_alt', label:'Graceful restart', cmd:'core restart gracefully' },
-        { icon:'phone_forwarded', label:'Originate test call', cmd:'channel originate PJSIP/1001 extension 1000@from-internal' },
-        { icon:'cleaning_services', label:'Clear queue stats', cmd:'queue reset stats' },
-        { icon:'bug_report', label:'Capture debug bundle', cmd:'core show settings' }
-      ].map(q => Object.assign({}, q, { run:() => this.ceremony(q.label, q.cmd) })),
+      quickActions:QUICK_ACTIONS.map(q => Object.assign({}, q, { run:() => this.ceremony(q.label, q.cmd) })),
 
       canvasTools:[
         { icon:'near_me', label:'Select', id:'select' }, { icon:'timeline', label:'Wire', id:'wire' },
@@ -4757,7 +4765,10 @@ class ConsoleShell extends DCLogic {
           up:() => this.moveNode(n.id, 0, -20), down:() => this.moveNode(n.id, 0, 20),
           connect:() => this.addEdgeFrom(),
           ctx:(e) => { e.preventDefault(); this.setState({ nodeId:n.id, ctxOpen:true, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:n.title, ctxKind:'node' }); },
-          dup:() => this.toast(n.title + ' duplicated on the canvas'),
+          // Same mechanism as the right-click "Duplicate step" a few hundred lines down
+          // (addedNodes + nodeSeq): this card's own duplicate button used to just say the
+          // word "duplicated" and add nothing to addedNodes at all.
+          dup:() => { const seq = (s.nodeSeq || 0) + 1; const copy = Object.assign({}, n, { id:'added-' + seq, title:n.title + ' (copy)', x:p.x + 40, y:p.y + 40 }); this.setState({ addedNodes:(s.addedNodes || []).concat([copy]), nodeSeq:seq, nodeId:copy.id }); this.fire('Step duplicated', copy.title + ' is on the canvas, offset from the original.'); },
           del:() => this.areYouSure('Delete ' + n.title, 'The step and every connection into or out of it are removed from the dialplan.', 3, () => { const gone = (s.removedNodes || []).concat([n.id]); this.setState({ removedNodes:gone }); this.fire('Step deleted', n.title + ' is off the canvas, with its connections.'); }) };
       }),
       canvasDrop:(e) => {
@@ -4789,9 +4800,18 @@ class ConsoleShell extends DCLogic {
       canvasZ:s.fullscreen ? 94 : 'auto',
       toggleFullscreen:() => { this.set('fullscreen', !s.fullscreen); this.toast(s.fullscreen ? 'Editor restored' : 'Full-screen editor — press the button again or Esc to exit'); },
       fsIcon:s.fullscreen ? 'fullscreen_exit' : 'fullscreen',
+      // Placed offset from whatever step is currently selected -- the same addedNodes +
+      // nodeSeq mechanism "Insert condition before" already uses -- rather than a toast
+      // that named a step and put nothing on the canvas.
       paletteNodes:[
         { icon:'add_call', label:'Dial' }, { icon:'dialpad', label:'Menu' }, { icon:'groups', label:'Queue' }, { icon:'call_split', label:'Condition' }, { icon:'voicemail', label:'Voicemail' }
-      ].map(p => ({ icon:p.icon, label:p.label, add:() => this.toast(p.label + ' step added to the canvas') })),
+      ].map(p => ({ icon:p.icon, label:p.label, add:() => {
+        const at = NODES.concat(s.addedNodes || []).filter(n => n.id === s.nodeId)[0];
+        const seq = (s.nodeSeq || 0) + 1;
+        const node = { id:'added-' + seq, x:(at ? at.x + 40 : 40), y:(at ? at.y + 40 : 40), icon:p.icon, title:p.label, detail:p.label + ' — configure this step' };
+        this.setState({ addedNodes:(s.addedNodes || []).concat([node]), nodeSeq:seq, nodeId:node.id });
+        this.fire(p.label + ' step added', node.title + ' is on the canvas, ready to wire in.');
+      } })),
       nodeTitle:node.title, nodeApp:node.detail.split('\n')[0],
       nodeCtls:(NODE_CTLS[node.id] || []).map(c => Object.assign(this.buildCtl(c), { narrow:true })),
 
@@ -4869,7 +4889,11 @@ class ConsoleShell extends DCLogic {
       memPanels:[
         { icon:'sync', title:'Sync', action:'Run sync now', rows:[{ k:'Last run', v:'08:14' }, { k:'Records', v:'2,412' }, { k:'Drift', v:'none' }], act:() => this.ceremony('Run a memory sync', 'sync-agent-memory --attest') },
         { icon:'verified_user', title:'Attestation', action:'Re-attest', rows:[{ k:'State', v:'Signed' }, { k:'Backup', v:'verified' }, { k:'Chain', v:'unbroken' }], act:() => this.ceremony('Re-attest the memory ledger', 'attest --rebuild') },
-        { icon:'policy', title:'Emission guard', action:'Scan surfaces', rows:[{ k:'Mode', v:'Block' }, { k:'Violations', v:'0' }, { k:'Lock', v:'engaged' }], act:() => this.toast('Guard scan queued across UI text, logs and exports') }
+        // Its two siblings above both gate the real administrative action behind the same
+        // ceremony confirmation flow and then report what actually ran. This one used to
+        // skip straight to a toast claiming a scan had been queued -- nothing was ever
+        // queued, and it was the one panel out of three that did not match its neighbours.
+        { icon:'policy', title:'Emission guard', action:'Scan surfaces', rows:[{ k:'Mode', v:'Block' }, { k:'Violations', v:'0' }, { k:'Lock', v:'engaged' }], act:() => this.ceremony('Scan for vocabulary emissions', 'leak-scan --scan') }
       ],
 
       docsQuery:'',
@@ -4992,7 +5016,10 @@ class ConsoleShell extends DCLogic {
         ctl('cp_dir', 'Direction', 'segmented', 'Forward', { options:['Forward', 'Reverse', 'Ping-pong'] })
       ].map(this.buildCtl),
       cpickFormats:(() => { const h = this.v('cp_hue', 148), sa = this.v('cp_sat', 60), l = this.v('cp_light', 62);
-        return [['hsl', 'hsl(' + h + ' ' + sa + '% ' + l + '%)'], ['oklch', 'oklch(' + (l / 100).toFixed(2) + ' 0.13 ' + h + ')'], ['hsl deg', h + 'deg'], ['css var', '--tab-accent']].map(([k, v2]) => ({ label:k + ' · ' + v2, copy:() => this.toast(v2 + ' copied') })); })(),
+        // Real clipboard write through the same hostAction('copy', ...) route as every
+        // other copy control on this screen, rather than a toast that claimed a value was
+        // on the clipboard when nothing had touched it.
+        return [['hsl', 'hsl(' + h + ' ' + sa + '% ' + l + '%)'], ['oklch', 'oklch(' + (l / 100).toFixed(2) + ' 0.13 ' + h + ')'], ['hsl deg', h + 'deg'], ['css var', '--tab-accent']].map(([k, v2]) => ({ label:k + ' · ' + v2, copy:() => this.hostAction('copy', { what:k, text:v2 }) })); })(),
       cpickIsGroup:(s.renameKey || '').indexOf('group:') === 0,
       cpickLabel:(s.renameKey || '').indexOf('group:') === 0 ? 'Group colour' : 'Tab colour',
       cpickApply:() => this.applyColour(this.v('cp_rainbow', false) ? 'rainbow' : 'hsl(' + this.v('cp_hue', 148) + ' ' + this.v('cp_sat', 60) + '% ' + this.v('cp_light', 62) + '%)'),
@@ -5139,12 +5166,17 @@ class ConsoleShell extends DCLogic {
       branchName:s.branch, commitCount:s.commits.length + ' commits',
       branches:['main', 'hardening', 'lab'].map(b => ({ label:b, on:s.branch === b, off:s.branch !== b, pick:() => { this.set('branch', b); this.toast('Checked out ' + b); } })),
       histFilters:['All', 'pjsip.conf', 'queues.conf', 'This screen'].map(f => ({ label:f, on:s.histFilter === f, off:s.histFilter !== f, pick:() => this.set('histFilter', f) })),
+      // "New branch" and "Export bundle" used to claim they had done exactly that. The
+      // real local history behind this screen (control-plane/local-history.ts) is an
+      // append-only Git log with record/list/diff/restore/prune -- no branch-checkout and
+      // no bundle export. Rather than invent either, these two say plainly they are not
+      // built yet: dimmed, with a tooltip and an honest toast naming what is missing.
       histActions:[
-        { icon:'add_circle', label:'Commit now', run:() => this.fire('Committed', 'Working tree is clean.') },
-        { icon:'call_split', label:'New branch', run:() => this.toast('Branch created from the current commit') },
-        { icon:'sell', label:'Tag this state', run:() => this.fire('Tagged', 'You can restore to this exact point later.') },
-                { icon:'search', label:'Search history', run:() => this.setState({ regexOpen:true, regexTarget:'nav', regexX:'40%', regexY:'160px' }) },
-        { icon:'download', label:'Export bundle', run:() => this.toast('git bundle written to disk') }
+        { icon:'add_circle', label:'Commit now', fg:'#C4CBC2', hint:'', run:() => this.fire('Committed', 'Working tree is clean.') },
+        { icon:'call_split', label:'New branch', fg:'#778078', hint:'Not built yet: this history is a straight append-only log, with no branch checkout behind it.', run:() => this.toast('Branching is not built yet — this history is a straight append-only log with no branch checkout') },
+        { icon:'sell', label:'Tag this state', fg:'#C4CBC2', hint:'', run:() => this.fire('Tagged', 'You can restore to this exact point later.') },
+                { icon:'search', label:'Search history', fg:'#C4CBC2', hint:'', run:() => this.setState({ regexOpen:true, regexTarget:'nav', regexX:'40%', regexY:'160px' }) },
+        { icon:'download', label:'Export bundle', fg:'#778078', hint:'Not built yet: nothing here writes a git bundle file to disk.', run:() => this.toast('Bundle export is not built yet — nothing was written to disk') }
       ],
       commitRows:s.commits.filter(c => s.histFilter === 'All' || (s.histFilter === 'This screen' ? c.screen === s.screen : c.file === s.histFilter)).map(c => ({
         sha:c.sha, tag:c.tag, hasTag:!!c.tag,
@@ -5169,10 +5201,18 @@ class ConsoleShell extends DCLogic {
         ];
       })(),
       diffActions:[
-        { icon:'restore', label:'Restore this', bg:'#82D9A5', fg:'#00391F', run:() => this.areYouSure('Restore this commit', 'The configuration returns to this exact state. A new commit records the restore, so nothing is lost either way.', 3, () => this.ceremony('Restore configuration', 'git revert --no-commit ' + (s.histSel || 'HEAD'))) },
-        { icon:'undo', label:'Revert just this option', bg:'#262B26', fg:'#9FF7C4', run:() => this.toast('Only this one option is reverted; everything else stays') },
-        { icon:'content_copy', label:'Copy diff', bg:'#262B26', fg:'#9FF7C4', run:() => this.hostAction('copy', { what:'diff', text:S(v.diffText) }) },
-        { icon:'call_split', label:'Branch from here', bg:'#262B26', fg:'#9FF7C4', run:() => this.fire('Branched', 'Experiment freely — main is untouched.') }
+        { icon:'restore', label:'Restore this', bg:'#82D9A5', fg:'#00391F', hint:'', run:() => this.areYouSure('Restore this commit', 'The configuration returns to this exact state. A new commit records the restore, so nothing is lost either way.', 3, () => this.ceremony('Restore configuration', 'git revert --no-commit ' + (s.histSel || 'HEAD'))) },
+        // Sets the single option this commit changed back to its "from" value through the
+        // same setVal() every real control on the console uses, which records its own new
+        // commit -- rather than a toast claiming a revert that touched no state at all.
+        { icon:'undo', label:'Revert just this option', bg:'#262B26', fg:'#9FF7C4', hint:'', run:() => {
+          const c = s.commits.find(x => x.sha === s.histSel) || s.commits[0];
+          if (!c) { this.toast('Nothing selected to revert'); return; }
+          this.setVal({ id:c.key, label:c.label }, c.from);
+        } },
+        { icon:'content_copy', label:'Copy diff', bg:'#262B26', fg:'#9FF7C4', hint:'', run:() => this.hostAction('copy', { what:'diff', text:S(v.diffText) }) },
+        // Same gap as "New branch" above: this history has no branch-checkout behind it.
+        { icon:'call_split', label:'Branch from here', bg:'#262B26', fg:'#778078', hint:'Not built yet: this history is a straight append-only log, with no branch checkout behind it.', run:() => this.toast('Branching is not built yet — this history is a straight append-only log with no branch checkout') }
       ],
       blameRows:s.commits.slice(0, 5).map(c => ({ sha:c.sha, what:c.file + ' · ' + c.label, who:c.author })),
       compareLabel:s.histCompare.length === 2 ? ('Comparing ' + s.histCompare[0] + ' with ' + s.histCompare[1] + ' — 1 file, 1 option differs.') : 'Pick two commits with the compare buttons to see everything that differs between them.',
@@ -5186,7 +5226,11 @@ class ConsoleShell extends DCLogic {
         stateFg:s.authAnswers[r.id] === 'Deferred' ? '#FFD68A' : '#8FA394',
         yes:() => this.answerAuth(r, 'YES'),
         no:() => this.answerAuth(r, 'NO'),
-        ask:() => this.toast('Detail request sent to ' + r.partner + ' — the request stays pending'),
+        // There is no messaging channel to a trunk partner anywhere in this console --
+        // "sent" was never true. Defer and the YES/NO answer are both real state changes;
+        // this one says plainly it cannot reach the partner yet, rather than claiming it did.
+        askHint:'Not built yet: nothing here can message ' + r.partner + '. Defer the request or answer it directly.',
+        ask:() => this.toast('Nothing here can message ' + r.partner + ' yet — defer this request or answer it directly'),
         defer:() => this.setState({ authAnswers:Object.assign({}, s.authAnswers, { [r.id]:'Deferred' }) })
       })),
       authHistory:AUTH_REQS.filter(r => s.authAnswers[r.id] === 'YES' || s.authAnswers[r.id] === 'NO').map(r => ({
@@ -5197,7 +5241,10 @@ class ConsoleShell extends DCLogic {
         { partner:'branch-iax', what:'Add 203.0.113.44 as a source address', answer:'NO', when:'6d', color:'#FFB4AB' },
         { partner:'carrier-backup', what:'Enable opus on the shared link', answer:'YES', when:'11d', color:'#82D9A5' }
       ]),
-      newAuthRequest:() => this.toast('Composing a request — pick the partner and what you want to change'),
+      // Same gap as "Ask for detail" above: there is no composer here and no channel to a
+      // partner. "Composing a request — pick the partner..." implied a composer was about
+      // to open; none does, so this now says plainly that it does not exist yet.
+      newAuthRequest:() => this.toast('A request composer is not built yet — there is no channel to a partner from this console'),
       credits:s.credits,
       games:GAMES.map(g => ({ icon:g.icon, name:g.name, blurb:g.blurb, reward:'+' + g.reward + ' credits', on:s.game === g.id, off:s.game !== g.id, pick:() => { this.stopGameNow(); this.setState({ game:g.id, gameScore:0 }); } })),
       gameTitle:(GAMES.find(g => g.id === s.game) || GAMES[0]).name,
@@ -5517,6 +5564,48 @@ class ConsoleShell extends DCLogic {
             common[0], common[1]
           ]);
         }
+        // The top menu bar used to just announce a menu name and open nothing. Every one
+        // of the seven now opens this same overlay with real items -- reusing an action
+        // this component can already perform genuinely, never inventing a new one.
+        if (s.ctxKind === 'menubar') {
+          if (s.ctxMenuId === 'File') return decorate([
+            { icon:'save', label:'Save as a workspace', hint:'', run:() => { close(); this.hostAction('save', { bucket:'workspace', name:'Workspace', data:{ tabs:s.tabs, groups:s.groups } }); } },
+            { icon:'restore', label:'Restore last session', hint:'', run:() => { close(); this.hostAction('restore', { bucket:'workspace' }); } },
+            { icon:'download_for_offline', label:'Export all tabs', hint:'', run:() => { close(); this.hostAction('export-json', { name:'tabs', subject:'tabs and groups', data:{ tabs:s.tabs, groups:s.groups } }); } },
+            { icon:'upload', label:'Import tabs…', hint:'', run:() => { close(); this.hostAction('import-json', { subject:'tabs' }); } }
+          ]);
+          if (s.ctxMenuId === 'Edit') return decorate([
+            { icon:'content_copy', label:'Copy as configuration', hint:'⌃C', run:() => { close(); this.hostAction('copy-config', { what:'this configuration block' }); } },
+            { icon:'data_object', label:'Open regex builder…', hint:'⌃R', run:() => this.setState({ ctxOpen:false, regexOpen:true, regexTarget:'nav', regexX:'300px', regexY:'120px' }) },
+            { icon:'auto_fix_high', label:'Guided wizard for this screen', hint:'', run:() => this.setState({ ctxOpen:false, wizardOpen:true, wizardStep:0 }) },
+            { icon:'checklist', label:'Select all rows', hint:'⌃A', run:() => { close(); this.set('selected', (sc.table ? sc.table.rows.map(r => r[0]) : [])); } }
+          ]);
+          if (s.ctxMenuId === 'View') return decorate([
+            { icon:'dock_to_left', label:'Dock tabs left', hint:'', run:() => { close(); this.set('dock', 'left'); this.toast('Docked left'); } },
+            { icon:'dock_to_right', label:'Dock tabs right', hint:'', run:() => { close(); this.set('dock', 'right'); this.toast('Docked right'); } },
+            { icon:'vertical_align_top', label:'Dock tabs top', hint:'', run:() => { close(); this.set('dock', 'top'); this.toast('Docked top'); } },
+            { icon:'vertical_align_bottom', label:'Dock tabs bottom', hint:'', run:() => { close(); this.set('dock', 'bottom'); this.toast('Docked bottom'); } },
+            { icon:'fullscreen', label:'Full-screen dialplan editor', hint:'', run:() => { close(); this.setState(st => ({ rndNonce:st.rndNonce + 1, screen:'canvas', railId:SCREENS.canvas.rail, fullscreen:true })); this.toast('Full-screen editor — press the button again or Esc to exit'); } },
+            { icon:'search', label:'Toggle command palette', hint:'⌃⇧F', run:() => { close(); this.set('paletteOpen', !s.paletteOpen); } }
+          ]);
+          if (s.ctxMenuId === 'PBX') return decorate(QUICK_ACTIONS.map(q => ({ icon:q.icon, label:q.label, hint:'', run:() => { close(); this.ceremony(q.label, q.cmd); } })));
+          // "Agent" names the rail group two lines above (RAIL[4].label) rather than a
+          // fresh guess at what the word means here: Memory console, Sync & attestation,
+          // Skills registry, Status hub, Vocabulary & guard, Operations, Secret intake.
+          if (s.ctxMenuId === 'Agent') return decorate(ORDER.filter(k => SCREENS[k].rail === 'agent').map(k => ({ icon:SCREENS[k].icon, label:SCREENS[k].label, hint:'', run:() => { close(); this.openScreen(k); } })));
+          if (s.ctxMenuId === 'Window') return decorate([
+            { icon:'add', label:'New tab here', hint:'⌃T', run:() => { close(); this.setState({ tabs:s.tabs.concat([s.screen]) }); } },
+            { icon:'close', label:'Close tab', hint:'⌃W', run:() => { close(); const t = s.tabs.filter(x => x !== s.screen); this.setState({ tabs:t.length ? t : ['dash'], screen:t[0] || 'dash' }); } }
+          ]);
+          return decorate([
+            { icon:'help', label:'Explain this screen…', hint:'F1', run:() => { close(); this.showInfo(sc.title, sc.sub, 'This screen edits ' + (sc.file || 'the console itself') + '. Every row you see is a real object in the running system, and every control writes one option.', '46%', '150px'); } },
+            { icon:'menu_book', label:'Documentation', hint:'', run:() => { close(); this.openScreen('docs'); } },
+            { icon:'new_releases', label:'What’s new', hint:'', run:() => { close(); this.openScreen('changelog'); } },
+            { icon:'history', label:'Version history', hint:'', run:() => { close(); this.openScreen('history'); } },
+            { icon:'notifications', label:'Notification centre', hint:'', run:() => { close(); this.openScreen('notifications'); } },
+            { icon:'info', label:'About this console', hint:'', run:() => { close(); this.openScreen('about'); } }
+          ]);
+        }
         return decorate([
           { icon:'data_object', label:'Search this screen with regex…', hint:'⌃R', run:() => this.setState({ ctxOpen:false, regexOpen:true, regexTarget:'nav', regexX:s.ctxX, regexY:s.ctxY }) },
           { icon:'auto_fix_high', label:'Guided wizard for this screen', hint:'', run:() => this.setState({ ctxOpen:false, wizardOpen:true, wizardStep:0 }) },
@@ -5597,7 +5686,13 @@ class ConsoleShell extends DCLogic {
         this.toast(s.lockTarget + ' is locked with ' + s.lockMethod + ' — the surface is now disabled');
       },
       closeLock:() => this.set('lockOpen', false),
-      pairAuth:() => this.toast('Built-in authenticator paired for this element only'),
+      // No secret is generated anywhere in this flow -- the "QR" above is a static
+      // checkerboard, and tryUnlock() never checks a TOTP code even when the chosen
+      // method includes one. This button used to claim a pairing that could not have
+      // happened. Real TOTP generation, a real QR and real verification are a standalone
+      // feature (RFC 6238 secret + otpauth:// URI + code check); until that lands, this
+      // says plainly that it has not.
+      pairAuth:() => this.toast('Authenticator pairing is not built yet — nothing was paired, and this method will not verify a code'),
 
       appearOpen:s.appearOpen, appearTarget:s.appearTarget,
       appearChrome:this.dockChrome('appear', '38%', '90px', 468).style,
@@ -5617,7 +5712,9 @@ class ConsoleShell extends DCLogic {
       ],
       colorFormats:(() => { const h = this.v('ap_hue', 148), sa = this.v('ap_sat', 54), l = this.v('ap_light', 68);
         return [['hsl', 'hsl(' + h + ' ' + sa + '% ' + l + '%)'], ['oklch', 'oklch(' + (l / 100).toFixed(2) + ' 0.12 ' + h + ')'], ['hex', '#' + Math.floor(h * 0.7).toString(16).padStart(2, '0') + Math.floor(sa * 2.4).toString(16).padStart(2, '0') + Math.floor(l * 2.4).toString(16).padStart(2, '0')], ['css var', '--accent']]
-          .map(([k, val]) => ({ label:k + ' · ' + val, copy:() => this.toast(val + ' copied') })); })(),
+          // Same real hostAction('copy', ...) write as the tab-accent picker above, in
+          // place of a toast that claimed a copy that never reached the clipboard.
+          .map(([k, val]) => ({ label:k + ' · ' + val, copy:() => this.hostAction('copy', { what:k, text:val }) })); })(),
       appearActions:[
         { icon:'casino', label:'Randomise this element', run:() => this.randomAppearance(false) },
         { icon:'shuffle', label:'Randomise every element', run:() => this.randomAppearance(true) },
