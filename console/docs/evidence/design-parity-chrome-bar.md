@@ -20,12 +20,22 @@ verified, and the guard was right to refuse every one of them.
 > Outside the regions that carry data, do the two artifacts render identically?
 
 That is meetable, and the existing captures prove it rather than assert it: the `dash` and `logger`
-capture pairs each contain runs of rows that are byte-for-byte equal between the two sides. Both
-sides are Chromium at the same device metrics reading the same local font files, so identical
-content really does produce identical pixels here.
+capture pairs each contain runs of rows that are byte-for-byte equal between the two sides, and
+inside the credits pill the Roboto digit is byte-for-byte equal on all 32. Both sides are Chromium
+at the same device metrics reading the same local font files, so identical content **can** produce
+identical pixels here.
 
 The bar therefore has **no per-pixel tolerance**. A tolerance would be a number chosen until
 something passed; zero is the number the artifacts themselves support.
+
+**That claim used to be stronger, and the stronger version is now known to be too strong.** It read
+"identical content really does produce identical pixels here", without qualification. Admitting
+`statusCell` into the compared region tested it directly — one compiled template, nothing overridden
+on either side, the same rectangle measured on both — and it differs by 1,420 pixels on every one of
+the 32. See [what admitting the status cell
+measured](#the-status-cell-is-chrome-and-admitting-it-found-something). Zero is still the only
+defensible tolerance; what changed is that meeting it is not free, and a tolerance wide enough to
+absorb those 1,420 pixels would be wide enough to absorb a real defect.
 
 ## The three properties that keep it honest
 
@@ -67,15 +77,8 @@ than as 32 per-destination masks, so the judgement stays small enough to review:
 - **`menuCell`** — *chrome*. A fixed set of menu titles. Its divergence is the brand cell's, displaced.
 - **`commandCell`** — **data**, and this is the decision the roadmap asked for — see
   [the connection pill](#the-connection-pill-is-data-and-that-decision-cost-two-surprises).
-- **`statusCell`** — **data**, on a description that is now known to be wrong. It used to read "live
-  connection status … the design invents a healthy value" — but that sentence describes
-  `commandCell`. The fourth top cell is the Beginner/Expert mode picker, the confirmation-credits
-  pill, the command-palette button and the three window controls: local application state and fixed
-  chrome, with no target reading in it at all. Its role has deliberately **not** been changed in the
-  pass that corrected its text, for the reason `commandCell`'s was not changed in the pass that
-  corrected `commandCell`'s: two areas moving at once leaves one compared fraction nobody can
-  attribute to either move. On this corrected description the cell reads as chrome and its exclusion
-  is a narrowing nobody argued for, which is its own roadmap item.
+- **`statusCell`** — *chrome*, and this is the second decision the roadmap asked for — see
+  [the status cell](#the-status-cell-is-chrome-and-admitting-it-found-something).
 - **`tabStrip`** — *chrome*. Tab titles come from the navigation catalogue, itself compiled from the
   design, so both sides are naming the same screens.
 - **`rail`** — *chrome*. Six fixed rail icons and labels, compiled from the design's catalogue.
@@ -160,21 +163,23 @@ Every record below came from that same run: one full pass per side against one b
 The `--side=chrome` stage itself takes no pictures — it reads the two region measurements and the
 captures off disk.
 
-The last two rows were **re-derived** when `commandCell` moved from chrome to data. No capture was
-retaken and no rectangle was re-measured: the same 64 PNGs and the same two region files went in, and
-only the mask changed. The re-run was made against the exact build output the built captures were
-taken from — the newest build mtime it recorded is `1787691669082.816`, against the `1787691669082.8162`
-the superseded records carry — so its staleness check compares the same two things the superseded one
-did, and means neither more nor less.
+The last two rows have now been **re-derived twice**: once when `commandCell` moved from chrome to
+data, and once when `statusCell` moved from data to chrome. Neither re-derivation retook a capture or
+re-measured a rectangle. The same 64 PNGs and the same two region files went in both times, and only
+the mask changed. Both re-runs were made against the exact build output the built captures were taken
+from — the newest build mtime each recorded is `1787691669082.8162`, the same figure the original
+records carry — so their staleness check compares the same two things the original one did, and means
+neither more nor less. With one caveat the second re-run created for itself: it walked `console/dist`
+alone, for the reason given under [verification boundary](#verification-boundary).
 
 | State | Record | Run from commit | Coverage | Result |
 | --- | --- | --- | --- | --- |
 | Reference-side rectangles | `release/evidence/parity/regions-reference.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 of 32 | 8 area rectangles each; every shell exactly 1440x1000 at the origin |
 | Built-side rectangles | `release/evidence/parity/regions-built.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 of 32 | every shell exactly 1440x1000 at the origin |
 | Whole-frame visual diff | `release/evidence/parity/{id}-diff.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 records | 0 match, 32 diff, 0 refused; 23.07%-60.98% of pixels differ |
-| Per-destination region ledger | `release/evidence/parity/{id}-regions.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 ledgers | 3 data areas excluded, 5 chrome areas compared |
-| Per-destination chrome-parity comparison | `release/evidence/parity/{id}-chrome.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 records | 0 match, 32 diff, 0 refused; 4.62%-13.68% of the compared region differs |
-| Run ledger for the comparison stage | `release/evidence/parity/run-chrome.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 compared, 0 skipped | exactly 28.0883% of the frame compared, against a declared floor of 25% |
+| Per-destination region ledger | `release/evidence/parity/{id}-regions.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 ledgers | 2 data areas excluded, 6 chrome areas compared |
+| Per-destination chrome-parity comparison | `release/evidence/parity/{id}-chrome.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 records | 0 match, 32 diff, 0 refused; 4.80%-13.54% of the compared region differs |
+| Run ledger for the comparison stage | `release/evidence/parity/run-chrome.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 compared, 0 skipped | exactly 29.1106% of the frame compared, against a declared floor of 25% |
 
 ## Verification boundary
 
@@ -194,9 +199,110 @@ linked worktree is "the checkout happened after the build", which was never in d
 passes as an absence of contrary evidence rather than proof, and rely on the single-pass provenance
 above, which does not depend on a timestamp at all.
 
+**New, and created by the `statusCell` re-run rather than found by it: that re-run walked
+`console/dist` only.** 21 files — the Vite renderer output the built captures actually photographed —
+and not `console/dist-electron`. The recorded `newestBuildSourceMtimeMs` is unchanged at
+`1787691669082.8162`, because that figure has always come from `dist` and it is the same figure the
+records this run replaced already carried.
+
+The reason `dist-electron` was absent is a mistake, and it is written down rather than tidied away.
+The pass reached the capture-provenance build output through a **directory junction**, and a routine
+`npx tsc -b` then wrote *through* that junction and restamped all 93 files of `console/dist-electron`
+in the linked worktree holding it, from about `1787691669000` to `1787697942397`. Nothing tracked was
+touched, and the directory is ignored build output that a rebuild restores — but its mtimes are no
+longer the ones the captures were taken beside, so including it would have made every record refuse
+on a staleness the pass had manufactured itself. Excluding it narrows what this check considered from
+114 files to 21. It does not change what the check concluded, and the honest reading is that this
+run's timestamp provenance is one directory weaker than the run it replaced.
+
 **No destination meets the bar.** All 32 report a real chrome divergence. That is the bar doing its
 job rather than a defect in it, and it is now a second measured reason nothing is verified, beside
 the Material Design 3 audit's finding that none of the 32 conforms.
+
+## The status cell is chrome, and admitting it found something
+
+The roadmap asked the second of two role questions: should `statusCell` stop being excluded as data?
+The answer is **yes**, and the argument is shorter than `commandCell`'s because the renderer settles
+it outright.
+
+The fourth top cell holds the Beginner/Expert mode picker, the confirmation-credits pill, the
+command-palette button and the three window controls. Its previous declaration read "carries live
+status: what the console is connected to and how that connection is faring" — but that sentence
+describes `commandCell`, and a pass corrected the text while deliberately leaving the role alone so
+this move could be measured on its own.
+
+The decisive evidence is not the description. `App.tsx` overrides exactly **two** values in the whole
+top strip — `connLabel` and `connUptime` — and **both land in `commandCell`**. Nothing inside this
+cell is written by the product at all: the same `modeOpts`, the same credits count, the same search
+glyph and the same three window buttons come out of the same compiled template on both sides. There
+is no invented reading here for the bar to exclude, so excluding it was a narrowing nobody argued
+for.
+
+**What the decision costs, measured.** The compared fraction **rises** from exactly `28.0883%` to
+exactly `29.1106%` — 419,192 pixels of 1,440,000, which is the 404,472 compared before plus this
+cell's own 14,720. It is the first change to this declaration that widened the comparison instead of
+narrowing it. The compared-region divergence moves from 4.62%–13.68% to **4.80%–13.54%**: the low end
+rises and the high end falls, because this cell diverges by more than the least-divergent
+destinations did and by less than the most-divergent ones.
+
+**No neighbouring area moved by a single pixel**, unlike the `commandCell` move. This cell's union
+spans columns 1072–1440 and overlaps nothing else, so there was no neighbour's compared strip to
+clip. The worst-area tally is unchanged at `brandCell` 21, `tabStrip` 7, `sectionList` 4, because
+9.65% never beats `brandCell`'s 15.56%.
+
+### It was expected to match. It does not.
+
+One template, nothing overridden, the identical rectangle `1072,0,368,40` measured on both sides of
+all 32 — and it differs by **1,420 of its 14,720 pixels, 9.6467%, with the same count on every one of
+the 32**. An identical figure across 32 different screens is the signature of one cause, so the 1,420
+were located rather than shrugged at. There are two, and neither is noise.
+
+**One: the Material Symbols glyphs.** Every differing pixel outside the mode picker sits on an icon —
+the credits pill's `confirmation_number` at columns 1237–1259 (129 differing), the command-palette
+`search` glyph at 1302–1317 (119), and `remove`, `crop_square` and `close` at 1345–1356, 1379–1390 and
+1413–1424 (46, 88 and 84).
+
+The discriminator sits inside the same pill. The **Roboto digit** beside that icon, columns
+1267–1284, is **byte-for-byte identical — 0 differing pixels**. Roboto matches and Material Symbols
+does not, in adjacent runs of the same control, so this is not antialiasing in general.
+
+Both sides are served the same local `material-symbols-outlined-100-700-0.woff2`; the reference side
+gets it through the capture run's font interception, which answers `fonts.googleapis.com` out of
+`assets/fonts`. What differs is the rule. `font-variation-settings` appears **zero** times anywhere
+under `design/` and **exactly once** in the built renderer — in the `.msym` rule `compile-design.mjs`
+adds, pinning `FILL 0, wght 400, GRAD 0, opsz 24`. Material Symbols Outlined is a variable font whose
+axes the design's own stylesheet link requests as `opsz 20..48, wght 100..700, FILL 0..1, GRAD
+-50..200`, so the built side draws every icon from a pinned instance and the reference side draws it
+from the file's default one.
+
+**Two: the mode picker's border.** 548 of the 946 pixels differing inside the picker are in five
+rows, and they are the box's own 1px border rather than anything inside it. On the reference the top
+border is a single crisp row 6 at `rgb(65,73,66)`, with rows 5 and 34 pure background. On the built
+side the same ink is **split across rows 5 and 6** at `rgb(24,31,25)` and `rgb(40,52,45)`, and the
+same at the bottom. The built side draws the 28px-tall picker box half a pixel higher.
+
+That is a real sub-pixel layout difference and **not** a whole-frame offset. Shifting the built region
+by −2, −1, +1 or +2 pixels raises the divergence in every one of the six runs rather than lowering it,
+so `dx=0` is already the best alignment — and the byte-identical Roboto digit proves at least one
+glyph sits at exactly the same subpixel position on both sides.
+
+### What this section does not claim
+
+The first cause is measured to its mechanism; the second only to its symptom.
+
+For the icons, the difference between the two stylesheets is a fact **counted in the files** — 0
+occurrences under `design/`, 1 in the generated renderer — and the divergence is confined to exactly
+the glyphs that rule governs. But this pass did not re-render either side with the axes changed, so
+the pinning is a **named** cause rather than a demonstrated one.
+
+For the picker border, the half-pixel offset is measured in the pixels and its cause is **not
+established**. The top strip is 40px on both sides, the picker is 28px on both, and `(40 − 28) / 2` is
+an integer, so where the half pixel enters is unknown.
+
+**Neither is repaired here, on purpose.** Repairing the first means editing the compiled renderer's
+`.msym` rule, which changes how every icon in the shipped product is drawn and invalidates all 32
+built captures — a decision and a capture run of its own, not a side effect of a role change. Both
+are recorded as roadmap items.
 
 ## Where the divergence actually comes from
 
@@ -318,9 +424,9 @@ every table row to name the commit its capture came from, and these are not capt
 - **Destinations with records** — 31, now **32**.
 
 Those last two figures are what the harness repairs left behind, and they are **not** the current
-ones: the `commandCell` decision above moved them to 4.62%-13.68% and exactly 28.0883%. They are kept
-as written because this list records what one pass changed, and rewriting it would make it describe
-a different pass.
+ones. The `commandCell` decision moved them to 4.62%–13.68% and exactly 28.0883%; the `statusCell`
+decision moved them again, to **4.80%–13.54% and exactly 29.1106%**. They are kept as written because
+this list records what one pass changed, and rewriting it would make it describe a different pass.
 
 `statusCell`, `tabStrip`, `rail`, `sectionList` and `contentPane` now measure the **same rectangle**
 on both sides on every destination. The only geometric difference left anywhere in the application

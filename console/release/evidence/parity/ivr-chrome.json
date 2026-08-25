@@ -14,14 +14,14 @@
     }
   },
   "totalPixels": 1440000,
-  "comparedPixels": 404472,
-  "comparedFraction": 0.2808833333333333,
+  "comparedPixels": 419192,
+  "comparedFraction": 0.29110555555555556,
   "minimumComparedFraction": 0.25,
-  "diffPixelCount": 38141,
-  "diffPercentage": 9.429824561403509,
+  "diffPixelCount": 39561,
+  "diffPercentage": 9.437441554228135,
   "boundingBox": {
     "x0": 0,
-    "y0": 11,
+    "y0": 5,
     "x1": 1437,
     "y1": 999
   },
@@ -34,22 +34,16 @@
         "height": 40
       },
       {
-        "x": 1072,
-        "y": 0,
-        "width": 368,
-        "height": 40
-      },
-      {
         "x": 356,
         "y": 78,
         "width": 1084,
         "height": 922
       }
     ],
-    "pixels": 1035528,
+    "pixels": 1020808,
     "clippedAway": [],
-    "diffPixelCount": 821440,
-    "diffPercentage": 79.3257159632574
+    "diffPixelCount": 820020,
+    "diffPercentage": 80.33048330342238
   },
   "areas": {
     "brandCell": {
@@ -61,6 +55,11 @@
       "comparedPixels": 15360,
       "diffPixelCount": 1886,
       "diffPercentage": 12.278645833333334
+    },
+    "statusCell": {
+      "comparedPixels": 14720,
+      "diffPixelCount": 1420,
+      "diffPercentage": 9.646739130434783
     },
     "tabStrip": {
       "comparedPixels": 54720,
@@ -85,8 +84,8 @@
   "stalenessCheck": {
     "checked": true,
     "stale": false,
-    "builtCaptureMtimeMs": 1787695988214.6208,
-    "newestBuildSourceMtimeMs": 1787691669082.816
+    "builtCaptureMtimeMs": 1787696996921.938,
+    "newestBuildSourceMtimeMs": 1787691669082.8162
   },
   "generatedBy": "console/scripts/design-parity-capture-run.mjs --side=chrome",
   "tuple": {
