@@ -2007,7 +2007,11 @@ What you can do: ${offered}.` : ''}`);
    * simply a no-op then, exactly like every other `this.bridge()?.` call in this file.
    */
   private syncWindowTitle(): void {
-    this.bridge()?.window.setTitle(nameFor('windowTitle', this.durableStorage.storage));
+    /* Optional through `window`, not only through the bridge. The hosted HTTP surface has
+     * no Electron window at all, and a capability another change adds to the bridge is not
+     * automatically present in every caller's view of it -- guarding only the bridge threw
+     * `window.setTitle is not a function` the first time these two met. */
+    this.bridge()?.window?.setTitle?.(nameFor('windowTitle', this.durableStorage.storage));
   }
 
   // ---------------------------------------------------------------- language mode
