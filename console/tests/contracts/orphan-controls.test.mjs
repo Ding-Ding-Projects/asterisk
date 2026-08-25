@@ -81,7 +81,13 @@ const app = appSourceWithoutInventories();
  * named in a documentation list as reached. The merge resolution is the figure measured
  * on the merged tree itself, which is the only one either side could not have known.
  */
-const ORPHAN_CEILING = 241;
+/*
+ * 220 once the appearance, notifications and history lane landed on top -- twenty-one more
+ * controls that now persist and are read back. Measured on the merged tree for the same
+ * reason as 241 before it: every lane's own figure describes a tree that stopped existing
+ * the moment a sibling landed.
+ */
+const ORPHAN_CEILING = 220;
 const TOTAL_CONTROLS = 599;
 
 function classify() {

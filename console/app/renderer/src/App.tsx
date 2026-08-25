@@ -351,6 +351,22 @@ export class App extends Base {
    * enforces a ban; these persist a stated intention, and saying so matters because
    * "persisted" reads like "implemented" to somebody skimming.
    */
+  /**
+   * The appearance/notifications/history groups below are the same shape as partner and
+   * security: a real Ding PBX Console preference persisted through a relaunch, not an
+   * Asterisk key. Four of them (p_scale, p_motion, p_mono, p_start, p_tour, nt_toast,
+   * nt_sound) also have a genuine live consumer -- see applyLiveConsoleSetting below and
+   * its call sites. The rest persist a stated intention and nothing yet enforces it,
+   * exactly like s_failban and s_bantime above: p_density and p_theme have no density or
+   * light-theme token system to apply to (the compiled design bakes literal dark-mode hex
+   * colours and pixel paddings, not CSS custom properties); p_confirm is never allowed to
+   * weaken the destructive-action ceremony, which is mandatory everywhere in this app;
+   * p_tray has no tray implementation in the main process to hand it to; nt_levels has no
+   * per-toast severity to filter by; nt_quiet has no configured quiet-hours window; nt_keep
+   * and every hi_* control describe a local Git-backed notification/config history this
+   * console does not implement yet (the History screen renders mock rows against a
+   * '/etc/asterisk/.git' path with no real repository behind it).
+   */
   private static readonly CONSOLE_SETTINGS: Readonly<Record<string, readonly string[]>> = {
     partner: ['ta_auto', 'ta_expire', 'ta_notify', 'ta_mutual', 'ta_sign', 'ta_log'],
     security: ['s_failban', 's_bantime'],
@@ -375,6 +391,9 @@ export class App extends Base {
      * secret would go through announceSecretIntent below instead, exactly as
      * ix_secret_set already does; these four never touch that boundary. */
     secrets: ['x_store', 'x_rotate', 'x_mask', 'x_export'],
+    appearance: ['p_density', 'p_theme', 'p_scale', 'p_motion', 'p_mono', 'p_start', 'p_tour', 'p_tray', 'p_confirm'],
+    notifications: ['nt_toast', 'nt_sound', 'nt_levels', 'nt_quiet', 'nt_keep'],
+    history: ['hi_msg', 'hi_author', 'hi_hook', 'hi_keep', 'hi_diff', 'hi_branch', 'hi_reload'],
   };
 
   private static readonly CONSOLE_SETTING_PREFIX = 'console.setting.';
@@ -391,11 +410,119 @@ export class App extends Base {
    *  body, so by then an override declared as a field would already have replaced the
    *  shell's and the copy would point at itself -- a recursion with no base case. */
   private readonly baseSetVal: (control: ControlRef, value: unknown) => void;
+  private readonly baseToast: (message: string) => void;
 
   constructor(props: Record<string, never>) {
     super(props);
     this.baseSetVal = this.setVal as (control: ControlRef, value: unknown) => void;
     this.setVal = this.languageAwareSetVal;
+    this.baseToast = this.toast as (message: string) => void;
+    this.toast = this.gatedToast;
+    this.baseSet = this.set as (key: string, value: unknown) => void;
+    this.set = this.screenTrackingSet;
+  }
+
+  /** `p_start`'s own copy of `set` (the shell's `set(key, value)` is the same generic
+   *  single-value setter `setVal` wraps for controls -- screen navigation goes through
+   *  it too, with key `'screen'`), so 'Last screen' has a real, continuously-updated
+   *  value to restore instead of only the value at the moment the setting was touched. */
+  private baseSet!: (key: string, value: unknown) => void;
+
+  private screenTrackingSet = (key: string, value: unknown): void => {
+    if (key === 'screen' && typeof value === 'string') this.rememberLastScreen(value);
+    this.baseSet(key, value);
+  };
+
+  private consoleSetting<T>(id: string, fallback: T): T {
+    const group = App.consoleSettingGroup(id);
+    if (group === undefined) return fallback;
+    const raw = this.durableStorage.storage.getItem(App.CONSOLE_SETTING_PREFIX + group + '.' + id);
+    if (typeof raw !== 'string' || raw === '') return fallback;
+    try { return JSON.parse(raw) as T; } catch { return fallback; }
+  }
+
+  private gatedToast = (message: string): void => {
+    if (this.consoleSetting<boolean>('nt_toast', true) === false) return;
+    if (this.consoleSetting<boolean>('nt_sound', false) === true) this.playNotificationSound();
+    this.baseToast(message);
+  };
+
+  private playNotificationSound(): void {
+    try {
+      const w = globalThis as { AudioContext?: new () => AudioContext; webkitAudioContext?: new () => AudioContext };
+      const Ctx = w.AudioContext ?? w.webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+      osc.onended = () => void ctx.close().catch(() => undefined);
+    } catch { /* No audio output available. */ }
+  }
+
+  private applyLiveAppearanceSetting(id: string, value: unknown): void {
+    const root = (globalThis as { document?: Document }).document?.documentElement;
+    if (!root) return;
+    if (id === 'p_scale' && typeof value === 'number' && Number.isFinite(value)) {
+      const clamped = Math.min(150, Math.max(80, value));
+      root.style.fontSize = clamped + '%';
+    } else if (id === 'p_motion') {
+      this.setReducedMotion(value === true);
+    } else if (id === 'p_mono') {
+      root.style.setProperty('font-variant-numeric', value === true ? 'tabular-nums' : '');
+    }
+  }
+
+  private reducedMotionStyleEl: HTMLStyleElement | undefined;
+
+  private setReducedMotion(on: boolean): void {
+    const doc = (globalThis as { document?: Document }).document;
+    if (!doc) return;
+    if (!on) {
+      this.reducedMotionStyleEl?.remove();
+      this.reducedMotionStyleEl = undefined;
+      return;
+    }
+    if (this.reducedMotionStyleEl) return;
+    const el = doc.createElement('style');
+    el.setAttribute('data-console-setting', 'p_motion');
+    el.textContent = '*, *::before, *::after { animation-duration:0.001ms !important; '
+      + 'animation-iteration-count:1 !important; transition-duration:0.001ms !important; '
+      + 'scroll-behavior:auto !important; }';
+    doc.head?.appendChild(el);
+    this.reducedMotionStyleEl = el;
+  }
+
+  private applyRestoredLiveConsoleSettings(): void {
+    this.applyLiveAppearanceSetting('p_scale', this.consoleSetting<number>('p_scale', 100));
+    this.applyLiveAppearanceSetting('p_motion', this.consoleSetting<boolean>('p_motion', false));
+    this.applyLiveAppearanceSetting('p_mono', this.consoleSetting<boolean>('p_mono', true));
+    if (this.consoleSetting<boolean>('p_tour', false) === true) this.set('onboardOpen', true);
+    this.applyStartScreen();
+  }
+
+  private applyStartScreen(): void {
+    const choice = this.consoleSetting<string>('p_start', 'Dashboard');
+    if (choice === 'Endpoints') { this.set('screen', 'endpoints'); return; }
+    if (choice === 'Last screen') {
+      const last = this.durableStorage.storage.getItem(App.LAST_SCREEN_KEY);
+      if (typeof last === 'string' && last !== '') this.set('screen', last);
+      return;
+    }
+    this.set('screen', 'dash');
+  }
+
+  private static readonly LAST_SCREEN_KEY = 'console.setting.appearance.p_start_last_screen';
+
+  private rememberLastScreen(screen: string): void {
+    if (typeof screen !== 'string' || screen === '') return;
+    this.durableStorage.storage.setItem(App.LAST_SCREEN_KEY, screen);
   }
   /** The chosen file's own name, kept only for display — never its contents. */
   private pickedFileNames = new Map<string, string>();
@@ -448,6 +575,7 @@ export class App extends Base {
       this.startSourcePolling();
       this.restoreNarration();
       this.restorePartnerSettings();
+      this.applyRestoredLiveConsoleSettings();
       this.refreshLogoStatus();
       this.refreshSchoolStatus();
       this.restoreAppearance();
@@ -1673,6 +1801,15 @@ What you can do: ${offered}.` : ''}`);
       /* Falls through to baseSetVal afterwards, so the control shows what was chosen. */
       this.durableStorage.storage.setItem(
         `${App.CONSOLE_SETTING_PREFIX}${settingGroup}.${control.id}`, JSON.stringify(value));
+      if (control.id === 'p_scale' || control.id === 'p_motion' || control.id === 'p_mono') {
+        this.applyLiveAppearanceSetting(control.id, value);
+      } else if (control.id === 'p_start') {
+        this.applyStartScreen();
+      } else if (control.id === 'p_tour' && value === true) {
+        /* Fires immediately when the switch is turned on -- 'on launch' still governs
+         * the next real relaunch, via applyRestoredLiveConsoleSettings. */
+        this.set('onboardOpen', true);
+      }
     }
     if (control?.id === 'ix_secret_set') {
       this.announceSecretIntent(value === true);
