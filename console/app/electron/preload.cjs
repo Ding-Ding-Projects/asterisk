@@ -31,6 +31,26 @@ const api = Object.freeze({
       return () => ipcRenderer.removeListener('accessibility:changed', handler);
     },
   }),
+  // Pre-existing drift, fixed alongside the new exports below rather than left for the
+  // next reader to rediscover: `preload.ts` has always declared `provisioning`, but this
+  // is the file Electron actually loads (see `main.ts`'s `webPreferences.preload`), so
+  // `window.dingDesktop.provisioning` was never really there and live deploy progress
+  // never had anywhere to subscribe.
+  provisioning: Object.freeze({
+    onStep: listener => {
+      const handler = (_event, step) => listener(step);
+      ipcRenderer.on('provision:step', handler);
+      return () => ipcRenderer.removeListener('provision:step', handler);
+    },
+  }),
+  editors: Object.freeze({
+    detect: () => ipcRenderer.invoke('editors:detect'),
+    open: target => ipcRenderer.invoke('editors:open', target),
+  }),
+  localData: Object.freeze({
+    path: () => ipcRenderer.invoke('local-data:path'),
+    openFolder: () => ipcRenderer.invoke('local-data:open-folder'),
+  }),
 });
 
 contextBridge.exposeInMainWorld('dingDesktop', api);

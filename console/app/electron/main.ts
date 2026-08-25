@@ -13,8 +13,11 @@ import {
   discardDownload, sweepStaleDownloads, launchInstaller, releaseIdentityDigest,
 } from './updater-runtime.js';
 import { MAX_DISPLAY_NAME_LENGTH } from '../renderer/src/display-name.js';
+import { detectInstalledEditors, openInEditor, readEditorSettingsSnapshot } from '../../control-plane/editor-launch.js';
+import { openFolderInFileManager } from '../../control-plane/local-folder.js';
 
 let mainWindow: BrowserWindow | null = null;
+const userDataPath = app.getPath('userData');
 const dispatcher = createControlPlaneDispatcher({
   /* Straight onto the same channel the updater already uses: one send, no new
    * privilege, and the renderer decides what to do with it. */
@@ -202,6 +205,24 @@ ipcMain.handle('accessibility:is-screen-reader-active', () => app.isAccessibilit
 app.on('accessibility-support-changed', (_event, accessibilitySupportEnabled) => {
   mainWindow?.webContents.send('accessibility:changed', accessibilitySupportEnabled);
 });
+
+/* Real installed-editor detection and launch (see `control-plane/editor-launch.ts`).
+ * `editors:open` never trusts the renderer for which executable to run: it re-derives
+ * the choice from the console's own persisted settings snapshot and re-runs detection,
+ * so what it spawns can never be an arbitrary renderer-supplied path. */
+ipcMain.handle('editors:detect', async () => detectInstalledEditors().map((entry) => ({ id: entry.definition.id, resolved: entry.resolved })));
+ipcMain.handle('editors:open', async (_event, target: { kind: 'file' | 'folder'; path: string }) => {
+  const kind = target?.kind === 'folder' ? 'folder' : 'file';
+  const path = typeof target?.path === 'string' ? target.path : '';
+  return openInEditor(readEditorSettingsSnapshot(userDataPath), { kind, path });
+});
+
+/* The console's application-data folder: its real path, and opening it in the platform's
+ * file manager -- Support Tickets' one real action, and the folder the external-editor
+ * "open here" action hands to the chosen editor. Always `userDataPath`, computed here;
+ * the renderer never supplies it and nothing in either channel accepts one. */
+ipcMain.handle('local-data:path', async () => userDataPath);
+ipcMain.handle('local-data:open-folder', async () => openFolderInFileManager(userDataPath));
 
 if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
   app.quit();

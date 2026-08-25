@@ -22,7 +22,7 @@ import {
 } from './asterisk-parsers.js';
 import { planDeployment, runDeployment, type DeployTarget } from './console-deploy.js';
 import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory, MediaLibrary, LocalHistory } from './index.js';
-import { ServerInventory, SettingsRegistry } from './index.js';
+import { ServerInventory, SettingsRegistry, parseSettingsSnapshot } from './index.js';
 import type { ServerInventoryStore, ServerRecord, SettingsSnapshotStore } from './index.js';
 import { atomicWriteFileSync } from './atomic-file.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';

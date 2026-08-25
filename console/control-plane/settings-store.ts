@@ -25,6 +25,28 @@ export interface SettingsSnapshotStore {
   write(snapshot: Record<string, string>): void;
 }
 
+/**
+ * Parses a settings snapshot out of raw JSON text, tolerating anything that is not
+ * exactly the shape this store writes -- missing, truncated, or holding a non-string
+ * value -- by dropping the offending parts rather than throwing. Shared by every reader
+ * of `settings.json` (`dispatch.ts`'s `FileSettingsStore`, and any privileged code that
+ * only ever needs a one-off read, such as `editor-launch.ts`'s launch path) so there is
+ * exactly one place that decides what counts as a valid settings file.
+ */
+export function parseSettingsSnapshot(raw: string): Record<string, string> | undefined {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
+    const out: Record<string, string> = {};
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof value === 'string') out[key] = value;
+    }
+    return out;
+  } catch {
+    return undefined;
+  }
+}
+
 /** A store that keeps nothing -- the default for tests and any host with no persistent
  *  backing. Never a source of real data; it starts and stays empty. */
 export class InMemorySettingsStore implements SettingsSnapshotStore {

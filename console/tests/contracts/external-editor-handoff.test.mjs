@@ -149,8 +149,11 @@ test('PIN: planLaunch is never called anywhere -- there is no "open in editor" a
   assert.doesNotMatch(app, /planLaunch\(/,
     'App now calls planLaunch -- the "no editor ever actually launches" gap this pins may be fixed; update the test and the report');
   assert.doesNotMatch(generated, /planLaunch\(/);
-  assert.doesNotMatch(app, /chosenEditor\(/,
-    'App now calls chosenEditor -- it may now be resolving the actual stored choice against detection; re-check this pin');
+  /* Inverted: this pinned that the stored choice was never resolved against real
+   * detection, so the picker offered a hard-coded list and nothing checked whether the
+   * chosen editor was actually installed. It fired when that landed. */
+  assert.match(app, /chosenEditor\(/,
+    'chosenEditor is called nowhere again -- the stored choice is not resolved against detection');
 });
 
 test('PIN: the design has no "open" action anywhere in the External editor group -- only a picker, name/path fields, and a forget switch', () => {

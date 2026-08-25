@@ -40,6 +40,14 @@ const api: DingDesktopApi = {
       return () => ipcRenderer.removeListener('accessibility:changed', handler);
     },
   },
+  editors: {
+    detect: () => ipcRenderer.invoke('editors:detect') as ReturnType<NonNullable<DingDesktopApi['editors']>['detect']>,
+    open: (target: { kind: 'file' | 'folder'; path: string }) => ipcRenderer.invoke('editors:open', target) as ReturnType<NonNullable<DingDesktopApi['editors']>['open']>,
+  },
+  localData: {
+    path: () => ipcRenderer.invoke('local-data:path') as ReturnType<NonNullable<DingDesktopApi['localData']>['path']>,
+    openFolder: () => ipcRenderer.invoke('local-data:open-folder') as ReturnType<NonNullable<DingDesktopApi['localData']>['openFolder']>,
+  },
 };
 
 contextBridge.exposeInMainWorld('dingDesktop', api);

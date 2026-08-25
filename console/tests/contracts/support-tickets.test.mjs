@@ -116,13 +116,25 @@ test('none of this feature\'s own copy contains a forbidden term', () => {
 const app = read('app/renderer/src/App.tsx');
 const generated = read('app/renderer/src/generated/console.tsx');
 
-test('App imports the real module rather than a local copy, and fileSupportTicket calls openTicket then resolutionFor', () => {
-  assert.match(app, /import \{ openTicket, resolutionFor, type TicketCategory, type TicketSeverity \} from '\.\/support-tickets';/);
+test('App uses the real module, and the ticket flow opens then resolves', () => {
+  /* The import assertion no longer pins an exact symbol list. It did, and broke when a
+   * type was legitimately added beside the values -- the fourth time in this repository a
+   * whole-list assertion has failed on an addition rather than a defect. The arity was
+   * never the point: what matters is that the real module is used, not a local copy.
+   *
+   * `resolutionFor` also moved out of fileSupportTicket into the helper that actually
+   * opens the folder, which is where it belongs now that opening is real. So it is
+   * asserted against the file rather than that one method body. */
+  assert.match(app, /^import \{[^}]*\bopenTicket\b[^}]*\} from '\.\/support-tickets';$/m,
+    'App no longer imports openTicket from the real support-tickets module');
+  assert.match(app, /^import \{[^}]*\bresolutionFor\b[^}]*\} from '\.\/support-tickets';$/m,
+    'App no longer imports resolutionFor from the real support-tickets module');
   const start = app.indexOf('private fileSupportTicket(): void {');
-  assert.ok(start > 0);
+  assert.ok(start > 0, 'fileSupportTicket has been renamed or removed');
   const body = app.slice(start, app.indexOf('\n  }', start));
-  assert.match(body, /const result = openTicket\(\{/);
-  assert.match(body, /const resolution = resolutionFor\(IDENTITY\.dataDirectory\);/);
+  assert.match(body, /const result = openTicket\(\{/, 'the ticket flow no longer opens a ticket');
+  assert.match(app, /resolutionFor\(IDENTITY\.dataDirectory\)/,
+    'nothing resolves the ticket against the real data directory any more');
 });
 
 test('sup_open is wired to fileSupportTicket, and the design offers a category, description, severity and the open action', () => {
@@ -134,17 +146,22 @@ test('sup_open is wired to fileSupportTicket, and the design offers a category, 
 
 /* --- PIN: the promised folder-open never actually happens ------------------------------ */
 
-test('PIN: fileSupportTicket only DISPLAYS the resolution text; it never opens a folder, path, or shell.openPath anywhere', () => {
+test('fileSupportTicket actually opens the folder its own copy promises', () => {
+  /* This replaces a pin that documented a broken promise: the resolution text said "This
+   * console will open it for you" and nothing in the method opened anything. Copy that
+   * promises an action the code never performs is worse than no copy, because the user
+   * waits for something that was never coming. The pin fired when the action landed.
+   *
+   * It asserts the call, not the absence. What it must never assert is that anything is
+   * deleted here -- the whole design is that the console opens the folder and the person
+   * deletes it themselves, in their own file manager. */
   const start = app.indexOf('private fileSupportTicket(): void {');
-  const end = app.indexOf('\n  }', start);
-  const body = app.slice(start, end);
-  /* The whole method: builds the ticket, then fires one dialog containing the resolution's
-   * own text (including the "This console will open it for you" line asserted above). It
-   * never calls anything that would actually open a folder in the OS file manager. */
-  assert.match(body, /this\.fire\(`Ticket \$\{result\.id\} — \$\{result\.status\}`,/,
-    'fileSupportTicket no longer shows a dialog -- re-check whether it now performs a real action instead');
-  assert.doesNotMatch(body, /openPath|showItemInFolder|shell\./i,
-    'fileSupportTicket now appears to open something -- the "promise not kept" gap this pins may be fixed; update the test and the report');
+  assert.ok(start > 0, 'fileSupportTicket has been renamed or removed');
+  const body = app.slice(start, app.indexOf('\n  }', start));
+  assert.match(body, /this\.openSupportTicketFolder\(/,
+    'fileSupportTicket no longer reaches the folder-open path, so its own copy promises something it does not do');
+  assert.doesNotMatch(body, /\brm\b|unlink|rmdir|deleteFolder/i,
+    'fileSupportTicket now deletes something -- the user does the deleting, in their own file manager');
 });
 
 test('PIN: nothing in the control plane ever opens a folder for a support ticket -- action:"open-folder" is inert data', () => {
