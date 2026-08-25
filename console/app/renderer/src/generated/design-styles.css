@@ -21,6 +21,7 @@ html, body { margin:0; padding:0; background:#0B0F0C; }
   @keyframes m3Sweep { from { background-position:0% 50% } to { background-position:200% 50% } }
   @keyframes m3Spin { to { transform:rotate(360deg) } }
   @keyframes m3Rainbow { from { filter:hue-rotate(0deg) } to { filter:hue-rotate(360deg) } }
+  @keyframes m3RainbowFill { from { filter:var(--rb-base,none) hue-rotate(var(--rb-from,0deg)) } to { filter:var(--rb-base,none) hue-rotate(var(--rb-to,360deg)) } }
   @keyframes m3Float { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-4px) } }
   @keyframes m3Bounce { 0% { transform:scale(1) } 30% { transform:scale(1.16) } 60% { transform:scale(.94) } 100% { transform:scale(1) } }
   @keyframes m3Flash { 0% { background-color:rgba(130,217,165,.35) } 100% { background-color:transparent } }
