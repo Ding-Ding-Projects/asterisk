@@ -32,3 +32,10 @@ console/scripts/iso/meta-data   text eol=lf
 # batch file, so these are pinned the other way rather than left to chance.
 *.bat           text eol=crlf
 *.cmd           text eol=crlf
+
+# Capture evidence. The completeness inventory records a SHA-256 for every capture and
+# a contract test re-hashes the file on disk, so a normalising rewrite would not merely
+# annoy someone -- it would invalidate the evidence and read as tampering. Git detects
+# PNG as binary by itself; this states it, for the same reason the generated renderer is
+# pinned rather than left to chance: an implicit rule is one nobody can see stop applying.
+console/release/captures/**/*.png   binary
