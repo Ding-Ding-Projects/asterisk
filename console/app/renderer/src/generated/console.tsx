@@ -370,7 +370,10 @@ function Template(v: any) {
                             )
                           )
                         )
-                      )))
+                      ))),
+                    (v.noLiveCalls ? h("div", { style: sty(`font-size:12px; color:#9AA39B; line-height:1.5; padding:6px 2px;`) },
+                        "No calls are up right now. Any channel the system reports appears here within a second, with its peer, its duration and controls to listen, record or hang it up."
+                      ) : null)
                   )
                 ),
                 h("div", { style: sty(`display:flex; flex-direction:column; gap:12px;`) },
@@ -391,7 +394,10 @@ function Template(v: any) {
                           h("div", { style: sty(`height:6px; border-radius:3px; background:#262B26; overflow:hidden;`) },
                             h("div", { style: sty(`height:100%; border-radius:3px; background:#82D9A5; width:${S($h.pct)};`) })
                           )
-                        )))
+                        ))),
+                      (v.noHealth ? h("div", { style: sty(`font-size:12px; color:#9AA39B; line-height:1.5;`) },
+                          "Nothing to measure yet. These bars come from the endpoints and queues the running system reports, and it currently reports none of either."
+                        ) : null)
                     )
                   ),
                   h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:16px 18px; flex:1;`) },

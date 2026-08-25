@@ -3076,6 +3076,13 @@ It is shown once. The phone needs it to register.`);
         kill: () => this.ceremony('Hang up a live call', `channel request hangup ${channel.name}`),
       })),
       health: healthBars(readings),
+      /* An empty panel with a heading and nothing under it reads as a rendering failure
+       * rather than as "there is nothing to show". Found by driving the built app with a
+       * system that has no endpoints and no queues, which is exactly a first run. */
+      noHealth: healthBars(readings).length === 0,
+      /* Same reason as noHealth: an empty list under a heading is indistinguishable from a
+       * panel that failed to render, and a PBX with no calls up is the ordinary case. */
+      noLiveCalls: (valueOf(readings?.channels) ?? []).length === 0,
 
       // The dialplan canvas draws only the real graph read from `dialplan show`; when
       // there is no reading it stays empty rather than falling back to design samples.
