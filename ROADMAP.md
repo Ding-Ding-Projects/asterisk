@@ -65,7 +65,7 @@ to the control plane.
 - [ ] **Call attestation** (`stir_shaken.conf`) — profiles, certificates, verification.
 - [ ] **Emergency-services location** (`geolocation.conf`) — a regulatory requirement in several jurisdictions.
 - [ ] **Handset auto-provisioning** (`phoneprov.conf`) — the deployment flow asks how many phones and has nowhere to template them.
-- [ ] **Feature codes and parking** (`features.conf`) — transfer, park, pickup, recording keys.
+- [x] **Feature codes and parking** (`features.conf`) — transfer, park, pickup, recording keys Thirty controls bound in total: fourteen against `features.conf` for transfer, pickup and recording, and sixteen against `res_parking.conf`, which is where parking actually lives -- `features.conf.sample` says so in its own fifth line, and its `[featuremap]` carries only the park trigger. Every one cites its sample line.
 - [ ] **Shared line appearances** (`sla.conf`).
 - [ ] **IAX2 trunking** (`iax.conf`) — currently only illustrative rows, which is worse than absence because it reads as configurable.
 - [ ] **Configuration backup, restore and diff** across the whole tree — no safe whole-config recovery exists.
