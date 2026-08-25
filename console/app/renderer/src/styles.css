@@ -151,6 +151,8 @@ textarea {
  * operating system, and never opened this app's settings, still gets it honoured. */
 @media (prefers-reduced-motion: reduce) {
   .dim-sum-surprise { animation: none; }
+}
+
 /* --------------------------------------------------------------------------------------
  * Command palette (Ctrl+Shift+F), App.tsx's own paletteOverlay().
  *
