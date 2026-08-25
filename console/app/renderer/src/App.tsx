@@ -16,7 +16,12 @@ import {
   addRule as addAclRule, moveRule as moveAclRuleModel, parseAcl, removeRule as removeAclRuleModel,
   toConfigValue, validateRule as validateAclRule, type AclModel,
 } from '../../../control-plane/acl-model';
-import { canProvision, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
+import { canProvision, canRecoverRuntime, canStopRuntime, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
+import {
+  buildLocalHistoryGroups, formatLocalHistoryEntry, LOCAL_HISTORY_FILTER_ALL, LOCAL_HISTORY_SCREEN_ID,
+  registerLocalHistoryScreen,
+} from './local-history-screen';
+import type { HistoryCommit } from '../../../control-plane/local-history';
 import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
 import { ServerSwitcher } from './servers';
 import { buildEndpointDraft, endpointDocument, PJSIP_RESOURCE, WIZARD_CONTROLS } from './endpoint-create';
@@ -110,6 +115,20 @@ import {
 import {
   UnlockLadder, type Challenge, type GradeResult,
 } from './unlock-ladder';
+
+/** Module-scope side effect, run once when this file loads -- the same pattern
+ *  `registerPbxAdminScreens()` uses in `PbxAdminApp.tsx`. Registering it here rather
+ *  than in that PBX-specific module keeps the Local history screen reachable even for
+ *  a build that never mounts `PbxAdminIntegratedApp`. */
+registerLocalHistoryScreen();
+
+/** The `servers` screen's own design-authored groups ("Host the console here",
+ *  "Route", "Manager interface", ...), captured once before `prepareServersScreen`
+ *  below ever runs. Every render recomputes the full groups array from this frozen
+ *  base plus a freshly built runtime-maintenance group, rather than appending onto
+ *  whatever `SCREENS.servers.groups` currently holds -- appending on every render
+ *  would duplicate the maintenance group on every `forceUpdate`. */
+const SERVERS_BASE_GROUPS = ((SCREENS as unknown as Record<string, { groups?: unknown[] }>).servers?.groups ?? []).slice();
 
 /**
  * The interface is the compiled design reference. This subclass supplies what a static
@@ -225,6 +244,23 @@ export class App extends Base {
   private seeded = new Set<string>();
   /** What the console's own Asterisk runtime can do right now. */
   private runtime: RuntimeStatus | undefined;
+  /** True for the whole span of a `runtime.stop`/`runtime.remove` request. `M3Control`
+   *  has no disabled state for a segmented control, so the guard is enforced by leaving
+   *  the control out of `runtimeMaintenanceGroup` while this is true (see there) as well
+   *  as by every handler below refusing to start a second request while one is already
+   *  in flight -- the control-plane side of `wsl.exe --terminate`/`--unregister` is a
+   *  real external process and a second concurrent call against the same distribution
+   *  is not something to invite. */
+  private runtimeBusy = false;
+  /** Entries read from `local-history.list`, newest first -- the console's own
+   *  append-only record of what it created, changed, stopped or removed on its own
+   *  behalf. See `local-history-screen.ts`. */
+  private localHistoryEntries: readonly HistoryCommit[] = [];
+  private localHistoryCounts: Readonly<Record<string, number>> = {};
+  private localHistoryStatus = 'Local history has not been read yet.';
+  private localHistoryLoaded = false;
+  private localHistoryPending = false;
+  private localHistoryBusy = false;
   /** Discovery and refresh are real operations, so the shell can show their current
    * state instead of leaving the generated setup card in its design-only idle state. */
   private discoveryPending = false;
@@ -864,6 +900,7 @@ export class App extends Base {
 
   componentDidUpdate() {
     void this.refresh();
+    if ((this.state as { screen?: string }).screen === LOCAL_HISTORY_SCREEN_ID) void this.refreshLocalHistory();
   }
 
   private async request(action: string, extra: Record<string, unknown> = {}): Promise<ControlPlaneResponse | undefined> {
@@ -1086,6 +1123,230 @@ export class App extends Base {
     this.daemonStatusLine = status?.reason ? `${label} — ${status.reason}` : label;
     this.forceUpdate();
   };
+
+  // ---------------------------------------------------------------- runtime maintenance
+
+  /**
+   * Terminates the console's own WSL distribution.
+   *
+   * `runtime.provision` (create) and `runtime.status` (read) were already reached from
+   * the onboarding wizard and `discover()` respectively; `runtime.stop` and
+   * `runtime.remove` were implemented in `wsl-provisioning.ts` and dispatched by
+   * `control-plane/dispatch.ts`, and nothing in the interface ever called either --
+   * the exact "wired at one end, consumed at neither" shape this codebase's own
+   * conventions warn about repeatedly. Stopping is non-destructive (`wsl --terminate`
+   * merely shuts the instance down; `wsl -d <name>` starts it again on the next use),
+   * so it needs no confirmation gate -- unlike `removeRuntime` below.
+   */
+  private stopRuntime = async (): Promise<void> => {
+    if (this.runtimeBusy) return;
+    if (!canStopRuntime(this.runtime)) {
+      this.fire('Not available', runtimeLabel(this.runtime));
+      return;
+    }
+    this.runtimeBusy = true;
+    this.forceUpdate();
+    this.toast('Stopping the console runtime…');
+    try {
+      const response = await this.request('runtime.stop');
+      if (!response?.ok) {
+        this.fire('Not stopped', response?.message ?? 'The console runtime did not stop.');
+        return;
+      }
+      const detail = (response.data as { detail?: string } | undefined)?.detail;
+      this.fire('Runtime stopped', detail ?? 'The console runtime was terminated.');
+      void this.request('local-history.record', {
+        payload: { action: 'updated', subject: 'Console runtime stopped', payload: { distribution: this.runtime?.status?.distribution ?? this.runtime?.managedDistribution } },
+      });
+      const status = await this.request('runtime.status');
+      this.runtime = status?.ok ? (status.data as RuntimeStatus) : this.runtime;
+    } finally {
+      this.runtimeBusy = false;
+      this.forceUpdate();
+    }
+  };
+
+  /**
+   * Unregisters the console's own WSL distribution, discarding everything inside it.
+   *
+   * `canRecoverRuntime` was already written and tested (`runtime.test.tsx`) as the exact
+   * gate for this: true only when the distribution is registered and not answering,
+   * which is the one state `runtimeHint` already tells the person to fix by removing it
+   * first -- nothing before this called it, so the state it names had no way out from
+   * the interface. Irreversible, so it goes through the same `areYouSure` gate every
+   * other destructive action in this file uses.
+   */
+  private removeRuntime = (): void => {
+    if (this.runtimeBusy) return;
+    if (!canRecoverRuntime(this.runtime)) {
+      this.fire('Not available', runtimeLabel(this.runtime));
+      return;
+    }
+    const distribution = this.runtime?.status?.distribution ?? this.runtime?.managedDistribution ?? 'the managed distribution';
+    this.areYouSure(
+      `Remove ${distribution}`,
+      `${runtimeLabel(this.runtime)}. Unregistering discards everything inside it. This console only ever removes its own managed distribution and will refuse anything else.`,
+      3,
+      () => { void this.removeRuntimeConfirmed(distribution); },
+    );
+  };
+
+  private removeRuntimeConfirmed = async (distribution: string): Promise<void> => {
+    if (this.runtimeBusy) return;
+    this.runtimeBusy = true;
+    this.forceUpdate();
+    this.toast('Removing the console runtime…');
+    try {
+      const response = await this.request('runtime.remove', { serverId: distribution });
+      if (!response?.ok) {
+        this.fire('Not removed', response?.message ?? 'The console runtime was not removed.');
+        return;
+      }
+      const detail = (response.data as { detail?: string } | undefined)?.detail;
+      this.fire('Runtime removed', detail ?? `${distribution} was unregistered.`);
+      void this.request('local-history.record', {
+        payload: { action: 'deleted', subject: 'Console runtime removed', payload: { distribution } },
+      });
+      const status = await this.request('runtime.status');
+      this.runtime = status?.ok ? (status.data as RuntimeStatus) : undefined;
+    } finally {
+      this.runtimeBusy = false;
+      this.forceUpdate();
+    }
+  };
+
+  /** Injected onto the real `servers` screen ("Deploy & servers") -- the same screen
+   *  `system-admin`'s PBX Admin feature already delegates to for "Ding
+   *  deployment/runtime/server controls" (`pbx-admin-model.ts`), so this is where a
+   *  person already looks for the console's own runtime. Recomputed from
+   *  `SERVERS_BASE_GROUPS` on every render rather than mutated in place -- see there. */
+  private runtimeMaintenanceGroup(): { title: string; desc: string; ctls: Array<Record<string, unknown> & { id: string; label: string; kind: string; value: unknown }> } {
+    const ctls: Array<Record<string, unknown> & { id: string; label: string; kind: string; value: unknown }> = [];
+    if (!this.runtimeBusy) {
+      if (canStopRuntime(this.runtime)) {
+        ctls.push({
+          id: 'rt_stop', label: 'Stop the console runtime', kind: 'segmented', value: 'Stop the console runtime',
+          options: ['Stop the console runtime'], action: 'runtime-stop',
+          info: 'Terminates the WSL instance. It starts again the next time this console connects to it -- nothing inside it is discarded.',
+        });
+      }
+      if (canRecoverRuntime(this.runtime)) {
+        ctls.push({
+          id: 'rt_remove', label: 'Remove the console runtime', kind: 'segmented', value: 'Remove the console runtime',
+          options: ['Remove the console runtime'], action: 'runtime-remove',
+          info: 'Unregisters the distribution and discards everything inside it. Offered only because it is registered but not answering -- removing a working runtime is not something this screen recommends.',
+        });
+      }
+    }
+    return {
+      title: 'Runtime maintenance',
+      desc: this.runtimeBusy ? 'A runtime operation is in progress…' : runtimeLabel(this.runtime),
+      ctls,
+    };
+  }
+
+  private prepareServersScreen(): void {
+    const screens = SCREENS as unknown as Record<string, { groups?: unknown[] }>;
+    screens.servers!.groups = [...SERVERS_BASE_GROUPS, this.runtimeMaintenanceGroup()];
+  }
+
+  // ---------------------------------------------------------------- local history
+
+  private localHistoryFilter(): string {
+    const value = (this.state as { values?: Record<string, unknown> }).values?.lh_filter;
+    return typeof value === 'string' && value.length > 0 ? value : LOCAL_HISTORY_FILTER_ALL;
+  }
+
+  /** Reads `local-history.list`, honouring the action filter bound to `lh_filter`.
+   *  `force` re-reads even when a read already succeeded once, the same convention
+   *  `PbxAdminApp.loadAdminHistory`/`loadAdminMedia` use for their own refresh
+   *  actions. `filterOverride` lets `onControlAction` pass the just-picked option
+   *  straight through: the option's own `pick()` writes it into `this.state` via
+   *  `setState`, which React does not guarantee has committed by the time this runs in
+   *  the same synchronous handler, so reading `this.state` back here would risk one
+   *  request running against the filter that was selected before this one. */
+  private refreshLocalHistory = async (force = false, filterOverride?: string): Promise<void> => {
+    if (!force && this.localHistoryLoaded) return;
+    if (this.localHistoryPending) return;
+    this.localHistoryPending = true;
+    this.forceUpdate();
+    const filter = filterOverride ?? this.localHistoryFilter();
+    const response = await this.request('local-history.list', {
+      payload: filter === LOCAL_HISTORY_FILTER_ALL ? {} : { action: filter },
+    });
+    this.localHistoryPending = false;
+    this.localHistoryLoaded = true;
+    if (!response?.ok) {
+      this.localHistoryStatus = response?.message ?? 'Local history could not be read.';
+      this.forceUpdate();
+      return;
+    }
+    const data = response.data as { entries?: HistoryCommit[]; counts?: Record<string, number> };
+    this.localHistoryEntries = data.entries ?? [];
+    this.localHistoryCounts = data.counts ?? {};
+    this.localHistoryStatus = this.localHistoryEntries.length === 0
+      ? 'No local history entry has been recorded yet.'
+      : `${this.localHistoryEntries.length} entr${this.localHistoryEntries.length === 1 ? 'y' : 'ies'} read.`;
+    this.forceUpdate();
+  };
+
+  private selectedLocalHistoryEntry(): HistoryCommit | undefined {
+    if (this.localHistoryEntries.length === 0) return undefined;
+    const options = this.localHistoryEntries.map((entry, index) => formatLocalHistoryEntry(entry, index));
+    const selected = String((this.state as { values?: Record<string, unknown> }).values?.lh_entry ?? options[0]);
+    const index = options.indexOf(selected);
+    return this.localHistoryEntries[index >= 0 ? index : 0];
+  }
+
+  /** Gated by `areYouSure` because a restore rewrites files -- it never rewrites the
+   *  history entry itself; `LocalHistory.restore` always records the restore as a new,
+   *  separate commit, so this can always be undone in turn. */
+  private restoreLocalHistory = (): void => {
+    if (this.localHistoryBusy) return;
+    const entry = this.selectedLocalHistoryEntry();
+    if (!entry) {
+      this.fire('Nothing to restore', 'Refresh local history first.');
+      return;
+    }
+    this.areYouSure(
+      `Restore ${entry.subject}`,
+      'Writes the files this entry recorded back, and records the restore itself as a brand-new entry so it can always be undone in turn.',
+      3,
+      () => { void this.restoreLocalHistoryConfirmed(entry); },
+    );
+  };
+
+  private restoreLocalHistoryConfirmed = async (entry: HistoryCommit): Promise<void> => {
+    if (this.localHistoryBusy) return;
+    this.localHistoryBusy = true;
+    this.forceUpdate();
+    try {
+      const response = await this.request('local-history.restore', { payload: { commitId: entry.id } });
+      if (!response?.ok) {
+        this.fire('Not restored', response?.message ?? 'The control plane did not answer.');
+        return;
+      }
+      this.fire('Local history entry restored', `${entry.subject} was restored and recorded as a new entry.`);
+      await this.refreshLocalHistory(true);
+    } finally {
+      this.localHistoryBusy = false;
+      this.forceUpdate();
+    }
+  };
+
+  private prepareLocalHistoryScreen(): void {
+    const screens = SCREENS as unknown as Record<string, { groups?: unknown[] }>;
+    const options = this.localHistoryEntries.map((entry, index) => formatLocalHistoryEntry(entry, index));
+    const selected = String((this.state as { values?: Record<string, unknown> }).values?.lh_entry ?? options[0] ?? '');
+    screens[LOCAL_HISTORY_SCREEN_ID]!.groups = buildLocalHistoryGroups({
+      entries: this.localHistoryEntries,
+      counts: this.localHistoryCounts,
+      status: this.localHistoryStatus,
+      filter: this.localHistoryFilter(),
+      selectedOption: selected,
+      busy: this.localHistoryBusy,
+    });
+  }
 
   // ---------------------------------------------------------------- support tickets
 
@@ -2496,12 +2757,31 @@ What you can do: ${offered}.` : ''}`);
     return '';
   };
 
-  /** Read by every control the design marks with `c.action`, whatever its kind. */
-  onControlAction = (action: string): void => {
+  /** Read by every control the design marks with `c.action`, whatever its kind.
+   *  `_control` and `selected` mirror `PbxAdminApp.onControlAction`'s own signature --
+   *  `buildCtl` (`generated/console.tsx`) always calls with three arguments, and
+   *  `PbxAdminApp`'s fallback path now forwards all three here rather than dropping the
+   *  last two, so a `select`/`segmented` control's chosen option (`local-history-filter`
+   *  below) is available synchronously rather than read back out of `this.state` before
+   *  React has committed it. */
+  onControlAction = (action: string, _control?: { id?: string }, selected?: string): void => {
     if (action === 'vocab-clear') { this.onFileCleared({ id: 'va_file' }); return; }
     if (action === 'daemon-start') { void this.daemonAction('start'); return; }
     if (action === 'daemon-stop') { void this.daemonAction('stop'); return; }
     if (action === 'daemon-restart') { void this.daemonAction('restart'); return; }
+    if (action === 'runtime-stop') { void this.stopRuntime(); return; }
+    if (action === 'runtime-remove') { this.removeRuntime(); return; }
+    if (action === 'local-history-refresh') { void this.refreshLocalHistory(true); return; }
+    if (action === 'local-history-filter') {
+      // `selected` is the option's own label -- the just-picked filter -- passed
+      // straight through rather than read back out of `this.state`, which `setState`
+      // (inside the option's own `pick()`, run a moment ago in this same handler) is
+      // not guaranteed to have committed yet.
+      void this.refreshLocalHistory(true, selected);
+      return;
+    }
+    if (action === 'local-history-select') return;
+    if (action === 'local-history-restore') { this.restoreLocalHistory(); return; }
   };
 
   // ---------------------------------------------------------------- server add / remove
@@ -3874,6 +4154,8 @@ It is shown once. The phone needs it to register.`);
     const screen = (this.state as { screen: string }).screen;
     this.applyRows(screen);
     this.syncAppearance();
+    if (screen === 'servers') this.prepareServersScreen();
+    if (screen === LOCAL_HISTORY_SCREEN_ID) this.prepareLocalHistoryScreen();
     const values = super.renderVals() as Record<string, unknown>;
     const bridge = this.bridge();
     const readings = this.readings[screen];
