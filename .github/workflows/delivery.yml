@@ -36,7 +36,14 @@ jobs:
           DING_PBX_ASTERISK_IMAGE_REGISTRY: ghcr.io
           DING_PBX_ASTERISK_IMAGE_REPOSITORY: ${{ github.repository }}
           DING_PBX_REGISTRY_USER: ${{ github.actor }}
-          DING_PBX_REGISTRY_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN }}
+          # Deliberately the workflow token, not the personal-access-token chain the API
+          # calls elsewhere use. Login with that chain succeeds and the push is then
+          # refused with "the token provided does not match expected scopes", because the
+          # token it picks carries no package-write scope. The workflow token does, because
+          # this workflow declares packages: write above -- so here the ephemeral token is
+          # the more capable of the two, which is the opposite of the usual reason for that
+          # chain. Login succeeding is not permission; it only proves the credential parsed.
+          DING_PBX_REGISTRY_TOKEN: ${{ github.token }}
         run: ./console/scripts/build-asterisk-wsl-bundle.ps1
 
       - name: Record image publication evidence
