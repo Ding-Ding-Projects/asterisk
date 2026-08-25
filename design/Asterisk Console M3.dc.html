@@ -2707,7 +2707,7 @@ const DOCS = {
   sv_hostkey:{ what:'Whether a changed SSH host key aborts the connection.', why:'A changed host key means either a rebuild or an interception. Only one of those is benign.', values:'On, always.', gotcha:'The prompt asking a human to accept a new key is precisely how these attacks succeed. This console refuses instead of asking.' },
   hi_commit:{ what:'Whether every individual control change writes a git commit immediately.', why:'It gives you an exact, attributable history and a one-click revert of any single change.', values:'On is strongly recommended.', gotcha:'Off batches changes until you commit manually, which in practice means nobody remembers what changed between two working states.' },
   fun_random:{ what:'Gives every rendered element its own randomly generated appearance.', why:'Because you asked, and because it makes a dull configuration screen memorable.', values:'A seed, a scope of properties to randomise, a wildness percentage and an optional reroll on every screen change.', gotcha:'At high wildness with rotation enabled, dense tables become genuinely hard to read. That is the intent, but it is worth knowing.' },
-  fun_level:{ what:'How playful the console is allowed to be, from 0 to 4.', why:'One dial that scales celebrations, copy tone, motion and randomness together.', values:'0 Bank, 1 Polite, 2 Balanced, 3 Playful, 4 Unhinged.', gotcha:'Level 4 celebrates trivial changes. It is delightful for a week and then you will want level 2.' }
+  chaos_level:{ what:'How playful the console is allowed to be, from 0 to 4.', why:'One dial that scales celebrations, copy tone, motion and randomness together.', values:'0 Bank, 1 Polite, 2 Balanced, 3 Playful, 4 Unhinged.', gotcha:'Level 4 celebrates trivial changes. It is delightful for a week and then you will want level 2.' }
 };
 
 const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','g_queue','s_ciphers','s_verify','t_100rel','t_privacy','t_from','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
@@ -3543,7 +3543,7 @@ class Component extends DCLogic {
   randomAppearance = (all) => {
     const r = (a, b) => Math.round(a + Math.random() * (b - a));
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-    const fun = this.state.values.fun_level === undefined ? 2 : this.state.values.fun_level;
+    const fun = this.state.values.chaos_level === undefined ? 2 : this.state.values.chaos_level;
     const wild = fun >= 3;
     const next = {
       ap_hue:r(0, 360), ap_sat:r(wild ? 40 : 20, wild ? 100 : 70), ap_light:r(45, 80),
@@ -4202,30 +4202,30 @@ class Component extends DCLogic {
       ].map(d => ({ label:d.label, icon:d.icon, on:s.dock === d.v, off:s.dock !== d.v, pick:() => { this.set('dock', d.v); this.toast('Docked ' + d.label.toLowerCase()); } })),
       dockDirection:s.dock === 'right' ? 'row-reverse' : (s.dock === 'top' ? 'column' : 'row'),
       isCustomise:s.screen === 'customise',
-      funLevel:(() => { const l = this.v('fun_level', 2); return String(l); })(),
-      funName:['Bank','Polite','Balanced','Playful','Unhinged'][this.v('fun_level', 2)],
+      funLevel:(() => { const l = this.v('chaos_level', 2); return String(l); })(),
+      funName:['Bank','Polite','Balanced','Playful','Unhinged'][this.v('chaos_level', 2)],
       funBlurb:[
         'Zero decoration. No celebration, no jokes, no confetti. Toasts state facts and nothing moves that does not have to.',
         'Quiet competence. Short confirmations, minimal motion, no jokes.',
         'The default. Celebrations for meaningful wins and security improvements, warm copy, motion that helps you follow what changed.',
         'Jokes in the copy, bolder motion, confetti for more things, and the one-click setup narrates itself.',
         'Confetti for moving a slider. Rainbow fills. An app that will not stop congratulating you. Genuinely usable, deeply unserious.'
-      ][this.v('fun_level', 2)],
+      ][this.v('chaos_level', 2)],
       funLevels:[0, 1, 2, 3, 4].map(n => ({ num:String(n), name:['Bank','Polite','Balanced','Playful','Unhinged'][n],
         desc:['nothing moves','quiet','sensible default','jokes and motion','confetti everywhere'][n],
-        on:this.v('fun_level', 2) === n, off:this.v('fun_level', 2) !== n,
-        pick:() => this.setVal({ id:'fun_level', label:'Fun level' }, n) })),
-      funOn:this.v('fun_level', 2) > 0,
-      funIcon:this.v('fun_level', 2) > 0 ? 'celebration' : 'work',
-      funLabel:this.v('fun_level', 2) > 0 ? 'FUN IS ON' : 'FUN IS OFF',
-      funBtnBg:this.v('fun_level', 2) > 0 ? '#9FF7C4' : 'rgba(0,0,0,.32)',
-      funKnobBg:this.v('fun_level', 2) > 0 ? '#00391F' : '#1B211C',
-      funKnobFg:this.v('fun_level', 2) > 0 ? '#9FF7C4' : '#8FA394',
-      funKnobAnim:this.v('fun_level', 2) > 2 ? 'm3Wiggle 1.6s ease-in-out infinite' : 'none',
-      funLabelFg:this.v('fun_level', 2) > 0 ? '#00391F' : '#9FF7C4',
-      toggleFun:() => { const on = this.v('fun_level', 2) > 0; this.setVal({ id:'fun_level', label:'Fun level' }, on ? 0 : 3); if (!on) this.fire('Fun restored', 'Level 3. Brace yourself.'); },
-      maxFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:4, fun_random:true, fun_confetti:300, fun_copy:'Comedian', th_rainbow:true, fun_random_scope:['Colour','Radius','Shadow','Type weight','Size','Rotation','Entrance animation'], fun_random_strength:100, fun_random_reroll:true }) })); this.fire('MAXIMUM FUN', 'Every element now has its own random look, rerolling as you go.'); },
-      zeroFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:0, fun_random:false, th_rainbow:false, fun_confetti:0, fun_copy:'Terse' }) })); this.toast('Fun disabled. The console is now a spreadsheet with opinions.'); },
+        on:this.v('chaos_level', 2) === n, off:this.v('chaos_level', 2) !== n,
+        pick:() => this.setVal({ id:'chaos_level', label:'Chaos level' }, n) })),
+      funOn:this.v('chaos_level', 2) > 0,
+      funIcon:this.v('chaos_level', 2) > 0 ? 'celebration' : 'work',
+      funLabel:this.v('chaos_level', 2) > 0 ? 'FUN IS ON' : 'FUN IS OFF',
+      funBtnBg:this.v('chaos_level', 2) > 0 ? '#9FF7C4' : 'rgba(0,0,0,.32)',
+      funKnobBg:this.v('chaos_level', 2) > 0 ? '#00391F' : '#1B211C',
+      funKnobFg:this.v('chaos_level', 2) > 0 ? '#9FF7C4' : '#8FA394',
+      funKnobAnim:this.v('chaos_level', 2) > 2 ? 'm3Wiggle 1.6s ease-in-out infinite' : 'none',
+      funLabelFg:this.v('chaos_level', 2) > 0 ? '#00391F' : '#9FF7C4',
+      toggleFun:() => { const on = this.v('chaos_level', 2) > 0; this.setVal({ id:'chaos_level', label:'Chaos level' }, on ? 0 : 3); if (!on) this.fire('Fun restored', 'Level 3. Brace yourself.'); },
+      maxFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { chaos_level:4, fun_random:true, fun_confetti:300, fun_copy:'Comedian', th_rainbow:true, fun_random_scope:['Colour','Radius','Shadow','Type weight','Size','Rotation','Entrance animation'], fun_random_strength:100, fun_random_reroll:true }) })); this.fire('MAXIMUM FUN', 'Every element now has its own random look, rerolling as you go.'); },
+      zeroFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { chaos_level:0, fun_random:false, th_rainbow:false, fun_confetti:0, fun_copy:'Terse' }) })); this.toast('Fun disabled. The console is now a spreadsheet with opinions.'); },
       toggleRandom:() => { const on = this.v('fun_random', false); this.setVal({ id:'fun_random', label:'Random appearance for every element', kind:'switch' }, !on); if (!on) this.fire('Randomised', 'Every element just got its own look.'); },
       rndBtnBg:this.v('fun_random', false) ? '#1B4D33' : 'rgba(0,0,0,.24)',
       rndBtnBorder:this.v('fun_random', false) ? '#9FF7C4' : 'rgba(159,247,196,.3)',
