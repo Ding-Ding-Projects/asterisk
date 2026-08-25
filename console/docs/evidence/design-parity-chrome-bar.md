@@ -62,9 +62,17 @@ Eight areas are measured on each side. Which of them carry data is the **one hum
 bar rests on, declared once for the whole application in `inventories/design-parity.json` rather
 than as 32 per-destination masks, so the judgement stays small enough to review:
 
-- **`brandCell`** — *chrome*. The product mark and name; the same on every destination.
-- **`menuCell`** — *chrome*. A fixed set of menu titles.
-- **`commandCell`** — *chrome*. Carries its own label, not a reading.
+- **`brandCell`** — *chrome*. The product mark and name; the same on every destination. It is
+  guaranteed to differ and is compared anyway — see [the brand cell](#the-brand-cell-is-7px-wider-and-that-is-not-geometry).
+- **`menuCell`** — *chrome*. A fixed set of menu titles. Its divergence is the brand cell's, displaced.
+- **`commandCell`** — *chrome*, **and this declaration is wrong**. It used to read "carries its own
+  label, not a reading". It renders `connLabel` and `connUptime`: the design invents `pbx-hq · AMI
+  5038` / `up 14d 06:22`, the application shows what its target reports. That is data-bearing in
+  exactly the sense `statusCell` is, and it is the worst area on all 32 destinations at an identical
+  39.00%. It is still compared rather than excluded, deliberately and provisionally: reclassifying an
+  area as data narrows the bar, and narrowing it in the same pass that repaired the harness would
+  leave one number nobody could attribute to either change. Whether it becomes data is its own
+  roadmap item, with this measurement behind it.
 - **`statusCell`** — **data**. Live connection status. The design invents a healthy value; the
   application shows what the target reports, which with no target configured is nothing at all.
 - **`tabStrip`** — *chrome*. Tab titles come from the navigation catalogue, itself compiled from the
@@ -85,21 +93,26 @@ measurement are there to keep honest.
 
 ## Running it
 
-The region measurement and the comparison are separate from the capture stages, so the bar can be
-applied to captures that are already committed — re-photographing them to obtain a mask would
-replace the very evidence being measured.
+**Prefer a full run of both sides.** It photographs each destination and measures its rectangles in
+the same loop iteration, while the screen is settled and before anything else touches it, so the
+mask and the pixels are the same render. Everything below comes out of one pass per side.
 
 ```
-# measure the rectangles, photograph nothing
-node console/scripts/design-parity-capture-run.mjs --side=reference --regions-only --port=N --server-port=M
-node console/scripts/design-parity-capture-run.mjs --side=built     --regions-only --port=N
+# the design export, rendered by its own runtime, under a browser on an off-screen desktop
+node console/scripts/design-parity-capture-run.mjs --side=reference --port=N --server-port=M
 
-# apply the bar: no browser, reads the two region files and the captures off disk
+# the real built renderer, under Electron on an off-screen desktop
+node console/scripts/design-parity-capture-run.mjs --side=built --port=N
+
+# no browser at all: both stages read the two PNG sets and the two region files off disk
+node console/scripts/design-parity-capture-run.mjs --side=diff
 node console/scripts/design-parity-capture-run.mjs --side=chrome
 ```
 
-A full `--side=reference` / `--side=built` run measures the rectangles too, while the screen is
-settled and before anything else touches it, so a complete run produces everything in one pass.
+`--regions-only` measures the rectangles and photographs nothing. It exists so the bar could be
+applied to captures that were already committed, where re-photographing them to obtain a mask would
+have replaced the very evidence being measured. It leaves the rectangles and the pixels a run apart,
+so reach for it only when the captures are not being retaken.
 
 `--side=chrome` **refuses to run at all** when `console/dist` and `console/dist-electron` are both
 absent: with no build output, no capture can be proved newer than the build it claims to show, and a
@@ -120,84 +133,140 @@ passing comparison cannot rest on rectangles nobody measured. The whole-frame `v
 required and still read; it is now required to be a real comparison rather than a match, and a
 `refused` one is refused exactly as before.
 
-## Capture records
-
-Every record below was produced by `--side=chrome`, which takes no pictures: it reads the two
-region measurements and the already-committed captures off disk. The commit column is the tree the
-measurement run was performed from, not the tree the built artifact was compiled from — see the
-verification boundary below, which is not the same thing and matters here.
-
-| State | Record | Run from commit | Coverage | Result |
-| --- | --- | --- | --- | --- |
-| Reference-side rectangles measured, nothing photographed | `release/evidence/parity/regions-reference.json` | `f346ebfc2aff9d1ed815ec15968afe9b07371707` | 32 of 32 destinations | 8 area rectangles per destination |
-| Built-side rectangles measured, nothing photographed | `release/evidence/parity/regions-built.json` | `f346ebfc2aff9d1ed815ec15968afe9b07371707` | 31 of 32 destinations | About refused: its heading does not settle on this build |
-| Per-destination region ledger, both sides unioned | `release/evidence/parity/{id}-regions.json` | `f346ebfc2aff9d1ed815ec15968afe9b07371707` | 31 ledgers | 2 data areas excluded, 6 chrome areas compared |
-| Per-destination chrome-parity comparison | `release/evidence/parity/{id}-chrome.json` | `f346ebfc2aff9d1ed815ec15968afe9b07371707` | 31 records | 0 match, 31 diff, 0 refused; 6.67%–26.78% of the compared region differs |
-| Run ledger for the comparison stage | `release/evidence/parity/run-chrome.json` | `f346ebfc2aff9d1ed815ec15968afe9b07371707` | 31 compared, 1 skipped | 29.5%–29.6% of frame compared against a declared floor of 25% |
-
 ## Capture method
 
 Both sides were driven over loopback Chrome DevTools Protocol against an already-running target that
-exposes exactly one page target, and neither run photographed anything — `--regions-only` measures
-rectangles and writes no PNG.
+exposes exactly one page target. **One full run per side**, so each destination's rectangles were
+measured on the live DOM while that screen was settled, in the same loop iteration that photographed
+it -- the mask and the pixels are the same render, not two visits that happen to agree. That
+supersedes the earlier pair of `--regions-only` runs, which existed so the bar could be applied to
+captures that were already committed.
 
 - **Reference side.** The design export rendered by its own runtime inside
-  `design-reference/index.html`, under headless Edge, with the same request interception a capture
-  run uses: React served from the locally vendored copies the design's own integrity hashes pin, the
-  font stylesheet answered from `assets/fonts`, and every other request refused and counted. No
-  request reached the network. 32 of 32 destinations measured.
+  `design-reference/index.html`, under headless Edge, with a capture run's full request
+  interception: React served from the locally vendored copies the design's own integrity hashes pin,
+  the font stylesheet answered from `assets/fonts`, and every other request refused and counted. **No
+  request reached the network** -- 710 to the capture host, 64 font stylesheets answered locally, 0
+  blocked. 32 of 32 destinations.
 - **Built side.** The real built renderer under Electron on an off-screen Windows desktop created by
-  `scripts/launch-on-hidden-desktop.ps1` — the same route and the same build output the committed
-  built captures came from. The visible desktop, cursor and foreground application were never
-  touched. 31 of 32 measured; About refused, below.
-- **Comparison.** `--side=chrome`, no browser at all.
+  `scripts/launch-on-hidden-desktop.ps1`, from `console/dist` built out of this tree. The visible
+  desktop, cursor and foreground application were never touched. 32 of 32 destinations.
+- **Comparison.** `--side=diff` and `--side=chrome`, no browser at all.
+
+## Capture records
+
+Every record below came from that same run: one full pass per side against one build of this tree.
+The `--side=chrome` stage itself takes no pictures — it reads the two region measurements and the
+captures off disk.
+
+| State | Record | Run from commit | Coverage | Result |
+| --- | --- | --- | --- | --- |
+| Reference-side rectangles | `release/evidence/parity/regions-reference.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 of 32 | 8 area rectangles each; every shell exactly 1440x1000 at the origin |
+| Built-side rectangles | `release/evidence/parity/regions-built.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 of 32 | every shell exactly 1440x1000 at the origin |
+| Whole-frame visual diff | `release/evidence/parity/{id}-diff.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 records | 0 match, 32 diff, 0 refused; 23.07%-60.98% of pixels differ |
+| Per-destination region ledger | `release/evidence/parity/{id}-regions.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 ledgers | 2 data areas excluded, 6 chrome areas compared |
+| Per-destination chrome-parity comparison | `release/evidence/parity/{id}-chrome.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 records | 0 match, 32 diff, 0 refused; 6.34%-14.95% of the compared region differs |
+| Run ledger for the comparison stage | `release/evidence/parity/run-chrome.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 compared, 0 skipped | exactly 29.57% of the frame compared, against a declared floor of 25% |
 
 ## Verification boundary
 
-Four things this evidence does **not** establish, each named rather than left to inference.
+Two of the three limitations this section used to record are gone, and one is not.
 
-**The staleness check ran and passed, and in this run it did not mean much.** `compareChrome`
-compares each built capture's mtime against the build output's mtimes, and all 31 passed. But this
-run was made from a fresh linked worktree, and a checkout stamps every file with the time it was
-written — so what actually got compared was "the checkout happened after the build", which was never
-in doubt. It is the same limitation the inventory already records for `compareCaptures`. Treat the
-31 passes as an absence of contrary evidence, not as proof the captures postdate the build.
+**Gone: the rectangles and the pixels came from different runs.** They do not any more. Each
+destination is measured and photographed in the same loop iteration, on both sides.
 
-**The built artifact's own commit is not identified.** `console/dist` on the machine this ran on was
-built before the commit that repaired the About heading, which is why About still refuses. The
-commit column above says which tree the measurement RUN was performed from; it does not claim the
-built renderer was compiled from that tree, because that is not known.
+**Gone: the built artifact's own commit was not identified.** `console/dist` and
+`console/dist-electron` were built from this tree, and `console/resources/update-manifest.json`
+records that candidate commit in the same change as these captures.
 
-**The rectangles and the pixels come from the same artifacts but not the same instant.** The
-captures were taken by an earlier run and the rectangles by this one. A full single-pass run
-(`--side=reference` then `--side=built`, without `--regions-only`) measures the rectangles while the
-screen is settled and before anything else touches it, and should be preferred whenever the captures
-are being retaken anyway.
+**Still true: the mtime staleness check does not mean much from a fresh worktree.** `compareChrome`
+compares each built capture's mtime against the build output's mtimes, and all 32 passed. But a
+checkout stamps every file with the time it was written, so what that check compares in a freshly
+linked worktree is "the checkout happened after the build", which was never in doubt. Treat the 32
+passes as an absence of contrary evidence rather than proof, and rely on the single-pass provenance
+above, which does not depend on a timestamp at all.
 
-**About is absent, not assumed.** No `about-regions.json` and no `about-chrome.json` were written.
-The next built run from a current build should settle on it like the other 31; that is an
-expectation, not a result.
+**No destination meets the bar.** All 32 report a real chrome divergence. That is the bar doing its
+job rather than a defect in it, and it is now a second measured reason nothing is verified, beside
+the Material Design 3 audit's finding that none of the 32 conforms.
 
-## What the first run found
+## Where the divergence actually comes from
 
-31 destinations measured (About has no built capture yet), all `diff`, none `refused`.
+The previous version of this section named **one** cause -- the reference shell being 1428 wide
+against the built shell's 1440 -- and that attribution was **wrong**. `brandCell` and `menuCell`
+diverged by the same amount on the eleven destinations where the reference shell was a full 1440
+wide too, so a scrollbar cannot have been what moved them. Measuring properly found three causes,
+and two of them were defects in the equipment rather than in either artifact.
 
-- **6.67% to 26.78%** of the compared region differs, against a compared region of 29.5%–29.6% of
-  the frame.
-- The worst area is `commandCell` on 30 of the 31 destinations, and `sectionList` on `logger`.
-- `brandCell` differs by exactly 15.6% and `menuCell` by exactly 12.0% on **every** destination —
-  identical figures, which is the signature of one divergence rather than 31.
+### One: the reference document was never given the height its own root style needs
 
-That one divergence is measurable in the region ledgers: the **built shell is exactly 1440x1000 on
-all 31 destinations**, while the **reference shell is 1428 wide on 20 of the 32** (a 12px vertical
-scrollbar) and ranges in height from 622px to 7668px. The design export, rendered by its own
-runtime, lets the document grow to its content and scrolls the page; the application constrains its
-shell to the viewport and scrolls within panes. Every horizontal position in the top strip drifts as
-a result, which is why the brand and menu cells differ by the same amount on every screen.
+The design's root element is `height:100%; overflow:hidden` -- the same shape the built application's
+shell has. A percentage height against an auto-height body computes to `auto`, so the reference shell
+grew to its content: **622px to 7668px tall** across the 32, and **1428px wide on 20 of them**
+because the document then scrolled.
 
-Whether that is repaired in the application, in the design, or in the capture harness is a judgement
-for a later pass. What matters here is that the bar turned "57% of pixels differ" into one named,
-measurable cause.
+`design/support.js` supplies exactly the missing stylesheet, in its own `FULL_PAGE_CSS` constant --
+but only `if (!parsed.preview)`, and this export declares a `$preview` of 1440x900 in its
+`data-props`. So the runtime withholds it and leaves the sizing to the frame the design tool would
+have provided. Served bare in an iframe, nothing provided it.
+
+**Repaired in the capture harness**, by `design-parity-server.mjs`'s `injectFullPageHeight`, which
+serves that stylesheet with the hosted design -- read out of `support.js`'s own declaration rather
+than typed, so a renamed or moved constant throws by name. Nothing under `design/` is edited, on disk
+or in flight.
+
+### Two: every built capture was taken behind the update banner
+
+The banner is raised by the updater's own background check, which completes whenever it completes
+rather than at startup -- and the driver dismissed once, before the first destination. A full
+32-destination run was taken with it up: the application's shell sat at **(0, 43)** on the first
+twenty-two destinations and **(0, 52)** on the last ten, as the banner's text rewrapped for a newer
+version. Nothing failed. The captures looked entirely normal.
+
+**Repaired in the capture harness**, twice over: `clearUpdateBanner` dismisses and *proves
+dismissed* before **every** destination, in the shape the onboarding-wizard dismissal already had;
+and a built measurement whose shell does not sit at the window origin is refused outright, naming
+whatever is above it. The second guard is not about the banner -- it catches any surface that
+displaces the shell, including one nobody has thought of yet.
+
+### The brand cell is 7px wider, and that is not geometry
+
+`Ding PBX Console` measures **106.63px** where the design's `Asterisk Console` measures **100.27px**,
+at the same 13px/500 Roboto inside the same 12px padding, 20px glyph and 10px gap: 160.63px against
+154.27px, rounding the two rectangles to **161** and **154**. Every remaining top-strip displacement
+is that one number -- `menuCell` moves right by 7, `commandCell` is squeezed by 8.
+
+**Repaired nowhere, and that is the finding.** It is a deliberate product rename, recorded in
+`compile-design.mjs`'s `BRAND` table and in `console/design/inventory.json` under
+`source.sanitization`, of the same kind as the sample data this project removed. Not the
+application's to fix -- the name is the product's own. Not the design's -- it is the reference, and
+is never edited. Not the harness's -- it is reporting the difference correctly.
+
+So `brandCell` differs by **15.56%** and `menuCell` by **12.00%** on every one of the 32,
+permanently. Both stay inside the compared region, on the same principle `sectionList` does: a
+divergence worth reading in the result is not one worth hiding in a mask.
+
+### What the repairs changed
+
+Written as a list rather than a table on purpose: the row-level check on this document requires
+every table row to name the commit its capture came from, and these are not capture records.
+
+- **Reference shells** — 1428 or 1440 wide and 622-7668 tall, now **1440x1000 at the origin on all 32**.
+- **Built shells** — 1440 wide at y=43 or y=52, now **1440x1000 at the origin on all 32**.
+- **Areas whose rectangle matches on both sides** — 0 of 8 on any destination, now **5 of 8 on all 32**.
+- **Whole-frame diff** — 47.13%-63.95%, now **23.07%-60.98%**.
+- **Compared-region diff** — 6.67%-26.78%, now **6.34%-14.95%**.
+- **Compared fraction** — 29.5%-29.6%, now **exactly 29.57% on every one of the 32**.
+- **Destinations with records** — 31, now **32**.
+
+`statusCell`, `tabStrip`, `rail`, `sectionList` and `contentPane` now measure the **same rectangle**
+on both sides on every destination. The only geometric difference left anywhere in the application
+is the three top-strip cells, and it is one number.
+
+**None of this verified anything.** No destination moved to `verified` and none could: every one
+still reports a real chrome divergence, and the Material Design 3 audit still reports all 32
+nonconforming. What changed is that the numbers now measure the product's real differences from the
+design instead of two defects in the equipment measuring them.
 
 ## Suggested articles
 

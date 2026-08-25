@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-25T18:44:38.553Z",
+  "generatedAt": "2026-08-25T21:36:16.314Z",
   "regionsOnly": false,
   "side": "chrome",
   "bar": "chrome-parity",
@@ -12,14 +12,13 @@
   },
   "minimumComparedFraction": 0.25,
   "verdicts": {
-    "diff": 31,
-    "skipped": 1
+    "diff": 32
   },
   "results": [
     {
       "id": "dash",
       "verdict": "diff",
-      "diffPercentage": 19.31137162073306,
+      "diffPercentage": 7.6044073719213205,
       "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
@@ -27,95 +26,95 @@
     {
       "id": "live",
       "verdict": "diff",
-      "diffPercentage": 10.065310613327314,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 9.657799319919592,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "endpoints",
       "verdict": "diff",
-      "diffPercentage": 11.821032932723956,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 11.096864491160833,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "trunks",
       "verdict": "diff",
-      "diffPercentage": 12.44099005059339,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 10.916981344755678,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "trunkauth",
       "verdict": "diff",
-      "diffPercentage": 9.958810585115387,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 10.313691784553534,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "canvas",
       "verdict": "diff",
-      "diffPercentage": 11.157347326449623,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 10.969349414792688,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "ivr",
       "verdict": "diff",
-      "diffPercentage": 10.832204856213206,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 10.913223994439122,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "queues",
       "verdict": "diff",
-      "diffPercentage": 10.305347100754199,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 9.772868173364143,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "voicemail",
       "verdict": "diff",
-      "diffPercentage": 8.957757339803269,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 7.618262601213624,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "confbridge",
       "verdict": "diff",
-      "diffPercentage": 8.858310293592131,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 8.768951135659133,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "moh",
       "verdict": "diff",
-      "diffPercentage": 10.026049013522917,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 8.507110785474085,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "codecs",
       "verdict": "diff",
-      "diffPercentage": 8.348849893735071,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 8.726915778992653,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "cdr",
       "verdict": "diff",
-      "diffPercentage": 14.170377050104266,
+      "diffPercentage": 6.961430799000546,
       "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
@@ -123,15 +122,15 @@
     {
       "id": "ami",
       "verdict": "diff",
-      "diffPercentage": 8.32134326393199,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 6.995951455033909,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "modules",
       "verdict": "diff",
-      "diffPercentage": 19.414229085648802,
+      "diffPercentage": 14.281923387627046,
       "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
@@ -139,23 +138,23 @@
     {
       "id": "logger",
       "verdict": "diff",
-      "diffPercentage": 26.778635706100058,
+      "diffPercentage": 14.92771797328524,
       "comparedFraction": 0.2957166666666667,
-      "worstArea": "sectionList",
+      "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "security",
       "verdict": "diff",
-      "diffPercentage": 15.557467697342437,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 14.946974393657591,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "cli",
       "verdict": "diff",
-      "diffPercentage": 20.847658231415206,
+      "diffPercentage": 14.514879107253565,
       "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
@@ -163,7 +162,7 @@
     {
       "id": "memory",
       "verdict": "diff",
-      "diffPercentage": 10.44026752334254,
+      "diffPercentage": 6.3438163407165264,
       "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
@@ -171,7 +170,7 @@
     {
       "id": "sync",
       "verdict": "diff",
-      "diffPercentage": 13.68004283379361,
+      "diffPercentage": 6.688788066655395,
       "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
@@ -179,15 +178,15 @@
     {
       "id": "skills",
       "verdict": "diff",
-      "diffPercentage": 7.515422520641728,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 6.855755321347385,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "hub",
       "verdict": "diff",
-      "diffPercentage": 17.183302335193222,
+      "diffPercentage": 7.095990907212234,
       "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
@@ -195,7 +194,7 @@
     {
       "id": "vocab",
       "verdict": "diff",
-      "diffPercentage": 16.68944560296079,
+      "diffPercentage": 7.958772473651581,
       "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
@@ -203,15 +202,15 @@
     {
       "id": "ops",
       "verdict": "diff",
-      "diffPercentage": 6.666008388346594,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 7.029767607882921,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "secrets",
       "verdict": "diff",
-      "diffPercentage": 13.244190197073024,
+      "diffPercentage": 6.900373856356497,
       "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
@@ -219,23 +218,23 @@
     {
       "id": "servers",
       "verdict": "diff",
-      "diffPercentage": 6.935432300776768,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 7.166206391252889,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "arcade",
       "verdict": "diff",
-      "diffPercentage": 7.054392597190091,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 7.394230588588926,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "notifications",
       "verdict": "diff",
-      "diffPercentage": 8.93427454958763,
+      "diffPercentage": 7.193682015442709,
       "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
@@ -243,30 +242,34 @@
     {
       "id": "history",
       "verdict": "diff",
-      "diffPercentage": 8.4598168105475,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 7.404798136354243,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "customise",
       "verdict": "diff",
-      "diffPercentage": 7.759925896669112,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 7.682842059779444,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "appearance",
       "verdict": "diff",
-      "diffPercentage": 7.632502021854841,
-      "comparedFraction": 0.29538333333333333,
+      "diffPercentage": 7.282684251066149,
+      "comparedFraction": 0.2957166666666667,
       "worstArea": "commandCell",
       "reasons": []
     },
     {
       "id": "about",
-      "skipped": "built capture and built region measurement absent"
+      "verdict": "diff",
+      "diffPercentage": 6.657085423359447,
+      "comparedFraction": 0.2957166666666667,
+      "worstArea": "commandCell",
+      "reasons": []
     }
   ]
 }

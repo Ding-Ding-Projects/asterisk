@@ -1,5 +1,6 @@
 {
-  "generatedAt": "2026-08-25T17:16:22.583Z",
+  "generatedAt": "2026-08-25T21:36:11.061Z",
+  "regionsOnly": false,
   "side": "diff",
   "tuple": {
     "state": "default",
@@ -9,199 +10,200 @@
     "scale": 1
   },
   "verdicts": {
-    "diff": 31,
-    "skipped": 1
+    "diff": 32
   },
   "results": [
     {
       "id": "dash",
       "verdict": "diff",
-      "diffPercentage": 57.52180555555556,
+      "diffPercentage": 23.06888888888889,
       "reasons": []
     },
     {
       "id": "live",
       "verdict": "diff",
-      "diffPercentage": 56.020138888888894,
+      "diffPercentage": 55.51083333333333,
       "reasons": []
     },
     {
       "id": "endpoints",
       "verdict": "diff",
-      "diffPercentage": 60.619097222222216,
+      "diffPercentage": 59.459375,
       "reasons": []
     },
     {
       "id": "trunks",
       "verdict": "diff",
-      "diffPercentage": 58.775972222222215,
+      "diffPercentage": 55.600347222222226,
       "reasons": []
     },
     {
       "id": "trunkauth",
       "verdict": "diff",
-      "diffPercentage": 58.26013888888889,
+      "diffPercentage": 57.35263888888888,
       "reasons": []
     },
     {
       "id": "canvas",
       "verdict": "diff",
-      "diffPercentage": 62.30534722222222,
+      "diffPercentage": 60.981874999999995,
       "reasons": []
     },
     {
       "id": "ivr",
       "verdict": "diff",
-      "diffPercentage": 60.54590277777778,
+      "diffPercentage": 59.693125,
       "reasons": []
     },
     {
       "id": "queues",
       "verdict": "diff",
-      "diffPercentage": 60.51361111111111,
+      "diffPercentage": 59.41881944444445,
       "reasons": []
     },
     {
       "id": "voicemail",
       "verdict": "diff",
-      "diffPercentage": 61.24048611111112,
+      "diffPercentage": 58.819097222222226,
       "reasons": []
     },
     {
       "id": "confbridge",
       "verdict": "diff",
-      "diffPercentage": 59.213611111111106,
+      "diffPercentage": 60.19638888888888,
       "reasons": []
     },
     {
       "id": "moh",
       "verdict": "diff",
-      "diffPercentage": 61.805,
+      "diffPercentage": 59.144930555555554,
       "reasons": []
     },
     {
       "id": "codecs",
       "verdict": "diff",
-      "diffPercentage": 60.02694444444444,
+      "diffPercentage": 59.20111111111112,
       "reasons": []
     },
     {
       "id": "cdr",
       "verdict": "diff",
-      "diffPercentage": 59.17513888888889,
+      "diffPercentage": 45.646319444444444,
       "reasons": []
     },
     {
       "id": "ami",
       "verdict": "diff",
-      "diffPercentage": 60.86027777777778,
+      "diffPercentage": 57.80493055555556,
       "reasons": []
     },
     {
       "id": "modules",
       "verdict": "diff",
-      "diffPercentage": 63.94506944444445,
+      "diffPercentage": 49.77333333333333,
       "reasons": []
     },
     {
       "id": "logger",
       "verdict": "diff",
-      "diffPercentage": 61.36847222222222,
+      "diffPercentage": 43.28541666666666,
       "reasons": []
     },
     {
       "id": "security",
       "verdict": "diff",
-      "diffPercentage": 57.75902777777778,
+      "diffPercentage": 56.479722222222215,
       "reasons": []
     },
     {
       "id": "cli",
       "verdict": "diff",
-      "diffPercentage": 57.73513888888889,
+      "diffPercentage": 48.815555555555555,
       "reasons": []
     },
     {
       "id": "memory",
       "verdict": "diff",
-      "diffPercentage": 47.125347222222224,
+      "diffPercentage": 41.85534722222222,
       "reasons": []
     },
     {
       "id": "sync",
       "verdict": "diff",
-      "diffPercentage": 54.93048611111111,
+      "diffPercentage": 46.18965277777778,
       "reasons": []
     },
     {
       "id": "skills",
       "verdict": "diff",
-      "diffPercentage": 56.26805555555555,
+      "diffPercentage": 55.714305555555555,
       "reasons": []
     },
     {
       "id": "hub",
       "verdict": "diff",
-      "diffPercentage": 56.02798611111112,
+      "diffPercentage": 42.820902777777775,
       "reasons": []
     },
     {
       "id": "vocab",
       "verdict": "diff",
-      "diffPercentage": 57.07270833333333,
+      "diffPercentage": 51.62166666666666,
       "reasons": []
     },
     {
       "id": "ops",
       "verdict": "diff",
-      "diffPercentage": 54.66152777777778,
+      "diffPercentage": 54.116875,
       "reasons": []
     },
     {
       "id": "secrets",
       "verdict": "diff",
-      "diffPercentage": 54.71284722222223,
+      "diffPercentage": 46.312083333333334,
       "reasons": []
     },
     {
       "id": "servers",
       "verdict": "diff",
-      "diffPercentage": 59.75548611111111,
+      "diffPercentage": 59.61236111111111,
       "reasons": []
     },
     {
       "id": "arcade",
       "verdict": "diff",
-      "diffPercentage": 56.091458333333335,
+      "diffPercentage": 56.70923611111112,
       "reasons": []
     },
     {
       "id": "notifications",
       "verdict": "diff",
-      "diffPercentage": 54.214930555555554,
+      "diffPercentage": 51.960138888888885,
       "reasons": []
     },
     {
       "id": "history",
       "verdict": "diff",
-      "diffPercentage": 56.78118055555556,
+      "diffPercentage": 55.694652777777776,
       "reasons": []
     },
     {
       "id": "customise",
       "verdict": "diff",
-      "diffPercentage": 61.695208333333326,
+      "diffPercentage": 58.95319444444445,
       "reasons": []
     },
     {
       "id": "appearance",
       "verdict": "diff",
-      "diffPercentage": 61.265208333333334,
+      "diffPercentage": 60.45805555555555,
       "reasons": []
     },
     {
       "id": "about",
-      "skipped": "built capture absent"
+      "verdict": "diff",
+      "diffPercentage": 24.220555555555556,
+      "reasons": []
     }
   ]
 }

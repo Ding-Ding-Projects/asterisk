@@ -17,13 +17,13 @@
   "comparedPixels": 425832,
   "comparedFraction": 0.2957166666666667,
   "minimumComparedFraction": 0.25,
-  "diffPixelCount": 38045,
-  "diffPercentage": 8.93427454958763,
+  "diffPixelCount": 30633,
+  "diffPercentage": 7.193682015442709,
   "boundingBox": {
     "x0": 0,
     "y0": 5,
     "x1": 1428,
-    "y1": 998
+    "y1": 999
   },
   "excluded": {
     "rectangles": [
@@ -42,8 +42,8 @@
     ],
     "pixels": 1014168,
     "clippedAway": [],
-    "diffPixelCount": 742650,
-    "diffPercentage": 73.22751260146248
+    "diffPixelCount": 717593,
+    "diffPercentage": 70.75681741092205
   },
   "areas": {
     "brandCell": {
@@ -58,23 +58,23 @@
     },
     "commandCell": {
       "comparedPixels": 21360,
-      "diffPixelCount": 7337,
-      "diffPercentage": 34.34925093632959
+      "diffPixelCount": 8331,
+      "diffPercentage": 39.002808988764045
     },
     "tabStrip": {
       "comparedPixels": 54720,
-      "diffPixelCount": 3042,
-      "diffPercentage": 5.559210526315789
+      "diffPixelCount": 3129,
+      "diffPercentage": 5.718201754385965
     },
     "rail": {
       "comparedPixels": 81136,
-      "diffPixelCount": 7598,
-      "diffPercentage": 9.364523762571485
+      "diffPixelCount": 5097,
+      "diffPercentage": 6.282044961546046
     },
     "sectionList": {
       "comparedPixels": 247096,
-      "diffPixelCount": 17180,
-      "diffPercentage": 6.952763298475087
+      "diffPixelCount": 11188,
+      "diffPercentage": 4.527794865153624
     }
   },
   "paletteCheck": {
@@ -84,8 +84,8 @@
   "stalenessCheck": {
     "checked": true,
     "stale": false,
-    "builtCaptureMtimeMs": 1787682090531.2153,
-    "newestBuildSourceMtimeMs": 1787670487605.2488
+    "builtCaptureMtimeMs": 1787692756313.281,
+    "newestBuildSourceMtimeMs": 1787691669082.8162
   },
   "generatedBy": "console/scripts/design-parity-capture-run.mjs --side=chrome",
   "tuple": {

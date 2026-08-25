@@ -5,9 +5,11 @@ This directory is the **reference side** of the design-parity evidence pipeline 
 one exact tuple (destination, state, theme, viewport, scale), for every one of the 32 audited
 destinations.
 
-**It has now been run, and its captures are committed.** All 32 reference captures, 31 built
-captures and 31 visual diffs are on disk under `console/release/captures/parity/` and
-`console/release/evidence/parity/`, with a run ledger per side. What this file used to say — that
+**It has now been run, and its captures are committed.** All 32 reference captures, all 32 built
+captures and all 32 visual diffs are on disk under `console/release/captures/parity/` and
+`console/release/evidence/parity/`, with a run ledger per side. They came from one full run per
+side against one build of this tree, so each destination's region rectangles and its pixels are the
+same moment of the same render. What this file used to say — that
 nothing here could drive a real headless browser, and that the React runtime the design needs
 could not be supplied without editing `design/` — was true of the harness as it stood and wrong
 about the design. Both corrections are recorded below rather than quietly edited away.
@@ -81,7 +83,21 @@ refuses any capture that has drifted from what its ledger recorded.
 - **No `--guest` for Edge.** Combined with `--user-data-dir` it makes the browser exit immediately.
 - A fresh `--user-data-dir` per run, plus the usual first-run, sync and extension suppressions.
 
-## Two corrections to what this file used to claim
+### Two things about the built side that cost a whole run each
+
+- **The update banner is not a startup surface, so dismissing it at startup is a bet.** The updater
+  raises it whenever its background check finishes, and this repository publishes a release on every
+  push, so it genuinely arrives mid-run and its text rewraps as the version number grows. A full
+  32-destination run was taken behind it: the shell sat 43px down the frame on the first twenty-two
+  destinations and 52px down on the last ten. Nothing failed, and every capture looked normal.
+  `clearUpdateBanner` now dismisses and *proves dismissed* before every destination, and a built
+  measurement whose shell is not at the window origin is refused outright, naming what is above it.
+- **`Later` takes about a second to leave the DOM, and a dismissal loop has to judge its last
+  click.** The first version of that guard clicked four times at 300ms apart and then threw without
+  re-checking, so it refused a dismissal that was working — on a banner the very next probe found
+  already gone.
+
+## Three corrections to what this file used to claim
 
 ### 1. The React host was never a capability boundary
 
@@ -127,6 +143,26 @@ session, so only the first destination of each rail carried a rail click; the ha
 destination per page load, so twenty-six of the thirty-two plans could only ever look for a section
 that was not on screen. Every plan is now self-contained, and a contract test asserts it.
 
+### 3. The design declares its own viewport, and the harness was not supplying it
+
+The design's root element is `height:100%; overflow:hidden` — the same shape the built application's
+shell has. Rendered here it was neither: the shell grew to its content, 622px to 7668px tall across
+the 32 destinations, and the document scrolled, taking 12px off the width on 20 of them. That was
+read for a whole pass as a genuine difference between the design and the application, and written up
+as one.
+
+It is not. `design/support.js` injects exactly the missing stylesheet — `html,body{height:100%}` plus
+`#dc-root` — from its own `FULL_PAGE_CSS` constant, but only `if (!parsed.preview)`. This export
+declares `$preview` of 1440x900 in its `data-props`, so the runtime withholds it and leaves the
+sizing to the frame the design tool would have provided. Served bare in an iframe, nothing provided
+it.
+
+`design-parity-server.mjs` now serves that stylesheet with the hosted design, read out of
+`support.js`'s own declaration rather than typed here — the same rule the React pins follow, so a
+renamed or moved constant throws by name instead of silently serving nothing. Nothing under
+`design/` is edited, on disk or in flight. Every reference shell is now exactly 1440x1000 at the
+window origin, matching the built side.
+
 ## Why every row is still `compiled`
 
 `design-parity-evidence-on-disk.mjs` will only accept a `verified` row whose visual diff records a
@@ -135,8 +171,8 @@ that was not on screen. Every plan is now self-contained, and a contract test as
 That bar is unreachable here **by deliberate product decision**. This project removed the design's
 sample rows, dashboard tiles, health bars, nav badges, history, agent-rail and trunk-authentication
 content from the running application, so the reference shows invented content exactly where the
-built application shows the target's real — and usually empty — readings. The 31 diffs measure that
-divergence: 47% to 64% of pixels differ, none was refused as unpainted or stale, and the
+built application shows the target's real — and usually empty — readings. The 32 diffs measure that
+divergence: 23% to 61% of pixels differ, none was refused as unpainted or stale, and the
 side-by-side images show the same chrome beside different data.
 
 Moving a row to `verified` therefore needs two things beyond the captures: a parity bar that
@@ -153,10 +189,17 @@ report a conformance it did not measure. Run over all 32 destinations it found *
 conforming**, so the guard still refuses every row — now for a measured reason rather than an absent
 one.
 
-One destination has no built capture at all: the built application's `<h1>` on About reads
-`About Ding PBX Console` where the design's reads `About`, so the settle condition that proves the
-driver arrived cannot be satisfied. That is recorded as a real divergence rather than captured on a
-weaker proof.
+**Every destination now has a built capture, About included.** It used to be the one that did not:
+the built `<h1>` on About read `About Ding PBX Console` where the design's reads `About`, so the
+settle condition that proves the driver arrived could not be satisfied, and that was recorded as a
+real divergence rather than captured on a weaker proof. The heading was repaired in the application,
+and a run against a build carrying that repair settled on About like the other thirty-one.
+
+Two defects in this harness were found and repaired in the same pass, both of which had been
+reported as divergences between the design and the application when they belonged to neither: the
+reference document was never given the height its own root style needs, and every built capture was
+taken behind the update banner. Both are recorded in full in
+[docs/evidence/design-parity-chrome-bar.md](../docs/evidence/design-parity-chrome-bar.md).
 
 The captures are already earning their keep as evidence in the meantime.
 `logger-comparison.png`, for instance, shows the built Logger destination rendering its header and

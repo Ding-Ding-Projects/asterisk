@@ -13,8 +13,13 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pinsFromSupportJs, readStringConstant, verifyVendored, VENDOR_DIR } from '../../scripts/vendor-design-react-host.mjs';
-import { injectReactHost, reactHostShim, startCaptureServer, DESIGN_HOST_PREFIX } from '../../scripts/design-parity-server.mjs';
-import { routeInterceptedRequest } from '../../scripts/design-parity-capture-run.mjs';
+import {
+  injectReactHost, reactHostShim, startCaptureServer, DESIGN_HOST_PREFIX,
+  fullPageCssFromSupportJs, fullPageStyleShim, injectFullPageHeight,
+} from '../../scripts/design-parity-server.mjs';
+import {
+  routeInterceptedRequest, clearUpdateBanner, shellOwnsTheWindow, OBSTRUCTIONS_ABOVE,
+} from '../../scripts/design-parity-capture-run.mjs';
 import { controlText, controlLabel, controlMatchesLabel } from '../../design-reference/route.mjs';
 
 const root = resolve(import.meta.dirname, '..', '..', '..');
@@ -95,6 +100,125 @@ test('injectReactHost refuses a document with no support.js tag rather than appe
   assert.throws(() => injectReactHost('<html><head></head><body></body></html>', pinsFromSupportJs(supportJs)), /no '<script src="\.\/support\.js">/);
 });
 
+/* -------------------------------------------------------- the viewport the design declares -- */
+
+test("the design declares a preview viewport, which is why its runtime withholds the full-page height", () => {
+  // Both halves of the reason this harness has to supply that height itself. If either moves,
+  // the injection below becomes either unnecessary or wrong, and this says which.
+  assert.match(
+    readFileSync(resolve(root, 'design', 'Asterisk Console M3.dc.html'), 'utf8'),
+    /data-props="\{&quot;\$preview&quot;:\{&quot;width&quot;:1440,&quot;height&quot;:900\}\}"/,
+    'the design export declares $preview; support.js skips FULL_PAGE_CSS when it does',
+  );
+  assert.match(
+    supportJs.replace(/\r\n/g, '\n'),
+    /^\s*if \(!parsed\.preview\) \{$/m,
+    'support.js still gates its full-page stylesheet on the absence of a declared preview',
+  );
+});
+
+test('the full-page height style is read out of support.js, never typed here', () => {
+  const css = fullPageCssFromSupportJs(supportJs);
+  // What the design's root style actually needs: a definite height on every ancestor.
+  assert.match(css, /html,\s*body\{height:100%/);
+  assert.match(css, /#dc-root[^}]*height:100%/);
+  // Anchored to the whole declaration, so neither a longer name nor a commented-out copy
+  // can supply it — the same rule the React pins are read by, for the same reason.
+  assert.throws(() => fullPageCssFromSupportJs('var FULL_PAGE_CSS_V2 = "html{height:100%}";'), /declares no/);
+  assert.throws(() => fullPageCssFromSupportJs('// var FULL_PAGE_CSS = "html{height:100%}";'), /declares no/);
+});
+
+test('injectFullPageHeight puts the style before support.js and leaves the design template untouched', () => {
+  const css = fullPageCssFromSupportJs(supportJs);
+  const original = readFileSync(resolve(root, 'design', 'Asterisk Console M3.dc.html'), 'utf8');
+  const injected = injectFullPageHeight(original, css);
+
+  const styleAt = injected.indexOf('data-design-parity-host="full-page-height"');
+  const supportAt = injected.indexOf('<script src="./support.js"></script>');
+  assert.ok(styleAt !== -1 && supportAt !== -1);
+  assert.ok(styleAt < supportAt, 'a height applied after boot is a frame late, and the first paint is the wrong size');
+
+  const templateOf = (html) => html.slice(html.indexOf('<x-dc>'), html.indexOf('</x-dc>'));
+  assert.equal(templateOf(injected), templateOf(original));
+  assert.equal(injected.length, original.length + fullPageStyleShim(css).length);
+});
+
+test('injectFullPageHeight refuses a document with no support.js tag', () => {
+  assert.throws(() => injectFullPageHeight('<html><head></head><body></body></html>', 'html{height:100%}'), /no '<script src="\.\/support\.js">/);
+});
+
+/* ------------------------------------------------- nothing may sit on top of the built shell -- */
+
+// Recorded because it happened, on a whole 32-destination run, and nothing failed: the
+// updater raised its banner after the driver's one dismissal, so every capture in that run
+// showed the application 43px — later 52px, as the banner's text rewrapped — down the frame.
+
+const fakeCdp = (script) => {
+  const calls = [];
+  return {
+    calls,
+    evaluate: async (expression) => {
+      calls.push(expression);
+      return script(expression, calls);
+    },
+  };
+};
+
+test('clearUpdateBanner does nothing when the banner is not up', async () => {
+  const cdp = fakeCdp((expression) => (expression.includes("getElementById('update-banner-host')") ? false : 0));
+  assert.equal(await clearUpdateBanner(cdp, 'in a test', { pauseMs: 0 }), 0);
+  assert.equal(cdp.calls.length, 1, 'a banner that is not there must not be clicked at');
+});
+
+test('clearUpdateBanner clicks Later and returns once the banner is gone', async () => {
+  let dismissed = false;
+  const cdp = fakeCdp((expression) => {
+    if (expression.includes('later.click()')) { dismissed = true; return 1; }
+    return !dismissed;
+  });
+  assert.equal(await clearUpdateBanner(cdp, 'in a test', { pauseMs: 0 }), 1);
+  assert.ok(cdp.calls.some((c) => c.includes('later.click()')));
+});
+
+test('clearUpdateBanner refuses the run rather than capturing behind a banner it cannot clear', async () => {
+  const cdp = fakeCdp((expression) => (expression.includes('later.click()') ? 0 : true));
+  await assert.rejects(
+    () => clearUpdateBanner(cdp, "before driving to 'about'", { attempts: 2, pauseMs: 0 }),
+    /update banner is still up before driving to 'about'; refusing to capture/,
+  );
+});
+
+test('clearUpdateBanner judges its last click instead of giving up on it', async () => {
+  // Measured on the real application: `Later` removes the banner about a second later. A loop
+  // that clicks and then falls straight out refuses a dismissal that worked, which is exactly
+  // how the first run of this guard failed.
+  let clicks = 0;
+  const cdp = fakeCdp((expression) => {
+    if (expression.includes('later.click()')) { clicks += 1; return 1; }
+    return clicks < 2;
+  });
+  assert.equal(await clearUpdateBanner(cdp, 'in a test', { attempts: 2, pauseMs: 0 }), 2);
+});
+
+test('a built measurement whose shell is not at the window origin is refused', () => {
+  assert.equal(shellOwnsTheWindow({ shell: { x: 0, y: 0, width: 1440, height: 1000 } }), true);
+  // The exact shape the contaminated run produced.
+  assert.equal(shellOwnsTheWindow({ shell: { x: 0, y: 52, width: 1440, height: 948 } }), false);
+  assert.equal(shellOwnsTheWindow({ shell: { x: 12, y: 0, width: 1428, height: 1000 } }), false);
+  // A probe that already said why it failed keeps its own, more specific reason.
+  assert.equal(shellOwnsTheWindow({ error: 'the top strip has 3 cells, not 4' }), true);
+});
+
+test('the obstruction probe reports what sits above the shell rather than only that something does', () => {
+  const expression = OBSTRUCTIONS_ABOVE({ x: 0, y: 52, width: 1440, height: 948 });
+  assert.match(expression, /document\.body\.children/);
+  assert.match(expression, /c\.r\.top < shell\.y \|\| c\.r\.left < shell\.x/);
+  // The rectangle is passed in rather than the shell being located a second time, because a
+  // second locator in this harness is a locator that can drift from the first.
+  assert.match(expression, /"y":\s*52/);
+  assert.doesNotMatch(expression, /querySelectorAll\('div'\)/);
+});
+
 /* --------------------------------------------------------------------- the capture host -- */
 
 test('the capture host serves the repository, injects into the hosted design, and confines to the root', async () => {
@@ -107,7 +231,18 @@ test('the capture host serves the repository, injects into the hosted design, an
     const design = await fetch(`${server.origin}${DESIGN_HOST_PREFIX}Asterisk Console M3.dc.html`);
     assert.equal(design.status, 200);
     const body = await design.text();
-    assert.ok(body.indexOf('window.__resources') < body.indexOf('<script src="./support.js"></script>'));
+    // Presence first, THEN order. `indexOf` answers -1 for something that is not there at
+    // all, and -1 is less than every real index, so an order-only assertion is satisfied by
+    // a shim the server stopped injecting entirely — which is exactly what a deliberate
+    // break of this test proved before these two `ok(includes)` lines were added.
+    const supportAt = body.indexOf('<script src="./support.js"></script>');
+    assert.ok(body.includes('window.__resources'), 'the hosted design must carry the local React host');
+    assert.ok(body.indexOf('window.__resources') < supportAt);
+    assert.ok(
+      body.includes('data-design-parity-host="full-page-height"'),
+      'the hosted design must carry the full-page height style, or the reference shell grows to its content',
+    );
+    assert.ok(body.indexOf('data-design-parity-host="full-page-height"') < supportAt);
 
     // './support.js' and <dc-import name="M3 Control"> both resolve inside that same virtual
     // directory, so the host has to answer for the whole of design/ there.

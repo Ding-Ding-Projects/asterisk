@@ -297,6 +297,83 @@ const PLAN_ATTEMPTS = 6;
 const SECTION_POLL_MS = 1500;
 const HEADING_POLL_MS = 2500;
 
+/**
+ * Whether the update banner is currently occupying the top of the window, and its `Later`.
+ *
+ * The banner is raised by the updater's own background check, which completes at whatever
+ * moment it completes — not at startup. A single dismissal before the first destination is
+ * therefore a bet, and it is a bet this harness lost: an entire 32-destination run was taken
+ * with the banner up, pushing the application's shell 43px down the frame on the first
+ * twenty-two destinations and 52px down on the last ten as the banner's text rewrapped. The
+ * captures looked completely normal. Nothing failed.
+ *
+ * So it is cleared before every destination, and proved cleared, exactly as the onboarding
+ * wizard already is.
+ */
+const UPDATE_BANNER_PRESENT = `(() => {
+  const host = document.getElementById('update-banner-host');
+  return Boolean(host) && host.getBoundingClientRect().height > 0;
+})()`;
+
+const DISMISS_UPDATE_BANNER = `(() => {
+  const host = document.getElementById('update-banner-host');
+  if (!host) return 0;
+  const later = [...host.querySelectorAll('button')].find((b) => (b.textContent || '').trim() === 'Later');
+  if (!later) return 0;
+  later.click();
+  return 1;
+})()`;
+
+/**
+ * Names whatever is sitting between the top-left of the window and the application's shell.
+ *
+ * Takes the shell rectangle rather than locating the shell again, so there is one shell
+ * locator in this harness (design-parity-regions.mjs) and not a second copy here that can
+ * drift from it.
+ */
+export const OBSTRUCTIONS_ABOVE = (shell) => `(() => {
+  const shell = ${JSON.stringify(shell)};
+  return [...document.body.children]
+    .map((el) => ({ el, r: el.getBoundingClientRect() }))
+    .filter((c) => c.r.height > 0 && c.r.width > 0 && (c.r.top < shell.y || c.r.left < shell.x))
+    .map((c) => (c.el.id || c.el.tagName.toLowerCase()) + ' (' + Math.round(c.r.width) + 'x' + Math.round(c.r.height) + ': ' + (c.el.textContent || '').trim().slice(0, 60) + ')')
+    .join('; ');
+})()`;
+
+/**
+ * Clears the update banner and proves it gone, or refuses the run.
+ *
+ * Refusing is the point. A capture taken with the banner up is not a capture of this
+ * application's chrome — every rectangle in it is displaced by the banner's height — and it
+ * is indistinguishable from a good one to everything downstream, including the pixel diff,
+ * which would report the displacement as a design divergence.
+ */
+export async function clearUpdateBanner(cdp, where, { attempts = 8, pauseMs = 500 } = {}) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (!(await cdp.evaluate(UPDATE_BANNER_PRESENT))) return attempt;
+    await cdp.evaluate(DISMISS_UPDATE_BANNER);
+    await sleep(pauseMs);
+  }
+  // The check after the last click, without which the last click is never judged. Measured:
+  // the banner takes about a second to leave the DOM after `Later`, so a loop that clicks and
+  // then gives up refuses a dismissal that was working — which is how this guard's first run
+  // failed, on a banner the very next probe found already gone.
+  if (!(await cdp.evaluate(UPDATE_BANNER_PRESENT))) return attempts;
+  throw new Error(`design-parity-capture-run: the update banner is still up ${where}; refusing to capture the built side behind it`);
+}
+
+/**
+ * Whether a built measurement's shell owns the window, which is the only position from which
+ * its rectangles mean what the chrome bar reads them as meaning.
+ *
+ * A probe that already reported an error is not judged here — that error is its own refusal,
+ * and answering `false` as well would replace a precise reason with a vaguer one.
+ */
+export function shellOwnsTheWindow(measured) {
+  if (!measured || measured.error) return true;
+  return measured.shell?.x === 0 && measured.shell?.y === 0;
+}
+
 async function captureBuiltSide(port) {
   const cdp = await connectCdp(port);
 
@@ -309,8 +386,7 @@ async function captureBuiltSide(port) {
     if (!stillThere) break;
     if (attempt === 2) { cdp.close(); throw new Error('design-parity-capture-run: the onboarding wizard is still up; refusing to capture the built side'); }
   }
-  await cdp.evaluate(CLICK_BY_TEXT('Later'));
-  await sleep(400);
+  await clearUpdateBanner(cdp, 'before the first destination');
 
   await cdp.send('Emulation.setDeviceMetricsOverride', {
     width: TUPLE.width, height: TUPLE.height, deviceScaleFactor: TUPLE.scale, mobile: false,
@@ -322,6 +398,7 @@ async function captureBuiltSide(port) {
   for (const entry of selectedDestinations()) {
     const label = LABELS.labels[entry.id];
     const rail = LABELS.rails[label.rail];
+    await clearUpdateBanner(cdp, `before driving to '${entry.id}'`);
     // Every destination is reached from its own rail, exactly as its manifest plan says, with
     // no shortcut for "we are already on that rail". Both sides of a parity capture follow the
     // same self-contained plan, and this application derives the open rail from the ACTIVE
@@ -355,7 +432,20 @@ async function captureBuiltSide(port) {
       console.log(`built ${entry.id}: ${failure}`);
       continue;
     }
-    measurements[entry.id] = await cdp.evaluate(BUILT_REGION_PROBE);
+    const measured = await cdp.evaluate(BUILT_REGION_PROBE);
+    // The application's shell owns the whole window. Anything that displaces it — the update
+    // banner, a toast host, a surface nobody has thought of yet — displaces every rectangle
+    // in the frame with it, and the pixel diff cannot tell that apart from a design
+    // divergence. This catches the general case; clearUpdateBanner only knows the one
+    // surface it is named after.
+    if (!shellOwnsTheWindow(measured)) {
+      const above = await cdp.evaluate(OBSTRUCTIONS_ABOVE(measured.shell));
+      const reason = `the shell starts at (${measured.shell.x}, ${measured.shell.y}) rather than the top-left of the window; above or left of it: ${above || 'nothing this probe could name'}`;
+      results.push({ id: entry.id, captured: false, reason });
+      console.log(`built ${entry.id}: ${reason}`);
+      continue;
+    }
+    measurements[entry.id] = measured;
     if (regionsOnly()) {
       results.push({ id: entry.id, captured: false, regionsOnly: true, reason: 'run made with --regions-only; no capture was taken and none was expected' });
       console.log(`built ${entry.id}: regions measured, no capture (--regions-only)`);
