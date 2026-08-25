@@ -1,0 +1,194 @@
+{
+  "generatedBy": "console/scripts/generate-design-parity-labels.mjs",
+  "generatedFrom": "app/renderer/src/catalog.ts (compiled from design/*.dc.html)",
+  "note": "id -> {rail, label, title} for the exact 32 destinations audited in inventories/design-parity.json, plus the rail icon strip (rails: railId -> {icon, label}) needed to click a rail button, since the rendered rail strip carries no visible text. Regenerate rather than hand-edit.",
+  "destinationCount": 32,
+  "labels": {
+    "dash": {
+      "rail": "pbx",
+      "label": "Dashboard",
+      "title": "Dashboard"
+    },
+    "live": {
+      "rail": "pbx",
+      "label": "Live channels",
+      "title": "Live channels"
+    },
+    "endpoints": {
+      "rail": "pbx",
+      "label": "Endpoints",
+      "title": "PJSIP endpoints"
+    },
+    "trunks": {
+      "rail": "pbx",
+      "label": "Trunks",
+      "title": "Trunks & registrations"
+    },
+    "trunkauth": {
+      "rail": "pbx",
+      "label": "Trunk authentication",
+      "title": "Trunk authentication"
+    },
+    "canvas": {
+      "rail": "pbx",
+      "label": "Dialplan canvas",
+      "title": "Dialplan canvas"
+    },
+    "ivr": {
+      "rail": "pbx",
+      "label": "IVR menus",
+      "title": "IVR menus"
+    },
+    "queues": {
+      "rail": "pbx",
+      "label": "Queues & agents",
+      "title": "Queues & agents"
+    },
+    "voicemail": {
+      "rail": "media",
+      "label": "Voicemail",
+      "title": "Voicemail boxes"
+    },
+    "confbridge": {
+      "rail": "media",
+      "label": "Conferences",
+      "title": "ConfBridge rooms"
+    },
+    "moh": {
+      "rail": "media",
+      "label": "Music on hold",
+      "title": "Music on hold"
+    },
+    "codecs": {
+      "rail": "media",
+      "label": "Codecs & RTP",
+      "title": "Codecs & RTP"
+    },
+    "cdr": {
+      "rail": "data",
+      "label": "CDR & CEL",
+      "title": "Call records"
+    },
+    "ami": {
+      "rail": "data",
+      "label": "AMI & ARI",
+      "title": "Manager & REST interfaces"
+    },
+    "modules": {
+      "rail": "system",
+      "label": "Modules",
+      "title": "Modules"
+    },
+    "logger": {
+      "rail": "system",
+      "label": "Logger",
+      "title": "Logging"
+    },
+    "security": {
+      "rail": "system",
+      "label": "Security",
+      "title": "Security"
+    },
+    "cli": {
+      "rail": "system",
+      "label": "CLI builder",
+      "title": "CLI builder"
+    },
+    "memory": {
+      "rail": "agent",
+      "label": "Memory console",
+      "title": "Memory console"
+    },
+    "sync": {
+      "rail": "agent",
+      "label": "Sync & attestation",
+      "title": "Sync & attestation"
+    },
+    "skills": {
+      "rail": "agent",
+      "label": "Skills registry",
+      "title": "Skills registry"
+    },
+    "hub": {
+      "rail": "agent",
+      "label": "Status hub",
+      "title": "Status hub sessions"
+    },
+    "vocab": {
+      "rail": "agent",
+      "label": "Vocabulary & guard",
+      "title": "Vocabulary & emission guard"
+    },
+    "ops": {
+      "rail": "agent",
+      "label": "Operations",
+      "title": "Operations & releases"
+    },
+    "secrets": {
+      "rail": "agent",
+      "label": "Secret intake",
+      "title": "Secret intake"
+    },
+    "servers": {
+      "rail": "app",
+      "label": "Deploy & servers",
+      "title": "Deploy a server"
+    },
+    "arcade": {
+      "rail": "app",
+      "label": "Arcade",
+      "title": "Confirmation credits"
+    },
+    "notifications": {
+      "rail": "app",
+      "label": "Notifications",
+      "title": "Notification centre"
+    },
+    "history": {
+      "rail": "app",
+      "label": "History & git",
+      "title": "History"
+    },
+    "customise": {
+      "rail": "app",
+      "label": "Customise everything",
+      "title": "Customise everything"
+    },
+    "appearance": {
+      "rail": "app",
+      "label": "Appearance",
+      "title": "Appearance"
+    },
+    "about": {
+      "rail": "app",
+      "label": "About & policy",
+      "title": "About"
+    }
+  },
+  "rails": {
+    "pbx": {
+      "icon": "call",
+      "label": "PBX"
+    },
+    "media": {
+      "icon": "graphic_eq",
+      "label": "Media"
+    },
+    "data": {
+      "icon": "monitoring",
+      "label": "Data"
+    },
+    "system": {
+      "icon": "settings_applications",
+      "label": "System"
+    },
+    "agent": {
+      "icon": "memory",
+      "label": "Agent"
+    },
+    "app": {
+      "icon": "tune",
+      "label": "App"
+    }
+  }
+}

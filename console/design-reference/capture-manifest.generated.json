@@ -1,0 +1,848 @@
+{
+  "generatedBy": "console/scripts/generate-design-parity-capture-manifest.mjs",
+  "generatedFrom": [
+    "console/inventories/design-parity.json (evidenceTemplates, destinations)",
+    "console/design-reference/destination-labels.generated.json (rail/label/title per destination)"
+  ],
+  "note": "One entry per audited destination: the exact reference route, built-app route, evidence artifact paths, and the real click-sequence navigation plan a headless driver needs to reach it deterministically. Regenerate rather than hand-edit.",
+  "captureTuple": {
+    "state": "default",
+    "theme": "dark",
+    "width": 1440,
+    "height": 1000,
+    "scale": 1
+  },
+  "destinationCount": 32,
+  "destinations": [
+    {
+      "id": "dash",
+      "rail": "pbx",
+      "referenceRoute": "console/design-reference/index.html?destination=dash&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/dash?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/dash-reference.png",
+      "builtCapture": "console/release/captures/parity/dash-built.png",
+      "sideBySide": "console/release/captures/parity/dash-comparison.png",
+      "visualDiff": "console/release/evidence/parity/dash-diff.json",
+      "materialAudit": "console/release/evidence/parity/dash-material.json",
+      "navigationPlan": {
+        "destinationId": "dash",
+        "steps": [
+          {
+            "kind": "click-rail",
+            "target": "pbx",
+            "description": "Click the rail icon button for rail 'pbx' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
+            "kind": "click-section",
+            "target": "Dashboard",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Dashboard'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Dashboard",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Dashboard' before capturing."
+        }
+      }
+    },
+    {
+      "id": "live",
+      "rail": "pbx",
+      "referenceRoute": "console/design-reference/index.html?destination=live&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/live?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/live-reference.png",
+      "builtCapture": "console/release/captures/parity/live-built.png",
+      "sideBySide": "console/release/captures/parity/live-comparison.png",
+      "visualDiff": "console/release/evidence/parity/live-diff.json",
+      "materialAudit": "console/release/evidence/parity/live-material.json",
+      "navigationPlan": {
+        "destinationId": "live",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Live channels",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Live channels'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Live channels",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Live channels' before capturing."
+        }
+      }
+    },
+    {
+      "id": "endpoints",
+      "rail": "pbx",
+      "referenceRoute": "console/design-reference/index.html?destination=endpoints&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/endpoints?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/endpoints-reference.png",
+      "builtCapture": "console/release/captures/parity/endpoints-built.png",
+      "sideBySide": "console/release/captures/parity/endpoints-comparison.png",
+      "visualDiff": "console/release/evidence/parity/endpoints-diff.json",
+      "materialAudit": "console/release/evidence/parity/endpoints-material.json",
+      "navigationPlan": {
+        "destinationId": "endpoints",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Endpoints",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Endpoints'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "PJSIP endpoints",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'PJSIP endpoints' before capturing."
+        }
+      }
+    },
+    {
+      "id": "trunks",
+      "rail": "pbx",
+      "referenceRoute": "console/design-reference/index.html?destination=trunks&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/trunks?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/trunks-reference.png",
+      "builtCapture": "console/release/captures/parity/trunks-built.png",
+      "sideBySide": "console/release/captures/parity/trunks-comparison.png",
+      "visualDiff": "console/release/evidence/parity/trunks-diff.json",
+      "materialAudit": "console/release/evidence/parity/trunks-material.json",
+      "navigationPlan": {
+        "destinationId": "trunks",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Trunks",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Trunks'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Trunks & registrations",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Trunks & registrations' before capturing."
+        }
+      }
+    },
+    {
+      "id": "trunkauth",
+      "rail": "pbx",
+      "referenceRoute": "console/design-reference/index.html?destination=trunkauth&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/trunkauth?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/trunkauth-reference.png",
+      "builtCapture": "console/release/captures/parity/trunkauth-built.png",
+      "sideBySide": "console/release/captures/parity/trunkauth-comparison.png",
+      "visualDiff": "console/release/evidence/parity/trunkauth-diff.json",
+      "materialAudit": "console/release/evidence/parity/trunkauth-material.json",
+      "navigationPlan": {
+        "destinationId": "trunkauth",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Trunk authentication",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Trunk authentication'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Trunk authentication",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Trunk authentication' before capturing."
+        }
+      }
+    },
+    {
+      "id": "canvas",
+      "rail": "pbx",
+      "referenceRoute": "console/design-reference/index.html?destination=canvas&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/canvas?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/canvas-reference.png",
+      "builtCapture": "console/release/captures/parity/canvas-built.png",
+      "sideBySide": "console/release/captures/parity/canvas-comparison.png",
+      "visualDiff": "console/release/evidence/parity/canvas-diff.json",
+      "materialAudit": "console/release/evidence/parity/canvas-material.json",
+      "navigationPlan": {
+        "destinationId": "canvas",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Dialplan canvas",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Dialplan canvas'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Dialplan canvas",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Dialplan canvas' before capturing."
+        }
+      }
+    },
+    {
+      "id": "ivr",
+      "rail": "pbx",
+      "referenceRoute": "console/design-reference/index.html?destination=ivr&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/ivr?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/ivr-reference.png",
+      "builtCapture": "console/release/captures/parity/ivr-built.png",
+      "sideBySide": "console/release/captures/parity/ivr-comparison.png",
+      "visualDiff": "console/release/evidence/parity/ivr-diff.json",
+      "materialAudit": "console/release/evidence/parity/ivr-material.json",
+      "navigationPlan": {
+        "destinationId": "ivr",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "IVR menus",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'IVR menus'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "IVR menus",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'IVR menus' before capturing."
+        }
+      }
+    },
+    {
+      "id": "queues",
+      "rail": "pbx",
+      "referenceRoute": "console/design-reference/index.html?destination=queues&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/queues?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/queues-reference.png",
+      "builtCapture": "console/release/captures/parity/queues-built.png",
+      "sideBySide": "console/release/captures/parity/queues-comparison.png",
+      "visualDiff": "console/release/evidence/parity/queues-diff.json",
+      "materialAudit": "console/release/evidence/parity/queues-material.json",
+      "navigationPlan": {
+        "destinationId": "queues",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Queues & agents",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Queues & agents'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Queues & agents",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Queues & agents' before capturing."
+        }
+      }
+    },
+    {
+      "id": "voicemail",
+      "rail": "media",
+      "referenceRoute": "console/design-reference/index.html?destination=voicemail&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/voicemail?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/voicemail-reference.png",
+      "builtCapture": "console/release/captures/parity/voicemail-built.png",
+      "sideBySide": "console/release/captures/parity/voicemail-comparison.png",
+      "visualDiff": "console/release/evidence/parity/voicemail-diff.json",
+      "materialAudit": "console/release/evidence/parity/voicemail-material.json",
+      "navigationPlan": {
+        "destinationId": "voicemail",
+        "steps": [
+          {
+            "kind": "click-rail",
+            "target": "media",
+            "description": "Click the rail icon button for rail 'media' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
+            "kind": "click-section",
+            "target": "Voicemail",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Voicemail'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Voicemail boxes",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Voicemail boxes' before capturing."
+        }
+      }
+    },
+    {
+      "id": "confbridge",
+      "rail": "media",
+      "referenceRoute": "console/design-reference/index.html?destination=confbridge&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/confbridge?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/confbridge-reference.png",
+      "builtCapture": "console/release/captures/parity/confbridge-built.png",
+      "sideBySide": "console/release/captures/parity/confbridge-comparison.png",
+      "visualDiff": "console/release/evidence/parity/confbridge-diff.json",
+      "materialAudit": "console/release/evidence/parity/confbridge-material.json",
+      "navigationPlan": {
+        "destinationId": "confbridge",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Conferences",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Conferences'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "ConfBridge rooms",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'ConfBridge rooms' before capturing."
+        }
+      }
+    },
+    {
+      "id": "moh",
+      "rail": "media",
+      "referenceRoute": "console/design-reference/index.html?destination=moh&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/moh?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/moh-reference.png",
+      "builtCapture": "console/release/captures/parity/moh-built.png",
+      "sideBySide": "console/release/captures/parity/moh-comparison.png",
+      "visualDiff": "console/release/evidence/parity/moh-diff.json",
+      "materialAudit": "console/release/evidence/parity/moh-material.json",
+      "navigationPlan": {
+        "destinationId": "moh",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Music on hold",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Music on hold'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Music on hold",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Music on hold' before capturing."
+        }
+      }
+    },
+    {
+      "id": "codecs",
+      "rail": "media",
+      "referenceRoute": "console/design-reference/index.html?destination=codecs&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/codecs?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/codecs-reference.png",
+      "builtCapture": "console/release/captures/parity/codecs-built.png",
+      "sideBySide": "console/release/captures/parity/codecs-comparison.png",
+      "visualDiff": "console/release/evidence/parity/codecs-diff.json",
+      "materialAudit": "console/release/evidence/parity/codecs-material.json",
+      "navigationPlan": {
+        "destinationId": "codecs",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Codecs & RTP",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Codecs & RTP'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Codecs & RTP",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Codecs & RTP' before capturing."
+        }
+      }
+    },
+    {
+      "id": "cdr",
+      "rail": "data",
+      "referenceRoute": "console/design-reference/index.html?destination=cdr&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/cdr?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/cdr-reference.png",
+      "builtCapture": "console/release/captures/parity/cdr-built.png",
+      "sideBySide": "console/release/captures/parity/cdr-comparison.png",
+      "visualDiff": "console/release/evidence/parity/cdr-diff.json",
+      "materialAudit": "console/release/evidence/parity/cdr-material.json",
+      "navigationPlan": {
+        "destinationId": "cdr",
+        "steps": [
+          {
+            "kind": "click-rail",
+            "target": "data",
+            "description": "Click the rail icon button for rail 'data' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
+            "kind": "click-section",
+            "target": "CDR & CEL",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'CDR & CEL'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Call records",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Call records' before capturing."
+        }
+      }
+    },
+    {
+      "id": "ami",
+      "rail": "data",
+      "referenceRoute": "console/design-reference/index.html?destination=ami&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/ami?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/ami-reference.png",
+      "builtCapture": "console/release/captures/parity/ami-built.png",
+      "sideBySide": "console/release/captures/parity/ami-comparison.png",
+      "visualDiff": "console/release/evidence/parity/ami-diff.json",
+      "materialAudit": "console/release/evidence/parity/ami-material.json",
+      "navigationPlan": {
+        "destinationId": "ami",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "AMI & ARI",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'AMI & ARI'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Manager & REST interfaces",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Manager & REST interfaces' before capturing."
+        }
+      }
+    },
+    {
+      "id": "modules",
+      "rail": "system",
+      "referenceRoute": "console/design-reference/index.html?destination=modules&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/modules?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/modules-reference.png",
+      "builtCapture": "console/release/captures/parity/modules-built.png",
+      "sideBySide": "console/release/captures/parity/modules-comparison.png",
+      "visualDiff": "console/release/evidence/parity/modules-diff.json",
+      "materialAudit": "console/release/evidence/parity/modules-material.json",
+      "navigationPlan": {
+        "destinationId": "modules",
+        "steps": [
+          {
+            "kind": "click-rail",
+            "target": "system",
+            "description": "Click the rail icon button for rail 'system' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
+            "kind": "click-section",
+            "target": "Modules",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Modules'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Modules",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Modules' before capturing."
+        }
+      }
+    },
+    {
+      "id": "logger",
+      "rail": "system",
+      "referenceRoute": "console/design-reference/index.html?destination=logger&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/logger?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/logger-reference.png",
+      "builtCapture": "console/release/captures/parity/logger-built.png",
+      "sideBySide": "console/release/captures/parity/logger-comparison.png",
+      "visualDiff": "console/release/evidence/parity/logger-diff.json",
+      "materialAudit": "console/release/evidence/parity/logger-material.json",
+      "navigationPlan": {
+        "destinationId": "logger",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Logger",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Logger'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Logging",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Logging' before capturing."
+        }
+      }
+    },
+    {
+      "id": "security",
+      "rail": "system",
+      "referenceRoute": "console/design-reference/index.html?destination=security&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/security?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/security-reference.png",
+      "builtCapture": "console/release/captures/parity/security-built.png",
+      "sideBySide": "console/release/captures/parity/security-comparison.png",
+      "visualDiff": "console/release/evidence/parity/security-diff.json",
+      "materialAudit": "console/release/evidence/parity/security-material.json",
+      "navigationPlan": {
+        "destinationId": "security",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Security",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Security'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Security",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Security' before capturing."
+        }
+      }
+    },
+    {
+      "id": "cli",
+      "rail": "system",
+      "referenceRoute": "console/design-reference/index.html?destination=cli&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/cli?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/cli-reference.png",
+      "builtCapture": "console/release/captures/parity/cli-built.png",
+      "sideBySide": "console/release/captures/parity/cli-comparison.png",
+      "visualDiff": "console/release/evidence/parity/cli-diff.json",
+      "materialAudit": "console/release/evidence/parity/cli-material.json",
+      "navigationPlan": {
+        "destinationId": "cli",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "CLI builder",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'CLI builder'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "CLI builder",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'CLI builder' before capturing."
+        }
+      }
+    },
+    {
+      "id": "memory",
+      "rail": "agent",
+      "referenceRoute": "console/design-reference/index.html?destination=memory&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/memory?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/memory-reference.png",
+      "builtCapture": "console/release/captures/parity/memory-built.png",
+      "sideBySide": "console/release/captures/parity/memory-comparison.png",
+      "visualDiff": "console/release/evidence/parity/memory-diff.json",
+      "materialAudit": "console/release/evidence/parity/memory-material.json",
+      "navigationPlan": {
+        "destinationId": "memory",
+        "steps": [
+          {
+            "kind": "click-rail",
+            "target": "agent",
+            "description": "Click the rail icon button for rail 'agent' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
+            "kind": "click-section",
+            "target": "Memory console",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Memory console'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Memory console",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Memory console' before capturing."
+        }
+      }
+    },
+    {
+      "id": "sync",
+      "rail": "agent",
+      "referenceRoute": "console/design-reference/index.html?destination=sync&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/sync?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/sync-reference.png",
+      "builtCapture": "console/release/captures/parity/sync-built.png",
+      "sideBySide": "console/release/captures/parity/sync-comparison.png",
+      "visualDiff": "console/release/evidence/parity/sync-diff.json",
+      "materialAudit": "console/release/evidence/parity/sync-material.json",
+      "navigationPlan": {
+        "destinationId": "sync",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Sync & attestation",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Sync & attestation'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Sync & attestation",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Sync & attestation' before capturing."
+        }
+      }
+    },
+    {
+      "id": "skills",
+      "rail": "agent",
+      "referenceRoute": "console/design-reference/index.html?destination=skills&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/skills?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/skills-reference.png",
+      "builtCapture": "console/release/captures/parity/skills-built.png",
+      "sideBySide": "console/release/captures/parity/skills-comparison.png",
+      "visualDiff": "console/release/evidence/parity/skills-diff.json",
+      "materialAudit": "console/release/evidence/parity/skills-material.json",
+      "navigationPlan": {
+        "destinationId": "skills",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Skills registry",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Skills registry'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Skills registry",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Skills registry' before capturing."
+        }
+      }
+    },
+    {
+      "id": "hub",
+      "rail": "agent",
+      "referenceRoute": "console/design-reference/index.html?destination=hub&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/hub?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/hub-reference.png",
+      "builtCapture": "console/release/captures/parity/hub-built.png",
+      "sideBySide": "console/release/captures/parity/hub-comparison.png",
+      "visualDiff": "console/release/evidence/parity/hub-diff.json",
+      "materialAudit": "console/release/evidence/parity/hub-material.json",
+      "navigationPlan": {
+        "destinationId": "hub",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Status hub",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Status hub'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Status hub sessions",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Status hub sessions' before capturing."
+        }
+      }
+    },
+    {
+      "id": "vocab",
+      "rail": "agent",
+      "referenceRoute": "console/design-reference/index.html?destination=vocab&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/vocab?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/vocab-reference.png",
+      "builtCapture": "console/release/captures/parity/vocab-built.png",
+      "sideBySide": "console/release/captures/parity/vocab-comparison.png",
+      "visualDiff": "console/release/evidence/parity/vocab-diff.json",
+      "materialAudit": "console/release/evidence/parity/vocab-material.json",
+      "navigationPlan": {
+        "destinationId": "vocab",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Vocabulary & guard",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Vocabulary & guard'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Vocabulary & emission guard",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Vocabulary & emission guard' before capturing."
+        }
+      }
+    },
+    {
+      "id": "ops",
+      "rail": "agent",
+      "referenceRoute": "console/design-reference/index.html?destination=ops&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/ops?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/ops-reference.png",
+      "builtCapture": "console/release/captures/parity/ops-built.png",
+      "sideBySide": "console/release/captures/parity/ops-comparison.png",
+      "visualDiff": "console/release/evidence/parity/ops-diff.json",
+      "materialAudit": "console/release/evidence/parity/ops-material.json",
+      "navigationPlan": {
+        "destinationId": "ops",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Operations",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Operations'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Operations & releases",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Operations & releases' before capturing."
+        }
+      }
+    },
+    {
+      "id": "secrets",
+      "rail": "agent",
+      "referenceRoute": "console/design-reference/index.html?destination=secrets&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/secrets?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/secrets-reference.png",
+      "builtCapture": "console/release/captures/parity/secrets-built.png",
+      "sideBySide": "console/release/captures/parity/secrets-comparison.png",
+      "visualDiff": "console/release/evidence/parity/secrets-diff.json",
+      "materialAudit": "console/release/evidence/parity/secrets-material.json",
+      "navigationPlan": {
+        "destinationId": "secrets",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Secret intake",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Secret intake'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Secret intake",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Secret intake' before capturing."
+        }
+      }
+    },
+    {
+      "id": "servers",
+      "rail": "app",
+      "referenceRoute": "console/design-reference/index.html?destination=servers&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/servers?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/servers-reference.png",
+      "builtCapture": "console/release/captures/parity/servers-built.png",
+      "sideBySide": "console/release/captures/parity/servers-comparison.png",
+      "visualDiff": "console/release/evidence/parity/servers-diff.json",
+      "materialAudit": "console/release/evidence/parity/servers-material.json",
+      "navigationPlan": {
+        "destinationId": "servers",
+        "steps": [
+          {
+            "kind": "click-rail",
+            "target": "app",
+            "description": "Click the rail icon button for rail 'app' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
+            "kind": "click-section",
+            "target": "Deploy & servers",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Deploy & servers'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Deploy a server",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Deploy a server' before capturing."
+        }
+      }
+    },
+    {
+      "id": "arcade",
+      "rail": "app",
+      "referenceRoute": "console/design-reference/index.html?destination=arcade&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/arcade?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/arcade-reference.png",
+      "builtCapture": "console/release/captures/parity/arcade-built.png",
+      "sideBySide": "console/release/captures/parity/arcade-comparison.png",
+      "visualDiff": "console/release/evidence/parity/arcade-diff.json",
+      "materialAudit": "console/release/evidence/parity/arcade-material.json",
+      "navigationPlan": {
+        "destinationId": "arcade",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Arcade",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Arcade'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Confirmation credits",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Confirmation credits' before capturing."
+        }
+      }
+    },
+    {
+      "id": "notifications",
+      "rail": "app",
+      "referenceRoute": "console/design-reference/index.html?destination=notifications&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/notifications?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/notifications-reference.png",
+      "builtCapture": "console/release/captures/parity/notifications-built.png",
+      "sideBySide": "console/release/captures/parity/notifications-comparison.png",
+      "visualDiff": "console/release/evidence/parity/notifications-diff.json",
+      "materialAudit": "console/release/evidence/parity/notifications-material.json",
+      "navigationPlan": {
+        "destinationId": "notifications",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Notifications",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Notifications'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Notification centre",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Notification centre' before capturing."
+        }
+      }
+    },
+    {
+      "id": "history",
+      "rail": "app",
+      "referenceRoute": "console/design-reference/index.html?destination=history&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/history?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/history-reference.png",
+      "builtCapture": "console/release/captures/parity/history-built.png",
+      "sideBySide": "console/release/captures/parity/history-comparison.png",
+      "visualDiff": "console/release/evidence/parity/history-diff.json",
+      "materialAudit": "console/release/evidence/parity/history-material.json",
+      "navigationPlan": {
+        "destinationId": "history",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "History & git",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'History & git'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "History",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'History' before capturing."
+        }
+      }
+    },
+    {
+      "id": "customise",
+      "rail": "app",
+      "referenceRoute": "console/design-reference/index.html?destination=customise&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/customise?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/customise-reference.png",
+      "builtCapture": "console/release/captures/parity/customise-built.png",
+      "sideBySide": "console/release/captures/parity/customise-comparison.png",
+      "visualDiff": "console/release/evidence/parity/customise-diff.json",
+      "materialAudit": "console/release/evidence/parity/customise-material.json",
+      "navigationPlan": {
+        "destinationId": "customise",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Customise everything",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Customise everything'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Customise everything",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Customise everything' before capturing."
+        }
+      }
+    },
+    {
+      "id": "appearance",
+      "rail": "app",
+      "referenceRoute": "console/design-reference/index.html?destination=appearance&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/appearance?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/appearance-reference.png",
+      "builtCapture": "console/release/captures/parity/appearance-built.png",
+      "sideBySide": "console/release/captures/parity/appearance-comparison.png",
+      "visualDiff": "console/release/evidence/parity/appearance-diff.json",
+      "materialAudit": "console/release/evidence/parity/appearance-material.json",
+      "navigationPlan": {
+        "destinationId": "appearance",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "Appearance",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Appearance'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "Appearance",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'Appearance' before capturing."
+        }
+      }
+    },
+    {
+      "id": "about",
+      "rail": "app",
+      "referenceRoute": "console/design-reference/index.html?destination=about&state=default&theme=dark&width=1440&height=1000&scale=1",
+      "builtRoute": "ding-pbx://destination/about?state=default&theme=dark&width=1440&height=1000&scale=1",
+      "referenceCapture": "console/release/captures/parity/about-reference.png",
+      "builtCapture": "console/release/captures/parity/about-built.png",
+      "sideBySide": "console/release/captures/parity/about-comparison.png",
+      "visualDiff": "console/release/evidence/parity/about-diff.json",
+      "materialAudit": "console/release/evidence/parity/about-material.json",
+      "navigationPlan": {
+        "destinationId": "about",
+        "steps": [
+          {
+            "kind": "click-section",
+            "target": "About & policy",
+            "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'About & policy'."
+          }
+        ],
+        "settle": {
+          "expectedHeading": "About",
+          "description": "Wait until the design's <h1> screen heading reads exactly 'About' before capturing."
+        }
+      }
+    }
+  ]
+}
