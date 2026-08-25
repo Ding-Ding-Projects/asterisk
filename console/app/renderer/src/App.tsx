@@ -2725,9 +2725,9 @@ It is shown once. The phone needs it to register.`);
       + 'see exactly what each one does -- but the interface gives an individual element no way '
       + 'to receive its own override yet, so those choices are not saved and change nothing '
       + 'outside this panel. '
-      + `The remaining ${inert} do nothing at all yet: the rainbow fill and its settings, the `
-      + 'entrance animation and its timing, and the two layout controls, which need a preview '
-      + 'with more than one child before a gap or an alignment can show.';
+      + `The remaining ${inert} do nothing at all yet: the entrance animation and its timing, `
+      + 'and the two layout controls, which need a preview with more than one child before a '
+      + 'gap or an alignment can show.';
   }
 
   /** The appearance keys that genuinely reach the document and survive a relaunch. Named
@@ -2743,16 +2743,16 @@ It is shown once. The phone needs it to register.`);
   private static readonly PREVIEW_APPEARANCE = [
     'ap_alpha', 'ap_blend', 'ap_blur', 'ap_bright', 'ap_bs', 'ap_bw', 'ap_case', 'ap_contrast',
     'ap_deco', 'ap_family', 'ap_fill', 'ap_grey', 'ap_hrot', 'ap_hue', 'ap_lead', 'ap_light',
-    'ap_num', 'ap_pb', 'ap_pl', 'ap_pr', 'ap_pt', 'ap_r1', 'ap_r2', 'ap_r3', 'ap_r4', 'ap_rot',
-    'ap_sat', 'ap_satf', 'ap_sb', 'ap_scale', 'ap_sin', 'ap_size', 'ap_skew', 'ap_sop', 'ap_ss',
-    'ap_sx', 'ap_sy', 'ap_track', 'ap_transition', 'ap_tx', 'ap_ty', 'ap_weight',
+    'ap_num', 'ap_pb', 'ap_pl', 'ap_pr', 'ap_pt', 'ap_r1', 'ap_r2', 'ap_r3', 'ap_r4',
+    'ap_rainbow', 'ap_rbdir', 'ap_rbease', 'ap_rblight', 'ap_rbrange', 'ap_rbsat', 'ap_rbspeed',
+    'ap_rot', 'ap_sat', 'ap_satf', 'ap_sb', 'ap_scale', 'ap_sin', 'ap_size', 'ap_skew', 'ap_sop',
+    'ap_ss', 'ap_sx', 'ap_sy', 'ap_track', 'ap_transition', 'ap_tx', 'ap_ty', 'ap_weight',
   ] as const;
 
   /** The appearance controls that still reach nothing whatsoever. Named rather than counted,
    *  so the readout can say which they are and the same contract test can prove none of them
    *  is quietly in the preview after all. */
   private static readonly INERT_APPEARANCE = [
-    'ap_rainbow', 'ap_rbspeed', 'ap_rbrange', 'ap_rbease', 'ap_rbdir', 'ap_rbsat', 'ap_rblight',
     'ap_anim', 'ap_dur', 'ap_ease', 'ap_celebrate',
     'ap_align', 'ap_gap',
   ] as const;
