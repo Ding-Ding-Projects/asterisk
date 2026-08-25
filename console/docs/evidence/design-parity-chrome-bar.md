@@ -62,16 +62,16 @@ Eight areas are measured on each side. Which of them carry data is the **one hum
 bar rests on, declared once for the whole application in `inventories/design-parity.json` rather
 than as 32 per-destination masks, so the judgement stays small enough to review:
 
-| Area | Role | Why |
-|---|---|---|
-| `brandCell` | chrome | The product mark and name; the same on every destination. |
-| `menuCell` | chrome | A fixed set of menu titles. |
-| `commandCell` | chrome | Carries its own label, not a reading. |
-| `statusCell` | **data** | Live connection status. The design invents a healthy value; the application shows what the target reports. |
-| `tabStrip` | chrome | Tab titles come from the navigation catalogue, itself compiled from the design. |
-| `rail` | chrome | Six fixed rail icons and labels, compiled from the design's catalogue. |
-| `sectionList` | chrome | Kept **inside** the comparison on purpose, badges and all — see below. |
-| `contentPane` | **data** | The destination's own screen: the region this bar exists to exclude. |
+- **`brandCell`** — *chrome*. The product mark and name; the same on every destination.
+- **`menuCell`** — *chrome*. A fixed set of menu titles.
+- **`commandCell`** — *chrome*. Carries its own label, not a reading.
+- **`statusCell`** — **data**. Live connection status. The design invents a healthy value; the
+  application shows what the target reports, which with no target configured is nothing at all.
+- **`tabStrip`** — *chrome*. Tab titles come from the navigation catalogue, itself compiled from the
+  design, so both sides are naming the same screens.
+- **`rail`** — *chrome*. Six fixed rail icons and labels, compiled from the design's catalogue.
+- **`sectionList`** — *chrome*. Kept **inside** the comparison on purpose, badges and all — see below.
+- **`contentPane`** — **data**. The destination's own screen: the region this bar exists to exclude.
 
 The section list stays in the compared region deliberately, even though this application removed the
 design's per-row badges. The labels are chrome, and a badge present on one side and absent on the
@@ -127,13 +127,13 @@ region measurements and the already-committed captures off disk. The commit colu
 measurement run was performed from, not the tree the built artifact was compiled from — see the
 verification boundary below, which is not the same thing and matters here.
 
-| Record | Destinations | Verdict | Compared | Run at commit |
-|---|---|---|---|---|
-| `release/evidence/parity/regions-reference.json` | 32 measured | — | — | f346ebfc2aff9d1ed815ec15968afe9b07371707 |
-| `release/evidence/parity/regions-built.json` | 31 measured, About refused | — | — | f346ebfc2aff9d1ed815ec15968afe9b07371707 |
-| `release/evidence/parity/{id}-regions.json` | 31 ledgers | — | 8 areas per side | f346ebfc2aff9d1ed815ec15968afe9b07371707 |
-| `release/evidence/parity/{id}-chrome.json` | 31 records | 0 match, 31 diff, 0 refused | 29.5%–29.6% of frame | f346ebfc2aff9d1ed815ec15968afe9b07371707 |
-| `release/evidence/parity/run-chrome.json` | run ledger | 31 diff, 1 skipped | floor 25% | f346ebfc2aff9d1ed815ec15968afe9b07371707 |
+| State | Record | Run from commit | Coverage | Result |
+| --- | --- | --- | --- | --- |
+| Reference-side rectangles measured, nothing photographed | `release/evidence/parity/regions-reference.json` | `f346ebfc2aff9d1ed815ec15968afe9b07371707` | 32 of 32 destinations | 8 area rectangles per destination |
+| Built-side rectangles measured, nothing photographed | `release/evidence/parity/regions-built.json` | `f346ebfc2aff9d1ed815ec15968afe9b07371707` | 31 of 32 destinations | About refused: its heading does not settle on this build |
+| Per-destination region ledger, both sides unioned | `release/evidence/parity/{id}-regions.json` | `f346ebfc2aff9d1ed815ec15968afe9b07371707` | 31 ledgers | 2 data areas excluded, 6 chrome areas compared |
+| Per-destination chrome-parity comparison | `release/evidence/parity/{id}-chrome.json` | `f346ebfc2aff9d1ed815ec15968afe9b07371707` | 31 records | 0 match, 31 diff, 0 refused; 6.67%–26.78% of the compared region differs |
+| Run ledger for the comparison stage | `release/evidence/parity/run-chrome.json` | `f346ebfc2aff9d1ed815ec15968afe9b07371707` | 31 compared, 1 skipped | 29.5%–29.6% of frame compared against a declared floor of 25% |
 
 ## Capture method
 
