@@ -71,10 +71,19 @@ function deliveredByAction(id: string): boolean {
  * every ht_* field was seedable and none of them were writable. Recognised the same way as
  * s_tload/s_tsave/s_stirsave, via `deliveredByAction`.
  *
+ * Then 209: the IAX peers screen gained `ix_save`, its own action button
+ * (`action:'iaxpeers-save'`), giving the already-bound `CONTROL_BINDINGS.iaxpeers` table an
+ * actual write path (`onSaveIaxPeer`) for the first time -- the eleven `ix_*` fields were
+ * seedable off a live `iax.conf` and none of them were writable, the same gap `ht_save`
+ * closed for http.conf above. Recognised the same way, via `deliveredByAction`. Net +1
+ * control, and it works: the screen itself also moved from a single fixed section (whichever
+ * peer/friend happened to be first) to a real `iax2 show peers` table, so which peer
+ * `onSaveIaxPeer` writes is now the one actually selected, not an assumption.
+ *
  * It may rise freely and may not fall.
  */
-const WORKING_FLOOR = 208;
-const TELEPHONY_TOTAL = 208;
+const WORKING_FLOOR = 209;
+const TELEPHONY_TOTAL = 209;
 
 function measure() {
   const files = readdirSync(srcDir).filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'));

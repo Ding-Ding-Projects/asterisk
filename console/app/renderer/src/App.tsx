@@ -39,6 +39,10 @@ import {
   applyControlValues, controlValuesFor, editDocument, findEndpoint, removeEndpoint,
 } from './endpoint-edit';
 import {
+  applyControlValues as applyIaxControlValues, controlValuesFor as iaxControlValuesFor,
+  findPeer as findIaxPeer, IAX_CONTROLS, iaxDocument,
+} from './iax-peers';
+import {
   clearVocabulary, loadVocabularyFile, vocabularyStatus, type VocabularyStorage,
 } from './personal-vocabulary';
 import { createDurableStorage, type DurableStorageHandle } from './durable-storage';
@@ -2676,7 +2680,11 @@ What you can do: ${offered}.` : ''}`);
     }
     if (control?.id === 'ix_secret_set') {
       this.announceSecretIntent(value === true);
-      return;
+      /* Falls through to baseSetVal deliberately, unlike the pure-action switches below
+       * that return early: this one is a real value `onSaveIaxPeer` reads at save time
+       * (see `iax-peers.ts` `applyControlValues`'s own `setNewSecret` check), so the
+       * switch has to actually move when it is touched or the flag it is meant to carry
+       * is never true when Save reads it. */
     }
     if (control?.id === 'dp_go' && value === true) {
       void this.deployConsole();
@@ -2850,6 +2858,7 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'security-transport-save') { void this.onSaveTransportTls(); return; }
     if (action === 'security-stir-save') { void this.onSaveStirShaken(); return; }
     if (action === 'httpd-save') { void this.onSaveHttp(); return; }
+    if (action === 'iaxpeers-save') { void this.onSaveIaxPeer(); return; }
   };
 
   // ---------------------------------------------------------------- server add / remove
@@ -3031,9 +3040,21 @@ What you can do: ${offered}.` : ''}`);
   /** The endpoint whose settings the controls below are currently showing. */
   private editingEndpoint = '';
 
+  /** The IAX peer/friend whose settings the controls below are currently showing --
+   *  the same role `editingEndpoint` plays for pjsip.conf, above. */
+  private editingIaxPeer = '';
+
   /** The target's real pjsip.conf, or undefined when it has not been read. */
   private pjsipValue(): ConfigValue | undefined {
     return this.configs.endpoints?.state === 'read' ? this.configs.endpoints.value : undefined;
+  }
+
+  /** The target's real iax.conf, or undefined when it has not been read. Read the same
+   *  way `pjsipValue` is: `iaxpeers.file = 'iax.conf'`, so the generic per-screen config
+   *  read in `refresh()` already populates `this.configs.iaxpeers` whenever that screen
+   *  is open -- nothing extra to wire up here. */
+  private iaxValue(): ConfigValue | undefined {
+    return this.configs.iaxpeers?.state === 'read' ? this.configs.iaxpeers.value : undefined;
   }
 
   /**
@@ -3049,6 +3070,10 @@ What you can do: ${offered}.` : ''}`);
      * nothing below the table for it to populate. Row-pick plays it back instead, exactly
      * as the row's own context menu (`Audition …`) does; see `onAuditionPromptRow`. */
     if ((this.state as { screen: string }).screen === 'sounds') { void this.onAuditionPromptRow(name); return; }
+    /* The IAX peers table's rows are `iax2 show peers`, a live reading; the row name may
+     * carry a CLI-appended "/<username>" the peers reader already strips, so this is a
+     * real iax.conf section name -- see `onPickIaxPeerRow`. */
+    if ((this.state as { screen: string }).screen === 'iaxpeers') { this.onPickIaxPeerRow(name); return; }
     const value = this.pjsipValue();
     if (!value) { this.fire('Not loaded', 'The pjsip.conf on this target has not been read yet.'); return; }
     const endpoint = findEndpoint(value, name);
@@ -3058,6 +3083,27 @@ What you can do: ${offered}.` : ''}`);
     this.setState({ values: { ...state.values, ...controlValuesFor(endpoint) } } as never);
     this.toast(`${name} loaded into the editor below.`);
   };
+
+  /**
+   * The IAX peers table's own row-pick, the counterpart to `onPickRow` above for
+   * iax.conf. `ix_secret_set` is explicitly reset to `false` here: `controlValuesFor`
+   * (`iax-peers.ts`) never includes it -- a secret is write-only and must never be
+   * implied by a value read back off the file -- so without this reset, switching it on
+   * for one peer and then picking a different row without saving would leave the switch
+   * silently armed against a peer nobody meant to touch.
+   */
+  private onPickIaxPeerRow(name: string): void {
+    const value = this.iaxValue();
+    if (!value) { this.fire('Not loaded', 'The iax.conf on this target has not been read yet.'); return; }
+    const peer = findIaxPeer(value, name);
+    if (!peer) { this.fire('Not loaded', `${name} is not in this target's iax.conf.`); return; }
+    this.editingIaxPeer = name;
+    const state = this.state as { values: Record<string, unknown> };
+    this.setState({
+      values: { ...state.values, ...iaxControlValuesFor(peer), [IAX_CONTROLS.setNewSecret]: false },
+    } as never);
+    this.toast(`${name} loaded into the editor below.`);
+  }
 
   /** Loads one ACL rule's action and network into the "Add a rule" fields, so changing
    *  it and pressing "Add rule" again edits it in place -- see `onAddAclRule` above,
@@ -4006,6 +4052,45 @@ It is shown once. The phone needs it to register.`);
       'HTTP server settings saved',
       () => { delete this.configs.httpd; this.seeded.delete('httpd'); },
     );
+  };
+
+  /**
+   * Writes the controls back onto the IAX peer they were loaded from -- `onSaveEndpoint`'s
+   * counterpart for iax.conf. Unlike `onSaveHttp`'s single-section generic write, this
+   * targets one named peer/friend section by name (`applyIaxControlValues`, from
+   * `iax-peers.ts`), because iax.conf can hold several and the generic `CONTROL_BINDINGS`
+   * path used for `httpd` only ever reaches the first section of a given type.
+   *
+   * A generated secret is shown exactly once, here, and nowhere else -- never persisted
+   * by this console, never in an export, never in local history. `ix_secret_set` is reset
+   * to `false` afterward so a second, unrelated save on the same peer cannot regenerate a
+   * credential nobody asked to change again.
+   */
+  onSaveIaxPeer = async (): Promise<void> => {
+    const value = this.iaxValue();
+    if (!value || !this.editingIaxPeer) { this.fire('Nothing to save', 'Select an IAX peer first.'); return; }
+    const name = this.editingIaxPeer;
+    const state = this.state as { values: Record<string, unknown> };
+    const edit = applyIaxControlValues(value, name, state.values);
+    if ('error' in edit) { this.fire('Not saved', edit.error); return; }
+    /* Generating a secret always adds its own summary line (`iax-peers.ts`
+     * `applyControlValues`), so an empty summary genuinely means nothing changed. */
+    if (edit.summary.length === 0) { this.toast('Nothing changed, so nothing was written.'); return; }
+    const resource = this.configs.iaxpeers?.resource ?? (resourceForFile('iax.conf') as string);
+    const document = iaxDocument(edit, resource);
+    const applied = await this.writeConfigResource(
+      resource, document.value, edit.summary.join('\n'), `${name} updated`,
+      () => { delete this.configs.iaxpeers; this.seeded.delete('iaxpeers'); },
+    );
+    if (!applied) return;
+    const afterSave = this.state as { values: Record<string, unknown> };
+    this.setState({ values: { ...afterSave.values, [IAX_CONTROLS.setNewSecret]: false } } as never);
+    if (edit.generatedSecret) {
+      this.fire('Write this password down',
+        `${name}: ${edit.generatedSecret}
+
+It is shown once. The far end needs it to register.`);
+    }
   };
 
   private note(screen: string): string {

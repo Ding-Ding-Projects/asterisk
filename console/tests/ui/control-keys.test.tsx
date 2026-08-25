@@ -654,13 +654,15 @@ test('writing goes into the peer section and leaves [general] alone', () => {
   assert.deepEqual(after[0], realisticIax[0], 'the general section was disturbed');
 });
 
-test('the type and the secret stay out of the bindings', () => {
+test('the type and the secret stay out of the bindings, and the Save button carries no key of its own', () => {
   /* ix_type IS the discriminator: binding it would let somebody change type through the very
    * match that found the section, after which the screen edits something it can no longer
    * see. ix_secret_set means "set a new secret" rather than carrying one, and a secret must
-   * never travel through an ordinary binding into renderer state. */
+   * never travel through an ordinary binding into renderer state. ix_save is the action
+   * button App.tsx's onSaveIaxPeer reads directly -- exactly like httpd's own ht_save -- so
+   * it is expected here too, not a binding this table forgot. */
   const unbound = unmappedControls('iaxpeers');
-  assert.deepEqual([...unbound].sort(), ['ix_secret_set', 'ix_type']);
+  assert.deepEqual([...unbound].sort(), ['ix_save', 'ix_secret_set', 'ix_type']);
   const written = applyControlValues('iaxpeers', realisticIax, { ix_type: 'user', ix_secret_set: true });
   assert.deepEqual(written, realisticIax, 'the type or a secret reached the file');
 });

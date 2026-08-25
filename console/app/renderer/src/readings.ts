@@ -19,6 +19,11 @@ export interface Endpoint { id: string; callerId?: string; state: string; channe
 export interface ChannelCodecUsage { channelName: string; endpointId: string; codec?: string }
 export interface Contact { aor: string; uri: string; status: string; roundTripMs?: number }
 export interface Registration { id: string; serverUri: string; status: string }
+/** `iax2 show peers` -- see `control-plane/asterisk-readings.ts` `parseIax2Peers` for the
+ *  exact format string and why `name` already has any CLI-appended `/<username>` split off. */
+export interface IaxPeer { name: string; host: string; dynamic: boolean; trunk: boolean; status: string }
+/** `iax2 show registry` -- see `control-plane/asterisk-readings.ts` `parseIax2Registry`. */
+export interface IaxRegistration { host: string; username: string; refresh: number; state: string }
 export interface QueueSummary {
   name: string; strategy: string; callers: number; members: number;
   holdtimeSeconds: number; serviceLevelPercent?: number;
@@ -39,6 +44,8 @@ export interface ViewReadings {
   channelStats?: Reading<ChannelCodecUsage[]>;
   contacts?: Reading<Contact[]>;
   registrations?: Reading<Registration[]>;
+  iaxRegistrations?: Reading<IaxRegistration[]>;
+  iaxPeers?: Reading<IaxPeer[]>;
   queues?: Reading<QueueSummary[]>;
   modules?: Reading<ModuleSummary[]>;
   uptime?: Reading<number>;
@@ -79,6 +86,7 @@ export const TABLE_DESTINATION_READERS: Record<string, boolean> = {
   live: true,
   endpoints: true,
   trunks: true,
+  iaxpeers: true,
   queues: true,
   modules: true,
   voicemail: true,
@@ -99,7 +107,7 @@ export const TABLE_DESTINATION_READERS: Record<string, boolean> = {
 };
 
 export const READABLE_VIEWS: PbxReadView[] = [
-  'dash', 'live', 'endpoints', 'trunks', 'queues', 'modules',
+  'dash', 'live', 'endpoints', 'trunks', 'iaxpeers', 'queues', 'modules',
   'voicemail', 'confbridge', 'moh', 'codecs', 'security', 'cdr', 'logger', 'ami', 'about', 'cli',
 ];
 
@@ -126,7 +134,8 @@ export function rowsFor(screen: string, readings: ViewReadings | undefined): str
   if (screen === 'endpoints') {
     return endpointRows(valueOf(readings.endpoints) ?? [], valueOf(readings.contacts) ?? [], valueOf(readings.channelStats) ?? []);
   }
-  if (screen === 'trunks') return registrationRows(valueOf(readings.registrations) ?? []);
+  if (screen === 'trunks') return registrationRows(valueOf(readings.registrations) ?? [], valueOf(readings.iaxRegistrations) ?? []);
+  if (screen === 'iaxpeers') return iaxPeerRows(valueOf(readings.iaxPeers) ?? []);
   if (screen === 'queues') return queueRows(valueOf(readings.queues) ?? []);
   if (screen === 'modules') return moduleRows(valueOf(readings.modules) ?? []);
   if (screen === 'voicemail') return voicemailRows(valueOf(readings.voicemailUsers)?.users ?? []);
@@ -281,13 +290,48 @@ export function endpointRows(endpoints: Endpoint[], contacts: Contact[], channel
   ]);
 }
 
-export function registrationRows(registrations: Registration[]): string[][] {
-  return registrations.map((registration) => [
-    registration.id,
-    registration.serverUri,
-    NOT_READ,
-    NOT_READ,
-    registration.status,
+/**
+ * `pjsip show registrations` rows, plus the IAX2 counterpart the trunks table used to
+ * have no reader for at all. An IAX2 registration (`iax2 show registry`, `iax.conf`'s
+ * own `register =>` lines -- see `configs/samples/iax.conf.sample` line 305) has no
+ * named object of its own the way a PJSIP `[registration]` section does, so the row it
+ * gets here is named the same way `register => user[:secret]@host` itself is: username
+ * and host, joined by `@`, or the bare host when the line sets no username. Auth and
+ * Outbound stay `NOT_READ` for an IAX2 row exactly as they already do for a PJSIP one:
+ * neither CLI command prints either, so guessing a value there would be no more honest
+ * for one protocol than the other.
+ */
+export function registrationRows(registrations: Registration[], iaxRegistrations: IaxRegistration[] = []): string[][] {
+  return [
+    ...registrations.map((registration) => [
+      registration.id,
+      registration.serverUri,
+      NOT_READ,
+      NOT_READ,
+      registration.status,
+    ]),
+    ...iaxRegistrations.map((registration) => [
+      registration.username ? `${registration.username}@${registration.host}` : registration.host,
+      registration.host,
+      NOT_READ,
+      NOT_READ,
+      registration.state,
+    ]),
+  ];
+}
+
+/** `iax2 show peers` rows for the IAX peers table -- the live counterpart to iax.conf's
+ *  own peer/friend sections, read alongside them the same way `endpointRows` reads
+ *  `pjsip show endpoints` alongside pjsip.conf. Selecting a row loads that exact peer's
+ *  real configuration into the editor below (see `iax-peers.ts`); nothing here is
+ *  invented, and a target with no configured peers renders an honestly empty table. */
+export function iaxPeerRows(peers: IaxPeer[]): string[][] {
+  return peers.map((peer) => [
+    peer.name,
+    peer.host,
+    peer.dynamic ? 'yes' : 'no',
+    peer.trunk ? 'yes' : 'no',
+    peer.status,
   ]);
 }
 
@@ -378,11 +422,19 @@ export function badgeFor(screen: string, readings: Partial<Record<string, ViewRe
   const channels = valueOf(readings.live?.channels) ?? valueOf(readings.dash?.channels);
   const endpoints = valueOf(readings.endpoints?.endpoints) ?? valueOf(readings.dash?.endpoints);
   const registrations = valueOf(readings.trunks?.registrations);
+  const iaxRegistrations = valueOf(readings.trunks?.iaxRegistrations);
+  const iaxPeers = valueOf(readings.iaxpeers?.iaxPeers);
   const queues = valueOf(readings.queues?.queues) ?? valueOf(readings.dash?.queues);
   const modules = valueOf(readings.modules?.modules);
   if (screen === 'live' && channels) return String(channels.length);
   if (screen === 'endpoints' && endpoints) return String(endpoints.length);
-  if (screen === 'trunks' && registrations) return String(registrations.length);
+  /* The badge counts every row the table actually shows, PJSIP and IAX2 alike -- not
+   * only PJSIP's, or the badge would silently under-report once IAX2 rows joined the
+   * table below. */
+  if (screen === 'trunks' && (registrations || iaxRegistrations)) {
+    return String((registrations?.length ?? 0) + (iaxRegistrations?.length ?? 0));
+  }
+  if (screen === 'iaxpeers' && iaxPeers) return String(iaxPeers.length);
   if (screen === 'queues' && queues) return String(queues.length);
   if (screen === 'modules' && modules) return String(modules.length);
   return '';

@@ -1033,10 +1033,17 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     'fc_parkedcalltransfers', 'fc_parkedcallreparking', 'fc_parkedcallhangup',
     'fc_comebacktoorigin', 'fc_comebackdialtime', 'fc_comebackcontext'
   ],
-  /* iax.conf. None bound yet, and the screen says so. ix_secret_set in particular looks like it generates a credential and does not. */
+  /* iax.conf. Every one of these except ix_type and ix_secret_set is bound in
+   * CONTROL_BINDINGS.iaxpeers above; see the comment there for why those two stay
+   * unbound. ix_save is the action button that actually writes a selected peer (via
+   * `App.tsx`'s `onSaveIaxPeer`, which reads iax-peers.ts's own name-targeted
+   * `applyControlValues` rather than this table's generic single-section path -- iax.conf
+   * can hold several peers, and this table's `sectionOfType` only ever reaches the
+   * first); it carries no key of its own, same as httpd's ht_save above. */
   iaxpeers: [
     'ix_type', 'ix_host', 'ix_username', 'ix_port', 'ix_transfer', 'ix_qualify', 'ix_trunk',
-    'ix_calltoken', 'ix_codecs', 'ix_context', 'ix_accountcode', 'ix_mailbox', 'ix_secret_set'
+    'ix_calltoken', 'ix_codecs', 'ix_context', 'ix_accountcode', 'ix_mailbox', 'ix_secret_set',
+    'ix_save',
   ],
   live: ['m_spy', 'm_format', 'm_beep', 'm_retain'],
   endpoints: [

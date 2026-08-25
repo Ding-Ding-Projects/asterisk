@@ -181,7 +181,17 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       ]);
       return { endpoints, contacts, registrations, channelStats };
     }
-    if (view === 'trunks') return { registrations: await readings.registrations(target) };
+    if (view === 'trunks') {
+      // IAX2 registrations read alongside the PJSIP ones so the trunks table stops being
+      // PJSIP-only -- `iax2 show registry` is the IAX2 counterpart to `pjsip show
+      // registrations`, both real outbound-registration state, neither one a substitute
+      // for the other.
+      const [registrations, iaxRegistrations] = await Promise.all([
+        readings.registrations(target), readings.iaxRegistrations(target),
+      ]);
+      return { registrations, iaxRegistrations };
+    }
+    if (view === 'iaxpeers') return { iaxPeers: await readings.iaxPeers(target) };
     if (view === 'queues') return { queues: await readings.queues(target) };
     if (view === 'canvas') return { dialplan: await dialplanReadings.graph(target) };
     if (view === 'modules') return { modules: await readings.modules(target) };
