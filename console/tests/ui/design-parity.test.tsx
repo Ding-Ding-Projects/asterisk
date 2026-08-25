@@ -32,17 +32,23 @@ const strip = (markup: string) => markup.replace(/<[^>]*>/g, ' ').replace(/&#x27
  * points at, finally has a screen that can put a real file there.
  * 39 rather than 38: the Fax screen landed on the media rail (5 to 6) -- res_fax.conf's
  * engine settings and udptl.conf's transport settings, the two files the roadmap's own
- * "sending, receiving, T.38 gateway" line names, finally have a screen and real bindings. */
+ * "sending, receiving, T.38 gateway" line names, finally have a screen and real bindings.
+ * 40 rather than 39: the Database backends destination landed on the sys rail (5 to 6) --
+ * res_odbc.conf, extconfig.conf, sorcery.conf and res_pgsql.conf finally have a screen,
+ * where before none of the four had ever been read or written by this console. Both
+ * screens forked from the same 38-destination tip and each counted its own one-screen
+ * jump independently (each calling itself "39 rather than 38"); rebasing one onto the
+ * other's tip is what stacks the two arrivals to 40 instead of colliding at 39. */
 test('the design reference supplies every rail and destination', () => {
-  assert.equal(ORDER.length, 39);
-  assert.equal(destinations.length, 39);
+  assert.equal(ORDER.length, 40);
+  assert.equal(destinations.length, 40);
   assert.deepEqual(rails.map((rail) => rail.id), ['pbx', 'media', 'data', 'sys', 'agent', 'app']);
   assert.deepEqual(
     rails.map((rail) => destinations.filter((destination) => destination.rail === rail.id).length),
-    [10, 6, 2, 5, 7, 9],
+    [10, 6, 2, 6, 7, 9],
   );
   assert.equal(RAIL.length, 6);
-  assert.equal(Object.keys(SCREENS).length, 39);
+  assert.equal(Object.keys(SCREENS).length, 40);
 });
 
 test('the design audit baseline counts survive compilation', () => {

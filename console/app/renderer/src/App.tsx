@@ -25,6 +25,12 @@ import {
   addRule as addAclRule, moveRule as moveAclRuleModel, parseAcl, removeRule as removeAclRuleModel,
   toConfigValue, validateRule as validateAclRule, type AclModel,
 } from '../../../control-plane/acl-model';
+import {
+  findEntry as findConfigEntry, writeEntry as writeConfigEntry,
+  findRealtimeMapping, writeRealtimeMapping, removeRealtimeMapping,
+  findSorceryMapping, writeSorceryMapping, removeSorceryMapping,
+  usableMappingName,
+} from '../../../control-plane/realtime-mappings-model';
 import { PLAYABLE_EXTENSIONS, playbackMimeType, promptRows, resolvePromptRow } from './prompt-library';
 import { usableName, type MediaFile } from '../../../control-plane/media-library';
 import { canProvision, canRecoverRuntime, canStopRuntime, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
@@ -2828,6 +2834,8 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
     if (action === 'cdr-status') return this.cdrBackendStatus();
     if (action === 'cel-status') return this.celBackendStatus();
+    if (action === 'db-pgsql-password-status') return this.dbPgsqlPasswordStatusLine();
+    if (action === 'db-odbc-password-status') return this.dbOdbcPasswordStatusLine();
     return '';
   };
 
@@ -2939,6 +2947,15 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'cel-pgsql-save') { void this.onSaveCelPgsql(); return; }
     if (action === 'fax-save') { void this.onSaveFax(); return; }
     if (action === 'fax-udptl-save') { void this.onSaveFaxUdptl(); return; }
+    if (action === 'db-pgsql-save') { void this.onSaveResPgsql(); return; }
+    if (action === 'db-odbc-load') { this.onLoadOdbcConnection(); return; }
+    if (action === 'db-odbc-save') { void this.onSaveOdbcConnection(); return; }
+    if (action === 'db-mapping-load') { this.onLoadRealtimeMapping(); return; }
+    if (action === 'db-mapping-save') { void this.onSaveRealtimeMapping(); return; }
+    if (action === 'db-mapping-remove') { void this.onRemoveRealtimeMapping(); return; }
+    if (action === 'db-sorcery-load') { this.onLoadSorceryMapping(); return; }
+    if (action === 'db-sorcery-save') { void this.onSaveSorceryMapping(); return; }
+    if (action === 'db-sorcery-remove') { void this.onRemoveSorceryMapping(); return; }
   };
 
   // ---------------------------------------------------------------- server add / remove
@@ -3743,6 +3760,54 @@ It is shown once. The phone needs it to register.`);
       }
     }
 
+    /* The Database backends screen's own declared `file` (res_pgsql.conf) is read and
+     * seeded automatically by the generic block below -- res_pgsql.conf's [general]
+     * section is fixed, so its db_pg* fields bind and seed exactly the way http.conf's
+     * do. res_odbc.conf, extconfig.conf and sorcery.conf are three MORE fixed files
+     * this same screen reaches into, exactly the way the Security screen reaches into
+     * pjsip.conf and stir_shaken.conf above -- fetched here, once each, independent of
+     * one another and of the primary read. None of the three is seeded into `values`
+     * eagerly: res_odbc.conf's fields read through `sectionFrom: 'db_odbcname'`, and
+     * extconfig.conf/sorcery.conf are not in CONTROL_BINDINGS at all (see the comment
+     * above CONTROL_BINDINGS.dbrealtime) -- all three only do anything once a name has
+     * been typed and "Load from target" pressed, exactly like the Security screen's
+     * PJSIP-transport TLS fields. */
+    if (screen === 'dbrealtime') {
+      if ((!this.configs.odbc || this.configs.odbc.state === 'unavailable')
+          && !this.extraConfigPending.has('res_odbc.conf') && mayStartRead('config:dbrealtime-odbc')) {
+        this.extraConfigPending.add('res_odbc.conf');
+        const resource = resourceForFile('res_odbc.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('res_odbc.conf');
+        this.configs.odbc = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if ((!this.configs.extconfig || this.configs.extconfig.state === 'unavailable')
+          && !this.extraConfigPending.has('extconfig.conf') && mayStartRead('config:dbrealtime-extconfig')) {
+        this.extraConfigPending.add('extconfig.conf');
+        const resource = resourceForFile('extconfig.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('extconfig.conf');
+        this.configs.extconfig = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if ((!this.configs.sorcery || this.configs.sorcery.state === 'unavailable')
+          && !this.extraConfigPending.has('sorcery.conf') && mayStartRead('config:dbrealtime-sorcery')) {
+        this.extraConfigPending.add('sorcery.conf');
+        const resource = resourceForFile('sorcery.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('sorcery.conf');
+        this.configs.sorcery = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+    }
+
     /* The Fax screen's six fx_udptl* fields live in udptl.conf -- the transport T.38
      * rides on -- not in res_fax.conf, which is this screen's own declared `file` and
      * already covered by the generic per-screen block above. Same shape as security's
@@ -4433,6 +4498,270 @@ It is shown once. The far end needs it to register.`);
       'cel_pgsql.conf updated on the target.',
       'PostgreSQL settings saved',
       () => { delete this.configs.celPgsql; this.seeded.delete('cdr-cel-pgsql'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Database backends screen
+
+  /** The bound db_pg* control ids the PostgreSQL group's "Save" action writes -- every
+   *  binding in CONTROL_BINDINGS.dbrealtime that has no `sectionFrom`, named explicitly
+   *  the same way the Security screen's TRANSPORT_TLS_CONTROLS/STIR_SHAKEN_CONTROLS lists
+   *  are, so a change to that table cannot silently widen what this one write touches --
+   *  which matters here specifically because CONTROL_BINDINGS.dbrealtime also carries the
+   *  db_odbc* bindings below, and `applyControlValues` does not filter by a binding's own
+   *  `file`. db_pgpassword is deliberately excluded: it carries no binding at all (see the
+   *  long comment above CONTROL_BINDINGS.dbrealtime) and is handled separately below. */
+  private static readonly PGSQL_CONTROLS = [
+    'db_pghost', 'db_pgport', 'db_pgdbname', 'db_pguser', 'db_pgsocket', 'db_pgappname',
+    'db_pgrequirements', 'db_pgorderby',
+  ] as const;
+
+  /** Read by the compiled `text`-kind control marked `action:'db-pgsql-password-status'`.
+   *  Reports only whether res_pgsql.conf's [general] section currently has a `password`
+   *  line -- never what it holds -- exactly what the task this screen exists for asked
+   *  for: "show that one is set, not what it is". */
+  private dbPgsqlPasswordStatusLine = (): string => {
+    const value = this.configs.dbrealtime?.state === 'read' ? this.configs.dbrealtime.value : undefined;
+    if (!value) return 'Read res_pgsql.conf to check.';
+    return findConfigEntry(value, 'general', 'password') !== undefined
+      ? 'A password is set on the target.'
+      : 'No password is set on the target.';
+  };
+
+  /** "Save res_pgsql.conf settings": writes every ordinary field through the same
+   *  single-key path `onSaveHttp` above uses, then -- only if a new password was typed --
+   *  splices `password` into [general] directly, outside CONTROL_BINDINGS, and blanks the
+   *  field the instant it has been read: the same take-then-blank shape
+   *  `credential-field.ts`'s `consumeCredential` already gives this console's own unlock
+   *  PIN. db_pgpassword can never be populated by a read in the first place, because no
+   *  binding for it exists anywhere in CONTROL_BINDINGS -- it is written, never displayed
+   *  back, exactly as the task this screen exists for requires. */
+  onSaveResPgsql = async (): Promise<void> => {
+    const current = this.configs.dbrealtime?.state === 'read' ? this.configs.dbrealtime.value : undefined;
+    if (!current) { this.fire('Not written', 'res_pgsql.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.PGSQL_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    let next = applyBoundControlValues('dbrealtime', current, changes);
+    const { secret, values: blanked } = consumeCredential(state.values, 'db_pgpassword');
+    if (secret !== undefined) {
+      next = writeConfigEntry(next, 'general', 'password', secret);
+      this.setState({ values: blanked } as never);
+    }
+    await this.writeConfigResource(
+      this.configs.dbrealtime?.resource ?? (resourceForFile('res_pgsql.conf') as string),
+      next,
+      'res_pgsql.conf updated on the target.',
+      'PostgreSQL settings saved',
+      () => { delete this.configs.dbrealtime; this.seeded.delete('dbrealtime'); },
+    );
+  };
+
+  /** The bound db_odbc* control ids the ODBC group's "Save" action writes -- every
+   *  `sectionFrom: 'db_odbcname'` binding in CONTROL_BINDINGS.dbrealtime, named
+   *  explicitly for the same reason PGSQL_CONTROLS above is. db_odbcpassword is
+   *  deliberately excluded, for the same reason db_pgpassword is above. */
+  private static readonly ODBC_CONTROLS = [
+    'db_odbcenabled', 'db_odbcdsn', 'db_odbcusername', 'db_odbcpreconnect', 'db_odbcmaxconn',
+    'db_odbcconntimeout', 'db_odbcnegcache', 'db_odbclogging', 'db_odbcslowquery',
+    'db_odbcbackslash', 'db_odbcisolation', 'db_odbccachetype',
+  ] as const;
+
+  /** Read by the compiled `text`-kind control marked `action:'db-odbc-password-status'`.
+   *  Whether res_odbc.conf currently has a `password` line for the CONNECTION currently
+   *  typed into db_odbcname -- never what it holds. */
+  private dbOdbcPasswordStatusLine = (): string => {
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['db_odbcname'] ?? '').trim();
+    const value = this.configs.odbc?.state === 'read' ? this.configs.odbc.value : undefined;
+    if (!name || !value) return 'Load a connection to check.';
+    return findConfigEntry(value, name, 'password') !== undefined
+      ? 'A password is set on the target.'
+      : 'No password is set on the target.';
+  };
+
+  /** "Load from target" on the ODBC group: reads the named connection's current
+   *  settings out of res_odbc.conf (already fetched by `refresh()` above) into the
+   *  fields, the same one-shot reseed the Security screen's "Load from target" gives its
+   *  TLS group. Unlike that one, a name matching nothing is not refused outright --
+   *  res_odbc.conf.sample documents every section besides [ENV] as "arbitrary names for
+   *  database connections", so a name typed for a connection that does not exist yet is
+   *  simply a new connection Save has not created yet, and the toast says so rather than
+   *  reporting a refusal for something that is not wrong. */
+  onLoadOdbcConnection = (): void => {
+    const value = this.configs.odbc?.state === 'read' ? this.configs.odbc.value : undefined;
+    if (!value) { this.toast('res_odbc.conf has not finished reading yet -- press Load again in a moment.'); return; }
+    const name = String((this.state as { values: Record<string, unknown> }).values['db_odbcname'] ?? '').trim();
+    if (!name) { this.toast('Type a connection name first.'); return; }
+    const found = value.find((candidate) => candidate.name === name);
+    if (!found) { this.toast(`No [${name}] section in res_odbc.conf yet -- Save will create one.`); return; }
+    const bound = readControlValues('dbrealtime', [], { 'res_odbc.conf': value }, { db_odbcname: name });
+    const state = this.state as { values: Record<string, unknown> };
+    this.setState({ values: { ...state.values, ...bound } } as never);
+    this.toast(`Loaded [${name}] from res_odbc.conf.`);
+  };
+
+  /** "Save ODBC connection": writes every ordinary field into the named [section],
+   *  creating it (appended to the file) if it does not already exist -- unlike the
+   *  Security screen's TLS transport save, which refuses to invent a section, a bare
+   *  `[name]` holding only res_odbc.conf keys IS a complete, usable connection on its
+   *  own, with nothing else required around it. The password is handled exactly the way
+   *  `onSaveResPgsql` handles its own: taken, written once with `writeConfigEntry`
+   *  (never through CONTROL_BINDINGS), and blanked immediately. */
+  onSaveOdbcConnection = async (): Promise<void> => {
+    const value = this.configs.odbc?.state === 'read' ? this.configs.odbc.value : undefined;
+    if (!value) { this.fire('Not written', 'res_odbc.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = usableMappingName(String(state.values['db_odbcname'] ?? '').trim());
+    if (!name) { this.fire('Not written', 'Type a valid connection name first -- letters, digits, underscore or hyphen only.'); return; }
+    const changes: Record<string, unknown> = { db_odbcname: name };
+    for (const id of App.ODBC_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    let next = applyBoundControlValues('dbrealtime', value, changes);
+    const { secret, values: blanked } = consumeCredential(state.values, 'db_odbcpassword');
+    if (secret !== undefined) {
+      next = writeConfigEntry(next, name, 'password', secret);
+      this.setState({ values: blanked } as never);
+    }
+    await this.writeConfigResource(
+      this.configs.odbc?.resource ?? (resourceForFile('res_odbc.conf') as string),
+      next,
+      `[${name}] settings updated in res_odbc.conf.`,
+      `[${name}] saved`,
+      () => { delete this.configs.odbc; },
+    );
+  };
+
+  /** "Load from target" on the Realtime mapping group: reads the named family's current
+   *  `driver,database[,table[,priority]]` mapping out of extconfig.conf's [settings]
+   *  section into the fields. A family matching nothing is not a refusal -- it is a
+   *  mapping Save has not created yet, exactly like `onLoadOdbcConnection` above. */
+  onLoadRealtimeMapping = (): void => {
+    const value = this.configs.extconfig?.state === 'read' ? this.configs.extconfig.value : undefined;
+    if (!value) { this.toast('extconfig.conf has not finished reading yet -- press Load again in a moment.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const family = String(state.values['db_family'] ?? '').trim();
+    if (!family) { this.toast('Type a realtime family first.'); return; }
+    const mapping = findRealtimeMapping(value, family);
+    if (!mapping) { this.toast(`No mapping for "${family}" in extconfig.conf yet -- Save will create one.`); return; }
+    this.setState({ values: {
+      ...state.values,
+      db_driver: mapping.driver,
+      db_database: mapping.database,
+      db_table: mapping.table ?? '',
+      db_priority: mapping.priority ?? 0,
+    } } as never);
+    this.toast(`Loaded "${family}" from extconfig.conf.`);
+  };
+
+  /** "Save realtime mapping": writes `family => driver,database[,table[,priority]]` into
+   *  extconfig.conf's [settings] section, creating the entry if it does not exist yet --
+   *  a bare `family => driver,database` is already a complete, meaningful mapping to
+   *  Asterisk, so there is nothing here to refuse the way the Security screen's TLS save
+   *  refuses an incomplete transport. Refuses only when driver or database -- the two
+   *  fields extconfig.conf.sample documents as always required -- are empty. */
+  onSaveRealtimeMapping = async (): Promise<void> => {
+    const value = this.configs.extconfig?.state === 'read' ? this.configs.extconfig.value : undefined;
+    if (!value) { this.fire('Not written', 'extconfig.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const family = usableMappingName(String(state.values['db_family'] ?? '').trim());
+    if (!family) { this.fire('Not written', 'Type a valid realtime family first -- letters, digits, underscore or hyphen only.'); return; }
+    const driver = String(state.values['db_driver'] ?? '').trim();
+    const database = String(state.values['db_database'] ?? '').trim();
+    if (!driver || !database) { this.fire('Not written', 'A realtime mapping needs at least a driver and a database name.'); return; }
+    const table = String(state.values['db_table'] ?? '').trim();
+    const priority = Number(state.values['db_priority'] ?? 0);
+    const mapping: { driver: string; database: string; table?: string; priority?: number } = { driver, database };
+    if (table) mapping.table = table;
+    if (priority > 0) mapping.priority = priority;
+    const next = writeRealtimeMapping(value, family, mapping);
+    await this.writeConfigResource(
+      this.configs.extconfig?.resource ?? (resourceForFile('extconfig.conf') as string),
+      next,
+      `"${family}" mapped to ${driver},${database} in extconfig.conf.`,
+      'Realtime mapping saved',
+      () => { delete this.configs.extconfig; },
+    );
+  };
+
+  /** "Remove this mapping": deletes the family line from extconfig.conf's [settings]
+   *  section entirely -- Asterisk then loads that file or family from disk exactly as it
+   *  would if the mapping had never existed. */
+  onRemoveRealtimeMapping = async (): Promise<void> => {
+    const value = this.configs.extconfig?.state === 'read' ? this.configs.extconfig.value : undefined;
+    if (!value) { this.fire('Not removed', 'extconfig.conf has not been read from the target yet.'); return; }
+    const family = String((this.state as { values: Record<string, unknown> }).values['db_family'] ?? '').trim();
+    if (!family) { this.fire('Not removed', 'Type the realtime family to remove first.'); return; }
+    const next = removeRealtimeMapping(value, family);
+    await this.writeConfigResource(
+      this.configs.extconfig?.resource ?? (resourceForFile('extconfig.conf') as string),
+      next,
+      `"${family}" removed from extconfig.conf.`,
+      'Realtime mapping removed',
+      () => { delete this.configs.extconfig; },
+    );
+  };
+
+  /** "Load from target" on the Sorcery wiring group: reads the named module's mapping
+   *  for the typed object type out of sorcery.conf. Nothing found is, again, not a
+   *  refusal -- it is a mapping Save has not created yet. */
+  onLoadSorceryMapping = (): void => {
+    const value = this.configs.sorcery?.state === 'read' ? this.configs.sorcery.value : undefined;
+    if (!value) { this.toast('sorcery.conf has not finished reading yet -- press Load again in a moment.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const sorceryModule = String(state.values['db_sorcerymodule'] ?? '').trim();
+    const objectType = String(state.values['db_sorceryobjtype'] ?? '').trim();
+    if (!sorceryModule || !objectType) { this.toast('Type a module and an object type first.'); return; }
+    const mapping = findSorceryMapping(value, sorceryModule, objectType);
+    if (!mapping) { this.toast(`No "${objectType}" mapping in [${sorceryModule}] yet -- Save will create one.`); return; }
+    this.setState({ values: { ...state.values, db_sorcerywizard: mapping.wizard, db_sorceryconfig: mapping.config ?? '' } } as never);
+    this.toast(`Loaded [${sorceryModule}] ${objectType} from sorcery.conf.`);
+  };
+
+  /** "Save sorcery mapping": writes `objecttype = wizard[,config]` into the named
+   *  module's section of sorcery.conf, creating the section if it does not exist yet.
+   *  Refuses only when the wizard name -- the one part every documented example in
+   *  sorcery.conf.sample carries -- is empty. */
+  onSaveSorceryMapping = async (): Promise<void> => {
+    const value = this.configs.sorcery?.state === 'read' ? this.configs.sorcery.value : undefined;
+    if (!value) { this.fire('Not written', 'sorcery.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const sorceryModule = usableMappingName(String(state.values['db_sorcerymodule'] ?? '').trim());
+    const objectType = usableMappingName(String(state.values['db_sorceryobjtype'] ?? '').trim());
+    if (!sorceryModule || !objectType) {
+      this.fire('Not written', 'Type a valid module and object type first -- letters, digits, underscore, hyphen or a single "/cache" suffix only.');
+      return;
+    }
+    const wizard = String(state.values['db_sorcerywizard'] ?? '').trim();
+    if (!wizard) { this.fire('Not written', 'A sorcery mapping needs a wizard name.'); return; }
+    const config = String(state.values['db_sorceryconfig'] ?? '').trim();
+    const mapping: { wizard: string; config?: string } = { wizard };
+    if (config) mapping.config = config;
+    const next = writeSorceryMapping(value, sorceryModule, objectType, mapping);
+    await this.writeConfigResource(
+      this.configs.sorcery?.resource ?? (resourceForFile('sorcery.conf') as string),
+      next,
+      `[${sorceryModule}] ${objectType} mapped to ${wizard} in sorcery.conf.`,
+      'Sorcery mapping saved',
+      () => { delete this.configs.sorcery; },
+    );
+  };
+
+  /** "Remove this mapping": deletes the object-type line from this module's section of
+   *  sorcery.conf entirely. */
+  onRemoveSorceryMapping = async (): Promise<void> => {
+    const value = this.configs.sorcery?.state === 'read' ? this.configs.sorcery.value : undefined;
+    if (!value) { this.fire('Not removed', 'sorcery.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const sorceryModule = String(state.values['db_sorcerymodule'] ?? '').trim();
+    const objectType = String(state.values['db_sorceryobjtype'] ?? '').trim();
+    if (!sorceryModule || !objectType) { this.fire('Not removed', 'Type the module and object type to remove first.'); return; }
+    const next = removeSorceryMapping(value, sorceryModule, objectType);
+    await this.writeConfigResource(
+      this.configs.sorcery?.resource ?? (resourceForFile('sorcery.conf') as string),
+      next,
+      `${objectType} removed from [${sorceryModule}] in sorcery.conf.`,
+      'Sorcery mapping removed',
+      () => { delete this.configs.sorcery; },
     );
   };
 

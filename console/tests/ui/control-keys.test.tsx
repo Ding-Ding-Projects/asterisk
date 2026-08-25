@@ -39,7 +39,11 @@ test('every bound screen exists in the generated SCREENS object', () => {
 test('total bound-screen and control counts are what this pass produced', () => {
   const screenCount = Object.keys(CONTROL_BINDINGS).length;
   const controlCount = allBindings().length;
-  assert.equal(screenCount, 17);
+  // 18 once this rebase landed the Fax screen and the Database backends screen side by
+  // side: both independently brought the count from 16 to 17 on their own branch, and
+  // rebasing one onto the other's tip -- rather than starting from a shared commit --
+  // is exactly what makes them stack to 18 instead of collide at 17.
+  assert.equal(screenCount, 18);
   // 82 from the first pass, plus a_origin (ami/allowed_origins) and s_failaction
   // (security/failure_action) found on the second look, plus 21 on 2026-08-24: the eight
   // http.conf keys and the thirteen features.conf ones, which brought two whole screens
@@ -90,6 +94,14 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // sixteen carries an explicit `file: 'res_parking.conf'` override, the same way the four
   // stir_shaken.conf bindings on the security screen do, because the feature-codes screen's
   // own primary resource stays features.conf.
+  // And 179 with the TLS and certificate-management lane: ten PJSIP-transport TLS
+  // fields (protocol, cert_file, priv_key_file, ca_list_file, ca_list_path, cipher,
+  // method, verify_client, verify_server, require_client_cert), each bound through
+  // `sectionFrom: 's_transport'` -- the mechanism `s_permit`'s own removal note left
+  // documented and unused, now genuinely load-bearing -- plus five STIR/SHAKEN key-
+  // material fields (private_key_file, public_cert_url, load_system_certs, ca_file,
+  // ca_path). Every one checked against configs/samples/pjsip.conf.sample and
+  // configs/samples/stir_shaken.conf.sample by line number, not recalled.
   // Then two lanes moved it from 179 independently, both landing on 191 by coincidence
   // of arithmetic (12 new bindings each) rather than by touching the same controls --
   // the CDR/CEL screen's own broken read got fixed, with CEL getting two real database
@@ -115,15 +127,27 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // anywhere else has to say so or it is read from the wrong document. A dedicated
   // App.tsx fetch (mirroring `configs.stirShaken`) supplies udptl.conf's own ConfigValue
   // through `readControlValues`'s `elsewhere` map.
-  assert.equal(controlCount, 203);
-  // And 163 with the TLS and certificate-management lane: ten PJSIP-transport TLS
-  // fields (protocol, cert_file, priv_key_file, ca_list_file, ca_list_path, cipher,
-  // method, verify_client, verify_server, require_client_cert), each bound through
-  // `sectionFrom: 's_transport'` -- the mechanism `s_permit`'s own removal note left
-  // documented and unused, now genuinely load-bearing -- plus five STIR/SHAKEN key-
-  // material fields (private_key_file, public_cert_url, load_system_certs, ca_file,
-  // ca_path). Every one checked against configs/samples/pjsip.conf.sample and
-  // configs/samples/stir_shaken.conf.sample by line number, not recalled.
+  // And 20 more with the Database backends screen, a whole new 18th screen and file:
+  // eight res_pgsql.conf [general] keys bound plainly (this screen's own declared
+  // `file`, no override needed) and twelve res_odbc.conf keys bound through
+  // `sectionFrom: 'db_odbcname'` -- the same mechanism the line above, since res_odbc.conf
+  // names an ODBC connection after an arbitrary [section] rather than a fixed one.
+  // db_pgpassword and db_odbcpassword carry NO binding at all, on purpose: a real database
+  // password must never travel through an ordinary binding into renderer state, from
+  // where an export, history entry or screenshot could reach it -- App.tsx takes each one,
+  // writes it once, and blanks the field in the same step, exactly like iax.conf's
+  // ix_secret_set before it. extconfig.conf's family mappings and sorcery.conf's
+  // object-type mappings are NOT in this table at all: both name their own KEY as an
+  // arbitrary string (a family, an object type) rather than a fixed one, which
+  // `sectionFrom` cannot express -- see the long comment above CONTROL_BINDINGS.dbrealtime
+  // and control-plane/realtime-mappings-model.ts, which reads and writes both the same
+  // hand-checked way control-plane/acl-model.ts already does for acl.conf's rule list.
+  // This screen was built on a branch that forked before the CDR/CEL fix and the Fax
+  // screen landed, so it counted its own 20 on top of a stale 179 and called the total
+  // 199. Rebasing onto the real tip puts it on top of 203 instead, landing on 223 --
+  // read back the same way the 203 above was, by trying a deliberately wrong number
+  // first and taking whatever this test actually reported.
+  assert.equal(controlCount, 223);
 });
 
 // ---------------------------------------------------------------- boolean parsing
@@ -515,6 +539,37 @@ test('unmappedControls reflects the two controls bound on this second look', () 
   /* The rest of that list was removed rather than bound: none of those settings exists in
    * the file its screen edits, and mapping one onto something else would have meant
    * inventing behaviour. See docs/platform/unbound-controls.md. */
+});
+
+test('dbrealtime leaves exactly the pickers, the write-only passwords and the hand-rolled mapping editor unbound', () => {
+  /* db_odbcname is the sectionFrom picker itself -- binding it would let somebody change
+   * which connection is being edited through the very match that found it, the same
+   * reason s_transport stays unbound on the Security screen. db_odbcpassword and
+   * db_pgpassword are write-only (see the long comment above CONTROL_BINDINGS.dbrealtime):
+   * a real database password must never travel through an ordinary binding into renderer
+   * state. Both *passwordstatus controls are read-only computed text (action:'db-*-status'
+   * in the design), never a persisted setting either. Every Load/Save/Remove button is an
+   * action, carrying no key of its own -- ht_save and s_tsave stay unbound for the same
+   * reason. db_family/db_driver/db_database/db_table/db_priority and db_sorcerymodule/
+   * db_sorceryobjtype/db_sorcerywizard/db_sorceryconfig are read directly out of component
+   * state by App.tsx's onSaveRealtimeMapping/onSaveSorceryMapping, the same way the ACL
+   * editor's s_aclname/s_action/s_spec are -- writing a form field's current value into a
+   * key would put the control's typed input where the setting belongs, not the setting
+   * itself. */
+  const stillUnbound = [
+    'db_odbcname', 'db_odbcload', 'db_odbcpassword', 'db_odbcpasswordstatus', 'db_odbcsave',
+    'db_pgpassword', 'db_pgpasswordstatus', 'db_pgsave',
+    'db_family', 'db_mappingload', 'db_driver', 'db_database', 'db_table', 'db_priority',
+    'db_mappingsave', 'db_mappingremove',
+    'db_sorcerymodule', 'db_sorceryload', 'db_sorceryobjtype', 'db_sorcerywizard',
+    'db_sorceryconfig', 'db_sorcerysave', 'db_sorceryremove',
+  ];
+  for (const id of stillUnbound) {
+    assert.ok(unmappedControls('dbrealtime').includes(id), `expected ${id} to remain unmapped`);
+  }
+  // And nothing else is: every db_pg* and db_odbc* control not in that list above is a
+  // real binding in CONTROL_BINDINGS.dbrealtime.
+  assert.equal(unmappedControls('dbrealtime').length, stillUnbound.length);
 });
 
 // ---------------------------------------------------------------- composite values
@@ -940,4 +995,109 @@ test('applyControlValues writes the STIR/SHAKEN key fields into their own object
   assert.equal(verification?.entries.find((e) => e.key === 'global_disable')?.value, 'no');
   assert.equal(verification?.entries.find((e) => e.key === 'ca_file')?.value, '/new/ca.pem');
   assert.equal(verification?.entries.find((e) => e.key === 'load_system_certs')?.value, 'yes');
+});
+
+// ---------------------------------------------------------------- res_pgsql.conf (dbrealtime)
+
+test('res_pgsql.conf reads straight from [general], the same way http.conf does', () => {
+  // configs/samples/res_pgsql.conf.sample: [general] hostname/port/dbname/user/requirements.
+  const cfg: ConfigValue = [{ name: 'general', entries: [
+    { key: 'hostname', value: 'db.example.internal' },
+    { key: 'port', value: '5433' },
+    { key: 'dbname', value: 'asterisk_prod' },
+    { key: 'user', value: 'asterisk_ro' },
+    { key: 'requirements', value: 'createclose' },
+    { key: 'order_multi_row_results_by_initial_column', value: 'no' },
+  ] }];
+  const values = readControlValues('dbrealtime', cfg);
+  assert.equal(values.db_pghost, 'db.example.internal');
+  assert.equal(values.db_pgport, 5433);
+  assert.equal(values.db_pgdbname, 'asterisk_prod');
+  assert.equal(values.db_pguser, 'asterisk_ro');
+  assert.equal(values.db_pgrequirements, 'createclose');
+  assert.equal(values.db_pgorderby, false);
+  // db_pgpassword has no binding at all -- even a config carrying a password line must
+  // never populate it, because a "read" is exactly the moment a stored secret would
+  // otherwise leak into renderer state.
+  assert.equal('db_pgpassword' in values, false);
+  const withPassword = readControlValues('dbrealtime', [
+    { name: 'general', entries: [{ key: 'hostname', value: 'x' }, { key: 'password', value: 'super-secret' }] },
+  ]);
+  assert.equal('db_pgpassword' in withPassword, false);
+});
+
+test('applyControlValues writes res_pgsql.conf fields without ever being handed a password', () => {
+  const cfg: ConfigValue = [{ name: 'general', entries: [{ key: 'hostname', value: 'localhost' }] }];
+  const next = applyControlValues('dbrealtime', cfg, {
+    db_pghost: '10.0.0.9', db_pgport: 5432, db_pgdbname: 'asterisk', db_pgorderby: true,
+  });
+  const general = next.find((s) => s.name === 'general');
+  assert.equal(general?.entries.find((e) => e.key === 'hostname')?.value, '10.0.0.9');
+  assert.equal(general?.entries.find((e) => e.key === 'port')?.value, '5432');
+  assert.equal(general?.entries.find((e) => e.key === 'dbname')?.value, 'asterisk');
+  assert.equal(general?.entries.find((e) => e.key === 'order_multi_row_results_by_initial_column')?.value, 'yes');
+  // No binding means applyControlValues silently ignores db_pgpassword even if it somehow
+  // appeared in `changes` -- App.tsx never puts it there, but the table itself refuses it too.
+  const withPasswordInChanges = applyControlValues('dbrealtime', cfg, { db_pgpassword: 'hunter2' } as never);
+  assert.equal(withPasswordInChanges.find((s) => s.name === 'general')?.entries.some((e) => e.key === 'password'), false);
+});
+
+// ---------------------------------------------------------------- res_odbc.conf (dbrealtime)
+
+test('the ODBC connection fields read from whichever section db_odbcname currently names', () => {
+  // configs/samples/res_odbc.conf.sample: [asterisk] enabled/dsn/pre-connect uncommented;
+  // username/max_connections/isolation/cache_type commented defaults shown the same way.
+  const odbc: ConfigValue = [
+    { name: 'asterisk', entries: [
+      { key: 'enabled', value: 'no' }, { key: 'dsn', value: 'asterisk' },
+      { key: 'username', value: 'myuser' }, { key: 'pre-connect', value: 'yes' },
+      { key: 'max_connections', value: '20' }, { key: 'isolation', value: 'repeatable_read' },
+      { key: 'cache_type', value: 'roundrobin' },
+    ] },
+    { name: 'sqlserver', entries: [{ key: 'dsn', value: 'mickeysoft' }, { key: 'backslash_is_escape', value: 'no' }] },
+  ];
+  const values = readControlValues('dbrealtime', [], { 'res_odbc.conf': odbc }, { db_odbcname: 'asterisk' });
+  assert.equal(values.db_odbcenabled, false);
+  assert.equal(values.db_odbcdsn, 'asterisk');
+  assert.equal(values.db_odbcusername, 'myuser');
+  assert.equal(values.db_odbcpreconnect, true);
+  assert.equal(values.db_odbcmaxconn, 20);
+  assert.equal(values.db_odbcisolation, 'repeatable_read');
+  assert.equal(values.db_odbccachetype, 'roundrobin');
+  // Picking a different connection reads that section instead, never the first one found.
+  assert.equal(readControlValues('dbrealtime', [], { 'res_odbc.conf': odbc }, { db_odbcname: 'sqlserver' }).db_odbcdsn, 'mickeysoft');
+  assert.equal(readControlValues('dbrealtime', [], { 'res_odbc.conf': odbc }, { db_odbcname: 'sqlserver' }).db_odbcbackslash, false);
+  // res_pgsql.conf's own bindings never leak into a res_odbc.conf read, and vice versa --
+  // db_pghost has no `sectionFrom`, so with no `value` (this screen's primary file) supplied
+  // it must be absent, not read out of the res_odbc.conf passed in `elsewhere`.
+  assert.equal('db_pghost' in values, false);
+  assert.equal('db_odbcpassword' in values, false, 'the write-only password must never be seeded by a read');
+});
+
+test('with no connection name chosen yet, the ODBC fields read as absent', () => {
+  const odbc: ConfigValue = [{ name: 'asterisk', entries: [{ key: 'dsn', value: 'asterisk' }] }];
+  assert.equal(readControlValues('dbrealtime', [], { 'res_odbc.conf': odbc }).db_odbcdsn, undefined);
+});
+
+test('applyControlValues writes the ODBC fields into exactly the section db_odbcname names, and can create a new one', () => {
+  const odbc: ConfigValue = [{ name: 'asterisk', entries: [{ key: 'enabled', value: 'no' }] }];
+  const next = applyControlValues('dbrealtime', odbc, {
+    db_odbcname: 'asterisk', db_odbcenabled: true, db_odbcdsn: 'asterisk', db_odbcmaxconn: 30,
+  });
+  const asterisk = next.find((s) => s.name === 'asterisk');
+  assert.equal(asterisk?.entries.find((e) => e.key === 'enabled')?.value, 'yes');
+  assert.equal(asterisk?.entries.find((e) => e.key === 'dsn')?.value, 'asterisk');
+  assert.equal(asterisk?.entries.find((e) => e.key === 'max_connections')?.value, '30');
+
+  // A name with no existing section is not refused: res_odbc.conf.sample documents every
+  // section besides [ENV] as "arbitrary names for database connections", so this is simply
+  // a new, complete connection.
+  const created = applyControlValues('dbrealtime', odbc, {
+    db_odbcname: 'reporting', db_odbcdsn: 'reporting-db', db_odbcenabled: true,
+  });
+  const reporting = created.find((s) => s.name === 'reporting');
+  assert.ok(reporting, 'a brand new [reporting] section must be created');
+  assert.equal(reporting?.entries.find((e) => e.key === 'dsn')?.value, 'reporting-db');
+  const asteriskUntouched = created.find((s) => s.name === 'asterisk');
+  assert.deepEqual(asteriskUntouched, odbc[0], 'an unrelated existing connection must be left exactly as it was');
 });

@@ -33,6 +33,7 @@ export const CANTONESE: Catalog = {
   'Modules': '模組',
   'Logger': '日誌',
   'Security': '保安',
+  'Database backends': '資料庫後端',
   'Deploy & servers': '部署同伺服器',
   'Documentation': '說明文件',
   'Notifications': '通知',
