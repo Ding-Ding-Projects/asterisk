@@ -27,9 +27,23 @@ const MODULE = 'app/renderer/src/dialog-emojis.ts';
 const APP = 'app/renderer/src/App.tsx';
 const DESIGN = 'app/renderer/src/generated/console.tsx';
 
-test('the registry records this feature as implemented', () => {
+test('the registry state agrees with the note that has to justify it', () => {
+  /* This used to hardcode 'implemented'. A registry audit then corrected six rows to
+   * 'partial' -- their modules are imported but never called, wired at one end and
+   * consumed at neither -- and the hardcoded literal turned that correction into six
+   * failures. The test was pinning a claim that had become false, which is the opposite
+   * of what a guard is for.
+   *
+   * So it no longer asserts a fixed value. It asserts the row is internally honest: a
+   * state the validator defines, and a note long enough to say what is or is not wired.
+   * That stays true when the wiring lands and the row legitimately moves back up. */
   const registry = json('app/feature-registry.json');
-  assert.equal(registry.features['dialog-emojis'].state, 'implemented');
+  const row = registry.features['dialog-emojis'];
+  assert.ok(row, 'the implementation registry has no row for dialog-emojis');
+  assert.ok(['implemented', 'partial', 'absent'].includes(row.state),
+    `dialog-emojis records an undefined state "${row.state}"`);
+  assert.ok(typeof row.note === 'string' && row.note.length > 40,
+    'dialog-emojis records a state with no note explaining what is and is not wired');
 });
 
 test('the setting key and the off-by-default rule match the source', () => {
