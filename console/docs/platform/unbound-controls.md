@@ -132,6 +132,29 @@ and each would require this console to decide a security question on somebody's 
 which certificates live where, which TLS versions a name implies, which ciphers count as
 modern. A console must not make those silently.
 
+**Two of the four came back on 2026-08-25, with real keys, as plain paths and a raw string
+rather than the removed picker's translated categories:**
+
+- **Server certificate** is bound today as `ht_tlscert`/`ht_tlskey` on the `httpd` screen
+  (http.conf's `tlscertfile`/`tlsprivatekey`) and as `s_tcert`/`s_tprivkey` on the security
+  screen's new "TLS" group (a PJSIP transport's `cert_file`/`priv_key_file`). Both are plain
+  text path fields, exactly the "a hostname picker; tlscertfile takes a path" reason this row
+  gave for removal in the first place -- once the control stopped being a hostname picker,
+  the objection stopped applying.
+- **Verify client certificates** is bound as `s_tverifyclient`/`s_tverifyserver` on the same
+  group, against `verify_client`/`verify_server` -- real keys that were simply not being
+  looked for in `pjsip.conf`'s `[transport]` section when this row was written, because the
+  security screen had no PJSIP-transport controls at all yet.
+
+**TLS method and Cipher policy have NOT come back, and the distinction matters.** `s_tmethod`
+and `s_tcipher` also exist now, on the same group, but they are free-text fields that write
+whatever string is typed straight into `method`/`cipher` -- not the translated picker this
+table describes (a TLS-version name mapped to `tlsdisablev1`/`v11`/`v12`, or a Modern/
+Intermediate/Legacy label mapped to a cipher string). This console still refuses to make that
+translation decision on somebody's behalf; typing the exact string Asterisk wants is a
+different, narrower thing than picking a category and trusting this console's judgment about
+what the category means.
+
 ## Configuration
 
 Nothing here is configurable. The list is a record of design decisions still to be taken.

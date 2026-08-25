@@ -2284,7 +2284,8 @@ const SCREENS = {
     { title:'Sessions', desc:'How many HTTP sessions the server keeps, and for how long.', ctls:[
       ctl('ht_sesslimit','sessionlimit','stepper',100,{ min:1, max:10000, info:'No underscore in this key, unlike the two below it. That inconsistency is Asterisk’s own.' }),
       ctl('ht_sessinact','session_inactivity','slider',30000,{ min:1000, max:300000, step:1000, unit:' ms' }),
-      ctl('ht_sesskeep','session_keep_alive','slider',15000,{ min:1000, max:120000, step:1000, unit:' ms' })
+      ctl('ht_sesskeep','session_keep_alive','slider',15000,{ min:1000, max:120000, step:1000, unit:' ms' }),
+      ctl('ht_save','Save http.conf settings','segmented','Save',{ options:['Save'], action:'httpd-save', info:'Writes every field on this screen, including TLS, to http.conf on the target -- backed up first, applied through the same plan/apply transaction every other write in this console uses.' })
     ]}]
   },
   iaxpeers:{ rail:'pbx', icon:'swap_horiz', label:'IAX peers', badge:'', title:'IAX peers', file:'iax.conf', kind:'generic',
@@ -2418,7 +2419,7 @@ const SCREENS = {
       ctl('g_queue','Queue log','switch',true)
     ]}] },
   security:{ rail:'sys', icon:'shield', label:'Security', badge:'!', title:'Security', file:'acl.conf', kind:'table',
-    sub:'Named access control lists, listed in the exact order Asterisk evaluates them -- the LAST matching rule wins, which is what makes a broad deny followed by a narrow permit work as an allowlist. Certificates are chosen from the machine store — no path is ever typed.',
+    sub:'Named access control lists, listed in the exact order Asterisk evaluates them -- the LAST matching rule wins, which is what makes a broad deny followed by a narrow permit work as an allowlist. TLS certificate and key paths below are typed, not chosen from a store this console does not have -- it can point Asterisk at a certificate and check the wiring looks sane, but it cannot install, generate or rotate one.',
     table:{ add:'Add rule', grid:'1fr 110px 1.6fr', cols:['ACL rule','Action','Network / CIDR'], rows:[] },
     groups:[{ title:'Add a rule', desc:'Appended to the end of the named ACL below, so it is the rule that decides the outcome for anything it matches. Click an existing rule in the table to load it here for editing instead.', ctls:[
       ctl('s_aclname','ACL name','text','trusted-nets',{ info:'The named list this rule joins, e.g. "trusted-nets". A name that does not already exist creates that ACL with this as its first rule.' }),
@@ -2427,12 +2428,32 @@ const SCREENS = {
     ]},{ title:'Auto-ban', desc:'This console’s own behaviour, not an Asterisk setting: persisted here, and never written to acl.conf or anywhere else on the target.', ctls:[
       ctl('s_failban','Auto-ban after failures','stepper',5,{ min:0, max:100 }),
       ctl('s_bantime','Ban duration','slider',600,{ min:60, max:86400, step:60, unit:'s' })
-    ]},{ title:'TLS', desc:'Certificates come from the system store.', ctls:[
+    ]},{ title:'TLS', desc:'A PJSIP transport’s own TLS listener, in pjsip.conf. Type the section name of an existing transport (e.g. "transport-tls"), press Load to see what it currently has, edit, then Save -- this edits a transport already declared on the target, it does not create one.', ctls:[
+      ctl('s_transport','Transport name','text','',{ info:'The pjsip.conf [section] these fields read and write. Must already exist with type=transport; Save refuses a name that does not match one.' }),
+      ctl('s_tload','Load from target','segmented','Load',{ options:['Load'], action:'security-transport-load', info:'Reads the named transport’s current TLS settings from pjsip.conf into the fields below.' }),
+      ctl('s_tprotocol','Protocol','segmented','tls',{ options:['udp','tcp','tls','ws','wss','flow'] }),
+      ctl('s_tcert','Certificate file','text','',{ placeholder:'/path/mycert.crt' }),
+      ctl('s_tprivkey','Private key file','text','',{ placeholder:'/path/mykey.key' }),
+      ctl('s_tcalistfile','CA list file','text','',{ info:'Required for either verification switch below -- without one, a client or server certificate can never actually be verified.' }),
+      ctl('s_tcalistpath','CA list path','text','',{ info:'A directory of certificates, as an alternative to the file above.' }),
+      ctl('s_tcipher','Cipher list','text','',{ placeholder:'ADH-AES256-SHA,ADH-AES128-SHA' }),
+      ctl('s_tmethod','Method','text','',{ placeholder:'tlsv1', info:'The only value the shipped sample documents. PJPROJECT accepts others; this console does not offer a list it cannot verify against a real build.' }),
+      ctl('s_tverifyclient','Verify client certificate','switch',false),
+      ctl('s_tverifyserver','Verify server certificate','switch',false),
+      ctl('s_treqclientcert','Require client certificate','switch',false),
+      ctl('s_tsave','Save transport TLS settings','segmented','Save',{ options:['Save'], action:'security-transport-save' })
     ]},{ title:'STIR/SHAKEN', desc:'Signed caller identity for outbound calls.', ctls:[
       ctl('s_stir','Attestation enabled','switch',true),
       ctl('s_level','Attestation level','segmented','A',{ options:['A','B','C'], info:'A means you know the caller and their right to that number. C means the call just passed through you.' }),
       ctl('s_verifyin','Verify inbound identity','switch',true),
       ctl('s_failaction','On verification failure','segmented','Continue',{ options:['Continue','Tag','Reject'] })
+    ]},{ title:'STIR/SHAKEN keys', desc:'The private key Asterisk signs outgoing Identity headers with, and the certificate-authority material used to verify incoming ones -- a telephone-number issuing authority hands you these, this console only points Asterisk at them.', ctls:[
+      ctl('s_privkey','Signing private key file','text','',{ placeholder:'/var/lib/asterisk/keys/stir_shaken/tns/multi-tns-key.pem', info:'Must not be group- or world-readable; the account the asterisk process runs as must own it.' }),
+      ctl('s_certurl','Signing certificate URL','text','',{ placeholder:'https://example.com/tncerts/multi-tns-cert.pem', info:'Published by the issuing authority. Make sure whatever this URL serves is the certificate alone -- never the private key too.' }),
+      ctl('s_loadsyscerts','Trust the system CA store','switch',false),
+      ctl('s_cafile','Verification CA file','text','',{ info:'One or more CA certificates in PEM format, verifying the chain of trust for an inbound Identity header’s certificate. At least one of this and the directory below is required for verification to do anything.' }),
+      ctl('s_capath','Verification CA directory','text','',{ info:'A directory of hashed CA certificates -- an alternative to the file above.' }),
+      ctl('s_stirsave','Save STIR/SHAKEN settings','segmented','Save',{ options:['Save'], action:'security-stir-save' })
     ]}] },
   cli:{ rail:'sys', icon:'terminal', label:'CLI builder', badge:'', title:'CLI builder', file:'asterisk -rx', kind:'cli',
     sub:'Build a real Asterisk CLI command by choosing its parts. The raw console beside it is read-only output, shown only in expert mode.', groups:[] },

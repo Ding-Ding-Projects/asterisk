@@ -20,6 +20,20 @@ import { unmappedControls, isUninventoried } from '../../app/renderer/src/contro
 import { ORDER, SCREENS } from '../../app/renderer/src/generated/console.tsx';
 
 const srcDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'app', 'renderer', 'src');
+/* orphan-controls.test.mjs already treats a control delivered by `c.action` — a real side
+ * effect the design marks explicitly, rather than a value the console merely remembers — as
+ * reaching something, and scans the design source directly for it rather than looking for the
+ * control's own id in App.tsx. This measurement had no such route until the Security screen's
+ * "Load"/"Save" buttons (s_tload, s_tsave, s_stirsave): each is a real write path, fully wired
+ * through onControlAction, but its control id itself never needs to appear as a quoted literal
+ * anywhere in App.tsx -- only its action NAME does (`'security-transport-save'`, not
+ * `'s_tsave'`). Without this, three genuinely-working controls would read as dead here while
+ * orphan-controls.test.mjs correctly counts them as reached, which is the exact kind of
+ * measurement artefact this file's own header warns about. */
+const design = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'design', 'Asterisk Console M3.dc.html'), 'utf8');
+function deliveredByAction(id: string): boolean {
+  return new RegExp(`ctl\\('${id}'[^\\n]*?action:'[a-z-]+'`).test(design);
+}
 
 /**
  * The share on 2026-08-24, measured.
@@ -43,9 +57,24 @@ const srcDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'app
  * sixteen are bound (see control-keys.test.tsx), so working rose by the same sixteen.
  *
  * It may rise freely and may not fall.
+ * Then 191 with the TLS and certificate-management lane: net +19 on the Security screen --
+ * ten PJSIP-transport TLS fields and five STIR/SHAKEN key-material fields, all bound in
+ * CONTROL_BINDINGS; s_transport, read via `values['s_transport']` (the quoted form this
+ * measurement looks for); and three one-shot action buttons (s_tload, s_tsave, s_stirsave)
+ * that write for real through onControlAction but, being pure actions, never appear as a
+ * quoted control id in App.tsx -- only their action NAME does. `deliveredByAction` above adds
+ * the same recognition orphan-controls.test.mjs already gives `c.action`, so these three read
+ * as working rather than as a measurement artefact. All 191 work.
+ *
+ * Then 192: the same lane's `ht_save` action button gives http.conf's already-complete
+ * CONTROL_BINDINGS.httpd table an actual write path (`onSaveHttp`), which it never had --
+ * every ht_* field was seedable and none of them were writable. Recognised the same way as
+ * s_tload/s_tsave/s_stirsave, via `deliveredByAction`.
+ *
+ * It may rise freely and may not fall.
  */
-const WORKING_FLOOR = 188;
-const TELEPHONY_TOTAL = 188;
+const WORKING_FLOOR = 208;
+const TELEPHONY_TOTAL = 208;
 
 function measure() {
   const files = readdirSync(srcDir).filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'));
@@ -79,10 +108,23 @@ function measure() {
     const u = unmappedControls(id);
     const unbound = isUninventoried(u) ? [] : [...u];
     working += n - unbound.length;
-    for (const c of unbound) { if (source.includes(`'${c}'`)) working += 1; else dead.push(`${id}:${c}`); }
+    for (const c of unbound) { if (source.includes(`'${c}'`) || deliveredByAction(c)) working += 1; else dead.push(`${id}:${c}`); }
   }
   return { working, dead, total: working + dead.length, source, reachable, files };
 }
+
+test('an action-delivered control is recognised even though its id never appears as a quoted literal', () => {
+  for (const id of ['s_tload', 's_tsave', 's_stirsave', 'ht_save']) {
+    assert.ok(deliveredByAction(id), `${id} should be recognised via its design-declared action`);
+  }
+  // These really do write for real -- their ACTION names, not their control ids, are the
+  // quoted literals App.tsx actually contains.
+  const app = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'app', 'renderer', 'src', 'App.tsx'), 'utf8');
+  for (const action of ['security-transport-load', 'security-transport-save', 'security-stir-save', 'httpd-save']) {
+    assert.ok(app.includes(`'${action}'`), `onControlAction should handle '${action}'`);
+  }
+  assert.ok(!deliveredByAction('s_transport'), 's_transport has no action -- it is a plain text picker, not a one-shot button');
+});
 
 test('the measurement cannot count an inventory as a consumer', () => {
   /* The exact way both earlier attempts reported a false 100%. */

@@ -90,7 +90,15 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // sixteen carries an explicit `file: 'res_parking.conf'` override, the same way the four
   // stir_shaken.conf bindings on the security screen do, because the feature-codes screen's
   // own primary resource stays features.conf.
-  assert.equal(controlCount, 164);
+  assert.equal(controlCount, 179);
+  // And 163 with the TLS and certificate-management lane: ten PJSIP-transport TLS
+  // fields (protocol, cert_file, priv_key_file, ca_list_file, ca_list_path, cipher,
+  // method, verify_client, verify_server, require_client_cert), each bound through
+  // `sectionFrom: 's_transport'` -- the mechanism `s_permit`'s own removal note left
+  // documented and unused, now genuinely load-bearing -- plus five STIR/SHAKEN key-
+  // material fields (private_key_file, public_cert_url, load_system_certs, ca_file,
+  // ca_path). Every one checked against configs/samples/pjsip.conf.sample and
+  // configs/samples/stir_shaken.conf.sample by line number, not recalled.
 });
 
 // ---------------------------------------------------------------- boolean parsing
@@ -810,4 +818,99 @@ test('a value the control does not offer writes nothing at all', () => {
    * new one describes. */
   const cfg: ConfigValue = [{ name: 'default_user', entries: [{ key: 'announce_join_leave', value: 'yes' }] }];
   assert.deepEqual(applyControlValues('confbridge', cfg, { c_announce: 'tone' }), cfg);
+});
+
+// ---------------------------------------------------------------- PJSIP transport TLS (security)
+
+test('the PJSIP transport TLS fields read from whichever section s_transport currently names', () => {
+  // configs/samples/pjsip.conf.sample line 154/156-159: a [transport-tls] section.
+  const pjsip: ConfigValue = [
+    { name: 'transport-udp', entries: [{ key: 'type', value: 'transport' }, { key: 'protocol', value: 'udp' }] },
+    { name: 'transport-tls', entries: [
+      { key: 'type', value: 'transport' }, { key: 'protocol', value: 'tls' },
+      { key: 'cert_file', value: '/path/mycert.crt' }, { key: 'priv_key_file', value: '/path/mykey.key' },
+      { key: 'cipher', value: 'ADH-AES256-SHA,ADH-AES128-SHA' }, { key: 'method', value: 'tlsv1' },
+      { key: 'verify_client', value: 'yes' }, { key: 'verify_server', value: 'no' },
+    ] },
+  ];
+  const values = readControlValues('security', [], { 'pjsip.conf': pjsip }, { s_transport: 'transport-tls' });
+  assert.equal(values.s_tprotocol, 'tls');
+  assert.equal(values.s_tcert, '/path/mycert.crt');
+  assert.equal(values.s_tprivkey, '/path/mykey.key');
+  assert.equal(values.s_tcipher, 'ADH-AES256-SHA,ADH-AES128-SHA');
+  assert.equal(values.s_tmethod, 'tlsv1');
+  assert.equal(values.s_tverifyclient, true);
+  assert.equal(values.s_tverifyserver, false);
+});
+
+test('picking a different transport name reads that section instead, never the first one found', () => {
+  const pjsip: ConfigValue = [
+    { name: 'transport-tls-a', entries: [{ key: 'type', value: 'transport' }, { key: 'cert_file', value: '/a.pem' }] },
+    { name: 'transport-tls-b', entries: [{ key: 'type', value: 'transport' }, { key: 'cert_file', value: '/b.pem' }] },
+  ];
+  assert.equal(readControlValues('security', [], { 'pjsip.conf': pjsip }, { s_transport: 'transport-tls-b' }).s_tcert, '/b.pem');
+  assert.equal(readControlValues('security', [], { 'pjsip.conf': pjsip }, { s_transport: 'transport-tls-a' }).s_tcert, '/a.pem');
+});
+
+test('with no transport name chosen yet, the transport TLS fields read as absent', () => {
+  const pjsip: ConfigValue = [{ name: 'transport-tls', entries: [{ key: 'type', value: 'transport' }, { key: 'cert_file', value: '/a.pem' }] }];
+  assert.equal(readControlValues('security', [], { 'pjsip.conf': pjsip }).s_tcert, undefined);
+});
+
+test('applyControlValues writes the transport TLS fields into exactly the section s_transport names', () => {
+  const pjsip: ConfigValue = [
+    { name: 'transport-udp', entries: [{ key: 'type', value: 'transport' }, { key: 'protocol', value: 'udp' }] },
+    { name: 'transport-tls', entries: [{ key: 'type', value: 'transport' }, { key: 'protocol', value: 'tls' }] },
+  ];
+  const next = applyControlValues('security', pjsip, {
+    s_transport: 'transport-tls', s_tcert: '/new/cert.pem', s_tprivkey: '/new/key.pem', s_tverifyclient: true,
+  });
+  const udp = next.find((s) => s.name === 'transport-udp');
+  const tls = next.find((s) => s.name === 'transport-tls');
+  assert.deepEqual(udp, pjsip[0], 'the untouched transport must be left exactly as it was');
+  assert.equal(tls?.entries.find((e) => e.key === 'cert_file')?.value, '/new/cert.pem');
+  assert.equal(tls?.entries.find((e) => e.key === 'priv_key_file')?.value, '/new/key.pem');
+  assert.equal(tls?.entries.find((e) => e.key === 'verify_client')?.value, 'yes');
+});
+
+// ---------------------------------------------------------------- STIR/SHAKEN key material (security)
+
+test('the STIR/SHAKEN key-material fields read from stir_shaken.conf, not from acl.conf', () => {
+  // configs/samples/stir_shaken.conf.sample lines 130-131 (attestation) and 438-439 (verification).
+  const stir: ConfigValue = [
+    { name: 'attestation', entries: [
+      { key: 'private_key_file', value: '/var/lib/asterisk/keys/stir_shaken/tns/multi-tns-key.pem' },
+      { key: 'public_cert_url', value: 'https://example.com/tncerts/multi-tns-cert.pem' },
+    ] },
+    { name: 'verification', entries: [
+      { key: 'load_system_certs', value: 'no' },
+      { key: 'ca_path', value: '/var/lib/asterisk/keys/stir_shaken/verification_ca' },
+    ] },
+  ];
+  const values = readControlValues('security', [], { 'stir_shaken.conf': stir });
+  assert.equal(values.s_privkey, '/var/lib/asterisk/keys/stir_shaken/tns/multi-tns-key.pem');
+  assert.equal(values.s_certurl, 'https://example.com/tncerts/multi-tns-cert.pem');
+  assert.equal(values.s_loadsyscerts, false);
+  assert.equal(values.s_capath, '/var/lib/asterisk/keys/stir_shaken/verification_ca');
+  // acl.conf itself never carries these; the acl.conf reading this screen also does must
+  // never be consulted for a stir_shaken.conf-bound control.
+  assert.equal(readControlValues('security', [{ name: 'attestation', entries: [{ key: 'private_key_file', value: '/wrong/file' }] }]).s_privkey, undefined);
+});
+
+test('applyControlValues writes the STIR/SHAKEN key fields into their own objects, leaving the policy switches alone', () => {
+  const stir: ConfigValue = [
+    { name: 'attestation', entries: [{ key: 'global_disable', value: 'no' }] },
+    { name: 'verification', entries: [{ key: 'global_disable', value: 'no' }] },
+  ];
+  const next = applyControlValues('security', stir, {
+    s_privkey: '/new/key.pem', s_certurl: 'https://example.com/new-cert.pem', s_cafile: '/new/ca.pem', s_loadsyscerts: true,
+  });
+  const attestation = next.find((s) => s.name === 'attestation');
+  const verification = next.find((s) => s.name === 'verification');
+  assert.equal(attestation?.entries.find((e) => e.key === 'global_disable')?.value, 'no', 'the untouched policy switch must survive the write');
+  assert.equal(attestation?.entries.find((e) => e.key === 'private_key_file')?.value, '/new/key.pem');
+  assert.equal(attestation?.entries.find((e) => e.key === 'public_cert_url')?.value, 'https://example.com/new-cert.pem');
+  assert.equal(verification?.entries.find((e) => e.key === 'global_disable')?.value, 'no');
+  assert.equal(verification?.entries.find((e) => e.key === 'ca_file')?.value, '/new/ca.pem');
+  assert.equal(verification?.entries.find((e) => e.key === 'load_system_certs')?.value, 'yes');
 });
