@@ -92,7 +92,7 @@
         },
         {
           "id": "regex-builder",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "non-blocking-notifications",
@@ -232,7 +232,7 @@
         },
         {
           "id": "automatic-updates",
-          "status": "unverified"
+          "status": "verified"
         }
       ]
     },

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "commit": "d50822fbb689304fe4f52292c0457c51f9ef4f83",
+  "artifact": "console/dist/squirrel-windows/win-unpacked/Ding PBX Console.exe",
+  "artifactSha256": "bd9640b366240712a9953805be4589de71b0b7e5095dd81d1e0c834ec27a30ef",
+  "capture": "console/release/captures/windows-console/regex-builder.png",
+  "captureSha256": "2098ae052d4638cf21a3cddda1aa28a7e447a4fec8653165ee4e113099423d76",
+  "captureBytes": 281905,
+  "viewport": {"width": 2181, "height": 1393, "dpi": 144, "scale": 1.5},
+  "launch": {
+    "method": "Lowlevel hidden Windows desktop",
+    "desktop": "DingPBXEvidence",
+    "windowTitle": "Ding PBX Console",
+    "windowClass": "Chrome_WidgetWin_1",
+    "topLevelWindowsOnDesktop": 14,
+    "windowSelectedBy": "exact class Chrome_WidgetWin_1 with a non-empty title and non-zero size",
+    "isolatedProfile": "a task-scoped --user-data-dir created for this run only",
+    "driver": "loopback Chrome DevTools Protocol, exactly one page target verified before any evaluation"
+  },
+  "interaction": {
+    "route": "App > Dashboard > the section-search row's regex affordance",
+    "action": "clicked the real <button> beside the section-search label",
+    "observedTarget": "section list",
+    "domBeforeClick": {"elements": 395, "inputs": 0},
+    "domAfterClick": {"elements": 548, "inputs": 1},
+    "observedPanelControls": [
+      "Delete last", "Escape literals", "Wrap in group", "Anchor both ends", "Save pattern", "Cheatsheet"
+    ],
+    "observedGroups": ["ANCHORS", "CHARACTERS", "REPEATS", "GROUPS", "TELEPHONY"],
+    "observedTelephonyPresets": ["^PJSIP/", "^1\\d{3}$", "\\.conf$", "(?i)fail"],
+    "observedFlags": ["i · ignore case", "g · all matches", "m · multiline", "s · dot matches newline"],
+    "observedPlainWords": "No pattern yet, so everything matches.",
+    "anchoredToOriginatingField": true
+  },
+  "contractPoints": [
+    "the builder is anchored beside the search field it serves rather than opening as a detached page",
+    "it names which field it is attached to -- 'section list', the navigation pattern target",
+    "it carries a real text input, not a styled label, and the input appears only once the panel is open",
+    "it explains the current pattern in plain words rather than only showing syntax",
+    "plain text remains the default: the empty state states that everything matches"
+  ],
+  "correctionRecorded": {
+    "claim": "an earlier pass reported this control as a decorative search bar whose pattern target had no writer anywhere",
+    "finding": "both halves were wrong, and both were measurement errors rather than defects",
+    "detail": "the writer exists at console/app/renderer/src/generated/console.tsx onRxText, which assigns p[s.regexTarget] = v ? [v] : []; a grep for writers missed that indexed form. The follow-up click check read the DOM in the same evaluation tick as the click, before React re-rendered, so it observed the pre-render input count of zero. Re-measuring after the render shows the panel open with one real input.",
+    "conclusion": "the label displays the active pattern and the anchored builder authors it; the design is coherent and the feature works"
+  },
+  "notInterrogatedHere": [
+    "typing a pattern and observing the section list actually filter",
+    "the save-pattern, cheatsheet and per-flag behaviours",
+    "keyboard-only operation of the panel and focus return to the originating control",
+    "the other two pattern targets, row filter and memory search"
+  ],
+  "privacy": "no user desktop, cursor, foreground application or personal data is present; the application ran on an off-screen desktop under a throwaway profile",
+  "verification": "inspected-real-packaged-artifact"
+}
