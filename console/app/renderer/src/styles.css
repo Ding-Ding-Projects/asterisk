@@ -101,3 +101,89 @@ textarea {
 }
 
 .update-banner button:hover { background: #34412f; }
+
+/* The wrapper App.tsx puts between .app-root and the compiled console, so Focus mode's
+ * dimming (attention-modes.ts, FOCUS_DIM_CSS) is scoped to it and can never reach the
+ * rail below or the command palette -- neither is "the rest of the interface" the mode
+ * exists to push back. Needs height:100% for the same reason .app-root does: without
+ * one the shell's own height:100% resolves against an auto-height parent. */
+.attn-content {
+  height: 100%;
+}
+
+/* Time awareness, the one chosen next action, and momentum's own prompt. Anchored to
+ * the bottom-left corner per the house rule for non-blocking notifications -- the
+ * bottom-right corner is where this console's primary actions sit (see the update
+ * banner's own note above), so it is deliberately avoided here too. */
+.attn-rail {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 280px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #151b15;
+  border: 1px solid #33402f;
+  color: #e6efe6;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.attn-rail-time {
+  margin: 0;
+  color: #c4cbc2;
+}
+
+.attn-rail-next {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attn-rail-next-label {
+  color: #9aa39b;
+  font-size: 11px;
+}
+
+.attn-rail-next-input {
+  min-height: 24px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #414942;
+  background: #1b211c;
+  color: #e6efe6;
+  font: inherit;
+}
+
+.attn-rail-momentum {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #33402f;
+}
+
+.attn-rail-momentum-message {
+  margin: 0;
+}
+
+.attn-rail-momentum-dismiss {
+  align-self: flex-start;
+  border: 1px solid #4a5a44;
+  background: #2a3628;
+  color: inherit;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  min-height: 24px;
+}
+
+.attn-rail-momentum-dismiss:hover {
+  background: #34412f;
+}

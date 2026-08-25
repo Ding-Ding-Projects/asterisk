@@ -31,7 +31,11 @@ import {
   IDENTITY, displayName, resetDisplayName, setDisplayName,
 } from './display-name';
 import { setEmojisEnabled } from './dialog-emojis';
-import { isAttentionMode, setModeEnabled } from './attention-modes';
+import {
+  elapsedPhrase, FOCUS_DIM_CSS, isAttentionMode, modeEnabled, momentumPrompt, msSinceSnooze,
+  nextAction, presentationFor, setModeEnabled, setNextAction, snoozeMomentum,
+  type AttentionMode, type PresentationState,
+} from './attention-modes';
 import { openTicket, resolutionFor, type TicketCategory, type TicketSeverity } from './support-tickets';
 import {
   KNOWN_EDITORS, chooseEditor, clearEditorChoice, saveCustomEditor, validateCustomEditor, CUSTOM_EDITOR_ID,
@@ -329,6 +333,20 @@ export class App extends Base {
     'att_momentum': 'momentum',
   };
 
+  /** When this render of the console opened. Time awareness reads elapsed time from
+   *  this, not from anything persisted -- "this session" means this one. */
+  private sessionStartedAt = Date.now();
+
+  /** The last moment any real control changed, updated from one place in
+   *  {@link languageAwareSetVal} so every screen's edits count. Momentum's idle clock
+   *  and time awareness's "since anything changed" reading both come from here. */
+  private lastChangeAt = Date.now();
+
+  /** Redraws the attention rail on a slow clock so the elapsed-time reading and a
+   *  momentum prompt that has just become due both appear without requiring the user
+   *  to touch anything else first. */
+  private attentionTimer: ReturnType<typeof setInterval> | undefined;
+
   /**
    * The trunk-authentication screen's own settings, which are the console's and not
    * Asterisk's.
@@ -472,8 +490,15 @@ export class App extends Base {
     try { return JSON.parse(raw) as T; } catch { return fallback; }
   }
 
+  /** `toast` carries the ambient, lower-priority notices (progress pings, "name
+   *  restored to X") -- `fire`, the console's other non-blocking surface, carries the
+   *  ones a person actually has to see: failures and the outcome of something
+   *  substantial. Low stimulation's "only the notifications that genuinely need a
+   *  person" therefore quiets this one and leaves `fire` alone, rather than silencing
+   *  every notification in the app regardless of what it is telling somebody. */
   private gatedToast = (message: string): void => {
     if (this.consoleSetting<boolean>('nt_toast', true) === false) return;
+    if (this.attentionPresentation().quietNotifications) return;
     if (this.consoleSetting<boolean>('nt_sound', false) === true) this.playNotificationSound();
     this.baseToast(message);
   };
@@ -504,7 +529,10 @@ export class App extends Base {
       const clamped = Math.min(150, Math.max(80, value));
       root.style.fontSize = clamped + '%';
     } else if (id === 'p_motion') {
-      this.setReducedMotion(value === true);
+      /* Reduced motion is no longer this switch's alone: low stimulation composes with
+       * it rather than owning a second copy of the same style element, so this delegates
+       * to the one place that combines every source of the preference. */
+      this.applyLiveAttentionSetting();
     } else if (id === 'p_mono') {
       root.style.setProperty('font-variant-numeric', value === true ? 'tabular-nums' : '');
     }
@@ -530,10 +558,61 @@ export class App extends Base {
     this.reducedMotionStyleEl = el;
   }
 
+  /** Whatever preference the operating system already carries -- checked defensively,
+   *  because plenty of environments this renders in (a server-side render, a bare test)
+   *  have no `matchMedia` at all. */
+  private osPrefersReducedMotion(): boolean {
+    const w = globalThis as { matchMedia?: (query: string) => { matches: boolean } };
+    try { return w.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true; } catch { return false; }
+  }
+
+  /**
+   * The five attention modes plus whatever the platform already prefers, folded into
+   * one state. `platform.prefersReducedMotion` here is deliberately not only the real
+   * operating-system signal -- the console's own "Reduced motion" switch (`p_motion`)
+   * is exactly the same kind of already-expressed preference, so it feeds the same
+   * input rather than fighting low stimulation for ownership of one style element.
+   * Low stimulation only ever ORs on top of both, per {@link presentationFor}'s own
+   * contract: it can turn motion reduction on, never off.
+   */
+  private attentionPresentation(): PresentationState {
+    return presentationFor(this.durableStorage.storage, {
+      prefersReducedMotion: this.consoleSetting<boolean>('p_motion', false) || this.osPrefersReducedMotion(),
+    });
+  }
+
+  /** Applies what {@link attentionPresentation} computes to the live document, and
+   *  redraws so the rail (elapsed time, the chosen next action, a due momentum prompt)
+   *  reflects it too. Called after every attention-mode toggle, after the Reduced
+   *  motion switch changes, and once on restore -- the same shape every other live
+   *  console setting already uses. */
+  private applyLiveAttentionSetting(): void {
+    const presentation = this.attentionPresentation();
+    this.setReducedMotion(presentation.reduceMotion);
+    this.forceUpdate();
+  }
+
+  /** The switch controls' own on/off position is stored separately from the mode
+   *  itself (`console.attention.<mode>`, not the control's value), so without this the
+   *  behaviour would keep working across a relaunch while every switch silently showed
+   *  itself off -- correct underneath, misleading on screen. Mirrors
+   *  `restoreDisplayName`'s shape: seed `state.values`, never guess at a value that
+   *  was never actually set. */
+  private restoreAttentionModes(): void {
+    const restored: Record<string, unknown> = {};
+    for (const [controlId, mode] of Object.entries(App.ATTENTION_CONTROLS)) {
+      restored[controlId] = modeEnabled(this.durableStorage.storage, mode as AttentionMode);
+    }
+    this.setState((prior: { values?: Record<string, unknown> }) => ({
+      values: { ...(prior.values ?? {}), ...restored },
+    }) as never);
+  }
+
   private applyRestoredLiveConsoleSettings(): void {
     this.applyLiveAppearanceSetting('p_scale', this.consoleSetting<number>('p_scale', 100));
-    this.applyLiveAppearanceSetting('p_motion', this.consoleSetting<boolean>('p_motion', false));
     this.applyLiveAppearanceSetting('p_mono', this.consoleSetting<boolean>('p_mono', true));
+    this.restoreAttentionModes();
+    this.applyLiveAttentionSetting();
     if (this.consoleSetting<boolean>('p_tour', false) === true) this.set('onboardOpen', true);
     this.applyStartScreen();
   }
@@ -630,6 +709,12 @@ export class App extends Base {
         void this.refreshDaemonStatus();
       }
     }, 1000);
+    /* Reads no persisted state either -- the values it redraws for come from the modes
+     * and storage read at render time, not from anything that needs the bootstrap
+     * snapshot first. Idle cost is one redraw every 15s, which is what keeps "open for
+     * 41 minutes" honest and lets a momentum prompt appear without the user having to
+     * touch something else first. */
+    this.attentionTimer = setInterval(() => this.forceUpdate(), 15_000);
   }
 
   componentWillUnmount() {
@@ -640,6 +725,8 @@ export class App extends Base {
     this.scheduleTimer = undefined;
     if (this.sourceTimer) clearInterval(this.sourceTimer);
     this.sourceTimer = undefined;
+    if (this.attentionTimer) clearInterval(this.attentionTimer);
+    this.attentionTimer = undefined;
     /* Torn down with the unsubscribe the bridge returns. A listener that outlives the
      * component fires into a dead tree on the next reload. */
     this.stopProvisionListener?.();
@@ -1314,10 +1401,63 @@ What you can do: ${offered}.` : ''}`);
         `${matches.length} of ${this.palette.length}. Arrow keys to move, Enter to go, Escape to close.`)));
   }
 
+  /**
+   * Time awareness, the one chosen next action, and momentum's own prompt -- rendered
+   * here, above every screen, rather than as a row on a settings page, so "where the
+   * work happens" means the console itself and not a place you have to go looking.
+   * Absent from the document entirely when none of the three currently has anything to
+   * show, exactly like the palette above.
+   */
+  private attentionOverlay(): ReactNode {
+    const storage = this.durableStorage.storage;
+    const presentation = this.attentionPresentation();
+    const now = Date.now();
+    const prompt = momentumPrompt(storage, now - this.lastChangeAt, msSinceSnooze(storage, now));
+    if (!presentation.showElapsedTime && !presentation.showNextAction && !prompt.show) return null;
+    return h('div', { class: 'attn-rail', role: 'complementary', 'aria-label': 'Attention accommodations' },
+      !presentation.showElapsedTime ? null : h('p', { class: 'attn-rail-time' },
+        `Open for ${elapsedPhrase(now - this.sessionStartedAt)}. `
+        + `Last change ${elapsedPhrase(now - this.lastChangeAt)} ago.`),
+      !presentation.showNextAction ? null : h('div', { class: 'attn-rail-next' },
+        h('span', { class: 'attn-rail-next-label' }, 'One thing'),
+        h('input', {
+          type: 'text',
+          class: 'attn-rail-next-input',
+          placeholder: 'Choose the one thing you are doing',
+          'aria-label': 'The one thing you are doing right now',
+          value: nextAction(storage),
+          onInput: (event: { target: { value: string } }) => {
+            setNextAction(storage, event.target.value);
+            this.forceUpdate();
+          },
+        })),
+      !prompt.show ? null : h('div', { class: 'attn-rail-momentum', role: 'status' },
+        h('p', { class: 'attn-rail-momentum-message' }, prompt.message),
+        h('button', {
+          type: 'button',
+          class: 'attn-rail-momentum-dismiss',
+          onClick: () => { snoozeMomentum(storage); this.forceUpdate(); },
+        }, 'Not now')));
+  }
+
   render(): ReactNode {
-    /* Wrapping the compiled shell rather than replacing it: the palette is the only thing
-     * added, and it sits above everything because it is rendered after. */
-    return h('div', { class: 'app-root' }, super.render(), this.paletteOverlay());
+    /* Wrapping the compiled shell rather than replacing it: everything below is added,
+     * and it sits above the shell because it is rendered after.
+     *
+     * `.attn-content` is its own wrapper rather than a class added straight onto
+     * `.app-root`, so Focus mode's dimming (scoped to `.attn-content:focus-within`) can
+     * never reach the rail or the palette -- neither of those is "the rest of the
+     * interface" the mode exists to push back. It needs its own `height:100%` in
+     * styles.css for the same reason `.app-root` already does: without one, the shell's
+     * own `height:100%` resolves against an auto-height parent and the console grows to
+     * its content height instead of filling the window. */
+    const presentation = this.attentionPresentation();
+    return h('div', { class: 'app-root' },
+      h('div', { class: 'attn-content' },
+        !presentation.dimInactive ? null : h('style', {}, FOCUS_DIM_CSS),
+        super.render()),
+      this.paletteOverlay(),
+      this.attentionOverlay());
   }
 
   /**
@@ -1804,6 +1944,11 @@ What you can do: ${offered}.` : ''}`);
    *  the language one on its way past, applies it live and persists it, then hands the
    *  change on unchanged so the control behaves like every other control. */
   private languageAwareSetVal = (control: ControlRef, value: unknown): void => {
+    /* Momentum's idle clock and time awareness's "since anything changed" reading both
+     * read this one field. Every real control passes through here, so this is the one
+     * place that can honestly say something changed -- updated before any branch below
+     * can return early, so no kind of change is missed. */
+    this.lastChangeAt = Date.now();
     /* The display name and the dialog-emoji switch ride the same interception as the
      * language mode: one place that notices a cross-cutting setting going past, rather
      * than three places that each have to remember to. */
@@ -1934,7 +2079,15 @@ What you can do: ${offered}.` : ''}`);
     }
     if (control?.id?.startsWith('att_') && typeof value === 'boolean') {
       const mode = App.ATTENTION_CONTROLS[control.id];
-      if (isAttentionMode(mode)) setModeEnabled(this.durableStorage.storage, mode, value);
+      if (isAttentionMode(mode)) {
+        setModeEnabled(this.durableStorage.storage, mode, value);
+        /* Persisting the switch was the entire wiring before this lane: presentationFor
+         * and momentumPrompt existed, computed the right thing, and were never once
+         * called from here or from render(). This is the line that actually applies
+         * what the switch says -- reduced motion live, and the rail's redraw for
+         * dimming, elapsed time, the chosen next action and a due momentum prompt. */
+        this.applyLiveAttentionSetting();
+      }
     }
     if (control?.id === 'dlg_emoji' && typeof value === 'boolean') {
       setEmojisEnabled(this.durableStorage.storage, value);
