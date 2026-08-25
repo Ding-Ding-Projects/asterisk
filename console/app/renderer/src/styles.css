@@ -151,4 +151,187 @@ textarea {
  * operating system, and never opened this app's settings, still gets it honoured. */
 @media (prefers-reduced-motion: reduce) {
   .dim-sum-surprise { animation: none; }
+/* --------------------------------------------------------------------------------------
+ * Command palette (Ctrl+Shift+F), App.tsx's own paletteOverlay().
+ *
+ * Hand-written markup, so unlike everything above this line it ships with NO rule of its
+ * own from the compiled design -- measured live, the scrim rendered `position:static`,
+ * `background:rgba(0,0,0,0)`, and the card rendered `background:rgba(0,0,0,0)` with no
+ * border, no radius and no padding: a bare unstyled input followed by a few hundred
+ * default buttons in normal document flow, pushing the rest of the page off-screen.
+ *
+ * These rules are not invented. The compiled design already contains a full reference for
+ * this exact dialog -- search `dlgPalette` in generated/console.tsx, an unwired preview
+ * left in the shell -- and the values below are lifted from it: same scrim opacity, same
+ * card width/radius/shadow/position, same row treatment. Literal hex colours and pixel
+ * paddings on purpose, matching both that reference and every other hand-written rule in
+ * this file (see the CONSOLE_SETTINGS comment in App.tsx: the compiled design bakes
+ * literal dark-mode hex colours and pixel paddings, not CSS custom properties, so there is
+ * no token system for this file to plug into either).
+ *
+ * The card is a sibling of the compiled shell (App.tsx renders
+ * `h('div', {class:'app-root'}, super.render(), this.paletteOverlay())`), never a
+ * descendant of it, so none of the shell's own `font-family`/`color` on its root div
+ * reaches here by inheritance -- both are restated explicitly below. */
+
+/* Paints its own surface and bounds the whole dialog to the viewport. `position: fixed`
+ * rather than `absolute`: the overlay is appended at the END of .app-root, not inside
+ * whatever screen happens to be open, so `fixed` is what guarantees it covers the entire
+ * window regardless of which ancestor happens to be positioned. */
+.palette-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  /* Near the top rather than centred -- the compiled reference sits at 88px so the
+   * palette never lands on top of the title bar it was just opened from. */
+  align-items: flex-start;
+  padding: 88px 16px 16px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Bounded by the viewport, never by a hard-coded height: the 88px top offset above plus
+ * this max-height together mean the card can never be taller than the window at any
+ * display scale. .palette-results is where the actual scrolling happens (below), so the
+ * search field and the result count stay on screen while only the list moves -- capping
+ * height and hiding overflow here instead would delete rows off the bottom with no
+ * scrollbar to say anything was cut, which is exactly what these rules exist to avoid. */
+.palette-card {
+  display: flex;
+  flex-direction: column;
+  /* Default for a column flex container, restated because .palette-field and
+   * .palette-hint below rely on it to reach full width without their own `width` rule --
+   * a silent default is the kind of thing the next edit quietly breaks. */
+  align-items: stretch;
+  width: 620px;
+  max-width: 100%;
+  max-height: calc(100vh - 104px);
+  overflow: hidden;
+  background: #252b25;
+  border: 1px solid #333b34;
+  border-radius: 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  color: #dfe4dc;
+  font-family: Roboto, system-ui, sans-serif;
+  font-size: 14px;
+  animation: dlgPalette 0.22s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.palette-field {
+  /* No `width` rule: .palette-card's `align-items: stretch` fills the cross axis for
+   * every direct flex child minus its own margin, which is what keeps this correct
+   * without a `calc(100% - 40px)` fighting the margin below. */
+  flex: 0 0 auto;
+  margin: 16px 20px 12px;
+  padding: 10px 14px;
+  background: #0c110d;
+  border: 1px solid #333b34;
+  border-radius: 8px;
+  color: #e2e9e1;
+  font: inherit;
+}
+
+.palette-field::placeholder { color: #778078; }
+
+.palette-field:focus {
+  outline: 2px solid #82d9a5;
+  outline-offset: 1px;
+  border-color: #82d9a5;
+}
+
+.palette-results {
+  flex: 1 1 auto;
+  /* Without this a flex item's minimum height defaults to its content size, which is the
+   * whole (possibly thousand-row) list -- the exact clipping this rule exists to prevent
+   * turns into the exact overflow it exists to prevent, just one property away. */
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 8px 8px;
+}
+
+.palette-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin: 0 0 2px;
+  padding: 11px 14px;
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.palette-row:hover { background: #333b34; }
+
+.palette-row:focus-visible {
+  outline: 2px solid #82d9a5;
+  outline-offset: -2px;
+}
+
+/* The arrow-key highlight. Real DOM focus stays on .palette-field the whole time the
+ * palette is open (see listenForPaletteChord in App.tsx, which drives selection off
+ * window-level keydown rather than moving focus row to row), so this class is the ONLY
+ * visible sign of which row Enter will activate -- it gets the app's accent treatment
+ * rather than the plain grey of an ordinary hover, so it reads as a selection and not a
+ * mouse-over that happens to be sitting there. */
+.palette-row-on,
+.palette-row-on:hover {
+  background: #005230;
+  color: #9ff7c4;
+}
+
+.palette-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #dfe4dc;
+  font-size: 13.5px;
+}
+
+/* The second half of a result row -- "where it lives", shown beside the label so two
+ * similar labels can be told apart (see the `context` field's own doc comment in
+ * command-palette.ts). It was rendering as `LabelContext` with no space between the two:
+ * both are plain inline spans with no CSS of their own, so nothing separated them. The
+ * fix is the row's own `gap: 12px` above plus this rule's colour and size -- no separator
+ * character is inserted, because the markup was already correct and a stray delimiter
+ * would only be papering over the real cause. */
+.palette-context {
+  flex: 0 0 auto;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Colour and size match the compiled reference's own row-hint span exactly (search
+   * `dlgPalette` in generated/console.tsx): `color:#8FA394; font-size:11px;`. */
+  color: #8fa394;
+  font-size: 11px;
+}
+
+.palette-row-on .palette-context { color: #82d9a5; }
+
+/* The honest no-match state. An unstyled empty state reads as a broken surface rather
+ * than a deliberate "nothing found", which is the one state this palette must never be
+ * ambiguous about. */
+.palette-empty {
+  margin: 24px 20px;
+  color: #9aa39b;
+  font-size: 13px;
+  text-align: center;
+}
+
+.palette-hint {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 10px 20px;
+  border-top: 1px solid #333b34;
+  color: #778078;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 11px;
 }
