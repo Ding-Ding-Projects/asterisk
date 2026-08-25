@@ -53,3 +53,4 @@ console/design-reference/*.generated.json   text eol=lf
 # by exactly its own line count -- which reads as a changed design when nothing changed at
 # all. Measured: all nine overlapping files were byte-identical once normalised.
 design/site/**   text eol=lf
+console/release/captures/ui-drive/**/*.png   binary
