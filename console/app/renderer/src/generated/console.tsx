@@ -2950,7 +2950,7 @@ const SCREENS = {
     table:{ add:'New endpoint', grid:'1fr 1.2fr 1fr 1fr 120px', cols:['Endpoint','Contact','Transport','Codecs','Status'],
       rows:[['1001','10.20.4.31:5060','transport-tls','opus, g722','Reachable'],['1002','10.20.4.32:5060','transport-tls','opus, ulaw','Reachable'],['1003','10.20.4.44:5060','transport-udp','ulaw','Unreachable'],['1004','10.20.4.51:5060','transport-tls','opus, g722','Reachable'],['softphone-ada','198.51.100.9:39412','transport-wss','opus','Reachable'],['reception','10.20.4.12:5060','transport-udp','g722, ulaw','Reachable']] },
     groups:pjsipCtls() },
-  trunks:{ rail:'pbx', icon:'swap_horiz', label:'Trunks', badge:'3', title:'Trunks & registrations', file:'pjsip.conf · iax.conf', kind:'table',
+  trunks:{ rail:'pbx', icon:'swap_horiz', label:'Trunks', badge:'3', title:'Trunks & registrations', file:'pjsip.conf', kind:'table',
     sub:'Outbound carriers and inbound identifies, PJSIP and IAX2 alike -- iax2 show registry reads the same table `pjsip show registrations` already fed it. Registration state is polled live; credentials live in the secret intake, never on this screen.',
     table:{ add:'New trunk', grid:'1fr 1.4fr 1fr 1fr 120px', cols:['Trunk','Registrar','Auth','Outbound','State'],
       rows:[['carrier-primary','sip.carrier.example','userpass','yes','Registered'],['carrier-backup','sip2.carrier.example','userpass','yes','Registered']] },
