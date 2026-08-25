@@ -31,6 +31,14 @@ const api: DingDesktopApi = {
       return () => ipcRenderer.removeListener('provision:step', handler);
     },
   },
+  accessibility: {
+    isScreenReaderActive: () => ipcRenderer.invoke('accessibility:is-screen-reader-active') as Promise<boolean>,
+    onChange: (listener: (active: boolean) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, active: boolean) => listener(active);
+      ipcRenderer.on('accessibility:changed', handler);
+      return () => ipcRenderer.removeListener('accessibility:changed', handler);
+    },
+  },
 };
 
 contextBridge.exposeInMainWorld('dingDesktop', api);

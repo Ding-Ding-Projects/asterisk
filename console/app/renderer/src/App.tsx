@@ -31,7 +31,7 @@ import {
   IDENTITY, displayName, resetDisplayName, setDisplayName,
 } from './display-name';
 import { setEmojisEnabled } from './dialog-emojis';
-import { isAttentionMode, setModeEnabled } from './attention-modes';
+import { isAttentionMode, modeEnabled, setModeEnabled } from './attention-modes';
 import { openTicket, resolutionFor, type TicketCategory, type TicketSeverity } from './support-tickets';
 import {
   KNOWN_EDITORS, chooseEditor, clearEditorChoice, saveCustomEditor, validateCustomEditor, CUSTOM_EDITOR_ID,
@@ -46,10 +46,11 @@ import { attemptMessage, consumeCredential } from './credential-field';
 import { isFunnyLevel, setFunnyLevel, type CopyLanguage } from './funny-levels';
 import { recoveryFor, type FailureKind } from './in-context-recovery';
 import {
-  DEFAULT_PITCH, DEFAULT_RATE, MAX_PITCH, MAX_RATE, MIN_PITCH, MIN_RATE,
+  DEFAULT_PITCH, DEFAULT_RATE, MAX_PITCH, MAX_RATE, MIN_PITCH, MIN_RATE, Narrator,
   defaultNarrationSettings, resolveVoiceStatus,
   type NarrationLanguage, type NarrationSettings, type SpeechVoice,
 } from './narration';
+import { NULL_SPEECH_ENGINE, createWebSpeechEngine } from './narration-engine';
 import { HEADER_BYTES, readHeaderFacts } from '../../../control-plane/image-facts';
 import {
   DEFAULT_PRESET_ID, LOGO_PRESETS, acceptLogo, chooseCustom, choosePreset, currentChoice, resetLogo,
@@ -179,7 +180,12 @@ interface Shell {
   addEdgeFrom(): void;
   toast(message: string): void;
   areYouSure(title: string, body: string, seconds: number, onConfirm: () => void): void;
-  fire(title: string, body: string): void;
+  /* The compiled shell's real implementation takes exactly two arguments and simply
+   * ignores a third; declaring the optional `isError` here is purely a typing device
+   * so App's own two genuine-failure call sites (`daemonAction`/`ensureDaemon`) can
+   * pass it without a cast, while every other of the ~60 call sites -- unaware this
+   * exists -- keeps compiling and behaving exactly as before. */
+  fire(title: string, body: string, isError?: boolean): void;
 }
 
 /** The shape the compiled shell hands every control callback. */
@@ -245,6 +251,24 @@ export class App extends Base {
 
   private narration: NarrationSettings = defaultNarrationSettings();
 
+  /**
+   * The one real narrator instance, for the whole life of the component.
+   *
+   * Constructed eagerly as a field — like `ladder` above — rather than lazily on the
+   * first `nar_enabled` toggle, so `restoreNarration` can hand it the saved settings
+   * the instant they are read back instead of needing to remember to build it first.
+   * Off by default (the settings it starts with say so), so nothing speaks until the
+   * user actually turns narration on, however early this is constructed.
+   *
+   * `createWebSpeechEngine()` reaches for `window.speechSynthesis`; where that does
+   * not exist (a locked-down build, a machine with no OS voices, this test suite) it
+   * falls back to `NULL_SPEECH_ENGINE`, which never speaks but still resolves — the
+   * honest "nothing can be spoken here" state then surfaces through
+   * `resolveVoiceStatus`'s own `no-voice-available` kind rather than through a second,
+   * separate silent-failure path.
+   */
+  private readonly narrator = new Narrator(createWebSpeechEngine() ?? NULL_SPEECH_ENGINE);
+
   /** What the platform reports it can speak with. Empty until enumeration fills in. */
   private voices: SpeechVoice[] = [];
 
@@ -252,6 +276,10 @@ export class App extends Base {
   private narrationStatusLine = 'Not started.';
 
   private stopVoiceListener: (() => void) | undefined;
+
+  /** Torn down on unmount; set only when the desktop bridge actually reports
+   *  accessibility-support changes (see `listenForScreenReader` below). */
+  private stopScreenReaderListener: (() => void) | undefined;
 
   /** Read by the compiled `text`-kind control marked `action:'logo-status'`. */
   private logoStatusLine = 'The shipped mark.';
@@ -445,6 +473,10 @@ export class App extends Base {
    *  shell's and the copy would point at itself -- a recursion with no base case. */
   private readonly baseSetVal: (control: ControlRef, value: unknown) => void;
   private readonly baseToast: (message: string) => void;
+  /** Same reasoning as `baseToast` just above: `fire` is one more class-field arrow
+   *  function on the compiled shell, so wrapping it needs the same take-a-copy-first
+   *  dance done in the constructor rather than a `super.fire` that does not exist. */
+  private readonly baseFire: (title: string, body: string) => void;
 
   constructor(props: Record<string, never>) {
     super(props);
@@ -452,6 +484,8 @@ export class App extends Base {
     this.setVal = this.languageAwareSetVal;
     this.baseToast = this.toast as (message: string) => void;
     this.toast = this.gatedToast;
+    this.baseFire = this.fire as (title: string, body: string) => void;
+    this.fire = this.narratedFire;
     this.baseSet = this.set as (key: string, value: unknown) => void;
     this.set = this.screenTrackingSet;
   }
@@ -477,6 +511,13 @@ export class App extends Base {
 
   private gatedToast = (message: string): void => {
     if (this.consoleSetting<boolean>('nt_toast', true) === false) return;
+    /* Narrated in its own category, separate from `narratedFire`'s 'notification' --
+     * a toast and a fired notice are visually distinct surfaces in this console and
+     * frequently arrive back to back for one flow (a toast on start, a fire on the
+     * outcome), so sharing one cooldown bucket would let the second silently eat the
+     * first. Gated on the same `nt_toast` setting that decides whether the toast is
+     * shown at all: a toast the user asked never to see is not narrated either. */
+    this.narrator.enqueue('toast', message);
     if (this.consoleSetting<boolean>('nt_sound', false) === true) this.playNotificationSound();
     this.baseToast(message);
   };
@@ -608,6 +649,7 @@ export class App extends Base {
       this.startScheduler();
       this.startSourcePolling();
       this.restoreNarration();
+      this.applyQuietFromAttentionModes();
       this.restorePartnerSettings();
       this.applyRestoredLiveConsoleSettings();
       this.refreshLogoStatus();
@@ -621,6 +663,7 @@ export class App extends Base {
      * loaded, which is why it stays inside. */
     this.listenForProvisionSteps();
     this.startVoiceEnumeration();
+    this.listenForScreenReader();
     this.listenForPaletteChord();
     /* The configured server list is not a reading from any PBX — it exists before
      * anything is reachable and must be on screen whether or not discovery finds a
@@ -649,8 +692,13 @@ export class App extends Base {
     this.stopProvisionListener = undefined;
     this.stopVoiceListener?.();
     this.stopVoiceListener = undefined;
+    this.stopScreenReaderListener?.();
+    this.stopScreenReaderListener = undefined;
     this.stopPaletteKeys?.();
     this.stopPaletteKeys = undefined;
+    /* Cancels anything mid-utterance and drops the voice-list subscription the narrator
+     * holds internally — the same "torn down on unmount" rule as every listener above. */
+    this.narrator.dispose();
   }
 
   componentDidUpdate() {
@@ -779,7 +827,8 @@ export class App extends Base {
     this.toast('Starting the phone system…');
     const started = await this.request('daemon.start');
     if (!started?.ok) {
-      this.fire('The phone system did not start', started?.message ?? 'Asterisk did not answer after it was started.');
+      const detail = started?.message ?? 'Asterisk did not answer after it was started.';
+      this.fire('The phone system did not start', detail, true);
       return;
     }
     /* Anything read before this point was read against a daemon that was not up, so it
@@ -845,7 +894,8 @@ export class App extends Base {
     this.toast(`${verb === 'start' ? 'Starting' : verb === 'stop' ? 'Stopping' : 'Restarting'} the phone system…`);
     const response = await this.request(`daemon.${verb}`);
     if (!response?.ok) {
-      this.fire('Not done', response?.message ?? `The phone system did not ${verb}.`);
+      const detail = response?.message ?? `The phone system did not ${verb}.`;
+      this.fire('Not done', detail, true);
       await this.refreshDaemonStatus();
       return;
     }
@@ -1597,6 +1647,11 @@ What you can do: ${offered}.` : ''}`);
     }
     this.narration = next;
     this.durableStorage.storage.setItem(App.NARRATION_SETTING, JSON.stringify(next));
+    /* The real narrator hears every one of these the moment they're chosen -- the
+     * switch, the language, either voice, rate and pitch -- rather than only on the
+     * next restart. This is the one line that makes the seven `nar_*` controls above
+     * actually reach something that speaks instead of only reaching localStorage. */
+    this.narrator.setSettings(next);
     this.refreshNarrationStatus();
   }
 
@@ -1608,17 +1663,23 @@ What you can do: ${offered}.` : ''}`);
 
   private restoreNarration(): void {
     const raw = this.durableStorage.storage.getItem(App.NARRATION_SETTING);
-    if (typeof raw !== 'string' || raw === '') return;
-    try {
-      const parsed = JSON.parse(raw) as NarrationSettings;
-      if (parsed && typeof parsed === 'object') {
-        this.narration = { ...defaultNarrationSettings(), ...parsed };
+    if (typeof raw === 'string' && raw !== '') {
+      try {
+        const parsed = JSON.parse(raw) as NarrationSettings;
+        if (parsed && typeof parsed === 'object') {
+          this.narration = { ...defaultNarrationSettings(), ...parsed };
+        }
+      } catch {
+        /* A hand-edited profile falls back to the shipped settings rather than failing to
+         * start. Narration off is the safe direction for something that makes noise. */
+        this.narration = defaultNarrationSettings();
       }
-    } catch {
-      /* A hand-edited profile falls back to the shipped settings rather than failing to
-       * start. Narration off is the safe direction for something that makes noise. */
-      this.narration = defaultNarrationSettings();
     }
+    /* Handed to the real narrator unconditionally, including the "nothing saved yet"
+     * branch above. The narrator's own field default happens to already match
+     * `defaultNarrationSettings()`, but this makes that an explicit guarantee instead
+     * of leaving two independently-constructed defaults to keep agreeing by accident. */
+    this.narrator.setSettings(this.narration);
     this.refreshNarrationStatus();
   }
 
@@ -1641,6 +1702,48 @@ What you can do: ${offered}.` : ''}`);
       : `Narration is off. ${lines.join(' ')}`;
     this.forceUpdate();
   }
+
+  /**
+   * Quiet hours, borrowed from the Low stimulation attention mode rather than invented
+   * fresh: that mode already means "only the notifications that genuinely need a
+   * person" (see `attention-modes.ts`'s `quietNotifications`), which is exactly what
+   * the narrator's own `setQuiet` is for. Read at mount and re-applied the moment the
+   * mode itself is toggled, in `languageAwareSetVal`'s `att_` branch below.
+   */
+  private applyQuietFromAttentionModes(): void {
+    this.narrator.setQuiet(modeEnabled(this.durableStorage.storage, 'lowStimulation'));
+  }
+
+  /**
+   * Ducks the narrator while a real screen reader is active, using Electron's own
+   * accessibility-support signal where the desktop bridge exposes one (see
+   * `app/electron/main.ts` and `preload.ts` — `app.isAccessibilitySupportEnabled()`).
+   * The hosted HTTP surface has no such signal, so `accessibility` is optional on the
+   * bridge exactly like `provisioning` above, and this degrades to doing nothing
+   * there rather than guessing.
+   */
+  private listenForScreenReader(): void {
+    const accessibility = window.dingDesktop?.accessibility;
+    if (!accessibility) return;
+    void accessibility.isScreenReaderActive().then((active) => this.narrator.setScreenReaderActive(active));
+    this.stopScreenReaderListener = accessibility.onChange((active) => this.narrator.setScreenReaderActive(active));
+  }
+
+  /**
+   * The single path every `this.fire(...)` call is narrated through, wired in the
+   * constructor exactly the way `toast`/`setVal`/`set` already override the compiled
+   * shell's own class-field implementations. One category ('notification') so a burst
+   * of ordinary notices shares one cooldown and the newest supersedes the rest, per the
+   * contract's "infrequent" and "replaced, not stacked" requirements. `isError` is the
+   * one place a caller opts a specific failure out of that cooldown -- see
+   * `daemonAction`/`ensureDaemon`, the two genuine boolean-checked failures this passes
+   * `true` for -- so a real error is never the line that gets dropped for arriving too
+   * soon after a chattier notice.
+   */
+  private narratedFire = (title: string, body: string, isError = false): void => {
+    this.narrator.enqueue('notification', body ? `${title}. ${body}` : title, { isError });
+    this.baseFire(title, body);
+  };
 
   // ---------------------------------------------------------------- settings sources
 
@@ -1976,7 +2079,12 @@ What you can do: ${offered}.` : ''}`);
     }
     if (control?.id?.startsWith('att_') && typeof value === 'boolean') {
       const mode = App.ATTENTION_CONTROLS[control.id];
-      if (isAttentionMode(mode)) setModeEnabled(this.durableStorage.storage, mode, value);
+      if (isAttentionMode(mode)) {
+        setModeEnabled(this.durableStorage.storage, mode, value);
+        /* Applied live rather than only on the next restart -- the same reasoning as
+         * every other live-applied appearance/attention setting above. */
+        if (mode === 'lowStimulation') this.narrator.setQuiet(value);
+      }
     }
     if (control?.id === 'dlg_emoji' && typeof value === 'boolean') {
       setEmojisEnabled(this.durableStorage.storage, value);

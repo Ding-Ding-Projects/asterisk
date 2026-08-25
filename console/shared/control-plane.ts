@@ -117,6 +117,22 @@ export interface DingDesktopApi {
     /** Subscribes to each step as it finishes; returns an unsubscribe function. */
     onStep(listener: (step: ProvisionStepForRenderer) => void): () => void;
   };
+  /**
+   * Electron's own accessibility-support signal (`app.isAccessibilitySupportEnabled()`
+   * and the `'accessibility-support-changed'` event), forwarded to the renderer so a
+   * feature such as spoken narration can duck under a real screen reader rather than
+   * talking over it.
+   *
+   * Optional for the same reason `provisioning` is: the hosted HTTP bridge runs with no
+   * Electron main process behind it and has no such signal to report, so a caller
+   * checks for this before subscribing rather than a renderer assuming it exists.
+   */
+  accessibility?: {
+    /** The current state, read once (e.g. on mount) without waiting for a change event. */
+    isScreenReaderActive(): Promise<boolean>;
+    /** Subscribes to every change; returns an unsubscribe function. */
+    onChange(listener: (active: boolean) => void): () => void;
+  };
 }
 
 /** One provisioning step, as the renderer sees it. Structurally the control plane's own
