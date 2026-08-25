@@ -24,7 +24,7 @@ export interface DocsBundle {
 
 export const DOCS_BUNDLE: DocsBundle = {
   "generatedAt": "1970-01-01T00:00:00.000Z",
-  "articleCount": 88,
+  "articleCount": 90,
   "articles": [
     {
       "id": "agent/hub",
@@ -887,6 +887,49 @@ export const DOCS_BUNDLE: DocsBundle = {
         "../agent/secrets.md"
       ],
       "body": "# Voicemail boxes\n\n## Behavior\n\nMailboxes, greetings and delivery. Attachment and storage options are switches; nothing about a mailbox needs typing except the owner name. It is backed by `voicemail.conf`. The rail badge on this destination currently reads `18`. It lives on the Media rail, under the Media & voice group: Codecs, RTP, recordings, prompts and conferencing.\n\n## Configuration\n\n### Delivery\n\nWhat happens the moment a message lands.\n\n- **Attach recording to email** (`v_attach`) — a switch control, default `true`.\n- **Delete after emailing** (`v_delete`) — a switch control, default `false`. Careful. On means the only copy of the message is the one in the mailbox of the email server.\n  - *What it is:* Whether the recording is deleted from the PBX once it has been emailed.\n  - *Why it exists:* Mailbox storage on a PBX is finite and messages accumulate forever.\n  - *Choosing a value:* Off keeps a copy on the PBX. On makes email the only copy.\n  - *Gotcha:* If the mail server bounces the message, on means the recording is gone. Verify delivery before enabling it.\n- **Message format** (`v_format`) — a segmented control, default `wav49`, choices `wav`, `wav49`, `gsm`, `ogg`.\n- **Maximum messages** (`v_maxmsg`) — a stepper control, default `100`.\n- **Maximum message length** (`v_maxsecs`) — a slider control, default `180`.\n  - *What it is:* The longest a single voicemail message may be.\n  - *Why it exists:* It bounds storage and stops accidental open-line recordings filling the disk.\n  - *Choosing a value:* 180 seconds is generous for business use.\n  - *Gotcha:* Callers are cut off mid-word with no warning tone unless you also configure one.\n- **Discard shorter than** (`v_minsecs`) — a slider control, default `3`.\n\n### Caller experience\n\nPrompts, review and escape routes.\n\n- **Let caller review** (`v_review`) — a switch control, default `true`.\n- **Zero escapes to operator** (`v_operator`) — a switch control, default `true`.\n- **Play date envelope** (`v_envelope`) — a switch control, default `true`.\n- **Announce caller ID** (`v_saycid`) — a switch control, default `false`.\n\n## Failure modes and security\n\nEvery row reflects a real object in voicemail.conf; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen. If the mail server bounces the message, on means the recording is gone. Verify delivery before enabling it. Callers are cut off mid-word with no warning tone unless you also configure one.\n\n## Verification\n\nExercise every control against its documented default and its full option range, confirm the write lands in voicemail.conf, and confirm an invalid combination is rejected before it reaches Asterisk. Confirm rows reflect the current running configuration, that a destructive action on a row runs the full confirmation ceremony, and that a stale row is distinguishable from a missing one.\n\n## Suggested articles\n\n[Queues & agents](../pbx/queues.md), [Codecs & RTP](codecs.md), and [Secret intake](../agent/secrets.md).\n"
+    },
+    {
+      "id": "operations/build-and-release",
+      "category": "operations",
+      "title": "Ding PBX Console operations",
+      "headings": [
+        {
+          "title": "Build and package",
+          "id": "build-and-package"
+        },
+        {
+          "title": "The bundled runtime payload",
+          "id": "the-bundled-runtime-payload"
+        },
+        {
+          "title": "Verification",
+          "id": "verification"
+        },
+        {
+          "title": "Driving the built application",
+          "id": "driving-the-built-application"
+        },
+        {
+          "title": "Release",
+          "id": "release"
+        },
+        {
+          "title": "Recovery",
+          "id": "recovery"
+        }
+      ],
+      "links": [],
+      "body": "\n# Ding PBX Console operations\n\nEvery route below was executed in this repository and produced the stated result. Where a\nroute failed, the failure is recorded too, because the failures here are the expensive part.\n\n## Build and package\n\n    build.bat /s              # renderer + main process, ~32s warm\n    build-installer.bat /s    # full Squirrel.Windows set, ~8m\n\n**Invoke by absolute path from automation.** `NoDefaultCurrentDirectoryInExePath` makes\n`cmd /c build.bat` fail with \"is not recognized\" even when the working directory is right\nand the file is plainly there. Use:\n\n    MSYS_NO_PATHCONV=1 cmd /c \"cd /d <repo> && <repo>\\build.bat /s\"\n\nBoth halves matter: without `MSYS_NO_PATHCONV`, the shell rewrites `/s` to a drive path and\nthe build goes interactive.\n\n**Nothing else may touch `node_modules` while these run.** `npm ci` deletes and recreates\nit, so a test run or a live Electron instance holding a file produces `npm ci exited -4048`\n— a file-in-use error that reads like a corrupt install. Stop every Electron process first\nand run the suite and the build one at a time. Two separate failures in one session came\nfrom ignoring this.\n\n## The bundled runtime payload\n\n`console/resources/asterisk-wsl-rootfs.tar` (~315 MB) and its `.json` are **gitignored**;\nthey never enter history. Packaging refuses to reuse a payload whose `sourceCommit` differs\nfrom the commit being released — correct behaviour, not a defect — so a release from a new\ncommit rebuilds it, which needs a working local container engine.\n\nIf the engine is down, packaging fails with *\"Docker is installed but its Linux engine is\nunavailable\"*. Start it without disturbing the visible desktop by launching Docker Desktop\non an off-screen desktop through the cheap headless route, then poll `docker info` until\n`OSType` reports `linux`.\n\n## Verification\n\n    cd console && npm test    # 8 sub-suites, ~3200 assertions\n\nRead the **exit code**, not just the failure count: several gates live outside the test\nrunner (inventory validation, generated-file freshness, negative regressions), so a run can\nreport zero failures and still exit 1. When it does, the cause is in the last twenty lines.\n\nA failure under load is not automatically a regression. Re-run the single file alone before\nconcluding anything — a renderer test failed once in a contended run and passed 28/28 in\nisolation. Equally, a test that fails at exactly the configured timeout timed out; it did\nnot assert anything false.\n\n### Committed generated files\n\nTwo generated files are committed rather than built on demand, and each has a drift check that\ncompares the committed copy against a fresh generation:\n\n| File | Generator | Scratch override | Drift check |\n| --- | --- | --- | --- |\n| `app/renderer/src/generated/*` (the design compile) | `scripts/compile-design.mjs` | `DING_DESIGN_OUT_DIR` | `tests/ui/design-drift.test.mjs` |\n| `app/renderer/src/generated/docs-bundle.ts` | `scripts/bundle-docs.mjs` | `DING_DOCS_OUT_FILE` | `tests/ui/docs-drift.test.mjs` |\n\nThe scratch override is what makes each check able to fail. A check that regenerates over the file\nit is about to read compares that file with itself, always passes, and leaves the working tree\ndirty for whoever runs the suite next. The docs bundle was checked that way and drifted by two\narticles across a merge — `npm run build` regenerates it, so no release was affected, but every\nreader of the checked-in tree saw a catalogue missing this very article.\n\nA merge is the likeliest way to drift one: an article arriving on one side and a bundle\nregenerated without it on the other produces no conflict to report. If a drift check fails, run its\ngenerator and commit the result — do not hand-edit generated output.\n\n## Driving the built application\n\n    node console/scripts/ui-drive/drive.mjs   <port> <output>   # every click, a capture each\n    node console/scripts/ui-drive/gallery.mjs <port> <output>   # clean per-destination shots\n\nLaunch the application on an off-screen desktop with `--remote-debugging-port` and a\ntask-scoped `--user-data-dir`, then drive it over loopback. Refuse to evaluate anything\nuntil the target list holds **exactly one** page; that check is the isolation proof.\n\nFour traps, each measured here:\n\n- **A fresh profile opens on a setup wizard covering 94% of the viewport.** Clicks issued\n  through the document bypass hit-testing, so navigation works underneath it while every\n  capture photographs the wizard. 109 published images were lost to this. Dismiss it and\n  prove it is gone. Detect it by its own `Skip setup` control — **not** by looking for a\n  full-viewport element, because the application's content wrapper legitimately fills the\n  screen and that test refuses to drive a perfectly healthy app.\n- **Never pass `awaitPromise: true` to `Runtime.evaluate`.** It hangs on this Node even for\n  synchronous expressions.\n- **Write evaluated expressions with no backslashes.** One arrived mangled and silently\n  deleted every letter `s` from the results, with no error at all.\n- **Every navigable control carries an icon ligature glued to its label** — the text reads\n  `smartphoneEndpoints`, not `Endpoints`. Matching whole text finds nothing, and finding\n  nothing is indistinguishable from a screen with no controls.\n\nA capture is not evidence until it is checked. Sampling for pure black catches an unpainted\nframe — this palette has none — but it cannot tell you the *right* screen was captured.\nRecord the visible heading beside each image, and open one before believing any of it.\n\n## Release\n\nEvery push to `master` publishes a uniquely tagged non-draft release with a ~446 MB\ninstaller, and redeploys the site. Verify by observation: non-draft, exact target commit,\nassets downloadable.\n\n**Code signing is permanently prohibited.** `Get-AuthenticodeSignature` on the setup\nexecutable must report `NotSigned`, and the notes must say so rather than implying\nauthenticity.\n\n## Recovery\n\n- Suite exits 1 with zero failures → read the last twenty lines; a non-runner gate failed.\n- A generated file reports stale with no visible diff → line endings. Regenerate, and pin\n  the file `eol=lf` so it stops recurring.\n- A pinned count moved → re-derive it from the code and explain the delta. Never add two\n  lanes' deltas together and never force a number.\n- A negative regression goes green → its fixture may be asserting something that progress\n  made true. Force the condition instead of assuming it.\n"
+    },
+    {
+      "id": "operations/README",
+      "category": "operations",
+      "title": "Operations",
+      "headings": [],
+      "links": [
+        "build-and-release.md"
+      ],
+      "body": "# Operations\n\nHow this repository is built, packaged, driven, captured and released, and what to do when\none of those fails.\n\nDistinct from the rest of this documentation, which describes the product to somebody using\nit. This describes the repository to somebody working on it.\n\n- [Build and release](build-and-release.md) — the commands, and the failures worth knowing\n  about before meeting them. Mirrors the `ding-pbx-console-ops` operational skill.\n"
     },
     {
       "id": "pbx/canvas",

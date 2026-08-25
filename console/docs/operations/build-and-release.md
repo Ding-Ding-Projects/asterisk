@@ -49,6 +49,26 @@ concluding anything — a renderer test failed once in a contended run and passe
 isolation. Equally, a test that fails at exactly the configured timeout timed out; it did
 not assert anything false.
 
+### Committed generated files
+
+Two generated files are committed rather than built on demand, and each has a drift check that
+compares the committed copy against a fresh generation:
+
+| File | Generator | Scratch override | Drift check |
+| --- | --- | --- | --- |
+| `app/renderer/src/generated/*` (the design compile) | `scripts/compile-design.mjs` | `DING_DESIGN_OUT_DIR` | `tests/ui/design-drift.test.mjs` |
+| `app/renderer/src/generated/docs-bundle.ts` | `scripts/bundle-docs.mjs` | `DING_DOCS_OUT_FILE` | `tests/ui/docs-drift.test.mjs` |
+
+The scratch override is what makes each check able to fail. A check that regenerates over the file
+it is about to read compares that file with itself, always passes, and leaves the working tree
+dirty for whoever runs the suite next. The docs bundle was checked that way and drifted by two
+articles across a merge — `npm run build` regenerates it, so no release was affected, but every
+reader of the checked-in tree saw a catalogue missing this very article.
+
+A merge is the likeliest way to drift one: an article arriving on one side and a bundle
+regenerated without it on the other produces no conflict to report. If a drift check fails, run its
+generator and commit the result — do not hand-edit generated output.
+
 ## Driving the built application
 
     node console/scripts/ui-drive/drive.mjs   <port> <output>   # every click, a capture each

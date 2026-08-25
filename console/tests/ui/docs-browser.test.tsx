@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
@@ -218,7 +219,32 @@ test('a single-article bundle does not throw across the module', () => {
 
 test('the real generator bundles exactly as many articles as .md files exist on disk', () => {
   const generatorPath = join(consoleRoot, 'scripts', 'bundle-docs.mjs');
-  execFileSync(process.execPath, [generatorPath], { cwd: consoleRoot, stdio: 'pipe' });
+
+  /* Into a scratch file, never over the shipped bundle. Regenerating in place made this test
+   * unable to fail -- it overwrote the file and then read its own output back -- and left the
+   * working tree dirty for whoever ran the suite next. Whether the *committed* bundle matches the
+   * tree is a separate question, and tests/ui/docs-drift.test.mjs is what asks it. */
+  const scratchDir = mkdtempSync(join(tmpdir(), 'ding-docs-count-'));
+  const scratchFile = join(scratchDir, 'docs-bundle.ts');
+  try {
+    execFileSync(process.execPath, [generatorPath], {
+      cwd: consoleRoot,
+      stdio: 'pipe',
+      env: { ...process.env, DING_DOCS_OUT_FILE: scratchFile },
+    });
+
+    const contents = readFileSync(scratchFile, 'utf8');
+    const match = contents.match(/"articleCount":\s*(\d+)/);
+    assert.ok(match, 'generated bundle must record its articleCount');
+    const bundledCount = Number(match[1]);
+
+    const realCount = countMarkdown(join(consoleRoot, 'docs'));
+
+    assert.equal(bundledCount, realCount);
+    assert.ok(realCount > 0);
+  } finally {
+    rmSync(scratchDir, { recursive: true, force: true });
+  }
 
   function countMarkdown(dir: string): number {
     let count = 0;
@@ -230,15 +256,4 @@ test('the real generator bundles exactly as many articles as .md files exist on 
     }
     return count;
   }
-
-  const realCount = countMarkdown(join(consoleRoot, 'docs'));
-
-  const bundlePath = join(consoleRoot, 'app', 'renderer', 'src', 'generated', 'docs-bundle.ts');
-  const contents = readFileSync(bundlePath, 'utf8');
-  const match = contents.match(/"articleCount":\s*(\d+)/);
-  assert.ok(match, 'generated bundle must record its articleCount');
-  const bundledCount = Number(match[1]);
-
-  assert.equal(bundledCount, realCount);
-  assert.ok(realCount > 0);
 });

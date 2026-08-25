@@ -4,7 +4,16 @@ import { fileURLToPath } from 'node:url';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const docsDir = resolve(root, '..', 'docs');
-const outFile = resolve(root, '..', 'app', 'renderer', 'src', 'generated', 'docs-bundle.ts');
+const shippedOutFile = resolve(root, '..', 'app', 'renderer', 'src', 'generated', 'docs-bundle.ts');
+
+/* A drift check has to generate somewhere other than the file it is checking. Writing over the
+ * shipped bundle and then reading it back cannot fail: it compares a file against itself, and it
+ * also leaves the working tree dirty for whoever runs the suite next. DING_DOCS_OUT_FILE lets the
+ * check generate into a scratch path instead, the same way DING_DESIGN_OUT_DIR does for the
+ * design compile. */
+const outFile = process.env.DING_DOCS_OUT_FILE
+  ? resolve(process.env.DING_DOCS_OUT_FILE)
+  : shippedOutFile;
 
 function slugId(relPath) {
   return relPath.replaceAll('\\', '/').replace(/\.md$/, '');
