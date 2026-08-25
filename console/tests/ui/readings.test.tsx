@@ -23,7 +23,7 @@ import {
   valueOf,
   voicemailRows,
 } from '../../app/renderer/src/readings.ts';
-import type { Channel, Contact, Endpoint, ModuleSummary, QueueSummary, Registration, ViewReadings } from '../../app/renderer/src/readings.ts';
+import type { Channel, ChannelCodecUsage, Contact, Endpoint, ModuleSummary, QueueSummary, Registration, ViewReadings } from '../../app/renderer/src/readings.ts';
 
 const NOW = '2026-08-22T12:00:00.000Z';
 
@@ -83,7 +83,7 @@ test('channelRows on an empty list yields no rows', () => {
 
 // ---------------------------------------------------------------- endpointRows
 
-test('endpointRows joins a contact by AOR and marks transport/codecs NOT_READ', () => {
+test('endpointRows joins a contact by AOR, and marks transport/codecs NOT_READ when genuinely absent', () => {
   const endpoints: Endpoint[] = [
     { id: '1000', state: 'Not in use', channels: '0 of inf' },
     { id: '1001', state: 'Unavailable', channels: '0 of inf' },
@@ -92,6 +92,29 @@ test('endpointRows joins a contact by AOR and marks transport/codecs NOT_READ', 
   const rows = endpointRows(endpoints, contacts);
   assert.deepEqual(rows[0], ['1000', 'sip:1000@10.0.0.5:5060', NOT_READ, NOT_READ, 'Not in use']);
   assert.deepEqual(rows[1], ['1001', NOT_READ, NOT_READ, NOT_READ, 'Unavailable']);
+});
+
+test('endpointRows reads the transport off the endpoint and the codec off a matching live channel', () => {
+  const endpoints: Endpoint[] = [
+    { id: '1000', state: 'Not in use', channels: '1 of inf', transport: 'transport-udp' },
+    // No active channel for 2000, and no explicit transport: both columns stay honest.
+    { id: '2000', state: 'Not in use', channels: '0 of inf' },
+  ];
+  const channelStats: ChannelCodecUsage[] = [
+    { channelName: 'PJSIP/1000-00000001', endpointId: '1000', codec: 'ulaw' },
+  ];
+  const rows = endpointRows(endpoints, [], channelStats);
+  assert.deepEqual(rows[0], ['1000', NOT_READ, 'transport-udp', 'ulaw', 'Not in use']);
+  assert.deepEqual(rows[1], ['2000', NOT_READ, NOT_READ, NOT_READ, 'Not in use']);
+});
+
+test('endpointRows ignores a channel-stats row with no codec rather than showing a blank value', () => {
+  const endpoints: Endpoint[] = [{ id: '1000', state: 'Not in use', channels: '1 of inf' }];
+  // A channel that is up but reports no codec (e.g. direct media -- parseChannelStats
+  // never emits a row for those, but the row shape is still validated defensively here).
+  const channelStats: ChannelCodecUsage[] = [{ channelName: 'PJSIP/1000-00000001', endpointId: '1000' }];
+  const rows = endpointRows(endpoints, [], channelStats);
+  assert.deepEqual(rows[0], ['1000', NOT_READ, NOT_READ, NOT_READ, 'Not in use']);
 });
 
 // ---------------------------------------------------------------- registrationRows

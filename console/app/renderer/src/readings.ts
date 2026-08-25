@@ -12,7 +12,11 @@ export interface Channel {
   name: string; context: string; extension: string; state: string;
   application: string; callerNumber: string; durationSeconds: number;
 }
-export interface Endpoint { id: string; callerId?: string; state: string; channels: string }
+export interface Endpoint { id: string; callerId?: string; state: string; channels: string; transport?: string }
+/** One row of `pjsip show channelstats` — see `control-plane/asterisk-readings.ts`
+ *  `parseChannelStats` for the exact format string and why the codec column has to
+ *  come from a live channel rather than from `pjsip show endpoints` itself. */
+export interface ChannelCodecUsage { channelName: string; endpointId: string; codec?: string }
 export interface Contact { aor: string; uri: string; status: string; roundTripMs?: number }
 export interface Registration { id: string; serverUri: string; status: string }
 export interface QueueSummary {
@@ -32,6 +36,7 @@ interface Reading<T> { command: string; result: Observation<T> }
 export interface ViewReadings {
   channels?: Reading<Channel[]>;
   endpoints?: Reading<Endpoint[]>;
+  channelStats?: Reading<ChannelCodecUsage[]>;
   contacts?: Reading<Contact[]>;
   registrations?: Reading<Registration[]>;
   queues?: Reading<QueueSummary[]>;
@@ -107,7 +112,9 @@ export function reasonFor(readings: ViewReadings | undefined, keys: Array<keyof 
 export function rowsFor(screen: string, readings: ViewReadings | undefined): string[][] {
   if (!readings) return [];
   if (screen === 'live') return channelRows(valueOf(readings.channels) ?? []);
-  if (screen === 'endpoints') return endpointRows(valueOf(readings.endpoints) ?? [], valueOf(readings.contacts) ?? []);
+  if (screen === 'endpoints') {
+    return endpointRows(valueOf(readings.endpoints) ?? [], valueOf(readings.contacts) ?? [], valueOf(readings.channelStats) ?? []);
+  }
   if (screen === 'trunks') return registrationRows(valueOf(readings.registrations) ?? []);
   if (screen === 'queues') return queueRows(valueOf(readings.queues) ?? []);
   if (screen === 'modules') return moduleRows(valueOf(readings.modules) ?? []);
@@ -239,14 +246,26 @@ export function channelRows(channels: Channel[]): string[][] {
   ]);
 }
 
-/** Transport and codecs need a per-endpoint read the console does not make yet. */
-export function endpointRows(endpoints: Endpoint[], contacts: Contact[]): string[][] {
+/**
+ * Transport comes straight off the endpoint reading (`pjsip show endpoints`' own
+ * recursed `Transport:` child line — see `parseEndpoints`). Codecs come from a separate
+ * `pjsip show channelstats` reading matched back to an endpoint by id, because that is
+ * the only CLI output that ever prints one for the plural endpoint listing — see
+ * `parseChannelStats`. Both stay `NOT_READ` rather than a guess when genuinely absent:
+ * most endpoints have no explicit `transport=`, and an idle endpoint has no live
+ * channel to read a codec off.
+ */
+export function endpointRows(endpoints: Endpoint[], contacts: Contact[], channelStats: ChannelCodecUsage[] = []): string[][] {
   const byAor = new Map(contacts.map((contact) => [contact.aor, contact]));
+  const codecByEndpoint = new Map<string, string>();
+  for (const stat of channelStats) {
+    if (stat.codec && !codecByEndpoint.has(stat.endpointId)) codecByEndpoint.set(stat.endpointId, stat.codec);
+  }
   return endpoints.map((endpoint) => [
     endpoint.id,
     byAor.get(endpoint.id)?.uri ?? NOT_READ,
-    NOT_READ,
-    NOT_READ,
+    endpoint.transport ?? NOT_READ,
+    codecByEndpoint.get(endpoint.id) ?? NOT_READ,
     endpoint.state,
   ]);
 }
