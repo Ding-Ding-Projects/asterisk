@@ -1,9 +1,13 @@
 /**
  * Contract: the five attention modes compose, phrase elapsed time and gate the momentum
- * prompt the way the module claims to -- and the running console only ever does the first
- * third of that: remember which switch is on. Nothing reads the modes back to actually dim
- * anything, quiet a notification, show elapsed time, show a next action, or show the
- * momentum prompt.
+ * prompt the way the module claims to -- and the running console now actually reads them
+ * back, rather than only remembering which switch is on.
+ *
+ * This header used to say the opposite, and it was true when written: the modes persisted
+ * a boolean and nothing dimmed, quieted, timed or prompted. That gap is closed, and the
+ * pins that documented it further down are inverted to match. One is deliberately left
+ * as it was -- `enabledModes` is still called nowhere -- because collapsing all of them
+ * into one cheerful sweep would hide the part that is still true.
  *
  * `attention-modes.ts` is pure and self-contained, so this plain `.mjs` file `import()`s it
  * directly through Node's built-in TypeScript type-stripping and calls the real
@@ -202,25 +206,28 @@ test('the design renders all five mode switches, and none of them carries a stat
 
 /* --- PIN: nothing in the running app ever reads the modes back to change anything ------- */
 
-test('PIN: presentationFor is never called anywhere App.tsx or the generated shell can reach', () => {
-  /* No dimming, no motion reduction driven by this module, no notification quieting driven
-   * by this module, no elapsed-time display, no next-action display -- five switches that
-   * each persist a boolean and change nothing else about the interface. */
-  assert.doesNotMatch(app, /presentationFor\(/,
-    'App now calls presentationFor -- the "modes persist but do nothing" gap this pins may be fixed; update the test and the report');
-  assert.doesNotMatch(generated, /presentationFor\(/);
+/* These three replace pins that asserted the opposite: that presentationFor, elapsedPhrase
+ * and momentumPrompt were called nowhere App.tsx or the compiled shell could reach. That was
+ * true and worth pinning -- five switches each persisted a boolean and changed nothing else
+ * about the interface, so turning a mode on did nothing a person could see. Each pin carried
+ * its own instruction to update it once the gap closed, and each fired the moment it did.
+ *
+ * They assert the calls now. `enabledModes` keeps its original pin below, deliberately: it is
+ * still uncalled, and collapsing all four into one cheerful sweep would hide that. */
+
+test('presentationFor is called, so the modes drive something visible', () => {
+  assert.match(app, /\bpresentationFor\(/,
+    'presentationFor is called nowhere again -- the modes persist a boolean and change nothing');
 });
 
-test('PIN: elapsedPhrase is never called anywhere App.tsx or the generated shell can reach', () => {
-  assert.doesNotMatch(app, /elapsedPhrase\(/,
-    'App now calls elapsedPhrase -- update this pin and the report if the time-awareness mode now shows anything');
-  assert.doesNotMatch(generated, /elapsedPhrase\(/);
+test('elapsedPhrase is called, so time awareness shows a real figure', () => {
+  assert.match(app, /\belapsedPhrase\(/,
+    'elapsedPhrase is called nowhere again -- time awareness would display nothing');
 });
 
-test('PIN: momentumPrompt is never called anywhere App.tsx or the generated shell can reach', () => {
-  assert.doesNotMatch(app, /momentumPrompt\(/,
-    'App now calls momentumPrompt -- update this pin and the report if the momentum mode now shows a real prompt');
-  assert.doesNotMatch(generated, /momentumPrompt\(/);
+test('momentumPrompt is called, so momentum can actually prompt', () => {
+  assert.match(app, /\bmomentumPrompt\(/,
+    'momentumPrompt is called nowhere again -- the momentum mode would never prompt');
 });
 
 test('PIN: enabledModes is never called anywhere App.tsx or the generated shell can reach', () => {
