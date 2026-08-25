@@ -33,9 +33,12 @@ const STILL_ANNOUNCING = new Map([
   ['New branch', 'no git repository exists for /etc/asterisk; the app-side LocalHistory that IS git is append-only by design and has no branch operation'],
   ['Tag this state', 'same: no repository for /etc/asterisk, and LocalHistory records rather than tags. The nearest real thing is a named restore point in the backup list'],
   ['Export bundle', 'a git bundle of a repository that does not exist. The backups it would really be exporting are files, so an archive of those is the honest equivalent'],
-  ['Revert just this option', 'restore replaces a whole file from a backup; there is no per-option revert, and inventing one means diffing and rewriting a single key inside a live config'],
   ['Branch from here', 'same as New branch: no repository, and the history that is git is append-only'],
 ]);
+/* 'Revert just this option' is not on this list any more: it now calls setVal() with the
+ * commit's own recorded 'from' value, which really does revert the one option and records
+ * a new commit doing it -- the same mechanism every real control on this console already
+ * uses to write a value. */
 
 /* The same shape, hiding behind a confirmation. This was a real blind spot: "Delete step"
  * opened a genuine three-second destructive gate and then only fired a message, so the gate
@@ -67,6 +70,55 @@ test('the bulk list stays honest too', () => {
   const found = new Set([...design.matchAll(BULK_ANNOUNCE_ONLY)].map((match) => match[1]));
   const fixed = [...BULK_STILL_ANNOUNCING.keys()].filter((label) => !found.has(label));
   assert.deepEqual(fixed, [], `no longer announcing, so remove from the list: ${fixed.join(', ')}`);
+});
+
+/*
+ * And the same shape again under every OTHER property name. run: is the one the first
+ * regex already covers end to end; this one deliberately excludes it so the two guards
+ * never double-report the same handler under two different names.
+ *
+ * This is the gap a real audit found: a per-node duplicate button (`dup:`), a palette
+ * "add step" (`add:`), a menu-bar entry (`open:`), a colour-swatch copy (`copy:`), an
+ * emission-guard scan (`act:`) and two more each sat on their own property name rather
+ * than `run:`, so the guard above -- which looks specifically for `run:() => this.toast(`
+ * -- walked straight past every one of them. Five of those are real now; the two that
+ * cannot be are named below with why, exactly like every other list in this file.
+ */
+const PROPERTY_ANNOUNCE_ONLY = /\b(?!run:)([a-zA-Z]\w*):\(\) => this\.(?:toast|fire)\(/g;
+
+const PROPERTY_STILL_ANNOUNCING = new Map([
+  ['pairAuth', 'no TOTP secret is ever generated -- the "QR" next to this button is a static checkerboard -- and tryUnlock() never checks a one-time code even when the chosen lock method includes one. Real pairing needs a real secret, a real otpauth:// QR and real verification, which is a standalone feature this lane did not build'],
+  ['ask', 'there is no messaging channel to a trunk partner anywhere in this console; deferring the request or answering it YES/NO are the only two things this screen can really do'],
+  ['newAuthRequest', 'same gap as ask: composing and sending a request to a partner needs the messaging channel that does not exist yet'],
+]);
+
+test('a property handler does something, or is recorded as not doing it', () => {
+  const found = [...design.matchAll(PROPERTY_ANNOUNCE_ONLY)].map((match) => match[1]);
+  const unexpected = found.filter((name) => !PROPERTY_STILL_ANNOUNCING.has(name));
+  assert.deepEqual(unexpected, [],
+    `these property handlers claim work they do not do, and are not recorded as known: ${unexpected.join(', ')}`);
+});
+
+test('the property list stays honest too', () => {
+  const found = new Set([...design.matchAll(PROPERTY_ANNOUNCE_ONLY)].map((match) => match[1]));
+  const fixed = [...PROPERTY_STILL_ANNOUNCING.keys()].filter((name) => !found.has(name));
+  assert.deepEqual(fixed, [], `no longer announcing, so remove from the list: ${fixed.join(', ')}`);
+});
+
+test('every known property item says what it is waiting on', () => {
+  for (const [name, reason] of PROPERTY_STILL_ANNOUNCING) {
+    assert.ok(reason.length > 20, `${name} has no real reason recorded`);
+  }
+});
+
+test('the top menu bar opens a real menu rather than announcing itself', () => {
+  /* The seven top menus used to be one line: `open:() => this.toast(l + ' menu')`. Assert
+   * the shape is gone, not just that this particular string is -- a regression here would
+   * otherwise still say "File menu" through a different call and slip past every other
+   * check in this file. */
+  assert.doesNotMatch(design, /open:\(\)\s*=>\s*this\.toast\(/u,
+    'a menu-bar entry still just announces its own name instead of opening real items');
+  assert.match(design, /ctxKind:'menubar'/u, 'the menu bar no longer opens the shared context-menu overlay');
 });
 
 test('a confirmation runs something, rather than only reporting', () => {
