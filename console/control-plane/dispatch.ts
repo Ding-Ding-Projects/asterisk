@@ -21,7 +21,7 @@ import {
 } from './asterisk-parsers.js';
 import { planDeployment, runDeployment, type DeployTarget } from './console-deploy.js';
 import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory, MediaLibrary, LocalHistory } from './index.js';
-import { ServerInventory, SettingsRegistry } from './index.js';
+import { ServerInventory, SettingsRegistry, parseSettingsSnapshot } from './index.js';
 import type { ServerInventoryStore, ServerRecord, SettingsSnapshotStore } from './index.js';
 import { atomicWriteFileSync } from './atomic-file.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
@@ -257,19 +257,9 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     constructor(private readonly path: string) {}
     read(): Record<string, string> | undefined {
       if (!existsSync(this.path)) return undefined;
-      try {
-        const parsed = JSON.parse(readFileSync(this.path, 'utf8')) as unknown;
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
-        const out: Record<string, string> = {};
-        for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
-          if (typeof value === 'string') out[key] = value;
-        }
-        return out;
-      } catch {
-        // Corrupt or truncated JSON fails closed to "nothing persisted" -- every
-        // renderer default applies -- rather than throwing at startup.
-        return undefined;
-      }
+      // Corrupt or truncated JSON fails closed to "nothing persisted" -- every
+      // renderer default applies -- rather than throwing at startup.
+      return parseSettingsSnapshot(readFileSync(this.path, 'utf8'));
     }
     write(snapshot: Record<string, string>): void {
       atomicWriteFileSync(this.path, JSON.stringify(snapshot, null, 2));

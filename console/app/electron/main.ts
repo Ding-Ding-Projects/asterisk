@@ -12,12 +12,15 @@ import {
   readCurrentIdentity, fetchReleases, fetchReleaseIdentity, fetchShaSumsText, downloadAsset,
   discardDownload, sweepStaleDownloads, launchInstaller, releaseIdentityDigest,
 } from './updater-runtime.js';
+import { detectInstalledEditors, openInEditor, readEditorSettingsSnapshot } from '../../control-plane/editor-launch.js';
+import { openFolderInFileManager } from '../../control-plane/local-folder.js';
 
 let mainWindow: BrowserWindow | null = null;
+const userDataPath = app.getPath('userData');
 const dispatcher = createControlPlaneDispatcher({
   /* Straight onto the same channel the updater already uses: one send, no new
    * privilege, and the renderer decides what to do with it. */
-  onProvisionStep: (step) => mainWindow?.webContents.send('provision:step', step), userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false })
+  onProvisionStep: (step) => mainWindow?.webContents.send('provision:step', step), userDataPath, resourcesPath: process.resourcesPath, hosted: false })
 const { controlPlaneRequest } = dispatcher;
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 let updateCheckInFlight: Promise<void> | undefined;
@@ -172,6 +175,24 @@ ipcMain.on('window:minimize', () => mainWindow?.minimize());
 ipcMain.on('window:toggle-maximize', () => mainWindow?.isMaximized() ? mainWindow.unmaximize() : mainWindow?.maximize());
 ipcMain.on('window:close', () => mainWindow?.close());
 ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequest) => controlPlaneRequest(request));
+
+/* Real installed-editor detection and launch (see `control-plane/editor-launch.ts`).
+ * `editors:open` never trusts the renderer for which executable to run: it re-derives
+ * the choice from the console's own persisted settings snapshot and re-runs detection,
+ * so what it spawns can never be an arbitrary renderer-supplied path. */
+ipcMain.handle('editors:detect', async () => detectInstalledEditors().map((entry) => ({ id: entry.definition.id, resolved: entry.resolved })));
+ipcMain.handle('editors:open', async (_event, target: { kind: 'file' | 'folder'; path: string }) => {
+  const kind = target?.kind === 'folder' ? 'folder' : 'file';
+  const path = typeof target?.path === 'string' ? target.path : '';
+  return openInEditor(readEditorSettingsSnapshot(userDataPath), { kind, path });
+});
+
+/* The console's application-data folder: its real path, and opening it in the platform's
+ * file manager -- Support Tickets' one real action, and the folder the external-editor
+ * "open here" action hands to the chosen editor. Always `userDataPath`, computed here;
+ * the renderer never supplies it and nothing in either channel accepts one. */
+ipcMain.handle('local-data:path', async () => userDataPath);
+ipcMain.handle('local-data:open-folder', async () => openFolderInFileManager(userDataPath));
 
 if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
   app.quit();

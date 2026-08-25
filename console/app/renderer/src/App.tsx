@@ -32,11 +32,11 @@ import {
 } from './display-name';
 import { setEmojisEnabled } from './dialog-emojis';
 import { isAttentionMode, setModeEnabled } from './attention-modes';
-import { openTicket, resolutionFor, type TicketCategory, type TicketSeverity } from './support-tickets';
+import { openTicket, resolutionFor, type Ticket, type TicketCategory, type TicketSeverity } from './support-tickets';
 import {
-  KNOWN_EDITORS, chooseEditor, clearEditorChoice, saveCustomEditor, validateCustomEditor, CUSTOM_EDITOR_ID,
+  KNOWN_EDITORS, chooseEditor, chosenEditor, clearEditorChoice, saveCustomEditor, validateCustomEditor, CUSTOM_EDITOR_ID,
 } from './external-editor';
-import type { CustomEditor } from './external-editor';
+import type { CustomEditor, DetectedEditor } from './external-editor';
 import { loadRules } from './scheduled-settings';
 import {
   activateSchoolMode, deactivateSchoolMode, hasCredential, renameSchoolMode,
@@ -584,6 +584,12 @@ export class App extends Base {
    *  repeated failures rather than on the first typo. */
   private wrongUnlockCounts: Record<string, number> = {};
 
+  /** Which of the built-in editors real detection found on this machine, refreshed on
+   *  mount. Empty until the first detection round trip resolves -- the picker shows the
+   *  honest "nothing found yet" state rather than the previous hard-coded four names in
+   *  the meantime, never the other way around. See `refreshEditorDetection`. */
+  private detectedEditors: DetectedEditor[] = [];
+
   private bridge() {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
   }
@@ -611,6 +617,11 @@ export class App extends Base {
       this.refreshSchoolStatus();
       this.restoreAppearance();
       this.forceUpdate();
+      /* Not awaited: it is its own round trip to the privileged process and forces its
+       * own update once it resolves, so it must not hold up everything else restoring
+       * above. Depends on the storage snapshot having loaded (it reads the persisted
+       * editor choice), which is why it still lives inside this `.then()`. */
+      void this.refreshEditorDetection();
     });
     /* Outside the bootstrap chain deliberately: this subscribes to a live channel and
      * reads no persisted state, so making it wait would delay the first steps of a deploy
@@ -875,8 +886,9 @@ export class App extends Base {
 
   // ---------------------------------------------------------------- support tickets
 
-  /** Files the ticket locally and shows the resolution. Nothing leaves the machine, and
-   *  nothing is deleted here: the console opens the folder and the person deletes it. */
+  /** Files the ticket locally and opens the resolution folder. Nothing leaves the
+   *  machine, and nothing is deleted here: the console opens the folder and the person
+   *  deletes it themselves. */
   private fileSupportTicket(): void {
     const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
     const result = openTicket({
@@ -890,15 +902,128 @@ export class App extends Base {
       this.fire('That ticket will not file', result.problems[0].message);
       return;
     }
-    const resolution = resolutionFor(IDENTITY.dataDirectory);
+    void this.openSupportTicketFolder(result);
+  }
+
+  /**
+   * The actual "This console will open it for you" the resolution copy promises.
+   *
+   * `IDENTITY.dataDirectory` is only a directory *name* ("ding-pbx-console"), never a
+   * real path -- the real absolute path only exists in the privileged process, which is
+   * why this is a round trip rather than something computed locally. Reports honestly
+   * both when this mode has no local folder at all (hosted, no `window.dingDesktop`) and
+   * when the file manager itself would not start, per `support-tickets.md`'s failure
+   * mode: the exact path is always shown as text either way, so the person can navigate
+   * there by hand.
+   */
+  private async openSupportTicketFolder(result: Ticket): Promise<void> {
+    const localData = window.dingDesktop?.localData;
+    if (!localData) {
+      const resolution = resolutionFor(IDENTITY.dataDirectory);
+      this.fire(`Ticket ${result.id} — ${result.status}`,
+        `${result.firstResponse}
+
+${resolution.instructions}
+
+This mode has no local file manager to open it in; find the folder by hand.
+
+${resolution.consequence}
+
+${resolution.disclosure}`);
+      return;
+    }
+    const path = await localData.path();
+    const resolution = resolutionFor(path);
+    const outcome = await localData.openFolder();
+    const openedLine = outcome.ok
+      ? 'The folder is open now.'
+      : `The folder could not be opened automatically (${outcome.reason}); navigate to the path above by hand.`;
     this.fire(`Ticket ${result.id} — ${result.status}`,
       `${result.firstResponse}
 
 ${resolution.instructions}
 
+${openedLine}
+
 ${resolution.consequence}
 
 ${resolution.disclosure}`);
+  }
+
+  // ---------------------------------------------------------------- external editor
+
+  /** The "External editor" group's controls, found by title rather than a fixed array
+   *  index so a design reorder cannot silently point this at the wrong group. Mutated
+   *  in place (options, info, and -- for `ed_open` -- a genuinely new control) rather
+   *  than recompiled from `design/`, per the task brief's second precedent: this avoids
+   *  re-auditing the pinned binding/expression counts in `design/inventory.json` and
+   *  `inventories/design-parity.json` for a change that is pure runtime wiring. */
+  private editorCtls(): EditorCtl[] | undefined {
+    const screens = SCREENS as unknown as Record<string, { groups?: { title?: string; ctls: EditorCtl[] }[] }>;
+    return screens['customise']?.groups?.find((g) => g.title === 'External editor')?.ctls;
+  }
+
+  /**
+   * Real detection, run once on mount (and safe to re-run after installing an editor).
+   *
+   * Replaces the picker's previously hard-coded four names with whatever installed
+   * editors were actually found, matching the info text's own claim ("Only editors
+   * actually installed on this machine are offered"), and reflects the persisted choice
+   * back into the picker -- nothing did that before either. Also adds the "open here"
+   * action control the compiled design does not have at all yet.
+   */
+  private async refreshEditorDetection(): Promise<void> {
+    const detect = window.dingDesktop?.editors?.detect;
+    this.detectedEditors = detect ? await detect()
+      .then((found) => found
+        .map((entry) => {
+          const definition = KNOWN_EDITORS.find((candidate) => candidate.id === entry.id);
+          return definition ? { definition, resolved: entry.resolved } : undefined;
+        })
+        .filter((entry): entry is DetectedEditor => entry !== undefined))
+      : [];
+    const choice = this.editorCtls()?.find((c) => c.id === 'ed_choice');
+    if (choice) {
+      choice.options = this.detectedEditors.map((entry) => entry.definition.name);
+      choice.info = this.detectedEditors.length > 0
+        ? 'Only editors actually installed on this machine are offered. If yours is missing, add it below by browsing for its executable.'
+        : 'No installed editor was found on this machine. The console works fully without one; add yours below by browsing for its executable.';
+    }
+    const chosen = chosenEditor(this.durableStorage.storage, this.detectedEditors);
+    if (chosen) {
+      this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, ed_choice: chosen.definition.name } } as never));
+    }
+    this.ensureEditorOpenControl();
+    this.forceUpdate();
+  }
+
+  /** Adds the "open here" action control exactly once -- a second detection round trip
+   *  must never append a duplicate. */
+  private ensureEditorOpenControl(): void {
+    const ctls = this.editorCtls();
+    if (!ctls || ctls.some((c) => c.id === 'ed_open')) return;
+    ctls.push({
+      id: 'ed_open', label: 'Open here in the chosen editor', kind: 'switch', value: false,
+      info: 'Opens this console’s own local data folder as a workspace root in the chosen editor. The console works fully without one; this is a convenience, not something it needs.',
+    });
+  }
+
+  /** "ed_open": hands the console's local-data folder to the chosen editor, as a
+   *  workspace root rather than a bare unrooted file — see `external-editor.md`. */
+  private async launchExternalEditor(): Promise<void> {
+    const editors = window.dingDesktop?.editors;
+    const localData = window.dingDesktop?.localData;
+    if (!editors || !localData) {
+      this.fire('Nothing to open here', 'This mode has no local editor integration.');
+      return;
+    }
+    const path = await localData.path();
+    const outcome = await editors.open({ kind: 'folder', path });
+    if (outcome.ok) {
+      this.toast('Opened in your editor');
+      return;
+    }
+    this.fire('Not opened', outcome.downloadUrl ? `${outcome.message} ${outcome.downloadUrl}` : outcome.message);
   }
 
   // ---------------------------------------------------------------- deploy progress
@@ -1927,6 +2052,11 @@ What you can do: ${offered}.` : ''}`);
     if (control?.id === 'ed_clear' && value === true) {
       clearEditorChoice(this.durableStorage.storage);
       this.toast('Editor choice forgotten');
+      this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, ed_choice: '' } } as never));
+    }
+    if (control?.id === 'ed_open' && value === true) {
+      void this.launchExternalEditor();
+      return;
     }
     if (control?.id === 'sup_open' && value === true) {
       this.fileSupportTicket();
@@ -3696,6 +3826,18 @@ It is shown once. The phone needs it to register.`);
     const ids = ORDER.filter((id) => (SCREENS as Record<string, { rail: string }>)[id].rail === screen);
     return sections.map((section, i) => ({ ...section, badge: badgeFor(ids[i], this.readings) }));
   }
+}
+
+/** The shape `editorCtls()` reads and mutates -- a subset of what `ctl(...)` in the
+ *  compiled design actually produces, kept narrow rather than importing the generated
+ *  file's own untyped shape. */
+interface EditorCtl {
+  id: string;
+  label: string;
+  kind: string;
+  value: unknown;
+  options?: string[];
+  info?: string;
 }
 
 interface DesktopBridge {

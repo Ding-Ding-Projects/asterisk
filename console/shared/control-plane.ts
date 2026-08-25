@@ -117,6 +117,41 @@ export interface DingDesktopApi {
     /** Subscribes to each step as it finishes; returns an unsubscribe function. */
     onStep(listener: (step: ProvisionStepForRenderer) => void): () => void;
   };
+  /**
+   * Real installed-editor detection and launch -- see
+   * `control-plane/editor-launch.ts` and `app/renderer/src/external-editor.ts`.
+   *
+   * Optional for the same reason `provisioning` is: a hosted browser tab has no local
+   * machine of its own to detect an editor on or launch one from, so the hosted bridge
+   * (`bridge/http-bridge.ts`) omits this field entirely rather than supplying a no-op,
+   * and callers check for it before using it.
+   */
+  editors?: {
+    /** Which of the built-in editors are actually installed right now. */
+    detect(): Promise<ReadonlyArray<{ id: string; resolved: string }>>;
+    /** Opens `target` in the console's currently chosen editor, or reports exactly why
+     *  nothing was launched. */
+    open(target: { kind: 'file' | 'folder'; path: string }): Promise<
+      | { ok: true }
+      | { ok: false; message: string; downloadUrl?: string }
+    >;
+  };
+  /**
+   * The console's own application-data folder: its real absolute path, and opening it
+   * in the platform's file manager -- the Support Tickets recovery flow's one real
+   * action (`support-tickets.ts`). The external-editor "open here" action reuses `path`
+   * as the folder it hands to the chosen editor, so the two features agree on exactly
+   * where "the console's own local files" are. Optional for the same reason as
+   * `editors`: nothing local to report or open on a hosted browser tab.
+   */
+  localData?: {
+    /** The real absolute path, resolved by the privileged process -- never guessed or
+     *  reconstructed from the display-name-adjacent `IDENTITY.dataDirectory` constant,
+     *  which is a directory *name*, not a path. */
+    path(): Promise<string>;
+    /** Opens it in the platform's file manager, or reports exactly why not. */
+    openFolder(): Promise<{ ok: true } | { ok: false; reason: string }>;
+  };
 }
 
 /** One provisioning step, as the renderer sees it. Structurally the control plane's own
