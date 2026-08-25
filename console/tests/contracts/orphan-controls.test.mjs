@@ -53,7 +53,12 @@ const app = appSourceWithoutInventories();
  *
  * Lowered to 343 by the http.conf and features.conf bindings, then to 318 by the IAX peers
  * screen and the six partner-request settings, then to 279 by seven appearance controls
- * reaching the live preview and by the readout that names them. Each time this check is
+ * reaching the live preview and by the readout that names them, then to 252 by the
+ * twenty-seven agent/ops controls on sync, secrets, hub, vocab, ops and skills joining the
+ * console's own persisted-settings registry (CONSOLE_SETTINGS in App.tsx) -- the same
+ * honest floor already used for the partner-request and security-ban groups: a stated
+ * intention that survives a relaunch and is shown back in the control, since none of those
+ * six screens describes Asterisk configuration in the first place. Each time this check is
  * what forced it.
  *
  * 274 on 2026-08-24, and that figure moved in both directions at once. Seventeen endpoint
@@ -69,7 +74,14 @@ const app = appSourceWithoutInventories();
  * It only ever goes down. If a change makes it rise, that change is adding a control nobody
  * reads, and the honest options are to wire it or to leave it out.
  */
-const ORPHAN_CEILING = 274;
+/*
+ * 241 after two lanes landed together on 2026-08-24. Neither lane's own number was right
+ * for the merged tree -- one measured 274 before twenty-seven console-settings controls
+ * were wired, the other measured 252 with the classifier that still counted a control
+ * named in a documentation list as reached. The merge resolution is the figure measured
+ * on the merged tree itself, which is the only one either side could not have known.
+ */
+const ORPHAN_CEILING = 241;
 const TOTAL_CONTROLS = 599;
 
 function classify() {
