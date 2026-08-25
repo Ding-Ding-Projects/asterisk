@@ -71,10 +71,27 @@ function deliveredByAction(id: string): boolean {
  * every ht_* field was seedable and none of them were writable. Recognised the same way as
  * s_tload/s_tsave/s_stirsave, via `deliveredByAction`.
  *
+ * Then 228 with the channel-event-logging lane: net +20 on the CDR/CEL screen. Twelve are
+ * new CONTROL_BINDINGS.cdr entries -- cel_odbc.conf's show_user_defined plus a per-context
+ * connection/table pair (l_octx names the section, the same sectionFrom shape s_transport
+ * uses above), and cel_pgsql.conf's whole [global] section bar password. l_octx itself is
+ * one more: a plain text picker with no binding of its own, read via `values['l_octx']`
+ * (the quoted form this measurement looks for) exactly the way s_transport already is.
+ * The remaining seven are one-shot action buttons -- d_save/d_status, l_save/l_status,
+ * l_oload/l_osave, l_psave -- real write and live-status paths through onControlAction,
+ * recognised the same way as s_tload/s_tsave/s_stirsave/ht_save, via `deliveredByAction`.
+ * All 228 work: this lane also fixed cdr.conf's own five d_* fields and cel.conf's own
+ * four l_* fields, which had never been read from a real target before (the screen's
+ * declared `file` was the non-existent combined resource "cdr.conf · cel.conf"), but
+ * those nine were already counted as working before this pass -- `measure()` only checks
+ * whether a control is bound or delivered by an action, not whether the file it targets
+ * was ever actually reachable, so their count does not move even though their behaviour
+ * just went from silently inert to genuinely live.
+ *
  * It may rise freely and may not fall.
  */
-const WORKING_FLOOR = 208;
-const TELEPHONY_TOTAL = 208;
+const WORKING_FLOOR = 228;
+const TELEPHONY_TOTAL = 228;
 
 function measure() {
   const files = readdirSync(srcDir).filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'));

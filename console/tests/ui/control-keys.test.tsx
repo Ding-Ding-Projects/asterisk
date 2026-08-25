@@ -90,7 +90,18 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // sixteen carries an explicit `file: 'res_parking.conf'` override, the same way the four
   // stir_shaken.conf bindings on the security screen do, because the feature-codes screen's
   // own primary resource stays features.conf.
-  assert.equal(controlCount, 179);
+  // And 191 once the CDR/CEL screen's own broken read got fixed and CEL's two database
+  // backends got real fields: 12 new bindings, all on the 'cdr' screen, none of them
+  // replacing what was already there. l_enable/l_events/l_apps/l_date do not recount --
+  // they moved from a synthetic 'cel' section (a workaround for the screen's own `file`
+  // once being the non-existent combined resource "cdr.conf · cel.conf", which meant
+  // nothing on this screen had ever actually been read from a real target) to cel.conf's
+  // real [general] section, same four controls, same count. The twelve new ones are
+  // cel_odbc.conf's show_user_defined plus its per-context connection/table (a
+  // sectionFrom pair, the same shape the security screen's PJSIP-transport TLS fields
+  // use) and cel_pgsql.conf's whole [global] section bar password, which stays
+  // deliberately unbound -- see the unmapped-control note on CONTROL_BINDINGS.cdr.
+  assert.equal(controlCount, 191);
   // And 163 with the TLS and certificate-management lane: ten PJSIP-transport TLS
   // fields (protocol, cert_file, priv_key_file, ca_list_file, ca_list_path, cipher,
   // method, verify_client, verify_server, require_client_cert), each bound through

@@ -30,6 +30,15 @@ export interface ConfbridgeConference { name: string; users: number; marked: num
 export interface MohClass { name: string; mode?: string; directory?: string }
 export interface ManagerUser { username: string }
 export interface AriApp { name: string }
+/** `cdr show status` (`main/cdr.c` `handle_cli_status`) -- see
+ *  `control-plane/asterisk-parsers.ts` `parseCdrStatus`. `settings` is the plain
+ *  key/value block ("Logging", "Mode", ...); `backends` is the "* Registered Backends"
+ *  list, one entry per backend module the target's running Asterisk has actually
+ *  loaded and registered, with `suspended` set when the CLI printed "(suspended)"
+ *  after its name. This is the "loaded" half of the CDR/CEL backend status readout on
+ *  the `cdr` screen -- the "configured" half comes from cdr.conf/cel_odbc.conf/
+ *  cel_pgsql.conf's own sections, read the ordinary `pbx.config` way. */
+export interface CdrStatus { settings: Record<string, string>; backends: Array<{ name: string; suspended: boolean }> }
 
 interface Reading<T> { command: string; result: Observation<T> }
 
@@ -48,6 +57,7 @@ export interface ViewReadings {
   mohClasses?: Reading<MohClass[]>;
   managerUsers?: Reading<{ users: ManagerUser[]; total?: number }>;
   ariApps?: Reading<AriApp[]>;
+  cdrStatus?: Reading<CdrStatus>;
   /** `core show codecs` / `core show translation` — the dispatcher already reads both
    *  for the `codecs` screen (see `control-plane/dispatch.ts`); these two fields are
    *  what let the codec translation graph (`codec-graph.ts`) actually reach them. */

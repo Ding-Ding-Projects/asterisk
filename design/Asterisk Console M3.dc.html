@@ -2368,19 +2368,41 @@ const SCREENS = {
       ctl('r_strict','strictrtp','switch',true),
       ctl('r_ice','ICE support','switch',false)
     ]}] },
-  cdr:{ rail:'data', icon:'receipt_long', label:'CDR & CEL', badge:'', title:'Call records', file:'cdr.conf · cel.conf', kind:'generic',
-    sub:'Which backend stores records, what counts as an answered call, and which events are logged. Backends are picked, connection secrets come from secret intake.',
-    groups:[{ title:'CDR', desc:'One row per call.', ctls:[
+  cdr:{ rail:'data', icon:'receipt_long', label:'CDR & CEL', badge:'', title:'Call records', file:'cdr.conf', kind:'generic',
+    sub:'Which backend stores records, what counts as an answered call, and which events are logged. A backend is chosen by which section or file is present, not by one key -- the status readouts below say which ones this target has really configured and which it has actually registered. Connection secrets come from secret intake, not from a field on this screen.',
+    groups:[{ title:'CDR', desc:'One row per call. cdr.conf.', ctls:[
       ctl('d_enable','CDR enabled','switch',true),
       ctl('d_unanswered','Log unanswered calls','switch',false),
       ctl('d_congestion','Log congestion','switch',false),
       ctl('d_batch','Batch mode','switch',true),
-      ctl('d_size','Batch size','stepper',100,{ min:1, max:1000 })
-    ]},{ title:'CEL', desc:'One row per channel event — far more detail, far more volume.', ctls:[
+      ctl('d_size','Batch size','stepper',100,{ min:1, max:1000 }),
+      ctl('d_status','Backends','text','Not read yet.',{ action:'cdr-status', info:'What cdr.conf itself has configured (a [csv] or [radius] section, or a populated cdr_odbc.conf/cdr_pgsql.conf) against what the target\'s running Asterisk has actually registered via "cdr show status" -- a backend can be configured and not loaded, or loaded from an older configuration that has since changed.' }),
+      ctl('d_save','Save call records settings','segmented','Save',{ options:['Save'], action:'cdr-save', info:'Writes the five fields above to cdr.conf on the target -- backed up first, applied through the same plan/apply transaction every other write in this console uses.' })
+    ]},{ title:'CEL', desc:'One row per channel event — far more detail, far more volume. cel.conf.', ctls:[
       ctl('l_enable','CEL enabled','switch',true),
       ctl('l_events','Tracked events','chips',['CHAN_START','ANSWER','HANGUP','BRIDGE_ENTER'],{ options:['CHAN_START','CHAN_END','ANSWER','HANGUP','BRIDGE_ENTER','BRIDGE_EXIT','APP_START','APP_END','PARK_START','BLINDTRANSFER'] }),
       ctl('l_apps','Tracked applications','chips',['Dial','Queue'],{ options:['Dial','Queue','VoiceMail','ConfBridge','Playback','Park'] }),
-      ctl('l_date','Timestamp format','segmented','ISO8601',{ options:['ISO8601','epoch','local'] })
+      ctl('l_date','Timestamp format','segmented','ISO8601',{ options:['ISO8601','epoch','local'] }),
+      ctl('l_status','Backends','text','Not read yet.',{ action:'cel-status', info:'What cel_odbc.conf and cel_pgsql.conf have configured against which cel_* backend module the target\'s running Asterisk actually shows loaded.' }),
+      ctl('l_save','Save channel event logging settings','segmented','Save',{ options:['Save'], action:'cel-save', info:'Writes the four fields above to cel.conf on the target.' })
+    ]},{ title:'CEL: ODBC backend', desc:'cel_odbc.conf. Records are written per named context -- type the context\'s section name, Load to see what it has, edit, then Save. Save creates the section if the name does not already exist, since a context here is only ever these two keys.', ctls:[
+      ctl('l_oshow','Show USER_DEFINED events','switch',false,{ info:'[general]/show_user_defined -- puts the literal "USER_DEFINED" in the eventtype column instead of the user-defined event name.' }),
+      ctl('l_octx','Context name','text','',{ placeholder:'first', info:'The cel_odbc.conf [section] the two fields below read and write.' }),
+      ctl('l_oload','Load from target','segmented','Load',{ options:['Load'], action:'cel-odbc-load', info:'Reads the named context\'s current connection and table out of cel_odbc.conf into the fields below.' }),
+      ctl('l_oconn','ODBC connection','text','',{ placeholder:'mysql1', info:'The res_odbc.conf connection name this context logs through.' }),
+      ctl('l_otable','Table','text','',{ placeholder:'cel', info:'The database table CEL records land in.' }),
+      ctl('l_osave','Save ODBC context','segmented','Save',{ options:['Save'], action:'cel-odbc-save' })
+    ]},{ title:'CEL: PostgreSQL backend', desc:'cel_pgsql.conf [global]. One connection for the whole file -- password is set through secret intake, never typed here.', ctls:[
+      ctl('l_pshow','Show USER_DEFINED events','switch',false),
+      ctl('l_pgmtime','Log date/time in GMT','switch',false),
+      ctl('l_phost','Hostname','text','',{ placeholder:'localhost' }),
+      ctl('l_pport','Port','stepper',5432,{ min:1, max:65535 }),
+      ctl('l_pdb','Database name','text','',{ placeholder:'asterisk' }),
+      ctl('l_puser','User','text','',{ placeholder:'asterisk' }),
+      ctl('l_ptable','Table','text','',{ placeholder:'cel' }),
+      ctl('l_pschema','Schema','text','',{ placeholder:'public', info:'Optional -- defaults to the database\'s own current_schema() when left blank.' }),
+      ctl('l_papp','Application name','text','',{ placeholder:'asterisk', info:'Optional PostgreSQL application_name. No whitespace allowed.' }),
+      ctl('l_psave','Save PostgreSQL settings','segmented','Save',{ options:['Save'], action:'cel-pgsql-save' })
     ]}] },
   ami:{ rail:'data', icon:'api', label:'AMI & ARI', badge:'2', title:'Manager & REST interfaces', file:'manager.conf · ari.conf · http.conf', kind:'table',
     sub:'Machine access to the PBX. Permissions are checkbox matrices, never a comma string you have to remember.',
