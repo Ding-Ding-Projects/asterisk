@@ -104,14 +104,19 @@ test('a rejected rename is reported and never silently stored', () => {
   assert.match(app, /if \(problems\.length > 0\) \{[\s\S]*?this\.fire\('That name will not work', problems\[0\]\.message\);\n\s*return;\n\s*\}/);
 });
 
-test('HONEST GAP: nameFor is never called from App.tsx, so no surface reads the per-surface split', () => {
-  /* nameFor is the function that would decide which name a title bar, About screen or
-   * notification actually shows. It is imported nowhere and called nowhere. Anchored on
-   * the call shape, not the bare word. */
+test('nameFor is called, so a surface really reads the per-surface split', () => {
+  /* This replaces a pin that asserted the opposite. `nameFor` decides which name a title
+   * bar, About screen or notification shows, and it was imported nowhere and called
+   * nowhere -- so a user could rename the application and every surface kept showing the
+   * shipped name. The pin was right to exist and right to fire when the wiring landed.
+   *
+   * The exact-import assertion is gone rather than updated. It pinned a four-symbol list,
+   * so it broke the moment a fifth symbol was legitimately added, and the arity was never
+   * the point: what matters is that the chooser is actually called. */
   const app = read(APP);
-  const importLine = app.match(/^import \{\n\s*IDENTITY, displayName, resetDisplayName, setDisplayName,\n\} from '\.\/display-name';$/m);
-  assert.ok(importLine, 'expected the exact known-good import list from ./display-name in App.tsx');
-  assert.doesNotMatch(app, /\bnameFor\(/, 'nameFor(...) must never be called from App.tsx');
+  assert.match(app, /\bnameFor\(/, 'nameFor(...) is never called, so no surface reads the chosen name');
+  assert.match(app, /^import \{[^}]*\bnameFor\b[^}]*\} from '\.\/display-name';$/ms,
+    'App.tsx no longer imports nameFor from ./display-name');
 });
 
 test('HONEST GAP: displayName() is called exactly once in App.tsx, only to seed the settings field', () => {
