@@ -6,19 +6,24 @@
  * installed items, a project's own records), the surface offers that instead of a
  * blank freeform field -- the app's endpoint wizard is the named reference example.
  *
- * This static site has no live data to populate a picker from in the first place; it
- * has no backend, no accounts, no installed-anything. Its forms are exactly six plain
- * <select> elements over hard-coded, always-identical option lists (theme, language,
- * density, and two export-format pickers) plus a handful of checkboxes, one range
- * slider, one colour input, one free-text field, and two <input type="file"> uploads.
- * None of that is the enumerated-picker-over-real-data pattern the contract names --
- * a fixed dropdown with three options that never change is not "guided" in that sense,
- * it is just a normal <select>.
+ * This static site has no backend and no accounts, but it does now have one genuine
+ * instance of the pattern: the local-history panel's action filter (#history-action-
+ * filter) starts empty in markup and is populated at runtime from historyEntries --
+ * this browser's own recorded local revisions, a real per-visitor record, not a fixed
+ * in-source list. That is a real, if narrow, example of "the project's own records"
+ * driving a picker, so it is called out and tested for on its own rather than folded
+ * silently into the two pre-existing export-format selects, which are populated from a
+ * fixed list and stay outside this pattern for that reason. Its history is otherwise
+ * unchanged: the remaining five plain <select> elements (theme, language, density, and
+ * the two export-format pickers) are still hard-coded or list-driven, not this pattern,
+ * and there is still no <datalist>, no other real-data picker, and no disabled control
+ * naming a missing real-data source.
  *
- * This file re-derives that absence rather than trusting a hand-written note: it counts
- * every <select> and confirms each one's options are a fixed literal list (not rendered
- * from any data source at runtime), and confirms there is no code path anywhere in
- * site/app.js that populates a <select> or a <datalist> from computed/fetched data.
+ * This file re-derives the current state rather than trusting a hand-written note: it
+ * counts every <select> and confirms each one's options are either a fixed literal
+ * list, list-derived from the in-source export-format list, or the one real local-
+ * data-driven exception -- and confirms that exception really is driven by this
+ * browser's own recorded data (historyEntries), never by external or fetched data.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -39,7 +44,7 @@ test('there is no <datalist> anywhere on the site -- the one native picker-over-
   assert.doesNotMatch(html, /\blist="/i, 'an input now references list="..." (a datalist binding) -- re-derive this contract by hand');
 });
 
-test('every <select> on the site ships with a fixed, hard-coded option list, never populated at runtime', () => {
+test('every <select> on the site is either a fixed, hard-coded option list, or one of the two known runtime-filled exceptions -- one list-derived, one real-data-driven', () => {
   const html = pageText();
   const selects = [...html.matchAll(/<select id="([a-z-]+)"[^>]*>([\s\S]*?)<\/select>/g)];
   assert.ok(selects.length > 0, 'no <select> elements found at all, which proves nothing about this contract');
@@ -60,13 +65,16 @@ test('every <select> on the site ships with a fixed, hard-coded option list, nev
    * their fixed choices directly in the markup. doc-export-format and notif-export-
    * format start empty and are filled in by JS -- but from the fixed, in-source
    * EXPORT_FORMATS/suitableFormats() list (see complete-exports.test.mjs), never from
-   * any external or user-specific data. Both groups are named here explicitly so a
+   * any external or user-specific data. history-action-filter also starts empty and is
+   * filled in by JS, but from this browser's own recorded local-history actions
+   * (historyEntries) -- real per-visitor data, checked in the next test. All three
+   * empty-in-markup selects are named here explicitly so a
    * newly added select falls into neither bucket by accident. */
   assert.deepEqual(withStaticOptions.sort(), ['cantonese-funny', 'density-mode', 'english-funny', 'language-mode', 'theme-mode']);
-  assert.deepEqual(empty.sort(), ['doc-export-format', 'notif-export-format']);
+  assert.deepEqual(empty.sort(), ['doc-export-format', 'history-action-filter', 'notif-export-format']);
 });
 
-test('the two runtime-filled selects are populated from the fixed export-format list, never from live/user data', () => {
+test('the two export-format selects are populated from the fixed export-format list, never from live/user data', () => {
   const src = norm(read('site/app.js'));
   for (const fn of ['updateDocumentationExport', 'updateNotificationExportFormats']) {
     const start = src.indexOf(`function ${fn}(){`);
@@ -79,6 +87,27 @@ test('the two runtime-filled selects are populated from the fixed export-format 
     const body = src.slice(start, i);
     assert.match(body, /suitableFormats\(/, `${fn}() no longer derives its options from suitableFormats() -- verify what it derives them from instead`);
   }
+});
+
+test('history-action-filter IS the real exception -- genuinely populated from this browser\'s own recorded local-history entries, not a fixed list', () => {
+  /* This is the one place on the site the canonical guided-forms pattern -- a picker
+   * enumerated from real, local, per-visitor records rather than a blank field or a
+   * fixed list -- actually exists. renderHistory() rebuilds the option list from
+   * historyActionOptions(), which derives the set from historyEntries itself (the
+   * append-only local-history array), rather than from any hard-coded action list. */
+  const src = norm(read('site/app.js'));
+  assert.match(src, /function historyActionOptions\(\)\{return \[\.\.\.new Set\(historyEntries\.map\(item=>item\.action\)\)\]\.sort\(\)\}/,
+    'historyActionOptions() no longer derives the action list from the real historyEntries array -- re-check whether this is still the real-data-driven exception');
+  const start = src.indexOf('function renderHistory(');
+  assert.ok(start !== -1, 'renderHistory() not found');
+  let depth = 0, i = src.indexOf('{', start);
+  for (; i < src.length; i += 1) {
+    if (src[i] === '{') depth += 1;
+    else if (src[i] === '}') { depth -= 1; if (depth === 0) { i += 1; break; } }
+  }
+  const body = src.slice(start, i);
+  assert.match(body, /historyActionOptions\(\)/, 'renderHistory() no longer calls historyActionOptions() to populate #history-action-filter');
+  assert.match(body, /\$\('history-action-filter'\)/, 'renderHistory() no longer touches #history-action-filter directly');
 });
 
 test('the sites only free-text input with no picker equivalent is a genuinely freeform description field', () => {

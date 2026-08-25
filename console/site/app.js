@@ -523,6 +523,16 @@
   const BASE = document.documentElement.dataset.base || './';
   const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#82D9A5',fontScale:100,lowMotion:false,englishFunny:0,cantoneseFunny:0,attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false,focus:false,timeAwareness:false,oneThing:false,momentum:false,currentTask:''},scheduleEnabled:false,notifications:[],collapsed:{destinationMap:true,settingsPreview:true,documentationFilters:false,settingsFilters:false}};
   const STORAGE_KEY = 'ding-pbx-pages-v2';
+  // ---- Local version history: an append-only record, isolated in its own
+  // storage key so "Reset settings" never touches it. Restoring an entry
+  // writes a NEW entry rather than rewriting or deleting an earlier one, so
+  // a restore can itself be undone later. ----
+  const HISTORY_KEY = 'ding-pbx-pages-history-v1';
+  const HISTORY_LIMIT = 300;
+  let historySeq = 0;
+  function loadHistory(){try{const saved=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');return Array.isArray(saved)?saved:[]}catch{return []}}
+  let historyEntries = loadHistory();
+  function saveHistory(){localStorage.setItem(HISTORY_KEY,JSON.stringify(historyEntries.slice(0,HISTORY_LIMIT)))}
   const regexState = new Map();
   let regexTarget = '';
   let destinationPage = 0;
@@ -530,12 +540,12 @@
   const $ = id => document.getElementById(id);
   const all = selector => [...document.querySelectorAll(selector)];
   function escapeHtml(value){return String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-  function loadState(){try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');return{...DEFAULTS,...saved,attention:{...DEFAULTS.attention,...(saved.attention||{})},collapsed:{...DEFAULTS.collapsed,...(saved.collapsed||{})}}}catch{return{...DEFAULTS,attention:{...DEFAULTS.attention},collapsed:{...DEFAULTS.collapsed}}}}
+function loadState(){try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');return{...DEFAULTS,...saved,attention:{...DEFAULTS.attention,...(saved.attention||{})},collapsed:{...DEFAULTS.collapsed,...(saved.collapsed||{})}}}catch{return{...DEFAULTS,attention:{...DEFAULTS.attention},collapsed:{...DEFAULTS.collapsed}}}}
   const state=loadState();
   function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
-  function update(key,value){state[key]=value;save();applyState();notify(copyText('notifSettingSaved'),applyVocabularyText(`${key} now uses ${value}.`))}
+  function update(key,value){state[key]=value;save();applyState();recordHistory('setting-changed',`${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`${key} now uses ${value}.`))}
   function applyState(){document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyVocabulary();updateSessionTimer();updateOneThingBanner()}
-  function updateAttention(key,value){state.attention={...state.attention,[key]:value};save();applyState();notify(copyText('notifSettingSaved'),applyVocabularyText(`attention.${key} now uses ${value}.`))}
+  function updateAttention(key,value){state.attention={...state.attention,[key]:value};save();applyState();recordHistory('attention-changed',`attention.${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`attention.${key} now uses ${value}.`))}
   function applyLanguage(){if(!$('language-preview'))return;document.documentElement.lang=state.language==='zh'?'zh-Hant':'en';$('language-preview').textContent=state.language==='en'?'English presentation active.':state.language==='zh'?'廣東話顯示已啟用。':'Bilingual presentation active. / 雙語顯示已啟用。'}
 
   // Funny-level copy: voice changes with the slider, facts never do. Each key holds
@@ -892,7 +902,110 @@
     });
   }
 
-  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);$('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);$('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));$('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState()};$('settings-reset').onclick=()=>{Object.assign(state,DEFAULTS);save();applyState();notify(copyText('notifSettingsReset'),applyVocabularyText('The local page settings returned to their shipped values.'))};$('settings-export').onclick=()=>download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state},null,2));$('vocabulary-file').onchange=loadVocabulary;$('vocabulary-clear').onclick=()=>{localStorage.removeItem('ding-pbx-vocabulary-cache');$('vocabulary-file').value='';$('vocabulary-status').textContent='No file loaded; original wording is active.';applyVocabulary();applyState()};$('logo-file').onchange=loadLogo;$('logo-clear').onclick=()=>{localStorage.removeItem('ding-pbx-logo-cache');$('logo-file').value='';$('logo-status').textContent='No file loaded; default mark is active.';applyLogo()};if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'))}
+  // ---- Local history panel: search, an action filter derived from the real
+  // recorded actions (never a hard-coded list), and a date-range filter. ----
+  function snapshotState(){const clone=JSON.parse(JSON.stringify(state));delete clone.notifications;return clone}
+  function recordHistory(action,summary){
+    historyEntries.unshift({id:`h${Date.now()}-${historySeq++}`,time:Date.now(),action,summary,snapshot:snapshotState()});
+    historyEntries=historyEntries.slice(0,HISTORY_LIMIT);
+    saveHistory();
+    renderHistory($('history-search')?.value||'');
+  }
+  function restoreHistoryEntry(id){
+    const entry=historyEntries.find(item=>item.id===id);if(!entry)return;
+    Object.assign(state,entry.snapshot);
+    state.attention={...DEFAULTS.attention,...(entry.snapshot.attention||{})};
+    state.collapsed={...DEFAULTS.collapsed,...(entry.snapshot.collapsed||{})};
+    save();applyState();
+    // Restoring is itself a NEW entry -- it never rewrites or removes the
+    // revision it restored, so this restore can be undone later too.
+    recordHistory('restored',`Restored the revision from ${new Date(entry.time).toLocaleString()} (${entry.summary})`);
+    notify('Local history restored',applyVocabularyText('This browser’s settings were replaced with an earlier local revision. The restore itself was recorded as a new history entry.'));
+  }
+  function historyActionOptions(){return [...new Set(historyEntries.map(item=>item.action))].sort()}
+  function historyMatches(query){
+    const actionFilter=$('history-action-filter')?.value||'';
+    const fromRaw=$('history-date-from')?.value||'';
+    const toRaw=$('history-date-to')?.value||'';
+    const from=fromRaw?new Date(`${fromRaw}T00:00:00`).getTime():-Infinity;
+    const to=toRaw?new Date(`${toRaw}T23:59:59.999`).getTime():Infinity;
+    return historyEntries.filter(item=>{
+      if(actionFilter&&item.action!==actionFilter)return false;
+      if(!Number.isNaN(from)&&item.time<from)return false;
+      if(!Number.isNaN(to)&&item.time>to)return false;
+      return matchText(`${item.action} ${item.summary}`,query,'history-search');
+    });
+  }
+  function renderHistory(query=''){
+    const list=$('history-list');if(!list)return;
+    const select=$('history-action-filter');
+    if(select){
+      const previous=select.value;
+      select.innerHTML=`<option value="">All actions</option>${historyActionOptions().map(action=>`<option value="${escapeHtml(action)}">${escapeHtml(action)}</option>`).join('')}`;
+      if([...select.options].some(option=>option.value===previous))select.value=previous;
+    }
+    const matches=historyMatches(query);
+    list.innerHTML=matches.length?matches.map(item=>`<article class="history-entry" data-history-id="${item.id}"><div><strong>${escapeHtml(item.action)}</strong><p>${escapeHtml(item.summary)}</p><small>${new Date(item.time).toLocaleString()}</small></div><button type="button" class="text-button" data-restore="${item.id}">Restore</button></article>`).join(''):`<p class="empty-state">No local history entries yet -- change a setting on this page to create the first one.</p>`;
+    if($('history-count'))$('history-count').textContent=`${matches.length} of ${historyEntries.length} entr${historyEntries.length===1?'y':'ies'}`;
+    applyVocabulary();
+  }
+  function initHistory(){
+    if(!$('history-open'))return;
+    $('history-open').addEventListener('click',()=>{const dialog=$('history-dialog');if(!dialog)return;dialog.showModal();renderHistory($('history-search')?.value||'')});
+    $('history-search')?.addEventListener('input',event=>renderHistory(event.target.value));
+    $('history-action-filter')?.addEventListener('change',()=>renderHistory($('history-search')?.value||''));
+    $('history-date-from')?.addEventListener('change',()=>renderHistory($('history-search')?.value||''));
+    $('history-date-to')?.addEventListener('change',()=>renderHistory($('history-search')?.value||''));
+    $('history-list')?.addEventListener('click',event=>{
+      const button=event.target.closest('[data-restore]');if(!button)return;
+      restoreHistoryEntry(button.dataset.restore);
+    });
+  }
+
+  // ---- "Reset settings" destructive gate: two independently operated key
+  // controls must both be active before the full-range slider is even
+  // enabled, and only completing the slider all the way to the end runs the
+  // reset. Cancel is always available (button, ×, and native Escape); every
+  // close path -- confirm, cancel, or Escape -- resets the dialog's own
+  // fields and returns focus to the control that opened it. ----
+  function resetConfirmReady(){return Boolean($('reset-key-1')?.checked&&$('reset-key-2')?.checked)}
+  function resetConfirmFields(){
+    const dialog=$('reset-confirm-dialog');if(!dialog)return;
+    dialog.querySelectorAll('input[type="checkbox"]').forEach(box=>{box.checked=false});
+    const slider=$('reset-confirm-slider');
+    if(slider){slider.value='0';slider.disabled=true}
+    if($('reset-slider-status'))$('reset-slider-status').textContent='0%';
+  }
+  function updateResetSliderState(){
+    const slider=$('reset-confirm-slider');if(!slider)return;
+    const ready=resetConfirmReady();
+    slider.disabled=!ready;
+    if(!ready){slider.value='0';if($('reset-slider-status'))$('reset-slider-status').textContent='0%'}
+  }
+  function performSettingsReset(){
+    Object.assign(state,DEFAULTS);
+    save();applyState();
+    recordHistory('reset','Every local setting on this page returned to its shipped default.');
+    notify(copyText('notifSettingsReset'),applyVocabularyText('The local page settings returned to their shipped values.'));
+  }
+  function initResetConfirm(){
+    const dialog=$('reset-confirm-dialog');if(!dialog)return;
+    resetConfirmFields();
+    $('reset-key-1')?.addEventListener('change',updateResetSliderState);
+    $('reset-key-2')?.addEventListener('change',updateResetSliderState);
+    $('reset-confirm-slider')?.addEventListener('input',event=>{
+      const value=Number(event.target.value);
+      if($('reset-slider-status'))$('reset-slider-status').textContent=`${value}%`;
+      if(value>=100&&resetConfirmReady()){performSettingsReset();dialog.close()}
+    });
+    $('reset-confirm-cancel')?.addEventListener('click',()=>dialog.close('cancel'));
+    // Fires for every close path -- the Cancel button, the × control, and the
+    // dialog's native Escape handling -- so the gate can never be left
+    // half-armed for the next time it opens.
+    dialog.addEventListener('close',()=>{resetConfirmFields();$('settings-reset')?.focus()});
+  }
+
+  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);$('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);$('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));$('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState();recordHistory('attention-changed','attention.currentTask changed.')};$('settings-reset').onclick=()=>{const dialog=$('reset-confirm-dialog');if(!dialog)return;resetConfirmFields();dialog.showModal()};$('settings-export').onclick=()=>download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state},null,2));$('vocabulary-file').onchange=loadVocabulary;$('vocabulary-clear').onclick=()=>{localStorage.removeItem('ding-pbx-vocabulary-cache');$('vocabulary-file').value='';$('vocabulary-status').textContent='No file loaded; original wording is active.';applyVocabulary();applyState()};$('logo-file').onchange=loadLogo;$('logo-clear').onclick=()=>{localStorage.removeItem('ding-pbx-logo-cache');$('logo-file').value='';$('logo-status').textContent='No file loaded; default mark is active.';applyLogo()};if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));initResetConfirm();initHistory()}
   async function loadVocabulary(event){const file=event.target.files[0];if(!file)return;if(file.size>65536){$('vocabulary-status').textContent=`Rejected: the file is ${Math.round(file.size/1024)} KiB and the limit is 64 KiB.`;return}try{const raw=JSON.parse(await file.text());
     /* Accept the spellings a real file actually uses before judging it.
      *

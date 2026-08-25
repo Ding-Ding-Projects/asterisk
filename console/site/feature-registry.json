@@ -115,16 +115,21 @@
     },
     "destructive-action-confirmation": {
       "state": "partial",
-      "note": "site/app.js planBulk() and bulk actions carry a destructive flag (line 299, 309) that changes copy to state \"This cannot be undone,\" and settings-reset is styled as a danger-button, but no two-key-plus-slider super-confirmation gate (the documented contract's specific mechanism) was found - only a plain destructive-labelled action.",
+      "note": "settings-reset now opens #reset-confirm-dialog, a real two-key-plus-slider super-confirmation gate: two independently operated checkboxes (reset-key-1/reset-key-2) must both be checked before the full-range #reset-confirm-slider is even enabled (updateResetSliderState), and only sliding it to 100 while both keys hold actually runs performSettingsReset() -- named action, exact loss, always-available Cancel (button, x, and native Escape), and every close path resets the gate's own fields and returns focus to settings-reset (the dialog's close listener). That closes the urgent gap. It is still partial, not implemented, because the site's OTHER destructive action -- \"Dismiss selected\" notifications -- keeps its lighter plain confirm/cancel gate (notif-confirm), which is real protection but not the canonical two-key-plus-slider mechanism; the two destructive actions on this site are not yet held to one ceremony.",
       "files": [
         "site/app.js",
-        "site/settings.html"
+        "site/settings.html",
+        "site/styles.css"
       ]
     },
     "local-version-history": {
-      "state": "absent",
-      "note": "The documentation catalogue lists a \"History\" article (app/history, describing append-only local configuration revisions) as PRODUCT documentation content, but no actual history/versions panel, diff view, or restore action exists in the site itself - this is a described feature of the console product, not an implemented feature of the site.",
-      "files": []
+      "state": "implemented",
+      "note": "site/app.js now keeps a real, append-only local history for this page's own settings/appearance state, isolated in its own storage key (HISTORY_KEY, separate from STORAGE_KEY) so \"Reset settings\" never erases it. update()/updateAttention()/the reset gate/the attention-current-task handler each call recordHistory() with a real per-entry label of what changed. restoreHistoryEntry() applies an earlier snapshot and then calls recordHistory('restored', ...) again -- restoring is itself a new entry, never a rewrite, so a restore can be undone too. The #history-dialog panel (opened by #history-open) has its own regex-wired search field (history-search), an action filter genuinely derived from the recorded entries (historyActionOptions(), never hard-coded), and a from/to date-range filter, plus a Restore button per entry. The documentation catalogue's \"History\" article (app/history) still separately describes the CONSOLE PRODUCT's own history feature -- that entry is unchanged and unrelated to this one.",
+      "files": [
+        "site/app.js",
+        "site/settings.html",
+        "site/styles.css"
+      ]
     },
     "changelog-viewer": {
       "state": "absent",
@@ -221,9 +226,12 @@
       "files": []
     },
     "guided-forms": {
-      "state": "absent",
-      "note": "No guided/picker-driven form beyond ordinary settings selects and file inputs was found; there is no enumerated-picker-over-freeform-text pattern comparable to the app's endpoint wizard.",
-      "files": []
+      "state": "partial",
+      "note": "One real instance of the pattern now exists as a side effect of local-version-history: the local-history panel's #history-action-filter select starts empty in markup and is populated at runtime by renderHistory()/historyActionOptions() from historyEntries -- this browser's own recorded local revisions, real per-visitor data rather than a fixed in-source list. Everything else is unchanged: the remaining five plain selects (theme, language, density, two funny-level pickers) are hard-coded, the two export-format selects are populated from the fixed in-source EXPORT_FORMATS/suitableFormats() list, there is still no <datalist>, and no disabled control names a missing real-data source. That is a narrow instance, not a general guided-picker pattern comparable to the app's endpoint wizard.",
+      "files": [
+        "site/app.js",
+        "site/settings.html"
+      ]
     },
     "bounded-overlays": {
       "state": "implemented",
