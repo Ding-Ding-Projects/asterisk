@@ -29,6 +29,8 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSy
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { compareCaptures } from './design-parity-diff.mjs';
+import { compareChrome } from './design-parity-chrome.mjs';
+import { BUILT_REGION_PROBE, REFERENCE_REGION_PROBE, buildRegionLedger, maskFromLedger } from './design-parity-regions.mjs';
 import { connectCdp, pollUntil, sleep } from './design-parity-cdp.mjs';
 import { startCaptureServer } from './design-parity-server.mjs';
 
@@ -45,6 +47,28 @@ const LEDGER_DIR = join(CONSOLE_ROOT, 'release', 'evidence', 'parity');
 
 const artifactPath = (key, id) => resolve(REPO_ROOT, INVENTORY.evidenceTemplates[key].replaceAll('{id}', id));
 const sha256Of = (bytes) => createHash('sha256').update(bytes).digest('hex');
+
+/** Where one side's raw region measurements live between the run that took them and the chrome stage. */
+const regionMeasurementsPath = (side) => join(LEDGER_DIR, `regions-${side}.json`);
+
+/**
+ * Writes one side's region measurements, merging into whatever that side already recorded.
+ *
+ * Merging rather than replacing is what lets `--only` narrow a region run without throwing
+ * away the other thirty destinations' measurements — the same courtesy `--only` already
+ * gets from the capture stages, which write one PNG per destination rather than one file
+ * for the set.
+ */
+function writeRegionMeasurements(side, target, measurements) {
+  mkdirSync(LEDGER_DIR, { recursive: true });
+  const path = regionMeasurementsPath(side);
+  const previous = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : {};
+  const merged = { ...(previous.measurements ?? {}), ...measurements };
+  writeFileSync(path, `${JSON.stringify({
+    generatedAt: new Date().toISOString(), side, target, tuple: TUPLE, measurements: merged,
+  }, null, 2)}\n`);
+  return Object.keys(merged).length;
+}
 
 function writeArtifact(path, bytes) {
   mkdirSync(dirname(path), { recursive: true });
@@ -68,6 +92,17 @@ function argValue(name, fallback) {
   const hit = process.argv.find((argument) => argument.startsWith(`--${name}=`));
   return hit ? hit.slice(name.length + 3) : fallback;
 }
+
+/**
+ * `--regions-only` drives a side to every destination and measures its region rectangles
+ * without photographing anything.
+ *
+ * It exists so the chrome-parity bar can be applied to captures that are already committed:
+ * re-photographing them to obtain a mask would replace the very evidence being measured,
+ * and a mask taken from one render against pixels from another is exactly the staleness
+ * this harness refuses everywhere else.
+ */
+const regionsOnly = () => process.argv.includes('--regions-only');
 
 /* ------------------------------------------------------------------ font interception -- */
 
@@ -140,6 +175,7 @@ async function captureReferenceSide(port, serverPort) {
   });
 
   const results = [];
+  const measurements = {};
   for (const entry of selectedDestinations()) {
     const url = `${server.origin}/${entry.referenceRoute}`;
     await cdp.send('Page.navigate', { url });
@@ -162,6 +198,15 @@ async function captureReferenceSide(port, serverPort) {
     }
     // The design animates on entry; settle before photographing or two runs disagree.
     await sleep(700);
+    // Measured while the screen is settled and before anything else touches it, so the
+    // rectangles and the pixels are the same moment of the same render rather than two
+    // visits that happen to agree.
+    measurements[entry.id] = await cdp.evaluate(REFERENCE_REGION_PROBE);
+    if (regionsOnly()) {
+      results.push({ id: entry.id, captured: false, regionsOnly: true, reason: 'run made with --regions-only; no capture was taken and none was expected' });
+      console.log(`reference ${entry.id}: regions measured, no capture (--regions-only)`);
+      continue;
+    }
     const { data } = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
     const written = writeArtifact(artifactPath('referenceCapture', entry.id), Buffer.from(data, 'base64'));
     results.push({ id: entry.id, captured: true, heading: entry.navigationPlan.settle.expectedHeading, ...written });
@@ -170,8 +215,11 @@ async function captureReferenceSide(port, serverPort) {
 
   cdp.close();
   await server.close();
+  const regionCount = writeRegionMeasurements('reference', 'design/Asterisk Console M3.dc.html rendered by design/support.js', measurements);
   return {
     side: 'reference',
+    regionsMeasuredThisRun: Object.keys(measurements).length,
+    regionsOnDisk: regionCount,
     target: 'design/Asterisk Console M3.dc.html rendered by design/support.js with locally vendored React 18.3.1',
     tuple: TUPLE,
     interceptedRequests: intercepted,
@@ -270,6 +318,7 @@ async function captureBuiltSide(port) {
   await sleep(500);
 
   const results = [];
+  const measurements = {};
   for (const entry of selectedDestinations()) {
     const label = LABELS.labels[entry.id];
     const rail = LABELS.rails[label.rail];
@@ -306,6 +355,12 @@ async function captureBuiltSide(port) {
       console.log(`built ${entry.id}: ${failure}`);
       continue;
     }
+    measurements[entry.id] = await cdp.evaluate(BUILT_REGION_PROBE);
+    if (regionsOnly()) {
+      results.push({ id: entry.id, captured: false, regionsOnly: true, reason: 'run made with --regions-only; no capture was taken and none was expected' });
+      console.log(`built ${entry.id}: regions measured, no capture (--regions-only)`);
+      continue;
+    }
     const { data } = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
     const written = writeArtifact(artifactPath('builtCapture', entry.id), Buffer.from(data, 'base64'));
     results.push({ id: entry.id, captured: true, heading: label.title, ...written });
@@ -313,14 +368,116 @@ async function captureBuiltSide(port) {
   }
 
   cdp.close();
+  const regionCount = writeRegionMeasurements('built', 'console/dist built renderer under Electron on an off-screen Windows desktop', measurements);
   return {
     side: 'built',
     target: 'console/dist built renderer under Electron on an off-screen Windows desktop',
     tuple: TUPLE,
+    regionsMeasuredThisRun: Object.keys(measurements).length,
+    regionsOnDisk: regionCount,
     captured: results.filter((r) => r.captured).length,
     failed: results.filter((r) => !r.captured).length,
     results,
   };
+}
+
+/* ----------------------------------------------------------------------- chrome stage -- */
+
+/**
+ * Measures every destination against the chrome-parity bar, from the two sides' recorded
+ * region measurements and the captures already on disk. No browser, like the diff stage.
+ *
+ * A destination missing either side's measurement is skipped and SAID to be skipped. It is
+ * never compared with an empty mask, which would silently compare the data regions this
+ * bar exists to exclude and report an enormous, meaningless divergence.
+ */
+function chromeAll() {
+  const sourceMtimes = buildOutputMtimes();
+  // The chrome-parity bar is what a `verified` row rests on, so its staleness proof may not
+  // be quietly skipped. `compareCaptures` treats an empty mtime list as "not checked" and
+  // carries on, which is right for the diff stage and wrong here: a check that silently
+  // does not run is indistinguishable from one that passed.
+  if (sourceMtimes.length === 0) {
+    throw new Error('design-parity-capture-run --side=chrome: console/dist and console/dist-electron are both absent, so no capture can be proved newer than the build it claims to show. Build the console (npm run build) before applying the bar.');
+  }
+  const sides = {};
+  for (const side of ['reference', 'built']) {
+    const path = regionMeasurementsPath(side);
+    if (!existsSync(path)) {
+      throw new Error(`design-parity-capture-run --side=chrome: ${side} region measurements are absent at ${path}. Run --side=${side} --regions-only --port=N first; the bar cannot be applied with a mask nobody measured.`);
+    }
+    sides[side] = JSON.parse(readFileSync(path, 'utf8')).measurements ?? {};
+  }
+
+  const results = [];
+  for (const entry of selectedDestinations()) {
+    const referencePath = artifactPath('referenceCapture', entry.id);
+    const builtPath = artifactPath('builtCapture', entry.id);
+    const missing = [
+      !existsSync(referencePath) && 'reference capture',
+      !existsSync(builtPath) && 'built capture',
+      !sides.reference[entry.id] && 'reference region measurement',
+      !sides.built[entry.id] && 'built region measurement',
+    ].filter(Boolean);
+    if (missing.length > 0) {
+      results.push({ id: entry.id, skipped: `${missing.join(' and ')} absent` });
+      console.log(`chrome ${entry.id}: skipped, ${missing.join(' and ')} absent`);
+      continue;
+    }
+
+    let ledger;
+    try {
+      ledger = buildRegionLedger({
+        destinationId: entry.id, tuple: TUPLE, inventory: INVENTORY,
+        reference: sides.reference[entry.id], built: sides.built[entry.id],
+      });
+    } catch (error) {
+      results.push({ id: entry.id, skipped: error.message });
+      console.log(`chrome ${entry.id}: skipped, ${error.message}`);
+      continue;
+    }
+    writeArtifact(artifactPath('regionLedger', entry.id), Buffer.from(`${JSON.stringify({
+      ...ledger, generatedBy: 'console/scripts/design-parity-capture-run.mjs --side=chrome',
+    }, null, 2)}\n`, 'utf8'));
+
+    const { exclusions, areas } = maskFromLedger(ledger);
+    const record = compareChrome({
+      reference: readFileSync(referencePath),
+      built: readFileSync(builtPath),
+      destinationId: entry.id,
+      exclusions,
+      areas,
+      builtCaptureMtimeMs: statSync(builtPath).mtimeMs,
+      builtSourceMtimesMs: sourceMtimes,
+      minimumComparedFraction: INVENTORY.chromeParityBar.minimumComparedFraction,
+    });
+    writeArtifact(artifactPath('chromeParity', entry.id), Buffer.from(`${JSON.stringify({
+      ...record,
+      generatedBy: 'console/scripts/design-parity-capture-run.mjs --side=chrome',
+      tuple: TUPLE,
+      regionLedger: INVENTORY.evidenceTemplates.regionLedger.replaceAll('{id}', entry.id),
+      referenceCapture: INVENTORY.evidenceTemplates.referenceCapture.replaceAll('{id}', entry.id),
+      builtCapture: INVENTORY.evidenceTemplates.builtCapture.replaceAll('{id}', entry.id),
+    }, null, 2)}\n`, 'utf8'));
+
+    const worst = Object.entries(record.areas)
+      .filter(([, area]) => (area.diffPercentage ?? 0) > 0)
+      .sort((a, b) => b[1].diffPercentage - a[1].diffPercentage)[0];
+    results.push({
+      id: entry.id, verdict: record.verdict, diffPercentage: record.diffPercentage,
+      comparedFraction: record.comparedFraction, worstArea: worst ? worst[0] : null, reasons: record.reasons,
+    });
+    console.log(`chrome ${entry.id}: ${record.verdict}`
+      + (record.diffPercentage == null ? '' : ` (${record.diffPercentage.toFixed(2)}% of the compared ${(record.comparedFraction * 100).toFixed(1)}% differs`)
+      + (worst ? `, worst area ${worst[0]} at ${worst[1].diffPercentage.toFixed(1)}%)` : ')'));
+  }
+
+  const verdicts = {};
+  for (const result of results) {
+    const key = result.skipped ? 'skipped' : result.verdict;
+    verdicts[key] = (verdicts[key] ?? 0) + 1;
+  }
+  return { side: 'chrome', bar: 'chrome-parity', tuple: TUPLE, minimumComparedFraction: INVENTORY.chromeParityBar.minimumComparedFraction, verdicts, results };
 }
 
 /* ------------------------------------------------------------------------- diff stage -- */
@@ -385,21 +542,31 @@ function diffAll() {
 async function main() {
   const side = argValue('side');
   const port = Number(argValue('port', '0'));
-  if (!['reference', 'built', 'diff'].includes(side)) {
-    console.error('usage: design-parity-capture-run.mjs --side=reference|built|diff [--port=N]');
+  const browserless = ['diff', 'chrome'];
+  if (!['reference', 'built', ...browserless].includes(side)) {
+    console.error('usage: design-parity-capture-run.mjs --side=reference|built|diff|chrome [--port=N] [--regions-only]');
     process.exit(2);
   }
-  if (side !== 'diff' && !port) {
+  if (!browserless.includes(side) && !port) {
     console.error(`design-parity-capture-run.mjs --side=${side} needs --port=N, the loopback debugging port of an already-running target`);
+    process.exit(2);
+  }
+  if (regionsOnly() && browserless.includes(side)) {
+    console.error(`design-parity-capture-run.mjs --side=${side} takes no captures, so --regions-only would mean nothing there`);
     process.exit(2);
   }
 
   const ledger = side === 'reference' ? await captureReferenceSide(port, Number(argValue('server-port', '0')))
     : side === 'built' ? await captureBuiltSide(port)
-      : diffAll();
+      : side === 'chrome' ? chromeAll()
+        : diffAll();
+  // A --regions-only run measured rectangles and took no pictures, so it must not overwrite
+  // the ledger that records which captures exist — that ledger is what the on-disk capture
+  // guard checks every committed PNG against.
+  const name = regionsOnly() ? `run-regions-${side}` : `run-${side}`;
   mkdirSync(LEDGER_DIR, { recursive: true });
-  writeFileSync(join(LEDGER_DIR, `run-${side}.json`), `${JSON.stringify({ generatedAt: new Date().toISOString(), ...ledger }, null, 2)}\n`);
-  console.log(`\nwrote console/release/evidence/parity/run-${side}.json`);
+  writeFileSync(join(LEDGER_DIR, `${name}.json`), `${JSON.stringify({ generatedAt: new Date().toISOString(), regionsOnly: regionsOnly(), ...ledger }, null, 2)}\n`);
+  console.log(`\nwrote console/release/evidence/parity/${name}.json`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

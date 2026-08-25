@@ -1,0 +1,101 @@
+{
+  "destinationId": "voicemail",
+  "bar": "chrome-parity",
+  "verdict": "diff",
+  "reasons": [],
+  "dimensions": {
+    "reference": {
+      "width": 1440,
+      "height": 1000
+    },
+    "built": {
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  "totalPixels": 1440000,
+  "comparedPixels": 425352,
+  "comparedFraction": 0.29538333333333333,
+  "minimumComparedFraction": 0.25,
+  "diffPixelCount": 38102,
+  "diffPercentage": 8.957757339803269,
+  "boundingBox": {
+    "x0": 6,
+    "y0": 5,
+    "x1": 1437,
+    "y1": 996
+  },
+  "excluded": {
+    "rectangles": [
+      {
+        "x": 1060,
+        "y": 0,
+        "width": 380,
+        "height": 40
+      },
+      {
+        "x": 356,
+        "y": 78,
+        "width": 1084,
+        "height": 1282
+      }
+    ],
+    "pixels": 1014648,
+    "clippedAway": [],
+    "diffPixelCount": 843761,
+    "diffPercentage": 83.15800159267056
+  },
+  "areas": {
+    "brandCell": {
+      "comparedPixels": 6440,
+      "diffPixelCount": 1002,
+      "diffPercentage": 15.559006211180124
+    },
+    "menuCell": {
+      "comparedPixels": 15720,
+      "diffPixelCount": 1886,
+      "diffPercentage": 11.997455470737913
+    },
+    "commandCell": {
+      "comparedPixels": 20880,
+      "diffPixelCount": 7296,
+      "diffPercentage": 34.94252873563218
+    },
+    "tabStrip": {
+      "comparedPixels": 54720,
+      "diffPixelCount": 4892,
+      "diffPercentage": 8.940058479532164
+    },
+    "rail": {
+      "comparedPixels": 81136,
+      "diffPixelCount": 5734,
+      "diffPercentage": 7.067146519424177
+    },
+    "sectionList": {
+      "comparedPixels": 247096,
+      "diffPixelCount": 17292,
+      "diffPercentage": 6.99808981124745
+    }
+  },
+  "paletteCheck": {
+    "blackFraction": 0,
+    "thresholdExceeded": false
+  },
+  "stalenessCheck": {
+    "checked": true,
+    "stale": false,
+    "builtCaptureMtimeMs": 1787682090577.7837,
+    "newestBuildSourceMtimeMs": 1787670487605.2488
+  },
+  "generatedBy": "console/scripts/design-parity-capture-run.mjs --side=chrome",
+  "tuple": {
+    "state": "default",
+    "theme": "dark",
+    "width": 1440,
+    "height": 1000,
+    "scale": 1
+  },
+  "regionLedger": "console/release/evidence/parity/voicemail-regions.json",
+  "referenceCapture": "console/release/captures/parity/voicemail-reference.png",
+  "builtCapture": "console/release/captures/parity/voicemail-built.png"
+}

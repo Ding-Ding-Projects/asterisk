@@ -1,0 +1,228 @@
+{
+  "destinationId": "notifications",
+  "bar": "chrome-parity",
+  "tuple": {
+    "state": "default",
+    "theme": "dark",
+    "width": 1440,
+    "height": 1000,
+    "scale": 1
+  },
+  "shell": {
+    "reference": {
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 990
+    },
+    "built": {
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  "areas": {
+    "brandCell": {
+      "role": "chrome",
+      "why": "The top strip's first cell: the product mark and name. It renders the same thing on every destination and reads nothing from the target.",
+      "reference": {
+        "x": 0,
+        "y": 0,
+        "width": 154,
+        "height": 40
+      },
+      "built": {
+        "x": 0,
+        "y": 0,
+        "width": 161,
+        "height": 40
+      },
+      "union": {
+        "x": 0,
+        "y": 0,
+        "width": 161,
+        "height": 40
+      }
+    },
+    "menuCell": {
+      "role": "chrome",
+      "why": "The top strip's menu bar — a fixed set of menu titles, identical on every destination.",
+      "reference": {
+        "x": 154,
+        "y": 0,
+        "width": 384,
+        "height": 40
+      },
+      "built": {
+        "x": 161,
+        "y": 0,
+        "width": 386,
+        "height": 40
+      },
+      "union": {
+        "x": 154,
+        "y": 0,
+        "width": 393,
+        "height": 40
+      }
+    },
+    "commandCell": {
+      "role": "chrome",
+      "why": "The top strip's command affordance. It carries its own label, not a reading.",
+      "reference": {
+        "x": 538,
+        "y": 0,
+        "width": 534,
+        "height": 40
+      },
+      "built": {
+        "x": 546,
+        "y": 0,
+        "width": 526,
+        "height": 40
+      },
+      "union": {
+        "x": 538,
+        "y": 0,
+        "width": 534,
+        "height": 40
+      }
+    },
+    "statusCell": {
+      "role": "data",
+      "why": "The top strip's last cell carries live status: what the console is connected to and how that connection is faring. The design invents a healthy-looking value there; the built application shows whatever the target actually reports, which with no target configured is nothing at all.",
+      "reference": {
+        "x": 1072,
+        "y": 0,
+        "width": 368,
+        "height": 40
+      },
+      "built": {
+        "x": 1072,
+        "y": 0,
+        "width": 368,
+        "height": 40
+      },
+      "union": {
+        "x": 1072,
+        "y": 0,
+        "width": 368,
+        "height": 40
+      }
+    },
+    "tabStrip": {
+      "role": "chrome",
+      "why": "The open-tab strip. Tab titles come from the navigation catalogue, which is itself compiled from the design, so both sides are naming the same screens.",
+      "reference": {
+        "x": 0,
+        "y": 40,
+        "width": 1440,
+        "height": 38
+      },
+      "built": {
+        "x": 0,
+        "y": 40,
+        "width": 1440,
+        "height": 38
+      },
+      "union": {
+        "x": 0,
+        "y": 40,
+        "width": 1440,
+        "height": 38
+      }
+    },
+    "rail": {
+      "role": "chrome",
+      "why": "The navigation rail: six fixed rail icons and their labels, compiled from the design's own catalogue. Chrome deliberately — a divergence here is a real layout defect and the bar is supposed to report it rather than excuse it.",
+      "reference": {
+        "x": 0,
+        "y": 78,
+        "width": 88,
+        "height": 912
+      },
+      "built": {
+        "x": 0,
+        "y": 78,
+        "width": 88,
+        "height": 922
+      },
+      "union": {
+        "x": 0,
+        "y": 78,
+        "width": 88,
+        "height": 922
+      }
+    },
+    "sectionList": {
+      "role": "chrome",
+      "why": "The section list for the open rail. Kept inside the compared region on purpose even though this application removed the design's per-row badges: the labels are chrome, and a badge present on one side and absent on the other is a divergence worth reading in the result rather than one worth hiding in a mask.",
+      "reference": {
+        "x": 88,
+        "y": 78,
+        "width": 268,
+        "height": 912
+      },
+      "built": {
+        "x": 88,
+        "y": 78,
+        "width": 268,
+        "height": 922
+      },
+      "union": {
+        "x": 88,
+        "y": 78,
+        "width": 268,
+        "height": 922
+      }
+    },
+    "contentPane": {
+      "role": "data",
+      "why": "The destination's own screen. This is where the design's invented rows, dashboard tiles, health bars and history sit, and where the built application puts the target's real readings instead. It is the region this bar exists to exclude.",
+      "reference": {
+        "x": 356,
+        "y": 78,
+        "width": 1084,
+        "height": 912
+      },
+      "built": {
+        "x": 356,
+        "y": 78,
+        "width": 1084,
+        "height": 922
+      },
+      "union": {
+        "x": 356,
+        "y": 78,
+        "width": 1084,
+        "height": 922
+      }
+    }
+  },
+  "exclusions": [
+    {
+      "area": "statusCell",
+      "x": 1072,
+      "y": 0,
+      "width": 368,
+      "height": 40
+    },
+    {
+      "area": "contentPane",
+      "x": 356,
+      "y": 78,
+      "width": 1084,
+      "height": 922
+    }
+  ],
+  "comparedAreas": [
+    "brandCell",
+    "menuCell",
+    "commandCell",
+    "tabStrip",
+    "rail",
+    "sectionList"
+  ],
+  "generatedBy": "console/scripts/design-parity-capture-run.mjs --side=chrome"
+}

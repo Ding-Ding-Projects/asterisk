@@ -116,7 +116,10 @@ test('build composes deterministic local output without fetches', async () => {
   // references rather than by sweeping a directory, so a capture the page never uses cannot
   // quietly add megabytes to every visit, and a renamed file fails the build instead of
   // rendering as a broken image. Both of those refusals were broken on purpose and watched.
-  assert.equal(manifest.outputFiles.length, 185);
+  // 186 from 2026-08-25, for one evidence record: docs/evidence/design-parity-chrome-bar.md,
+  // which states the chrome-parity bar a design-parity row now has to meet, and what the
+  // first run of it measured. One article in, one HTML page out.
+  assert.equal(manifest.outputFiles.length, 186);
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');
