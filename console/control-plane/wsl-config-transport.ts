@@ -175,9 +175,21 @@ export type ConfigurableResource = (typeof CONFIGURABLE_RESOURCES)[number];
 const ALLOWED = new Set<string>(CONFIGURABLE_RESOURCES);
 
 /** One `[section]` and the `key = value` lines beneath it, in file order. */
+/**
+ * Asterisk writes two separators and they do not mean the same thing. `key = value` assigns
+ * a setting; `key => value` declares an object, and the entire dialplan is written in the
+ * second form.
+ *
+ * Reading with one and writing with the other is not cosmetic. It renamed every extension
+ * in a real file: `exten => 8100` read back as key `exten` and value `> 8100`, went out as
+ * `exten = > 8100`, and Asterisk loaded an extension literally called `>8100`. Sixty-one
+ * lines lost, from a read and a write-back with no edit in between.
+ */
+export type ConfigSeparator = '=' | '=>';
+
 export interface ConfigSection {
   name: string;
-  entries: ReadonlyArray<{ key: string; value: string }>;
+  entries: ReadonlyArray<{ key: string; value: string; separator?: ConfigSeparator }>;
 }
 
 export type ConfigValue = ReadonlyArray<ConfigSection>;
@@ -199,7 +211,7 @@ export function assertConfigurable(resource: string): ConfigurableResource {
  */
 export function parseConfig(text: string): ConfigValue {
   const sections: ConfigSection[] = [];
-  let current: { name: string; entries: Array<{ key: string; value: string }> } | undefined;
+  let current: { name: string; entries: Array<{ key: string; value: string; separator?: ConfigSeparator }> } | undefined;
 
   for (const rawLine of text.split(/\r?\n/u)) {
     const line = rawLine.trim();
@@ -212,15 +224,23 @@ export function parseConfig(text: string): ConfigValue {
       continue;
     }
 
-    const separator = line.indexOf("=");
-    if (separator < 0) continue;
+    const equals = line.indexOf("=");
+    if (equals < 0) continue;
     if (!current) {
       current = { name: "", entries: [] };
       sections.push(current);
     }
+    /* Record which separator the file actually used, so writing the line back cannot
+     * silently change what it means. */
+    const arrow = line.charAt(equals + 1) === ">";
     current.entries.push({
-      key: line.slice(0, separator).trim(),
-      value: line.slice(separator + 1).trim(),
+      key: line.slice(0, equals).trim(),
+      value: line.slice(equals + (arrow ? 2 : 1)).trim(),
+      /* Only recorded for the arrow form. Stamping every entry with the plain separator
+       * would make a parsed value stop deep-equalling a hand-built one, and the
+       * transaction compares exactly those two after every write -- so every apply would
+       * report a post-read mismatch and roll back a change that had worked. */
+      ...(arrow ? { separator: "=>" as ConfigSeparator } : {}),
     });
   }
 
@@ -231,10 +251,130 @@ export function parseConfig(text: string): ConfigValue {
 export function renderConfig(value: ConfigValue): string {
   const blocks = value.map((section) => {
     const head = section.name.length > 0 ? `[${section.name}]` : "";
-    const body = section.entries.map((entry) => `${entry.key} = ${entry.value}`);
+    const body = section.entries.map(
+      /* Defaults to the plain form: every caller that builds an entry by hand means an
+       * ordinary assignment and says nothing about separators. */
+      (entry) => `${entry.key} ${entry.separator ?? "="} ${entry.value}`,
+    );
     return [head, ...body].filter((line) => line.length > 0).join("\n");
   });
   return `${blocks.join("\n\n")}\n`;
+}
+
+/**
+ * Renders a desired value over the file it came from, keeping every line the change did
+ * not touch.
+ *
+ * `renderConfig` regenerates a file from the parsed shape, and the parsed shape holds no
+ * comments. On this project's own sample dialplan that meant a single edit rewrote 880
+ * lines and deleted 606 of them -- every comment explaining what the dialplan does. The
+ * settings survived and the reasons for them did not, which is a worse outcome than a
+ * failed write, because a failed write tells you.
+ *
+ * So the original text is walked line by line. A line that is not an entry -- a comment, a
+ * blank, a section header -- is kept exactly as written. An entry whose key, value and
+ * separator are unchanged is kept as its original line. An entry whose value changed is
+ * re-rendered. An entry that is gone is dropped, and anything genuinely new is appended to
+ * its section.
+ *
+ * Repeated keys are matched by position within the key, not by name alone, because these
+ * files legitimately repeat one -- several `allow=` lines, many `exten =>` lines -- and
+ * matching by name alone would collapse them into the first.
+ */
+export function renderConfigOver(desired: ConfigValue, originalText: string): string {
+  /* Split on the newline alone, so a carriage return rides along inside the line and a
+   * file written with either ending comes back with exactly the one it had. Splitting on
+   * both and rejoining with one silently rewrites every line in a file it was asked not
+   * to touch. */
+  const originalLines = originalText.split(String.fromCharCode(10));
+  const wanted = new Map<string, ReadonlyArray<{ key: string; value: string; separator?: ConfigSeparator }>>();
+  for (const section of desired) wanted.set(section.name, section.entries);
+
+  /* How many of each key have been consumed in the section being walked, so a repeated key
+   * lines up with the right one rather than always with the first. */
+  const consumed = new Map<string, number>();
+  const emitted: string[] = [];
+  const seenSections: string[] = [];
+  let sectionName: string | undefined;
+  let sectionKept = true;
+
+  const entryFor = (name: string, key: string) => {
+    const entries = wanted.get(name);
+    const index = consumed.get(key) ?? 0;
+    consumed.set(key, index + 1);
+    if (!entries) return undefined;
+    let seen = 0;
+    for (const entry of entries) {
+      if (entry.key !== key) continue;
+      if (seen === index) return entry;
+      seen += 1;
+    }
+    return undefined;
+  };
+
+  const flushNewEntries = (name: string) => {
+    const entries = wanted.get(name);
+    if (!entries) return;
+    const used = new Map<string, number>();
+    for (const entry of entries) {
+      const index = used.get(entry.key) ?? 0;
+      used.set(entry.key, index + 1);
+      if (index < (consumed.get(entry.key) ?? 0)) continue;
+      emitted.push(`${entry.key} ${entry.separator ?? "="} ${entry.value}`);
+    }
+  };
+
+  for (const rawLine of originalLines) {
+    const line = rawLine.trim();
+
+    if (line.startsWith("[") && line.endsWith("]")) {
+      if (sectionName !== undefined && sectionKept) flushNewEntries(sectionName);
+      sectionName = line.slice(1, -1).trim();
+      seenSections.push(sectionName);
+      sectionKept = wanted.has(sectionName);
+      consumed.clear();
+      if (sectionKept) emitted.push(rawLine);
+      continue;
+    }
+
+    if (!sectionKept) continue;
+
+    const equals = line.length === 0 || line.startsWith(";") ? -1 : line.indexOf("=");
+    if (equals < 0) {
+      emitted.push(rawLine);
+      continue;
+    }
+
+    const arrow = line.charAt(equals + 1) === ">";
+    const key = line.slice(0, equals).trim();
+    const value = line.slice(equals + (arrow ? 2 : 1)).trim();
+    const separator: ConfigSeparator = arrow ? "=>" : "=";
+    const match = entryFor(sectionName ?? "", key);
+
+    if (!match) continue;
+    if (match.value === value && (match.separator ?? "=") === separator) {
+      emitted.push(rawLine);
+      continue;
+    }
+    emitted.push(`${match.key} ${match.separator ?? separator} ${match.value}`);
+  }
+
+  if (sectionName !== undefined && sectionKept) flushNewEntries(sectionName);
+
+  /* Sections the original never had. Rendered plainly; there is no prior text to keep. */
+  for (const section of desired) {
+    if (seenSections.includes(section.name)) continue;
+    emitted.push("");
+    if (section.name.length > 0) emitted.push(`[${section.name}]`);
+    for (const entry of section.entries) {
+      emitted.push(`${entry.key} ${entry.separator ?? "="} ${entry.value}`);
+    }
+  }
+
+  /* No trailing newline is added. A file that ended with one has an empty final element
+   * from the split and gets it back; a file that did not, does not. Appending one
+   * unconditionally added a line to a file nobody edited. */
+  return emitted.join(String.fromCharCode(10));
 }
 
 export interface WslConfigTransportOptions {
@@ -272,7 +412,7 @@ export class WslConfigTransport implements ConfigTransport {
       args: ["-d", this.#distribution, "--", ...args],
       input,
       timeoutMs,
-      maxOutputBytes: 4 * 1024 * 1024,
+      maxOutputBytes: 8 * 1024 * 1024,
     });
     if (result.status !== "succeeded") {
       throw new Error(result.stderr.trim() || `${args[0]} exited with ${result.exitCode}`);
@@ -280,10 +420,31 @@ export class WslConfigTransport implements ConfigTransport {
     return result.stdout;
   }
 
+  /**
+   * Reads a file's exact bytes.
+   *
+   * Deliberately base64, not `cat`. The executor redacts stdout before returning it, which
+   * is right for anything a person or a log will see and wrong for a file that is about to
+   * be written back: the placeholder goes into the real file and the credential it replaced
+   * is gone. Measured on this project's own sample dialplan -- 31,925 bytes on disk came
+   * back as 31,896, and the 29 missing were a password in a commented example. On a
+   * `pjsip.conf` with live trunk credentials the same path would have replaced working
+   * secrets with the word that hides them, and every registration would have failed with a
+   * file that still looked plausible.
+   *
+   * Base64 also makes the read binary-exact, so nothing about encoding can alter a byte on
+   * the way in. The decoded text stays in memory and never reaches stdout, which serves the
+   * redactor's actual purpose better than redacting the thing we intend to preserve.
+   */
+  async #readExact(path: string): Promise<string> {
+    const encoded = await this.#run(["base64", "-w", "0", path], undefined, 30_000);
+    return Buffer.from(encoded.replace(/\s/gu, ""), "base64").toString("utf8");
+  }
+
   async read(resource: string): Promise<ConfigValue> {
     const allowed = assertConfigurable(resource);
     try {
-      return parseConfig(await this.#run(["cat", this.#path(allowed)]));
+      return parseConfig(await this.#readExact(this.#path(allowed)));
     } catch (error) {
       if (looksAbsent(error)) return [];
       throw error;
@@ -308,7 +469,19 @@ export class WslConfigTransport implements ConfigTransport {
   async stage(resource: string, value: unknown): Promise<string> {
     const allowed = assertConfigurable(resource);
     const staged = this.#path(allowed, ".staged");
-    await this.#run(["tee", staged], renderConfig(value as ConfigValue));
+    /* Render over the file as it stands, not from the parsed shape alone. The parsed shape
+     * carries no comments, so regenerating from it deletes every one of them -- 606 lines
+     * out of 880 on this project own sample dialplan. Reading the current text first costs
+     * one command and keeps everything the change did not touch.
+     *
+     * A resource that does not exist yet has no text to preserve, so an empty original is
+     * the honest input rather than a failure. */
+    let original = "";
+    try { original = await this.#readExact(allowed); } catch { original = ""; }
+    const body = original.length > 0
+      ? renderConfigOver(value as ConfigValue, original)
+      : renderConfig(value as ConfigValue);
+    await this.#run(["tee", staged], body);
     this.#staged.set(staged, allowed);
     return staged;
   }
@@ -316,7 +489,9 @@ export class WslConfigTransport implements ConfigTransport {
   async validate(stagedHandle: string): Promise<void> {
     const resource = this.#staged.get(stagedHandle);
     if (!resource) throw new Error("That staged file was not created by this transaction.");
-    const written = parseConfig(await this.#run(["cat", stagedHandle]));
+    /* Exact, like the read above. Validating a redacted copy of what was written would be
+     * checking a different file from the one about to be applied. */
+    const written = parseConfig(await this.#readExact(stagedHandle));
     if (written.length === 0) {
       throw new Error(`The staged ${resource} parsed to nothing, so it was not applied.`);
     }
