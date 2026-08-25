@@ -2455,6 +2455,56 @@ const SCREENS = {
       ctl('s_capath','Verification CA directory','text','',{ info:'A directory of hashed CA certificates -- an alternative to the file above.' }),
       ctl('s_stirsave','Save STIR/SHAKEN settings','segmented','Save',{ options:['Save'], action:'security-stir-save' })
     ]}] },
+  dbrealtime:{ rail:'sys', icon:'storage', label:'Database backends', badge:'', title:'Database & realtime backends', file:'res_pgsql.conf', kind:'generic',
+    sub:'Where Asterisk keeps configuration that does not live in a file: an ODBC connection, a realtime mapping that points a family at one, sorcery’s own object-type wiring, and the settings res_config_pgsql reads on its own. Type a name, press Load to see what the target already has, edit, then Save -- Save creates the row if it does not exist yet, because a family or object-type mapping is a complete, valid entry on its own with nothing else required around it.',
+    groups:[{ title:'ODBC connection', desc:'res_odbc.conf. Named connections other files (extconfig.conf, func_odbc.conf) refer to by this same name.', ctls:[
+      ctl('db_odbcname','Connection name','text','asterisk',{ info:'The res_odbc.conf [section]. res_odbc.conf.sample: "[asterisk] ... The context name is what will be used in other configuration files, such as extconfig.conf and func_odbc.conf, to reference this connection."' }),
+      ctl('db_odbcload','Load from target','segmented','Load',{ options:['Load'], action:'db-odbc-load', info:'Reads this connection’s current settings from res_odbc.conf into the fields below.' }),
+      ctl('db_odbcenabled','Enabled','switch',false,{ info:'res_odbc.conf.sample: "enabled => no" -- permits disabling a section without commenting it out.' }),
+      ctl('db_odbcdsn','DSN','text','',{ placeholder:'asterisk', info:'Must match an entry in odbc.ini. res_odbc.conf.sample: "dsn => asterisk".' }),
+      ctl('db_odbcusername','Username','text','',{ placeholder:'myuser', info:'Defaults to the connection name if left blank. res_odbc.conf.sample: ";username => myuser".' }),
+      ctl('db_odbcpassword','Password','text','',{ placeholder:'Type a new password', info:'Write-only: typed here, sent once on Save, and never read back from the target or shown again. res_odbc.conf.sample: ";password => mypass".' }),
+      ctl('db_odbcpasswordstatus','Password on target','text','Load a connection to check.',{ action:'db-odbc-password-status', info:'Whether res_odbc.conf currently has a password line for this connection -- never what it holds.' }),
+      ctl('db_odbcpreconnect','Connect at startup','switch',true,{ info:'res_odbc.conf.sample: "pre-connect => yes".' }),
+      ctl('db_odbcmaxconn','Max connections','stepper',1,{ min:1, max:200, info:'res_odbc.conf.sample: ";max_connections => 20" -- defaults to 1; raise only on a UnixODBC newer than 2.3.1.' }),
+      ctl('db_odbcconntimeout','Connect timeout','stepper',10,{ min:1, max:120, unit:'s', info:'res_odbc.conf.sample: ";connect_timeout => 10".' }),
+      ctl('db_odbcnegcache','Negative connection cache','stepper',300,{ min:0, max:3600, unit:'s', info:'How long a failed connection is cached before Asterisk retries it. res_odbc.conf.sample: ";negative_connection_cache => 300".' }),
+      ctl('db_odbclogging','Query logging','switch',false,{ info:'Viewable with the "odbc show" CLI command. res_odbc.conf.sample: ";logging => yes".' }),
+      ctl('db_odbcslowquery','Slow query limit','stepper',5000,{ min:0, max:60000, unit:'ms', info:'0 disables the warning; requires logging on. res_odbc.conf.sample: ";slow_query_limit => 5000".' }),
+      ctl('db_odbcbackslash','Backslash is an escape character','switch',true,{ info:'Turn off for MS SQL Server. res_odbc.conf.sample: ";backslash_is_escape => yes".' }),
+      ctl('db_odbcisolation','Isolation level','select','read_committed',{ options:['read_uncommitted','read_committed','repeatable_read','serializable'], info:'res_odbc.conf.sample: ";isolation => repeatable_read", documenting these four values; the default is read_committed.' }),
+      ctl('db_odbccachetype','Connection cache type','select','stack',{ options:['stack','roundrobin','queue'], info:'res_odbc.conf.sample: "The default remains a stack ... setting this value to any of rr, roundrobin or queue will result in a round-robin queue being used."' }),
+      ctl('db_odbcsave','Save ODBC connection','segmented','Save',{ options:['Save'], action:'db-odbc-save', info:'Writes every field above, including the password if one was typed, to res_odbc.conf on the target.' })
+    ]},{ title:'Realtime mapping', desc:'extconfig.conf’s [settings] section: which database a static file or a realtime family is loaded from.', ctls:[
+      ctl('db_family','Realtime family','text','',{ placeholder:'ps_endpoints', info:'The config file or realtime family this maps, e.g. "ps_endpoints" or "queues.conf". extconfig.conf.sample [settings]: "file.conf => driver,database[,table[,priority]]".' }),
+      ctl('db_mappingload','Load from target','segmented','Load',{ options:['Load'], action:'db-mapping-load', info:'Reads this family’s current mapping from extconfig.conf.' }),
+      ctl('db_driver','Driver','select','odbc',{ options:['odbc','sqlite3','pgsql','curl','ldap','mysql'], info:'extconfig.conf.sample: "Possible driver backends ... odbc ... sqlite3 ... pgsql ... curl ... ldap ... mysql".' }),
+      ctl('db_database','Database','text','',{ placeholder:'asterisk', info:'extconfig.conf.sample: "ps_endpoints => odbc,asterisk". For the pgsql driver this name is actually ignored by res_config_pgsql in favour of res_pgsql.conf, per that same sample.' }),
+      ctl('db_table','Table (optional)','text','',{ placeholder:'Same as the family name', info:'extconfig.conf.sample: "or uses the name of the family if the table is not specified".' }),
+      ctl('db_priority','Priority (0 = none)','stepper',0,{ min:0, max:20, info:'Lets a second mapping act as failover; priorities must start at 1 and be sequential. 0 writes no priority at all. extconfig.conf.sample: "priorities ... must start at 1 and be sequential".' }),
+      ctl('db_mappingsave','Save realtime mapping','segmented','Save',{ options:['Save'], action:'db-mapping-save', info:'Writes family => driver,database[,table[,priority]] to extconfig.conf, creating the mapping if it does not already exist.' }),
+      ctl('db_mappingremove','Remove this mapping','segmented','Remove',{ options:['Remove'], action:'db-mapping-remove', info:'Deletes the family line from extconfig.conf entirely; the file reverts to reading it from disk.' })
+    ]},{ title:'Sorcery wiring', desc:'sorcery.conf: which persistence wizard backs an object type for a given module.', ctls:[
+      ctl('db_sorcerymodule','Module','text','',{ placeholder:'res_pjsip', info:'The sorcery.conf [section], named after the module it configures. sorcery.conf.sample: "[res_pjsip] ... endpoint=realtime,ps_endpoints".' }),
+      ctl('db_sorceryload','Load from target','segmented','Load',{ options:['Load'], action:'db-sorcery-load', info:'Reads this module’s current object-type mapping from sorcery.conf.' }),
+      ctl('db_sorceryobjtype','Object type','text','',{ placeholder:'endpoint', info:'sorcery.conf.sample: "object type [/options] = wizard name, wizard configuration data". Append "/cache" to mark this mapping as a cache, e.g. "endpoint/cache" -- sorcery.conf.sample: "test/cache=test".' }),
+      ctl('db_sorcerywizard','Wizard','text','',{ placeholder:'realtime', info:'The persistence backend; which are available depends on which wizard modules are loaded. sorcery.conf.sample shows memory, config, astdb and realtime.' }),
+      ctl('db_sorceryconfig','Wizard configuration','text','',{ placeholder:'ps_endpoints', info:'What this means depends on the wizard -- a realtime family, a filename, or nothing at all for the memory wizard. sorcery.conf.sample: "joe=config,joe.conf" and "endpoint=realtime,ps_endpoints".' }),
+      ctl('db_sorcerysave','Save sorcery mapping','segmented','Save',{ options:['Save'], action:'db-sorcery-save', info:'Writes objecttype = wizard[,config] into the named module’s section of sorcery.conf.' }),
+      ctl('db_sorceryremove','Remove this mapping','segmented','Remove',{ options:['Remove'], action:'db-sorcery-remove', info:'Deletes the object-type line from this module’s section entirely.' })
+    ]},{ title:'PostgreSQL realtime', desc:'res_pgsql.conf’s own [general] section -- the connection res_config_pgsql uses directly, independent of res_odbc.conf.', ctls:[
+      ctl('db_pghost','Host','text','',{ placeholder:'localhost', info:'Commented out or "localhost" connects over the local socket instead of TCP/IP. res_pgsql.conf.sample: ";hostname=localhost".' }),
+      ctl('db_pgport','Port','stepper',5432,{ min:1, max:65535, info:'res_pgsql.conf.sample: ";port=5432".' }),
+      ctl('db_pgdbname','Database name','text','',{ placeholder:'asterisk', info:'res_pgsql.conf.sample: ";dbname=asterisk".' }),
+      ctl('db_pguser','User','text','',{ placeholder:'postgres', info:'res_pgsql.conf.sample: ";user=postgres".' }),
+      ctl('db_pgpassword','Password','text','',{ placeholder:'Type a new password', info:'Write-only: typed here, sent once on Save, and never read back or shown again. res_pgsql.conf.sample: ";password=password".' }),
+      ctl('db_pgpasswordstatus','Password on target','text','Read res_pgsql.conf to check.',{ action:'db-pgsql-password-status', info:'Whether res_pgsql.conf currently has a password line -- never what it holds.' }),
+      ctl('db_pgappname','Application name','text','',{ placeholder:'asterisk', info:'Whitespace is not allowed in this value. res_pgsql.conf.sample: ";appname=asterisk ; Postgres application_name support (optional)."' }),
+      ctl('db_pgsocket','Socket directory','text','',{ placeholder:'/tmp', info:'Combined with the port to find the actual socket file. res_pgsql.conf.sample: ";socket=/tmp".' }),
+      ctl('db_pgrequirements','Column requirements','select','warn',{ options:['warn','createclose','createchar'], info:'res_pgsql.conf.sample: "requirements=warn" -- warn logs a missing column, createclose creates one as close as possible, createchar creates char columns only.' }),
+      ctl('db_pgorderby','Order multi-row results by the initial column','switch',true,{ info:'On by default; turning it off removes the ORDER BY realtime adds to a multi-row SELECT. res_pgsql.conf.sample: ";order_multi_row_results_by_initial_column=no".' }),
+      ctl('db_pgsave','Save res_pgsql.conf settings','segmented','Save',{ options:['Save'], action:'db-pgsql-save', info:'Writes every field above, including the password if one was typed, to res_pgsql.conf on the target.' })
+    ]}] },
   cli:{ rail:'sys', icon:'terminal', label:'CLI builder', badge:'', title:'CLI builder', file:'asterisk -rx', kind:'cli',
     sub:'Build a real Asterisk CLI command by choosing its parts. The raw console beside it is read-only output, shown only in expert mode.', groups:[] },
   memory:{ rail:'agent', icon:'database', label:'Memory console', badge:'2.4k', title:'Memory console', file:'agent global memory', kind:'memory',
@@ -2784,7 +2834,7 @@ const DOCS = {
 
 const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','g_queue','s_ciphers','s_verify','t_100rel','t_privacy','t_from','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
 
-const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','canvas','ivr','queues','voicemail','confbridge','moh','sounds','codecs','cdr','ami','modules','logger','httpd','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
+const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','canvas','ivr','queues','voicemail','confbridge','moh','sounds','codecs','cdr','ami','modules','logger','httpd','security','dbrealtime','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
 
 const GAMES = [
   { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },

@@ -72,9 +72,25 @@ function deliveredByAction(id: string): boolean {
  * s_tload/s_tsave/s_stirsave, via `deliveredByAction`.
  *
  * It may rise freely and may not fall.
+ * The floor moved on from 192 to 208 in the meantime, in changes this comment was not
+ * updated alongside -- the numbers below are what this pass measured at HEAD before its
+ * own change, and are the honest starting point for the delta actually being recorded
+ * here. Then 251 with the whole new Database backends screen (res_odbc.conf, extconfig.conf,
+ * sorcery.conf, res_pgsql.conf): net +43. Twenty are ordinary CONTROL_BINDINGS entries
+ * (eight res_pgsql.conf fields bound plainly, twelve res_odbc.conf fields bound through
+ * `sectionFrom: 'db_odbcname'`); the other twenty-three -- every picker, both write-only
+ * passwords, both password-status readouts, and every Load/Save/Remove action across the
+ * ODBC/realtime-mapping/sorcery groups -- are recognised the same two ways the Security
+ * and HTTP-server lanes above already established: an action button or a status readout
+ * carries `action:'db-*'` in the design, matched by `deliveredByAction`, and every picker
+ * and write-only field is read out of `state.values['db_*']` by name in App.tsx's own
+ * handlers, which is the quoted literal this measurement looks for. All 43 work; none are
+ * decorative.
+ *
+ * It may rise freely and may not fall.
  */
-const WORKING_FLOOR = 208;
-const TELEPHONY_TOTAL = 208;
+const WORKING_FLOOR = 251;
+const TELEPHONY_TOTAL = 251;
 
 function measure() {
   const files = readdirSync(srcDir).filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'));
