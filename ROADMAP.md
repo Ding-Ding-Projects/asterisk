@@ -181,6 +181,31 @@ is a wish rather than a proposal. Two survived on merit.
 - ~~Correct the two commit messages that carry private wording (`9beed2f159`, `899a3c3ecf`).~~ **Deliberately not doing this.** It would require rewriting published history and force-pushing, and the owner declined. Recorded here so the gap reads as a decision rather than an oversight, and so a later contributor does not rewrite shared history to close it. Every editable surface was swept instead, and a guard refuses new occurrences.
 - [x] Run the built Windows console through the approved headless interaction route and record genuine packaged interaction evidence for WSL discovery.
 
+## Desktop contract features that are wired at one end only
+
+Found by writing a per-feature contract test for all 44 rows on each surface, which is the
+first thing in this project to look at every one of them. Each entry below is a module that
+exists, is tested in isolation, and that nothing a person can reach ever calls -- the failure
+this repository keeps repeating, because it produces no error and no failing test.
+
+- [ ] **Reach the export and bulk-action code from the buttons that claim to do it.** Both
+      modules import cleanly and their planning logic genuinely runs, but the compiled interface
+      routes Export and Delete through separate code that never passes `bulk()` the verb needed to
+      reach the rich branch. Subtler than never importing it, and invisible for the same reason.
+- [ ] **Give the desktop a responsive mechanism at all.** The line cited as evidence of one is a
+      per-control segmented-picker variant, not a screen breakpoint. There is no breakpoint
+      anywhere.
+- [ ] **Anchor notifications in a corner and let them stack.** Toasts currently appear
+      bottom-centre and do not stack, and the Notification centre screen renders the fixed rows
+      that came from the design rather than a reviewable history of what was actually raised.
+- [ ] **Import the six finished modules nothing imports:** status hub, bounded overlays,
+      context-menu shortcuts, long-operation progress, collapsible filters, and forge publishing.
+      Each is complete and covered by its own tests; none is reachable from the interface.
+- [ ] **Correct the implementation registry where its notes are now false.** It still records that
+      per-element locks have no one-time-code option and no documented context-menu command; both
+      shipped. Their real gap is that credentials sit in plain state rather than the operating
+      system vault. It also understates appearance, where four of six symbols do write real styles
+      and only theme import is dead.
 ## Release readiness
 
 - [x] Verify `download-dependencies.bat /s` from a clean user-scoped toolchain cache.
