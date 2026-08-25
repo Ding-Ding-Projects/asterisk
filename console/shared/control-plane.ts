@@ -18,6 +18,12 @@ export type ControlPlaneAction =
    */
   | 'daemon.status' | 'daemon.start' | 'daemon.stop' | 'daemon.restart'
   /*
+   * Installs this console onto a machine reached over SSH, so it runs beside Asterisk and is
+   * administered from a browser. Desktop only, and refused when hosted: a server reaching out
+   * to install itself elsewhere is a different product with a different threat model.
+   */
+  | 'deploy.console'
+  /*
    * Fetches one external settings source. The privileged process makes the request
    * because it needs the token, and returns the raw result rather than applying it --
    * the renderer decides what a body is permitted to change, and moving that decision
