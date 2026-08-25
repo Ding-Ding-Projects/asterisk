@@ -53,7 +53,7 @@
     },
     "regex-builder": {
       "state": "implemented",
-      "note": "site/app.js implements a real anchored regex builder: openRegex()/initRegex() (lines 808, 812) open a <dialog> attached to the triggering field (regex-target-label shows \"Attached to: <field>\"), support literal-insert buttons, i/m/u flags, and previewRegex() live matching, with applyRegex() writing the result back into the originating search field. Wired from every .regex-trigger button via initSearch() (line 807), including the settings search and documentation search.",
+      "note": "site/app.js implements a real anchored regex builder: openRegex()/initRegex() (lines 880, 884) open a <dialog> attached to the triggering field (regex-target-label shows \"Attached to: <field>\"), support literal-insert buttons, i/m/u flags, and previewRegex() live matching, with applyRegex() writing the result back into the originating search field and refreshing a persistent mode-status readout (renderModeStatus()/renderAllModeStatuses(), lines 885-886) that names plain-text or regex mode plus the live pattern next to every regex-enabled search field, matching the Blueprint design export's always-visible \"regex mode: /pattern/flags\" readout. Wired from every .regex-trigger button via initSearch() (line 879), including the settings search and documentation search.",
       "files": [
         "site/app.js"
       ]
