@@ -12,7 +12,7 @@
     },
     "funny-levels": {
       "state": "partial",
-      "note": "site/app.js initSettings() wires english-funny and cantonese-funny sliders to state.englishFunny/state.cantoneseFunny (line 895) and applyCopy() (line 654) renders COPY table entries through copyText(key), which is the mechanism a funny level would style, but no inspection found actual per-level copy variants defined for englishFunny/cantoneseFunny beyond the language switch itself.",
+      "note": "site/app.js initSettings() wires english-funny and cantonese-funny selects to state.englishFunny/state.cantoneseFunny (line 895), and applyCopy() (line 654) plus copyText()/copyLevel() (lines 640-653) genuinely restyle rendered text: the COPY table (lines 546-644) holds eight keys (heroLede, themeDesc, motionDesc, emptyDestinations, emptyNotifications, notifSettingSaved, notifSettingsReset, notifRegexApplied), each with four real English and four real Cantonese variants indexed by the chosen level, and changing a select re-runs applyCopy() and visibly changes the rendered string. The real gap is coverage, not mechanism: only three elements (site/index.html, site/settings.html) carry a data-copy hook (heroLede, themeDesc, motionDesc) and the other five COPY keys are notification strings - eight styled strings total out of the whole site's copy, with everything else fixed at one tone. The selects also only offer four levels (0-3, defaulting to 0/Plain) rather than the canonical five levels defaulting to 5/Maximum.",
       "files": [
         "site/app.js",
         "site/settings.html"
@@ -108,7 +108,7 @@
     },
     "command-palette": {
       "state": "partial",
-      "note": "site/app.js implements openPalette() (line 816) opening a real <dialog id=\"command-palette\"> with a live-filtered palette-search field and renderPalette(), wired from a palette-open button and Ctrl+Shift+F was not confirmed as the activation key (only a button click and palette-search input were found) - the keyboard-shortcut activation contract is unverified.",
+      "note": "site/app.js implements openPalette() (line 816) opening a real <dialog id=\"command-palette\"> with a live-filtered palette-search field and renderPalette() (line 815), wired both from a palette-open button and from Ctrl+Shift+F: initNavigation() (line 777) attaches a document-level keydown listener that checks event.ctrlKey&&event.shiftKey&&event.key.toLowerCase()==='f', calls preventDefault, and invokes openPalette() directly - the chord is genuinely wired everywhere the listener is attached (every page). partial is still the correct label, for a different reason: renderPalette() (line 815) only indexes six static pages (Home/Product/Documentation/Downloads/Status/Settings) and the DESTINATIONS documentation catalogue - it never indexes settings controls, so a person cannot reach an individual setting through the palette the way the console app's palette reaches an individual control.",
       "files": [
         "site/app.js"
       ]
@@ -152,16 +152,19 @@
     },
     "accessibility": {
       "state": "partial",
-      "note": "site/app.js implements a real WCAG contrast calculator (contrastRatio/contrastVerdict) used by the colour translator, and sr-only labels appear in settings.html, but no site-wide audit of focus order, ARIA roles, or reduced-motion coverage beyond the one reduceMotion() check in the counter animation (line 967) was verified.",
+      "note": "site/app.js implements a real WCAG contrast calculator (contrastRatio/contrastVerdict, lines 519-520) used by the colour translator, and sr-only labels appear in settings.html (4 occurrences), but no site-wide audit of focus order or ARIA roles was performed. reduceMotion() (line 930) itself is checked at five call sites, not one: initReveals() (line 780, scroll-triggered reveal animations), the number-counter animate() count-up (line 967), and initConnectionDiagram()'s start() gate plus its own guard immediately after (lines 996 and 999, the animated data-path indicator) - every animated surface on the site consults it, and it also composes the OS prefers-reduced-motion query with the site's own low-motion setting rather than only one of the two.",
       "files": [
         "site/app.js",
         "site/settings.html"
       ]
     },
     "responsive-sizing": {
-      "state": "absent",
-      "note": "site/styles.css was not inspected for a systematic responsive strategy in this pass; no JS-level narrow-width handling (comparable to the app's \"narrow\" screen flag) was found in site/app.js.",
-      "files": []
+      "state": "partial",
+      "note": "site/styles.css implements a real, systematic responsive strategy: body{min-width:320px} (line 98), 32 separate clamp() uses for fluid type and spacing, and 13 @media rules covering five breakpoints (1100px, 900px, 720px, 640px, 520px) that collapse the primary nav into a hamburger menu, reflow grids to single columns, and restack the settings/download/status layouts. site/app.js's initNavigation() (line 774) wires a real nav-toggle button that opens/closes the collapsed #site-nav menu and manages aria-expanded, matching the CSS breakpoint. Not marked implemented because no JS-level narrow-width state flag (comparable to the app's \"narrow\" screen flag) drives any layout decision, and the responsive behaviour has not been captured/verified at 100/125/150/200% display scale.",
+      "files": [
+        "site/app.js",
+        "site/styles.css"
+      ]
     },
     "personal-vocabulary-upload": {
       "state": "implemented",
@@ -206,7 +209,7 @@
     },
     "offline-documentation-browser": {
       "state": "partial",
-      "note": "site/documentation.html plus renderDestinations()/initDocumentationExport() in site/app.js present a searchable documentation catalogue with per-article export, but this is a static site consuming its own bundled catalogue over the network at page load, not an offline-bundled in-app documentation browser matching the console-app contract.",
+      "note": "site/documentation.html plus renderDestinations()/initDocumentationExport() in site/app.js present a searchable documentation catalogue with per-article export. The DESTINATIONS catalogue (site/app.js line 4) is a plain array literal embedded directly in app.js, not fetched separately at runtime - app.js contains zero fetch() calls, so there is no network request for the catalogue beyond the ordinary one-time load of the page's own script. The real gap is that each result links out to a separate static article page (docs/${item.article}.html) rather than rendering parsed article content in place the way the console app's docs-markdown.ts renders headings/paragraphs/links in-app; this site has no in-page markdown-to-block renderer.",
       "files": [
         "site/app.js",
         "site/documentation.html"

@@ -12,21 +12,21 @@ Turning the mode back off is meant to require a locally verified credential; the
 
 ## Current status
 
-**Desktop application:** Not implemented. No shared switch, no rename path, and no unlock credential exist anywhere in the product.
+**Desktop application:** Partial. The shared switch, credential-gated deactivation, and rename all exist and are wired: `school-mode.ts`'s `activateSchoolMode`, `deactivateSchoolMode`, `hasCredential`, `renameSchoolMode`, `schoolModeActive` and `setCredential` are all imported and called by `App.tsx`, backed by 32 tests including one that asserts no output leaks the shipped name after a rename. Turning the mode on and off, renaming it, and setting its credential are all real. What is not wired is the mode's actual point: `school-mode.ts` also exports `capabilityVisible()`, `filterVisibleCapabilities()`, `effectiveLanguageMode()` and `effectiveFunnyLevel()` -- the functions that would force English and hide optional capabilities -- and none of them are called anywhere in the mounted application. `schoolModeActive()` itself is read only to build the status control's text. Activating School mode today changes what one status line says and nothing else; it does not force English, does not hide any capability, and no other feature (language mode, funny levels, or any gated control) checks it.
 
-**Documentation website:** Not implemented. No shared switch exists on the site either.
+**Documentation website:** Not implemented. No shared switch, rename path, or unlock credential exists anywhere in `site/app.js` or the settings page.
 
 ## Failure modes
 
-If the shared state store were unreachable, the intended behavior is to leave the previous known mode in effect and say so, rather than silently defaulting to unlocked; nothing currently implements that fallback because nothing implements the mode.
+If the shared state store were unreachable, the intended behavior is to leave the previous known mode in effect and say so, rather than silently defaulting to unlocked. The desktop implementation has not been exercised against an unreachable store, so this fallback is untested rather than absent.
 
 ## Accessibility and localization
 
-This feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.
+This feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. The desktop controls (switch, rename field, credential field, unlock switch, status readout) are ordinary native controls reachable by keyboard, but no dedicated accessibility audit has been performed. Copy for this feature is currently fixed English on both surfaces.
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+`tests/ui/school-mode.test.tsx` and `tests/ui/credential-field.test.tsx` (32 tests total) exercise the switch, rename, and credential logic directly, not its lack of effect on the rest of the app. Verifying the capability-hiding gap means activating School mode in the built application and confirming that the language mode, funny levels, and every other optional or playful control remain exactly as visible and functional as before -- they currently do, which is the defect this article now records rather than hides.
 
 ## Suggested articles
 
