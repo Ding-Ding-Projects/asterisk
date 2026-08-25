@@ -110,7 +110,13 @@ test('build composes deterministic local output without fetches', async () => {
   // design export: 30 vendored Archivo / IBM Plex Mono font files plus their own
   // fonts.css and manifest.json, copied in by build.mjs exactly as the app's own
   // vendored Roboto set already is, so the published pages reach them too.
-  assert.equal(manifest.outputFiles.length, 179);
+  // 185 from 2026-08-25, for six product screenshots on the homepage. The readme and the
+  // published site both carried no pictures at all, so somebody deciding whether to install
+  // this was being asked to imagine it. build.mjs copies them by name from the page own
+  // references rather than by sweeping a directory, so a capture the page never uses cannot
+  // quietly add megabytes to every visit, and a renamed file fails the build instead of
+  // rendering as a broken image. Both of those refusals were broken on purpose and watched.
+  assert.equal(manifest.outputFiles.length, 185);
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');

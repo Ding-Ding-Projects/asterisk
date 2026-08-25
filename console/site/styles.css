@@ -642,3 +642,43 @@ body.attn-focus .topbar:hover,body.attn-focus .topbar:focus-within,body.attn-foc
 @media(max-width:640px){
   .notif-bulk-row .filter-status{margin-left:0}
 }
+
+/* Product screenshots.
+ *
+ * The grid is `auto-fit` with a `minmax` floor rather than a fixed column count, so it
+ * collapses to one column on a narrow screen without a breakpoint to maintain. The
+ * images carry their intrinsic width and height in the markup and `height:auto` here,
+ * which is what stops the page reflowing as each one arrives -- the browser reserves the
+ * right box before the bytes land.
+ *
+ * `max-width:100%` is the line that keeps a 2160px capture from pushing the page body
+ * sideways on a phone, which the site contract forbids outright. */
+.screens .shot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: var(--space-4, 1rem);
+  margin-top: var(--space-4, 1rem);
+}
+.screens .shot {
+  margin: 0;
+  border: 1px solid var(--md-sys-color-outline-variant, #1C2230);
+  border-radius: var(--md-sys-shape-corner-medium, 12px);
+  overflow: hidden;
+  background: var(--md-sys-color-surface-container, #0B0E13);
+}
+.screens .shot img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant, #1C2230);
+}
+.screens .shot figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: var(--space-3, 0.75rem);
+  font-size: 0.875rem;
+}
+.screens .shot figcaption strong { color: var(--md-sys-color-primary, #FFB224); }
+.screens .shot figcaption span { color: var(--md-sys-color-on-surface-variant, #A9B4C6); }
