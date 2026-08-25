@@ -16,7 +16,7 @@ import test from 'node:test';
 import { createServer } from 'node:http';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { writeFileSync, mkdtempSync } from 'node:fs';
+import { writeFileSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -106,4 +106,34 @@ test('a catalogue carrying no dish records is refused rather than half-used', as
     assert.equal(out.resolved, false);
     assert.match(out.reason, /no dish records/);
   } finally { server.closeAllConnections(); server.close(); }
+});
+
+test('the release step reads the resolved record as UTF-8 explicitly', () => {
+  /* The first release to carry a code name published mojibake where the Traditional
+   * Chinese should have been: zero CJK characters and eight Latin-1 supplement ones.
+   *
+   * The cause was not the resolver, which writes correct UTF-8. It was the reader. That
+   * step runs under Windows PowerShell, whose Get-Content defaults to the ANSI code page,
+   * so a UTF-8 file comes back double-encoded. Reproduced directly against the real
+   * resolver output: Get-Content -Raw returned 0 CJK characters from the same file that
+   * an explicit UTF-8 read returned 2 from.
+   *
+   * Anchored on whole trimmed lines rather than a pattern, and asserting both halves --
+   * that the explicit reader is present and that the defaulting one is not -- because
+   * either alone would pass while the other quietly did the reading. */
+  const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+  const workflow = readFileSync(resolve(repoRoot, '.github', 'workflows', 'delivery.yml'), 'utf8')
+    .split('\r\n').join('\n').split('\n').map((line) => line.trim());
+  assert.ok(workflow.length > 0, 'the workflow read back empty');
+
+  const readsRecord = workflow.filter((line) => line.includes('$dimSumPath') && line.includes('ConvertFrom-Json'));
+  assert.equal(readsRecord.length, 1, 'expected exactly one place that parses the resolved record');
+  assert.ok(
+    readsRecord[0].includes('[System.IO.File]::ReadAllText($dimSumPath, [System.Text.Encoding]::UTF8)'),
+    'the record is parsed without naming UTF-8, so a dish name will publish double-encoded',
+  );
+  assert.ok(
+    !readsRecord[0].includes('Get-Content'),
+    'Get-Content defaults to the ANSI code page in the edition that runs this step',
+  );
 });

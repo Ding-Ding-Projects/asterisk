@@ -292,7 +292,12 @@ jobs:
             $dimSumPath = Join-Path $PWD 'dim-sum.json'
             node '${{ github.workspace }}/console/scripts/dim-sum-code-name.mjs' --used-from $usedPath --out $dimSumPath 2>$null
             if (Test-Path $dimSumPath) {
-              $record = Get-Content -Raw $dimSumPath | ConvertFrom-Json
+              # Read as UTF-8 explicitly. This step runs under Windows PowerShell, whose
+              # Get-Content defaults to the ANSI code page, so the dish name came back
+              # double-encoded and the published notes carried mojibake where the
+              # Traditional Chinese should have been. Naming the encoding removes the
+              # dependency on which edition happens to run the step.
+              $record = [System.IO.File]::ReadAllText($dimSumPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
               if ($record.resolved) {
                 $photo = Join-Path $staging $record.asset
                 Invoke-WebRequest -Uri $record.url -OutFile $photo -MaximumRedirection 5
