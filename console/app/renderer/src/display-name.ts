@@ -129,3 +129,18 @@ export const RENAME_DISCLOSURE =
   'This changes what the console calls itself on screen. It does not move your data, your '
   + 'saved servers or your credentials, and diagnostics and bug reports still say '
   + `${IDENTITY.productName} so anyone reading one knows what software it came from.`;
+
+/**
+ * The two confirmations the console shows on its notification surface (a toast) when a
+ * rename takes effect. Pulled out as named, independently testable functions rather than
+ * inline template literals so the exact wording is pinned in one place -- both by this
+ * module's own tests and, for the caller, by giving `App.tsx` one obviously correct thing
+ * to pass to `this.toast(...)` instead of reassembling the sentence at the call site.
+ */
+export function renamedConfirmation(chosenName: string): string {
+  return `Renamed to ${chosenName}`;
+}
+
+export function resetConfirmation(): string {
+  return `Name restored to ${IDENTITY.productName}`;
+}

@@ -100,7 +100,16 @@ test('a control that carries a value still records it, so the picker moves', () 
   const app = readFileSync(new URL('../../app/renderer/src/App.tsx', import.meta.url), 'utf8');
   const start = app.indexOf('languageAwareSetVal');
   assert.ok(start > 0, 'languageAwareSetVal has been renamed');
-  const body = app.slice(start, app.indexOf('this.baseSetVal(control, value);', start));
+  /* The LAST occurrence, not the first: the display-name rename/reset branches call
+   * `this.baseSetVal(control, value);` explicitly themselves (each followed by its own
+   * early `return`, exactly the shape this test is checking every other branch for) so
+   * that their own control-change history entry is recorded before the rename or reset
+   * toast is shown -- see the comment beside those two calls in App.tsx. That means the
+   * exact call text this test anchors on now appears three times, and the first two are
+   * mid-body, not the shared tail every other branch falls through to. */
+  const end = app.lastIndexOf('this.baseSetVal(control, value);');
+  assert.ok(end > start, 'the shared closing baseSetVal call was not found after languageAwareSetVal');
+  const body = app.slice(start, end);
   assert.ok(body.length > 0, 'languageAwareSetVal no longer ends at baseSetVal');
 
   const PRESS_NOT_STATE = ['logo_reset', 'src_add', 'src_clear'];

@@ -90,7 +90,15 @@ export interface UpdaterRestartResult {
 
 export interface DingDesktopApi {
   platform: string;
-  window: { minimize(): void; toggleMaximize(): void; close(): void };
+  window: {
+    minimize(): void;
+    toggleMaximize(): void;
+    close(): void;
+    /** Pushes the chosen display name to the native OS window title (taskbar,
+     *  Alt+Tab). The one identity-adjacent surface a rename cannot reach by
+     *  re-rendering the page, because it lives in the main process. */
+    setTitle(title: string): void;
+  };
   controlPlane: { request(request: ControlPlaneRequest): Promise<ControlPlaneResponse> };
   updater: {
     /** Current state, read once (e.g. on mount) without waiting for the next push. */
