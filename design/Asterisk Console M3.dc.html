@@ -2235,6 +2235,28 @@ const SCREENS = {
         info:'The program Asterisk runs and reads audio from. Written to musiconhold.conf as application.' }),
       ctl('h_sort','Playback order','segmented','random',{ options:['alpha','random','randstart'], showWhen:{ control:'h_mode', is:'files' } })
     ]}] },
+  /*
+   * Every prompt Asterisk can play back — the greetings an IVR menu names in a `select`
+   * that only ever lists three fixed strings (see `dp_prompt`/`wi_file` on the wizard
+   * steps), the voicemail-instruction language, the whole "custom announcement" idea —
+   * lives at exactly one place on disk: `/var/lib/asterisk/sounds`. Nothing on this
+   * console could ever put a file there before this screen, so "custom" meant "you may
+   * describe a prompt that does not exist and nothing will notice".
+   *
+   * This is not `pbx.config`: there is no `[section]`/`key=value` file behind
+   * `/var/lib/asterisk/sounds` for a `ConfigTransaction` to plan, stage and roll back --
+   * it is a directory of files, and `control-plane/media-library.ts`'s `MediaLibrary`
+   * already owns exactly that surface (list/upload/remove, plus the `read` this screen's
+   * own audition action needed and nothing before it did). This screen calls that
+   * library through `media.list`/`media.upload`/`media.remove`/`media.read` and nothing
+   * else -- see `App.tsx`'s `onAddPromptRow`, `onAuditionPromptRow` and
+   * `onRemovePromptRow` for the one path each of those four verbs takes.
+   */
+  sounds:{ rail:'media', icon:'play_arrow', label:'Sound prompts', badge:'6', title:'Sound prompt library', file:'/var/lib/asterisk/sounds', kind:'table',
+    sub:'Every prompt file really sitting in /var/lib/asterisk/sounds on the connected target -- read straight from MediaLibrary, the same class every "custom" file picker elsewhere in this console already validates against. Upload adds one; a row’s own menu auditions or removes it. Accepted: wav, gsm, ulaw, alaw, g722, sln, sln16, ogg, opus -- anything else, or a file whose bytes do not match what it claims to be, is refused before it ever reaches the target.',
+    table:{ add:'Upload a prompt', grid:'1.8fr 90px 100px 130px', cols:['File','Format','Size','Playback'],
+      rows:[['welcome-greeting.wav','wav','482 KB','Playable'],['support-options.wav','wav','390 KB','Playable'],['sales-options.wav','wav','355 KB','Playable'],['closed-message.gsm','gsm','61 KB','Download only'],['dial-by-name.wav','wav','210 KB','Playable'],['hold-loop.ogg','ogg','1.1 MB','Playable']] },
+    groups:[] },
   httpd:{ rail:'sys', icon:'http', label:'HTTP server', badge:'', title:'HTTP server', file:'http.conf', kind:'generic',
     sub:'Asterisk’s own mini-HTTP server, which ARI, the WebSocket transport and the status page all sit on. Three of these keys are spelled differently from the FreePBX settings that map to them, and this screen writes the spelling Asterisk actually reads.',
     groups:[{ title:'Listener', desc:'Whether the server runs at all, and where it listens.', ctls:[
@@ -2741,7 +2763,7 @@ const DOCS = {
 
 const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','g_queue','s_ciphers','s_verify','t_100rel','t_privacy','t_from','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
 
-const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','canvas','ivr','queues','voicemail','confbridge','moh','codecs','cdr','ami','modules','logger','httpd','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
+const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','canvas','ivr','queues','voicemail','confbridge','moh','sounds','codecs','cdr','ami','modules','logger','httpd','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
 
 const GAMES = [
   { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },
@@ -3769,7 +3791,7 @@ class Component extends DCLogic {
     const sel = s.selected || [];
 
     const tbl = sc.table || { cols:[], rows:[], grid:'1fr', add:'Add' };
-    const chipOK = { 'Reachable':1, 'Registered':1, 'Running':1, 'Up':1, 'Active':1, 'Connected':1, 'Signed':1, 'Enabled':1, 'Published':1, 'Sealed':1, 'Locked':1 };
+    const chipOK = { 'Reachable':1, 'Registered':1, 'Running':1, 'Up':1, 'Active':1, 'Connected':1, 'Signed':1, 'Enabled':1, 'Published':1, 'Sealed':1, 'Locked':1, 'Playable':1 };
 
     return {
       menus:['File','Edit','View','PBX','Agent','Window','Help'].map(l => ({ label:l, open:() => this.toast(l + ' menu') })),
@@ -3797,7 +3819,8 @@ class Component extends DCLogic {
       openInfoScreen:() => this.showInfo(sc.title, sc.sub, 'This screen edits ' + (sc.file || 'the console itself') + '. Every row you see is a real object in the running system, and every control writes one option.', '46%', '150px'),
       openWizard:() => (sc.kind === 'servers' && this.onAddServer ? this.onAddServer()
         : (s.screen === 'security' && this.onAddAclRule ? this.onAddAclRule()
-        : this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null }))),
+        : (s.screen === 'sounds' && this.onAddPromptRow ? this.onAddPromptRow()
+        : this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null })))),
 
       isDashboard:sc.kind === 'dashboard', isCanvas:sc.kind === 'canvas', isTable:sc.kind === 'table', isCli:sc.kind === 'cli', isMemory:sc.kind === 'memory', isDocs:sc.kind === 'docs', isChangelog:sc.kind === 'changelog',
       // Additive, not kind-exclusive: codecs (kind:'generic') and endpoints (kind:'table')
@@ -4605,8 +4628,15 @@ class Component extends DCLogic {
         if (s.ctxKind === 'row') {
           const name = s.ctxTarget;
           const isAclRow = s.screen === 'security';
+          // A prompt row names a real file MediaLibrary already validated on the way in --
+          // there is nothing on it to "edit" the way an ACL rule's fields can be reloaded
+          // and resubmitted, so its own menu entry plays it back instead, and its delete
+          // goes through the same media.remove path onRemoveAclRule's ACL branch already
+          // set the pattern for rather than the generic (and here entirely fictional)
+          // "delete <object> and everything referencing it" ceremony.
+          const isPromptRow = s.screen === 'sounds';
           return decorate([
-            { icon:'edit', label:'Edit ' + name + '…', hint:'↵', run:() => { close(); (isAclRow && this.onPickRow) ? this.onPickRow(name) : this.setState({ wizardOpen:true, wizardStep:0 }); } },
+            { icon:isPromptRow ? 'play_arrow' : 'edit', label:(isPromptRow ? 'Audition ' : 'Edit ') + name + '…', hint:'↵', run:() => { close(); ((isAclRow || isPromptRow) && this.onPickRow) ? this.onPickRow(name) : this.setState({ wizardOpen:true, wizardStep:0 }); } },
             { icon:'check_box', label:'Select this row', hint:'', run:() => { close(); this.set('selected', sel.indexOf(name) >= 0 ? sel : sel.concat([name])); } },
             { icon:'content_copy', label:'Duplicate', hint:'⌃D', run:() => { close(); this.bulk('Duplicated', [name]); } },
             { icon:'refresh', label:'Reload just this', hint:'', run:() => { close(); this.ceremony('Reload ' + name, 'reload ' + name); } },
@@ -4616,7 +4646,7 @@ class Component extends DCLogic {
               { icon:'arrow_upward', label:'Move rule up', hint:'', run:() => { close(); this.onMoveAclRule(name, 'up'); } },
               { icon:'arrow_downward', label:'Move rule down', hint:'', run:() => { close(); this.onMoveAclRule(name, 'down'); } }
             ] : []),
-            { icon:'delete', label:'Delete ' + name, hint:'⌦', run:() => { close(); this.areYouSure('Delete ' + name, sc.kind === 'servers' ? 'This connection profile is removed from the console. It does not touch or reconfigure the target machine.' : (isAclRow ? 'This rule is removed from acl.conf on the target -- backed up first, and rolled back automatically if the write cannot be verified.' : 'This object and everything referencing it are removed. The four gates still apply after the minigame.'), 3, () => (sc.kind === 'servers' && this.onRemoveServerRow ? this.onRemoveServerRow(name) : (isAclRow && this.onRemoveAclRule ? this.onRemoveAclRule(name) : this.ceremony('Delete ' + name, 'delete ' + name)))); } },
+            { icon:'delete', label:'Delete ' + name, hint:'⌦', run:() => { close(); this.areYouSure('Delete ' + name, sc.kind === 'servers' ? 'This connection profile is removed from the console. It does not touch or reconfigure the target machine.' : (isAclRow ? 'This rule is removed from acl.conf on the target -- backed up first, and rolled back automatically if the write cannot be verified.' : (isPromptRow ? 'This file is removed from /var/lib/asterisk/sounds on the target -- irreversible, and the control plane confirms the removal before this dialog reports success.' : 'This object and everything referencing it are removed. The four gates still apply after the minigame.')), 3, () => (sc.kind === 'servers' && this.onRemoveServerRow ? this.onRemoveServerRow(name) : (isAclRow && this.onRemoveAclRule ? this.onRemoveAclRule(name) : (isPromptRow && this.onRemovePromptRow ? this.onRemovePromptRow(name) : this.ceremony('Delete ' + name, 'delete ' + name))))); } },
             common[0], common[1]
           ]);
         }
