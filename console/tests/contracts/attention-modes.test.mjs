@@ -164,12 +164,31 @@ test('every mode description is free of every forbidden term', () => {
 const app = read('app/renderer/src/App.tsx');
 const generated = read('app/renderer/src/generated/console.tsx');
 
-test('App only ever calls setModeEnabled -- the whole att_* handler is one persistence write and nothing else', () => {
-  assert.match(app, /import \{ isAttentionMode, setModeEnabled \} from '\.\/attention-modes';/);
+test('the att_* handler persists the mode and also applies it, rather than only persisting', () => {
+  /* This replaces a pin that asserted the handler was "one persistence write and nothing
+   * else". That was true and worth pinning: five switches stored a boolean and nothing
+   * ever read it back, so turning a mode on changed nothing a person could see. The pin
+   * fired the moment the wiring landed, which is exactly what it was for.
+   *
+   * The import assertion moved too. It named an exact two-symbol list, so it broke when a
+   * reader was legitimately added beside the writer -- the point was never the arity, it
+   * was that a writer exists, so it now requires the reader as well. */
+  assert.match(app, /^import \{[^}]*\bsetModeEnabled\b[^}]*\} from '\.\/attention-modes';$/m,
+    'App.tsx no longer imports the attention-mode writer');
+  assert.match(app, /^import \{[^}]*\bmodeEnabled\b[^}]*\} from '\.\/attention-modes';$/m,
+    'App.tsx no longer imports the attention-mode reader, so nothing can act on a stored mode');
+
   const start = app.indexOf("if (control?.id?.startsWith('att_') && typeof value === 'boolean') {");
   assert.ok(start > 0, 'the att_* handler has been renamed or removed');
   const body = app.slice(start, app.indexOf('\n    }', start));
-  assert.match(body, /if \(isAttentionMode\(mode\)\) setModeEnabled\(this\.durableStorage\.storage, mode, value\);/);
+  assert.match(body, /setModeEnabled\(this\.durableStorage\.storage, mode, value\);/,
+    'the handler no longer persists the mode');
+  /* Asserting the real call rather than a line count. A first version of this counted
+   * non-comment lines and stayed green when the handler was collapsed back to a bare
+   * write, because the collapse still left four lines. A proxy that a real regression
+   * walks straight past is not a guard. */
+  assert.match(body, /this\.narrator\.setQuiet\(value\);/,
+    'the handler no longer applies low stimulation to anything -- it is back to persisting a boolean nobody reads');
 });
 
 test('the design renders all five mode switches, and none of them carries a status readout the way sch_status/logo_status do', () => {

@@ -110,19 +110,24 @@ test('the stable voice identity is stored, and the display name is resolved sepa
   assert.match(app, /next\.voices\.en = value === 'Choose automatically' \? undefined : this\.voiceIdByName\(value\);/);
 });
 
-test('App.tsx imports the settings helpers but never the Narrator class itself', () => {
+test('App.tsx constructs a real Narrator rather than only its settings helpers', () => {
+  /* This replaces a pin that asserted the opposite. The narrator was fully built and
+   * fully tested in isolation, and App.tsx imported only the settings helpers -- so seven
+   * controls persisted a choice, a status line described it, and the console never spoke a
+   * word no matter what the user set. The pin was right to exist and right to fire when
+   * the wiring landed. */
   const app = read(APP);
-  const importLine = app.match(/^import \{\n\s*DEFAULT_PITCH, DEFAULT_RATE, MAX_PITCH, MAX_RATE, MIN_PITCH, MIN_RATE,\n\s*defaultNarrationSettings, resolveVoiceStatus,\n\s*type NarrationLanguage, type NarrationSettings, type SpeechVoice,\n\} from '\.\/narration';$/m);
-  assert.ok(importLine, 'expected the exact known-good import list from ./narration in App.tsx');
-  assert.doesNotMatch(app, /\bNarrator\b/, 'the Narrator class name must not appear anywhere in App.tsx');
+  assert.match(app, /^\s*DEFAULT_PITCH,.*\bNarrator,$/m,
+    'App.tsx no longer imports the Narrator class alongside the settings helpers');
+  assert.match(app, /new Narrator\(/, 'App.tsx no longer constructs a Narrator, so nothing can speak');
 });
 
-test('HONEST GAP: nothing in App.tsx ever enqueues an utterance, so nothing is ever spoken', () => {
-  /* This is the assertion the whole file exists to make. Anchored on the call shape, not
-   * the bare word, so a stray mention in a comment cannot satisfy or defeat it. */
+test('something in App.tsx actually enqueues an utterance', () => {
+  /* The assertion this file exists to make, inverted now that the gap is closed. Anchored
+   * on the call shape rather than the bare word, so a mention in a comment can neither
+   * satisfy nor defeat it -- which is how the original was written, and why it held. */
   const app = read(APP);
-  assert.doesNotMatch(app, /\.enqueue\(/, '.enqueue(...) must never be called from App.tsx');
-  assert.doesNotMatch(app, /new Narrator\(/, 'a Narrator must never be constructed in App.tsx');
+  assert.match(app, /\.enqueue\(/, 'nothing in App.tsx enqueues an utterance, so nothing is ever spoken');
 });
 
 test('the status line honestly reports what is happening, not that narration is speaking', () => {
