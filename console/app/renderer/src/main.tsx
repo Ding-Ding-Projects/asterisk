@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { PbxAdminIntegratedApp } from './PbxAdminIntegratedApp';
 import { UpdateBanner } from './UpdateBanner';
+import { DimSumSurprise } from './DimSumSurprise';
 import { installHttpBridge, isHostedRuntime } from './bridge/http-bridge';
 import './styles.css';
 
@@ -49,6 +50,17 @@ async function boot() {
    * Desktop" describes in the first place. */
   document.body.insertBefore(bannerHost, document.getElementById('root'));
   createRoot(bannerHost).render(<React.StrictMode><UpdateBanner /></React.StrictMode>);
+
+  /* Mounted as its own root for the same reason the banner above is: see
+   * DimSumSurprise.tsx for why a small, cross-screen, non-blocking surface has no home
+   * inside the generated console shell. Reaching this line already means the hosted
+   * setup/login redirects above did not fire, so the surprise can never appear on
+   * either of those screens; DimSumSurprise.tsx's own first-launch marker covers the
+   * desktop build, which has no such redirect to rely on. */
+  const surpriseHost = document.createElement('div');
+  surpriseHost.id = 'dim-sum-surprise-host';
+  document.body.appendChild(surpriseHost);
+  createRoot(surpriseHost).render(<React.StrictMode><DimSumSurprise /></React.StrictMode>);
 }
 
 void boot();
