@@ -87,3 +87,56 @@ test('the registry records regex-builder as implemented, and every fact above su
   assert.equal(registry.features['regex-builder'].state, 'implemented',
     'a real anchored, per-field, flag-aware regex engine with live preview exists in the shipped site -- "implemented" is the honest state');
 });
+
+/**
+ * The "Site C - Blueprint" design export shows a persistent, always-visible readout
+ * next to every regex-capable search field: "regex mode: /pattern/flags -- plain text
+ * stays the default; toggle MODE to leave" when a pattern is active, and an equally
+ * visible plain-text statement otherwise. The shipped site had the working regex
+ * engine but no visible statement of which mode a field was in beyond a one-shot
+ * toast; these tests pin the readout the design calls for.
+ */
+test('every regex-trigger button in every page is paired with its own mode-status readout', () => {
+  for (const name of PAGES) {
+    const triggers = [...pageSource[name].matchAll(/data-regex-for="([a-zA-Z-]+)"/gu)].map((m) => m[1]);
+    assert.ok(triggers.length > 0, `${name}.html has no regex-trigger fields to check`);
+    for (const target of triggers) {
+      assert.match(pageSource[name], new RegExp(`id="${target}-mode-status"`, 'u'),
+        `${name}.html: no #${target}-mode-status element next to the regex-trigger for "${target}"`);
+    }
+  }
+});
+
+test('the mode-status readout is a live region, not a plain decorative paragraph', () => {
+  for (const name of PAGES) {
+    for (const match of pageSource[name].matchAll(/<p class="mode-status mono" id="([a-zA-Z-]+)-mode-status"([^>]*)>/gu)) {
+      assert.match(match[2], /role="status"/u, `${name}.html: #${match[1]}-mode-status has no role="status"`);
+      assert.match(match[2], /aria-live="polite"/u, `${name}.html: #${match[1]}-mode-status has no aria-live="polite"`);
+    }
+  }
+});
+
+test('renderModeStatus() reads live regex state and writes a fact-bearing, mode-aware readout', () => {
+  const line = app.split('\n').find((l) => /^\s*function renderModeStatus\(target\)\{/.test(l));
+  assert.ok(line, 'renderModeStatus(target) was not found as a single source line');
+  assert.match(line, /regexState\.get\(target\)/u, 'renderModeStatus no longer reads the same per-field regex state matchText uses');
+  assert.match(line, /\/\$\{config\.pattern\}\/\$\{config\.flags\}/u,
+    'renderModeStatus no longer names the live pattern and flags -- the readout would stop being a fact');
+  assert.match(line, /classList\.add\('is-regex'\)/u, 'renderModeStatus no longer marks the element as active when regex is enabled');
+});
+
+test('applyRegex() and applyState() both keep the readout in sync, not just the toast', () => {
+  const applyRegexLine = app.split('\n').find((l) => /^\s*function applyRegex\(\)\{/.test(l));
+  assert.match(applyRegexLine, /renderModeStatus\(regexTarget\)/u,
+    'applyRegex no longer refreshes the mode-status readout for the field it just changed');
+  const applyStateLine = app.split('\n').find((l) => /^\s*function applyState\(\)\{/.test(l));
+  assert.match(applyStateLine, /renderAllModeStatuses\(\)/u,
+    'applyState no longer re-renders every mode-status readout, so a language or funny-level change would leave it stale');
+});
+
+test('the COPY table carries a genuine plain-text and regex-mode voice, not a hard-coded English sentence', () => {
+  assert.ok(/searchModePlain:\{en:\[/u.test(app), 'no searchModePlain entry in the COPY table');
+  assert.ok(/searchModeRegex:\{en:\[/u.test(app), 'no searchModeRegex entry in the COPY table');
+  assert.match(app, /searchModePlain:\{en:\[[\s\S]*?\],zh:\[/u, 'searchModePlain has no Cantonese array');
+  assert.match(app, /searchModeRegex:\{en:\[[\s\S]*?\],zh:\[/u, 'searchModeRegex has no Cantonese array');
+});

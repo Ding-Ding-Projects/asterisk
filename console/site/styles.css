@@ -267,6 +267,14 @@ input[type="range"]{padding:0}
 input[type="checkbox"]{accent-color:var(--primary)}
 textarea{min-height:90px;resize:vertical}
 .search-composite input{width:100%}
+/* Adjacent-sibling selector, deliberately more specific than ".sticky-tools-inner p"
+   (which several search toolbars already declare for a neighbouring status <p>): this
+   readout always sits directly after the .search-composite it describes, and it must
+   win that specificity fight rather than inherit a right-aligned, nowrap, margin-0
+   rule meant for a different element. */
+.search-composite + .mode-status{display:block;width:100%;margin:6px 0 0;font-size:.72rem;letter-spacing:.02em;color:var(--muted-2);font-family:var(--font-mono);white-space:normal}
+.search-composite + .mode-status.is-regex{color:var(--primary)}
+.search-composite + .mode-status:empty{display:none}
 .select-composite,.searchable-select{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .searchable-select>input{max-width:150px}
 .plain-note{color:var(--muted);font-size:.86rem}

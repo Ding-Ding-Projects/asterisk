@@ -15,6 +15,8 @@
     "notifRegexApplied",
     "notifSettingSaved",
     "notifSettingsReset",
+    "searchModePlain",
+    "searchModeRegex",
     "themeDesc"
   ],
   "features": {
@@ -80,10 +82,12 @@
       "state": "localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
       "copyKeys": [
-        "notifRegexApplied"
+        "notifRegexApplied",
+        "searchModePlain",
+        "searchModeRegex"
       ],
       "missingCopyKeys": [],
-      "note": "Covered by COPY keys: notifRegexApplied."
+      "note": "Covered by COPY keys: notifRegexApplied, searchModePlain, searchModeRegex."
     },
     "non-blocking-notifications": {
       "state": "localized",
