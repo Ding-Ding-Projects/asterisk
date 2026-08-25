@@ -16,4 +16,5 @@ export * from "./media-library.js";
 export * from "./updater.js";
 export * from "./server-inventory.js";
 export * from "./settings-store.js";
+export * from "./settings-source-allowlist.js";
 export * from "./atomic-file.js";

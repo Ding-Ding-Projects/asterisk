@@ -66,6 +66,9 @@ import {
   type SourceDraft, type SourceReport,
 } from './source-store';
 import {
+  addAllowlistHost, loadAllowlist, removeAllowlistHost, sourceAllowlistStatusLine,
+} from './settings-source-allowlist-store';
+import {
   AA_LARGE_TEXT_RATIO, AA_NORMAL_TEXT_RATIO, contrastLevel, contrastRatioFromHex,
 } from './accessibility-contract';
 import { EMPTY_RUNNER_STATE, statusLine, tick, type RunnerState } from './schedule-runner';
@@ -1734,6 +1737,37 @@ What you can do: ${offered}.` : ''}`);
     this.forceUpdate();
   }
 
+  /** Reads the `src_allow_host` field exactly as `addSettingsSource` reads its own
+   *  fields -- straight out of component state, the same value the control on screen is
+   *  showing -- and adds it to the persisted allowlist a settings source may reach. */
+  private addSettingsSourceAllowlistHost(): void {
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    const typed = String(values['src_allow_host'] ?? '');
+    const result = addAllowlistHost(this.durableStorage.storage, typed);
+    if (!result.ok) {
+      this.fire('That host will not work', result.problems.map((problem) => problem.message).join(' '));
+      return;
+    }
+    this.forceUpdate();
+    this.toast(`${result.host} allowed. A settings source can reach it once the console restarts.`);
+  }
+
+  /** The removal half of the control above -- same field, same validator, so a host
+   *  that could never have been added is refused with the same message rather than a
+   *  confusing "not found" for something that was never a valid host in the first
+   *  place. */
+  private removeSettingsSourceAllowlistHost(): void {
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    const typed = String(values['src_allow_host'] ?? '');
+    const result = removeAllowlistHost(this.durableStorage.storage, typed);
+    if (!result.ok) {
+      this.fire('That host was not removed', result.problems.map((problem) => problem.message).join(' '));
+      return;
+    }
+    this.forceUpdate();
+    this.toast(`${result.host} removed. A settings source configured for it is refused once the console restarts.`);
+  }
+
   // ---------------------------------------------------------------- scheduled settings
 
   /** Starts the schedule tick and runs one immediately, so a window already in force at
@@ -1883,6 +1917,14 @@ What you can do: ${offered}.` : ''}`);
       this.toast('Every settings source removed. Your own settings are unaffected.');
       return;
     }
+    if (control?.id === 'src_allow_add' && value === true) {
+      this.addSettingsSourceAllowlistHost();
+      return;
+    }
+    if (control?.id === 'src_allow_remove' && value === true) {
+      this.removeSettingsSourceAllowlistHost();
+      return;
+    }
     if (control?.id === 'school_mode' && typeof value === 'boolean') {
       this.setSchoolMode(value);
       return;
@@ -1958,6 +2000,7 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'appearance-scope') return this.appearanceScope();
     if (action === 'deploy-progress') return this.deployProgressLine;
     if (action === 'source-status') return this.sourceStatusLine;
+    if (action === 'settings-source-allowlist-status') return sourceAllowlistStatusLine(loadAllowlist(this.durableStorage.storage));
     if (action === 'narration-status') return this.narrationStatusLine;
     if (action === 'logo-status') return this.logoStatusLine;
     if (action === 'deploy-status') return this.deployStatusLine();

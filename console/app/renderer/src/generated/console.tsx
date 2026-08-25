@@ -3381,6 +3381,12 @@ const SCREENS = {
       ctl('src_clear','Remove every source','switch',false,{ info:'Your own settings are unaffected -- a source only ever overrode them.' }),
       ctl('src_status','Sources in effect','text','No sources configured.',{ action:'source-status', info:'What each source last answered, and when. A source that has stopped working says so rather than quietly ceasing to track.' })
     ]},
+    { title:'Allowed source hosts', desc:'A settings source may only reach a host you have explicitly allowed here. The list starts empty, which refuses every source rather than permitting every source -- a tampered settings file cannot repoint a source at an internal address you never agreed to. Changes here take effect after the console restarts.', ctls:[
+      ctl('src_allow_host','Host to allow or remove','text','',{ placeholder:'settings.example.net', info:'A bare hostname only -- no scheme, path, port, or credentials. This is compared against the Source URL above before any request is made.' }),
+      ctl('src_allow_add','Allow this host','switch',false),
+      ctl('src_allow_remove','Remove this host','switch',false),
+      ctl('src_allow_status','Hosts allowed','text','No hosts are allowed yet -- every external settings source is refused until you add one. Changes take effect after a restart.',{ action:'settings-source-allowlist-status', info:'Every host a settings source is currently permitted to reach. A source whose host is not on this list is refused before any request is made, however it is configured above.' })
+    ]},
     { title:'Scheduled settings', desc:'Settings that change themselves at a time you choose, and change back when the window ends. A scheduled change goes through exactly the same path as one you make by hand, so it is validated and recorded the same way.', ctls:[
       ctl('sch_status','What is in force now','text','No schedule is in force; your own settings are in effect.',{ action:'schedule-status', info:'Names the rules currently applying and the settings they are overriding. Your own values are never overwritten -- they are put back when the window ends, including if you delete the rule while it is running.' })
     ]},
