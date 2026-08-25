@@ -256,9 +256,13 @@
       "files": []
     },
     "provider-markup-rendering": {
-      "state": "absent",
-      "note": "No renderer for remote/provider-authored Markdown or rich text was found; documentation content in renderDestinations() is inserted as plain escaped text/HTML built by the site itself, not rendered from provider-authored markup.",
-      "files": []
+      "state": "implemented",
+      "note": "site/app.js now has one shared, safe Markdown-to-block renderer (parseMarkdown/markdownInlineTokens/renderMarkdownBlock): every character is HTML-escaped before any markdown syntax is recognised, so raw HTML in untrusted input cannot reach the DOM as markup, and links are restricted to an http(s)/mailto scheme allowlist. It is wired to a real consumer: downloads.html's installer panel now has a #release-notes region, rendered via renderMarkdownBlock() from a RELEASE_NOTES_MARKDOWN constant (deliberately empty today, matching the honest \"no verified release manifest exists yet\" state the rest of that page already states) with a real, styled empty-state message rather than a blank region. renderDestinations() still inserts item.description as plain escaped text/HTML built by the site itself, unchanged -- that is the site's own content, not provider-authored, and correctly stays outside the parser.",
+      "files": [
+        "site/app.js",
+        "site/downloads.html",
+        "site/styles.css"
+      ]
     },
     "forge-publishing": {
       "state": "absent",

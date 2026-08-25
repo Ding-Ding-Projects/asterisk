@@ -521,6 +521,12 @@
   const RAINBOW='__rainbow__';
 
   const BASE = document.documentElement.dataset.base || './';
+  // Release notes are provider-authored Markdown -- written by the release
+  // process, not by this site. Empty today because downloads.html is honest
+  // that no verified release manifest exists yet; the moment one does, its
+  // notes populate this constant and render through the real parser above
+  // rather than as literal "#"/"[]()" source text.
+  const RELEASE_NOTES_MARKDOWN = '';
   const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#82D9A5',fontScale:100,lowMotion:false,englishFunny:0,cantoneseFunny:0,attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false,focus:false,timeAwareness:false,oneThing:false,momentum:false,currentTask:''},scheduleEnabled:false,notifications:[],collapsed:{destinationMap:true,settingsPreview:true,documentationFilters:false,settingsFilters:false}};
   const STORAGE_KEY = 'ding-pbx-pages-v2';
   // ---- Local version history: an append-only record, isolated in its own
@@ -540,7 +546,41 @@
   const $ = id => document.getElementById(id);
   const all = selector => [...document.querySelectorAll(selector)];
   function escapeHtml(value){return String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-function loadState(){try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');return{...DEFAULTS,...saved,attention:{...DEFAULTS.attention,...(saved.attention||{})},collapsed:{...DEFAULTS.collapsed,...(saved.collapsed||{})}}}catch{return{...DEFAULTS,attention:{...DEFAULTS.attention},collapsed:{...DEFAULTS.collapsed}}}}
+
+  // ============================================================================
+  // Provider-authored Markdown rendering -- one shared, safe parser for text
+  // written elsewhere (such as release notes) rather than authored by this
+  // site. Every character is HTML-escaped BEFORE any markdown syntax
+  // is recognised, so raw HTML in untrusted input can never reach the DOM as
+  // markup -- only the literal characters this function itself emits do.
+  // Links are restricted to an http(s)/mailto scheme allowlist; anything else
+  // renders as plain text rather than a clickable link.
+  // ============================================================================
+  function markdownInlineTokens(text){
+    return escapeHtml(text)
+      .replace(/`([^`]+)`/g,'<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+      .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g,'<em>$1</em>')
+      .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,(match,label,url)=>/^(https?:|mailto:)/i.test(url)?`<a href="${url}" rel="noopener noreferrer">${label}</a>`:label);
+  }
+  function parseMarkdown(source){
+    const text=String(source||'').replaceAll('\r\n','\n').trim();
+    if(!text)return '';
+    return text.split(/\n{2,}/).map(block=>{
+      const lines=block.split('\n');
+      const heading=lines.length===1&&lines[0].match(/^(#{1,3})\s+(.*)$/);
+      if(heading){const level=heading[1].length+2;return `<h${level}>${markdownInlineTokens(heading[2])}</h${level}>`}
+      if(lines.every(line=>/^[-*]\s+/.test(line)))return `<ul>${lines.map(line=>`<li>${markdownInlineTokens(line.replace(/^[-*]\s+/,''))}</li>`).join('')}</ul>`;
+      if(lines[0].startsWith('```')&&lines[lines.length-1].trim()==='```')return `<pre><code>${escapeHtml(lines.slice(1,-1).join('\n'))}</code></pre>`;
+      return `<p>${lines.map(markdownInlineTokens).join('<br>')}</p>`;
+    }).join('');
+  }
+  function renderMarkdownBlock(container,source,emptyMessage){
+    if(!container)return;
+    const html=parseMarkdown(source);
+    container.innerHTML=html||`<p class="empty-state">${escapeHtml(emptyMessage)}</p>`;
+  }
+  function loadState(){try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');return{...DEFAULTS,...saved,attention:{...DEFAULTS.attention,...(saved.attention||{})},collapsed:{...DEFAULTS.collapsed,...(saved.collapsed||{})}}}catch{return{...DEFAULTS,attention:{...DEFAULTS.attention},collapsed:{...DEFAULTS.collapsed}}}}
   const state=loadState();
   function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
   function update(key,value){state[key]=value;save();applyState();recordHistory('setting-changed',`${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`${key} now uses ${value}.`))}
@@ -1158,6 +1198,8 @@ function loadState(){try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY
     sync(accent.value);
   }
 
+  function initReleaseNotes(){renderMarkdownBlock($('release-notes'),RELEASE_NOTES_MARKDOWN,'No release notes were provided yet -- no verified release manifest exists.')}
+
   function initSettingsPreview(){
     const preview=$('settings-preview');if(!preview)return;
     const sync=()=>{if($('preview-scale'))$('preview-scale').style.width=`${Math.max(0,Math.min(100,(state.fontScale-90)/40*100))}%`;if($('preview-density'))$('preview-density').textContent=state.density};
@@ -1165,6 +1207,6 @@ function loadState(){try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY
     sync();
   }
 
-  function init(){ensureAttentionUI();applyState();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initTimeAwareness();initMomentum();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
+  function init(){ensureAttentionUI();applyState();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initTimeAwareness();initMomentum();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
   init();
 })();
