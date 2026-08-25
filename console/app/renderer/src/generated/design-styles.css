@@ -56,7 +56,7 @@ html, body { margin:0; padding:0; background:#0B0F0C; }
   [style*="display:flex"] > * { min-width:0; }
   h1, .msym { min-width:0; }
 
-.msym { font-family:"Material Symbols Outlined"; font-weight:400; font-style:normal; font-size:24px; line-height:1; letter-spacing:normal; text-transform:none; display:inline-block; white-space:nowrap; direction:ltr; font-variation-settings:"FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24; -webkit-font-feature-settings:"liga"; -webkit-font-smoothing:antialiased; }
+.msym { font-family:"Material Symbols Outlined"; font-weight:400; font-style:normal; font-size:24px; line-height:1; letter-spacing:normal; text-transform:none; display:inline-block; white-space:nowrap; direction:ltr; -webkit-font-feature-settings:"liga"; -webkit-font-smoothing:antialiased; }
 
 /* The window is frameless, so the design title bar drags it and its controls do not. */
 [data-window-drag] { -webkit-app-region: drag; }
