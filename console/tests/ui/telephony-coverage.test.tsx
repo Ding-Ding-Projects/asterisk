@@ -80,10 +80,16 @@ function deliveredByAction(id: string): boolean {
  * peer/friend happened to be first) to a real `iax2 show peers` table, so which peer
  * `onSaveIaxPeer` writes is now the one actually selected, not an assumption.
  *
+ * Then 223: landed alongside (and independently of) 209 above -- the new Fax screen added
+ * fourteen controls of its own, twelve bound in CONTROL_BINDINGS.fax (six res_fax.conf, six
+ * udptl.conf) plus fx_save/fx_udptlsave, two action buttons recognised via
+ * `deliveredByAction` the same way as httpd-save above, each writing through its own
+ * `onSaveFax`/`onSaveFaxUdptl`. All fourteen work, so 209 + 14 = 223.
+ *
  * It may rise freely and may not fall.
  */
-const WORKING_FLOOR = 209;
-const TELEPHONY_TOTAL = 209;
+const WORKING_FLOOR = 223;
+const TELEPHONY_TOTAL = 223;
 
 function measure() {
   const files = readdirSync(srcDir).filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'));
@@ -123,13 +129,13 @@ function measure() {
 }
 
 test('an action-delivered control is recognised even though its id never appears as a quoted literal', () => {
-  for (const id of ['s_tload', 's_tsave', 's_stirsave', 'ht_save']) {
+  for (const id of ['s_tload', 's_tsave', 's_stirsave', 'ht_save', 'fx_save', 'fx_udptlsave']) {
     assert.ok(deliveredByAction(id), `${id} should be recognised via its design-declared action`);
   }
   // These really do write for real -- their ACTION names, not their control ids, are the
   // quoted literals App.tsx actually contains.
   const app = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'app', 'renderer', 'src', 'App.tsx'), 'utf8');
-  for (const action of ['security-transport-load', 'security-transport-save', 'security-stir-save', 'httpd-save']) {
+  for (const action of ['security-transport-load', 'security-transport-save', 'security-stir-save', 'httpd-save', 'fax-save', 'fax-udptl-save']) {
     assert.ok(app.includes(`'${action}'`), `onControlAction should handle '${action}'`);
   }
   assert.ok(!deliveredByAction('s_transport'), 's_transport has no action -- it is a plain text picker, not a one-shot button');

@@ -27,6 +27,7 @@ export const CANTONESE: Catalog = {
   'Music on hold': '等候音樂',
   'Sound prompts': '語音提示',
   'Codecs & RTP': '編碼同 RTP',
+  'Fax': '傳真',
   'CDR & CEL': '通話紀錄',
   'AMI & ARI': 'AMI 同 ARI',
   'Modules': '模組',

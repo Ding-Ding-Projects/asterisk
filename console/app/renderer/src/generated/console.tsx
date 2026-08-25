@@ -3198,6 +3198,26 @@ const SCREENS = {
       ctl('r_strict','strictrtp','switch',true),
       ctl('r_ice','ICE support','switch',false)
     ]}] },
+  fax:{ rail:'media', icon:'fax', label:'Fax', badge:'', title:'Fax & T.38', file:'res_fax.conf', kind:'generic',
+    sub:'The fax engine and the UDPTL transport T.38 rides on -- two files, each with its own Save: res_fax.conf holds the engine’s own rate limits and negotiation timeout, udptl.conf holds the port range and error-correction shape UDPTL negotiates over.',
+    groups:[{ title:'Fax engine', desc:'res_fax.conf [general].', ctls:[
+      ctl('fx_maxrate','Maximum rate','select','14400',{ options:['2400','4800','7200','9600','12000','14400'], info:'configs/samples/res_fax.conf.sample line 7: ;maxrate=14400 -- fastest modulation Asterisk will offer.' }),
+      ctl('fx_minrate','Minimum rate','select','4800',{ options:['2400','4800','7200','9600','12000','14400'], info:'configs/samples/res_fax.conf.sample line 12: ;minrate=4800.' }),
+      ctl('fx_statusevents','Send progress events to AMI','switch',true,{ info:'configs/samples/res_fax.conf.sample line 19: statusevents=yes as shipped (the sample’s own comment says default no). Completion events reach ‘call’-class managers regardless of this switch.' }),
+      ctl('fx_modems','Modem capabilities','chips',['v17','v27','v29'],{ options:['v17','v27','v29'], info:'configs/samples/res_fax.conf.sample line 24: ;modems=v17,v27,v29.' }),
+      ctl('fx_ecm','Error correction mode (ECM)','switch',true,{ info:'configs/samples/res_fax.conf.sample line 28: ;ecm=yes, enabled by default.' }),
+      ctl('fx_t38timeout','T.38 negotiation timeout','stepper',5000,{ min:0, max:60000, unit:' ms', info:'configs/samples/res_fax.conf.sample line 32: t38timeout=5000.' }),
+      ctl('fx_save','Save res_fax.conf settings','segmented','Save',{ options:['Save'], action:'fax-save', info:'Writes the six fields above to res_fax.conf on the target -- backed up first, applied through the same plan/apply transaction every other write in this console uses.' })
+    ]},{ title:'T.38 / UDPTL transport', desc:'udptl.conf [general] -- a different file, so it gets its own Save.', ctls:[
+      ctl('fx_udptlstart','UDPTL port range start','stepper',4000,{ min:1024, max:65534, info:'configs/samples/udptl.conf.sample line 8: udptlstart=4000.' }),
+      ctl('fx_udptlend','UDPTL port range end','stepper',4999,{ min:1025, max:65535, info:'configs/samples/udptl.conf.sample line 9: udptlend=4999.' }),
+      ctl('fx_udptlchecksums','UDP checksums','switch',false,{ info:'configs/samples/udptl.conf.sample line 13: ;udptlchecksums=no.' }),
+      ctl('fx_udptlfecentries','FEC entries per packet','stepper',3,{ min:0, max:64, info:'configs/samples/udptl.conf.sample line 17: udptlfecentries = 3 -- error-correction entries carried in each UDPTL packet.' }),
+      ctl('fx_udptlfecspan','FEC span','stepper',3,{ min:1, max:64, info:'configs/samples/udptl.conf.sample line 21: udptlfecspan = 3 -- the span parity is calculated over.' }),
+      ctl('fx_udptleven','Even-numbered ports only','switch',false,{ info:'configs/samples/udptl.conf.sample line 26: use_even_ports = no -- some providers only accept an offer on an even-numbered port.' }),
+      ctl('fx_udptlsave','Save udptl.conf settings','segmented','Save',{ options:['Save'], action:'fax-udptl-save', info:'Writes the six fields above to udptl.conf on the target.' })
+    ]}]
+  },
   cdr:{ rail:'data', icon:'receipt_long', label:'CDR & CEL', badge:'', title:'Call records', file:'cdr.conf · cel.conf', kind:'generic',
     sub:'Which backend stores records, what counts as an answered call, and which events are logged. Backends are picked, connection secrets come from secret intake.',
     groups:[{ title:'CDR', desc:'One row per call.', ctls:[
@@ -3614,7 +3634,7 @@ const DOCS = {
 
 const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','g_queue','s_ciphers','s_verify','t_100rel','t_privacy','t_from','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
 
-const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','canvas','ivr','queues','voicemail','confbridge','moh','sounds','codecs','cdr','ami','modules','logger','httpd','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
+const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','canvas','ivr','queues','voicemail','confbridge','moh','sounds','codecs','fax','cdr','ami','modules','logger','httpd','security','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
 
 const GAMES = [
   { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },
@@ -4345,7 +4365,7 @@ class ConsoleShell extends DCLogic {
 
   ownerFile(c) {
     const id = c.id || '';
-    const map = { e_:'pjsip.conf', t_:'pjsip.conf', w_:'pjsip.conf', q_:'queues.conf', wq_:'queues.conf', v_:'voicemail.conf', wv_:'voicemail.conf', i_:'extensions.conf', wi_:'extensions.conf', dp_:'extensions.conf', c_:'confbridge.conf', h_:'musiconhold.conf', k_:'codecs.conf', r_:'rtp.conf', d_:'cdr.conf', l_:'cel.conf', a_:'manager.conf', mo_:'modules.conf', g_:'logger.conf', s_:'acl.conf · stir_shaken.conf', ws_:'acl.conf · stir_shaken.conf', sv_:'connection profile', ob_:'connection profile', bs_:'provisioning', ta_:'pjsip.conf', hi_:'.git config', y_:'agent memory', u_:'skills', b_:'status hub', n_:'vocabulary', o_:'release', x_:'secret intake', cr_:'arcade', nt_:'console', p_:'console settings', z_:'console', fun_:'console profile', mo2_:'console profile', ly_:'console profile', th_:'console profile', bh_:'console profile', pr_:'console profile', ap_:'appearance overrides', cp_:'appearance overrides', lk_:'lock store' };
+    const map = { e_:'pjsip.conf', t_:'pjsip.conf', w_:'pjsip.conf', q_:'queues.conf', wq_:'queues.conf', v_:'voicemail.conf', wv_:'voicemail.conf', i_:'extensions.conf', wi_:'extensions.conf', dp_:'extensions.conf', c_:'confbridge.conf', h_:'musiconhold.conf', k_:'codecs.conf', r_:'rtp.conf', d_:'cdr.conf', l_:'cel.conf', a_:'manager.conf', mo_:'modules.conf', g_:'logger.conf', fx_:'res_fax.conf · udptl.conf', s_:'acl.conf · stir_shaken.conf', ws_:'acl.conf · stir_shaken.conf', sv_:'connection profile', ob_:'connection profile', bs_:'provisioning', ta_:'pjsip.conf', hi_:'.git config', y_:'agent memory', u_:'skills', b_:'status hub', n_:'vocabulary', o_:'release', x_:'secret intake', cr_:'arcade', nt_:'console', p_:'console settings', z_:'console', fun_:'console profile', mo2_:'console profile', ly_:'console profile', th_:'console profile', bh_:'console profile', pr_:'console profile', ap_:'appearance overrides', cp_:'appearance overrides', lk_:'lock store' };
     const k = Object.keys(map).find(p => id.indexOf(p) === 0);
     return k ? map[k] : ((SCREENS[this.state.screen] || {}).file || 'the console profile');
   }

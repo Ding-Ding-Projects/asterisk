@@ -39,7 +39,7 @@ test('every bound screen exists in the generated SCREENS object', () => {
 test('total bound-screen and control counts are what this pass produced', () => {
   const screenCount = Object.keys(CONTROL_BINDINGS).length;
   const controlCount = allBindings().length;
-  assert.equal(screenCount, 16);
+  assert.equal(screenCount, 17);
   // 82 from the first pass, plus a_origin (ami/allowed_origins) and s_failaction
   // (security/failure_action) found on the second look, plus 21 on 2026-08-24: the eight
   // http.conf keys and the thirteen features.conf ones, which brought two whole screens
@@ -90,7 +90,15 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // sixteen carries an explicit `file: 'res_parking.conf'` override, the same way the four
   // stir_shaken.conf bindings on the security screen do, because the feature-codes screen's
   // own primary resource stays features.conf.
-  assert.equal(controlCount, 179);
+  // And 191 with the new Fax screen's twelve: six from res_fax.conf.sample's [general]
+  // (the screen's own primary file, no override needed) and six from udptl.conf.sample's
+  // own [general] -- the transport T.38 rides on -- each carrying an explicit
+  // `file: 'udptl.conf'` override for the same reason the stir_shaken.conf and
+  // res_parking.conf ones above do: the screen's own generic read only ever supplies its
+  // declared `file`, so a key living anywhere else has to say so or it is read from the
+  // wrong document. A dedicated App.tsx fetch (mirroring `configs.stirShaken`) supplies
+  // udptl.conf's own ConfigValue through `readControlValues`'s `elsewhere` map.
+  assert.equal(controlCount, 191);
   // And 163 with the TLS and certificate-management lane: ten PJSIP-transport TLS
   // fields (protocol, cert_file, priv_key_file, ca_list_file, ca_list_path, cipher,
   // method, verify_client, verify_server, require_client_cert), each bound through
