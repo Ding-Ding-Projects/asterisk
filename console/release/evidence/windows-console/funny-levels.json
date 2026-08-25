@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "commit": "d50822fbb689304fe4f52292c0457c51f9ef4f83",
+  "artifact": "console/dist/squirrel-windows/win-unpacked/Ding PBX Console.exe",
+  "artifactSha256": "bd9640b366240712a9953805be4589de71b0b7e5095dd81d1e0c834ec27a30ef",
+  "capture": "console/release/captures/windows-console/funny-levels.png",
+  "captureSha256": "26898f267408c3720c9f12b2eda682c3791e275ab6dc47bd7f7e33ef9b680086",
+  "captureBytes": 44108,
+  "viewport": {
+    "width": 1440,
+    "height": 922,
+    "dpi": 144,
+    "scale": 1.5
+  },
+  "launch": {
+    "method": "Lowlevel hidden Windows desktop",
+    "desktop": "DingPBXEvidence",
+    "windowTitle": "Ding PBX Console",
+    "windowClass": "Chrome_WidgetWin_1",
+    "topLevelWindowsOnDesktop": 14,
+    "windowSelectedBy": "exact class Chrome_WidgetWin_1 with a non-empty title and non-zero size",
+    "isolatedProfile": "a task-scoped --user-data-dir created for this run only",
+    "driver": "loopback Chrome DevTools Protocol, exactly one page target verified before any evaluation"
+  },
+  "interaction": {
+    "route": "App > tuneApp > Customise everything > palette search 'level' > Fun section",
+    "action": "opened the command palette with Ctrl+Shift+F, typed 'level', clicked the 'Fun level (English)' result",
+    "observedTarget": "Fun level (English)",
+    "domBeforeClick": {
+      "elements": 1451,
+      "inputs": 19
+    },
+    "domAfterClick": {
+      "elements": 1451,
+      "inputs": 19
+    },
+    "observedPanelControls": [],
+    "anchoredToOriginatingField": false
+  },
+  "contractPoints": [
+    "two independent funny-level controls exist side by side, 'Fun level (English)' and 'Fun level (廣東話)', matching the requirement that English and Cantonese are styled independently",
+    "the controls are real sliders/steppers with a numeric readout, not a shared single toggle"
+  ],
+  "notInterrogatedHere": [
+    "whether both sliders actually run 1 to 5 and default to level 5",
+    "whether changing one slider actually restyles rendered copy without touching the other language",
+    "reset-to-default behaviour for each slider independently"
+  ],
+  "privacy": "no user desktop, cursor, foreground application or personal data is present; the application ran on an off-screen desktop under a throwaway profile",
+  "verification": "inspected-real-packaged-artifact"
+}
