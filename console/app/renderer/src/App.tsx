@@ -354,6 +354,27 @@ export class App extends Base {
   private static readonly CONSOLE_SETTINGS: Readonly<Record<string, readonly string[]>> = {
     partner: ['ta_auto', 'ta_expire', 'ta_notify', 'ta_mutual', 'ta_sign', 'ta_log'],
     security: ['s_failban', 's_bantime'],
+    /* The six agent/ops screens below are the console's own operating policy, not
+     * Asterisk configuration -- there is no `sync.conf` or `skills.conf` for any of
+     * these to bind to, because the thing each one describes (the memory sync
+     * scheduler, the skills orchestrator, the status hub client, the vocabulary
+     * emission guard, the update/release pipeline, the secret intake handling rule)
+     * runs outside this renderer, in the agent tooling that hosts it. Persisting the
+     * chosen value and restoring it on relaunch is the same honest floor as the
+     * partner and security groups above: a stated intention that survives a
+     * relaunch and is shown back in the control, not a claim that this window is
+     * itself running a sync loop, a lane scheduler, or an update checker. */
+    sync: ['y_auto', 'y_every', 'y_backup', 'y_attest'],
+    skills: ['u_lanes', 'u_isolate', 'u_model', 'u_verify', 'u_destruct'],
+    hub: ['b_poll', 'b_notify', 'b_close', 'b_report'],
+    vocab: ['n_guard', 'n_mode', 'n_scan', 'n_lock', 'n_drift'],
+    ops: ['o_check', 'o_stage', 'o_restart', 'o_channel', 'o_hash'],
+    /* None of these four carries a secret's value -- they are handling policy for
+     * the intake (where it is stored, when to nag about rotation, whether to mask,
+     * whether export is allowed at all). A control that actually set or revealed a
+     * secret would go through announceSecretIntent below instead, exactly as
+     * ix_secret_set already does; these four never touch that boundary. */
+    secrets: ['x_store', 'x_rotate', 'x_mask', 'x_export'],
   };
 
   private static readonly CONSOLE_SETTING_PREFIX = 'console.setting.';

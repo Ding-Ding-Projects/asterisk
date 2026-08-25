@@ -29,7 +29,12 @@ const app = read('../../app/renderer/src/App.tsx') + read('../../app/renderer/sr
  *
  * Lowered to 343 by the http.conf and features.conf bindings, then to 318 by the IAX peers
  * screen and the six partner-request settings, then to 279 by seven appearance controls
- * reaching the live preview and by the readout that names them. Each time this check is
+ * reaching the live preview and by the readout that names them, then to 252 by the
+ * twenty-seven agent/ops controls on sync, secrets, hub, vocab, ops and skills joining the
+ * console's own persisted-settings registry (CONSOLE_SETTINGS in App.tsx) -- the same
+ * honest floor already used for the partner-request and security-ban groups: a stated
+ * intention that survives a relaunch and is shown back in the control, since none of those
+ * six screens describes Asterisk configuration in the first place. Each time this check is
  * what forced it.
  *
  * Originally 364, and lowered by the twenty-one http.conf and features.conf bindings that
@@ -40,7 +45,7 @@ const app = read('../../app/renderer/src/App.tsx') + read('../../app/renderer/sr
  * It only ever goes down. If a change makes it rise, that change is adding a control nobody
  * reads, and the honest options are to wire it or to leave it out.
  */
-const ORPHAN_CEILING = 279;
+const ORPHAN_CEILING = 252;
 const TOTAL_CONTROLS = 599;
 
 function classify() {
