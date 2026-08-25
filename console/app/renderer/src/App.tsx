@@ -2074,6 +2074,16 @@ What you can do: ${offered}.` : ''}`);
 
     return {
       tableRows,
+      /* Every screen with a table shares this one renderer, so every one of them drew a header
+       * row with nothing underneath and no word about why. On the endpoints screen -- a first
+       * run, nothing configured -- that is the whole table: five column names and blank space,
+       * which reads as a table that failed to load rather than as one with nothing in it yet.
+       * The message is deliberately about the rows, not about the system: a filter that matches
+       * nothing and a target that has nothing are different situations and say so. */
+      noTableRows: tableRows.length === 0,
+      tableEmptyText: ids.length === 0
+        ? 'Nothing here yet. Anything this screen reads from the target, or that you add with the button above, appears in this table.'
+        : 'No rows match the current search or filter. Clear them to see all ' + String(ids.length) + '.',
       toggleAll: () => apply(selectedArr.length === ids.length && ids.length > 0
         ? bulkClearSelection(sel)
         : bulkSelectAll(sel, 'page', ids, ids).state),

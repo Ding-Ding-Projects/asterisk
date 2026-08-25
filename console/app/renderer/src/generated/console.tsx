@@ -1207,7 +1207,10 @@ function Template(v: any) {
                           S($c.text)
                         ) : null)
                     )))
-                  )))
+                  ))),
+                (v.noTableRows ? h("div", { style: sty(`padding:18px 16px; font-size:13px; color:#9AA39B; line-height:1.5;`) },
+                    S(v.tableEmptyText)
+                  ) : null)
               ) : null),
             (v.isCli ? h("div", { style: sty(`display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;`) },
                 h("div", { style: sty(`background:#1B211C; border-radius:16px; padding:16px 18px;`) },
