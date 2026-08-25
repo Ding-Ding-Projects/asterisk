@@ -32,6 +32,22 @@ const app = read('../../app/renderer/src/App.tsx') + read('../../app/renderer/sr
  * reaching the live preview and by the readout that names them. Each time this check is
  * what forced it.
  *
+ * Lowered again to 237 by the customise screen's own 42: nine of them (the support-ticket
+ * fields, the settings-source fields and the School mode credential kind) were already read
+ * by the hand-written app but through `values.sup_category`-style dot access, which this
+ * classifier's literal `'sup_category'` check cannot see -- switched to bracket access, same
+ * behaviour, now visible. Two (`fun_english`, `fun_cantonese`) were an exact duplicate of the
+ * already-wired `fun_level`/`fun_level_yue` pair and were removed from the design rather than
+ * bound twice. Two (`ed_custom_name`, `ed_custom_path`) gained a real hand-added-editor path
+ * in `external-editor.ts`, validated and persisted the same way the shipped editor list
+ * already is. The remaining twenty-nine are real console-only settings with nothing in
+ * Asterisk to bind to -- tone, motion, layout, the global accent layer, launch behaviour and
+ * profile selection -- and now persist and restore through the same `CONSOLE_SETTINGS`
+ * mechanism the partner and security groups already use, which is a genuine consumer (durable
+ * storage read back on every launch) rather than a value nothing looks at again. See
+ * `docs/platform/unbound-controls.md` for why they are not bound to a config key: they are not
+ * configuration, so there is no key to bind.
+ *
  * Originally 364, and lowered by the twenty-one http.conf and features.conf bindings that
  * brought two whole screens into the table for the first time. The check below is what forced
  * that: it fails when the real figure falls well under the ceiling, so the ratchet tightens
@@ -40,8 +56,8 @@ const app = read('../../app/renderer/src/App.tsx') + read('../../app/renderer/sr
  * It only ever goes down. If a change makes it rise, that change is adding a control nobody
  * reads, and the honest options are to wire it or to leave it out.
  */
-const ORPHAN_CEILING = 279;
-const TOTAL_CONTROLS = 599;
+const ORPHAN_CEILING = 237;
+const TOTAL_CONTROLS = 580;
 
 function classify() {
   const ids = [...new Set([...design.matchAll(/ctl\('([a-z0-9_]+)'/g)].map((m) => m[1]))].sort();

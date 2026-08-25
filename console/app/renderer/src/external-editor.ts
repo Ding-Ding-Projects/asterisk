@@ -144,13 +144,28 @@ export function validateCustomEditor(candidate: CustomEditor): EditorProblem[] {
   return problems;
 }
 
-/** The stored choice, if it is still one of the editors currently present. */
+/** The stored choice, if it is still one of the editors currently present.
+ *
+ * `custom` is resolved from the saved hand-added editor rather than from `available`,
+ * because a hand-added editor was never detected by `detectEditors` in the first place --
+ * it was typed in, not found on the machine. Its own executable stands in for a probe. */
 export function chosenEditor(
   storage: EditorStorage | undefined,
   available: readonly DetectedEditor[],
 ): DetectedEditor | undefined {
   const stored = storage?.getItem(EDITOR_SETTING);
   if (typeof stored !== 'string') return undefined;
+  if (stored === CUSTOM_EDITOR_ID) {
+    const custom = storage ? loadCustomEditor(storage) : undefined;
+    if (!custom) return undefined;
+    return {
+      definition: {
+        id: CUSTOM_EDITOR_ID, name: custom.name, command: custom.executable,
+        fallbackPaths: [], folderArgs: [], fileArgs: [], downloadUrl: '',
+      },
+      resolved: custom.executable,
+    };
+  }
   /* An editor that has since been uninstalled is not silently replaced with another:
    * launching something the person did not choose is worse than reporting the gap. */
   return available.find((candidate) => candidate.definition.id === stored);
@@ -162,6 +177,38 @@ export function chooseEditor(storage: EditorStorage, id: string): void {
 
 export function clearEditorChoice(storage: EditorStorage): void {
   storage.removeItem(EDITOR_SETTING);
+}
+
+/** The id `chooseEditor` is given when the hand-added editor below is what should launch. */
+export const CUSTOM_EDITOR_ID = 'custom';
+
+export const CUSTOM_EDITOR_SETTING = 'console.externalEditor.custom';
+
+/**
+ * Persists the hand-added editor from the "other editor" fields on the customise screen.
+ *
+ * Callers validate with `validateCustomEditor` first; this does not re-check, so an
+ * invalid candidate is never written -- the whole point of the earlier validation is that
+ * nothing downstream has to guard against a command string or a quoted path again.
+ */
+export function saveCustomEditor(storage: EditorStorage, custom: CustomEditor): void {
+  storage.setItem(CUSTOM_EDITOR_SETTING, JSON.stringify(custom));
+}
+
+/** The hand-added editor, or undefined when none has been saved yet or the stored JSON
+ *  no longer parses -- treated the same as absent rather than thrown. */
+export function loadCustomEditor(storage: EditorStorage): CustomEditor | undefined {
+  const raw = storage.getItem(CUSTOM_EDITOR_SETTING);
+  if (typeof raw !== 'string' || raw === '') return undefined;
+  try {
+    const parsed = JSON.parse(raw) as Partial<CustomEditor>;
+    if (typeof parsed.name === 'string' && typeof parsed.executable === 'string') {
+      return { name: parsed.name, executable: parsed.executable };
+    }
+  } catch {
+    /* Treated as though nothing were saved. */
+  }
+  return undefined;
 }
 
 export interface LaunchPlan {
