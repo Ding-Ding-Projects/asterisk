@@ -262,7 +262,7 @@ test('verifyDesignParityEvidence: claiming verified with every artifact absent i
  */
 const HONEST_EXCLUSIONS = [
   { area: 'contentPane', x: 356, y: 78, width: 1084, height: 946 },
-  { area: 'statusCell', x: 1060, y: 0, width: 380, height: 40 },
+  { area: 'commandCell', x: 538, y: 0, width: 534, height: 40 },
 ];
 const honestEvidence = (id, overrides = {}) => ({
   diff: JSON.stringify({
@@ -271,8 +271,8 @@ const honestEvidence = (id, overrides = {}) => ({
   }),
   regions: JSON.stringify({
     destinationId: id, bar: 'chrome-parity',
-    areas: { contentPane: { role: 'data' }, statusCell: { role: 'data' }, rail: { role: 'chrome' } },
-    exclusions: HONEST_EXCLUSIONS, comparedAreas: ['rail'],
+    areas: { contentPane: { role: 'data' }, commandCell: { role: 'data' }, statusCell: { role: 'chrome' }, rail: { role: 'chrome' } },
+    exclusions: HONEST_EXCLUSIONS, comparedAreas: ['rail', 'statusCell'],
   }),
   chrome: JSON.stringify({
     destinationId: id, bar: 'chrome-parity', verdict: 'match', diffPixelCount: 0,

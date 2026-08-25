@@ -16,14 +16,25 @@ const parityAreaRoles = ['chrome', 'data'];
  * the bar should mean changing this line and arguing for it, exactly as changing a rail count
  * does above.
  *
- * One area has moved since this map was written. `commandCell` was pinned `chrome` on a
- * declared reason that turned out to be false — it renders `connLabel` and `connUptime`,
- * which are readings — and is now pinned `data`. The argument is in the area's own `why` in
- * design-parity.json and in docs/evidence/design-parity-chrome-bar.md; this line is only
- * where it is held.
+ * Two areas have moved since this map was written, in opposite directions, one per pass —
+ * because two areas moving together leave one compared fraction nobody can attribute to
+ * either move.
+ *
+ * `commandCell` was pinned `chrome` on a declared reason that turned out to be false: it
+ * renders `connLabel` and `connUptime`, which are readings. It is now pinned `data`.
+ *
+ * `statusCell` was pinned `data` on the same kind of false reason, whose text described
+ * commandCell rather than itself. The fourth top cell is the Beginner/Expert picker, the
+ * confirmation-credits pill, the command-palette button and the three window controls, and
+ * App.tsx overrides nothing inside it — its only two overrides of the whole top strip,
+ * connLabel and connUptime, both land in commandCell. An area into which no reading is
+ * written is chrome, so it is now pinned `chrome` and compared.
+ *
+ * The argument for each is in that area's own `why` in design-parity.json and in
+ * docs/evidence/design-parity-chrome-bar.md; this line is only where it is held.
  */
 const parityAreaRoleMap = {
-  brandCell: 'chrome', menuCell: 'chrome', commandCell: 'data', statusCell: 'data',
+  brandCell: 'chrome', menuCell: 'chrome', commandCell: 'data', statusCell: 'chrome',
   tabStrip: 'chrome', rail: 'chrome', sectionList: 'chrome', contentPane: 'data',
 };
 
