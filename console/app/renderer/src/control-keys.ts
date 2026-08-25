@@ -402,6 +402,16 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
   // configs/samples/features.conf.sample — the five transfer and parking codes live in
   // [featuremap] and the timeouts in [general]; both sections were confirmed per key,
   // because getting the section wrong writes a valid-looking line Asterisk ignores.
+  //
+  // The parking-lot controls below are a different file, stated explicitly per binding
+  // exactly the way the security screen's stir_shaken.conf group is: features.conf.sample
+  // says on its own line 5 "From Asterisk 12 - All parking lot configuration is now done
+  // in res_parking.conf", and this checkout ships that sample too
+  // (configs/samples/res_parking.conf.sample). fc_parkcall above is the DTMF trigger and
+  // stays in features.conf's [featuremap] -- it is the lot's own behaviour (context,
+  // timeout, extension range, retrieval rules) that moved, all of it in res_parking.conf's
+  // [general] (parkeddynamic only) and [default] sections (the guaranteed lot every park
+  // uses unless a channel names another, per the sample's own comment at line 42-46).
   fcodes: [
     s('fc_blindxfer', 'featuremap', 'blindxfer'),  // blind transfer, default #
     s('fc_atxfer', 'featuremap', 'atxfer'),  // attended transfer
@@ -417,6 +427,23 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     n('fc_atxfernoanswertimeout', 'general', 'atxfernoanswertimeout'),  // answer timeout, default 15s
     b('fc_atxferdropcall', 'general', 'atxferdropcall'),
     s('fc_atxfercomplete', 'general', 'atxfercomplete'),  // line 37: ;atxfercomplete = *2  // hang up before the target answers
+    // res_parking.conf.sample from here down.
+    b('fc_parkeddynamic', 'general', 'parkeddynamic', undefined, 'res_parking.conf'),  // line 2: ;parkeddynamic = yes, default no
+    s('fc_parkext', 'default', 'parkext', 'res_parking.conf'),  // line 49: parkext => 700
+    b('fc_parkext_exclusive', 'default', 'parkext_exclusive', undefined, 'res_parking.conf'),  // line 57: ;parkext_exclusive=yes, default no
+    s('fc_parkpos', 'default', 'parkpos', 'res_parking.conf'),  // line 60: parkpos => 701-720
+    s('fc_parkcontext', 'default', 'context', 'res_parking.conf'),  // line 65: context => parkedcalls
+    n('fc_parkingtime', 'default', 'parkingtime', 'res_parking.conf'),  // line 70: ;parkingtime => 45
+    s('fc_findslot', 'default', 'findslot', 'res_parking.conf'),  // line 134: ;findslot => next
+    s('fc_parkedmusicclass', 'default', 'parkedmusicclass', 'res_parking.conf'),  // line 138: ;parkedmusicclass = default
+    s('fc_courtesytone', 'default', 'courtesytone', 'res_parking.conf'),  // line 118: ;courtesytone = beep
+    s('fc_parkedplay', 'default', 'parkedplay', 'res_parking.conf'),  // line 122: ;parkedplay = caller -- values parked/caller/both, same spelling as the segmented control
+    s('fc_parkedcalltransfers', 'default', 'parkedcalltransfers', 'res_parking.conf'),  // line 125: ;parkedcalltransfers = caller -- values callee/caller/both/no, default no
+    s('fc_parkedcallreparking', 'default', 'parkedcallreparking', 'res_parking.conf'),  // line 128: ;parkedcallreparking = caller -- same value set, default no
+    s('fc_parkedcallhangup', 'default', 'parkedcallhangup', 'res_parking.conf'),  // line 131: ;parkedcallhangup = caller -- same value set, default no
+    b('fc_comebacktoorigin', 'default', 'comebacktoorigin', undefined, 'res_parking.conf'),  // line 72: ;comebacktoorigin = yes, default yes
+    n('fc_comebackdialtime', 'default', 'comebackdialtime', 'res_parking.conf'),  // line 109: ;comebackdialtime = 30
+    s('fc_comebackcontext', 'default', 'comebackcontext', 'res_parking.conf'),  // line 114: ;comebackcontext = parkedcallstimeout
   ],
   // configs/samples/pjsip.conf.sample — [endpoint] template (~line 648) and [aor]
   // template (~line 1255). e_callerid is left unmapped: the design's segmented
@@ -915,12 +942,19 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     'ht_tlsenable', 'ht_tlsaddr', 'ht_tlsport', 'ht_tlscert', 'ht_tlskey', 'ht_notls1',
     'ht_notls11', 'ht_notls12', 'ht_sesslimit', 'ht_sessinact', 'ht_sesskeep'
   ],
-  /* features.conf. None bound yet, and the screen says so. */
+  /* features.conf and res_parking.conf. Every one of these is bound; see the comment above
+   * CONTROL_BINDINGS.fcodes for the file split. (This comment used to say "none bound yet" --
+   * that stopped being true once the fourteen features.conf controls were wired, and stayed
+   * wrong until this parking pass noticed it.) */
   fcodes: [
     'fc_blindxfer', 'fc_atxfer', 'fc_disconnect', 'fc_automixmon', 'fc_parkcall',
     'fc_atxferabort', 'fc_atxfercomplete', 'fc_atxferthreeway', 'fc_atxferswap',
     'fc_pickupexten', 'fc_featuredigittimeout', 'fc_transferdigittimeout',
-    'fc_atxfernoanswertimeout', 'fc_atxferdropcall'
+    'fc_atxfernoanswertimeout', 'fc_atxferdropcall',
+    'fc_parkeddynamic', 'fc_parkext', 'fc_parkext_exclusive', 'fc_parkpos', 'fc_parkcontext',
+    'fc_parkingtime', 'fc_findslot', 'fc_parkedmusicclass', 'fc_courtesytone', 'fc_parkedplay',
+    'fc_parkedcalltransfers', 'fc_parkedcallreparking', 'fc_parkedcallhangup',
+    'fc_comebacktoorigin', 'fc_comebackdialtime', 'fc_comebackcontext'
   ],
   /* iax.conf. None bound yet, and the screen says so. ix_secret_set in particular looks like it generates a credential and does not. */
   iaxpeers: [
