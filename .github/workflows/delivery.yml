@@ -270,6 +270,55 @@ jobs:
           if ($releaseProbeExit -eq 0) { throw "Release tag $tag already exists; tags are immutable and never recycled." }
           if ($releaseProbeExit -ne 1) { throw "Release uniqueness probe exited $releaseProbeExit." }
 
+          # Dim sum code name and photo, resolved from the public catalogue at release time.
+          # Best effort by contract: a release is never blocked, delayed or renamed because
+          # the catalogue is unreachable, so every path below ends with a message rather than
+          # a throw. Nothing is vendored -- the photo is fetched now and attached to this
+          # release, because copying catalogue images into this repository is forbidden and a
+          # second copy is a second authority that will eventually disagree with the first.
+          $dimSum = $null
+          $previousPreference = $ErrorActionPreference
+          try {
+            $ErrorActionPreference = 'Continue'
+            # The release notes are the ledger. Reading names back from published releases
+            # keeps the record auditable without committing a file, which matters because a
+            # release workflow that commits is a release workflow that triggers itself.
+            $usedPath = Join-Path $PWD 'used-code-names.txt'
+            $bodies = @()
+            foreach ($previousTag in (gh release list --limit 200 --json tagName --jq '.[].tagName' 2>$null)) {
+              $bodies += (gh release view $previousTag --json body --jq .body 2>$null)
+            }
+            $bodies -join "`n" | Set-Content -Encoding utf8 $usedPath
+            $dimSumPath = Join-Path $PWD 'dim-sum.json'
+            node '${{ github.workspace }}/console/scripts/dim-sum-code-name.mjs' --used-from $usedPath --out $dimSumPath 2>$null
+            if (Test-Path $dimSumPath) {
+              $record = Get-Content -Raw $dimSumPath | ConvertFrom-Json
+              if ($record.resolved) {
+                $photo = Join-Path $staging $record.asset
+                Invoke-WebRequest -Uri $record.url -OutFile $photo -MaximumRedirection 5
+                # Judge it by the file, not by the call: assert it decodes as a PNG rather
+                # than trusting a 200 that may have carried an error page.
+                if ((Test-Path $photo) -and ((Get-Item $photo).Length -gt 1024)) {
+                  $signature = [System.IO.File]::ReadAllBytes($photo)[0..3]
+                  if ($signature[0] -eq 0x89 -and $signature[1] -eq 0x50 -and $signature[2] -eq 0x4E -and $signature[3] -eq 0x47) {
+                    $dimSum = $record
+                  } else {
+                    Remove-Item $photo -Force
+                    Write-Host 'Dim sum photo did not decode as a PNG; shipping without it.'
+                  }
+                } else {
+                  Write-Host 'Dim sum photo did not download; shipping without it.'
+                }
+              } else {
+                Write-Host "No dim sum code name resolved: $($record.reason)"
+              }
+            }
+          } catch {
+            Write-Host "Dim sum resolution failed, shipping without it: $($_.Exception.Message)"
+          } finally {
+            $ErrorActionPreference = $previousPreference
+          }
+
           $started = [DateTimeOffset]::Parse('${{ needs.resolve-runner.outputs.workflow-started }}')
           $notes = @()
           $notes += '# Ding PBX Console'
@@ -279,6 +328,7 @@ jobs:
           $notes += ''
           $notes += "- Target commit: ``${{ github.sha }}``"
           $notes += '- Automated checks: none. GitHub Actions builds, packages, publishes, and attaches evidence only.'
+          if ($dimSum) { $notes += "- Code name: **$($dimSum.codeName)** (``$($dimSum.id)``)" }
           $notes += "- Workflow started: ``$($started.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'))``"
           $notes += '- Workflow completed: pending final publication timestamp'
           $notes += '- Workflow duration: pending final publication timestamp'
@@ -288,6 +338,14 @@ jobs:
           $notes += Get-Content (Join-Path $staging 'SHA256SUMS.txt')
           $notes += '```'
           $notes += ''
+          if ($dimSum) {
+            $photoUrl = "https://github.com/${{ github.repository }}/releases/download/$tag/$($dimSum.asset)"
+            $notes += '## Code name'
+            $notes += "![$($dimSum.alt)]($photoUrl)"
+            $notes += ''
+            $notes += "**$($dimSum.codeName)** -- from the public dim sum catalogue, volume ``$($dimSum.volume)``, attached here as ``$($dimSum.asset)``. The software is serious; the release still gets one steamer basket."
+            $notes += ''
+          }
           $notes += '## Project line count'
           $notes += Get-Content -Raw (Join-Path $staging 'line-count.md')
           $notesPath = Join-Path $PWD 'release-notes.md'
