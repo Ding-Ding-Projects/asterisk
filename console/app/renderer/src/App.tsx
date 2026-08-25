@@ -2707,17 +2707,51 @@ It is shown once. The phone needs it to register.`);
    */
   private appearanceScope(): string {
     const applied = App.APPLIED_APPEARANCE.length;
+    const preview = App.PREVIEW_APPEARANCE.length;
+    const inert = App.INERT_APPEARANCE.length;
     return `${applied} of these controls change the console itself and are kept when you `
-      + 'relaunch: the accent colour, the font family, its weight and its size. Every other '
-      + 'control here moves the preview only -- the interface gives an individual element no '
-      + 'way to receive its own override yet, so those choices are not saved and change '
-      + 'nothing outside this panel.';
+      + 'relaunch: the accent colour, the font family, its weight and its size. '
+      + `${preview} of them (those ${applied} included) move the preview above, live, so you can `
+      + 'see exactly what each one does -- but the interface gives an individual element no way '
+      + 'to receive its own override yet, so those choices are not saved and change nothing '
+      + 'outside this panel. '
+      + `The remaining ${inert} do nothing at all yet: the rainbow fill and its settings, the `
+      + 'entrance animation and its timing, and the two layout controls, which need a preview '
+      + 'with more than one child before a gap or an alignment can show.';
   }
 
   /** The appearance keys that genuinely reach the document and survive a relaunch. Named
    *  once so the readout above, the persistence below and the restore path cannot disagree
    *  about which those are. */
-  private static readonly APPLIED_APPEARANCE = ['ap_hue', 'ap_sat', 'ap_light', 'ap_family', 'ap_weight', 'ap_size'] as const;
+  private static readonly APPLIED_APPEARANCE = ['ap_hue', 'ap_sat', 'ap_light', 'ap_family', 'ap_weight', 'ap_size'] as const
+
+  /** Every appearance control the live preview genuinely consumes, `APPLIED_APPEARANCE`
+   *  included. The readout above counts this list rather than asserting a number, and a
+   *  contract test compares it against the preview the design actually compiles to -- so a
+   *  control added to or dropped from the preview cannot leave the readout claiming
+   *  something that stopped being true. */
+  private static readonly PREVIEW_APPEARANCE = [
+    'ap_alpha', 'ap_blend', 'ap_blur', 'ap_bright', 'ap_bs', 'ap_bw', 'ap_case', 'ap_contrast',
+    'ap_deco', 'ap_family', 'ap_fill', 'ap_grey', 'ap_hrot', 'ap_hue', 'ap_lead', 'ap_light',
+    'ap_num', 'ap_pb', 'ap_pl', 'ap_pr', 'ap_pt', 'ap_r1', 'ap_r2', 'ap_r3', 'ap_r4', 'ap_rot',
+    'ap_sat', 'ap_satf', 'ap_sb', 'ap_scale', 'ap_sin', 'ap_size', 'ap_skew', 'ap_sop', 'ap_ss',
+    'ap_sx', 'ap_sy', 'ap_track', 'ap_transition', 'ap_tx', 'ap_ty', 'ap_weight',
+  ] as const;
+
+  /** The appearance controls that still reach nothing whatsoever. Named rather than counted,
+   *  so the readout can say which they are and the same contract test can prove none of them
+   *  is quietly in the preview after all. */
+  private static readonly INERT_APPEARANCE = [
+    'ap_rainbow', 'ap_rbspeed', 'ap_rbrange', 'ap_rbease', 'ap_rbdir', 'ap_rbsat', 'ap_rblight',
+    'ap_anim', 'ap_dur', 'ap_ease', 'ap_celebrate',
+    'ap_align', 'ap_gap',
+  ] as const;
+
+  static readonly APPEARANCE_INVENTORY = {
+    applied: App.APPLIED_APPEARANCE,
+    preview: App.PREVIEW_APPEARANCE,
+    inert: App.INERT_APPEARANCE,
+  };;
 
   /** The actual rendered root: the compiled design's outermost div, found via the
    *  window drag-region marker on its first child rather than a hard-coded ref,
