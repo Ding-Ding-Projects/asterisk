@@ -8,6 +8,7 @@ on:
 permissions:
   actions: read
   contents: write
+  packages: write
 
 jobs:
   build-asterisk-runtime:
@@ -18,9 +19,62 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Build the complete Ubuntu root filesystem
+      - name: Build the complete Ubuntu root filesystem, and best-effort publish it
         shell: pwsh
+        env:
+          # This is the one compile CI still always does: build-asterisk-wsl-bundle.ps1
+          # compiles Asterisk from this exact commit as it always has. What is new is
+          # DING_PBX_PUBLISH_ASTERISK_IMAGE=1, which makes the script also push the
+          # image it just built, tagged and digest-pinned by this exact commit, so a
+          # later run (build-asterisk-wsl-bundle-from-image.ps1 on a contributor's
+          # machine, a re-run of this same workflow) can pull and export it instead of
+          # recompiling. Publication is best-effort: Publish-AsteriskRuntimeImage never
+          # throws, so a missing or refused registry credential cannot fail this job -
+          # the rootfs this job exists to produce is unaffected either way, and the
+          # provenance and evidence steps below record honestly whether it happened.
+          DING_PBX_PUBLISH_ASTERISK_IMAGE: '1'
+          DING_PBX_ASTERISK_IMAGE_REGISTRY: ghcr.io
+          DING_PBX_ASTERISK_IMAGE_REPOSITORY: ${{ github.repository }}
+          DING_PBX_REGISTRY_USER: ${{ github.actor }}
+          DING_PBX_REGISTRY_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN }}
         run: ./console/scripts/build-asterisk-wsl-bundle.ps1
+
+      - name: Record image publication evidence
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path evidence | Out-Null
+          $provenancePath = 'console/resources/asterisk-wsl-rootfs.json'
+          $record = [ordered]@{
+            runId = '${{ github.run_id }}'
+            commit = '${{ github.sha }}'
+            status = '${{ job.status }}'
+            provenanceFound = (Test-Path -LiteralPath $provenancePath)
+          }
+          if ($record.provenanceFound) {
+            $provenance = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
+            $record.sourceMethod = $provenance.sourceMethod
+            $record.imageRef = $provenance.imageRef
+            $record.imageDigest = $provenance.imageDigest
+            $record.published = [bool]$provenance.imageDigest
+          }
+          $record | ConvertTo-Json | Set-Content -Encoding utf8 evidence/asterisk-image-publication.json
+          if ($record.provenanceFound -and $record.published) {
+            Write-Host "Published: $($record.imageRef) ($($record.imageDigest))."
+          } else {
+            Write-Warning 'The Asterisk runtime image was not published on this run; the rootfs was still produced by a local compile. See evidence/asterisk-image-publication.json.'
+          }
+
+      - name: Upload image publication evidence
+        if: ${{ always() }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: asterisk-image-publication-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evidence/asterisk-image-publication.json
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Upload the pinned WSL runtime for Windows packaging
         uses: actions/upload-artifact@v4
         with:
