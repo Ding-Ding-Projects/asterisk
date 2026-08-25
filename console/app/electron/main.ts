@@ -173,6 +173,15 @@ ipcMain.on('window:toggle-maximize', () => mainWindow?.isMaximized() ? mainWindo
 ipcMain.on('window:close', () => mainWindow?.close());
 ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequest) => controlPlaneRequest(request));
 
+/* Forwarded so the renderer's narrator can duck under a real screen reader rather than
+ * talking over it. `isAccessibilitySupportEnabled()` and the change event are Chromium's
+ * own signal -- set because assistive tech (Narrator, NVDA, JAWS, VoiceOver…) is present
+ * and asked for it -- not a guess this app invented. */
+ipcMain.handle('accessibility:is-screen-reader-active', () => app.isAccessibilitySupportEnabled());
+app.on('accessibility-support-changed', (_event, accessibilitySupportEnabled) => {
+  mainWindow?.webContents.send('accessibility:changed', accessibilitySupportEnabled);
+});
+
 if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
   app.quit();
 } else {
