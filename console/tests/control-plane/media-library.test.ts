@@ -298,6 +298,47 @@ test('remove cannot be pointed outside the media roots by any accepted name', as
 });
 
 // ---------------------------------------------------------------------------------------
+// read — the "audition" action's own transport, added for the Sound prompts screen.
+// ---------------------------------------------------------------------------------------
+
+for (const bad of BAD_NAMES) {
+  test(`read refuses "${bad}" before running any command`, async () => {
+    const { executor, library } = build(() => ({}));
+    await assert.rejects(() => library.read('prompts', bad), /not a usable media filename/u);
+    assert.equal(executor.calls.length, 0);
+  });
+}
+
+test('read returns the base64 content of a file that really is there', async () => {
+  const { executor, library } = build((r) => {
+    if (verb(r) === 'stat') return { stdout: String(WAV_BYTES.length) };
+    if (verb(r) === 'base64') return { stdout: `${WAV_B64}\n` };
+    return {};
+  });
+  const file = await library.read('prompts', 'welcome.wav');
+  assert.equal(file.name, 'welcome.wav');
+  assert.equal(file.path, `${MEDIA_ROOTS.prompts}/welcome.wav`);
+  assert.equal(file.extension, 'wav');
+  assert.equal(file.bytes, WAV_BYTES.length);
+  /* Trailing newline from the target's own `base64` output is stripped, so the caller
+   * gets exactly the alphabet back and never has to know the transport added one. */
+  assert.equal(file.contentBase64, WAV_B64);
+  const encode = executor.calls.find((c) => verb(c) === 'base64');
+  assert.deepEqual(encode?.args.slice(3), ['base64', '-w', '0', `${MEDIA_ROOTS.prompts}/welcome.wav`]);
+});
+
+test('read refuses a file that is not there rather than returning empty content', async () => {
+  const { library } = build((r) => (verb(r) === 'stat' ? { status: 'failed', exitCode: 1, stderr: 'no such file' } : {}));
+  await assert.rejects(() => library.read('prompts', 'missing.wav'), /was not found in this media root/u);
+});
+
+test('read refuses a file over the same bound upload enforces, without reading its bytes', async () => {
+  const { executor, library } = build((r) => (verb(r) === 'stat' ? { stdout: String(10 * 1024 * 1024 + 1) } : {}));
+  await assert.rejects(() => library.read('prompts', 'huge.gsm'), /10485761 bytes, over the 10485760-byte limit/u);
+  assert.equal(executor.calls.some((c) => verb(c) === 'base64'), false, 'the oversized file was read anyway');
+});
+
+// ---------------------------------------------------------------------------------------
 // Errors from the target surface verbatim.
 // ---------------------------------------------------------------------------------------
 
@@ -315,10 +356,12 @@ test('every command uses the allowlisted executable with no shell metacharacters
     if (verb(r) === 'stat') return { stdout: String(WAV_BYTES.length) };
     if (verb(r) === 'test') return {};
     if (verb(r) === 'find') return { stdout: '10\tfile.wav\n' };
+    if (verb(r) === 'base64' && r.args.includes('-w')) return { stdout: `${WAV_B64}\n` };
     return {};
   });
   await library.upload('prompts', 'welcome.wav', WAV_B64);
   await library.list('prompts');
+  await library.read('prompts', 'welcome.wav');
   await library.remove('prompts', 'welcome.wav');
 
   assert.ok(executor.calls.length > 0);

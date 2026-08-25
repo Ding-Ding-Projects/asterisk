@@ -16,6 +16,8 @@ import {
   addRule as addAclRule, moveRule as moveAclRuleModel, parseAcl, removeRule as removeAclRuleModel,
   toConfigValue, validateRule as validateAclRule, type AclModel,
 } from '../../../control-plane/acl-model';
+import { PLAYABLE_EXTENSIONS, playbackMimeType, promptRows, resolvePromptRow } from './prompt-library';
+import { usableName, type MediaFile } from '../../../control-plane/media-library';
 import { canProvision, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
 import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
 import { ServerSwitcher } from './servers';
@@ -168,6 +170,10 @@ const NO_AUTH_REQUESTS =
   'There is no partner-request channel wired into this console. No trunk partner can reach it to ask for a ' +
   'change, so there is nothing pending or answered to show.';
 
+/** Exactly the extensions `MediaLibrary#ALLOWED_EXTENSIONS` accepts, so the native file
+ *  picker for the Sound prompts screen never offers a choice the target would refuse. */
+const PROMPT_ACCEPT = '.wav,.gsm,.ulaw,.alaw,.g722,.sln,.sln16,.ogg,.opus';
+
 /** Table screens whose design sample rows must never render. */
 const TABLE_SCREENS = Object.entries(SCREENS as Record<string, { table?: { rows: string[][] } }>)
   .filter(([, screen]) => Array.isArray(screen.table?.rows))
@@ -223,6 +229,16 @@ export class App extends Base {
   private configPending = '';
   /** Screens whose bound controls have already been seeded from the target. */
   private seeded = new Set<string>();
+  /** The target's real `/var/lib/asterisk/sounds`, from `media.list` -- there is no
+   *  `pbx.config` resource behind a directory of files, so this does not live in
+   *  `configs` above; see the Sound prompts screen's own note in the design for why. */
+  private promptFiles: ReadonlyArray<MediaFile> | undefined;
+  private promptState: 'unread' | 'reading' | 'read' | 'unavailable' = 'unread';
+  private promptReason: string | undefined;
+  private promptPending = false;
+  /** The one prompt currently playing, so a second audition stops the first rather
+   *  than layering two prompts on top of each other. */
+  private auditionAudio: HTMLAudioElement | undefined;
   /** What the console's own Asterisk runtime can do right now. */
   private runtime: RuntimeStatus | undefined;
   /** Discovery and refresh are real operations, so the shell can show their current
@@ -2697,6 +2713,10 @@ What you can do: ${offered}.` : ''}`);
    */
   onPickRow = (name: string): void => {
     if ((this.state as { screen: string }).screen === 'security') { this.onPickAclRow(name); return; }
+    /* A prompt row names a real file, not a section to reload into an editor -- there is
+     * nothing below the table for it to populate. Row-pick plays it back instead, exactly
+     * as the row's own context menu (`Audition …`) does; see `onAuditionPromptRow`. */
+    if ((this.state as { screen: string }).screen === 'sounds') { void this.onAuditionPromptRow(name); return; }
     const value = this.pjsipValue();
     if (!value) { this.fire('Not loaded', 'The pjsip.conf on this target has not been read yet.'); return; }
     const endpoint = findEndpoint(value, name);
@@ -3079,6 +3099,32 @@ It is shown once. The phone needs it to register.`);
       this.forceUpdate();
       return;
     }
+    /* The Sound prompts screen has no `pbx.config` resource behind it -- there is no
+     * `[section]`/`key=value` file for a directory of media files -- so it reads through
+     * `media.list` instead, same as `canvas` above reads through its own dedicated view
+     * rather than falling into the generic config path below. Re-reads whenever the last
+     * read failed or an upload/remove/`this.promptFiles = undefined` marked it stale;
+     * never on every render, via the same `mayStartRead` debounce every other screen uses. */
+    if (screen === 'sounds') {
+      const needsRead = this.promptFiles === undefined || this.promptState === 'unavailable';
+      if (needsRead && !this.promptPending && mayStartRead('sounds')) {
+        this.promptPending = true;
+        this.promptState = 'reading';
+        this.forceUpdate();
+        const response = await this.request('media.list', { serverId: this.target.id, payload: { root: 'prompts' } });
+        this.promptPending = false;
+        if (response?.ok) {
+          this.promptFiles = ((response.data as { files?: ReadonlyArray<MediaFile> }).files ?? []).slice();
+          this.promptState = 'read';
+          this.promptReason = undefined;
+        } else {
+          this.promptState = 'unavailable';
+          this.promptReason = response?.message ?? 'the control plane did not answer';
+        }
+        this.forceUpdate();
+      }
+      return;
+    }
     /* A configuration screen names the file it edits. Read that file from the target so
      * the screen can show what the machine actually has, instead of standing there
      * displaying the design's own defaults as though they were settings in force. */
@@ -3159,7 +3205,9 @@ It is shown once. The phone needs it to register.`);
         ? serverRows(this.servers.servers)
         : id === 'security'
           ? aclRuleRows(this.aclConfigValue())
-          : rowsFor(screen, this.readings[screen]);
+          : id === 'sounds'
+            ? promptRows(this.promptFiles)
+            : rowsFor(screen, this.readings[screen]);
     }
   }
 
@@ -3295,11 +3343,136 @@ It is shown once. The phone needs it to register.`);
     );
   };
 
+  // ---------------------------------------------------------------- sound prompts
+
+  /** The Sound prompts table's own "Upload a prompt" button, wired the same way the
+   *  security screen's own add wired `openWizard` straight to `onAddAclRule` rather than
+   *  through the generic multi-step wizard: a media upload needs a real local file, which
+   *  a wizard step has no way to ask for, so this opens the platform's own file picker
+   *  directly. Nothing here builds the upload itself -- that is `uploadPromptFile` below,
+   *  the one path every upload on this screen goes through. */
+  onAddPromptRow = (): void => {
+    if (!this.target.connected) { this.fire('Not uploaded', 'Connect to a server before uploading a prompt.'); return; }
+    const doc = (globalThis as { document?: Document }).document;
+    if (!doc) { this.fire('Not uploaded', 'No file picker is available in this environment.'); return; }
+    const input = doc.createElement('input');
+    input.type = 'file';
+    input.accept = PROMPT_ACCEPT;
+    input.addEventListener('change', () => {
+      const file = input.files?.[0];
+      if (file) void this.uploadPromptFile(file);
+    });
+    input.click();
+  };
+
+  /** The one upload path this screen has. Refuses a name `MediaLibrary` would refuse
+   *  before a single byte is read off disk -- `usableName` is the exact same function
+   *  `media-library.ts`'s own `upload` runs, so a refusal here and a refusal at the
+   *  target always agree, and a user never waits on a round trip for a mistake this
+   *  process already knew about. */
+  private async uploadPromptFile(file: File): Promise<void> {
+    if (usableName(file.name) === undefined) {
+      this.fire(
+        'Not uploaded',
+        `"${file.name}" is not a name or format this library accepts. Allowed: wav, gsm, ulaw, alaw, g722, sln, sln16, ogg, opus.`,
+      );
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+      const comma = dataUrl.indexOf(',');
+      if (comma < 0) { this.fire('Not uploaded', `"${file.name}" could not be encoded for upload.`); return; }
+      const contentBase64 = dataUrl.slice(comma + 1);
+      void this.request('media.upload', { serverId: this.target.id, payload: { root: 'prompts', name: file.name, contentBase64 } })
+        .then((response) => {
+          if (!response?.ok) {
+            this.fire('Not uploaded', response?.message ?? 'The control plane did not answer.');
+            return;
+          }
+          const landed = response.data as MediaFile;
+          this.promptFiles = undefined;
+          this.promptState = 'unread';
+          this.fire('Prompt uploaded', `${landed.name} landed as ${landed.bytes} bytes and was confirmed by the target.`);
+          this.forceUpdate();
+        });
+    };
+    reader.onerror = () => this.fire('Not uploaded', `"${file.name}" could not be read from disk.`);
+    reader.readAsDataURL(file);
+  }
+
+  /** "Audition …" from the row's own context menu, and a plain row click -- see
+   *  `onPickRow` above. Refuses honestly, before any network round trip, for a format
+   *  `PLAYABLE_EXTENSIONS` already knows a browser cannot decode; see
+   *  `prompt-library.ts` for exactly why those five formats are excluded rather than
+   *  attempted and left to fail silently. */
+  onAuditionPromptRow = async (name: string): Promise<void> => {
+    if (!this.target.connected) { this.fire('Not auditioned', 'Connect to a server first.'); return; }
+    const file = resolvePromptRow(this.promptFiles, name);
+    if (!file) { this.fire('Not auditioned', `${name} is no longer in this target's prompt library. Refresh and try again.`); return; }
+    if (!PLAYABLE_EXTENSIONS.has(file.extension)) {
+      this.fire(
+        'Cannot audition this format',
+        `${name} is a .${file.extension} file. This library validates a real header only for wav, ogg and opus -- the ` +
+        'formats a browser can decode from a plain data URL. The raw telephony encodings (gsm, ulaw, alaw, g722, sln, ' +
+        'sln16) carry no header at all, so nothing here knows their sample rate or framing and no browser can play ' +
+        'them back this way. Download the file and audition it with a phone or a real media player instead.',
+      );
+      return;
+    }
+    this.toast(`Reading ${name} from the target…`);
+    const response = await this.request('media.read', { serverId: this.target.id, payload: { root: 'prompts', name } });
+    if (!response?.ok) { this.fire('Not auditioned', response?.message ?? 'The control plane did not answer.'); return; }
+    const read = response.data as { contentBase64?: string; extension?: string };
+    if (!read.contentBase64) { this.fire('Not auditioned', `${name} came back from the target with no content.`); return; }
+    const AudioCtor = (globalThis as { Audio?: new (src?: string) => HTMLAudioElement }).Audio;
+    if (!AudioCtor) { this.fire('Not auditioned', 'No audio playback is available in this environment.'); return; }
+    /* Stop whatever was already playing rather than layering a second prompt over it --
+     * the same reasoning the non-blocking-notification rules already apply to a fired
+     * message, applied here to sound instead of text. */
+    this.auditionAudio?.pause();
+    const mime = playbackMimeType(read.extension ?? file.extension);
+    const audio = new AudioCtor(`data:${mime};base64,${read.contentBase64}`);
+    this.auditionAudio = audio;
+    audio.play()
+      .then(() => this.toast(`Auditioning ${name}…`))
+      .catch((error: unknown) => {
+        this.fire('Playback refused', `The browser would not play ${name} back: ${error instanceof Error ? error.message : String(error)}.`);
+      });
+  };
+
+  /** "Delete …" from the row's own context menu, behind the same three-gate confirmation
+   *  every other destructive row action on this console already runs through. Irreversible
+   *  on the target -- `MediaLibrary#remove` runs `rm -f` with no undo -- so the confirming
+   *  dialog says exactly that rather than the generic "everything referencing it" wording
+   *  that fits an endpoint or a queue and nothing about a media file. */
+  onRemovePromptRow = async (name: string): Promise<void> => {
+    if (!this.target.connected) { this.fire('Not removed', 'Connect to a server first.'); return; }
+    const response = await this.request('media.remove', { serverId: this.target.id, payload: { root: 'prompts', name } });
+    if (!response?.ok) { this.fire('Prompt not removed', response?.message ?? 'The control plane did not answer.'); return; }
+    const result = response.data as { removed?: boolean; detail?: string };
+    if (!result.removed) { this.fire('Prompt not removed', result.detail ?? 'The target did not confirm removal.'); return; }
+    this.promptFiles = undefined;
+    this.promptState = 'unread';
+    this.fire('Prompt removed', result.detail ?? `${name} was removed.`);
+    this.forceUpdate();
+  };
+
   private note(screen: string): string {
     if (screen === 'history') return NO_HISTORY;
     if (screen === 'memory') return NO_MEMORY;
     if (screen === 'trunkauth') return NO_AUTH_REQUESTS;
     if (!this.target.connected) return `No target is connected — ${this.target.detail}.`;
+    if (screen === 'sounds') {
+      if (this.promptState === 'unavailable') {
+        return `The target's prompt library could not be read: ${this.promptReason ?? 'the control plane did not answer'}.`;
+      }
+      if (this.promptState !== 'read' || !this.promptFiles) return 'Reading /var/lib/asterisk/sounds…';
+      const count = this.promptFiles.length;
+      return count === 0
+        ? 'No prompts have been uploaded to /var/lib/asterisk/sounds on this target yet — press "Upload a prompt" above the table.'
+        : `${count} prompt${count === 1 ? '' : 's'} read from /var/lib/asterisk/sounds on this target.`;
+    }
     /* A configuration screen reports the file it edits and what is really in it. This
      * says what was read; it does not claim the controls below are bound to it, because
      * they are not yet, and implying otherwise would be the same untruth the

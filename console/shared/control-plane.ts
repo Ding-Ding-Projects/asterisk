@@ -33,8 +33,12 @@ export type ControlPlaneAction =
   | 'settings.source.fetch'
   | 'pbx.read' | 'pbx.command' | 'pbx.config' | 'pbx.plan'
   | 'history.list' | 'history.restore'
-  /* Prompts and music-on-hold media on the target, so a "custom" choice can be given a file. */
-  | 'media.list' | 'media.upload' | 'media.remove'
+  /* Prompts and music-on-hold media on the target, so a "custom" choice can be given a file.
+   * `media.read` is the one addition on top of the original three: it fetches a file's own
+   * bytes back out, base64-encoded, which is what the Sound prompts screen's "audition"
+   * action needs and nothing else here ever asked for -- listing, uploading and removing a
+   * prompt never had to look inside one. */
+  | 'media.list' | 'media.upload' | 'media.remove' | 'media.read'
   /* The console's own append-only record of what it changed, kept locally. */
   | 'local-history.list' | 'local-history.record' | 'local-history.restore'
   /* Durable renderer settings (appearance, personal vocabulary) -- see

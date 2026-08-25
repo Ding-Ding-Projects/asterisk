@@ -953,6 +953,16 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     'c_max', 'c_marked', 'c_announce', 'c_music',
   ],
   moh: ['h_mode', 'h_sort'],
+  /* Sound prompts has no CONTROL_BINDINGS entries at all -- and deliberately so, not
+   * because nobody has looked. Every one of its real actions (upload, audition, remove)
+   * is `media.*` on `MediaLibrary`, an operation on a whole file rather than a value in a
+   * `[section]`/`key=value` file this table's single-key binding shape could ever carry.
+   * There is no `so_*` control on the screen for the same reason `moh` above lists no
+   * entry for `h_upload`: the table's own "Upload a prompt" button and each row's own
+   * context menu ARE the interface, and an empty list here is the honest "nothing is
+   * unbound" rather than a screen the audit has simply never reached (see
+   * `isUninventoried` above for what that distinction protects). */
+  sounds: [],
   codecs: [
     'k_order', 'k_transcode',
     'r_start', 'r_end', 'r_strict', 'r_ice',

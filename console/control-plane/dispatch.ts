@@ -617,7 +617,10 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           data: restored,
         } as ControlPlaneResponse;
       }
-      if (request.action === 'media.list' || request.action === 'media.upload' || request.action === 'media.remove') {
+      if (
+        request.action === 'media.list' || request.action === 'media.upload'
+        || request.action === 'media.remove' || request.action === 'media.read'
+      ) {
         const target = await resolveTarget(request.serverId);
         const library = new MediaLibrary({ executor: processExecutor, distribution: target.wslDistribution! });
         const root = request.payload?.root === 'musicOnHold' ? 'musicOnHold' : 'prompts';
@@ -631,6 +634,14 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         if (request.action === 'media.remove') {
           const removed = await library.remove(root, name);
           return { ok: removed.removed, requestId: request.requestId, code: removed.removed ? undefined : 'MEDIA_REMOVE_REFUSED', message: removed.removed ? undefined : removed.detail, data: removed } as ControlPlaneResponse;
+        }
+
+        /* The "audition" action on the Sound prompts screen: read a file's bytes back so
+         * the renderer can try to play them, without giving the renderer a filesystem path
+         * or a shell of its own -- exactly the same boundary `upload` and `remove` already
+         * keep. */
+        if (request.action === 'media.read') {
+          return { ok: true, requestId: request.requestId, data: await library.read(root, name) };
         }
 
         const contentBase64 = typeof request.payload?.contentBase64 === 'string' ? request.payload.contentBase64 : '';

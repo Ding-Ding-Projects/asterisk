@@ -26,17 +26,20 @@ function renderDestination(id: string, overrides: Record<string, unknown> = {}):
 const strip = (markup: string) => markup.replace(/<[^>]*>/g, ' ').replace(/&#x27;/g, "'").replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/\s+/g, ' ');
 
 /* 37 rather than 34: Feature codes and IAX peers landed on the pbx rail (8 to 10),
- * and the HTTP server destination on the sys rail (4 to 5). The count is pinned deliberately: it is what noticed the addition. */
+ * and the HTTP server destination on the sys rail (4 to 5). The count is pinned deliberately: it is what noticed the addition.
+ * 38 rather than 37: the Sound prompts screen landed on the media rail (4 to 5) --
+ * `/var/lib/asterisk/sounds`, the one place every "custom" prompt picker on this console
+ * points at, finally has a screen that can put a real file there. */
 test('the design reference supplies every rail and destination', () => {
-  assert.equal(ORDER.length, 37);
-  assert.equal(destinations.length, 37);
+  assert.equal(ORDER.length, 38);
+  assert.equal(destinations.length, 38);
   assert.deepEqual(rails.map((rail) => rail.id), ['pbx', 'media', 'data', 'sys', 'agent', 'app']);
   assert.deepEqual(
     rails.map((rail) => destinations.filter((destination) => destination.rail === rail.id).length),
-    [10, 4, 2, 5, 7, 9],
+    [10, 5, 2, 5, 7, 9],
   );
   assert.equal(RAIL.length, 6);
-  assert.equal(Object.keys(SCREENS).length, 37);
+  assert.equal(Object.keys(SCREENS).length, 38);
 });
 
 test('the design audit baseline counts survive compilation', () => {

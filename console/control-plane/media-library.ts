@@ -288,6 +288,33 @@ export class MediaLibrary {
   }
 
   /**
+   * Reads a file's bytes back out of a media root, base64-encoded, so a caller (an
+   * "audition" control that plays a prompt back before trusting it) can do something
+   * with them without ever touching the target's filesystem itself. Same validation as
+   * every other method here: the name is checked before any command runs, and the read
+   * is refused outright once it would exceed the same bound `upload` enforces on the
+   * way in — a file this class would never have accepted is not read back either.
+   */
+  async read(root: MediaRoot, name: string): Promise<MediaFile & { contentBase64: string }> {
+    const extension = usableName(name);
+    if (extension === undefined) {
+      throw new Error(`"${name}" is not a usable media filename, so nothing was read.`);
+    }
+    const path = `${this.#root(root)}/${name}`;
+    const bytes = await this.#stat(path);
+    if (bytes === undefined) {
+      throw new Error(`"${name}" was not found in this media root.`);
+    }
+    if (bytes > MAX_BYTES) {
+      throw new Error(`"${name}" is ${bytes} bytes, over the ${MAX_BYTES}-byte limit, so it was refused.`);
+    }
+    /* `-w 0` writes the whole encoding on one line with no wrapping, so the caller gets
+     * exactly the base64 alphabet back and nothing to strip before decoding it. */
+    const encoded = await this.#run(["base64", "-w", "0", path]);
+    return { name, path, extension, bytes, contentBase64: encoded.trim() };
+  }
+
+  /**
    * Removes a file from a media root. Irreversible — the caller is responsible for gating
    * this behind confirmation before calling it. Refuses any name that fails the same
    * validator `upload` uses, before running anything, so this can never be pointed outside
