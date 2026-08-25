@@ -308,6 +308,24 @@ function lt(control: string, type: string, key: string): ControlBinding {
   return { ...l(control, type, key), sectionType: type };
 }
 
+/**
+ * The same two helpers again, for a section named by ANOTHER control's own current
+ * value (`sectionFrom`) rather than a literal name — the mechanism `s_permit`'s own
+ * removal note above documented and left without a live user, and the PJSIP-transport
+ * TLS bindings below are that user. `section` is required by `ControlBinding`'s own
+ * type but is never consulted once `sectionFrom` is set; it is given the picking
+ * control's id purely so a reader scanning the table sees at a glance which control
+ * decides where a binding writes, rather than an empty string that answers nothing.
+ */
+function bFrom(control: string, sectionFrom: string, key: string, file?: string): ControlBinding {
+  const base = { control, section: sectionFrom, sectionFrom, key, kind: 'boolean' as const };
+  return file ? { ...base, file } : base;
+}
+function sFrom(control: string, sectionFrom: string, key: string, file?: string): ControlBinding {
+  const base = { control, section: sectionFrom, sectionFrom, key, kind: 'string' as const };
+  return file ? { ...base, file } : base;
+}
+
 function b(control: string, section: string, key: string, invert?: boolean, file?: string): ControlBinding {
   const base = invert ? { control, section, key, kind: 'boolean' as const, invert } : { control, section, key, kind: 'boolean' as const };
   return file ? { ...base, file } : base;
@@ -676,8 +694,48 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
   // belongs, not persist the setting itself); s_failban/s_bantime (this console's own
   // auto-ban behaviour — no failban/bantime key exists in acl.conf.sample or anywhere
   // else Asterisk reads, because banning a repeat offender is not something Asterisk's
-  // own ACL evaluation does); and s_cert/s_method/s_verify/s_ciphers name TLS settings
-  // that live in http.conf and are a screen this console does not yet have.
+  // own ACL evaluation does). http.conf's own TLS settings are a separate screen,
+  // `httpd`, bound further up this table (ht_tlscert etc.) — that "a screen this
+  // console does not yet have" was true when written and is not any more.
+  //
+  // configs/samples/pjsip.conf.sample — the [transport] section's TLS-only options
+  // (~line 1161 onward). A transport is named by its own section, never by `type`
+  // alone (several transports can share `type=transport`), so these ten bind through
+  // `sectionFrom: 's_transport'` — the section is whichever name is currently typed
+  // into that control, exactly the mechanism `s_permit`'s own removal note above left
+  // documented and unused until now. s_transport itself is not bound: like
+  // s_aclname/s_action/s_spec above, it is a picker read straight out of state by
+  // App.tsx's transport Load/Save actions, not a setting with a key of its own.
+  // s_tprotocol/protocol — line 130 (`;protocol=udp    ;udp,tcp,tls,ws,wss,flow`),
+  // and the dedicated `[transport-tls]` example at line 154 (`;protocol=tls`).
+  // s_tcert/cert_file — description ~1176; example line 191 (`;cert_file=/path/to/mycert.crt`).
+  // s_tprivkey/priv_key_file — description ~1190; example line 192 (`;priv_key_file=/path/to/mykey.key`).
+  // s_tcalistfile/ca_list_file — description ~1170 (`;ca_list_file=`).
+  // s_tcalistpath/ca_list_path — description ~1172 (`;ca_list_path=`).
+  // s_tcipher/cipher — description ~1188; example line 158 (`;cipher=ADH-AES256-SHA,ADH-AES128-SHA`).
+  // s_tmethod/method — description ~1189; example line 159 (`;method=tlsv1`) — the only
+  // value the sample itself documents, which is why the control is free text rather
+  // than a segmented list this table would otherwise be inventing.
+  // s_tverifyclient/verify_client — description ~1194 (`;verify_client=`).
+  // s_tverifyserver/verify_server — description ~1196 (`;verify_server=`).
+  // s_treqclientcert/require_client_cert — description ~1198 (`;require_client_cert=`).
+  //
+  // configs/samples/stir_shaken.conf.sample — the STIR/SHAKEN KEY material, as
+  // distinct from the policy switches above: the private key Asterisk signs with, and
+  // the certificate-authority material it verifies incoming Identity headers against.
+  // s_privkey/[attestation].private_key_file — description ~64; example line 130
+  // (`;private_key_file = /var/lib/asterisk/keys/stir_shaken/tns/multi-tns-key.pem`).
+  // s_certurl/[attestation].public_cert_url — description ~72; example line 131
+  // (`;public_cert_url = https://example.com/tncerts/multi-tns-cert.pem`).
+  // s_loadsyscerts/[verification].load_system_certs — description ~217; example
+  // line 438 (`;load_system_certs = no`).
+  // s_cafile/[verification].ca_file — description ~226 (`Path to a file containing
+  // one or more CA certs in PEM format`; no separate example value in the sample's
+  // own [verification] template, which shows ca_path instead — see s_capath below).
+  // s_capath/[verification].ca_path — description ~236; example line 439
+  // (`;ca_path = /var/lib/asterisk/keys/stir_shaken/verification_ca`). The sample
+  // itself is explicit that ca_file and ca_path may both be set but at least one
+  // MUST be, for verification to have anything to check against at all.
   security: [
     b('s_stir', 'attestation', 'global_disable', true, 'stir_shaken.conf'),
     s('s_level', 'attestation', 'attest_level', 'stir_shaken.conf'),
@@ -687,6 +745,21 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
       Tag: 'continue_return_reason',
       Reject: 'reject_request',
     }, 'stir_shaken.conf'),
+    sFrom('s_tprotocol', 's_transport', 'protocol', 'pjsip.conf'),
+    sFrom('s_tcert', 's_transport', 'cert_file', 'pjsip.conf'),
+    sFrom('s_tprivkey', 's_transport', 'priv_key_file', 'pjsip.conf'),
+    sFrom('s_tcalistfile', 's_transport', 'ca_list_file', 'pjsip.conf'),
+    sFrom('s_tcalistpath', 's_transport', 'ca_list_path', 'pjsip.conf'),
+    sFrom('s_tcipher', 's_transport', 'cipher', 'pjsip.conf'),
+    sFrom('s_tmethod', 's_transport', 'method', 'pjsip.conf'),
+    bFrom('s_tverifyclient', 's_transport', 'verify_client', 'pjsip.conf'),
+    bFrom('s_tverifyserver', 's_transport', 'verify_server', 'pjsip.conf'),
+    bFrom('s_treqclientcert', 's_transport', 'require_client_cert', 'pjsip.conf'),
+    s('s_privkey', 'attestation', 'private_key_file', 'stir_shaken.conf'),
+    s('s_certurl', 'attestation', 'public_cert_url', 'stir_shaken.conf'),
+    b('s_loadsyscerts', 'verification', 'load_system_certs', undefined, 'stir_shaken.conf'),
+    s('s_cafile', 'verification', 'ca_file', 'stir_shaken.conf'),
+    s('s_capath', 'verification', 'ca_path', 'stir_shaken.conf'),
   ],
 };
 
@@ -909,11 +982,15 @@ export function isUninventoried(result: ReadonlyArray<string>): boolean {
  * and a test refuses the omission outright.
  */
 const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
-  /* http.conf. None of these are bound yet; the screen now says so rather than staying silent. */
+  /* http.conf. Every one of these is bound in CONTROL_BINDINGS.httpd below, including
+   * the tlsbindaddr composite -- this comment used to say none of them were, which was
+   * true when it was written and stopped being true once the composite mechanism
+   * arrived (see control-keys.test.tsx's binding-count history). ht_save is the
+   * action button that actually writes them; it carries no key of its own. */
   httpd: [
     'ht_enabled', 'ht_bindaddr', 'ht_bindport', 'ht_prefix', 'ht_static', 'ht_status',
     'ht_tlsenable', 'ht_tlsaddr', 'ht_tlsport', 'ht_tlscert', 'ht_tlskey', 'ht_notls1',
-    'ht_notls11', 'ht_notls12', 'ht_sesslimit', 'ht_sessinact', 'ht_sesskeep'
+    'ht_notls11', 'ht_notls12', 'ht_sesslimit', 'ht_sessinact', 'ht_sesskeep', 'ht_save'
   ],
   /* features.conf. None bound yet, and the screen says so. */
   fcodes: [
@@ -966,6 +1043,10 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
   logger: ['g_console', 'g_verbose', 'g_file', 'g_rotate', 'g_queue'],
   security: [
     's_aclname', 's_action', 's_spec', 's_failban', 's_bantime',
+    's_transport', 's_tload', 's_tprotocol', 's_tcert', 's_tprivkey', 's_tcalistfile',
+    's_tcalistpath', 's_tcipher', 's_tmethod', 's_tverifyclient', 's_tverifyserver',
+    's_treqclientcert', 's_tsave',
     's_stir', 's_level', 's_verifyin', 's_failaction',
+    's_privkey', 's_certurl', 's_loadsyscerts', 's_cafile', 's_capath', 's_stirsave',
   ],
 };

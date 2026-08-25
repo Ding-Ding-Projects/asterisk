@@ -9,8 +9,11 @@ import { canvasReason, edgePairs, layoutNodes, valueOf as canvasValueOf, type Ca
 import { buildCodecGraph, layoutCodecs, unreachable as unreachableCodecs } from './codec-graph';
 import { buildEndpointGraph, brokenLinks as brokenEndpointLinks, layoutTopology, summarise as summariseEndpointGraph } from './endpoint-graph';
 import { runCeremonyCommand, type CeremonyResponse } from './ceremony';
-import { configSummary, renderForDisplay, resourceForFile, type ConfigReading, type ConfigValue } from './configuration';
-import { readControlValues, isUninventoried, unmappedControls } from './control-keys';
+import { configSummary, renderForDisplay, resourceForFile, type ConfigReading, type ConfigSection, type ConfigValue } from './configuration';
+import {
+  readControlValues, isUninventoried, unmappedControls,
+  applyControlValues as applyBoundControlValues,
+} from './control-keys';
 import { aclFindings, aclRuleRows, resolveAclRowKey } from './acl-editor';
 import {
   addRule as addAclRule, moveRule as moveAclRuleModel, parseAcl, removeRule as removeAclRuleModel,
@@ -221,6 +224,11 @@ export class App extends Base {
   /** Live configuration per screen, keyed by screen id. */
   private configs: Partial<Record<string, ConfigReading>> = {};
   private configPending = '';
+  /** Files the Security screen's TLS/STIR-SHAKEN fields read from besides acl.conf,
+   *  currently being fetched -- keyed by bare filename, independent of `configPending`
+   *  above so these two reads can run alongside the screen's own primary read rather
+   *  than waiting behind it. */
+  private extraConfigPending = new Set<string>();
   /** Screens whose bound controls have already been seeded from the target. */
   private seeded = new Set<string>();
   /** What the console's own Asterisk runtime can do right now. */
@@ -2502,6 +2510,10 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'daemon-start') { void this.daemonAction('start'); return; }
     if (action === 'daemon-stop') { void this.daemonAction('stop'); return; }
     if (action === 'daemon-restart') { void this.daemonAction('restart'); return; }
+    if (action === 'security-transport-load') { this.onLoadTransportTls(); return; }
+    if (action === 'security-transport-save') { void this.onSaveTransportTls(); return; }
+    if (action === 'security-stir-save') { void this.onSaveStirShaken(); return; }
+    if (action === 'httpd-save') { void this.onSaveHttp(); return; }
   };
 
   // ---------------------------------------------------------------- server add / remove
@@ -3110,6 +3122,56 @@ It is shown once. The phone needs it to register.`);
       this.forceUpdate();
     }
 
+    /* The Security screen's TLS and STIR/SHAKEN-key fields read two files besides
+     * acl.conf: pjsip.conf (a transport's own [section]) and stir_shaken.conf (the
+     * [attestation]/[verification] objects). Neither is this screen's declared `file`,
+     * so the generic per-screen block above never touches them -- they get their own
+     * reads here, independent of the acl.conf read and of each other, and are merged
+     * into `values` exactly once each becomes available. pjsip.conf is cached under
+     * the same `configs.endpoints` key `pjsipValue()` already reads, so visiting
+     * Security also warms it for Endpoints and vice versa; stir_shaken.conf gets its
+     * own key since nothing else in the console reads that file yet. */
+    if (screen === 'security') {
+      if ((!this.configs.endpoints || this.configs.endpoints.state === 'unavailable')
+          && !this.extraConfigPending.has('pjsip.conf') && mayStartRead('config:security-pjsip')) {
+        this.extraConfigPending.add('pjsip.conf');
+        const resource = resourceForFile('pjsip.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('pjsip.conf');
+        this.configs.endpoints = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if ((!this.configs.stirShaken || this.configs.stirShaken.state === 'unavailable')
+          && !this.extraConfigPending.has('stir_shaken.conf') && mayStartRead('config:security-stir')) {
+        this.extraConfigPending.add('stir_shaken.conf');
+        const resource = resourceForFile('stir_shaken.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('stir_shaken.conf');
+        this.configs.stirShaken = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      /* stir_shaken.conf's four policy switches (s_stir/s_level/s_verifyin/
+       * s_failaction) have carried a `file: 'stir_shaken.conf'` binding since the
+       * access-control-rules lane, with nothing ever supplying that file to read
+       * them from -- seeded once here, the moment it becomes available, the same way
+       * the primary block above seeds acl.conf's own bindings. The five key-material
+       * fields this lane adds share the same file and are seeded by the same call.
+       * The PJSIP-transport fields are NOT seeded here: they read through
+       * `sectionFrom: 's_transport'`, and nothing has been typed into that control on
+       * first load, so seeding now would find no section to read and do nothing
+       * anyway -- they seed on demand from the "Load from target" action instead. */
+      if (this.configs.stirShaken?.state === 'read' && !this.seeded.has('security-stir')) {
+        const state = this.state as { values: Record<string, unknown> };
+        const bound = readControlValues('security', [], { 'stir_shaken.conf': this.configs.stirShaken.value ?? [] });
+        if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
+        this.seeded.add('security-stir');
+      }
+    }
+
     if (!isReadable(screen)) return;
     const existing = this.readings[screen];
     const hasUnavailableReading = existing && Object.values(existing).some((reading) => reading?.result.state === 'unavailable');
@@ -3292,6 +3354,159 @@ It is shown once. The phone needs it to register.`);
       next,
       `Moved rule ${resolved.ruleIndex + 1} in "${resolved.aclName}" ${direction} -- evaluation order changed, applied and verified.`,
       'Rule reordered',
+    );
+  };
+
+  // ---------------------------------------------------------------- Security screen: TLS
+
+  /** One write path shared by the two Security-screen TLS actions below, the same
+   *  plan/apply/refuse shape `writePjsip`/`writeAcl` above already use. It takes an
+   *  explicit `invalidate` callback rather than hard-coding which cache to drop,
+   *  because the two callers read into two different caches (`configs.endpoints` for
+   *  pjsip.conf, `configs.stirShaken` for stir_shaken.conf). */
+  private async writeConfigResource(
+    resource: string, value: ConfigValue, summary: string, done: string, invalidate: () => void,
+  ): Promise<boolean> {
+    const payload = { documents: [{ resource, value }] };
+    const planned = await this.request('pbx.plan', { serverId: this.target.id, payload });
+    if (!planned?.ok) { this.fire('Not written', planned?.message ?? 'The control plane did not answer.'); return false; }
+    const applied = await this.request('pbx.apply', { serverId: this.target.id, payload });
+    if (!applied?.ok) { this.fire('Not written', applied?.message ?? 'The change was planned but not applied.'); return false; }
+    invalidate();
+    this.fire(done, summary);
+    this.forceUpdate();
+    return true;
+  }
+
+  /** The pjsip.conf `[section]` the TLS group's fields are currently pointed at --
+   *  whatever is typed into `s_transport`, resolved against the target's own file
+   *  rather than trusted blind. `undefined` when the name is empty, pjsip.conf has not
+   *  been read yet, or nothing on the target is named that. */
+  private transportSection(): { name: string; section: ConfigSection } | undefined {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['s_transport'] ?? '').trim();
+    const value = this.pjsipValue();
+    if (!name || !value) return undefined;
+    const section = value.find((candidate) => candidate.name === name);
+    return section ? { name, section } : undefined;
+  }
+
+  /** Whether a resolved section is actually declared `type=transport` -- the same
+   *  case-insensitive comparison `control-keys.ts`'s own `sectionOfType` uses, so a
+   *  section that merely happens to share a name with a transport (an endpoint, an
+   *  AOR) is refused rather than silently read or written as one. */
+  private static isTransportSection(section: ConfigSection): boolean {
+    return section.entries.some((entry) => entry.key === 'type' && entry.value.trim().toLowerCase() === 'transport');
+  }
+
+  /** "Load from target" on the Security screen's TLS group: reads the named
+   *  transport's current TLS settings out of the pjsip.conf already fetched above and
+   *  puts them in the fields, the same one-shot reseed a row click gives the ACL
+   *  editor's "Add a rule" form. Refuses with a toast rather than clobbering the
+   *  fields with nothing when the typed name matches nothing, or matches something
+   *  that is not a transport. */
+  onLoadTransportTls = (): void => {
+    const found = this.transportSection();
+    if (!found) { this.toast('No section by that name in pjsip.conf yet -- check the spelling, or press Load again once pjsip.conf has finished reading.'); return; }
+    if (!App.isTransportSection(found.section)) { this.toast(`[${found.name}] exists in pjsip.conf but is not type=transport.`); return; }
+    const bound = readControlValues('security', [], { 'pjsip.conf': this.pjsipValue() ?? [] }, { s_transport: found.name });
+    const state = this.state as { values: Record<string, unknown> };
+    this.setState({ values: { ...state.values, ...bound } } as never);
+    this.toast(`Loaded [${found.name}] from pjsip.conf.`);
+  };
+
+  /** The bound control ids the TLS group's "Save" action writes -- every `sectionFrom:
+   *  's_transport'` binding in `CONTROL_BINDINGS.security`, named explicitly rather
+   *  than derived, so a change to that table cannot silently widen or narrow what this
+   *  one write touches. */
+  private static readonly TRANSPORT_TLS_CONTROLS = [
+    's_tprotocol', 's_tcert', 's_tprivkey', 's_tcalistfile', 's_tcalistpath',
+    's_tcipher', 's_tmethod', 's_tverifyclient', 's_tverifyserver', 's_treqclientcert',
+  ] as const;
+
+  /** "Save transport TLS settings": writes only the ten fields above into the transport
+   *  section named in `s_transport` -- refusing outright, before calling
+   *  `applyControlValues`, when that name does not resolve to an existing
+   *  `type=transport` section. `applyControlValues` would otherwise happily invent a
+   *  brand new `[section]` holding nothing but these TLS keys, which is not a usable
+   *  transport (no `bind=`, no `type=`) and not what this screen is for: configuring a
+   *  transport already declared on the target, not authoring topology from a form that
+   *  has no field for the rest of it. */
+  onSaveTransportTls = async (): Promise<void> => {
+    const found = this.transportSection();
+    if (!found) {
+      this.fire('Not written', 'No transport section by that name exists in pjsip.conf. This screen configures an existing TLS transport’s certificate settings; it does not create a new transport.');
+      return;
+    }
+    if (!App.isTransportSection(found.section)) {
+      this.fire('Not written', `[${found.name}] exists in pjsip.conf but is not type=transport.`);
+      return;
+    }
+    const value = this.pjsipValue();
+    if (!value) { this.fire('Not written', 'pjsip.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = { s_transport: found.name };
+    for (const id of App.TRANSPORT_TLS_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('security', value, changes);
+    await this.writeConfigResource(
+      this.configs.endpoints?.resource ?? (resourceForFile('pjsip.conf') as string),
+      next,
+      `[${found.name}] TLS settings updated in pjsip.conf.`,
+      `[${found.name}] saved`,
+      () => { delete this.configs.endpoints; this.seeded.delete('endpoints'); },
+    );
+  };
+
+  /** The bound control ids the STIR/SHAKEN group's "Save" action writes: the four
+   *  attestation/verification policy switches this table has bound since the
+   *  access-control-rules lane (never wired to a real read or write until this one
+   *  gave the screen a reachable stir_shaken.conf), plus the five key-material fields
+   *  this lane adds. Both objects live in the one file, so one write covers all nine. */
+  private static readonly STIR_SHAKEN_CONTROLS = [
+    's_stir', 's_level', 's_verifyin', 's_failaction',
+    's_privkey', 's_certurl', 's_loadsyscerts', 's_cafile', 's_capath',
+  ] as const;
+
+  onSaveStirShaken = async (): Promise<void> => {
+    const value = this.configs.stirShaken?.state === 'read' ? this.configs.stirShaken.value : undefined;
+    if (!value) { this.fire('Not written', 'stir_shaken.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.STIR_SHAKEN_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('security', value, changes);
+    await this.writeConfigResource(
+      this.configs.stirShaken?.resource ?? (resourceForFile('stir_shaken.conf') as string),
+      next,
+      'stir_shaken.conf updated on the target.',
+      'STIR/SHAKEN settings saved',
+      () => { delete this.configs.stirShaken; this.seeded.delete('security-stir'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- HTTP server screen
+
+  /** "Save http.conf settings": every `ht_*` field, including the TLS listener, is
+   *  already fully bound in `CONTROL_BINDINGS.httpd` -- composite `tlsbindaddr`
+   *  included -- so the generic single-key write path already used for the Security
+   *  screen's TLS group above covers it completely; passing the whole `values` state
+   *  is safe here specifically because every `httpd` binding shares one file, so
+   *  `applyControlValues` only ever touches the `ht_*` entries within it, unlike the
+   *  Security screen's writes above, which need an explicit id list to stay inside
+   *  one of several files. (`http-server.ts` implements http.conf's read/apply by
+   *  hand and is not used here: it predates the generic table's composite-binding
+   *  support, which is what let http.conf be bound there at all, and is fully
+   *  superseded by it now.) */
+  onSaveHttp = async (): Promise<void> => {
+    const current = this.configs.httpd?.state === 'read' ? this.configs.httpd.value : undefined;
+    if (!current) { this.fire('Not written', 'http.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const next = applyBoundControlValues('httpd', current, state.values);
+    await this.writeConfigResource(
+      this.configs.httpd?.resource ?? (resourceForFile('http.conf') as string),
+      next,
+      'http.conf updated on the target.',
+      'HTTP server settings saved',
+      () => { delete this.configs.httpd; this.seeded.delete('httpd'); },
     );
   };
 

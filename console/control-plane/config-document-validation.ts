@@ -53,13 +53,39 @@ function mapFindings(
   return findings.map((finding) => ({ source, severity: finding.severity, message: finding.message }));
 }
 
+/** Every `[section]` in `pjsip.conf` declaring `type=transport`, in file order. */
+function transportSectionNames(value: ConfigValue): string[] {
+  return value
+    .filter((section) => section.entries.some(
+      (entry) => entry.key === 'type' && entry.value.trim().toLowerCase() === 'transport',
+    ))
+    .map((section) => section.name);
+}
+
 function mapTlsFindings(source: string, value: ConfigValue, kind: 'http' | 'pjsip' | 'stirShaken') {
   if (kind === 'stirShaken' && !value.some((section) => section.name === 'attestation')) return [];
-  const settings = kind === 'http'
-    ? parseTlsSettings(value, 'http')
-    : kind === 'pjsip'
-      ? parseTlsSettings(value, 'pjsip')
-      : parseTlsSettings(value, 'stirShaken');
+  if (kind === 'pjsip') {
+    /* `parseTlsSettings(value, 'pjsip')` with no `sectionName` finds only the FIRST
+     * `[transport-*]` section whose protocol is tls, which is fine for a file with one
+     * TLS transport and silently blind to every misconfigured one after it in a file
+     * with several -- the exact "assumes a certificate nothing has checked" gap this
+     * module exists to close. Every declared transport is validated instead; a plain
+     * UDP/TCP transport with no cert_file or priv_key_file produces no findings, same
+     * as before, because `validateTlsSettings` only reports on a transport that
+     * `looksTls`. A document with no `type=transport` section at all (malformed, or
+     * simply not pjsip.conf-shaped) keeps the previous single best-effort scan so it is
+     * not silently skipped. */
+    const names = transportSectionNames(value);
+    const targets = names.length > 0 ? names : [undefined];
+    return targets.flatMap((name) => validateTlsSettings(
+      parseTlsSettings(value, 'pjsip', name === undefined ? undefined : { sectionName: name }),
+    ).map((finding) => ({
+      source: name === undefined ? source : `${source} [${name}]`,
+      severity: finding.severity,
+      message: finding.message,
+    })));
+  }
+  const settings = kind === 'http' ? parseTlsSettings(value, 'http') : parseTlsSettings(value, 'stirShaken');
   return validateTlsSettings(settings).map((finding) => ({ source, severity: finding.severity, message: finding.message }));
 }
 
