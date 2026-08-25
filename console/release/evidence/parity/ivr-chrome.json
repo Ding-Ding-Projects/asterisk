@@ -1,0 +1,101 @@
+{
+  "destinationId": "ivr",
+  "bar": "chrome-parity",
+  "verdict": "diff",
+  "reasons": [],
+  "dimensions": {
+    "reference": {
+      "width": 1440,
+      "height": 1000
+    },
+    "built": {
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  "totalPixels": 1440000,
+  "comparedPixels": 425352,
+  "comparedFraction": 0.29538333333333333,
+  "minimumComparedFraction": 0.25,
+  "diffPixelCount": 46075,
+  "diffPercentage": 10.832204856213206,
+  "boundingBox": {
+    "x0": 6,
+    "y0": 5,
+    "x1": 1437,
+    "y1": 996
+  },
+  "excluded": {
+    "rectangles": [
+      {
+        "x": 1060,
+        "y": 0,
+        "width": 380,
+        "height": 40
+      },
+      {
+        "x": 356,
+        "y": 78,
+        "width": 1084,
+        "height": 1176
+      }
+    ],
+    "pixels": 1014648,
+    "clippedAway": [],
+    "diffPixelCount": 825786,
+    "diffPercentage": 81.38645126191545
+  },
+  "areas": {
+    "brandCell": {
+      "comparedPixels": 6440,
+      "diffPixelCount": 1002,
+      "diffPercentage": 15.559006211180124
+    },
+    "menuCell": {
+      "comparedPixels": 15720,
+      "diffPixelCount": 1886,
+      "diffPercentage": 11.997455470737913
+    },
+    "commandCell": {
+      "comparedPixels": 20880,
+      "diffPixelCount": 7296,
+      "diffPercentage": 34.94252873563218
+    },
+    "tabStrip": {
+      "comparedPixels": 54720,
+      "diffPixelCount": 14476,
+      "diffPercentage": 26.454678362573098
+    },
+    "rail": {
+      "comparedPixels": 81136,
+      "diffPixelCount": 5431,
+      "diffPercentage": 6.693699467560639
+    },
+    "sectionList": {
+      "comparedPixels": 247096,
+      "diffPixelCount": 15984,
+      "diffPercentage": 6.468740894227344
+    }
+  },
+  "paletteCheck": {
+    "blackFraction": 0,
+    "thresholdExceeded": false
+  },
+  "stalenessCheck": {
+    "checked": true,
+    "stale": false,
+    "builtCaptureMtimeMs": 1787682090505.7317,
+    "newestBuildSourceMtimeMs": 1787670487605.2488
+  },
+  "generatedBy": "console/scripts/design-parity-capture-run.mjs --side=chrome",
+  "tuple": {
+    "state": "default",
+    "theme": "dark",
+    "width": 1440,
+    "height": 1000,
+    "scale": 1
+  },
+  "regionLedger": "console/release/evidence/parity/ivr-regions.json",
+  "referenceCapture": "console/release/captures/parity/ivr-reference.png",
+  "builtCapture": "console/release/captures/parity/ivr-built.png"
+}

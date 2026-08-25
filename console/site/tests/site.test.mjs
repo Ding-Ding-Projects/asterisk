@@ -120,7 +120,11 @@ test('build composes deterministic local output without fetches', async () => {
   // this repository is built, packaged, driven, captured and released, and what each of those
   // does when it fails. It is the article half of the operational skill, mirrored here because
   // the skill directory is not tracked, so a skill committed there would travel with nobody.
-  assert.equal(manifest.outputFiles.length, 187);
+  // 186 from 2026-08-25, for one evidence record: docs/evidence/design-parity-chrome-bar.md,
+  // which states the chrome-parity bar a design-parity row now has to meet, and what the
+  // first run of it measured. One article in, one HTML page out.
+  // Merged: 188, re-derived from the build rather than by adding the two deltas above.
+  assert.equal(manifest.outputFiles.length, 188);
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');

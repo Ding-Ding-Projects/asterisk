@@ -2,8 +2,24 @@ const requiredTemplateKeys = [
   'implementation', 'documentation', 'localization', 'localCheck', 'builtInteraction', 'capture',
 ];
 const parityTemplateKeys = [
-  'referenceRoute', 'builtRoute', 'referenceCapture', 'builtCapture', 'sideBySide', 'visualDiff', 'materialAudit',
+  'referenceRoute', 'builtRoute', 'referenceCapture', 'builtCapture', 'sideBySide', 'visualDiff',
+  'regionLedger', 'chromeParity', 'materialAudit',
 ];
+/** Every area role the chrome-parity bar may declare. */
+const parityAreaRoles = ['chrome', 'data'];
+/**
+ * Which shell area carries data and which is chrome, pinned by exact value.
+ *
+ * Pinned rather than merely shape-checked because this map IS the bar: moving one area from
+ * `chrome` to `data` hides it from every destination's comparison at once, silently, and a
+ * validator that only asked "is the role one of two words" would wave that through. Changing
+ * the bar should mean changing this line and arguing for it, exactly as changing a rail count
+ * does above.
+ */
+const parityAreaRoleMap = {
+  brandCell: 'chrome', menuCell: 'chrome', commandCell: 'chrome', statusCell: 'data',
+  tabStrip: 'chrome', rail: 'chrome', sectionList: 'chrome', contentPane: 'data',
+};
 
 function exactSet(actual, expected, label) {
   if (actual.length !== expected.length) throw new Error(`${label}: expected ${expected.length} entries, found ${actual.length}`);
@@ -62,11 +78,46 @@ const exactBindings = {
   dragstart: 4, dragover: 4, drop: 4, dragend: 4, mousedown: 5, mouseenter: 1, mouseleave: 1, mouseup: 1,
 };
 
+/**
+ * The shape of the chrome-parity bar's own declaration.
+ *
+ * This is the bar a `verified` row rests on, so its declaration is the one place where
+ * widening a mask, softening a tolerance or dropping the compared-fraction floor would
+ * quietly make every row easier to pass. Each of those is refused here by exact value
+ * rather than by presence: a tolerance of anything but 0 is a different bar, and a floor
+ * that has drifted downward is a mask nobody argued for.
+ */
+function validateChromeParityBar(bar) {
+  if (!bar || typeof bar !== 'object') throw new Error('design parity inventory: chromeParityBar declaration required');
+  if (bar.tolerance !== 0) throw new Error(`design parity inventory: chromeParityBar.tolerance must be exactly 0, found ${JSON.stringify(bar.tolerance)} — a non-zero tolerance here is a number chosen until something passed`);
+  if (bar.minimumComparedFraction !== 0.25) throw new Error(`design parity inventory: chromeParityBar.minimumComparedFraction must be exactly 0.25, found ${JSON.stringify(bar.minimumComparedFraction)}`);
+  for (const key of ['what', 'whyToleranceIsZero', 'whyThereIsAMinimum', 'howRegionsAreObtained', 'howExclusionsCombine', 'areaRoleJudgement']) {
+    if (typeof bar[key] !== 'string' || bar[key].trim().length === 0) throw new Error(`design parity inventory: chromeParityBar.${key} must say what it means`);
+  }
+  const areas = bar.areas;
+  if (!areas || typeof areas !== 'object' || Object.keys(areas).length === 0) throw new Error('design parity inventory: chromeParityBar.areas declares no areas');
+  exactSet(Object.keys(areas), Object.keys(parityAreaRoleMap), 'chrome-parity area identifiers');
+  let dataAreas = 0;
+  let chromeAreas = 0;
+  for (const [name, area] of Object.entries(areas)) {
+    if (!parityAreaRoles.includes(area?.role)) throw new Error(`design parity inventory: chromeParityBar area '${name}' has role ${JSON.stringify(area?.role)}, not one of ${parityAreaRoles.join('/')}`);
+    if (area.role !== parityAreaRoleMap[name]) throw new Error(`design parity inventory: chromeParityBar area '${name}' is declared '${area.role}' where the pinned bar says '${parityAreaRoleMap[name]}' — moving an area between chrome and data changes what every destination is measured against`);
+    if (typeof area.why !== 'string' || area.why.trim().length === 0) throw new Error(`design parity inventory: chromeParityBar area '${name}' gives no reason for its role — an area's role is a judgement and has to say what it rests on`);
+    if (area.role === 'data') dataAreas += 1; else chromeAreas += 1;
+  }
+  // Kept even though the pinned map above already guarantees both: this is the property the
+  // bar is meaningless without, and a future edit to the pinned map should have to trip over
+  // it rather than quietly produce a bar that compares everything or nothing.
+  if (dataAreas === 0) throw new Error("design parity inventory: chromeParityBar declares no 'data' area, so the bar would compare the sample content it exists to exclude");
+  if (chromeAreas === 0) throw new Error("design parity inventory: chromeParityBar declares no 'chrome' area, so the bar would compare nothing and pass vacuously");
+}
+
 export function validateParityInventory(data, { allowUnverified = false } = {}) {
   if (data?.schemaVersion !== 1) throw new Error('design parity inventory: schemaVersion 1 required');
   if (data.sourceArchive?.sha256 !== '9A4284745A745C18A18B0A23D2A2F5851A79F9B6EFCBC5EE30EDCD69CEA2863F') throw new Error('design parity inventory: source archive SHA-256 drift');
   if (data.sourceArchive?.verification !== 'independent-authoritative-audit') throw new Error('design parity inventory: source verification label drift');
   exactKeys(data.evidenceTemplates, parityTemplateKeys, 'design parity evidenceTemplates');
+  validateChromeParityBar(data.chromeParityBar);
   if (data.auditBaseline?.destinationCount !== 32) throw new Error('design parity inventory: destination count must be 32');
   exactSet(Object.keys(data.auditBaseline?.railCounts ?? {}), Object.keys(exactRails), 'rail identifiers');
   for (const [rail, count] of Object.entries(exactRails)) if (data.auditBaseline.railCounts[rail] !== count) throw new Error(`design parity inventory: rail '${rail}' count drift`);

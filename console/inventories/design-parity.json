@@ -33,7 +33,53 @@
     "builtCapture": "console/release/captures/parity/{id}-built.png",
     "sideBySide": "console/release/captures/parity/{id}-comparison.png",
     "visualDiff": "console/release/evidence/parity/{id}-diff.json",
+    "regionLedger": "console/release/evidence/parity/{id}-regions.json",
+    "chromeParity": "console/release/evidence/parity/{id}-chrome.json",
     "materialAudit": "console/release/evidence/parity/{id}-material.json"
+  },
+  "chromeParityBar": {
+    "what": "The reference-versus-built bar a destination in this project can actually meet: outside the regions that carry data, the two artifacts must render identically. Whole-frame pixel identity is unreachable here by deliberate product decision — the design shows invented sample content exactly where the application shows the target's real, usually empty, readings — so 47% to 64% of every frame differs for a reason nobody wants fixed. This bar asks the narrower question instead.",
+    "tolerance": 0,
+    "whyToleranceIsZero": "Both sides are Chromium at the same device metrics reading the same local font files, so identical content really does produce identical pixels. The committed captures prove that rather than assert it: dash and logger each contain runs of rows that are byte-for-byte equal between the two sides. A non-zero tolerance here would be a number chosen until something passed.",
+    "minimumComparedFraction": 0.25,
+    "whyThereIsAMinimum": "A mask is the one way this bar could be passed without matching anything: widen the declared data regions until nothing is left to compare. The regions declared below leave a little under 30% of a 1440x1000 frame, so a floor of 25% sits below what an honest mask costs and far above what a mask widened to force a pass would leave. compareChrome refuses rather than compares when the floor is breached.",
+    "howRegionsAreObtained": "Measured off both live DOMs by console/scripts/design-parity-regions.mjs during a capture run — never hand-drawn, and never derived from the pixel diff. A mask derived from the diff would exclude exactly what differs and turn every verdict into a match. The shell is located structurally (a three-row layout whose last row is three columns) because the two sides share the design's layout but not its class names, which both toolchains hash at build time.",
+    "howExclusionsCombine": "The exclusion for an area is the union of the two sides' measured rectangles, not their intersection: the sides genuinely disagree about some heights, and an intersection would leave a strip of one side's data inside the compared region and report it as a chrome defect it is not. A union can only ever hide more, which is what the minimum compared fraction and the recorded excluded-region diff are there to keep honest.",
+    "areaRoleJudgement": "The roles below are the one human judgement this bar rests on. They are declared once for the whole application rather than as 32 per-destination masks, so the judgement stays small enough to review and hard to widen quietly.",
+    "areas": {
+      "brandCell": {
+        "role": "chrome",
+        "why": "The top strip's first cell: the product mark and name. It renders the same thing on every destination and reads nothing from the target."
+      },
+      "menuCell": {
+        "role": "chrome",
+        "why": "The top strip's menu bar — a fixed set of menu titles, identical on every destination."
+      },
+      "commandCell": {
+        "role": "chrome",
+        "why": "The top strip's command affordance. It carries its own label, not a reading."
+      },
+      "statusCell": {
+        "role": "data",
+        "why": "The top strip's last cell carries live status: what the console is connected to and how that connection is faring. The design invents a healthy-looking value there; the built application shows whatever the target actually reports, which with no target configured is nothing at all."
+      },
+      "tabStrip": {
+        "role": "chrome",
+        "why": "The open-tab strip. Tab titles come from the navigation catalogue, which is itself compiled from the design, so both sides are naming the same screens."
+      },
+      "rail": {
+        "role": "chrome",
+        "why": "The navigation rail: six fixed rail icons and their labels, compiled from the design's own catalogue. Chrome deliberately — a divergence here is a real layout defect and the bar is supposed to report it rather than excuse it."
+      },
+      "sectionList": {
+        "role": "chrome",
+        "why": "The section list for the open rail. Kept inside the compared region on purpose even though this application removed the design's per-row badges: the labels are chrome, and a badge present on one side and absent on the other is a divergence worth reading in the result rather than one worth hiding in a mask."
+      },
+      "contentPane": {
+        "role": "data",
+        "why": "The destination's own screen. This is where the design's invented rows, dashboard tiles, health bars and history sit, and where the built application puts the target's real readings instead. It is the region this bar exists to exclude."
+      }
+    }
   },
   "compiledEvidence": {
     "method": "compile-then-render: console/scripts/compile-design.mjs compiles design/Asterisk Console M3.dc.html and design/M3 Control.dc.html into app/renderer/src/generated/{console.tsx,m3-control.tsx,design-styles.css,design-manifest.json}, which console/app/renderer/src/App.tsx subclasses directly rather than a hand-matched reimplementation.",
@@ -41,7 +87,7 @@
     "coverage": "Renders all 32 destinations from the generated design model and asserts each one's design title, description, owning source file (Expert mode), its control groups (including the design M3 control's slider/stepper/order affordances), Beginner-mode plain wording, and all 17 transient-state overlay families."
   },
   "captureContract": {
-    "status": "captures and diffs now exist for every audited destination and are committed; all 32 rows nevertheless remain compiled, none verified — see captureRun.whyNothingIsVerified",
+    "status": "captures, diffs, region ledgers and chrome-parity records now exist for every audited destination bar About and are committed; all 32 rows nevertheless remain compiled, none verified — see chromeParityRun for what the new bar measured and what still stands between these rows and verified",
     "harness": "console/design-reference/index.html",
     "harnessDriver": "console/design-reference/route.mjs",
     "destinationLabels": "console/design-reference/destination-labels.generated.json",
@@ -54,8 +100,12 @@
     "evidenceGuardNegativeProof": "console/scripts/negative-design-parity-evidence.mjs",
     "capturesGuard": "console/scripts/design-parity-captures-on-disk.mjs (verifyCapturedParityEvidence)",
     "capturesGuardNegativeProof": "console/scripts/negative-design-parity-captures.mjs",
-    "captureRunner": "node console/scripts/design-parity-capture-run.mjs --side=reference|built|diff [--port=N] [--server-port=N] [--only=id,id]",
+    "captureRunner": "node console/scripts/design-parity-capture-run.mjs --side=reference|built|diff|chrome [--port=N] [--server-port=N] [--only=id,id] [--regions-only]",
     "captureHost": "console/scripts/design-parity-server.mjs",
+    "chromeParityTool": "console/scripts/design-parity-chrome.mjs (compareChrome)",
+    "regionRecorder": "console/scripts/design-parity-regions.mjs (regionProbeExpression, buildRegionLedger, maskFromLedger)",
+    "chromeParityTests": "console/tests/scripts/design-parity-chrome.test.mjs",
+    "chromeParityDocumentation": "console/docs/evidence/design-parity-chrome-bar.md",
     "closedGap": "design/support.js loads React itself (loadReactUmd) from unpkg, and reads window.__resources[url] first (cdnScriptFor), so the design already ships the host hook. console/scripts/vendor-design-react-host.mjs vendors react/react-dom 18.3.1 into console/design-reference/vendor/, verified against the sha384 subresource-integrity hashes design/support.js itself declares, and the capture host sets that map. Nothing under design/ is edited and a capture run makes no network request.",
     "builtRouteStatus": "ding-pbx:// is a committed route template only; no custom protocol handler is registered in console/app/ yet. The built side is captured the way every other Windows UI evidence in this project is: the real built renderer under Electron on an off-screen Windows desktop, driven to each destination through the same rail-then-section clicks the reference side performs.",
     "captureRun": {
@@ -75,7 +125,29 @@
       "notCaptured": {
         "about": "STILL ABSENT, BUT NO LONGER FOR THE RECORDED REASON. The run ledger's reason (the built <h1> reading 'About Ding PBX Console' where the design's reads 'About') was a real divergence in the application and has been removed: the heading is now the design's own 'About', and the console's name moved into the About screen's body, where the rename still reaches it. Two tests read the <h1> directly rather than off the flattened screen text, so a name moved back into the heading turns them red. What has NOT happened is a capture: the approved off-screen capture route was unavailable to the run that made this change, so about-built.png and about-diff.json are genuinely absent rather than quietly regenerated. The next --side=built run should settle on this destination like the other thirty-one; until one has actually done so, this stays an expectation and not a result."
       },
-      "whyNothingIsVerified": "verifyDesignParityEvidence requires a 'match' verdict, and compareCaptures calls a match only when the two captures are pixel-identical. That bar is unreachable here BY DELIBERATE PRODUCT DECISION, not by a defect in the harness: this project removed the design's sample rows, dashboard tiles, health bars, nav badges, history, agent rail and trunk-authentication content from the running application, so the reference shows invented content where the built application shows the target's real (often empty) readings. The diffs measure that divergence rather than a rendering fault — none of the 31 was refused as unpainted or stale, and the side-by-side images show identical chrome beside different data. Moving a row to 'verified' therefore needs a parity bar that compares chrome and layout with the data-bearing regions excluded, plus a real Material Design 3 conformance audit per destination; neither exists yet, and no materialAudit file was generated, because a generated audit nobody performed would be an invented verdict."
+      "whyNothingWasVerifiedUnderTheOldBar": "verifyDesignParityEvidence requires a 'match' verdict, and compareCaptures calls a match only when the two captures are pixel-identical. That bar is unreachable here BY DELIBERATE PRODUCT DECISION, not by a defect in the harness: this project removed the design's sample rows, dashboard tiles, health bars, nav badges, history, agent rail and trunk-authentication content from the running application, so the reference shows invented content where the built application shows the target's real (often empty) readings. The diffs measure that divergence rather than a rendering fault — none of the 31 was refused as unpainted or stale, and the side-by-side images show identical chrome beside different data. Moving a row to 'verified' therefore needs a parity bar that compares chrome and layout with the data-bearing regions excluded, plus a real Material Design 3 conformance audit per destination; neither exists yet, and no materialAudit file was generated, because a generated audit nobody performed would be an invented verdict. SUPERSEDED IN PART: the parity bar half of that sentence now exists — see chromeParityRun below. The Material Design 3 audit half does not, and no materialAudit file has been generated for the same reason as before."
+    },
+    "chromeParityRun": {
+      "whatChanged": "verifyDesignParityEvidence no longer asks the whole-frame visualDiff for a 'match'. A verified row now rests on the chrome-parity bar declared in chromeParityBar above: outside the regions measured as data-bearing, the two artifacts must render identically at tolerance 0. The whole-frame diff is still required and still read — it is the record of how far the data diverges — but it is now required to be a real comparison rather than a match, and a 'refused' one is refused exactly as before.",
+      "ledgers": [
+        "console/release/evidence/parity/regions-reference.json",
+        "console/release/evidence/parity/regions-built.json",
+        "console/release/evidence/parity/run-regions-reference.json",
+        "console/release/evidence/parity/run-regions-built.json",
+        "console/release/evidence/parity/run-chrome.json"
+      ],
+      "howTheRegionsWereMeasured": "Two --regions-only runs, which drive each side to every destination and measure its area rectangles without photographing anything. That mode exists so the bar could be applied to captures that were already committed: re-photographing them to obtain a mask would have replaced the very evidence being measured, and a mask taken from one render against pixels from another is exactly the staleness this harness refuses everywhere else. The reference side ran against the design export under headless Edge with the same request interception as a capture run; the built side ran against the same built renderer under Electron on an off-screen Windows desktop that the committed built captures came from.",
+      "measured": 31,
+      "notMeasured": {
+        "about": "Still absent, and for the same reason as its capture: the built renderer available to this run reports its About heading as 'About Ding PBX Console', so the settle condition that proves a driver arrived cannot be satisfied. The heading divergence has been repaired in source; the build this run drove predates that repair. about-regions.json and about-chrome.json are therefore genuinely absent rather than quietly generated, and the next --side=built run from a current build should settle on it like the other thirty-one. That remains an expectation, not a result."
+      },
+      "verdicts": {"match": 0, "diff": 31, "refused": 0, "skipped": 1},
+      "chromeDiffRange": "6.67% to 26.78% of the compared region differs",
+      "comparedFractionRange": "29.5% to 29.6% of the frame is compared, against a declared floor of 25%",
+      "worstAreaTally": {"commandCell": 30, "sectionList": 1},
+      "whyNothingIsVerifiedYet": "Two things, and neither is a defect in the bar. FIRST, no destination meets it: every one of the 31 reports a real chrome divergence, so the bar is doing its job rather than waving them through. SECOND, a verified row still needs the per-destination Material Design 3 conformance audit, which does not exist and must not be machine-written.",
+      "theOneDivergenceUnderneathMostOfIt": "brandCell differs by exactly 15.6% and menuCell by exactly 12.0% on EVERY one of the 31 destinations. Identical figures across 31 screens is the signature of one divergence rather than 31, and the region ledgers name it: the built shell is exactly 1440x1000 on all 31, while the reference shell is 1428 wide on 20 of the 32 (a 12px vertical scrollbar) and ranges in height from 622px to 7668px. The design export, rendered by its own runtime, lets the document grow to its content and scrolls the page; the application constrains its shell to the viewport and scrolls within panes. Every horizontal position in the top strip drifts as a result. Whether that is repaired in the application, in the design, or in the capture harness is a judgement for a later pass; what this bar did was turn '57% of pixels differ' into one named, measurable cause.",
+      "whatCouldStillBeWrongWithThisEvidence": "The region measurements and the committed captures come from the same built renderer and the same design export, but not from the same instant: the captures were taken by an earlier run and the rectangles by this one. compareChrome's staleness check ran and passed for all 31, and in THIS run it did not mean much: the run was made from a fresh linked worktree, and a checkout stamps every file with the time it was written, so what actually got compared was 'the checkout happened after the build' — which was never in doubt. That is the same limitation already recorded above for compareCaptures. Treat the 31 passes as an absence of contrary evidence rather than proof the captures postdate the build. The commit console/dist was compiled from is also not identified: it predates the About-heading repair, which is why About still refuses. A full single-pass run (--side=reference then --side=built without --regions-only, which measure the rectangles while the screen is settled and before anything else touches it) removes that gap and should be preferred when the captures are being retaken anyway."
     }
   },
   "destinations": [

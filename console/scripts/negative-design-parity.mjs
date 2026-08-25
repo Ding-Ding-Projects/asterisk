@@ -26,5 +26,18 @@ mustFail('remove one visual evidence template', (data) => { delete data.evidence
 mustFail('claim a compiled destination without naming the rendering test', (data) => { delete data.compiledEvidence.test; });
 mustFail('claim a compiled destination without naming the design compiler', (data) => { data.compiledEvidence.method = 'hand matched by eye'; });
 mustFail('use a status the validator does not define', (data) => { data.destinations[0].status = 'looks-right'; });
+mustFail('remove the region-ledger evidence template', (data) => { delete data.evidenceTemplates.regionLedger; });
+mustFail('remove the chrome-parity evidence template', (data) => { delete data.evidenceTemplates.chromeParity; });
+mustFail('remove the chrome-parity bar declaration entirely', (data) => { delete data.chromeParityBar; });
+mustFail('soften the chrome-parity tolerance away from exact', (data) => { data.chromeParityBar.tolerance = 8; });
+mustFail('lower the floor on how much of the frame a mask may hide', (data) => { data.chromeParityBar.minimumComparedFraction = 0.02; });
+mustFail('drop the floor on how much of the frame a mask may hide', (data) => { delete data.chromeParityBar.minimumComparedFraction; });
+mustFail('reclassify the navigation rail as data, so a divergence there stops counting', (data) => { data.chromeParityBar.areas.rail.role = 'data'; });
+mustFail('give an area a role the bar does not define', (data) => { data.chromeParityBar.areas.rail.role = 'decorative'; });
+mustFail('declare an area role with no reason behind it', (data) => { delete data.chromeParityBar.areas.statusCell.why; });
+mustFail('reclassify the destination screen as chrome, so its invented sample content is compared', (data) => { data.chromeParityBar.areas.contentPane.role = 'chrome'; });
+mustFail('drop one area from the bar entirely', (data) => { delete data.chromeParityBar.areas.tabStrip; });
+mustFail('add an area the pinned bar never decided a role for', (data) => { data.chromeParityBar.areas.mysteryPanel = { role: 'data', why: 'nobody said' }; });
+mustFail('strip the explanation of why the tolerance is zero', (data) => { delete data.chromeParityBar.whyToleranceIsZero; });
 validateParityInventory(source, { allowUnverified: true });
 console.log('GREEN: restored design parity inventory passed exact-boundary validation.');

@@ -251,60 +251,142 @@ test('verifyDesignParityEvidence: claiming verified with every artifact absent i
   assert.throws(() => verifyDesignParityEvidence(candidate, { root, exists: () => false, read: () => '' }), /absent/);
 });
 
-test('verifyDesignParityEvidence: a present-but-failing visualDiff (verdict !== match) is refused, presence is not enough', () => {
-  const inventory = JSON.parse(readFileSync(resolve(root, 'console/inventories/design-parity.json'), 'utf8'));
-  const candidate = structuredClone(inventory);
-  const id = candidate.destinations[0].id;
-  candidate.destinations[0].status = 'verified';
-  const failingDiff = JSON.stringify({ destinationId: id, verdict: 'diff', diffPixelCount: 40, paletteCheck: { thresholdExceeded: false }, stalenessCheck: { stale: false } });
-  const materialAudit = JSON.stringify({ destinationId: id, conforms: true });
-  assert.throws(() => verifyDesignParityEvidence(candidate, {
-    root,
-    exists: () => true,
-    read: (path) => (String(path).includes('-diff.json') ? failingDiff : (String(path).includes('-material.json') ? materialAudit : '')),
-  }), /verdict/);
+/**
+ * One honest set of evidence files, so each test below can plant exactly one lie in it.
+ *
+ * Note which file is allowed to say `diff`. The whole-frame `visualDiff` SHOULD record a
+ * divergence on a verified row: that is the design's invented sample content sitting where
+ * the application shows a real reading, and a `match` there would mean the application had
+ * grown the sample rows back. The bar a verified row rests on is the chrome record beside
+ * it, which must be a match.
+ */
+const HONEST_EXCLUSIONS = [
+  { area: 'contentPane', x: 356, y: 78, width: 1084, height: 946 },
+  { area: 'statusCell', x: 1060, y: 0, width: 380, height: 40 },
+];
+const honestEvidence = (id, overrides = {}) => ({
+  diff: JSON.stringify({
+    destinationId: id, verdict: 'diff', diffPixelCount: 828314,
+    paletteCheck: { thresholdExceeded: false }, stalenessCheck: { checked: true, stale: false },
+  }),
+  regions: JSON.stringify({
+    destinationId: id, bar: 'chrome-parity',
+    areas: { contentPane: { role: 'data' }, statusCell: { role: 'data' }, rail: { role: 'chrome' } },
+    exclusions: HONEST_EXCLUSIONS, comparedAreas: ['rail'],
+  }),
+  chrome: JSON.stringify({
+    destinationId: id, bar: 'chrome-parity', verdict: 'match', diffPixelCount: 0,
+    comparedFraction: 0.2954, excluded: { rectangles: HONEST_EXCLUSIONS },
+    paletteCheck: { thresholdExceeded: false }, stalenessCheck: { checked: true, stale: false },
+  }),
+  material: JSON.stringify({ destinationId: id, conforms: true, defects: [] }),
+  ...overrides,
 });
-
-test('verifyDesignParityEvidence: a visualDiff for the wrong destination id is refused even though the file exists', () => {
-  const inventory = JSON.parse(readFileSync(resolve(root, 'console/inventories/design-parity.json'), 'utf8'));
-  const candidate = structuredClone(inventory);
+const readerFor = (files) => (path) => {
+  const p = String(path);
+  if (p.includes('-diff.json')) return files.diff;
+  if (p.includes('-regions.json')) return files.regions;
+  if (p.includes('-chrome.json')) return files.chrome;
+  if (p.includes('-material.json')) return files.material;
+  return 'binary-capture-placeholder';
+};
+const verifiedCandidate = () => {
+  const candidate = structuredClone(JSON.parse(readFileSync(resolve(root, 'console/inventories/design-parity.json'), 'utf8')));
   candidate.destinations[0].status = 'verified';
-  const wrongDiff = JSON.stringify({ destinationId: 'some-other-destination', verdict: 'match', diffPixelCount: 0, paletteCheck: { thresholdExceeded: false }, stalenessCheck: { stale: false } });
-  const materialAudit = JSON.stringify({ destinationId: candidate.destinations[0].id, conforms: true });
-  assert.throws(() => verifyDesignParityEvidence(candidate, {
-    root,
-    exists: () => true,
-    read: (path) => (String(path).includes('-diff.json') ? wrongDiff : (String(path).includes('-material.json') ? materialAudit : '')),
-  }), /destination id/);
-});
+  return candidate;
+};
 
-test('verifyDesignParityEvidence: a fully honest verified row (matching diff + conforming audit) is accepted', () => {
-  const inventory = JSON.parse(readFileSync(resolve(root, 'console/inventories/design-parity.json'), 'utf8'));
-  const candidate = structuredClone(inventory);
+test('verifyDesignParityEvidence: a chrome-parity record that found a real divergence is refused, presence is not enough', () => {
+  const candidate = verifiedCandidate();
   const id = candidate.destinations[0].id;
-  candidate.destinations[0].status = 'verified';
-  const okDiff = JSON.stringify({ destinationId: id, verdict: 'match', diffPixelCount: 0, paletteCheck: { thresholdExceeded: false }, stalenessCheck: { stale: false } });
-  const okAudit = JSON.stringify({ destinationId: id, conforms: true, defects: [] });
-  const result = verifyDesignParityEvidence(candidate, {
-    root,
-    exists: () => true,
-    read: (path) => (String(path).includes('-diff.json') ? okDiff : (String(path).includes('-material.json') ? okAudit : 'ok')),
+  const files = honestEvidence(id, {
+    chrome: JSON.stringify({
+      destinationId: id, bar: 'chrome-parity', verdict: 'diff', diffPixelCount: 28354,
+      comparedFraction: 0.2954, excluded: { rectangles: HONEST_EXCLUSIONS },
+      paletteCheck: { thresholdExceeded: false }, stalenessCheck: { checked: true, stale: false },
+    }),
   });
+  assert.throws(() => verifyDesignParityEvidence(candidate, { root, exists: () => true, read: readerFor(files) }),
+    /chromeParity verdict is 'diff'/);
+});
+
+test('verifyDesignParityEvidence: a whole-frame visualDiff recording the data divergence does NOT block a verified row', () => {
+  const candidate = verifiedCandidate();
+  const files = honestEvidence(candidate.destinations[0].id);
+  // The old bar refused exactly this, which is why no row could ever be verified: the
+  // application shows real readings where the design shows invented ones, so the
+  // whole-frame comparison is supposed to differ.
+  const result = verifyDesignParityEvidence(candidate, { root, exists: () => true, read: readerFor(files) });
   assert.equal(result.verifiedRows, 1);
 });
 
-test('verifyDesignParityEvidence: a materialAudit that records unresolved conformance defects is refused', () => {
-  const inventory = JSON.parse(readFileSync(resolve(root, 'console/inventories/design-parity.json'), 'utf8'));
-  const candidate = structuredClone(inventory);
+test('verifyDesignParityEvidence: a whole-frame visualDiff that was refused rather than taken still blocks a verified row', () => {
+  const candidate = verifiedCandidate();
   const id = candidate.destinations[0].id;
-  candidate.destinations[0].status = 'verified';
-  const okDiff = JSON.stringify({ destinationId: id, verdict: 'match', diffPixelCount: 0, paletteCheck: { thresholdExceeded: false }, stalenessCheck: { stale: false } });
-  const badAudit = JSON.stringify({ destinationId: id, conforms: false, defects: ['legacy checkbox on the queues screen'] });
-  assert.throws(() => verifyDesignParityEvidence(candidate, {
-    root,
-    exists: () => true,
-    read: (path) => (String(path).includes('-diff.json') ? okDiff : (String(path).includes('-material.json') ? badAudit : 'ok')),
-  }), /conform/);
+  const files = honestEvidence(id, {
+    diff: JSON.stringify({
+      destinationId: id, verdict: 'refused', reasons: ['dimension mismatch'],
+      paletteCheck: { thresholdExceeded: false }, stalenessCheck: { checked: true, stale: false },
+    }),
+  });
+  assert.throws(() => verifyDesignParityEvidence(candidate, { root, exists: () => true, read: readerFor(files) }),
+    /never happened/);
+});
+
+test('verifyDesignParityEvidence: a chrome comparison citing a mask the region ledger never recorded is refused', () => {
+  const candidate = verifiedCandidate();
+  const id = candidate.destinations[0].id;
+  const files = honestEvidence(id, {
+    chrome: JSON.stringify({
+      destinationId: id, bar: 'chrome-parity', verdict: 'match', diffPixelCount: 0,
+      comparedFraction: 0.2954,
+      excluded: { rectangles: [{ area: 'everything', x: 0, y: 0, width: 1440, height: 1000 }] },
+      paletteCheck: { thresholdExceeded: false }, stalenessCheck: { checked: true, stale: false },
+    }),
+  });
+  assert.throws(() => verifyDesignParityEvidence(candidate, { root, exists: () => true, read: readerFor(files) }),
+    /a mask nobody measured/);
+});
+
+test('verifyDesignParityEvidence: a visualDiff for the wrong destination id is refused even though the file exists', () => {
+  const candidate = verifiedCandidate();
+  const files = honestEvidence(candidate.destinations[0].id, {
+    diff: JSON.stringify({
+      destinationId: 'some-other-destination', verdict: 'diff', diffPixelCount: 40,
+      paletteCheck: { thresholdExceeded: false }, stalenessCheck: { checked: true, stale: false },
+    }),
+  });
+  assert.throws(() => verifyDesignParityEvidence(candidate, { root, exists: () => true, read: readerFor(files) }), /destination id/);
+});
+
+test('verifyDesignParityEvidence: a region ledger measured on a different screen is refused', () => {
+  const candidate = verifiedCandidate();
+  const files = honestEvidence(candidate.destinations[0].id, {
+    regions: JSON.stringify({
+      destinationId: 'some-other-destination', bar: 'chrome-parity',
+      areas: { contentPane: { role: 'data' } }, exclusions: HONEST_EXCLUSIONS, comparedAreas: ['rail'],
+    }),
+  });
+  assert.throws(() => verifyDesignParityEvidence(candidate, { root, exists: () => true, read: readerFor(files) }),
+    /measured on a different screen/);
+});
+
+test('verifyDesignParityEvidence: a fully honest verified row (chrome match + conforming audit) is accepted', () => {
+  const candidate = verifiedCandidate();
+  const files = honestEvidence(candidate.destinations[0].id);
+  const result = verifyDesignParityEvidence(candidate, { root, exists: () => true, read: readerFor(files) });
+  assert.equal(result.verifiedRows, 1);
+  // Seven artifacts now, not five: the region ledger and the chrome record joined the set
+  // when the bar moved off whole-frame pixel identity.
+  assert.equal(result.checked, 7);
+});
+
+test('verifyDesignParityEvidence: a materialAudit that records unresolved conformance defects is refused', () => {
+  const candidate = verifiedCandidate();
+  const files = honestEvidence(candidate.destinations[0].id, {
+    material: JSON.stringify({ destinationId: candidate.destinations[0].id, conforms: false, defects: ['legacy checkbox on the queues screen'] }),
+  });
+  assert.throws(() => verifyDesignParityEvidence(candidate, { root, exists: () => true, read: readerFor(files) }), /conform/);
 });
 
 // --- design-parity-labels (rail-vocabulary translation and drift detection) ---------------
