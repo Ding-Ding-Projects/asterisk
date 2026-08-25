@@ -246,6 +246,21 @@ jobs:
           name: ding-pbx-console-${{ github.run_id }}-${{ github.run_attempt }}
           path: downloaded
 
+      # The root filesystem itself, attached to the release. A release asset is a plain
+      # HTTPS download that needs no container engine and no registry credential, which
+      # is the whole reason it is here: the registry push has been refused for lack of a
+      # package-write scope on every release so far, so the pull route it feeds has never
+      # had anything to pull. This one works for anybody who can see the repository.
+      #
+      # It costs about 315 MB on top of an already large release. That is the trade, and
+      # it is stated rather than hidden: a contributor skips a four-minute compile and a
+      # container engine they may not have.
+      - name: Take the pinned runtime for the release
+        uses: actions/download-artifact@v4
+        with:
+          name: asterisk-wsl-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+          path: downloaded-runtime
+
       - name: Publish and verify one non-draft release
         id: publish
         shell: powershell
@@ -255,6 +270,24 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $tag = $env:DING_PBX_RELEASE_TAG
           $staging = Resolve-Path 'downloaded/release-staging'
+
+          # Attach the root filesystem and the provenance that describes it, so a
+          # contributor can obtain the payload for this exact commit with an ordinary
+          # download. Both or neither: a tar with no provenance cannot be checked against
+          # anything, and a provenance with no tar describes something nobody has.
+          $runtimeTar = Join-Path $PWD 'downloaded-runtime/asterisk-wsl-rootfs.tar'
+          $runtimeJson = Join-Path $PWD 'downloaded-runtime/asterisk-wsl-rootfs.json'
+          if ((Test-Path -LiteralPath $runtimeTar) -and (Test-Path -LiteralPath $runtimeJson)) {
+            $recorded = ([System.IO.File]::ReadAllText($runtimeJson, [System.Text.Encoding]::UTF8) | ConvertFrom-Json)
+            $measured = (Get-FileHash -Algorithm SHA256 -LiteralPath $runtimeTar).Hash.ToLowerInvariant()
+            if ($recorded.sha256 -ne $measured) { throw "The runtime payload does not match its own recorded digest; refusing to publish it." }
+            if ($recorded.sourceCommit -ne $env:GITHUB_SHA) { throw "The runtime payload was built from $($recorded.sourceCommit), not from this commit; refusing to publish it." }
+            Copy-Item $runtimeTar -Destination $staging -Force
+            Copy-Item $runtimeJson -Destination $staging -Force
+            Write-Host "Attached the pinned root filesystem ($measured) to this release."
+          } else {
+            Write-Host "No runtime payload was produced for this run; the release ships without it."
+          }
           $setup = @(Get-ChildItem $staging -File -Filter '*Setup.exe')
           $releases = @(Get-ChildItem $staging -File -Filter 'RELEASES')
           $full = @(Get-ChildItem $staging -File -Filter '*-full.nupkg')
