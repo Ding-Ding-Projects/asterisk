@@ -47,3 +47,9 @@ console/release/captures/**/*.png   binary
 # as LF and failed as CRLF, which would turn a fresh Windows clone red for a reason no
 # diff can show. Pinning is what makes the gate mean what it says.
 console/design-reference/*.generated.json   text eol=lf
+
+# The website design reference. Its files are exported from the design tool with LF, so a
+# checkout that translates line endings makes every one of them differ from a fresh export
+# by exactly its own line count -- which reads as a changed design when nothing changed at
+# all. Measured: all nine overlapping files were byte-identical once normalised.
+design/site/**   text eol=lf
