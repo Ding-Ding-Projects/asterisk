@@ -1,0 +1,213 @@
+/**
+ * Contract: the five attention modes compose, phrase elapsed time and gate the momentum
+ * prompt the way the module claims to -- and the running console only ever does the first
+ * third of that: remember which switch is on. Nothing reads the modes back to actually dim
+ * anything, quiet a notification, show elapsed time, show a next action, or show the
+ * momentum prompt.
+ *
+ * `attention-modes.ts` is pure and self-contained, so this plain `.mjs` file `import()`s it
+ * directly through Node's built-in TypeScript type-stripping and calls the real
+ * `presentationFor` / `elapsedPhrase` / `momentumPrompt` functions -- no reimplementation of
+ * the composition-with-platform-preference rule that could quietly drift from the original.
+ */
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const read = (p) => readFileSync(resolve(root, p), 'utf8');
+
+const attention = await import('../../app/renderer/src/attention-modes.ts');
+
+function memoryStorage() {
+  const map = new Map();
+  return { getItem: (k) => (map.has(k) ? map.get(k) : null), setItem: (k, v) => map.set(k, v) };
+}
+
+/* --- every mode is independently off by default, and independently toggleable ---------- */
+
+test('every mode reads as disabled with no storage at all, and with a fresh empty storage', () => {
+  for (const mode of attention.ATTENTION_MODES) {
+    assert.equal(attention.modeEnabled(undefined, mode), false);
+    assert.equal(attention.modeEnabled(memoryStorage(), mode), false);
+  }
+});
+
+test('setModeEnabled toggles exactly the one mode named, leaving every sibling mode untouched', () => {
+  const storage = memoryStorage();
+  attention.setModeEnabled(storage, 'focus', true);
+  for (const mode of attention.ATTENTION_MODES) {
+    assert.equal(attention.modeEnabled(storage, mode), mode === 'focus',
+      `turning on "focus" must not also turn on "${mode}"`);
+  }
+});
+
+test('enabledModes reports exactly the modes actually turned on, in ATTENTION_MODES order', () => {
+  const storage = memoryStorage();
+  attention.setModeEnabled(storage, 'momentum', true);
+  attention.setModeEnabled(storage, 'lowStimulation', true);
+  assert.deepEqual(attention.enabledModes(storage), ['lowStimulation', 'momentum']);
+});
+
+test('isAttentionMode accepts only the five real ids and rejects everything else, including near-misses', () => {
+  for (const mode of attention.ATTENTION_MODES) assert.equal(attention.isAttentionMode(mode), true);
+  assert.equal(attention.isAttentionMode('focused'), false);
+  assert.equal(attention.isAttentionMode(''), false);
+  assert.equal(attention.isAttentionMode(123), false);
+});
+
+/* --- presentationFor: low stimulation composes with, never overrides, the platform ------ */
+
+test('presentationFor maps each mode to exactly the one presentation flag it owns', () => {
+  const storage = memoryStorage();
+  attention.setModeEnabled(storage, 'focus', true);
+  attention.setModeEnabled(storage, 'timeAwareness', true);
+  attention.setModeEnabled(storage, 'oneThing', true);
+  const state = attention.presentationFor(storage, { prefersReducedMotion: false });
+  assert.deepEqual(state, {
+    dimInactive: true, reduceMotion: false, quietNotifications: false, showElapsedTime: true, showNextAction: true,
+  });
+});
+
+test('reduceMotion is true whenever EITHER lowStimulation or the platform preference asks for it, never only when both agree', () => {
+  const off = memoryStorage();
+  assert.equal(attention.presentationFor(off, { prefersReducedMotion: true }).reduceMotion, true,
+    'the platform preference alone must reduce motion, with the app setting off');
+  const on = memoryStorage();
+  attention.setModeEnabled(on, 'lowStimulation', true);
+  assert.equal(attention.presentationFor(on, { prefersReducedMotion: false }).reduceMotion, true,
+    'the app setting alone must reduce motion, with the platform preference off');
+  assert.equal(attention.presentationFor(memoryStorage(), { prefersReducedMotion: false }).reduceMotion, false);
+});
+
+test('lowStimulation also quiets notifications, and only lowStimulation does', () => {
+  const storage = memoryStorage();
+  attention.setModeEnabled(storage, 'lowStimulation', true);
+  assert.equal(attention.presentationFor(storage).quietNotifications, true);
+  const other = memoryStorage();
+  attention.setModeEnabled(other, 'focus', true);
+  assert.equal(attention.presentationFor(other).quietNotifications, false);
+});
+
+/* --- elapsedPhrase: states a number, never a second clause --------------------------- */
+
+test('elapsedPhrase reports plain thresholds with correct singular/plural wording', () => {
+  assert.equal(attention.elapsedPhrase(0), 'less than a minute');
+  assert.equal(attention.elapsedPhrase(59_999), 'less than a minute');
+  assert.equal(attention.elapsedPhrase(60_000), '1 minute');
+  assert.equal(attention.elapsedPhrase(120_000), '2 minutes');
+  assert.equal(attention.elapsedPhrase(3_600_000), '1 hour');
+  assert.equal(attention.elapsedPhrase(3_660_000), '1 hour 1 minute');
+  assert.equal(attention.elapsedPhrase(7_320_000), '2 hours 2 minutes');
+});
+
+test('elapsedPhrase treats a negative or non-finite value as "just now" rather than throwing', () => {
+  assert.equal(attention.elapsedPhrase(-1), 'just now');
+  assert.equal(attention.elapsedPhrase(NaN), 'just now');
+  assert.equal(attention.elapsedPhrase(Infinity), 'just now');
+});
+
+test('elapsedPhrase never states anything beyond the number -- no encouragement, no judgement', () => {
+  for (const ms of [0, 60_000, 3_600_000, 7_320_000]) {
+    const phrase = attention.elapsedPhrase(ms);
+    for (const term of attention.FORBIDDEN_COPY_TERMS) {
+      assert.ok(!phrase.toLowerCase().includes(term), `elapsedPhrase(${ms}) contains the forbidden term "${term}"`);
+    }
+  }
+});
+
+/* --- momentumPrompt: gated on the mode, the idle threshold, and a respected snooze ------ */
+
+test('momentumPrompt never fires when the momentum mode itself is off, however idle the session is', () => {
+  const storage = memoryStorage();
+  const prompt = attention.momentumPrompt(storage, attention.IDLE_THRESHOLD_MS * 10, undefined);
+  assert.deepEqual(prompt, { show: false, message: '' });
+});
+
+test('momentumPrompt fires only once the idle threshold is reached, states the elapsed time and nothing else', () => {
+  const storage = memoryStorage();
+  attention.setModeEnabled(storage, 'momentum', true);
+  assert.equal(attention.momentumPrompt(storage, attention.IDLE_THRESHOLD_MS - 1, undefined).show, false);
+  const at = attention.momentumPrompt(storage, attention.IDLE_THRESHOLD_MS, undefined);
+  assert.equal(at.show, true);
+  /* Exactly one sentence, full stop at the very end and nowhere else -- the difference
+   * between an accommodation and a nag is whether a second clause sneaks in. */
+  assert.match(at.message, /^Nothing has changed here for [^.]+\.$/);
+
+});
+
+test('a declined prompt is respected for the full SNOOZE_MS, not for a token few seconds', () => {
+  const storage = memoryStorage();
+  attention.setModeEnabled(storage, 'momentum', true);
+  assert.equal(attention.SNOOZE_MS, 30 * 60 * 1000);
+  assert.equal(attention.momentumPrompt(storage, attention.IDLE_THRESHOLD_MS * 5, 5_000).show, false,
+    'snoozed five seconds ago must still suppress the prompt');
+  assert.equal(attention.momentumPrompt(storage, attention.IDLE_THRESHOLD_MS * 5, attention.SNOOZE_MS - 1).show, false);
+  assert.equal(attention.momentumPrompt(storage, attention.IDLE_THRESHOLD_MS * 5, attention.SNOOZE_MS).show, true);
+});
+
+/* --- copy is never medical, scored, or judgemental -------------------------------------- */
+
+test('every mode description is free of every forbidden term', () => {
+  for (const mode of attention.MODE_DESCRIPTIONS) {
+    const text = `${mode.label} ${mode.help}`.toLowerCase();
+    for (const term of attention.FORBIDDEN_COPY_TERMS) {
+      assert.ok(!text.includes(term), `${mode.id}'s copy contains the forbidden term "${term}"`);
+    }
+  }
+});
+
+/* --- wiring: what App.tsx actually does with all of the above -------------------------- */
+
+const app = read('app/renderer/src/App.tsx');
+const generated = read('app/renderer/src/generated/console.tsx');
+
+test('App only ever calls setModeEnabled -- the whole att_* handler is one persistence write and nothing else', () => {
+  assert.match(app, /import \{ isAttentionMode, setModeEnabled \} from '\.\/attention-modes';/);
+  const start = app.indexOf("if (control?.id?.startsWith('att_') && typeof value === 'boolean') {");
+  assert.ok(start > 0, 'the att_* handler has been renamed or removed');
+  const body = app.slice(start, app.indexOf('\n    }', start));
+  assert.match(body, /if \(isAttentionMode\(mode\)\) setModeEnabled\(this\.durableStorage\.storage, mode, value\);/);
+});
+
+test('the design renders all five mode switches, and none of them carries a status readout the way sch_status/logo_status do', () => {
+  const at = generated.indexOf("title:'Attention", 0);
+  assert.ok(at > 0, 'no group titled starting "Attention" exists in the design -- update this test to the real group name');
+  const next = generated.indexOf("{ title:'", at + 10);
+  const group = generated.slice(at, next);
+  const controlIds = [...group.matchAll(/ctl\('([a-z0-9_]+)'/g)].map((m) => m[1]);
+  assert.deepEqual(controlIds, ['att_focus', 'att_low', 'att_time', 'att_one', 'att_momentum']);
+});
+
+/* --- PIN: nothing in the running app ever reads the modes back to change anything ------- */
+
+test('PIN: presentationFor is never called anywhere App.tsx or the generated shell can reach', () => {
+  /* No dimming, no motion reduction driven by this module, no notification quieting driven
+   * by this module, no elapsed-time display, no next-action display -- five switches that
+   * each persist a boolean and change nothing else about the interface. */
+  assert.doesNotMatch(app, /presentationFor\(/,
+    'App now calls presentationFor -- the "modes persist but do nothing" gap this pins may be fixed; update the test and the report');
+  assert.doesNotMatch(generated, /presentationFor\(/);
+});
+
+test('PIN: elapsedPhrase is never called anywhere App.tsx or the generated shell can reach', () => {
+  assert.doesNotMatch(app, /elapsedPhrase\(/,
+    'App now calls elapsedPhrase -- update this pin and the report if the time-awareness mode now shows anything');
+  assert.doesNotMatch(generated, /elapsedPhrase\(/);
+});
+
+test('PIN: momentumPrompt is never called anywhere App.tsx or the generated shell can reach', () => {
+  assert.doesNotMatch(app, /momentumPrompt\(/,
+    'App now calls momentumPrompt -- update this pin and the report if the momentum mode now shows a real prompt');
+  assert.doesNotMatch(generated, /momentumPrompt\(/);
+});
+
+test('PIN: enabledModes is never called anywhere App.tsx or the generated shell can reach', () => {
+  /* Confirms the gap is not merely "the derived presentation is unused" -- nothing even asks
+   * which modes are currently on, anywhere outside this module and its own test file. */
+  assert.doesNotMatch(app, /enabledModes\(/,
+    'App now calls enabledModes -- update this pin and the report if this gap has been closed');
+  assert.doesNotMatch(generated, /enabledModes\(/);
+});
