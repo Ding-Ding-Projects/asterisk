@@ -29,17 +29,20 @@ const strip = (markup: string) => markup.replace(/<[^>]*>/g, ' ').replace(/&#x27
  * and the HTTP server destination on the sys rail (4 to 5). The count is pinned deliberately: it is what noticed the addition.
  * 38 rather than 37: the Sound prompts screen landed on the media rail (4 to 5) --
  * `/var/lib/asterisk/sounds`, the one place every "custom" prompt picker on this console
- * points at, finally has a screen that can put a real file there. */
+ * points at, finally has a screen that can put a real file there.
+ * 39 rather than 38: the Fax screen landed on the media rail (5 to 6) -- res_fax.conf's
+ * engine settings and udptl.conf's transport settings, the two files the roadmap's own
+ * "sending, receiving, T.38 gateway" line names, finally have a screen and real bindings. */
 test('the design reference supplies every rail and destination', () => {
-  assert.equal(ORDER.length, 38);
-  assert.equal(destinations.length, 38);
+  assert.equal(ORDER.length, 39);
+  assert.equal(destinations.length, 39);
   assert.deepEqual(rails.map((rail) => rail.id), ['pbx', 'media', 'data', 'sys', 'agent', 'app']);
   assert.deepEqual(
     rails.map((rail) => destinations.filter((destination) => destination.rail === rail.id).length),
-    [10, 5, 2, 5, 7, 9],
+    [10, 6, 2, 5, 7, 9],
   );
   assert.equal(RAIL.length, 6);
-  assert.equal(Object.keys(SCREENS).length, 38);
+  assert.equal(Object.keys(SCREENS).length, 39);
 });
 
 test('the design audit baseline counts survive compilation', () => {

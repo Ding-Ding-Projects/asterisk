@@ -181,8 +181,8 @@ graph of one-to-one edges is a two-column table with extra steps. Module depende
 downgraded to not buildable: no Asterisk command exposes inter-module dependencies, so it
 is a wish rather than a proposal. Two survived on merit.
 
-- [ ] **Codec translation paths.** `core show translation` is literally an N×N cost matrix, so the data is already graph-shaped rather than needing graph semantics invented for it. Answers "why is this call transcoding twice" and "what is the cheapest common codec" — questions a matrix past six codecs genuinely cannot.
-- [ ] **Endpoint to registration topology.** Endpoint, address-of-record, contact and registration as one chain. Answers "why can't this trunk call out", which today means cross-referencing three screens by hand; a broken link in a chain is what a graph shows and a table hides.
+- [x] **Codec translation paths.** `core show translation` is literally an N×N cost matrix, so the data is already graph-shaped rather than needing graph semantics invented for it. Answers "why is this call transcoding twice" and "what is the cheapest common codec" — questions a matrix past six codecs genuinely cannot. Shipped and driven against a running exchange: 18 translation rows parsed from `core show translation`, 46 codecs, an 18-node 306-edge graph with real costs -- ulaw to alaw at 9,150 microseconds is the figure the matrix actually reports, not an illustration.
+- [x] **Endpoint to registration topology.** Endpoint, address-of-record, contact and registration as one chain. Answers "why can't this trunk call out", which today means cross-referencing three screens by hand; a broken link in a chain is what a graph shows and a table hides. Shipped and proved by changing the exchange rather than by reading the code. An empty target draws nothing, which is honest and also indistinguishable from a broken canvas -- so an endpoint and its address-of-record were written through the real plan-and-apply path and the canvas went from nought nodes to two joined by a binding edge, then back to nought when the change was undone through the handle the transaction now returns.
 - [ ] Highlight time-conditional edges inside the existing dialplan canvas rather than building a second canvas for them — they are already drawn there.
 - [ ] Decide whether the pre-scrub installers published before `899a3c3ecf` should be superseded or removed; their binaries carry private wording and cannot be edited. Every release from `899a3c3ecf` onward is clean.
 - ~~Correct the two commit messages that carry private wording (`9beed2f159`, `899a3c3ecf`).~~ **Deliberately not doing this.** It would require rewriting published history and force-pushing, and the owner declined. Recorded here so the gap reads as a decision rather than an oversight, and so a later contributor does not rewrite shared history to close it. Every editable surface was swept instead, and a guard refuses new occurrences.
@@ -235,6 +235,12 @@ forbids: anything presented as operable must perform its labelled action.
       notification reverts nothing, and the copy-tab-list item writes the literal text
       `undefined` to the clipboard because it reads a label off the wrong shape.
       copied without writing to the clipboard.
+- [ ] **Two screens name a configuration file they can never write.** The codecs and call
+      records screens carry a compound display string of two file names joined by a
+      separator. The transport matches a resource by exact name, so that string resolves to
+      nothing and neither screen can write through it. Found while looking for a pattern to
+      copy, and deliberately not copied.
+
 ## Release readiness
 
 - [x] Verify `download-dependencies.bat /s` from a clean user-scoped toolchain cache.

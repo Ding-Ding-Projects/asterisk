@@ -763,6 +763,31 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
   // (`;ca_path = /var/lib/asterisk/keys/stir_shaken/verification_ca`). The sample
   // itself is explicit that ca_file and ca_path may both be set but at least one
   // MUST be, for verification to have anything to check against at all.
+  // configs/samples/res_fax.conf.sample [general] for the fx_maxrate..fx_t38timeout
+  // fields (the screen's own primary file, no `file:` override needed); the six
+  // fx_udptl* fields are configs/samples/udptl.conf.sample [general] instead, stated
+  // explicitly per binding the same way the security screen's stir_shaken.conf group
+  // is -- both files declare their own [general], and res_fax.conf is what the screen
+  // itself reads, so udptl.conf needs saying or these six would be read from the wrong
+  // file. App.tsx fetches udptl.conf as a dedicated extra read (this screen's own
+  // 'fax-udptl' key, mirroring the security screen's 'security-stir' one) and seeds it
+  // through this same table via readControlValues's `elsewhere` map, since the generic
+  // per-screen read path only ever supplies the screen's declared `file`.
+  fax: [
+    s('fx_maxrate', 'general', 'maxrate'),  // line 7: ;maxrate=14400 -- fastest modulation offered
+    s('fx_minrate', 'general', 'minrate'),  // line 12: ;minrate=4800
+    b('fx_statusevents', 'general', 'statusevents'),  // line 19: statusevents=yes as shipped (comment says default no)
+    l('fx_modems', 'general', 'modems'),  // line 24: ;modems=v17,v27,v29
+    b('fx_ecm', 'general', 'ecm'),  // line 28: ;ecm=yes, enabled by default
+    n('fx_t38timeout', 'general', 't38timeout'),  // line 32: t38timeout=5000
+    // configs/samples/udptl.conf.sample from here down -- the transport T.38 rides on.
+    n('fx_udptlstart', 'general', 'udptlstart', 'udptl.conf'),  // line 8: udptlstart=4000
+    n('fx_udptlend', 'general', 'udptlend', 'udptl.conf'),  // line 9: udptlend=4999
+    b('fx_udptlchecksums', 'general', 'udptlchecksums', undefined, 'udptl.conf'),  // line 13: ;udptlchecksums=no
+    n('fx_udptlfecentries', 'general', 'udptlfecentries', 'udptl.conf'),  // line 17: udptlfecentries = 3
+    n('fx_udptlfecspan', 'general', 'udptlfecspan', 'udptl.conf'),  // line 21: udptlfecspan = 3
+    b('fx_udptleven', 'general', 'use_even_ports', undefined, 'udptl.conf'),  // line 26: use_even_ports = no
+  ],
   security: [
     b('s_stir', 'attestation', 'global_disable', true, 'stir_shaken.conf'),
     s('s_level', 'attestation', 'attest_level', 'stir_shaken.conf'),
@@ -1077,6 +1102,15 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
   codecs: [
     'k_order', 'k_transcode',
     'r_start', 'r_end', 'r_strict', 'r_ice',
+  ],
+  /* res_fax.conf's six fields plus udptl.conf's six, all bound (see CONTROL_BINDINGS.fax
+   * above); fx_save and fx_udptlsave are the screen's two one-shot Save buttons -- pure
+   * actions with no key of their own, recognised as working by
+   * telephony-coverage.test.tsx's `deliveredByAction` exactly the way ht_save/s_tsave are. */
+  fax: [
+    'fx_maxrate', 'fx_minrate', 'fx_statusevents', 'fx_modems', 'fx_ecm', 'fx_t38timeout', 'fx_save',
+    'fx_udptlstart', 'fx_udptlend', 'fx_udptlchecksums', 'fx_udptlfecentries', 'fx_udptlfecspan',
+    'fx_udptleven', 'fx_udptlsave',
   ],
   cdr: [
     'd_enable', 'd_unanswered', 'd_congestion', 'd_batch', 'd_size',
