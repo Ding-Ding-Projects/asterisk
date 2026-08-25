@@ -702,7 +702,7 @@
                   <div draggable="true" onDragStart="{{ n.onDragStart }}" onDragEnd="{{ n.onDragEnd }}" onClick="{{ n.pick }}" onContextMenu="{{ n.ctx }}" style="position:absolute; left:{{ n.x }}; top:{{ n.y }}; width:196px; border-radius:14px; background:#1B211C; border:2px solid {{ n.border }}; padding:11px 13px; cursor:grab; box-shadow:0 4px 12px rgba(0,0,0,.45); transition:left .26s cubic-bezier(.2,0,0,1), top .26s cubic-bezier(.2,0,0,1), border-color .2s ease, box-shadow .2s ease;">
                     <div style="display:flex; align-items:center; gap:8px;">
                       <span class="msym" style="font-size:18px; color:#82D9A5;">{{ n.icon }}</span>
-                      <span style="flex:1; font-size:12.5px; font-weight:500; color:#DFE4DC;">{{ n.title }}</span>
+                      <span title="{{ n.title }}" style="flex:1; font-size:12.5px; font-weight:500; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ n.title }}</span>
                       <span class="msym" style="font-size:15px; color:#778078;">drag_indicator</span>
                     </div>
                     <div style="font-family:'Roboto Mono',monospace; font-size:11px; color:#9AA39B; margin-top:6px; line-height:1.45;">{{ n.detail }}</div>
@@ -745,9 +745,9 @@
                     <sc-for list="{{ edgeRows }}" as="e" hint-placeholder-count="4">
                       <div style="background:#141A15; border-radius:10px; padding:9px 10px;">
                         <div style="display:flex; align-items:center; gap:6px;">
-                          <span style="flex:1; font-size:11.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ e.from }}</span>
+                          <span title="{{ e.from }}" style="flex:1; font-size:11.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ e.from }}</span>
                           <span class="msym" style="font-size:15px; color:#82D9A5;">arrow_forward</span>
-                          <span style="flex:1; font-size:11.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ e.to }}</span>
+                          <span title="{{ e.to }}" style="flex:1; font-size:11.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ e.to }}</span>
                           <button onClick="{{ e.del }}" title="Remove" style="width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;" style-hover="background:#93000A; color:#fff;"><span class="msym" style="font-size:14px;">close</span></button>
                         </div>
                         <div style="font-size:10.5px; color:#8FA394; margin-top:7px;">Goes to</div>

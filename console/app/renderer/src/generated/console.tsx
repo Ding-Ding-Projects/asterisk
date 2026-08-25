@@ -1002,7 +1002,7 @@ function Template(v: any) {
                           h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                             S($n.icon)
                           ),
-                          h("span", { style: sty(`flex:1; font-size:12.5px; font-weight:500; color:#DFE4DC;`) },
+                          h("span", { title: $n.title, style: sty(`flex:1; font-size:12.5px; font-weight:500; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
                             S($n.title)
                           ),
                           h("span", { style: sty(`font-size:15px; color:#778078;`), className: "msym" },
@@ -1088,13 +1088,13 @@ function Template(v: any) {
                       h("div", { style: sty(`display:flex; flex-direction:column; gap:8px;`) },
                         A(v.edgeRows).map(($e, $e$i) => R($e$i, h("div", { style: sty(`background:#141A15; border-radius:10px; padding:9px 10px;`) },
                             h("div", { style: sty(`display:flex; align-items:center; gap:6px;`) },
-                              h("span", { style: sty(`flex:1; font-size:11.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
+                              h("span", { title: $e.from, style: sty(`flex:1; font-size:11.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
                                 S($e.from)
                               ),
                               h("span", { style: sty(`font-size:15px; color:#82D9A5;`), className: "msym" },
                                 "arrow_forward"
                               ),
-                              h("span", { style: sty(`flex:1; font-size:11.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
+                              h("span", { title: $e.to, style: sty(`flex:1; font-size:11.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
                                 S($e.to)
                               ),
                               h("button", { onClick: fn($e.del), title: `Remove`, style: sty(`width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h5" },
