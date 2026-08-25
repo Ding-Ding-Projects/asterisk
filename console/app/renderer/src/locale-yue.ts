@@ -164,6 +164,10 @@ export const CANTONESE: Catalog = {
   'Randomise every element': '隨機每個元素',
   'Pick from screen': '喺畫面度撳色',
   'Fun level': '搞笑程度',
+  /* The legacy random-appearance-chaos dial, kept distinct from the copy-styling
+   * "Fun level (English/廣東話)" sliders above -- the two used to share one control id
+   * and this label is what keeps them reading as two different things on screen. */
+  'Chaos level': '亂噏程度',
   'Marquee': '跑馬燈',
   'Rotate at': '轉速',
   'Lock this element…': '🔒 呢個元素…',
