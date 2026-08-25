@@ -3,8 +3,9 @@
 // See design/site/README.md for the full account of what is here, what was excluded, and why.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, readdir } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const consoleRoot = fileURLToPath(new URL('../../', import.meta.url));
@@ -88,50 +89,117 @@ test('negative regression: a family missing from the reference screen is caught'
   assert.equal(stripped.includes('Archivo'), false);
 });
 
-async function walk(dir) {
-  const entries = await readdir(dir, { withFileTypes: true });
-  const files = [];
-  for (const entry of entries) {
-    const full = join(dir, entry.name);
-    if (entry.isDirectory()) files.push(...await walk(full));
-    else files.push(full);
-  }
-  return files;
+// --- Runtime-fetch classifier -------------------------------------------------------------
+//
+// Whether a Google Fonts host string is a runtime problem depends on the SYNTAX it sits in, not
+// on whether the substring "fonts.googleapis.com" / "fonts.gstatic.com" appears at all. A plain
+// JSON string field recording where a font came from never causes a browser to make a request;
+// an HTML <link>, a CSS @import/url(...), or a fetch/XHR call does.
+//
+// console/assets/site-fonts/manifest.json deliberately keeps such a field:
+//   "stylesheetUrl": "https://fonts.googleapis.com/css2?family=Archivo:wght@400;..."
+// Commit d98624fc72 ("Vendor the Blueprint fonts and adopt its palette/pipeline structure") says
+// so explicitly: "the manifest still records the source URLs as provenance, the same way the
+// app's own font manifest already does." That is an audit trail, not a live fetch, and it is
+// EXPLICITLY ALLOWED here rather than merely "not caught by the regex" — see the two contrasting
+// assertions immediately below, which pin the classifier's behaviour on both sides so the
+// allowance cannot silently widen into "nothing is ever flagged".
+const RUNTIME_FETCH_PATTERNS = [
+  // <link href="https://fonts.googleapis.com/..."> / <link href='...'>
+  /<link\b[^>]*href\s*=\s*["'][^"']*fonts\.(?:googleapis|gstatic)\.com[^"']*["']/i,
+  // @import url(...) or @import "..."
+  /@import\s+(?:url\()?["']?[^"')]*fonts\.(?:googleapis|gstatic)\.com/i,
+  // CSS url(...) — e.g. a @font-face src
+  /url\(\s*["']?[^"')]*fonts\.(?:googleapis|gstatic)\.com/i,
+  // fetch('https://fonts.googleapis.com/...') / fetch(`...`)
+  /\bfetch\(\s*["'`][^"'`]*fonts\.(?:googleapis|gstatic)\.com/i,
+  // XMLHttpRequest#open('GET', 'https://fonts.googleapis.com/...')
+  /\.open\(\s*["'][A-Za-z]+["']\s*,\s*["'`][^"'`]*fonts\.(?:googleapis|gstatic)\.com/i,
+];
+
+/** True only when `text` contains a construct that would actually cause a browser or Node
+ *  runtime to REQUEST a Google Fonts URL — never merely because the host string appears
+ *  somewhere (e.g. recorded as JSON provenance). */
+function isRuntimeFontFetch(text) {
+  return RUNTIME_FETCH_PATTERNS.some(pattern => pattern.test(text));
 }
 
-test("the shipped site never fetches the design reference's Google Fonts URLs at runtime", async () => {
-  // The design reference itself is exempt: it is an unmodified, read-only export and is expected
-  // to still carry fonts.googleapis.com / fonts.gstatic.com references (README.md explains why).
-  // Only console/site/, the directory that is actually built and published, is checked here.
-  const siteDir = join(consoleRoot, 'site');
-  const files = await walk(siteDir);
-  // Assert the walk actually found files before trusting the loop below.
-  assert.ok(files.length > 0, 'walked zero files under console/site/ — scan is broken');
+test('runtime-fetch classifier: a provenance record passes, a real <link> fetch fails (opposite directions)', async () => {
+  // The "passes" side is the REAL committed manifest, not a synthetic fixture — if a future
+  // rewrite of manifest.json ever turned its provenance field into markup this would catch it.
+  const manifestText = await readConsole('assets/site-fonts/manifest.json');
+  assert.ok(manifestText.includes('fonts.googleapis.com'), 'manifest.json no longer records its provenance URL at all');
+  assert.equal(
+    isRuntimeFontFetch(manifestText),
+    false,
+    'a JSON provenance record must not be classified as a runtime fetch',
+  );
 
-  const forbidden = ['fonts.googleapis.com', 'fonts.gstatic.com'];
-  const offenders = [];
-  for (const file of files) {
-    const text = await readFile(file, 'utf8').catch(() => null);
-    if (text === null) continue; // binary asset (image, font file, etc.)
-    for (const needle of forbidden) {
-      if (text.includes(needle)) offenders.push(`${file} contains ${needle}`);
-    }
-  }
-  assert.deepEqual(offenders, [], `console/site/ must never fetch fonts at runtime:\n${offenders.join('\n')}`);
+  // The "fails" side: the exact same host, but inside syntax that would actually be requested.
+  const realFetch = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo">';
+  assert.equal(
+    isRuntimeFontFetch(realFetch),
+    true,
+    'a <link href="https://fonts.googleapis.com/..."> must be classified as a runtime fetch',
+  );
 });
 
-test('negative regression: a live Google Fonts reference reintroduced into console/site/ is caught', async () => {
+/** Files actually tracked by git under `dir` (repo-relative, forward-slash, POSIX style) —
+ *  never a directory walk. This is what keeps a gitignored build directory (console/site/dist/,
+ *  created by running the site build) from ever being scanned: `git ls-files` only ever answers
+ *  with what is committed, regardless of what happens to exist on disk at the moment the test
+ *  runs. A hardcoded "skip dist" exclusion would have to be remembered forever and re-added
+ *  every time a new generated directory appeared; deriving the list from git needs neither. */
+function gitTrackedFiles(dir) {
+  const output = execFileSync('git', ['ls-files', dir], { cwd: repoRoot, encoding: 'utf8' });
+  return output.split('\n').map(line => line.trim()).filter(Boolean);
+}
+
+test("the shipped site's tracked source never fetches Google Fonts at runtime", async () => {
+  // The design reference itself is exempt: it is an unmodified, read-only export and is expected
+  // to still carry fonts.googleapis.com / fonts.gstatic.com references (README.md explains why).
+  // Only console/site/ — the directory that is actually built and published — is checked here,
+  // and only its TRACKED files: `git ls-files` cannot return console/site/dist/, because that
+  // directory is gitignored and untracked (.gitignore:53) and is generated fresh by
+  // `node site/tests/site.test.mjs`. Scanning a directory walk instead of the tracked-file list
+  // was the original defect in this guard: it would pass on a fresh checkout (dist/ does not
+  // exist yet) and fail forever afterwards on any checkout where the site had ever been built —
+  // an order-dependent verdict, which is exactly what a CI run building before testing would hit.
+  const trackedFiles = gitTrackedFiles('console/site');
+  // Assert the list actually found files before trusting the loop below.
+  assert.ok(trackedFiles.length > 0, 'git ls-files returned zero tracked files under console/site — scan is broken');
+  assert.ok(
+    trackedFiles.every(f => !f.startsWith('console/site/dist/')),
+    'git ls-files returned a path under the gitignored build directory — it should never be tracked',
+  );
+
+  const offenders = [];
+  for (const relPath of trackedFiles) {
+    const text = await readFile(join(repoRoot, relPath), 'utf8').catch(() => null);
+    if (text === null) continue; // binary asset (image, font file, etc.)
+    if (isRuntimeFontFetch(text)) offenders.push(relPath);
+    // A bare host mention that ISN'T a recognised fetch construct is a provenance-style record
+    // (per the classifier above) and is allowed without needing a per-file allowlist entry —
+    // the classifier test two tests up is what keeps that allowance narrow and provable.
+  }
+  assert.deepEqual(offenders, [], `console/site/'s tracked source must never fetch fonts at runtime:\n${offenders.join('\n')}`);
+});
+
+test('negative regression: a live Google Fonts <link> reintroduced into tracked site source is caught', async () => {
   const html = await readConsole('site/index.html');
-  const contaminated = html + '\n<link href="https://fonts.googleapis.com/css2?family=Archivo">';
-  const forbidden = ['fonts.googleapis.com', 'fonts.gstatic.com'];
-  const hit = forbidden.some(needle => contaminated.includes(needle));
-  assert.ok(hit, 'the negative-regression fixture itself does not trip the forbidden-URL check');
+  const contaminated = html + '\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo">';
+  assert.equal(
+    isRuntimeFontFetch(contaminated),
+    true,
+    'the negative-regression fixture itself does not trip the runtime-fetch classifier',
+  );
 });
 
 test('the design reference itself is still allowed to carry the Google Fonts reference (contrast case)', async () => {
-  // This is the deliberate asymmetry the README documents: forbidden in console/site/, expected
-  // here. If this ever starts failing, either the export changed or vendoring silently rewrote
-  // the committed reference file, and either is worth knowing about.
+  // This is the deliberate asymmetry the README documents: forbidden as a runtime fetch in
+  // console/site/'s tracked source, expected here. If this ever starts failing, either the
+  // export changed or vendoring silently rewrote the committed reference file, and either is
+  // worth knowing about.
   const landingC = norm(await readRepo('design/site/Landing C - Blueprint.dc.html'));
   assert.ok(
     landingC.includes('fonts.googleapis.com'),
