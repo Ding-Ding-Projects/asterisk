@@ -156,3 +156,58 @@ export const FORBIDDEN_COPY_TERMS: readonly string[] = [
   'adhd', 'disorder', 'diagnos', 'symptom', 'condition', 'treatment', 'therapy', 'deficit',
   'streak', 'score', 'productiv', 'well done', 'congratulat', 'you should', 'lazy', 'distracted',
 ];
+
+// ---------------------------------------------------------------- one thing at a time
+
+const NEXT_ACTION_KEY = `${MODE_SETTING_PREFIX}nextAction`;
+
+/** The single next action, chosen by the person rather than inferred. Persisted, so it
+ *  survives a context switch to another screen -- or a relaunch -- exactly as the
+ *  contract requires. Blank when nothing has been chosen yet. */
+export function nextAction(storage: ModeStorage | undefined): string {
+  const raw = storage?.getItem(NEXT_ACTION_KEY);
+  return typeof raw === 'string' ? raw : '';
+}
+
+export function setNextAction(storage: ModeStorage, value: string): void {
+  storage.setItem(NEXT_ACTION_KEY, value);
+}
+
+// ---------------------------------------------------------------- momentum: the snooze stamp
+
+const SNOOZE_STAMP_KEY = `${MODE_SETTING_PREFIX}snoozedAt`;
+
+/** Records the moment "not now" was said, so the answer can be respected for
+ *  {@link SNOOZE_MS} rather than for as long as this render happens to live. */
+export function snoozeMomentum(storage: ModeStorage, now: number = Date.now()): void {
+  storage.setItem(SNOOZE_STAMP_KEY, String(now));
+}
+
+/** How long ago "not now" was last said, or `undefined` when it never was. Feeds
+ *  directly into {@link momentumPrompt}'s `sinceSnoozeMs` parameter. */
+export function msSinceSnooze(storage: ModeStorage | undefined, now: number = Date.now()): number | undefined {
+  const raw = storage?.getItem(SNOOZE_STAMP_KEY);
+  if (typeof raw !== 'string' || raw === '') return undefined;
+  const at = Number(raw);
+  return Number.isFinite(at) ? Math.max(0, now - at) : undefined;
+}
+
+// ---------------------------------------------------------------- focus: dim, never hide
+
+/**
+ * The stylesheet Focus mode injects while it is on.
+ *
+ * Nothing is dimmed until something in the console actually has focus -- the selector
+ * only matches once `:focus-within` is true somewhere inside `.attn-content`, so an idle
+ * screen with nothing focused stays at full brightness. The moment something is focused,
+ * everything else recedes to partial opacity; the focused element and every ancestor
+ * between it and `.attn-content` are excluded from the dim, which is what keeps "the
+ * active thing" -- and the click path back to anything else -- fully visible.
+ *
+ * Deliberately opacity only: nothing here sets `display`, `visibility` or
+ * `pointer-events`, so nothing dimmed is unreachable or unclickable. A test asserts that
+ * property directly rather than trusting this comment.
+ */
+export const FOCUS_DIM_CSS =
+  '.attn-content:focus-within * { opacity: .55; transition: opacity 150ms ease; } '
+  + '.attn-content:focus-within *:focus, .attn-content:focus-within *:focus-within { opacity: 1; }';
