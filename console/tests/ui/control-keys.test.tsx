@@ -82,7 +82,15 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // wired through the same pbx.plan/pbx.apply transaction every other write in this console
   // uses, not through this single-key binding table, which cannot express an ordered,
   // mixed-action list at all.
-  assert.equal(controlCount, 148);
+  // And 164 with sixteen more on the feature-codes screen: the parking-lot behaviour that
+  // Asterisk 12 carried out of features.conf into res_parking.conf, each key read out of
+  // configs/samples/res_parking.conf.sample rather than recalled. `fc_parkcall` (the DTMF
+  // trigger) stays where it always was, in features.conf's [featuremap] -- it is only the
+  // lot's own behaviour (extension range, timeout, retrieval rules) that moved. Each of the
+  // sixteen carries an explicit `file: 'res_parking.conf'` override, the same way the four
+  // stir_shaken.conf bindings on the security screen do, because the feature-codes screen's
+  // own primary resource stays features.conf.
+  assert.equal(controlCount, 164);
 });
 
 // ---------------------------------------------------------------- boolean parsing
@@ -121,6 +129,51 @@ test('invert flips a *_disable style key so the control keeps its own sense', ()
   const next = applyControlValues('security', enabled, { s_stir: false });
   const section = next.find((s) => s.name === 'attestation');
   assert.equal(section?.entries.find((e) => e.key === 'global_disable')?.value, 'yes');
+});
+
+test('the parking-lot controls read res_parking.conf, a different file from the feature-codes screen\'s own features.conf', () => {
+  // fc_parkcall stays bound to features.conf's own [featuremap] (unchanged, no `file`
+  // override) -- it is the DTMF trigger, and that never moved. The lot's own behaviour did:
+  // res_parking.conf.sample's [general] carries parkeddynamic, and its [default] section
+  // (the guaranteed lot, per the sample's own comment at lines 42-46) carries everything
+  // else. Both are read from `elsewhere`, exactly like the security screen's
+  // stir_shaken.conf group above -- fcodes's own primary resource stays features.conf.
+  const parking: ConfigValue = [
+    { name: 'general', entries: [{ key: 'parkeddynamic', value: 'yes' }] },
+    { name: 'default', entries: [
+      { key: 'parkext', value: '700' },
+      { key: 'parkpos', value: '701-720' },
+      { key: 'context', value: 'parkedcalls' },
+      { key: 'parkingtime', value: '45' },
+      { key: 'comebacktoorigin', value: 'no' },
+      { key: 'findslot', value: 'first' },
+    ] },
+  ];
+  const read = readControlValues('fcodes', [], { 'res_parking.conf': parking });
+  assert.equal(read.fc_parkeddynamic, true);
+  assert.equal(read.fc_parkext, '700');
+  assert.equal(read.fc_parkpos, '701-720');
+  assert.equal(read.fc_parkcontext, 'parkedcalls');
+  assert.equal(read.fc_parkingtime, 45);
+  assert.equal(read.fc_comebacktoorigin, false);
+  assert.equal(read.fc_findslot, 'first');
+  // fc_parkcall was NOT supplied elsewhere -- its own screen's primary value (unset here)
+  // stays absent rather than being read off the parking-lot document by accident, which is
+  // exactly the confusion a wrong file binding would produce silently.
+  assert.equal('fc_parkcall' in read, false);
+
+  // applyControlValues writes into whatever document it is handed, same as the stir_shaken
+  // case: proven here against a document shaped like res_parking.conf, not features.conf.
+  const written = applyControlValues('fcodes', parking, {
+    fc_parkext: '900', fc_comebacktoorigin: true, fc_parkedplay: 'both',
+  });
+  const defaultLot = written.find((s) => s.name === 'default');
+  assert.equal(defaultLot?.entries.find((e) => e.key === 'parkext')?.value, '900');
+  assert.equal(defaultLot?.entries.find((e) => e.key === 'comebacktoorigin')?.value, 'yes');
+  assert.equal(defaultLot?.entries.find((e) => e.key === 'parkedplay')?.value, 'both');
+  // The general-section key is untouched by a write aimed at [default] entries.
+  const general = written.find((s) => s.name === 'general');
+  assert.equal(general?.entries.find((e) => e.key === 'parkeddynamic')?.value, 'yes');
 });
 
 // ---------------------------------------------------------------- list parsing

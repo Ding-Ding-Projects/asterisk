@@ -37,10 +37,15 @@ const srcDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'app
  * literals right there, which is what this measurement actually looks for). Net +1 control,
  * all of it working.
  *
+ * Then 188: the feature-codes screen gained a "Parking lot" and a "Parking retrieval and
+ * timeout" group, sixteen controls covering res_parking.conf -- the file Asterisk 12 moved
+ * parking-lot configuration into out of features.conf, per that sample's own first line. All
+ * sixteen are bound (see control-keys.test.tsx), so working rose by the same sixteen.
+ *
  * It may rise freely and may not fall.
  */
-const WORKING_FLOOR = 172;
-const TELEPHONY_TOTAL = 172;
+const WORKING_FLOOR = 188;
+const TELEPHONY_TOTAL = 188;
 
 function measure() {
   const files = readdirSync(srcDir).filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'));

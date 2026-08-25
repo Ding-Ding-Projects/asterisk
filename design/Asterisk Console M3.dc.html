@@ -2292,13 +2292,13 @@ const SCREENS = {
     ]}]
   },
   fcodes:{ rail:'pbx', icon:'dialpad', label:'Feature codes', badge:'', title:'Feature codes', file:'features.conf', kind:'generic',
-    sub:'The digits a caller presses mid-call, and the transfer behaviour around them. These write features.conf directly. Every sequence here is free text because Asterisk accepts any digit string including * and #, and a picker cannot know what a site has standardised on -- but a control left untouched writes nothing at all.',
+    sub:'The digits a caller presses mid-call, the transfer behaviour around them, and the parking lot a park sends a call into. The codes and timeouts below write features.conf; the parking lot itself lives in res_parking.conf -- Asterisk moved parking lot configuration out of features.conf from Asterisk 12 onward, and this checkout\'s own features.conf.sample says so on its own fifth line. Every code here is free text because Asterisk accepts any digit string including * and #, and a picker cannot know what a site has standardised on -- but a control left untouched writes nothing at all.',
     groups:[{ title:'In-call feature map', desc:'The [featuremap] section. A caller presses these during a call.', ctls:[
       ctl('fc_blindxfer','blindxfer','text','',{ placeholder:'#', info:'Blind transfer: hand the call over without speaking to the destination first.' }),
       ctl('fc_atxfer','atxfer','text','',{ placeholder:'*2', info:'Attended transfer: speak to the destination first, then complete or abort with the codes below.' }),
       ctl('fc_disconnect','disconnect','text','',{ placeholder:'*0', info:'Hang the call up from either end.' }),
       ctl('fc_automixmon','automixmon','text','',{ placeholder:'*3', info:'One-touch record. This Asterisk ships automixmon; the older automon is not in its features.conf sample, so this writes automixmon rather than a key the build would ignore.' }),
-      ctl('fc_parkcall','parkcall','text','',{ placeholder:'#72', info:'One-step park.' })
+      ctl('fc_parkcall','parkcall','text','',{ placeholder:'#72', info:'One-step park: the DTMF code that triggers a park. The lot it parks into, and how long it waits there, are set below in the parking lot groups -- a different file.' })
     ]},
     { title:'Attended transfer', desc:'What the transferring party presses once an attended transfer is already up. These live in [general], not [featuremap].', ctls:[
       ctl('fc_atxferabort','atxferabort','text','',{ placeholder:'*1', info:'Cancel the transfer and return to the original caller.' }),
@@ -2312,6 +2312,26 @@ const SCREENS = {
       ctl('fc_transferdigittimeout','transferdigittimeout','slider',3,{ min:1, max:30, unit:' s', info:'How long to wait for the transfer destination’s digits.' }),
       ctl('fc_atxfernoanswertimeout','atxfernoanswertimeout','slider',15,{ min:5, max:120, unit:' s', info:'How long to ring the attended-transfer destination before giving up.' }),
       ctl('fc_atxferdropcall','atxferdropcall','switch',false,{ info:'When the transfer target never answers: drop the call outright, or return it to the transferrer.' })
+    ]},
+    { title:'Parking lot', desc:'res_parking.conf, not features.conf -- Asterisk carried this out of features.conf back in version 12, and this checkout\'s own sample says so on its own first line. The [default] lot every park lands in unless a channel names another.', ctls:[
+      ctl('fc_parkeddynamic','Allow dynamically created lots','switch',false,{ info:'[general] in res_parking.conf, not the [default] lot below. Lets a channel spin up a new lot from a template at call time via the PARKINGDYNAMIC/PARKINGDYNCONTEXT/PARKINGDYNEXTEN/PARKINGDYNPOS channel variables.' }),
+      ctl('fc_parkext','parkext','text','',{ placeholder:'700', info:'The extension a caller dials to park a call. Also creates the extensions for the whole parking-space range below -- leave it blank and no extensions are created at all.' }),
+      ctl('fc_parkext_exclusive','parkext_exclusive','switch',false,{ info:'On restricts the parkext above to this lot alone rather than letting another lot share it.' }),
+      ctl('fc_parkpos','parkpos','text','',{ placeholder:'701-720', info:'The numeric range of parking spaces this lot offers, written start-end. Leading zeros are ignored, so 00700-00720 is the same as 700-720.' }),
+      ctl('fc_parkcontext','context','text','',{ placeholder:'parkedcalls', info:'The dialplan context a parked call, and the extensions created for parkext and parkpos above, live in.' }),
+      ctl('fc_parkingtime','parkingtime','slider',45,{ min:10, max:600, step:5, unit:' s', info:'How long a call can sit parked before Asterisk decides nobody is coming back for it and hands it to comebacktoorigin or comebackcontext below.' }),
+      ctl('fc_findslot','findslot','segmented','next',{ options:['next','first'], info:'Which parking space a new park is given: the one after the most recently used, or the lowest-numbered free space.' }),
+      ctl('fc_parkedmusicclass','parkedmusicclass','text','',{ placeholder:'default', info:'Music-on-hold class played to the parked party, unless the channel already has one set directly.' })
+    ]},
+    { title:'Parking retrieval and timeout', desc:'What happens when somebody picks a parked call back up, and what happens when nobody does. Also res_parking.conf.', ctls:[
+      ctl('fc_courtesytone','courtesytone','text','',{ placeholder:'beep', info:'Sound played on pickup, and when a one-touch record starts or stops. Left blank, no tone plays.' }),
+      ctl('fc_parkedplay','parkedplay','segmented','caller',{ options:['parked','caller','both'], info:'Who hears the courtesy tone when a parked call is retrieved.' }),
+      ctl('fc_parkedcalltransfers','parkedcalltransfers','segmented','no',{ options:['no','caller','callee','both'], info:'Whether DTMF transfer stays live once a parked call is retrieved, and for which side of the reconnected call.' }),
+      ctl('fc_parkedcallreparking','parkedcallreparking','segmented','no',{ options:['no','caller','callee','both'], info:'Whether the retrieving side can DTMF-park the call straight back after picking it up.' }),
+      ctl('fc_parkedcallhangup','parkedcallhangup','segmented','no',{ options:['no','caller','callee','both'], info:'Whether DTMF hangup stays live once a parked call is retrieved, and for which side.' }),
+      ctl('fc_comebacktoorigin','comebacktoorigin','switch',true,{ info:'On: a timed-out park rings the phone that parked it back, before falling back to comebackcontext below. Off: it goes straight to comebackcontext instead.' }),
+      ctl('fc_comebackdialtime','comebackdialtime','slider',30,{ min:5, max:120, unit:' s', info:'How long to ring the original parker back before giving up, when comebacktoorigin is on.' }),
+      ctl('fc_comebackcontext','comebackcontext','text','',{ placeholder:'parkedcallstimeout', info:'Where a timed-out park lands in the dialplan when comebacktoorigin is off, or when ringing the parker back goes unanswered.' })
     ]}]
   },
   codecs:{ rail:'media', icon:'graphic_eq', label:'Codecs & RTP', badge:'', title:'Codecs & RTP', file:'codecs.conf · rtp.conf', kind:'generic',
