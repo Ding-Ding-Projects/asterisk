@@ -643,7 +643,13 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
 
         if (request.action === 'local-history.list') {
           const opts = (request.payload ?? {}) as { action?: string; since?: string; until?: string; limit?: number };
-          return { ok: true, requestId: request.requestId, data: { entries: await history.list(opts), counts: await history.actionCounts() } };
+          /* `branch` travels with the list rather than its own round trip: the History
+           * screen always wants both together, and there is nothing to read the
+           * branch name for on its own. */
+          return {
+            ok: true, requestId: request.requestId,
+            data: { entries: await history.list(opts), counts: await history.actionCounts(), branch: await history.branch() },
+          };
         }
         if (request.action === 'local-history.record') {
           const entry = request.payload as unknown as Parameters<LocalHistory['record']>[0];
@@ -652,6 +658,15 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         if (request.action === 'local-history.restore') {
           const commitId = typeof request.payload?.commitId === 'string' ? request.payload.commitId : '';
           return { ok: true, requestId: request.requestId, data: await history.restore(commitId) };
+        }
+        if (request.action === 'local-history.diff') {
+          const commitId = typeof request.payload?.commitId === 'string' ? request.payload.commitId : '';
+          return { ok: true, requestId: request.requestId, data: await history.diff(commitId) };
+        }
+        if (request.action === 'local-history.compare') {
+          const fromId = typeof request.payload?.fromId === 'string' ? request.payload.fromId : '';
+          const toId = typeof request.payload?.toId === 'string' ? request.payload.toId : '';
+          return { ok: true, requestId: request.requestId, data: { files: await history.compareFiles(fromId, toId) } };
         }
       }
       if (request.action === 'pbx.read') {

@@ -57,6 +57,18 @@ export interface HistoryCommit {
   message: string;
 }
 
+/** One line of a unified diff, minus the `diff --git`/`index`/`@@` plumbing lines the
+ *  History screen has no use for -- see `diff` below. */
+export interface HistoryDiffLine {
+  text: string;
+  sign: "+" | "-" | " ";
+}
+
+export interface HistoryDiff {
+  files: ReadonlyArray<string>;
+  lines: ReadonlyArray<HistoryDiffLine>;
+}
+
 export interface LocalHistoryListOptions {
   action?: string;
   since?: string;
@@ -90,6 +102,16 @@ const COMMIT_VERBS: Readonly<Record<HistoryAction, string>> = {
 function assertKnownAction(action: string): asserts action is HistoryAction {
   if (!HISTORY_ACTION_SET.has(action)) {
     throw new Error(`"${action}" is not a recognized history action, so nothing was recorded.`);
+  }
+}
+
+/** Shared by every method that takes a commit id as an argument -- `restore`, `diff`
+ *  and `compareFiles` below. A 40-character hex string is the one shape a real `git`
+ *  commit id can ever have, so anything else is refused before it reaches a command
+ *  line, exactly as `restore` already refused it on its own. */
+function assertCommitId(commitId: string, verb: string): void {
+  if (!/^[0-9a-f]{40}$/iu.test(commitId)) {
+    throw new Error(`"${commitId}" is not a 40-character commit id, so ${verb}.`);
   }
 }
 
@@ -292,14 +314,87 @@ export class LocalHistory {
   }
 
   /**
+   * The repository's current branch name. `initialize` never creates a second branch
+   * and nothing else in this class does either, so this is always the one real branch
+   * the History screen has to show -- never an invented "main"/"master" guess, and
+   * never stale, because `symbolic-ref` reads HEAD's own pointer rather than anything
+   * cached. It answers correctly even before the first commit: HEAD is a symbolic ref
+   * to `refs/heads/<name>` the moment `git init` creates the repository, well before
+   * any commit gives that ref a real target.
+   */
+  async branch(): Promise<string> {
+    return (await this.#run(["symbolic-ref", "--short", "HEAD"])).trim();
+  }
+
+  /**
+   * A parsed unified diff for one commit against its parent (`--root` makes this work
+   * for the very first commit too, which otherwise has no parent to diff against).
+   * `record` writes exactly one file per commit (see `filenameFor`), so `files` is
+   * almost always a single path, but nothing here assumes that -- a future caller that
+   * commits more than one file at once is still read correctly.
+   *
+   * Only the `+`/`-`/context body lines are kept. The `diff --git`, `index` and `@@`
+   * plumbing lines that `git diff-tree -p` also prints carry no information the
+   * screen's line-by-line diff view can show (there is exactly one hunk header worth
+   * of noise per file, and this reader already knows the file list from the first
+   * `diff-tree --name-only` call), so keeping them would just be noise repeated on
+   * every line of the real diff.
+   */
+  async diff(commitId: string): Promise<HistoryDiff> {
+    assertCommitId(commitId, "there is no diff to read");
+    const filesOutput = await this.#run(["diff-tree", "--no-commit-id", "--name-only", "-r", "--root", commitId]);
+    const files = filesOutput
+      .split(/\r?\n/u)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    if (files.length === 0) return { files, lines: [] };
+
+    const patch = await this.#run(["diff-tree", "--no-commit-id", "-p", "--root", "--no-color", commitId]);
+    const lines: HistoryDiffLine[] = [];
+    for (const raw of patch.split(/\r?\n/u)) {
+      if (
+        raw.startsWith("diff --git") ||
+        raw.startsWith("index ") ||
+        raw.startsWith("new file mode") ||
+        raw.startsWith("deleted file mode") ||
+        raw.startsWith("+++") ||
+        raw.startsWith("---") ||
+        raw.startsWith("@@")
+      ) {
+        continue;
+      }
+      if (raw.length === 0) continue;
+      if (raw.startsWith("+")) lines.push({ text: raw.slice(1), sign: "+" });
+      else if (raw.startsWith("-")) lines.push({ text: raw.slice(1), sign: "-" });
+      else lines.push({ text: raw, sign: " " });
+    }
+    return { files, lines };
+  }
+
+  /**
+   * Which files differ between two arbitrary commits -- not necessarily parent and
+   * child, which is what the History screen's own "add to comparison" picks two
+   * commits for. `git diff --name-only` compares any two commits directly; there is
+   * no `--root` special case here because both sides are always real, already-recorded
+   * commits, never the synthetic empty tree a first commit is diffed against above.
+   */
+  async compareFiles(fromId: string, toId: string): Promise<ReadonlyArray<string>> {
+    assertCommitId(fromId, "there is nothing to compare");
+    assertCommitId(toId, "there is nothing to compare");
+    const output = await this.#run(["diff", "--name-only", fromId, toId]);
+    return output
+      .split(/\r?\n/u)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+  }
+
+  /**
    * Restores the state recorded by `commitId` by writing its files back into the
    * working tree and recording that as a brand-new commit. This never touches the
    * commit being restored from, so the restore itself can always be undone in turn.
    */
   async restore(commitId: string): Promise<HistoryCommit> {
-    if (!/^[0-9a-f]{40}$/iu.test(commitId)) {
-      throw new Error(`"${commitId}" is not a 40-character commit id, so nothing was restored.`);
-    }
+    assertCommitId(commitId, "nothing was restored");
 
     const commitResult = await this.#git([
       "log",
