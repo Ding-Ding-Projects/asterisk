@@ -16,22 +16,26 @@
       ]
     },
     "funny-levels": {
-      "state": "partial",
-      "note": "CORRECTED 2026-08-25: the previous note described renderMessage() as though it ran on every message (\"renderMessage checks every fact survives the chosen wording\") -- it never runs anywhere. What is real: two controls exist in the design (fun_level 'Fun level (English)', fun_level_yue 'Fun level (廣東話)', min 1 max 5 default 5), and App.tsx's setVal interception genuinely persists a choice through isFunnyLevel/setFunnyLevel -- that half of the note is accurate, and it is worth noting a genuine naming collision the note never mentioned: the compiled console ALSO has a long-standing, unrelated 0-4 'fun_level' UI-personality dial (confetti/rainbow/motion, generated/console.tsx line 4372 onward, defaulting to 2) that shares the identical control id with this feature's slider, so the two systems both read and write the same stored key without knowing about each other. What is not real: funny-levels.ts also exports funnyLevel() (read the level back), resetFunnyLevel(), and renderMessage() (the actual per-level restyling engine the old note described in detail -- checking that every fact in a message survives the chosen wording). App.tsx imports only isFunnyLevel and setFunnyLevel; a grep for renderMessage( across the renderer finds it only inside funny-levels.ts itself. Moving either slider therefore persists a number and has no effect on any rendered message anywhere in the app -- there is no message-styling behaviour to observe.",
+      "state": "implemented",
+      "note": "Implemented 2026-08-24 as app/renderer/src/funny-levels.ts with two sliders in the design (fun_level, fun_level_yue), persisted through App's setVal interception. PREVIOUSLY MISCLAIMED 'acted on through App': the module and its slider persistence were real, but renderMessage had no caller anywhere outside its own test file, so turning the dial changed a stored number and nothing a person could see. Fixed 2026-08-25 with app/renderer/src/message-styling.ts, which builds a Message from whatever raw copy a call site already produces (that raw text is the message's sole fact, so it survives every level by construction) and renders it through the real renderMessage. App.tsx wraps the shell's own fire/areYouSure/showInfo/toast -- the three real dialog and message-box surfaces it exposes -- so every one of them now renders through the styling pipeline rather than the bare call-site string. The same pass found and fixed a second, unrelated defect discovered while confirming the wiring: the design reused the control id fun_level for both this slider (range 1-5, default 5) and an unrelated legacy random-appearance-chaos dial (range 0-4, default 2, indexing a 5-entry lookup table), so setting the funny level to 5 drove the chaos dial one index past the end of its table, and setting the chaos dial to 1-4 silently overwrote the persisted funny-level setting through the same setVal interception. The chaos dial's id was renamed to chaos_level in design/, recompiled, and re-verified against the drift guard.",
       "files": [
         "app/renderer/src/funny-levels.ts",
+        "app/renderer/src/message-styling.ts",
         "app/renderer/src/App.tsx",
-        "tests/ui/funny-levels.test.tsx"
+        "tests/ui/funny-levels.test.tsx",
+        "tests/ui/message-styling.test.tsx"
       ]
     },
     "dialog-emojis": {
-      "state": "partial",
-      "note": "CORRECTED 2026-08-25: the previous note described buildDialog as though it ran (\"buildDialog enforces the boundary by shape\") when it is never called. What is real: the dlg_emoji control went into the design and came back through the compiler, and App.tsx's setVal interception (line 33 imports setEmojisEnabled) genuinely persists the toggle -- off by default, an unrecognised stored value reads as off. What is not real: dialog-emojis.ts also exports emojisEnabled() (read the stored choice back), decorateDialogText(), controlText(), and buildDialog() (build an actually-decorated dialog with the boundary the note describes -- emoji on heading/body only, never a button/label/accessible name). App.tsx imports none of those four; only the setter is used. Turning the toggle on changes a stored boolean that nothing in the mounted app ever reads back, so no dialog anywhere is actually decorated.",
+      "state": "implemented",
+      "note": "Implemented 2026-08-23 as app/renderer/src/dialog-emojis.ts: a persisted toggle, off by default, decorating a dialog heading and body and nothing else. buildDialog enforces the boundary by shape rather than by everyone remembering it -- an emoji never reaches a button, an action label or an accessible name, because a screen reader announces an emoji by its Unicode description and a decorated accessible name is heard on every focus. Decoration does not stack on a re-render and an unrecognised stored value reads as off. Control dlg_emoji went into the design and came back through the compiler; App.tsx acts on it in the same setVal interception the language mode uses. PREVIOUSLY MISCLAIMED completeness: only the setter reached App.tsx, and buildDialog/emojisEnabled had no caller, so no dialog was ever decorated regardless of the switch. Fixed 2026-08-25 alongside funny-levels, through the same app/renderer/src/message-styling.ts seam: fire/areYouSure/showInfo now build their heading and body through buildDialog (classified by a best-effort DialogKind reader, or unconditionally 'question' for areYouSure's confirmation gates), and the gated toast wrapper decorates its single line with decorateDialogText. Every dialog surface the shell actually exposes is now covered.",
       "files": [
         "app/renderer/src/App.tsx",
         "app/renderer/src/dialog-emojis.ts",
+        "app/renderer/src/message-styling.ts",
         "app/renderer/src/generated/console.tsx",
-        "tests/ui/dialog-emojis.test.tsx"
+        "tests/ui/dialog-emojis.test.tsx",
+        "tests/ui/message-styling.test.tsx"
       ]
     },
     "school-mode": {

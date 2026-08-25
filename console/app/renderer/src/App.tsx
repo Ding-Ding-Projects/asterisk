@@ -31,6 +31,9 @@ import {
   IDENTITY, displayName, resetDisplayName, setDisplayName,
 } from './display-name';
 import { setEmojisEnabled } from './dialog-emojis';
+import {
+  classifyDialogKind, copyLanguageFor, styledDialog, styledToastText, type MessageStorage,
+} from './message-styling';
 import { isAttentionMode, modeEnabled, setModeEnabled } from './attention-modes';
 import { openTicket, resolutionFor, type TicketCategory, type TicketSeverity } from './support-tickets';
 import {
@@ -473,10 +476,13 @@ export class App extends Base {
    *  shell's and the copy would point at itself -- a recursion with no base case. */
   private readonly baseSetVal: (control: ControlRef, value: unknown) => void;
   private readonly baseToast: (message: string) => void;
-  /** Same reasoning as `baseToast` just above: `fire` is one more class-field arrow
-   *  function on the compiled shell, so wrapping it needs the same take-a-copy-first
-   *  dance done in the constructor rather than a `super.fire` that does not exist. */
+  /** The shell's own `fire`/`areYouSure`/`showInfo`, captured for the same reason as
+   *  `baseSetVal` above -- each is wrapped below so the funny-level and dialog-emoji
+   *  settings actually reach the three real dialog/message-box surfaces the shell
+   *  exposes, rather than the two modules sitting fully tested and fully unused. */
   private readonly baseFire: (title: string, body: string) => void;
+  private readonly baseAreYouSure: (title: string, body: string, seconds: number, onConfirm: () => void) => void;
+  private readonly baseShowInfo: (title: string, body: string, plain: string, x: string, y: string) => void;
 
   constructor(props: Record<string, never>) {
     super(props);
@@ -486,9 +492,55 @@ export class App extends Base {
     this.toast = this.gatedToast;
     this.baseFire = this.fire as (title: string, body: string) => void;
     this.fire = this.narratedFire;
+    this.baseAreYouSure = this.areYouSure as (title: string, body: string, seconds: number, onConfirm: () => void) => void;
+    this.areYouSure = this.styledAreYouSure;
+    this.baseShowInfo = this.showInfo as (title: string, body: string, plain: string, x: string, y: string) => void;
+    this.showInfo = this.styledShowInfo;
     this.baseSet = this.set as (key: string, value: unknown) => void;
     this.set = this.screenTrackingSet;
   }
+
+  /** The dial that governs dialog copy in whatever language the console is currently
+   *  showing (see `message-styling.ts` for why dialog copy is never itself translated). */
+  private currentCopyLanguage(): CopyLanguage {
+    return copyLanguageFor(languageMode());
+  }
+
+  /** `this.durableStorage.storage` typed for what the styling pipeline actually reads:
+   *  both the two funny-level keys and the one dialog-emoji key, which is every one of
+   *  those settings this console persists. */
+  private get messageStorage(): MessageStorage {
+    return this.durableStorage.storage;
+  }
+
+  /** Wraps the shell's own `fire` (a celebratory title/body popup): the title and body
+   *  it was given are real, freshly-supplied call-site text on every invocation, so
+   *  styling them here can never double-decorate or double-frame an already-styled
+   *  string -- there is nothing to re-style, only ever something new to style. */
+  private styledFire = (title: string, body: string): void => {
+    const kind = classifyDialogKind(title);
+    const styled = styledDialog(this.messageStorage, this.currentCopyLanguage(), kind, title, body);
+    this.baseFire(styled.heading, styled.body);
+  };
+
+  /** Wraps `areYouSure`. Every call site uses it to gate a consequential action behind
+   *  a confirmation, so it is classified 'question' unconditionally rather than through
+   *  the title-based heuristic `fire`/`toast`/`showInfo` fall back to -- there is no
+   *  ambiguity here to resolve by guessing. */
+  private styledAreYouSure = (title: string, body: string, seconds: number, onConfirm: () => void): void => {
+    const styled = styledDialog(this.messageStorage, this.currentCopyLanguage(), 'question', title, body);
+    this.baseAreYouSure(styled.heading, styled.body, seconds, onConfirm);
+  };
+
+  /** Wraps `showInfo`. Only the title and body go through the pipeline; `plain` is the
+   *  screen's own plain-language fallback explainer and is left exactly as written, on
+   *  the same principle that keeps `buildDialog` away from a control's own label --
+   *  a caller reaching for the plain explanation is reaching for it because they want
+   *  it unstyled. */
+  private styledShowInfo = (title: string, body: string, plain: string, x: string, y: string): void => {
+    const styled = styledDialog(this.messageStorage, this.currentCopyLanguage(), classifyDialogKind(title), title, body);
+    this.baseShowInfo(styled.heading, styled.body, plain, x, y);
+  };
 
   /** `p_start`'s own copy of `set` (the shell's `set(key, value)` is the same generic
    *  single-value setter `setVal` wraps for controls -- screen navigation goes through
@@ -519,7 +571,11 @@ export class App extends Base {
      * shown at all: a toast the user asked never to see is not narrated either. */
     this.narrator.enqueue('toast', message);
     if (this.consoleSetting<boolean>('nt_sound', false) === true) this.playNotificationSound();
-    this.baseToast(message);
+    /* The one-line message box: funny-level styling then the same emoji boundary a
+     * heading/body dialog gets, classified from the message itself since a toast has no
+     * separate title to classify from. */
+    const kind = classifyDialogKind(message);
+    this.baseToast(styledToastText(this.messageStorage, this.currentCopyLanguage(), kind, message));
   };
 
   private playNotificationSound(): void {
@@ -1740,9 +1796,15 @@ What you can do: ${offered}.` : ''}`);
    * `true` for -- so a real error is never the line that gets dropped for arriving too
    * soon after a chattier notice.
    */
+  /* Two lanes independently wrapped `fire`: one styles copy by humour level and emoji
+   * setting, the other speaks it. Composed rather than picked between, and the order is
+   * the point -- the narrator speaks the STYLED text, so the humour level reaches speech
+   * as the narration contract requires. Narrating the raw text would have the console
+   * say one thing while the screen showed another. */
   private narratedFire = (title: string, body: string, isError = false): void => {
-    this.narrator.enqueue('notification', body ? `${title}. ${body}` : title, { isError });
-    this.baseFire(title, body);
+    const styled = styledDialog(this.messageStorage, this.currentCopyLanguage(), classifyDialogKind(title), title, body);
+    this.narrator.enqueue('notification', styled.body ? `${styled.heading}. ${styled.body}` : styled.heading, { isError });
+    this.baseFire(styled.heading, styled.body);
   };
 
   // ---------------------------------------------------------------- settings sources

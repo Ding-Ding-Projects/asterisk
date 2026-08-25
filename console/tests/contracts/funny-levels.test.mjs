@@ -124,20 +124,28 @@ test('the design declares both sliders as a 1..5 range matching the module', () 
   assert.match(design, /ctl\('fun_level_yue','Fun level \(廣東話\)','slider',5,\{ min:1, max:5,/);
 });
 
-test('KNOWN DEFECT: fun_level collides with an unrelated legacy chaos-appearance dial', () => {
-  /* The same control id is read elsewhere in the compiled design with a 0-4 range and a
-   * fallback default of 2, for a wholly different "randomize the whole appearance"
-   * feature. This is real, verified against the design source, and reported rather than
-   * fixed. If this assertion ever fails because the collision has been resolved, that is
-   * good news and this test should be deleted rather than "fixed" back to passing. */
+test('the funny-level slider and the chaos dial no longer share a control id', () => {
+  /* This replaces a pin that documented the collision as a known defect. Its own comment
+   * said that if it ever failed because the collision had been resolved, it should be
+   * deleted rather than "fixed" back to passing. It was right about the second half and
+   * too modest about the first: deleting it would leave nothing at all stopping the two
+   * features sharing an id again.
+   *
+   * The defect was worth pinning. `fun_level` was read in two unrelated places -- the
+   * funny-level slider at 1-5 defaulting to 5, and a legacy appearance-chaos dial at 0-4
+   * defaulting to 2 and indexing a five-entry table. It corrupted in both directions:
+   * setting the humour level to 5 read one past the end of that table, and choosing a
+   * chaos level silently overwrote the persisted humour setting through the shared setter.
+   *
+   * So the assertion is inverted rather than removed. The chaos dial now owns
+   * `chaos_level`, and nothing may read `fun_level` with the chaos dial's shape again. */
   const design = read(DESIGN);
-  const chaosReads = [...design.matchAll(/this\.v\('fun_level',\s*2\)/g)];
-  assert.ok(chaosReads.length > 0,
-    'expected the legacy chaos-appearance code to still read fun_level with a fallback of 2; '
-    + 'if this is gone the collision documented here may have been resolved');
-  assert.match(design, /\['Bank','Polite','Balanced','Playful','Unhinged'\]\[this\.v\('fun_level', 2\)\]/,
-    "expected the 5-entry lookup table indexed by fun_level, which a value of 5 (the funny-level "
-    + 'slider\'s own maximum) reads one past the end of');
+  assert.doesNotMatch(design, /\['Bank','Polite','Balanced','Playful','Unhinged'\]\[this\.v\('fun_level'/,
+    'the chaos-appearance lookup table is indexed by fun_level again, so the two features share an id');
+  assert.doesNotMatch(design, /this\.v\('fun_level',\s*2\)/,
+    "something reads fun_level with the chaos dial's default of 2 again; the humour slider defaults to 5");
+  assert.match(design, /\['Bank','Polite','Balanced','Playful','Unhinged'\]\[this\.v\('chaos_level'/,
+    'the chaos-appearance dial no longer reads its own chaos_level id');
 });
 
 test('every fact in a destructive-style message survives every level, proving the module is safe in isolation', () => {
