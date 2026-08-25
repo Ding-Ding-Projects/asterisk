@@ -106,7 +106,16 @@ while :; do
 
   before="$(open_count)"
 
-  ( cd "$REPO_ROOT" && "$AGENT" -p < "$PROMPT_FILE" ) 2>&1 | tee "$log"
+  # The agent runs headless, so it gets no interactive permission prompt: without an
+  # explicit tool allowlist every iteration reads the roadmap, explains what it would do,
+  # and stops having changed nothing. That is exactly what the first run of this loop did,
+  # and the only reason it was noticed is the ticked-nothing line below.
+  #
+  # An allowlist rather than --dangerously-skip-permissions: the loop is uncapped, so the
+  # tool surface stays bounded even though PROMPT.md's prohibitions are what actually
+  # govern behaviour. Verified before shipping -- with the allowlist a probe agent wrote a
+  # file; without it, nothing.
+  ( cd "$REPO_ROOT" && "$AGENT" -p --allowedTools "Bash,Read,Write,Edit,Glob,Grep,NotebookEdit" < "$PROMPT_FILE" ) 2>&1 | tee "$log"
   agent_exit="${PIPESTATUS[0]}"
   echo "EXIT=$agent_exit" >> "$log"
 

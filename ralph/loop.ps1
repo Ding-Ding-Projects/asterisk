@@ -132,7 +132,12 @@ while ($true) {
 
     Push-Location $RepoRoot
     try {
-        Get-Content -LiteralPath $PromptFile -Raw | & $agent -p 2>&1 | Tee-Object -FilePath $log
+        # The agent runs headless and gets no interactive permission prompt. Without an
+        # explicit tool allowlist every iteration reads the roadmap, says what it would do,
+        # and changes nothing -- which is what the first run of this loop actually did, and
+        # the ticked-nothing line below is the only reason it was noticed.
+        # An allowlist rather than a blanket bypass, because the loop is uncapped.
+        Get-Content -LiteralPath $PromptFile -Raw | & $agent -p --allowedTools "Bash,Read,Write,Edit,Glob,Grep,NotebookEdit" 2>&1 | Tee-Object -FilePath $log
         $agentExit = $LASTEXITCODE
     } finally {
         Pop-Location
