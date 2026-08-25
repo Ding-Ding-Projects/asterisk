@@ -67,8 +67,10 @@
     },
     "status-hub": {
       "state": "absent",
-      "note": "site/status.html exists as a page shell but no live status-hub project, session card, or question-card logic was found in site/app.js.",
-      "files": []
+      "note": "site/status.html carries a real, honest static status surface (status cards plus a factual timeline) and now explicitly says why it stops there: a GitHub Pages site has no backend to host session state, polling, or a question-card reply channel, so building a live authenticated hub here would mean faking a connection that does not exist (see #status-hub-boundary in status.html). No live status-hub project, session card, question-card logic, or fetch()/session token of any kind exists in site/app.js -- the honest state remains absent, now with its reason stated rather than left silent.",
+      "files": [
+        "site/status.html"
+      ]
     },
     "material-appearance": {
       "state": "partial",

@@ -4,6 +4,13 @@
  * section), but no live status-hub project, session card, or question-card
  * logic exists in site/app.js. It is a static, factual snapshot page, not a
  * connection to a live, authenticated hub.
+ *
+ * That absence is now deliberate and stated in the page itself rather than
+ * left as a silent gap: a GitHub Pages site has no backend to host session
+ * state, polling, or a question-card reply channel, so building one here
+ * would mean faking a connection that does not exist. status.html says so in
+ * plain words (#status-hub-boundary) and points at the console application's
+ * own documented live hub instead of reproducing it.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -49,7 +56,14 @@ test('the status page has no polling, session key, or authenticated connection t
     'a live hub connection now exists in app.js -- re-check the "absent" state');
 });
 
+test('status.html states plainly why it does not implement a live status hub, rather than leaving a silent gap', () => {
+  assert.match(statusHtml, /<p id="status-hub-boundary">This page is this site's own static, factual status surface[^<]*it is not a live, authenticated Status Hub\./u,
+    'status.html no longer explains why a live authenticated Status Hub is not implemented here -- the reason must be stated, not just the absence');
+  assert.match(statusHtml, /no backend to host session state, polling, or a question-card reply channel/u,
+    'the specific technical reason (no backend on a GitHub Pages site) no longer appears');
+});
+
 test('the registry records status-hub as absent, and the code agrees', () => {
   assert.equal(registry.features['status-hub'].state, 'absent',
-    'status.html is a page shell with a real factual timeline, but no live status-hub project, session card, or question-card logic exists -- "absent" is the honest state');
+    'status.html is a real static status surface with a factual timeline, and now explicitly states why it is not a live authenticated Status Hub, but no live status-hub project, session card, or question-card logic exists -- "absent" is still the honest state');
 });
