@@ -65,7 +65,12 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // repeats, and a section chosen by another control rather than named in the table.
   // And 132 with the conference announce picker, which is one setting to a person and two
   // booleans to Asterisk, written together so neither can contradict the other.
-  assert.equal(controlCount, 132);
+  // 149 on 2026-08-24: seventeen more on the endpoints screen, each key read out of
+  // configs/samples/pjsip.conf.sample rather than recalled, and each bound to the object type
+  // that sample documents it under. That check is the whole value of the exercise -- it caught
+  // remove_existing, which reads like an endpoint setting and is an AOR key, and would have
+  // written a line Asterisk ignores while the screen reported it as set.
+  assert.equal(controlCount, 149);
 });
 
 // ---------------------------------------------------------------- boolean parsing

@@ -429,6 +429,32 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     st('e_encryption', 'endpoint', 'media_encryption'),
     st('e_dtmf', 'endpoint', 'dtmf_mode'),
     lt('e_codecs', 'endpoint', 'allow'),
+    /* Seventeen more, each key read out of configs/samples/pjsip.conf.sample rather than
+     * recalled: every one appears there, documented under the object type used below. That
+     * check is what caught remove_existing -- it reads like an endpoint setting and is an AOR
+     * key, and binding it to an endpoint would have written a line Asterisk quietly ignores
+     * while the screen reported it as set. */
+    nt('e_maxaudio', 'endpoint', 'max_audio_streams'),
+    nt('e_maxvideo', 'endpoint', 'max_video_streams'),
+    bt('e_optimistic', 'endpoint', 'media_encryption_optimistic'),
+    /* no | yes | required | always -- the control's own options are the values Asterisk takes,
+     * so this is a passthrough and not a translation table somebody has to keep in step. */
+    st('e_timers', 'endpoint', 'timers'),
+    nt('e_timers_min_se', 'endpoint', 'timers_min_se'),
+    nt('e_timers_sess', 'endpoint', 'timers_sess_expires'),
+    nt('e_rtp_timeout', 'endpoint', 'rtp_timeout'),
+    nt('e_rtp_hold', 'endpoint', 'rtp_timeout_hold'),
+    nt('e_busy_at', 'endpoint', 'device_state_busy_at'),
+    bt('e_refer_blind', 'endpoint', 'refer_blind_progress'),
+    bt('e_aggregate_mwi', 'endpoint', 'aggregate_mwi'),
+    bt('e_mwi_replaces', 'endpoint', 'mwi_subscribe_replaces_unsolicited'),
+    st('e_outbound_proxy', 'endpoint', 'outbound_proxy'),
+    st('e_outbound_auth', 'endpoint', 'outbound_auth'),
+    st('e_mailboxes', 'endpoint', 'mailboxes'),
+    st('e_voicemail_ext', 'endpoint', 'voicemail_extension'),
+    /* An AOR key, not an endpoint one, despite sitting on the endpoint screen -- the sample
+     * documents it under [aor] and max_contacts beside it already binds the same way. */
+    bt('e_removeexisting', 'aor', 'remove_existing'),
     nt('e_maxcontacts', 'aor', 'max_contacts'),
     nt('e_qualify', 'aor', 'qualify_frequency'),
     nt('e_expiry', 'aor', 'default_expiration'),
@@ -903,6 +929,10 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     'e_transport', 'e_context', 'e_trust',
     'e_direct', 'e_symmetric', 'e_forcerport', 'e_rewrite', 'e_ice', 'e_encryption', 'e_dtmf',
     'e_maxcontacts', 'e_qualify', 'e_expiry', 'e_codecs',
+    'e_maxaudio', 'e_maxvideo', 'e_optimistic', 'e_timers', 'e_timers_min_se', 'e_timers_sess',
+    'e_rtp_timeout', 'e_rtp_hold', 'e_busy_at', 'e_refer_blind', 'e_aggregate_mwi',
+    'e_mwi_replaces', 'e_outbound_proxy', 'e_outbound_auth', 'e_mailboxes', 'e_voicemail_ext',
+    'e_removeexisting',
   ],
   trunks: ['t_retry', 't_forbidden', 't_fatal', 't_pai', 't_100rel'],
   trunkauth: ['ta_auto', 'ta_expire', 'ta_notify', 'ta_mutual', 'ta_sign', 'ta_log'],
