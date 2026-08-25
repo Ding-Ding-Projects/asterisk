@@ -1,0 +1,44 @@
+{
+  "destinationId": "skills",
+  "verdict": "diff",
+  "reasons": [],
+  "dimensions": {
+    "reference": {
+      "width": 1440,
+      "height": 1000
+    },
+    "built": {
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  "diffPixelCount": 810260,
+  "totalPixels": 1440000,
+  "diffPercentage": 56.26805555555555,
+  "boundingBox": {
+    "x0": 2,
+    "y0": 0,
+    "x1": 1439,
+    "y1": 999
+  },
+  "paletteCheck": {
+    "blackFraction": 0,
+    "thresholdExceeded": false
+  },
+  "stalenessCheck": {
+    "checked": true,
+    "stale": false,
+    "builtCaptureMtimeMs": 1787677920956.0903,
+    "newestBuildSourceMtimeMs": 1787672604880.2146
+  },
+  "generatedBy": "console/scripts/design-parity-capture-run.mjs --side=diff",
+  "tuple": {
+    "state": "default",
+    "theme": "dark",
+    "width": 1440,
+    "height": 1000,
+    "scale": 1
+  },
+  "referenceCapture": "console/release/captures/parity/skills-reference.png",
+  "builtCapture": "console/release/captures/parity/skills-built.png"
+}

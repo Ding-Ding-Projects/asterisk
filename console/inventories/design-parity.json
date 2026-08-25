@@ -41,7 +41,7 @@
     "coverage": "Renders all 32 destinations from the generated design model and asserts each one's design title, description, owning source file (Expert mode), its control groups (including the design M3 control's slider/stepper/order affordances), Beginner-mode plain wording, and all 17 transient-state overlay families."
   },
   "captureContract": {
-    "status": "route and diff tooling exist; no destination has real captures yet — all 32 remain compiled, none verified",
+    "status": "captures and diffs now exist for every audited destination and are committed; all 32 rows nevertheless remain compiled, none verified — see captureRun.whyNothingIsVerified",
     "harness": "console/design-reference/index.html",
     "harnessDriver": "console/design-reference/route.mjs",
     "destinationLabels": "console/design-reference/destination-labels.generated.json",
@@ -52,8 +52,30 @@
     "diffTool": "console/scripts/design-parity-diff.mjs (compareCaptures)",
     "evidenceGuard": "console/scripts/design-parity-evidence-on-disk.mjs (verifyDesignParityEvidence)",
     "evidenceGuardNegativeProof": "console/scripts/negative-design-parity-evidence.mjs",
-    "knownGap": "design/*.dc.html expects window.React/window.ReactDOM supplied by its host before support.js boots; this repository vendors neither and design/ is out of scope for supplying one. See console/design-reference/README.md.",
-    "builtRouteStatus": "ding-pbx:// is a committed route template only; no custom protocol handler is registered in console/app/ yet."
+    "capturesGuard": "console/scripts/design-parity-captures-on-disk.mjs (verifyCapturedParityEvidence)",
+    "capturesGuardNegativeProof": "console/scripts/negative-design-parity-captures.mjs",
+    "captureRunner": "node console/scripts/design-parity-capture-run.mjs --side=reference|built|diff [--port=N] [--server-port=N] [--only=id,id]",
+    "captureHost": "console/scripts/design-parity-server.mjs",
+    "closedGap": "design/support.js loads React itself (loadReactUmd) from unpkg, and reads window.__resources[url] first (cdnScriptFor), so the design already ships the host hook. console/scripts/vendor-design-react-host.mjs vendors react/react-dom 18.3.1 into console/design-reference/vendor/, verified against the sha384 subresource-integrity hashes design/support.js itself declares, and the capture host sets that map. Nothing under design/ is edited and a capture run makes no network request.",
+    "builtRouteStatus": "ding-pbx:// is a committed route template only; no custom protocol handler is registered in console/app/ yet. The built side is captured the way every other Windows UI evidence in this project is: the real built renderer under Electron on an off-screen Windows desktop, driven to each destination through the same rail-then-section clicks the reference side performs.",
+    "captureRun": {
+      "ledgers": [
+        "console/release/evidence/parity/run-reference.json",
+        "console/release/evidence/parity/run-built.json",
+        "console/release/evidence/parity/run-diff.json"
+      ],
+      "referenceCaptures": 32,
+      "builtCaptures": 31,
+      "diffRecords": 31,
+      "verdicts": {"match": 0, "diff": 31, "refused": 0, "skipped": 1},
+      "diffPercentageRange": "47.13% to 63.95% of pixels differ",
+      "networkRequestsReachingTheNetwork": 0,
+      "firstRunSurface": "both sides dismiss the product's own first-run wizard before capturing, because every audited destination sits behind it; the reference harness records that it did so in window.__captureDismissedFirstRun.",
+      "notCaptured": {
+        "about": "the built application's <h1> reads 'About Ding PBX Console' where the design's reads 'About', so the settle condition that proves the driver arrived cannot be satisfied. Recorded as a real divergence rather than captured on a weaker proof."
+      },
+      "whyNothingIsVerified": "verifyDesignParityEvidence requires a 'match' verdict, and compareCaptures calls a match only when the two captures are pixel-identical. That bar is unreachable here BY DELIBERATE PRODUCT DECISION, not by a defect in the harness: this project removed the design's sample rows, dashboard tiles, health bars, nav badges, history, agent rail and trunk-authentication content from the running application, so the reference shows invented content where the built application shows the target's real (often empty) readings. The diffs measure that divergence rather than a rendering fault — none of the 31 was refused as unpainted or stale, and the side-by-side images show identical chrome beside different data. Moving a row to 'verified' therefore needs a parity bar that compares chrome and layout with the data-bearing regions excluded, plus a real Material Design 3 conformance audit per destination; neither exists yet, and no materialAudit file was generated, because a generated audit nobody performed would be an invented verdict."
+    }
   },
   "destinations": [
     {"rail":"pbx","id":"dash","status":"compiled"},{"rail":"pbx","id":"live","status":"compiled"},{"rail":"pbx","id":"endpoints","status":"compiled"},{"rail":"pbx","id":"trunks","status":"compiled"},{"rail":"pbx","id":"trunkauth","status":"compiled"},{"rail":"pbx","id":"canvas","status":"compiled"},{"rail":"pbx","id":"ivr","status":"compiled"},{"rail":"pbx","id":"queues","status":"compiled"},

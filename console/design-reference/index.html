@@ -78,14 +78,25 @@
     });
     setStatus(`destination=${tuple.destination} — driving to '${manifestEntry.navigationPlan.settle.expectedHeading}'…`);
 
+    let drive;
     try {
-      await driveToDestination(frame.contentWindow, manifestEntry.navigationPlan, railsFile.rails);
+      drive = await driveToDestination(frame.contentWindow, manifestEntry.navigationPlan, railsFile.rails);
     } catch (error) {
       setStatus(`FAILED: ${error.message}`);
       throw error;
     }
 
-    setStatus(`READY: ${tuple.destination} settled on '${manifestEntry.navigationPlan.settle.expectedHeading}'.`);
+    // Recorded rather than assumed: the design boots with its own first-run wizard covering
+    // every destination, exactly as a freshly installed build does, and both sides of a
+    // parity capture dismiss it. A driver copies this into its run ledger.
+    window.__captureDismissedFirstRun = drive.dismissedFirstRun;
+    // The status line is the harness's own chrome and this page promises to contribute none
+    // of it to what gets photographed. It stayed visible through the first real run and
+    // printed itself across the bottom of every reference capture — a caption baked into the
+    // evidence. Hide it on success; leave it up on failure, where it is the only diagnosis.
+    window.__captureStatus = `READY: ${tuple.destination} settled on '${manifestEntry.navigationPlan.settle.expectedHeading}'.`;
+    setStatus(window.__captureStatus);
+    statusEl.style.display = 'none';
     window.__captureReady = true;
     return true;
   };

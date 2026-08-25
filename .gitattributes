@@ -54,3 +54,11 @@ console/design-reference/*.generated.json   text eol=lf
 # all. Measured: all nine overlapping files were byte-identical once normalised.
 design/site/**   text eol=lf
 console/release/captures/ui-drive/**/*.png   binary
+
+# The React runtime vendored for the design-parity capture harness. Its bytes are checked
+# against the sha384 subresource-integrity hashes design/support.js itself declares, by
+# `vendor-design-react-host.mjs --check`, which npm test runs. A checkout that translated its
+# line endings would change those bytes and turn that gate red on a fresh Windows clone with
+# nothing wrong with the file -- the same failure the generated parity data is pinned against,
+# except here the mismatch reads as a tampered dependency rather than a stale generator.
+console/design-reference/vendor/*   binary

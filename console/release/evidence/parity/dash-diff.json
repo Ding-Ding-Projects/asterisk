@@ -1,0 +1,44 @@
+{
+  "destinationId": "dash",
+  "verdict": "diff",
+  "reasons": [],
+  "dimensions": {
+    "reference": {
+      "width": 1440,
+      "height": 1000
+    },
+    "built": {
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  "diffPixelCount": 828314,
+  "totalPixels": 1440000,
+  "diffPercentage": 57.52180555555556,
+  "boundingBox": {
+    "x0": 0,
+    "y0": 5,
+    "x1": 1439,
+    "y1": 998
+  },
+  "paletteCheck": {
+    "blackFraction": 0,
+    "thresholdExceeded": false
+  },
+  "stalenessCheck": {
+    "checked": true,
+    "stale": false,
+    "builtCaptureMtimeMs": 1787677917968.13,
+    "newestBuildSourceMtimeMs": 1787672604880.2146
+  },
+  "generatedBy": "console/scripts/design-parity-capture-run.mjs --side=diff",
+  "tuple": {
+    "state": "default",
+    "theme": "dark",
+    "width": 1440,
+    "height": 1000,
+    "scale": 1
+  },
+  "referenceCapture": "console/release/captures/parity/dash-reference.png",
+  "builtCapture": "console/release/captures/parity/dash-built.png"
+}

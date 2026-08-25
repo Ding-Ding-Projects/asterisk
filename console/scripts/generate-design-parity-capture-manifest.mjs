@@ -40,12 +40,20 @@ function pathFor(templateKey, id) {
   return template.replaceAll('{id}', id);
 }
 
-let currentRail = null; // a fresh reference-app session starts with no rail selected
+// Every plan is SELF-CONTAINED: it starts from a freshly loaded harness and always clicks its
+// own rail first.
+//
+// This used to thread the previous destination's rail through, so only the first destination
+// of each rail carried a rail click — a continuous session that never switches rails twice.
+// It modelled a driver nobody wrote. The harness loads one destination per page load, so the
+// twenty-six plans with no rail click could only ever look for a section that was not on
+// screen, and every one of them failed while the six rail-leading ones passed. Worse, the
+// design derives the open rail from the ACTIVE destination and snaps back when a rail click is
+// not followed by a section click, so a shared session is not merely fragile here, it is wrong.
 const entries = inventory.destinations.map((destination) => {
   const { id, rail } = destination;
   if (!labels[id]) throw new Error(`generate-design-parity-capture-manifest: '${id}' has no entry in destination-labels.generated.json`);
-  const plan = navigationPlanFor(id, labels, currentRail);
-  currentRail = labels[id].rail; // the manifest walks destinations in ORDER, so this models one continuous session, minimising rail switches the same way a real driver would
+  const plan = navigationPlanFor(id, labels, null);
   return {
     id,
     rail,

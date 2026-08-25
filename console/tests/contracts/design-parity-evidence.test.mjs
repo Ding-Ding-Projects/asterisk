@@ -2,10 +2,15 @@
 // reference-versus-built diff tool, the deterministic capture-route contract, and the
 // fail-closed guard that refuses a `verified` claim without real evidence behind it.
 //
-// None of this drives a real headless browser — that capability does not exist in this
-// worktree. What is tested here is everything that does not require one: the pixel math,
-// the route/selector contract as data, and the guard's refusal logic, each proven with a
-// deliberate red-then-green case per the project's own guard-quality rule.
+// None of this drives a real headless browser: what is tested here is everything that does
+// not require one — the pixel math, the route/selector contract as data, and the guard's
+// refusal logic, each proven with a deliberate red-then-green case per the project's own
+// guard-quality rule.
+//
+// This header used to add "that capability does not exist in this worktree". It does now:
+// console/scripts/design-parity-capture-run.mjs takes both sides against real Chromium on an
+// off-screen Windows desktop, and the captures it produced are guarded by
+// design-parity-captures-on-disk.mjs and tests/contracts/design-parity-capture-harness.test.mjs.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -377,16 +382,31 @@ test('capture-manifest.generated.json: every entry carries a resolved route and 
   }
 });
 
-test('capture-manifest.generated.json: consecutive same-rail destinations never emit a redundant rail click', () => {
+test('capture-manifest.generated.json: every plan starts from its own rail, including consecutive same-rail destinations', () => {
+  // This test used to assert the OPPOSITE — that a destination on the same rail as the one
+  // before it omits the rail click — because the manifest modelled one continuous session that
+  // never switched rails twice. That session does not exist: the harness loads one destination
+  // per page load, so the twenty-six plans with no rail click could only ever look for a
+  // section that was not on screen, and every one of them failed on the first real run while
+  // the six rail-leading ones passed. Addressability is the contract a capture route needs, and
+  // saving a click is not worth giving it up.
   const manifest = JSON.parse(readFileSync(resolve(root, 'console/design-reference/capture-manifest.generated.json'), 'utf8'));
-  let previousRail = null;
   for (const entry of manifest.destinations) {
-    const hasRailClick = entry.navigationPlan.steps.some((step) => step.kind === 'click-rail');
-    if (previousRail === entry.rail) {
-      assert.equal(hasRailClick, false, `${entry.id}: same rail as the previous destination but still plans a rail click`);
-    }
-    previousRail = entry.rail;
+    assert.deepEqual(
+      entry.navigationPlan.steps.map((step) => step.kind),
+      ['click-rail', 'click-section'],
+      `${entry.id}: a capture route has to be reachable from a freshly loaded harness on its own`,
+    );
   }
+});
+
+test('navigationPlanFor still skips the rail click when a caller genuinely is on that rail', () => {
+  // The generator no longer uses it, but the same-rail branch is real behaviour a driver
+  // holding one page open would want, and deleting the assertion with the caller would leave it
+  // untested rather than removed.
+  const labels = { dash: { rail: 'pbx', label: 'Dashboard', title: 'Dashboard' } };
+  assert.deepEqual(navigationPlanFor('dash', labels, 'pbx').steps.map((step) => step.kind), ['click-section']);
+  assert.deepEqual(navigationPlanFor('dash', labels, null).steps.map((step) => step.kind), ['click-rail', 'click-section']);
 });
 
 // --- design-reference/route.mjs (the harness's pure, DOM-free pieces) ---------------------
@@ -399,10 +419,17 @@ test('route.mjs tupleFromLocation: reuses the shared parseCaptureTuple, acceptin
   );
 });
 
-test('route.mjs designFrameSrc: points at the real, unmodified checked-in design export with the theme carried through', async () => {
+test('route.mjs designFrameSrc: points at the real checked-in design export as the capture host serves it, with the theme carried through', async () => {
   const { designFrameSrc } = await import('../../design-reference/route.mjs');
-  assert.equal(designFrameSrc({ theme: 'dark' }), '../../design/Asterisk Console M3.dc.html?theme=dark');
-  // Prove the referenced file genuinely exists at that relative path from this harness's own directory.
-  const target = resolve(root, 'console/design-reference', designFrameSrc({ theme: 'dark' }).split('?')[0]);
-  assert.doesNotThrow(() => readFileSync(target, 'utf8'), 'design-reference/route.mjs points at a design file that does not exist at that relative path');
+  const { DESIGN_HOST_PREFIX } = await import('../../scripts/design-parity-server.mjs');
+  const src = designFrameSrc({ theme: 'dark' });
+  assert.equal(src, './design-host/Asterisk Console M3.dc.html?theme=dark');
+
+  // That virtual directory is not a copy of the design. The capture host maps it back onto the
+  // real design/ folder and injects only the local-React shim on the way out, so prove the file
+  // this route resolves to is genuinely the checked-in one, through that same mapping.
+  const resolved = new URL(src, 'http://127.0.0.1/console/design-reference/');
+  assert.ok(resolved.pathname.startsWith(DESIGN_HOST_PREFIX), `${resolved.pathname} is not served from the design host prefix`);
+  const target = resolve(root, 'design', decodeURIComponent(resolved.pathname.slice(DESIGN_HOST_PREFIX.length)));
+  assert.doesNotThrow(() => readFileSync(target, 'utf8'), 'design-reference/route.mjs points at a design file that does not exist');
 });

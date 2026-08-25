@@ -1,0 +1,44 @@
+{
+  "destinationId": "hub",
+  "verdict": "diff",
+  "reasons": [],
+  "dimensions": {
+    "reference": {
+      "width": 1440,
+      "height": 1000
+    },
+    "built": {
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  "diffPixelCount": 806803,
+  "totalPixels": 1440000,
+  "diffPercentage": 56.02798611111112,
+  "boundingBox": {
+    "x0": 0,
+    "y0": 5,
+    "x1": 1439,
+    "y1": 998
+  },
+  "paletteCheck": {
+    "blackFraction": 0,
+    "thresholdExceeded": false
+  },
+  "stalenessCheck": {
+    "checked": true,
+    "stale": false,
+    "builtCaptureMtimeMs": 1787677921048.085,
+    "newestBuildSourceMtimeMs": 1787672604880.2146
+  },
+  "generatedBy": "console/scripts/design-parity-capture-run.mjs --side=diff",
+  "tuple": {
+    "state": "default",
+    "theme": "dark",
+    "width": 1440,
+    "height": 1000,
+    "scale": 1
+  },
+  "referenceCapture": "console/release/captures/parity/hub-reference.png",
+  "builtCapture": "console/release/captures/parity/hub-built.png"
+}

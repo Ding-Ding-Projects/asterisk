@@ -58,6 +58,11 @@
         "destinationId": "live",
         "steps": [
           {
+            "kind": "click-rail",
+            "target": "pbx",
+            "description": "Click the rail icon button for rail 'pbx' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
             "kind": "click-section",
             "target": "Live channels",
             "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Live channels'."
@@ -82,6 +87,11 @@
       "navigationPlan": {
         "destinationId": "endpoints",
         "steps": [
+          {
+            "kind": "click-rail",
+            "target": "pbx",
+            "description": "Click the rail icon button for rail 'pbx' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
           {
             "kind": "click-section",
             "target": "Endpoints",
@@ -108,6 +118,11 @@
         "destinationId": "trunks",
         "steps": [
           {
+            "kind": "click-rail",
+            "target": "pbx",
+            "description": "Click the rail icon button for rail 'pbx' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
             "kind": "click-section",
             "target": "Trunks",
             "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Trunks'."
@@ -132,6 +147,11 @@
       "navigationPlan": {
         "destinationId": "trunkauth",
         "steps": [
+          {
+            "kind": "click-rail",
+            "target": "pbx",
+            "description": "Click the rail icon button for rail 'pbx' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
           {
             "kind": "click-section",
             "target": "Trunk authentication",
@@ -158,6 +178,11 @@
         "destinationId": "canvas",
         "steps": [
           {
+            "kind": "click-rail",
+            "target": "pbx",
+            "description": "Click the rail icon button for rail 'pbx' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
             "kind": "click-section",
             "target": "Dialplan canvas",
             "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Dialplan canvas'."
@@ -183,6 +208,11 @@
         "destinationId": "ivr",
         "steps": [
           {
+            "kind": "click-rail",
+            "target": "pbx",
+            "description": "Click the rail icon button for rail 'pbx' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
             "kind": "click-section",
             "target": "IVR menus",
             "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'IVR menus'."
@@ -207,6 +237,11 @@
       "navigationPlan": {
         "destinationId": "queues",
         "steps": [
+          {
+            "kind": "click-rail",
+            "target": "pbx",
+            "description": "Click the rail icon button for rail 'pbx' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
           {
             "kind": "click-section",
             "target": "Queues & agents",
@@ -263,6 +298,11 @@
         "destinationId": "confbridge",
         "steps": [
           {
+            "kind": "click-rail",
+            "target": "media",
+            "description": "Click the rail icon button for rail 'media' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
             "kind": "click-section",
             "target": "Conferences",
             "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Conferences'."
@@ -288,6 +328,11 @@
         "destinationId": "moh",
         "steps": [
           {
+            "kind": "click-rail",
+            "target": "media",
+            "description": "Click the rail icon button for rail 'media' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
             "kind": "click-section",
             "target": "Music on hold",
             "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Music on hold'."
@@ -312,6 +357,11 @@
       "navigationPlan": {
         "destinationId": "codecs",
         "steps": [
+          {
+            "kind": "click-rail",
+            "target": "media",
+            "description": "Click the rail icon button for rail 'media' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
           {
             "kind": "click-section",
             "target": "Codecs & RTP",
@@ -368,6 +418,11 @@
         "destinationId": "ami",
         "steps": [
           {
+            "kind": "click-rail",
+            "target": "data",
+            "description": "Click the rail icon button for rail 'data' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
             "kind": "click-section",
             "target": "AMI & ARI",
             "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'AMI & ARI'."
@@ -423,6 +478,11 @@
         "destinationId": "logger",
         "steps": [
           {
+            "kind": "click-rail",
+            "target": "system",
+            "description": "Click the rail icon button for rail 'system' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
             "kind": "click-section",
             "target": "Logger",
             "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Logger'."
@@ -448,6 +508,11 @@
         "destinationId": "security",
         "steps": [
           {
+            "kind": "click-rail",
+            "target": "system",
+            "description": "Click the rail icon button for rail 'system' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
             "kind": "click-section",
             "target": "Security",
             "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Security'."
@@ -472,6 +537,11 @@
       "navigationPlan": {
         "destinationId": "cli",
         "steps": [
+          {
+            "kind": "click-rail",
+            "target": "system",
+            "description": "Click the rail icon button for rail 'system' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
           {
             "kind": "click-section",
             "target": "CLI builder",
@@ -528,6 +598,11 @@
         "destinationId": "sync",
         "steps": [
           {
+            "kind": "click-rail",
+            "target": "agent",
+            "description": "Click the rail icon button for rail 'agent' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
             "kind": "click-section",
             "target": "Sync & attestation",
             "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Sync & attestation'."
@@ -552,6 +627,11 @@
       "navigationPlan": {
         "destinationId": "skills",
         "steps": [
+          {
+            "kind": "click-rail",
+            "target": "agent",
+            "description": "Click the rail icon button for rail 'agent' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
           {
             "kind": "click-section",
             "target": "Skills registry",
@@ -578,6 +658,11 @@
         "destinationId": "hub",
         "steps": [
           {
+            "kind": "click-rail",
+            "target": "agent",
+            "description": "Click the rail icon button for rail 'agent' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
             "kind": "click-section",
             "target": "Status hub",
             "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Status hub'."
@@ -602,6 +687,11 @@
       "navigationPlan": {
         "destinationId": "vocab",
         "steps": [
+          {
+            "kind": "click-rail",
+            "target": "agent",
+            "description": "Click the rail icon button for rail 'agent' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
           {
             "kind": "click-section",
             "target": "Vocabulary & guard",
@@ -628,6 +718,11 @@
         "destinationId": "ops",
         "steps": [
           {
+            "kind": "click-rail",
+            "target": "agent",
+            "description": "Click the rail icon button for rail 'agent' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
             "kind": "click-section",
             "target": "Operations",
             "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Operations'."
@@ -652,6 +747,11 @@
       "navigationPlan": {
         "destinationId": "secrets",
         "steps": [
+          {
+            "kind": "click-rail",
+            "target": "agent",
+            "description": "Click the rail icon button for rail 'agent' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
           {
             "kind": "click-section",
             "target": "Secret intake",
@@ -708,6 +808,11 @@
         "destinationId": "arcade",
         "steps": [
           {
+            "kind": "click-rail",
+            "target": "app",
+            "description": "Click the rail icon button for rail 'app' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
             "kind": "click-section",
             "target": "Arcade",
             "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Arcade'."
@@ -732,6 +837,11 @@
       "navigationPlan": {
         "destinationId": "notifications",
         "steps": [
+          {
+            "kind": "click-rail",
+            "target": "app",
+            "description": "Click the rail icon button for rail 'app' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
           {
             "kind": "click-section",
             "target": "Notifications",
@@ -758,6 +868,11 @@
         "destinationId": "history",
         "steps": [
           {
+            "kind": "click-rail",
+            "target": "app",
+            "description": "Click the rail icon button for rail 'app' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
             "kind": "click-section",
             "target": "History & git",
             "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'History & git'."
@@ -782,6 +897,11 @@
       "navigationPlan": {
         "destinationId": "customise",
         "steps": [
+          {
+            "kind": "click-rail",
+            "target": "app",
+            "description": "Click the rail icon button for rail 'app' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
           {
             "kind": "click-section",
             "target": "Customise everything",
@@ -808,6 +928,11 @@
         "destinationId": "appearance",
         "steps": [
           {
+            "kind": "click-rail",
+            "target": "app",
+            "description": "Click the rail icon button for rail 'app' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
+          {
             "kind": "click-section",
             "target": "Appearance",
             "description": "Within the now-open rail's section list, click the button whose visible text is exactly 'Appearance'."
@@ -832,6 +957,11 @@
       "navigationPlan": {
         "destinationId": "about",
         "steps": [
+          {
+            "kind": "click-rail",
+            "target": "app",
+            "description": "Click the rail icon button for rail 'app' (the design's own <RAIL> icon strip; there is no other way to switch rails)."
+          },
           {
             "kind": "click-section",
             "target": "About & policy",
