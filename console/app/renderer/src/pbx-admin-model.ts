@@ -152,7 +152,7 @@ export const PBX_FEATURES: ReadonlyArray<PbxFeatureDefinition> = [
   { id: 'system-status', group: 'Reports', label: 'FreePBX System Status', description: 'Ding dashboard/runtime status equivalent using live Asterisk readings.', resources: [], delegateScreen: 'dash' },
   { id: 'print-extensions', group: 'Reports', label: 'Print Extensions', description: 'Live endpoint inventory suitable for extension listing/export workflows.', resources: [r('pjsip.conf')], delegateScreen: 'endpoints' },
   { id: 'weak-password-detection', group: 'Reports', label: 'Weak Password Detection', description: 'Authentication objects exposed for credential-policy review without inventing a score.', resources: [r('pjsip.conf'), r('manager.conf'), r('ari.conf')] },
-  { id: 'fax', group: 'Reports', label: 'Fax & T.38', description: 'Fax engine settings and UDPTL transport behavior.', resources: [r('res_fax.conf'), r('udptl.conf')] },
+  { id: 'fax', group: 'Reports', label: 'Fax & T.38', description: 'Fax engine settings and UDPTL transport behavior.', resources: [r('res_fax.conf'), r('udptl.conf')], delegateScreen: 'fax' },
 
   // ---------------------------------------------------------------- Settings
   { id: 'advanced', group: 'Settings', label: 'Advanced Settings', description: 'Complete allowlisted Asterisk configuration surface.', resources: ALL },
@@ -162,7 +162,7 @@ export const PBX_FEATURES: ReadonlyArray<PbxFeatureDefinition> = [
   { id: 'ari-settings', group: 'Settings', label: 'Asterisk REST Interface Users', description: 'ARI users, CORS and embedded HTTP service settings.', resources: [r('ari.conf'), r('http.conf')], delegateScreen: 'ami' },
   { id: 'sip-settings', group: 'Settings', label: 'Asterisk SIP Settings', description: 'Global PJSIP transports, endpoints and registrations.', resources: [r('pjsip.conf')] },
   { id: 'extension-settings', group: 'Settings', label: 'Extension Settings', description: 'PJSIP endpoint defaults plus extension dialplan and voicemail.', resources: [r('pjsip.conf'), r('extensions.conf'), r('voicemail.conf')] },
-  { id: 'fax-settings', group: 'Settings', label: 'Fax Configuration', description: 'Fax engine and UDPTL transport settings.', resources: [r('res_fax.conf'), r('udptl.conf')] },
+  { id: 'fax-settings', group: 'Settings', label: 'Fax Configuration', description: 'Fax engine and UDPTL transport settings.', resources: [r('res_fax.conf'), r('udptl.conf')], delegateScreen: 'fax' },
   { id: 'filestore', group: 'Settings', label: 'Filestore', description: 'Asterisk data/spool/media directory settings and media storage roots.', resources: [r('asterisk.conf')], tools: ['config', 'media'] },
   { id: 'moh-settings', group: 'Settings', label: 'Music on Hold', description: 'Music-on-hold classes and target media.', resources: [r('musiconhold.conf')], tools: ['config', 'media'], delegateScreen: 'moh' },
   { id: 'pin-sets', group: 'Settings', label: 'Pin Sets', description: 'Dialplan PIN/authentication gates for protected destinations.', resources: [r('extensions.conf')] },
