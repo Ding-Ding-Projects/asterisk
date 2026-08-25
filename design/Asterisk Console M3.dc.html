@@ -2375,11 +2375,14 @@ const SCREENS = {
       ctl('g_rotate','Rotation strategy','segmented','rotate',{ options:['sequential','rotate','timestamp','none'] }),
       ctl('g_queue','Queue log','switch',true)
     ]}] },
-  security:{ rail:'sys', icon:'shield', label:'Security', badge:'!', title:'Security', file:'acl.conf · stir_shaken.conf', kind:'generic',
-    sub:'Access control, transport certificates and caller-ID attestation. Certificates are chosen from the machine store — no path is ever typed.',
-    groups:[{ title:'Access control', desc:'Named ACLs applied to transports and endpoints.', ctls:[
-      ctl('s_acl','Active ACL','select','trusted-nets',{ options:['trusted-nets','branch-offices','carrier-only','deny-all'] }),
-      ctl('s_permit','Permitted networks','chips',['10.20.0.0/16','198.51.100.0/24'],{ options:['10.20.0.0/16','198.51.100.0/24','192.0.2.0/24','0.0.0.0/0'] }),
+  security:{ rail:'sys', icon:'shield', label:'Security', badge:'!', title:'Security', file:'acl.conf', kind:'table',
+    sub:'Named access control lists, listed in the exact order Asterisk evaluates them -- the LAST matching rule wins, which is what makes a broad deny followed by a narrow permit work as an allowlist. Certificates are chosen from the machine store — no path is ever typed.',
+    table:{ add:'Add rule', grid:'1fr 110px 1.6fr', cols:['ACL rule','Action','Network / CIDR'], rows:[] },
+    groups:[{ title:'Add a rule', desc:'Appended to the end of the named ACL below, so it is the rule that decides the outcome for anything it matches. Click an existing rule in the table to load it here for editing instead.', ctls:[
+      ctl('s_aclname','ACL name','text','trusted-nets',{ info:'The named list this rule joins, e.g. "trusted-nets". A name that does not already exist creates that ACL with this as its first rule.' }),
+      ctl('s_action','Action','segmented','permit',{ options:['permit','deny'] }),
+      ctl('s_spec','Network / CIDR','text','',{ info:'A bare address ("203.0.113.4") or address/mask ("10.20.0.0/16", "203.0.113.0/24", "::1/128"). A hostname is refused: Asterisk resolves an ACL address at load time and this console cannot verify one offline.' })
+    ]},{ title:'Auto-ban', desc:'This console’s own behaviour, not an Asterisk setting: persisted here, and never written to acl.conf or anywhere else on the target.', ctls:[
       ctl('s_failban','Auto-ban after failures','stepper',5,{ min:0, max:100 }),
       ctl('s_bantime','Ban duration','slider',600,{ min:60, max:86400, step:60, unit:'s' })
     ]},{ title:'TLS', desc:'Certificates come from the system store.', ctls:[
@@ -3772,7 +3775,9 @@ class Component extends DCLogic {
       })(),
       screenTitle:sc.title, screenFile:sc.file, screenSub:sc.sub,
       openInfoScreen:() => this.showInfo(sc.title, sc.sub, 'This screen edits ' + (sc.file || 'the console itself') + '. Every row you see is a real object in the running system, and every control writes one option.', '46%', '150px'),
-      openWizard:() => (sc.kind === 'servers' && this.onAddServer ? this.onAddServer() : this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null })),
+      openWizard:() => (sc.kind === 'servers' && this.onAddServer ? this.onAddServer()
+        : (s.screen === 'security' && this.onAddAclRule ? this.onAddAclRule()
+        : this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null }))),
 
       isDashboard:sc.kind === 'dashboard', isCanvas:sc.kind === 'canvas', isTable:sc.kind === 'table', isCli:sc.kind === 'cli', isMemory:sc.kind === 'memory', isDocs:sc.kind === 'docs', isChangelog:sc.kind === 'changelog',
       // Additive, not kind-exclusive: codecs (kind:'generic') and endpoints (kind:'table')
@@ -4579,14 +4584,19 @@ class Component extends DCLogic {
         }
         if (s.ctxKind === 'row') {
           const name = s.ctxTarget;
+          const isAclRow = s.screen === 'security';
           return decorate([
-            { icon:'edit', label:'Edit ' + name + '…', hint:'↵', run:() => { close(); this.setState({ wizardOpen:true, wizardStep:0 }); } },
+            { icon:'edit', label:'Edit ' + name + '…', hint:'↵', run:() => { close(); (isAclRow && this.onPickRow) ? this.onPickRow(name) : this.setState({ wizardOpen:true, wizardStep:0 }); } },
             { icon:'check_box', label:'Select this row', hint:'', run:() => { close(); this.set('selected', sel.indexOf(name) >= 0 ? sel : sel.concat([name])); } },
             { icon:'content_copy', label:'Duplicate', hint:'⌃D', run:() => { close(); this.bulk('Duplicated', [name]); } },
             { icon:'refresh', label:'Reload just this', hint:'', run:() => { close(); this.ceremony('Reload ' + name, 'reload ' + name); } },
             { icon:'download', label:'Export as configuration', hint:'', run:() => { close(); this.hostAction('export-config', { name:name }); } },
             { icon:'history', label:'Version history for this', hint:'', run:() => { close(); this.openScreen('history'); } },
-            { icon:'delete', label:'Delete ' + name, hint:'⌦', run:() => { close(); this.areYouSure('Delete ' + name, sc.kind === 'servers' ? 'This connection profile is removed from the console. It does not touch or reconfigure the target machine.' : 'This object and everything referencing it are removed. The four gates still apply after the minigame.', 3, () => (sc.kind === 'servers' && this.onRemoveServerRow ? this.onRemoveServerRow(name) : this.ceremony('Delete ' + name, 'delete ' + name))); } },
+            ...(isAclRow && this.onMoveAclRule ? [
+              { icon:'arrow_upward', label:'Move rule up', hint:'', run:() => { close(); this.onMoveAclRule(name, 'up'); } },
+              { icon:'arrow_downward', label:'Move rule down', hint:'', run:() => { close(); this.onMoveAclRule(name, 'down'); } }
+            ] : []),
+            { icon:'delete', label:'Delete ' + name, hint:'⌦', run:() => { close(); this.areYouSure('Delete ' + name, sc.kind === 'servers' ? 'This connection profile is removed from the console. It does not touch or reconfigure the target machine.' : (isAclRow ? 'This rule is removed from acl.conf on the target -- backed up first, and rolled back automatically if the write cannot be verified.' : 'This object and everything referencing it are removed. The four gates still apply after the minigame.'), 3, () => (sc.kind === 'servers' && this.onRemoveServerRow ? this.onRemoveServerRow(name) : (isAclRow && this.onRemoveAclRule ? this.onRemoveAclRule(name) : this.ceremony('Delete ' + name, 'delete ' + name)))); } },
             common[0], common[1]
           ]);
         }

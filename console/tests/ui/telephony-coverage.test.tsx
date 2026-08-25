@@ -29,10 +29,18 @@ const srcDir = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'app
  * and mapping one onto something else would have meant inventing behaviour. The removals are
  * listed in docs/platform/unbound-controls.md so any of them can be put back with a real key.
  *
+ * Then 172: the access-control-rules editor removed s_acl and s_permit (a real ACL edit does
+ * not go through this single-key binding table at all -- see control-keys.test.tsx's "a
+ * section somebody picks" note) and replaced them with the "Add a rule" form's own three
+ * fields, s_aclname/s_action/s_spec, read directly by App.tsx's onAddAclRule the same way the
+ * servers screen's sv_host/sv_user are (`'s_aclname'`/`'s_action'`/`'s_spec'` appear as quoted
+ * literals right there, which is what this measurement actually looks for). Net +1 control,
+ * all of it working.
+ *
  * It may rise freely and may not fall.
  */
-const WORKING_FLOOR = 171;
-const TELEPHONY_TOTAL = 171;
+const WORKING_FLOOR = 172;
+const TELEPHONY_TOTAL = 172;
 
 function measure() {
   const files = readdirSync(srcDir).filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'));

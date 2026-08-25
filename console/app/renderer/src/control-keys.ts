@@ -308,14 +308,17 @@ function lt(control: string, type: string, key: string): ControlBinding {
   return { ...l(control, type, key), sectionType: type };
 }
 
-function b(control: string, section: string, key: string, invert?: boolean): ControlBinding {
-  return invert ? { control, section, key, kind: 'boolean', invert } : { control, section, key, kind: 'boolean' };
+function b(control: string, section: string, key: string, invert?: boolean, file?: string): ControlBinding {
+  const base = invert ? { control, section, key, kind: 'boolean' as const, invert } : { control, section, key, kind: 'boolean' as const };
+  return file ? { ...base, file } : base;
 }
-function n(control: string, section: string, key: string): ControlBinding {
-  return { control, section, key, kind: 'number' };
+function n(control: string, section: string, key: string, file?: string): ControlBinding {
+  const base = { control, section, key, kind: 'number' as const };
+  return file ? { ...base, file } : base;
 }
-function s(control: string, section: string, key: string): ControlBinding {
-  return { control, section, key, kind: 'string' };
+function s(control: string, section: string, key: string, file?: string): ControlBinding {
+  const base = { control, section, key, kind: 'string' as const };
+  return file ? { ...base, file } : base;
 }
 /** A `string`-kind binding whose control values do not literally match Asterisk's own
  *  spelling — see `ControlBinding.valueMap`. */
@@ -324,11 +327,14 @@ function sMapped(
   section: string,
   key: string,
   valueMap: Readonly<Record<string, string>>,
+  file?: string,
 ): ControlBinding {
-  return { control, section, key, kind: 'string', valueMap };
+  const base = { control, section, key, kind: 'string' as const, valueMap };
+  return file ? { ...base, file } : base;
 }
-function l(control: string, section: string, key: string): ControlBinding {
-  return { control, section, key, kind: 'list' };
+function l(control: string, section: string, key: string, file?: string): ControlBinding {
+  const base = { control, section, key, kind: 'list' as const };
+  return file ? { ...base, file } : base;
 }
 
 /**
@@ -659,31 +665,28 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
   // failed via a SIP Reason header) — mapped explicitly below to Continue/Reject/Tag
   // respectively ("Tag" for continue_return_reason because tagging the response with a
   // Reason header, rather than rejecting or silently continuing, is what that value
-  // does). s_acl, s_permit, s_failban, s_bantime, s_guest, s_cert, s_method, s_verify
-  // and s_ciphers have no matching key in acl.conf.sample or stir_shaken.conf.sample
-  // with the same meaning and value set as the design control, and stay unmapped —
-  // most of acl.conf.sample's `permit=`/`deny=` entries live in a *named* ACL section
-  // chosen dynamically by another control, which a static section binding cannot
-  // follow without risking a write to the wrong ACL; s_cert/s_method/s_ciphers name TLS
-  // settings that live in http.conf, not in this screen's two files; s_verify's "verify
-  // client certificates" is a distinct TLS-mTLS concept from stir_shaken.conf's own
-  // certificate-loading options, not the same setting under a different name.
+  // does). All four now carry an explicit `file` override: the security screen's own
+  // resource became `acl.conf` (see below) once the access-control-rules editor started
+  // reading it as this screen's primary file, so these attestation/verification
+  // settings — which have always lived in stir_shaken.conf, a different file — need
+  // that stated rather than left to default to whatever the screen itself reads. Left
+  // unmapped: s_aclname/s_action/s_spec (the "Add a rule" form below is navigation and
+  // input for a NEW rule, exactly like the servers screen's sv_host/sv_user — writing
+  // one of them into a key would put a control's current typed value where a setting
+  // belongs, not persist the setting itself); s_failban/s_bantime (this console's own
+  // auto-ban behaviour — no failban/bantime key exists in acl.conf.sample or anywhere
+  // else Asterisk reads, because banning a repeat offender is not something Asterisk's
+  // own ACL evaluation does); and s_cert/s_method/s_verify/s_ciphers name TLS settings
+  // that live in http.conf and are a screen this console does not yet have.
   security: [
-    // configs/samples/acl.conf.sample lines 34-36: an ACL is a named section holding one
-    // permit= or deny= line per network, in order, because the order decides which rule
-    // wins. The section is whichever ACL s_acl currently names; s_acl itself stays unbound,
-    // since choosing which object to edit is navigation rather than a setting, and writing
-    // its value into a key would put the name of a section inside that section.
-    { control: 's_permit', section: 'named-acl', key: 'permit', kind: 'list',
-      repeated: true, sectionFrom: 's_acl' },
-    b('s_stir', 'attestation', 'global_disable', true),
-    s('s_level', 'attestation', 'attest_level'),
-    b('s_verifyin', 'verification', 'global_disable', true),
+    b('s_stir', 'attestation', 'global_disable', true, 'stir_shaken.conf'),
+    s('s_level', 'attestation', 'attest_level', 'stir_shaken.conf'),
+    b('s_verifyin', 'verification', 'global_disable', true, 'stir_shaken.conf'),
     sMapped('s_failaction', 'verification', 'failure_action', {
       Continue: 'continue',
       Tag: 'continue_return_reason',
       Reject: 'reject_request',
-    }),
+    }, 'stir_shaken.conf'),
   ],
 };
 
@@ -962,7 +965,7 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
   modules: ['mo_auto', 'mo_preload', 'mo_noload', 'mo_require'],
   logger: ['g_console', 'g_verbose', 'g_file', 'g_rotate', 'g_queue'],
   security: [
-    's_acl', 's_permit', 's_failban', 's_bantime',
+    's_aclname', 's_action', 's_spec', 's_failban', 's_bantime',
     's_stir', 's_level', 's_verifyin', 's_failaction',
   ],
 };

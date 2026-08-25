@@ -11,6 +11,11 @@ import { buildEndpointGraph, brokenLinks as brokenEndpointLinks, layoutTopology,
 import { runCeremonyCommand, type CeremonyResponse } from './ceremony';
 import { configSummary, renderForDisplay, resourceForFile, type ConfigReading, type ConfigValue } from './configuration';
 import { readControlValues, isUninventoried, unmappedControls } from './control-keys';
+import { aclFindings, aclRuleRows, resolveAclRowKey } from './acl-editor';
+import {
+  addRule as addAclRule, moveRule as moveAclRuleModel, parseAcl, removeRule as removeAclRuleModel,
+  toConfigValue, validateRule as validateAclRule, type AclModel,
+} from '../../../control-plane/acl-model';
 import { canProvision, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
 import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
 import { ServerSwitcher } from './servers';
@@ -2691,6 +2696,7 @@ What you can do: ${offered}.` : ''}`);
    * loaded and the toast was simply untrue.
    */
   onPickRow = (name: string): void => {
+    if ((this.state as { screen: string }).screen === 'security') { this.onPickAclRow(name); return; }
     const value = this.pjsipValue();
     if (!value) { this.fire('Not loaded', 'The pjsip.conf on this target has not been read yet.'); return; }
     const endpoint = findEndpoint(value, name);
@@ -2700,6 +2706,30 @@ What you can do: ${offered}.` : ''}`);
     this.setState({ values: { ...state.values, ...controlValuesFor(endpoint) } } as never);
     this.toast(`${name} loaded into the editor below.`);
   };
+
+  /** Loads one ACL rule's action and network into the "Add a rule" fields, so changing
+   *  it and pressing "Add rule" again edits it in place -- see `onAddAclRule` above,
+   *  which checks `aclEditingRowKey` to turn the next add into a remove-and-replace. */
+  private onPickAclRow(rowKey: string): void {
+    const value = this.aclConfigValue();
+    if (!value) { this.fire('Not loaded', 'acl.conf on this target has not been read yet.'); return; }
+    const resolved = resolveAclRowKey(value, rowKey);
+    if (!resolved) { this.fire('Not loaded', 'That rule is no longer in this target’s acl.conf.'); return; }
+    let model: AclModel;
+    try {
+      model = parseAcl(value);
+    } catch (error) {
+      this.fire('Not loaded', error instanceof Error ? error.message : String(error));
+      return;
+    }
+    const acl = model.find((candidate) => candidate.name === resolved.aclName);
+    const rule = acl?.rules[resolved.ruleIndex];
+    if (!rule) { this.fire('Not loaded', 'That rule is no longer in this target’s acl.conf.'); return; }
+    this.aclEditingRowKey = rowKey;
+    const state = this.state as { values: Record<string, unknown> };
+    this.setState({ values: { ...state.values, s_aclname: resolved.aclName, s_action: rule.action, s_spec: rule.spec } } as never);
+    this.toast(`${resolved.aclName}: ${rule.action} ${rule.spec} loaded into the editor below. Change it and press "Add rule" to save, or "Add rule" with nothing changed to leave it as is.`);
+  }
 
   /**
    * Real bulk-action handling for every table-like screen.
@@ -3117,10 +3147,153 @@ It is shown once. The phone needs it to register.`);
       }
       /* The servers table is the one screen whose rows are not a reading from a PBX:
        * they are the console's own configured servers, which exist whether or not
-       * anything is reachable. Feeding it from `readings` left it permanently empty. */
-      table.rows = id === 'servers' ? serverRows(this.servers.servers) : rowsFor(screen, this.readings[screen]);
+       * anything is reachable. Feeding it from `readings` left it permanently empty.
+       *
+       * Security's rows are not a `pbx.read` reading either -- there is no read-only CLI
+       * command that prints one line per `permit=`/`deny=` rule inside a chosen named ACL,
+       * only `acl show`'s bare list of ACL names (see `parseAclRules`). The real rules
+       * live in `acl.conf` itself, read through the same structured `pbx.config` transport
+       * every configuration screen already uses (`this.configs.security`, populated by
+       * `refresh()` below from `resourceForFile(SCREENS.security.file)`). */
+      table.rows = id === 'servers'
+        ? serverRows(this.servers.servers)
+        : id === 'security'
+          ? aclRuleRows(this.aclConfigValue())
+          : rowsFor(screen, this.readings[screen]);
     }
   }
+
+  /** The target's real `acl.conf`, or `undefined` when it has not been read yet. */
+  private aclConfigValue(): ConfigValue | undefined {
+    return this.configs.security?.state === 'read' ? this.configs.security.value : undefined;
+  }
+
+  /** The row a security-screen click loaded into the "Add a rule" fields below, so
+   *  pressing the add button again edits that rule in place instead of appending a
+   *  duplicate. Cleared once the edit is written (or a fresh add starts from empty). */
+  private aclEditingRowKey: string | undefined;
+
+  /** One write path for every ACL mutation, so none of them can skip the plan/apply
+   *  transaction `ConfigTransaction` already runs end to end (backup, stage, validate,
+   *  apply, post-read, compare, rollback on mismatch) -- the same shape `writePjsip`
+   *  above uses for pjsip.conf. */
+  private async writeAcl(nextModel: AclModel, summary: string, done: string): Promise<boolean> {
+    const resource = this.configs.security?.resource ?? resourceForFile((SCREENS as Record<string, { file?: unknown }>).security?.file);
+    if (!resource) { this.fire('Not written', 'acl.conf has no resolvable resource for this screen yet.'); return false; }
+    const payload = { documents: [{ resource, value: toConfigValue(nextModel) }] };
+    const planned = await this.request('pbx.plan', { serverId: this.target.id, payload });
+    if (!planned?.ok) { this.fire('Not written', planned?.message ?? 'The control plane did not answer.'); return false; }
+    const applied = await this.request('pbx.apply', { serverId: this.target.id, payload });
+    if (!applied?.ok) { this.fire('Not written', applied?.message ?? 'The change was planned but not applied.'); return false; }
+    const result = (applied.data as { result?: { status?: string; message?: string } } | undefined)?.result;
+    if (result && result.status !== 'applied') {
+      this.fire('Not written', result.message ?? `The transaction ended with ${result.status}.`);
+      return false;
+    }
+    /* The reading is now stale -- refetched on the next `refresh()` pass, same as
+     * `writePjsip` invalidates `configs.endpoints` after a pjsip.conf write. */
+    delete this.configs.security;
+    this.seeded.delete('security');
+    this.fire(done, summary);
+    this.forceUpdate();
+    return true;
+  }
+
+  /**
+   * "Add rule" on the Security screen. Reads the same `'s_aclname'` / `'s_action'` /
+   * `'s_spec'` fields the design's own "Add a rule" group binds to `values`, exactly
+   * the way `onAddServer` above reads `sv_*` straight out of state rather than opening
+   * a separate wizard. `validateRule` is Asterisk's own `ast_append_ha` parse rules --
+   * see `control-plane/acl-model.ts` -- so a bad address is refused here, before it
+   * ever reaches the transport, with the exact reason named.
+   *
+   * When a row was picked into these fields first (`onPickRow` below sets
+   * `aclEditingRowKey`), this both removes the original rule and adds the edited one in
+   * ONE plan/apply, which is what turns "remove one, add another" into a real edit.
+   */
+  onAddAclRule = async (): Promise<void> => {
+    const value = this.aclConfigValue();
+    if (!value) { this.fire('Not added', 'acl.conf on this target has not been read yet.'); return; }
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const aclName = String(values.s_aclname ?? '').trim();
+    const action = String(values.s_action ?? 'permit').trim();
+    const spec = String(values.s_spec ?? '').trim();
+    if (!aclName) { this.fire('Not added', 'Name the ACL this rule belongs to.'); return; }
+    let rule;
+    try {
+      rule = validateAclRule(action, spec);
+    } catch (error) {
+      this.fire('Not added', error instanceof Error ? error.message : String(error));
+      return;
+    }
+    let model: AclModel;
+    try {
+      model = parseAcl(value);
+    } catch (error) {
+      this.fire('Not added', error instanceof Error ? error.message : String(error));
+      return;
+    }
+    const editing = this.aclEditingRowKey ? resolveAclRowKey(value, this.aclEditingRowKey) : undefined;
+    const base = editing ? removeAclRuleModel(model, editing.aclName, editing.ruleIndex) : model;
+    const next = addAclRule(base, aclName, rule);
+    const verb = editing ? 'edited' : 'added';
+    const ok = await this.writeAcl(
+      next,
+      `${aclName}: ${rule.action} ${rule.spec} (rule ${verb} in acl.conf, applied and verified).`,
+      `Rule ${verb}`,
+    );
+    if (ok) {
+      this.aclEditingRowKey = undefined;
+      const state = this.state as { values: Record<string, unknown> };
+      this.setState({ values: { ...state.values, s_aclname: '', s_action: 'permit', s_spec: '' } } as never);
+    }
+  };
+
+  /** The design has already run this past `areYouSure` before calling it, exactly like
+   *  `onRemoveServerRow` above. `rowKey` is the row's own first cell, resolved back to
+   *  the rule it names by {@link resolveAclRowKey} against the CURRENT file rather than
+   *  a stale index kept from when the context menu opened. */
+  onRemoveAclRule = async (rowKey: string): Promise<void> => {
+    const value = this.aclConfigValue();
+    if (!value) { this.fire('Not removed', 'acl.conf on this target has not been read yet.'); return; }
+    const resolved = resolveAclRowKey(value, rowKey);
+    if (!resolved) { this.fire('Not removed', 'That rule is no longer in this target’s acl.conf.'); return; }
+    let model: AclModel;
+    try {
+      model = parseAcl(value);
+    } catch (error) {
+      this.fire('Not removed', error instanceof Error ? error.message : String(error));
+      return;
+    }
+    const next = removeAclRuleModel(model, resolved.aclName, resolved.ruleIndex);
+    if (this.aclEditingRowKey === rowKey) this.aclEditingRowKey = undefined;
+    await this.writeAcl(next, `Removed rule ${resolved.ruleIndex + 1} from "${resolved.aclName}", applied and verified.`, 'Rule removed');
+  };
+
+  /** "Move rule up" / "Move rule down" from the row context menu. Non-destructive --
+   *  reordering the same rules, never adding or removing one -- so this runs directly
+   *  the same way the design's own `order` control kind moves an item without a
+   *  confirmation ceremony. */
+  onMoveAclRule = async (rowKey: string, direction: 'up' | 'down'): Promise<void> => {
+    const value = this.aclConfigValue();
+    if (!value) { this.fire('Not moved', 'acl.conf on this target has not been read yet.'); return; }
+    const resolved = resolveAclRowKey(value, rowKey);
+    if (!resolved) { this.fire('Not moved', 'That rule is no longer in this target’s acl.conf.'); return; }
+    let model: AclModel;
+    try {
+      model = parseAcl(value);
+    } catch (error) {
+      this.fire('Not moved', error instanceof Error ? error.message : String(error));
+      return;
+    }
+    const next = moveAclRuleModel(model, resolved.aclName, resolved.ruleIndex, direction);
+    if (next === model) { this.fire('Not moved', `Rule ${resolved.ruleIndex + 1} in "${resolved.aclName}" is already at that end of the list.`); return; }
+    await this.writeAcl(
+      next,
+      `Moved rule ${resolved.ruleIndex + 1} in "${resolved.aclName}" ${direction} -- evaluation order changed, applied and verified.`,
+      'Rule reordered',
+    );
+  };
 
   private note(screen: string): string {
     if (screen === 'history') return NO_HISTORY;
@@ -3147,6 +3320,16 @@ It is shown once. The phone needs it to register.`);
         }
         if (unmapped.length > 0) {
           return `${summary} ${unmapped.length} control(s) on this screen are not yet bound to a setting in it and still show shipped defaults.`;
+        }
+        /* `analyse()` (control-plane/acl-model.ts) finds real problems in the rules
+         * themselves -- a rule a later one always overwrites, a bare "permit the whole
+         * internet", an ACL that ends on an open permit, an ACL with nothing in it --
+         * surfaced here rather than left for someone to notice the hard way. */
+        if (screen === 'security') {
+          const findings = aclFindings(this.configs.security?.value);
+          if (findings.length > 0) {
+            return `${summary} ${findings.length} finding(s) in these rules: ${findings.map((f) => f.message).join(' ')}`;
+          }
         }
       }
       return summary;

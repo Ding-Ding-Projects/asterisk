@@ -70,7 +70,19 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // that sample documents it under. That check is the whole value of the exercise -- it caught
   // remove_existing, which reads like an endpoint setting and is an AOR key, and would have
   // written a line Asterisk ignores while the screen reported it as set.
-  assert.equal(controlCount, 149);
+  // And 148 once the access-control-rules editor arrived: `s_permit` is REMOVED rather than
+  // kept, because it was wrong, not merely incomplete. It bound only the `permit` key, so
+  // every `deny=` line already in a real acl.conf.sample-shaped file (the classic
+  // deny-then-permit allowlist idiom the sample itself documents) would have been silently
+  // dropped the moment anyone touched the list -- `repeated: true` replaces every occurrence
+  // of ONE key, and an ACL's meaning depends on permit and deny interleaved in order (see
+  // control-plane/acl-model.ts's module doc). `s_acl`, its section-picker, is removed with
+  // it: nothing else named it. The real editor -- add, edit, remove, reorder, every rule's
+  // action preserved -- is control-plane/acl-model.ts plus app/renderer/src/acl-editor.ts,
+  // wired through the same pbx.plan/pbx.apply transaction every other write in this console
+  // uses, not through this single-key binding table, which cannot express an ordered,
+  // mixed-action list at all.
+  assert.equal(controlCount, 148);
 });
 
 // ---------------------------------------------------------------- boolean parsing
@@ -94,12 +106,18 @@ test('an unrecognised boolean spelling is left unset rather than guessed', () =>
 });
 
 test('invert flips a *_disable style key so the control keeps its own sense', () => {
+  // s_stir lives in stir_shaken.conf, a different file from the security screen's own
+  // primary resource (acl.conf, once the access-control-rules editor made it read that),
+  // so it now carries an explicit `file` override -- read from `elsewhere`, per the
+  // "a control whose key lives in another file" tests further down this file.
   const enabled: ConfigValue = [{ name: 'attestation', entries: [{ key: 'global_disable', value: 'no' }] }];
-  assert.equal(readControlValues('security', enabled).s_stir, true);
+  assert.equal(readControlValues('security', [], { 'stir_shaken.conf': enabled }).s_stir, true);
   const disabled: ConfigValue = [{ name: 'attestation', entries: [{ key: 'global_disable', value: 'yes' }] }];
-  assert.equal(readControlValues('security', disabled).s_stir, false);
+  assert.equal(readControlValues('security', [], { 'stir_shaken.conf': disabled }).s_stir, false);
 
-  // and round-trips back through applyControlValues negated the same way
+  // applyControlValues has no notion of `file` -- it writes into whatever ConfigValue it is
+  // handed, unconditionally -- so the round trip is proven against a document shaped like
+  // stir_shaken.conf directly, exactly as a caller who actually reads that file would.
   const next = applyControlValues('security', enabled, { s_stir: false });
   const section = next.find((s) => s.name === 'attestation');
   assert.equal(section?.entries.find((e) => e.key === 'global_disable')?.value, 'yes');
@@ -344,8 +362,10 @@ test('s_failaction value mapping reads every real failure_action spelling', () =
     ['reject_request', 'Reject'],
   ];
   for (const [raw, control] of cases) {
+    // s_failaction also carries the `file: 'stir_shaken.conf'` override -- see the invert
+    // test above for why the security screen's own resource is a different file now.
     const cfg: ConfigValue = [{ name: 'verification', entries: [{ key: 'failure_action', value: raw }] }];
-    assert.equal(readControlValues('security', cfg).s_failaction, control, `expected ${raw} to read as ${control}`);
+    assert.equal(readControlValues('security', [], { 'stir_shaken.conf': cfg }).s_failaction, control, `expected ${raw} to read as ${control}`);
   }
 });
 
@@ -391,9 +411,15 @@ test('unmappedControls reflects the two controls bound on this second look', () 
   /* a_deny left the list too, once a binding could mean the key is absent. Both it and
    * a_tlsport were recorded as refused when what was really missing was a shape. */
   assert.ok(!unmappedControls('ami').includes('a_deny'));
-  /* s_permit left this list once a section could be a choice and a key could repeat. */
-  for (const stillUnbound of [
-    's_acl',]) {
+  /* s_permit and s_acl are GONE from this screen entirely (see the count comment above):
+   * the ACL rule editor is control-plane/acl-model.ts + app/renderer/src/acl-editor.ts,
+   * not this single-key binding table. s_aclname/s_action/s_spec are the "Add a rule"
+   * form's own input fields -- read directly by App.tsx's onAddAclRule, exactly the way
+   * the servers screen's sv_host/sv_user are, and deliberately never a binding: writing
+   * a form field's current value into a key would put a control's typed input where a
+   * persisted setting belongs, not the setting itself. s_failban/s_bantime remain this
+   * console's own auto-ban preference, not an Asterisk key either. */
+  for (const stillUnbound of ['s_aclname', 's_action', 's_spec', 's_failban', 's_bantime']) {
     assert.ok(unmappedControls('security').includes(stillUnbound), `expected ${stillUnbound} to remain unmapped`);
   }
   /* k_transcode left this list once a binding could name its own file: transcode_via_sln is
@@ -645,63 +671,20 @@ test('global transcoding is the same story on a different screen', () => {
 });
 
 // ---------------------------------------------------------------- a section somebody picks
-
-/** acl.conf as it really is: each ACL a named section, order deciding which rule wins. */
-const acls: ConfigValue = [
-  { name: 'trusted-nets', entries: [
-    { key: 'deny', value: '0.0.0.0/0' },
-    { key: 'permit', value: '10.0.0.0/8' },
-    { key: 'permit', value: '192.168.0.0/16' },
-  ] },
-  { name: 'branch-offices', entries: [{ key: 'permit', value: '172.16.0.0/12' }] },
-];
-
-test('the list belongs to whichever ACL is picked', () => {
-  assert.deepEqual(readControlValues('security', acls, {}, { s_acl: 'trusted-nets' }).s_permit,
-    ['10.0.0.0/8', '192.168.0.0/16']);
-  assert.deepEqual(readControlValues('security', acls, {}, { s_acl: 'branch-offices' }).s_permit,
-    ['172.16.0.0/12']);
-});
-
-test('with nothing picked the list is absent, not read from whichever came first', () => {
-  /* Editing whichever ACL happens to be written first is not what somebody picking one meant. */
-  assert.equal(readControlValues('security', acls).s_permit, undefined);
-});
-
-test('a section name that could break the file is refused', () => {
-  /* A bracket would close the section early and put the rest somewhere nobody intended. */
-  for (const name of ['acl]evil', '[acl', 'two words', '']) {
-    assert.equal(readControlValues('security', acls, {}, { s_acl: name }).s_permit, undefined, name);
-  }
-});
-
-test('writing replaces the whole run rather than the first line', () => {
-  /* A list means "these, in this order". Leaving the old entries behind would combine two
-   * lists into one that permits more than either -- in an ACL, that is a security failure
-   * rather than a formatting one. */
-  const after = applyControlValues('security', acls, { s_acl: 'trusted-nets', s_permit: ['10.1.0.0/16'] });
-  const edited = after.find((section) => section.name === 'trusted-nets');
-  assert.deepEqual(edited.entries.filter((e) => e.key === 'permit'), [{ key: 'permit', value: '10.1.0.0/16' }]);
-});
-
-test('the run stays where it was, and its neighbours with it', () => {
-  /* In a file whose order decides which rule wins, moving a block to the end is not a
-   * formatting detail. */
-  const after = applyControlValues('security', acls, { s_acl: 'trusted-nets', s_permit: ['10.1.0.0/16', '10.2.0.0/16'] });
-  const edited = after.find((section) => section.name === 'trusted-nets');
-  assert.deepEqual(edited.entries.map((e) => e.key), ['deny', 'permit', 'permit']);
-});
-
-test('the ACL nobody picked is left exactly as it was', () => {
-  const after = applyControlValues('security', acls, { s_acl: 'trusted-nets', s_permit: ['10.1.0.0/16'] });
-  assert.deepEqual(after.find((section) => section.name === 'branch-offices'), acls[1]);
-});
-
-test('an empty list clears the run rather than leaving the old one', () => {
-  const after = applyControlValues('security', acls, { s_acl: 'branch-offices', s_permit: [] });
-  const edited = after.find((section) => section.name === 'branch-offices');
-  assert.deepEqual(edited.entries, []);
-});
+//
+// This block used to test s_permit -- a `repeated: true, sectionFrom: 's_acl'` binding on
+// the security screen -- against a synthetic acl.conf with a real permit/deny mix. It is
+// gone along with the binding: `repeated` replaces every occurrence of ONE key, and an
+// ACL's meaning is permit and deny INTERLEAVED in order (see control-plane/acl-model.ts's
+// module doc, and the count comment near the top of this file). A single-key binding can
+// never express that safely, which is a correctness bug, not a gap this file should keep
+// pinning as a feature. The real editor -- add, edit, remove, reorder, both actions, real
+// order preserved -- is covered directly in control-plane/acl-model.test.ts (the pure
+// addRule/removeRule/moveRule mutations) and app/renderer/src/acl-editor.test.ts (row
+// building and the row-key round trip), against the real ACL semantics rather than this
+// table's single-key model. `sectionFrom`/`repeated` remain documented, general-purpose
+// `ControlBinding` capabilities (see control-keys.ts) for a future binding that genuinely
+// fits their shape; none currently does.
 
 test('the IAX type picker chooses which objects the screen edits', () => {
   /* It was unbound because binding it to the type key would let somebody change the type

@@ -320,6 +320,8 @@ export const CANTONESE: Catalog = {
   'Export group as JSON': '將成組匯出做 JSON',
   'Import a group…': '匯入一組…',
   'Lock every tab in group': '🔒 組入面每個分頁',
+  'Move rule down': '條規則搬落去',
+  'Move rule up': '條規則搬上去',
   'Password + PIN + one-time code': '密碼加 PIN 加一次性密碼',
   'Random appearance for every element': '每個元素隨機外觀',
   'Reload every tab in group': '重新載入組入面每個分頁',
