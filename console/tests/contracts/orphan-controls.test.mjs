@@ -22,7 +22,31 @@ const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const design = read('../../../design/Asterisk Console M3.dc.html');
 const generated = read('../../app/renderer/src/generated/console.tsx');
 const keys = read('../../app/renderer/src/control-keys.ts');
-const app = read('../../app/renderer/src/App.tsx') + read('../../app/renderer/src/PbxAdminApp.tsx');
+/**
+ * App.tsx, with its three appearance INVENTORY lists cut out.
+ *
+ * Those lists name controls in order to REPORT on them -- APPLIED_APPEARANCE, PREVIEW_APPEARANCE
+ * and INERT_APPEARANCE exist so the appearance panel can say truthfully which controls do
+ * something. But this classifier treats any quoted mention of an id in App.tsx as evidence that
+ * something consumes it, so writing an honest list of controls that reach NOTHING silently
+ * removed every one of them from the orphan count. The list added to document thirteen dead
+ * controls is the thing that hid them.
+ *
+ * Caught when a lane reported that moving seven ids between those lists changed the measured
+ * figure by zero. It should have changed it by seven, and the reason it did not is this.
+ */
+function appSourceWithoutInventories() {
+  let source = read('../../app/renderer/src/App.tsx') + read('../../app/renderer/src/PbxAdminApp.tsx');
+  for (const name of ['APPLIED_APPEARANCE', 'PREVIEW_APPEARANCE', 'INERT_APPEARANCE']) {
+    const at = source.indexOf(`${name} = [`);
+    if (at === -1) continue;
+    const end = source.indexOf(']', at);
+    source = source.slice(0, at) + source.slice(end);
+  }
+  return source;
+}
+
+const app = appSourceWithoutInventories();
 
 /**
  * The count on 2026-08-24, measured rather than chosen.
@@ -32,6 +56,11 @@ const app = read('../../app/renderer/src/App.tsx') + read('../../app/renderer/sr
  * reaching the live preview and by the readout that names them. Each time this check is
  * what forced it.
  *
+ * 274 on 2026-08-24, and that figure moved in both directions at once. Seventeen endpoint
+ * controls gained real pjsip keys, which lowered it. Against that, the three appearance
+ * inventory lists stopped counting as consumers, which RAISED it: naming a dead control in
+ * an honest list of dead controls was hiding it from this very count.
+ *
  * Originally 364, and lowered by the twenty-one http.conf and features.conf bindings that
  * brought two whole screens into the table for the first time. The check below is what forced
  * that: it fails when the real figure falls well under the ceiling, so the ratchet tightens
@@ -40,7 +69,7 @@ const app = read('../../app/renderer/src/App.tsx') + read('../../app/renderer/sr
  * It only ever goes down. If a change makes it rise, that change is adding a control nobody
  * reads, and the honest options are to wire it or to leave it out.
  */
-const ORPHAN_CEILING = 279;
+const ORPHAN_CEILING = 274;
 const TOTAL_CONTROLS = 599;
 
 function classify() {
