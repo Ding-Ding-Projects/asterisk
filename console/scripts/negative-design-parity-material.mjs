@@ -145,6 +145,24 @@ for (const [name, read] of [
   console.log(`RED: ${name}\n       beta: ${stale[0].reason}`);
 }
 
+/* The line-ending case, which is the one that actually bit. With core.autocrlf=true a
+ * record written LF here is CRLF in every other checkout of the same commit, so a
+ * byte-for-byte comparison is green only on the machine that wrote it. Both directions are
+ * planted: a CRLF record must not be called stale, and stripping carriage returns must not
+ * blind the check to a real edit. */
+const asCommitted = serializeAudit(records[0]);
+const asCheckedOut = asCommitted.replaceAll('\n', '\r\n');
+if (asCheckedOut === asCommitted) throw new Error('the CRLF fixture is identical to the LF one, so this case would prove nothing');
+if (findStaleRecords([records[0]], { pathFor, read: () => asCheckedOut }).length !== 0) {
+  throw new Error('a record materialised with CRLF was reported stale — the freshness check is green only where it was written');
+}
+console.log('GREEN (line endings): a record materialised with CRLF is the same record, not a stale one.');
+
+const tampered = asCommitted.replace('"conforms": true', '"conforms": false').replaceAll('\n', '\r\n');
+const tamperedStale = findStaleRecords([records[0]], { pathFor, read: () => tampered });
+if (tamperedStale.length !== 1) throw new Error('stripping carriage returns blinded the check to a real edit');
+console.log(`RED: a CRLF record whose content was genuinely edited\n       ${tamperedStale[0].destinationId}: ${tamperedStale[0].reason}`);
+
 let refusedEmpty = false;
 try { findStaleRecords([], { pathFor, read: () => null }); } catch (error) { refusedEmpty = true; console.log(`RED: a freshness check over no records at all\n       ${error.message}`); }
 if (!refusedEmpty) throw new Error('a freshness check over zero records passed vacuously');
