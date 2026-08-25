@@ -39,3 +39,11 @@ console/scripts/iso/meta-data   text eol=lf
 # PNG as binary by itself; this states it, for the same reason the generated renderer is
 # pinned rather than left to chance: an implicit rule is one nobody can see stop applying.
 console/release/captures/**/*.png   binary
+
+# Generated design-parity data. Both files are re-derived byte for byte by their
+# generators and compared with a --check freshness gate wired into `npm test`. The
+# generators write LF, so on a checkout that translates to CRLF the gate reports the
+# file stale when nothing about it has changed -- proven here: identical content passed
+# as LF and failed as CRLF, which would turn a fresh Windows clone red for a reason no
+# diff can show. Pinning is what makes the gate mean what it says.
+console/design-reference/*.generated.json   text eol=lf
