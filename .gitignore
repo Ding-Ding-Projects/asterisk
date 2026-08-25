@@ -64,3 +64,4 @@ console/control-plane/*.d.ts
 # Built installer images. Multi-gigabyte artifacts are never committed; the release
 # record carries their digest instead.
 console/release/
+ralph/logs/
