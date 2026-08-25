@@ -171,10 +171,15 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       // Registrations are read here too (not only for `trunks`) so the endpoint
       // reachability graph can draw the outbound-registration edge for an endpoint
       // that is also a trunk identity, exactly as `pjsip show registrations` reports it.
-      const [endpoints, contacts, registrations] = await Promise.all([
+      // `channelStats` is what lets the Transport and Codecs columns stop reading the
+      // "not read yet" placeholder -- see `AsteriskReadings.channelStats` for why the
+      // codec has to come from a live channel rather than from `pjsip show endpoints`
+      // itself, and `parseEndpoints` for where the transport id comes from instead.
+      const [endpoints, contacts, registrations, channelStats] = await Promise.all([
         readings.endpoints(target), readings.contacts(target), readings.registrations(target),
+        readings.channelStats(target),
       ]);
-      return { endpoints, contacts, registrations };
+      return { endpoints, contacts, registrations, channelStats };
     }
     if (view === 'trunks') return { registrations: await readings.registrations(target) };
     if (view === 'queues') return { queues: await readings.queues(target) };

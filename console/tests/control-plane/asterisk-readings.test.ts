@@ -5,6 +5,7 @@ import {
   AsteriskReadings,
   LocalAsteriskCliGateway,
   parseChannels,
+  parseChannelStats,
   parseContacts,
   parseEndpoints,
   parseModules,
@@ -123,9 +124,119 @@ test("parseEndpoints reads rows and ignores the header/divider/summary lines", (
   assert.deepEqual(rows[1], { id: "1001", callerId: undefined, state: "Unavailable", channels: "0 of inf" });
 });
 
+// res/res_pjsip/pjsip_cli.c line 152: `pjsip show endpoints` runs with `recurse = 1`, so
+// pjsip_configuration.c's cli_endpoint_print_body also emits a child line per endpoint
+// from config_transport.c cli_print_body: "%*s:  %-21s  %6s  %5u  %5u  %s\n" ->
+// "  Transport:  <id>  <type>  <cos>  <tos>  <bind address>". That child formatter's own
+// cli_iterate looks the endpoint's `transport` field up by id and returns -1 -- printing
+// nothing -- when it is empty, which real config commonly leaves it (transports are
+// auto-matched from the inbound connection). 1001 below has no Transport line at all,
+// on purpose, to prove that stays honestly absent rather than becoming a guess.
+test("parseEndpoints reads the recursed Transport child line, and leaves it absent when Asterisk printed none", () => {
+  const stdout = [
+    "",
+    " Endpoint:  <Endpoint/CID.....................................>  <State.....>  <Channels.>",
+    "==========================================================================================",
+    "",
+    " Endpoint:  1000/Alice  Not in use  1 of inf",
+    "    Auth:  <AuthId/UserId.........................>  <AuthType....>  <Username....................>",
+    "     Aor:  <AorId.....................>  <MaxContact>",
+    "  Transport:  transport-udp          udp     0     0  0.0.0.0:5060",
+    " Identify:  <Identify/Endpoint.....................>  <Match.......................>",
+    "",
+    " Endpoint:  1001  Unavailable  0 of inf",
+    "",
+    "Objects found: 2",
+  ].join("\n");
+  const rows = parseEndpoints(stdout);
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].transport, "transport-udp");
+  assert.equal(rows[1].transport, undefined);
+});
+
+test("parseEndpoints does not mistake a short or malformed Transport-labelled line for a real one", () => {
+  const stdout = [
+    " Endpoint:  1000  Not in use  1 of inf",
+    // Missing the numeric cos/tos columns entirely -- not the real row shape.
+    "  Transport:  transport-udp",
+  ].join("\n");
+  const rows = parseEndpoints(stdout);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].transport, undefined);
+});
+
 test("parseEndpoints returns nothing for empty output or 'No objects found.'", () => {
   assert.deepEqual(parseEndpoints(""), []);
   assert.deepEqual(parseEndpoints("No objects found.\n"), []);
+});
+
+// ------------------------------------------------------------ parseChannelStats
+// channels/pjsip/cli_commands.c cli_channelstats_print_body's detailed row:
+// " %8.8s %-18.18s %-8.8s %-6.6s %6u%s %6u%s %3u %7.3f %6u%s %6u%s %3u %7.3f %7.3f\n"
+// -> " <bridgeId> <channelId> <uptime> <codec> <...RTP counters this reader ignores>".
+// Built with the same field widths/justification as the real printf spec so the fixed
+// column offsets `parseChannelStats` slices on land exactly where Asterisk puts them.
+function channelStatsRow(
+  bridgeId: string,
+  channelId: string,
+  uptime: string,
+  codec: string,
+  rest = "    12     0   0   0.120    34     0   0   0.340   5.670",
+): string {
+  return ` ${bridgeId.padStart(8).slice(0, 8)} ${channelId.padEnd(18).slice(0, 18)} ${uptime.padEnd(8).slice(0, 8)} ${codec.padEnd(6).slice(0, 6)} ${rest}`;
+}
+
+test("parseChannelStats reads bridgeId/channelId/codec off the detailed row and derives the endpoint id", () => {
+  const stdout = [
+    "",
+    "                                             ...........Receive......... .........Transmit..........",
+    " BridgeId ChannelId ........ UpTime.. Codec.   Count    Lost Pct  Jitter   Count    Lost Pct  Jitter RTT....",
+    " =================",
+    "==========================================================================================",
+    "",
+    channelStatsRow("bridge-1", "1000-00000001", "00:01:23", "ulaw"),
+    channelStatsRow("bridge-2", "sales-trunk1-0000000a", "00:00:05", "opus"),
+    "",
+    "Objects found: 2",
+  ].join("\n");
+  const rows = parseChannelStats(stdout);
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows[0], { channelName: "PJSIP/1000-00000001", endpointId: "1000", codec: "ulaw" });
+  // channelId is truncated to 18 chars by "%-18.18s" before this reader ever sees it, so an
+  // endpoint id long enough to push the hex suffix past that width is read as truncated:
+  // "sales-trunk1-0000000a" (21 chars) becomes "sales-trunk1-00000" (18), whose trailing
+  // "-00000" no longer matches the 8-hex-digit suffix regex. That is an honest degradation
+  // -- the endpoint just will not be matched back on the endpoints screen -- not a crash or
+  // a wrong match.
+  assert.deepEqual(rows[1], { channelName: "PJSIP/sales-trunk1-00000", endpointId: "sales-trunk1-00000", codec: "opus" });
+});
+
+// channels/pjsip/cli_commands.c: a channel with no RTP stats to read (gone by lookup time,
+// no audio stream, a corrupted session, or direct media) prints a short message with no
+// codec field in it at all, not a row with a blank codec.
+test("parseChannelStats skips 'not valid'/'no audio streams'/'direct media' lines: no codec to read", () => {
+  const stdout = [
+    " PJSIP/1000-00000001 not valid",
+    " PJSIP/1001-00000002 no audio streams",
+    " PJSIP/1002-00000003 corrupted default audio session",
+    "PJSIP/1003-00000004 direct media",
+  ].join("\n");
+  assert.deepEqual(parseChannelStats(stdout), []);
+});
+
+test("parseChannelStats skips a detailed row whose codec column is blank rather than inventing one", () => {
+  // rawreadformat was unset when Asterisk printed this row: the %-6.6s codec field is pure
+  // whitespace, not an omitted column -- same fixed-width trap as parseVoicemailUsers above.
+  const stdout = channelStatsRow("bridge-1", "1000-00000001", "00:01:23", "");
+  assert.deepEqual(parseChannelStats(stdout), []);
+});
+
+test("parseChannelStats on empty output or header-only output yields no rows", () => {
+  assert.deepEqual(parseChannelStats(""), []);
+  assert.deepEqual(
+    parseChannelStats(" BridgeId ChannelId ........ UpTime.. Codec.   Count    Lost Pct  Jitter   Count    Lost Pct  Jitter RTT....\n"),
+    [],
+  );
 });
 
 // ------------------------------------------------------------ parseContacts

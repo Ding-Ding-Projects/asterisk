@@ -107,6 +107,27 @@ export interface Endpoint {
   callerId?: string;
   state: string;
   channels: string;
+  /** The endpoint's own `transport=` id, when the config sets one explicitly. Most
+   *  endpoints do not (transports are auto-matched by the inbound connection), so this
+   *  is legitimately absent far more often than not -- see `parseEndpoints` below. */
+  transport?: string;
+}
+
+/**
+ * One row of `pjsip show channelstats`, keyed to the live channel it was measured on
+ * rather than to an endpoint directly -- see `parseChannelStats` below for how the
+ * endpoint id is recovered from the channel name.
+ */
+export interface ChannelCodecUsage {
+  /** Full channel name as PJSIP names it, e.g. `PJSIP/1000-00000001`. */
+  channelName: string;
+  /** `channelName` with the `PJSIP/<id>-` wrapper removed. */
+  endpointId: string;
+  /** The codec in use on that channel's default audio stream, when Asterisk could read
+   *  one. Absent for "direct media", "not valid", "no audio streams" and "corrupted
+   *  default audio session" rows -- none of those print a codec at all, so there is
+   *  nothing honest to report for them. */
+  codec?: string;
 }
 
 export interface Contact {
@@ -190,6 +211,16 @@ export class AsteriskReadings {
     return this.#read(target, "pjsip show endpoints", parseEndpoints, signal);
   }
 
+  /** The only CLI command that ever prints a codec: the endpoint's own `allow=` list is
+   *  not shown by `pjsip show endpoints` (that requires `show_details`, which the CLI
+   *  never sets for the plural listing -- only `pjsip show endpoint <id>` sets it, and
+   *  that needs a per-endpoint argument this console does not compose). What this reads
+   *  instead is the codec actually negotiated on each live channel, which is honestly
+   *  absent for an endpoint with no active call. */
+  channelStats(target: TargetProfile, signal?: AbortSignal): Promise<Reading<ChannelCodecUsage[]>> {
+    return this.#read(target, "pjsip show channelstats", parseChannelStats, signal);
+  }
+
   contacts(target: TargetProfile, signal?: AbortSignal): Promise<Reading<Contact[]>> {
     return this.#read(target, "pjsip show contacts", parseContacts, signal);
   }
@@ -270,14 +301,82 @@ export function parseChannels(stdout: string): Channel[] {
     }));
 }
 
-/** `res/res_pjsip/pjsip_configuration.c`: ` Endpoint:  <id[/cid]>  <state>  <n of m>`. */
+/**
+ * `res/res_pjsip/pjsip_configuration.c` `cli_endpoint_print_body`:
+ * `"%*s:  %-*.*s  %-12.12s  %d of %.0f\n"` -> ` Endpoint:  <id[/cid]>  <state>  <n of m>`.
+ *
+ * `pjsip show endpoints` runs with `context.recurse = 1` (`ast_sip_cli_traverse_objects`,
+ * `res/res_pjsip/pjsip_cli.c` line 152), so `cli_endpoint_print_body` also calls
+ * `cli_endpoint_print_child_body("transport", endpoint, context)` for every endpoint
+ * (`pjsip_configuration.c` line 2180). That child line comes from `config_transport.c`
+ * `cli_print_body`: `"%*s:  %-21s  %6s  %5u  %5u  %s\n"` -> `  Transport:  <id>  <type>
+ * <cos>  <tos>  <bind address>`. Its own `cli_iterate` (`config_transport.c`, just above
+ * `cli_print_header`) looks the endpoint's `transport` field up by id and returns -1 --
+ * printing nothing at all -- when that field is empty, which is the common case
+ * (transports are auto-matched from the inbound connection, not pinned per endpoint).
+ * So a missing Transport line is the honest, frequent outcome, not a parser miss.
+ */
 export function parseEndpoints(stdout: string): Endpoint[] {
   const rows: Endpoint[] = [];
+  let current: Endpoint | null = null;
   for (const line of lines(stdout)) {
-    const match = /^\s*Endpoint:\s{2}(\S+)\s+(\S.*?)\s{2,}(\d+ of \S+)\s*$/u.exec(line);
-    if (!match) continue;
-    const [id, callerId] = match[1].split("/");
-    rows.push({ id, callerId, state: match[2].trim(), channels: match[3] });
+    const endpointMatch = /^\s*Endpoint:\s{2}(\S+)\s+(\S.*?)\s{2,}(\d+ of \S+)\s*$/u.exec(line);
+    if (endpointMatch) {
+      const [id, callerId] = endpointMatch[1].split("/");
+      current = { id, callerId, state: endpointMatch[2].trim(), channels: endpointMatch[3] };
+      rows.push(current);
+      continue;
+    }
+    if (!current) continue;
+    // "  Transport:  <TransportId(21)>  <Type(6)>  <cos(5)>  <tos(5)>  <BindAddress>". The
+    // two numeric fields (cos, tos) are what pins this to the real row shape rather than
+    // matching some other line that merely starts with "Transport:".
+    const transportMatch = /^\s*Transport:\s{2}(\S+)\s+(\S+)\s+\d+\s+\d+\s+\S+\s*$/u.exec(line);
+    if (transportMatch) current.transport = transportMatch[1];
+  }
+  return rows;
+}
+
+/**
+ * `channels/pjsip/cli_commands.c` `cli_channelstats_print_body`: the only row shape that
+ * carries a codec is the full stats line,
+ * `" %8.8s %-18.18s %-8.8s %-6.6s %6u%s %6u%s %3u %7.3f %6u%s %6u%s %3u %7.3f %7.3f\n"`
+ * (bridge id, channel id, uptime, codec, then RTP counters this reader has no use for).
+ * A channel that is gone by the time Asterisk looks it up, has no audio stream, has a
+ * corrupted session, or is in direct media prints a short one-line message instead --
+ * `"<name> not valid"`, `"<name> no audio streams"`, `"<name> corrupted default audio
+ * session"`, `"<name> direct media"` -- with no codec field in it at all. There is
+ * genuinely nothing to read there, so those lines are skipped rather than turned into a
+ * row with an invented codec.
+ *
+ * The fixed-width columns mean a blank codec (no `rawreadformat` yet) prints as pure
+ * whitespace rather than an omitted field, exactly like `parseVoicemailUsers` above --
+ * so this slices by the format's own column offsets (bridgeId 1-8, channelId 10-27,
+ * uptime 29-36, codec 38-43, one space between each) and drops any row whose separator
+ * positions do not land on spaces, rather than misreading a shifted column as a value.
+ *
+ * `channelId` is `snapshot->base->name` with its 6-character `"PJSIP/"` prefix removed
+ * (`print_name += 6` in the same function); this command only ever sees PJSIP channels
+ * (`cli_message_to_snapshot`, a few lines above, links a snapshot only when
+ * `snapshot->base->type` is `"PJSIP"`). The endpoint id is recovered by stripping the
+ * trailing `-<8 lowercase hex digits>` sequence Asterisk appends when it names the
+ * channel: `channels/chan_pjsip.c` line 667, `ast_channel_alloc_with_initializers(...,
+ * "PJSIP/%s-%08x", ...)`.
+ */
+export function parseChannelStats(stdout: string): ChannelCodecUsage[] {
+  const rows: ChannelCodecUsage[] = [];
+  for (const line of lines(stdout)) {
+    if (line.length < 45 || line[9] !== " " || line[28] !== " " || line[37] !== " " || line[44] !== " ") continue;
+    const bridgeId = line.slice(1, 9).trim();
+    if (bridgeId === "BridgeId") continue; // the header row, which happens to share this column layout
+    const channelId = line.slice(10, 28).trim();
+    const codec = line.slice(38, 44).trim();
+    if (!channelId || !codec) continue;
+    rows.push({
+      channelName: `PJSIP/${channelId}`,
+      endpointId: channelId.replace(/-[0-9a-f]{8}$/u, ""),
+      codec,
+    });
   }
   return rows;
 }
