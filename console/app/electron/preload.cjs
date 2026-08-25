@@ -22,6 +22,14 @@ const api = Object.freeze({
       return () => ipcRenderer.removeListener('updater:status', handler);
     },
   }),
+  accessibility: Object.freeze({
+    isScreenReaderActive: () => ipcRenderer.invoke('accessibility:is-screen-reader-active'),
+    onChange: listener => {
+      const handler = (_event, active) => listener(active);
+      ipcRenderer.on('accessibility:changed', handler);
+      return () => ipcRenderer.removeListener('accessibility:changed', handler);
+    },
+  }),
 });
 
 contextBridge.exposeInMainWorld('dingDesktop', api);
