@@ -251,9 +251,17 @@ test('build composes deterministic local output without fetches', async () => {
   // 25 of the 26 records carrying it recorded an empty list, and the two properties of this
   // application that make the obvious reader return nothing silently: no element anywhere carries
   // the dialog role, and every icon-bearing control emits its ligature name into the DOM before
-  // its label. It also records the two guards written in that same pass that could not go red.
+  // its label. Corrected on 2026-08-26: the first of those two was false. The command palette's
+  // card carries the dialog role and always did; the test guarding the claim used the JSX
+  // spelling while this renderer is hyperscript, so it reported absence without ever looking. It also records the two guards written in that same pass that could not go red.
   // One article in, one HTML page out.
-  assert.equal(manifest.outputFiles.length, 193);
+  // 194 from 2026-08-26, for a sixth evidence record: docs/evidence/palette-route-readings.md,
+  // which records all twenty-five palette routes driven against the built application at both of
+  // the moments the previous pass identified. The field that held an empty list twenty-five times
+  // holds 266 controls; 22 setting activations each reached the exact control the compiled palette
+  // names, and 3 destination activations correctly focused nothing.
+  // One article in, one HTML page out.
+  assert.equal(manifest.outputFiles.length, 194);
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');

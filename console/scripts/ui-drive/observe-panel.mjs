@@ -85,6 +85,19 @@ export const OVERLAY_Z_FLOOR = 55;
 export const ANCHOR_MAX_GAP_PX = 24;
 
 /**
+ * How many controls one candidate overlay contributes to a reading before it is cut short.
+ *
+ * The cut has always been there, as a bare `60` inside the browser-side collector. It became
+ * worth naming when the first multi-route run met it: two of the twenty-five palette queries
+ * -- `tab` and `appearance` -- matched enough of this application's 883 palette entries to fill
+ * the list exactly, and a reading of exactly 60 controls looked identical to a panel that
+ * happens to offer 60. A cap nobody can see is a silent truncation reported as a complete
+ * enumeration, which is the shape this repository refuses everywhere else, so `summarisePanel`
+ * now says outright when a reading is standing on it.
+ */
+export const PANEL_CONTROL_CAP = 60;
+
+/**
  * Strip a leading Material Symbols ligature the way `gallery.mjs` does.
  *
  * Kept, exported and tested for one reason: to hold the dead end still. It works only when
@@ -229,6 +242,14 @@ export function summarisePanel(panel, { originatorRect = null, viewport = null }
     coversViewport,
     observedPanelControls: readings.filter((r) => r.source !== 'icon').map((r) => r.label),
     panelControlReadings: readings,
+    /* What the panel actually held, against what this reading was allowed to carry. A list that
+     * stopped at the cap is a truncation, and saying so is the difference between an enumeration
+     * and a sample that reads like one. Absent on a candidate collected before the count existed,
+     * in which case the reading says it does not know rather than guessing from the length. */
+    operableControlsInPanel: Number.isFinite(Number(panel.operableControls)) ? Number(panel.operableControls) : null,
+    controlListTruncated: Number.isFinite(Number(panel.operableControls))
+      ? Number(panel.operableControls) > PANEL_CONTROL_CAP
+      : null,
   };
 
   if (originatorRect) {
@@ -321,10 +342,9 @@ export const PANEL_CANDIDATES_SOURCE = `(() => {
     const z = parseInt(style.zIndex, 10);
     if (!Number.isFinite(z) || z < ${OVERLAY_Z_FLOOR}) continue;
     const rect = el.getBoundingClientRect();
-    const controls = [...el.querySelectorAll(${JSON.stringify(CONTROL_SELECTOR)})]
-      .filter((c) => (c.offsetWidth || c.offsetHeight))
-      .slice(0, 60)
-      .map(readControl);
+    const operable = [...el.querySelectorAll(${JSON.stringify(CONTROL_SELECTOR)})]
+      .filter((c) => (c.offsetWidth || c.offsetHeight));
+    const controls = operable.slice(0, ${PANEL_CONTROL_CAP}).map(readControl);
     const headingEl = el.querySelector('h1, h2, h3');
     out.push({
       zIndex: z,
@@ -333,6 +353,9 @@ export const PANEL_CANDIDATES_SOURCE = `(() => {
       coversViewport: Math.round(rect.width) >= innerWidth && Math.round(rect.height) >= innerHeight,
       heading: headingEl ? (headingEl.textContent || '').trim().slice(0, 60) : '',
       inputs: el.querySelectorAll('input, select, textarea').length,
+      /* Counted before the cut, so a reading standing on the cap is distinguishable from a
+       * panel that genuinely offers exactly that many. */
+      operableControls: operable.length,
       controls,
     });
   }
