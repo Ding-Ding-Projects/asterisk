@@ -423,6 +423,43 @@ present: looking for a native `select` finds nothing, because a choice renders a
 and matching button text finds every option **except the one currently set**, because the selected
 option carries a mark and its text is not the bare value.
 
+## Language, School mode and narration lane
+
+The desktop language lane is implemented in commits `1b920405cfc18908565da8eb531aba089a06f17e`,
+`303733d7ab3018f132a824bff4b6582fc243d41e`, and `d743779088`. The design source adds three language modes, independent English and Cantonese funny
+levels, a persisted dialog-emoji switch, a shared renamable School mode, and an off-by-default narration
+group. The renderer mounts the existing localization boundary, applies bounded funny wrappers to app
+notifications and dialogs, polls the shared settings snapshot once per second, and hides Cantonese,
+funny, vocabulary, dialog-emoji and narration controls while School mode is active. Electron stores
+the School unlock credential through the operating-system credential vault under a stable account key using the `keytar` adapter; the plain settings snapshot and application-data files never receive it.
+
+The browser speech adapter enumerates the installed voice list late through `voiceschanged`, persists
+stable voice URI identities, reports missing and network-backed choices, and serializes English then
+Cantonese for `Both`. Events are split into independent English and Cantonese tracks before funny
+styling and speech. Cantonese accepts only `zh-HK` or `yue-HK`; duplicate voice names carry an engine
+or URI suffix. The app-owned credential dialog exposes the exact `%APPDATA%\\ding-pbx-console` recovery
+line. No tests, lint, broad build, packaging, UI capture or release work was run in this lane, per its
+bounded scope. The generated renderer and docs bundle were regenerated from the checked-in design and
+Markdown sources. A type-check attempt was not independently usable because this isolated checkout has
+no installed React dependencies and no referenced Electron declaration outputs.
+
+The School credential now uses the shared `keytar` OS-vault account contract in
+`shared/school-contract.ts`. The supported packaging path rebuilds native add-ons through
+`electron-builder install-app-deps`, unpacks `keytar` from the asar, and runs
+`scripts/verify-keytar-packaged.mjs` to load the packaged native module and complete a vault
+round-trip. The packaging controller now stages candidate provenance before the builder, compares
+the final release identity with independent controller values, and passes that identity into a
+probe-only preload and main-process IPC route. Credential operations run in isolated cancellable
+workers with cumulative bounded cleanup evidence. The probe asserts the requested isolated
+application data path before dispatcher initialization, uses the shared production reparse
+validator, waits for a bounded post-kill exit deadline, records each cleanup result, and retains
+the forensic profile when child exit cannot be proven. The event census has one runtime record and
+stable call ID for each of 276 App, design, and generated event calls, plus the 12 App template
+records, with an explicit localized or plain-English fallback status for each. The 98 generated
+records carry one-to-one design-source pairing metadata, and text lookup is reserved for
+non-census fallback paths. These records and the release checks remain `implemented-unverified`
+because package execution was not run in this lane.
+
 
 ## Next owner actions
 

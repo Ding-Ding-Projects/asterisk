@@ -13,6 +13,11 @@ const api = Object.freeze({
   controlPlane: Object.freeze({
     request: request => ipcRenderer.invoke('control-plane:request', request),
   }),
+  school: Object.freeze({
+    setCredential: value => ipcRenderer.invoke('school:set-credential', value),
+    verifyCredential: value => ipcRenderer.invoke('school:verify-credential', value),
+    recoveryPath: () => ipcRenderer.invoke('school:recovery-path'),
+  }),
   statusHub: Object.freeze({ baseUrl: process.env.STATUS_HUB_URL }),
   nativeHost: Object.freeze({
     getStatus: () => ipcRenderer.invoke('native-host:get-status'),

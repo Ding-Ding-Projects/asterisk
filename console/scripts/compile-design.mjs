@@ -168,6 +168,7 @@ const ATTR_NAMES = {
   'clip-rule': 'clipRule',
   autocomplete: 'autoComplete',
   readonly: 'readOnly',
+  autofocus: 'autoFocus',
   tabindex: 'tabIndex',
 };
 
@@ -175,7 +176,7 @@ const DROP_ATTRS = new Set(['list', 'as', 'name', 'ctl', 'family']);
 const HINT_PREFIX = 'hint-';
 
 const EVENTS = new Set([
-  'onClick', 'onInput', 'onChange', 'onContextMenu', 'onMouseDown', 'onMouseUp',
+  'onClick', 'onInput', 'onChange', 'onKeyDown', 'onSubmit', 'onContextMenu', 'onMouseDown', 'onMouseUp',
   'onMouseEnter', 'onMouseLeave', 'onDrop', 'onDragStart', 'onDragOver', 'onDragEnd',
 ]);
 
@@ -280,7 +281,8 @@ function emit(node, scope, hovers, indent) {
       continue;
     }
     const mapped = ATTR_NAMES[name] || name;
-    props.push(`${propKey(mapped)}: ${attrValue(raw, scope)}`);
+    const value = mapped === 'autoFocus' && raw === 'true' ? 'true' : attrValue(raw, scope);
+    props.push(`${propKey(mapped)}: ${value}`);
   }
 
   const hover = node.attrs['style-hover'];
@@ -306,6 +308,17 @@ function wrapFragment(children, indent) {
 }
 
 const collapse = (text) => text.replace(/\s+/g, ' ');
+
+function annotateEventCalls(code, sourceId) {
+  const occurrences = new Map();
+  return code.replace(/this\.(toast|fire)\(/g, (match, kind, offset) => {
+    const line = code.slice(0, offset).split('\n').length;
+    const slot = `${sourceId}:${line}:${kind}`;
+    const occurrence = occurrences.get(slot) ?? 0;
+    occurrences.set(slot, occurrence + 1);
+    return `this.${kind}WithId('event-${sourceId}-${line}-${kind}-${occurrence}', `;
+  });
+}
 
 /** `data-*` and other hyphenated attribute names are not valid bare object keys. */
 const propKey = (name) => (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) ? name : JSON.stringify(name));
@@ -417,6 +430,7 @@ const consoleModule = compileComponent({
   extraImports: "import M3Control from './m3-control';",
   exports: ['RAIL', 'SCREENS', 'ORDER', 'DOCS', 'GAMES', 'NODES', 'EDGES', 'WIZARDS', 'ONBOARD', 'TOUR', 'CLI_STEPS', 'APPEAR_GROUPS', 'ADVANCED'],
 });
+consoleModule.code = annotateEventCalls(consoleModule.code, 'generated-event-source');
 
 /** The design loads Roboto, Roboto Mono and Material Symbols from a font CDN.
  *  The packaged application must not fetch at runtime, so the exact faces that

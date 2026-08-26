@@ -26,10 +26,16 @@
       "state": "localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
       "labels": [
-        "Fun level"
+        "English funny level",
+        "Cantonese funny level",
+        "Reset English funny level",
+        "Reset Cantonese funny level"
       ],
       "localizedLabels": [
-        "Fun level"
+        "English funny level",
+        "Cantonese funny level",
+        "Reset English funny level",
+        "Reset Cantonese funny level"
       ],
       "untranslatedLabels": [],
       "note": "Every listed label has a Cantonese entry."
@@ -49,22 +55,52 @@
       "note": "Every listed label has a Cantonese entry."
     },
     "school-mode": {
-      "state": "not-localized",
-      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [],
-      "localizedLabels": [],
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/school-mode.ts and the generated School mode settings group through the text boundary",
+      "labels": [
+        "School mode",
+        "School mode name",
+        "Set unlock credential",
+        "Unlock School mode",
+        "School mode status"
+      ],
+      "localizedLabels": [
+        "School mode",
+        "School mode name",
+        "Set unlock credential",
+        "Unlock School mode",
+        "School mode status"
+      ],
       "untranslatedLabels": [],
-      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
-      "blockedBy": "not-implemented"
+      "note": "The desktop settings surface is localized through the shared renderer boundary."
     },
     "narration": {
-      "state": "not-localized",
-      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [],
-      "localizedLabels": [],
+      "state": "localized",
+      "mechanism": "console/app/renderer/src/narration.ts and the generated Narration settings group through the text boundary",
+      "labels": [
+        "Narration",
+        "Narrated language",
+        "English voice",
+        "Cantonese voice",
+        "Choose automatically",
+        "Narration rate",
+        "Narration pitch",
+        "Screen reader active",
+        "Narration status"
+      ],
+      "localizedLabels": [
+        "Narration",
+        "Narrated language",
+        "English voice",
+        "Cantonese voice",
+        "Choose automatically",
+        "Narration rate",
+        "Narration pitch",
+        "Screen reader active",
+        "Narration status"
+      ],
       "untranslatedLabels": [],
-      "note": "Implemented as partial, but it contributes no label to the compiled design, so there is no string for the catalog to key against. The boundary already reaches any copy it does render; this is a missing surface rather than a missing translation.",
-      "blockedBy": "no-label-surface"
+      "note": "The renderer boundary localizes the settings labels; platform voice names and language tags remain exact data."
     },
     "scheduled-settings": {
       "state": "not-localized",

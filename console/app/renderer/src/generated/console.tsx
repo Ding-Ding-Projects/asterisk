@@ -71,7 +71,7 @@ function Template(v: any) {
           )
         )
       ),
-      h("div", { "data-tab-strip": ``, role: `tablist`, "aria-label": `Open console tabs`, "aria-orientation": v.tabOrientation, onKeyDown: v.onTabListKeyDown, style: sty(`${S(v.tabStripStyle)}`) },
+      h("div", { "data-tab-strip": ``, role: `tablist`, "aria-label": `Open console tabs`, "aria-orientation": v.tabOrientation, onKeyDown: fn(v.onTabListKeyDown), style: sty(`${S(v.tabStripStyle)}`) },
         A(v.tabGroups).map(($g, $g$i) => R($g$i, h("div", { role: `group`, "aria-label": $g.name, "aria-expanded": $g.expanded, onClick: fn($g.toggle), onContextMenu: fn($g.ctx), style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
             h("span", { style: sty(`width:9px; height:9px; border-radius:50%; background:${S($g.colour)};`) }),
             h("span", { style: sty(`font-size:12px; font-weight:500; color:#DFE4DC; white-space:nowrap;`) },
@@ -1811,7 +1811,7 @@ function Template(v: any) {
         )
       ) : null),
       (v.confirmationShell ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.66); z-index:80; display:flex; align-items:center; justify-content:center; padding:20px;`) },
-          h("div", { role: `dialog`, "aria-modal": `true`, "aria-labelledby": `confirm-title`, "aria-describedby": `confirm-body`, onKeyDown: v.onConfirmationKeyDown, style: sty(`width:620px; max-width:100%; max-height:88vh; overflow-y:auto; background:#252B25; border:1px solid #414942; border-radius:28px; padding:26px 28px; box-shadow:0 16px 48px rgba(0,0,0,.7); animation:dlgCeremony .3s cubic-bezier(.2,0,0,1);`) },
+          h("div", { role: `dialog`, "aria-modal": `true`, "aria-labelledby": `confirm-title`, "aria-describedby": `confirm-body`, onKeyDown: fn(v.onConfirmationKeyDown), style: sty(`width:620px; max-width:100%; max-height:88vh; overflow-y:auto; background:#252B25; border:1px solid #414942; border-radius:28px; padding:26px 28px; box-shadow:0 16px 48px rgba(0,0,0,.7); animation:dlgCeremony .3s cubic-bezier(.2,0,0,1);`) },
             h("div", { style: sty(`display:flex; align-items:flex-start; gap:12px;`) },
               h("span", { style: sty(`font-size:26px; color:#FFB4AB;`), className: "msym" },
                 "gpp_maybe"
@@ -2234,7 +2234,7 @@ function Template(v: any) {
       ) : null),
       (v.ctxOpen ? F(
         h("div", { onClick: fn(v.closeCtx), onContextMenu: fn(v.closeCtx), style: sty(`position:absolute; inset:0; z-index:78;`) }),
-        h("div", { role: `menu`, "aria-label": `Actions for ${S(v.ctxTarget)}`, onKeyDown: v.onContextKeyDown, style: sty(`position:absolute; left:${S(v.ctxX)}; top:${S(v.ctxY)}; width:274px; max-height:calc(100vh - 24px); overflow:auto; background:#252B25; border:1px solid #414942; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:79; animation:dlgCtx .14s cubic-bezier(.2,1.3,.4,1);`) },
+        h("div", { role: `menu`, "aria-label": `Actions for ${S(v.ctxTarget)}`, onKeyDown: fn(v.onContextKeyDown), style: sty(`position:absolute; left:${S(v.ctxX)}; top:${S(v.ctxY)}; width:274px; max-height:calc(100vh - 24px); overflow:auto; background:#252B25; border:1px solid #414942; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:79; animation:dlgCtx .14s cubic-bezier(.2,1.3,.4,1);`) },
           h("div", { style: sty(`padding:8px 12px 6px; font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394; border-bottom:1px solid #333B34; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
             S(v.ctxTarget)
           ),
@@ -4819,7 +4819,7 @@ class ConsoleShell extends DCLogic {
       })(),
       applyTabFilter:() => {
         if (s.tabFilterMode === 'colour') {
-          if (!s.tabFilterColour) return this.toast('Pick a colour first');
+          if (!s.tabFilterColour) return this.toastWithId('event-generated-event-source-4822-toast-0', 'Pick a colour first');
           const keep = s.tabs.filter(k => s.pinned.indexOf(k) >= 0 || (s.tabColours[k] || 'none') !== s.tabFilterColour);
           this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash'), tabFilterOpen:false }); this.onUserMutation('tabs:close-colour');
           return this.notify('info', 'Tabs updated', 'Matching unpinned tabs closed. Pinned tabs were retained.');
@@ -4883,7 +4883,7 @@ class ConsoleShell extends DCLogic {
         { label:'Tabs on the right', icon:'dock_to_left', v:'right' },
         { label:'Tabs on top', icon:'dock_to_bottom', v:'top' },
         { label:'Tabs on bottom', icon:'dock_to_top', v:'bottom' }
-      ].map(d => ({ label:d.label, icon:d.icon, on:s.dock === d.v, off:s.dock !== d.v, pick:() => { this.set('dock', d.v); this.toast('Docked ' + d.label.toLowerCase()); } })),
+      ].map(d => ({ label:d.label, icon:d.icon, on:s.dock === d.v, off:s.dock !== d.v, pick:() => { this.set('dock', d.v); this.toastWithId('event-generated-event-source-4886-toast-0', 'Docked ' + d.label.toLowerCase()); } })),
       tabOrientation:s.dock === 'left' || s.dock === 'right' ? 'vertical' : 'horizontal',
       tabStripStyle:(s.dock === 'left' ? 'position:absolute; left:0; top:40px; bottom:0; width:230px; flex-direction:column; align-items:stretch; overflow-y:auto;' : (s.dock === 'right' ? 'position:absolute; right:0; top:40px; bottom:0; width:230px; flex-direction:column; align-items:stretch; overflow-y:auto;' : (s.dock === 'bottom' ? 'position:absolute; left:0; right:0; bottom:0; height:48px; align-items:center; overflow-x:auto;' : 'position:absolute; left:0; right:0; top:40px; height:48px; align-items:center; overflow-x:auto;'))) + ' display:flex; gap:4px; background:#0B0F0C; padding:4px 6px; z-index:50;',
       workspaceInsetStyle:'flex:1; display:flex; min-height:0; gap:0; flex-direction:row; ' + (s.dock === 'left' ? 'margin-left:230px;' : (s.dock === 'right' ? 'margin-right:230px;' : (s.dock === 'bottom' ? 'margin-bottom:48px;' : 'margin-top:48px;'))),
@@ -4926,7 +4926,7 @@ class ConsoleShell extends DCLogic {
       funLabelFg:this.v('fun_level', 2) > 0 ? '#00391F' : '#9FF7C4',
       toggleFun:() => { const on = this.v('fun_level', 2) > 0; this.setVal({ id:'fun_level', label:'Fun level' }, on ? 0 : 3); },
       maxFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:4, fun_random:true, fun_confetti:300, fun_copy:'Comedian', th_rainbow:true, fun_random_scope:['Colour','Radius','Shadow','Type weight','Size','Rotation','Entrance animation'], fun_random_strength:100, fun_random_reroll:true }) })); this.onUserMutation('preset:max-fun'); },
-      zeroFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:0, fun_random:false, th_rainbow:false, fun_confetti:0, fun_copy:'Terse' }) })); this.onUserMutation('preset:zero-fun'); this.toast('Fun disabled. The console is now a spreadsheet with opinions.'); },
+      zeroFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { fun_level:0, fun_random:false, th_rainbow:false, fun_confetti:0, fun_copy:'Terse' }) })); this.onUserMutation('preset:zero-fun'); this.toastWithId('event-generated-event-source-4929-toast-0', 'Fun disabled. The console is now a spreadsheet with opinions.'); },
       toggleRandom:() => { const on = this.v('fun_random', false); this.setVal({ id:'fun_random', label:'Random appearance for every element', kind:'switch' }, !on); },
       rndBtnBg:this.v('fun_random', false) ? '#1B4D33' : 'rgba(0,0,0,.24)',
       rndBtnBorder:this.v('fun_random', false) ? '#9FF7C4' : 'rgba(159,247,196,.3)',
@@ -4934,7 +4934,7 @@ class ConsoleShell extends DCLogic {
       rndJustify:this.v('fun_random', false) ? 'flex-end' : 'flex-start',
       rndKnob:this.v('fun_random', false) ? '#00391F' : '#8B938C',
       rndFg:this.v('fun_random', false) ? '#9FF7C4' : '#DFF3E5',
-      rerollNow:() => { this.setState(st => ({ rndNonce:st.rndNonce + 1 })); this.onUserMutation('appearance:reroll'); this.toast('Rerolled — every element has a new look'); },
+      rerollNow:() => { this.setState(st => ({ rndNonce:st.rndNonce + 1 })); this.onUserMutation('appearance:reroll'); this.toastWithId('event-generated-event-source-4937-toast-0', 'Rerolled — every element has a new look'); },
       isServers:sc.kind === 'servers', isTrunkAuth:sc.kind === 'trunkauth', isHistory:sc.kind === 'history',
       branchName:s.branch || 'No verified branch', commitCount:historyEntries.length + ' verified commits',
       branches:(host.history && Array.isArray(host.history.branches) ? host.history.branches : []).map(b => ({ label:b.name, on:s.branch === b.name, off:s.branch !== b.name, pick:() => this.set('branch', b.name) })),
@@ -4984,7 +4984,7 @@ class ConsoleShell extends DCLogic {
         partner:r.partner, what:r.title, answer:s.authAnswers[r.id], when:'just now',
         color:s.authAnswers[r.id] === 'YES' ? '#82D9A5' : '#FFB4AB'
       })),
-      newAuthRequest:() => this.toast('Composing a request — pick the partner and what you want to change'),
+      newAuthRequest:() => this.toastWithId('event-generated-event-source-4987-toast-0', 'Composing a request — pick the partner and what you want to change'),
       oneClickPitch:'The host must describe the exact deployment plan, target, prerequisites, and rollback route. This shell submits nothing until that plan and handler are available.',
       oneClickButton:s.operationState === 'loading' && s.operationAction === 'deployment.run' ? 'Waiting for host receipt' : 'Review host deployment plan',
       basicCtls:[
@@ -5183,7 +5183,7 @@ class ConsoleShell extends DCLogic {
           return decorate([
             { icon:'data_object', label:'Open regex builder…', hint:'⌃R', run:() => this.setState({ ctxOpen:false, regexOpen:true, regexTarget:'table', regexX:s.ctxX, regexY:s.ctxY }) },
             { icon:'match_case', label:'Match case', hint:'', run:() => { close(); this.set('regexFlags', s.regexFlags.filter(f => f !== 'i')); } },
-            { icon:'select_all', label:'Whole word only', hint:'', run:() => { close(); this.toast('Whole-word matching on'); } },
+            { icon:'select_all', label:'Whole word only', hint:'', run:() => { close(); this.toastWithId('event-generated-event-source-5186-toast-0', 'Whole-word matching on'); } },
             { icon:'bookmark_add', label:'Save this search', hint:'', capability:'search.save', run:() => { close(); return this.invokeHost('search.save', { target:'table', pattern:(s.patterns.table || []).join(''), flags:s.regexFlags.slice() }); } },
             { icon:'clear', label:'Clear search', hint:'⎋', run:() => { close(); const p = Object.assign({}, s.patterns); p.table = []; p.nav = []; this.setState({ patterns:p }); } },
             common[0], common[1]

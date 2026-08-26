@@ -25,6 +25,9 @@ try {
     Phase 'Building the real console artifact through the project build script.'
     Push-Location (Join-Path $repoRoot 'console')
     try {
+        Phase 'Rebuilding Electron native add-ons for the supported Windows runtime.'
+        & $npm run rebuild:native
+        if ($LASTEXITCODE -ne 0) { throw "npm run rebuild:native exited $LASTEXITCODE" }
         & $npm run build
         if ($LASTEXITCODE -ne 0) { throw "npm run build exited $LASTEXITCODE" }
     } finally { Pop-Location }

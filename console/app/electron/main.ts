@@ -1,10 +1,12 @@
-import { app, BrowserWindow, dialog, ipcMain, type WebContents } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, utilityProcess, type WebContents } from 'electron';
 import { stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFile, spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { promisify } from 'node:util';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { resolve as resolvePath } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
 import { createVaultReference } from '../../control-plane/status-hub-client.js';
@@ -12,6 +14,9 @@ import type { ControlPlaneRequest, NativeHostStatus, UpdaterRestartResult, Updat
 import type { DownloadCommand, DownloadSurfaceKind, ExtensionDownloadHandoff } from '../../shared/download-transfer.js';
 import { isExtensionDownloadHandoff } from '../../shared/download-transfer.js';
 import { DOWNLOAD_NATIVE_MESSAGE_LIMIT, isNativeDownloadIngressMessage, type NativeIngressConfig } from '../../shared/native-messaging.js';
+import { SCHOOL_CREDENTIAL_ACCOUNT, SCHOOL_CREDENTIAL_SERVICE } from '../../shared/school-contract.js';
+// @ts-ignore CommonJS helper is shared with the standalone junction fixture.
+import { assertNoReparseAncestors } from './probe-path.cjs';
 import {
   parseVersion, resolveLatestUpdate, validateReleaseIdentity, initialUpdaterState, beganChecking, checkSucceeded,
   updateFailed, beganDownloading, downloadReady, dismissedForNow, verifyDownload, findDigestForAsset,
@@ -31,6 +36,17 @@ let stoppingNativeIngressBroker: ChildProcessWithoutNullStreams | undefined;
 let nativeIngressConfig: NativeIngressConfig | undefined;
 const execFileAsync = promisify(execFile);
 let nativeHostStatus: NativeHostStatus = { state: 'unavailable', message: 'Native extension ingress has not been registered.', retryable: true };
+let probeAuthorization: string | undefined;
+let probeAuthorizationConsumed = false;
+const probeModeRequested = process.argv.some((value) => value.startsWith('--school-vault-probe-result='));
+const requestedProbeUserData = probeModeRequested ? process.argv.find((value) => value.startsWith('--user-data-dir='))?.slice('--user-data-dir='.length) : undefined;
+if (probeModeRequested && !requestedProbeUserData) throw new Error('Probe mode requires an isolated user-data path.');
+if (requestedProbeUserData) {
+  assertNoReparseAncestors(requestedProbeUserData);
+  app.setPath('userData', resolvePath(requestedProbeUserData));
+  if (resolvePath(app.getPath('userData')) !== resolvePath(requestedProbeUserData)) throw new Error('Probe user-data equality failed.');
+}
+const probeUserDataMatches = probeModeRequested && requestedProbeUserData ? resolvePath(app.getPath('userData')) === resolvePath(requestedProbeUserData) : false;
 function vaultReferenceFromEnvironment(name: string) {
   const value = process.env[name];
   if (!value) return undefined;
@@ -48,6 +64,21 @@ const dispatcher = createControlPlaneDispatcher({
   },
 });
 const { controlPlaneRequest, downloadTransfers } = dispatcher;
+type KeytarWorkerRequest = { operation: 'set' | 'verify' | 'delete' | 'absence'; service: string; account: string; value?: string };
+type KeytarWorkerResponse = { ok: boolean; matched?: boolean; missing?: boolean; deleted?: boolean; absent?: boolean; error?: string };
+async function runKeytarWorker(request: KeytarWorkerRequest, timeoutMs = 3000): Promise<KeytarWorkerResponse> {
+  const worker = utilityProcess.fork(join(import.meta.dirname, 'keytar-worker.js'), [], { stdio: 'pipe', serviceName: 'ding-pbx-keytar-probe' });
+  return await new Promise((resolve, reject) => {
+    let output = ''; let settled = false;
+    const timer = setTimeout(() => fail(new Error('The credential-vault worker did not exit after its bounded cancellation.')), timeoutMs);
+    const finish = (value: KeytarWorkerResponse) => { if (!settled) { settled = true; clearTimeout(timer); resolve(value); } };
+    const fail = (error: Error) => { if (!settled) { settled = true; clearTimeout(timer); if (!worker.killed) worker.kill(); reject(error); } };
+    worker.stdout?.on('data', (chunk: Buffer | string) => { output += chunk.toString(); if (output.length > 8192) fail(new Error('The credential-vault worker returned an oversized response.')); });
+    worker.once('error', fail);
+    worker.once('exit', (code) => { if (settled) return; if (code !== 0) return fail(new Error('The credential-vault worker exited without a successful response.')); try { finish(JSON.parse(output.trim().split('\n')[0] ?? '') as KeytarWorkerResponse); } catch { fail(new Error('The credential-vault worker returned malformed response data.')); } });
+    worker.stdin?.end(`${JSON.stringify(request)}\n`);
+  });
+}
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 let updateCheckInFlight: Promise<void> | undefined;
 let updateGeneration = 0;
@@ -206,6 +237,17 @@ ipcMain.handle('dialog:pick-folder', async () => {
   return result.canceled ? undefined : result.filePaths[0];
 });
 ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequest) => controlPlaneRequest(request));
+ipcMain.handle('school:set-credential', async (_event, candidate: unknown) => {
+  if (typeof candidate !== 'string' || candidate.length < 4 || candidate.length > 256) return { ok: false, reason: 'The unlock credential must be between 4 and 256 characters.' };
+  try { const result = await runKeytarWorker({ operation: 'set', service: SCHOOL_CREDENTIAL_SERVICE, account: SCHOOL_CREDENTIAL_ACCOUNT, value: candidate }); return result.ok ? { ok: true } : { ok: false, reason: result.error ?? 'The operating-system credential vault could not save the credential.' }; }
+  catch { return { ok: false, reason: 'The operating-system credential vault could not save the credential.' }; }
+});
+ipcMain.handle('school:verify-credential', async (_event, candidate: unknown) => {
+  if (typeof candidate !== 'string') return { ok: false, reason: 'The operating-system credential vault is unavailable.' };
+  try { const result = await runKeytarWorker({ operation: 'verify', service: SCHOOL_CREDENTIAL_SERVICE, account: SCHOOL_CREDENTIAL_ACCOUNT, value: candidate }); return result.ok && result.matched ? { ok: true } : { ok: false, reason: result.missing ? 'No School mode unlock credential has been set yet.' : result.error ?? 'The shared credential was not accepted.' }; }
+  catch { return { ok: false, reason: 'The operating-system credential vault could not verify the credential.' }; }
+});
+ipcMain.handle('school:recovery-path', () => ({ ok: true, path: app.getPath('userData') }));
 async function acceptExtensionHandoff(handoff: ExtensionDownloadHandoff, senderWindow: BrowserWindow | null): Promise<{ accepted: boolean; detail: string }> {
   if (!isExtensionDownloadHandoff(handoff)) return { accepted: false, detail: 'The extension handoff failed its bounded validation.' };
   let chosenPath = downloadTransfers.isDestinationApproved(handoff.destinationPath) ? handoff.destinationPath : undefined;

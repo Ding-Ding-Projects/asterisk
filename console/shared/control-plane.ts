@@ -110,6 +110,11 @@ export interface DingDesktopApi {
   window: { minimize(): void; toggleMaximize(): void; close(): void };
   dialog: { pickFolder(): Promise<string | undefined> };
   controlPlane: { request(request: ControlPlaneRequest): Promise<ControlPlaneResponse> };
+  school: {
+    setCredential(value: string): Promise<{ ok: boolean; reason?: string }>;
+    verifyCredential(value: string): Promise<{ ok: boolean; reason?: string }>;
+    recoveryPath(): Promise<{ ok: boolean; path?: string; reason?: string }>;
+  };
   statusHub: { baseUrl?: string };
   nativeHost: {
     getStatus(): Promise<NativeHostStatus>;

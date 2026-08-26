@@ -4,30 +4,30 @@ An optional, off-by-default text-to-speech narrator that reads app events aloud 
 
 ## Behavior
 
-A narrator is meant to speak application events using platform or bundled natural-sounding voices, in English, Cantonese, or both in sequence, with independently selectable voice, rate, and pitch per language, staying off until the user turns it on.
+The `Narration` group uses the platform speech engine adapter and queues application events through the serialized `Narrator` class. English and Cantonese voice choices are independent. `Both` speaks English first and Cantonese second, one utterance at a time, with per-category cooldown and supersession of queued lines.
 
 ## Configuration
 
-Voice, rate, pitch, and narrated language would each be independent settings; narration would be rate-limited so lines never overlap.
+The picker begins with `Choose automatically`, then refreshes from voices currently installed on the machine. Stable voice URI identities include the normalized language and engine identity and are persisted, not display names. A platform voice without a stable identity is reported unavailable for selection rather than persisted under a guessed name. Duplicate display names are disambiguated with the engine or URI. English accepts English voices, while Cantonese accepts only `zh-HK` or `yue-HK`. Rate and pitch are bounded controls from 0.5 to 2 and 0 to 2 respectively.
 
 ## Current status
 
-**Desktop application:** Not implemented. No narrator, no voice picker, and no narration queue exist in the product.
+**Desktop application:** Implemented but unverified in the packaged artifact. The narrator is off by default and reports effective, missing, network-backed and unavailable voice states.
 
-**Documentation website:** Not implemented. A static documentation site has no application events of the kind this feature narrates.
+**Documentation website:** Not implemented. A static documentation site has no application event stream of its own.
 
 ## Failure modes
 
-If narration ever failed mid-line (missing voice, synthesis error), the intended behavior is to drop that one line silently rather than block the interface; there is nothing to fail today because there is no narrator.
+If a voice is missing or does not match its selected language, the saved choice is retained and the first compatible voice is used when available. A machine with no compatible voice reports that state, and a machine with no speech engine renders that state explicitly and keeps the enabled control off. Speech errors are reported per utterance and the next queued line continues. Platform screen-reader state is read separately from the persisted `Screen reader active` override. Quiet hours and either screen-reader state suppress the queue through the narrator API.
 
 ## Accessibility and localization
 
-This feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.
+Voice names and language tags remain exact platform data, while surrounding labels use the localization boundary. Narration remains optional and off by default, and School mode suppresses it while active.
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+The queue, voice status, late enumeration, bounds, cooldown, serialization and suppression paths are covered by `console/tests/ui/narration.test.tsx`. Built-artifact voice enumeration remains part of the desktop evidence inventory.
 
 ## Suggested articles
 
-[Language modes](language-modes.md), [Platform feature index](README.md).
+[Language modes](language-modes.md), [Funny-level sliders](funny-levels.md), [Non-blocking notifications](non-blocking-notifications.md), [Platform feature index](README.md).
