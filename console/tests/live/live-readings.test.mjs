@@ -25,6 +25,7 @@ import {
   classify,
   fixtureSections,
   mergeFixture,
+  reparseLedger,
   sha256,
   slug,
 } from '../../scripts/live-readings.mjs';
@@ -131,6 +132,86 @@ test('--check fails when a reading returns no rows and is not declared unpopulat
     .map((entry) => entry.id);
   const problems = checkLedger(damaged, (path) => readFileSync(join(CAPTURE_DIRECTORY, path), 'utf8'));
   assert.ok(problems.some((problem) => problem.includes('`endpoints` returned no rows')), problems.join('\n'));
+});
+
+// ---------------------------------------------------------------- --reparse
+//
+// A parser that is deliberately changed after a capture makes `--check` red. The repair is
+// to re-derive the parse half from the same committed bytes, not to hand-edit a hash, so
+// `--reparse` is itself a piece of evidence machinery and gets guarded like one.
+
+const readCapture = (path) => readFileSync(join(CAPTURE_DIRECTORY, path), 'utf8');
+
+test('--reparse is a no-op against a ledger that already matches its captures', () => {
+  const { changes, problems } = reparseLedger(structuredClone(ledger), readCapture);
+  assert.deepEqual(problems, []);
+  assert.deepEqual(changes, [], `nothing should move: ${JSON.stringify(changes)}`);
+});
+
+test('--reparse restores a hand-damaged parse hash and says exactly what it moved', () => {
+  const damaged = structuredClone(ledger);
+  const record = damaged.phases.populated.readings.find((entry) => entry.id === 'voicemailUsers');
+  const wasHash = record.parsedSha256;
+  record.parsedSha256 = sha256('not what the parser produces');
+  record.rows = 99;
+
+  const { ledger: repaired, changes, problems } = reparseLedger(damaged, readCapture);
+  assert.deepEqual(problems, []);
+  const fields = changes.filter((change) => change.id === 'voicemailUsers').map((change) => change.field).sort();
+  assert.deepEqual(fields, ['parsedSha256', 'rows']);
+  const fixed = repaired.phases.populated.readings.find((entry) => entry.id === 'voicemailUsers');
+  assert.equal(fixed.parsedSha256, wasHash);
+  assert.equal(fixed.rows, 3);
+  assert.deepEqual(checkLedger(repaired, readCapture), []);
+});
+
+test('--reparse refuses to write when a capture no longer hashes to what was recorded', () => {
+  // Otherwise it would launder an altered capture into a fresh-looking parse hash, which is
+  // the one thing an evidence-rewriting mode must never be able to do.
+  const damaged = structuredClone(ledger);
+  const command = damaged.phases.populated.commands.find((entry) => entry.capture);
+  command.stdoutSha256 = sha256('bytes nobody captured');
+  const { problems } = reparseLedger(damaged, readCapture);
+  assert.ok(
+    problems.some((problem) => problem.includes('not the bytes that run captured')),
+    problems.join('\n'),
+  );
+});
+
+test('--reparse leaves every live-half field of the ledger alone', () => {
+  // It re-derives what a parser decides and nothing else: the fixture, the restore, the
+  // production readers and the commit these captures were taken at are facts about one
+  // moment against one exchange, and rewriting any of them would describe a run that
+  // never happened.
+  const before = structuredClone(ledger);
+  const { ledger: after } = reparseLedger(structuredClone(ledger), readCapture);
+  for (const key of ['commit', 'performedAt', 'exchange', 'fixture', 'restore', 'notVerified', 'findings']) {
+    assert.deepEqual(after[key], before[key], `--reparse moved ${key}, which it does not measure`);
+  }
+  for (const [name, phase] of Object.entries(after.phases)) {
+    assert.deepEqual(phase.commands, before.phases[name].commands, `--reparse moved ${name} capture records`);
+    assert.deepEqual(phase.productionReaders, before.phases[name].productionReaders, `--reparse moved ${name} production readers`);
+  }
+});
+
+test('the ledger records the exact voicemail line the reading could not turn into a row', () => {
+  // The finding this evidence carries is that the target reported four mailboxes and the
+  // screen showed three. The parser now hands the fourth back by name, and the ledger --
+  // re-derived from the same committed bytes -- carries it, so the finding and the record
+  // of it cannot drift apart.
+  for (const [name, phase] of Object.entries(ledger.phases)) {
+    const record = phase.readings.find((entry) => entry.id === 'voicemailUsers');
+    assert.deepEqual(
+      record.summary.dropped,
+      ['myaliases  1234@devices                                           0'],
+      `${name} does not name the dropped mailbox`,
+    );
+    assert.equal(
+      record.summary.total - record.rows,
+      record.summary.dropped.length,
+      `${name}: the trailer, the rows and the dropped lines do not add up`,
+    );
+  }
 });
 
 test('--check fails when the restore was not proved', () => {

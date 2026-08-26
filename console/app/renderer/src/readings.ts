@@ -71,10 +71,14 @@ export interface ViewReadings {
   queues?: Reading<QueueSummary[]>;
   modules?: Reading<ModuleSummary[]>;
   uptime?: Reading<number>;
-  voicemailUsers?: Reading<{ users: VoicemailUser[]; total?: number }>;
+  /** `total` and `dropped` are what `droppedRowNote` below turns into a sentence when the
+   *  table is short of rows -- see `parseVoicemailUsers` for why a row is ever dropped. */
+  voicemailUsers?: Reading<{ users: VoicemailUser[]; total?: number; dropped: string[] }>;
   voicemailZones?: Reading<unknown>;
   rooms?: Reading<ConfbridgeConference[]>;
   mohClasses?: Reading<MohClass[]>;
+  /** `total` is the target's own trailer count; `parseManagerUsers` cannot name the line
+   *  it lost, so it has no `dropped` list and the count is the whole signal. */
   managerUsers?: Reading<{ users: ManagerUser[]; total?: number }>;
   ariApps?: Reading<AriApp[]>;
   cdrStatus?: Reading<CdrStatus>;
@@ -140,6 +144,89 @@ export const isReadable = (screen: string): screen is PbxReadView =>
 
 export function valueOf<T>(reading: Reading<T> | undefined): T | undefined {
   return reading?.result.state === 'available' ? reading.result.value : undefined;
+}
+
+/**
+ * One reading's shortfall: how many rows reached the table, how many the target said it
+ * had, and, where the parser can name them, the exact lines it could not read.
+ *
+ * `total` is the authority. It is the count the target printed in its own trailer, from
+ * the same traversal that printed the rows, so `total - parsed` is how many rows are
+ * genuinely absent. `dropped` is what the parser refused, which is a different quantity:
+ * a line that is not a row at all (a warning, say) can land there without any row going
+ * missing, and a note driven by `dropped` alone would report a missing row that is not.
+ */
+export interface RowShortfall {
+  /** The command whose output this is, named so a reader can go and run it. */
+  command: string;
+  /** What one row is, singular: 'voicemail user', 'manager user'. */
+  unit: string;
+  /** How many rows the table below is actually showing. */
+  parsed: number;
+  /** The count the target printed in its own trailer, when it printed one. */
+  total?: number;
+  /** The exact lines the parser declined, when it is able to name them. */
+  dropped?: string[];
+  /** Why a line goes unread, in the parser's own terms, read as a continuation of
+   *  `command`: "prints fixed-width columns, and …". Ends without a full stop. */
+  reason: string;
+}
+
+/** How many of the dropped lines a note quotes before it stops. */
+const QUOTED_DROPPED_LINES = 3;
+
+/**
+ * The sentence a screen adds when its table is short of rows, or an empty string when it
+ * is not.
+ *
+ * This exists because an incomplete table is indistinguishable from a complete one. A
+ * reading that drops a row it cannot parse is doing the right thing -- misassigning a
+ * fixed-width column would put a real mailbox under the wrong context, which is worse
+ * than omitting it -- but the screen then shows three mailboxes where the target has four
+ * and nothing anywhere says so. Measured on a live target: `voicemail show users` said
+ * `4 voicemail users configured`, the reading produced 3, and the Voicemail screen
+ * rendered exactly those 3.
+ *
+ * Silent when nothing is missing, so a screen that is showing everything says nothing.
+ */
+export function droppedRowNote(shortfall: RowShortfall): string {
+  const dropped = shortfall.dropped ?? [];
+  /* `total` wins wherever the target printed one: it counts what the target has, while
+   * `dropped` counts what this parser choked on, and those are only the same number when
+   * every declined line was a row. Falling back to `dropped.length` covers the reading
+   * that produced no trailer at all, which is the only case where it is the best estimate
+   * available rather than the second-best one. */
+  const missing = shortfall.total === undefined ? dropped.length : shortfall.total - shortfall.parsed;
+  if (missing <= 0) return '';
+
+  /* "1 of the 4 voicemail users" is plural after the count of the whole set, while a bare
+   * "1 voicemail user" is not, so the two branches genuinely disagree about the noun. */
+  const verb = missing === 1 ? 'is' : 'are';
+  const head = shortfall.total === undefined
+    ? `${missing} ${missing === 1 ? shortfall.unit : `${shortfall.unit}s`} on this target ${verb} missing from this table`
+    : `${missing} of the ${shortfall.total} ${shortfall.unit}s on this target ${verb} missing from this table`;
+
+  /* The command is named rather than only described, because the one thing a reader can
+   * do about a short table is go and run it themselves. */
+  return ` ${head}: \`${shortfall.command}\` ${shortfall.reason}.${quotedDroppedLines(dropped)}`;
+}
+
+/**
+ * The declined lines themselves, so a reader can go and find the object rather than only
+ * learn that one exists.
+ *
+ * Runs of spaces are collapsed. These are fixed-width rows, so a verbatim quote carries
+ * fifty columns of padding, and the surface this lands on collapses runs anyway -- quoting
+ * the raw bytes would claim a shape the reader will never actually see. Nothing else about
+ * the line is altered.
+ */
+function quotedDroppedLines(dropped: string[]): string {
+  if (dropped.length === 0) return '';
+  const shown = dropped
+    .slice(0, QUOTED_DROPPED_LINES)
+    .map((line) => `"${line.trim().replace(/\s+/gu, ' ')}"`)
+    .join('; ');
+  return ` The ${dropped.length === 1 ? 'line' : 'lines'} it could not read: ${shown}${dropped.length > QUOTED_DROPPED_LINES ? ', …' : ''}.`;
 }
 
 /** The exact reason a screen has no rows, or an empty string when it does. */

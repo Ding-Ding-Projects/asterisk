@@ -35,7 +35,7 @@ test('parseVoicemailUsers reads a realistic sample', () => {
 });
 
 test('parseVoicemailUsers returns empty on empty input', () => {
-  assert.deepEqual(parseVoicemailUsers(''), { users: [], total: undefined });
+  assert.deepEqual(parseVoicemailUsers(''), { users: [], total: undefined, dropped: [] });
 });
 
 test('parseVoicemailUsers skips a malformed line rather than crashing', () => {
@@ -44,9 +44,46 @@ test('parseVoicemailUsers skips a malformed line rather than crashing', () => {
     'not a real row at all',
     'default    1234  Alice Example              america          3',
   ].join('\n');
-  const { users } = parseVoicemailUsers(sample);
+  const { users, dropped } = parseVoicemailUsers(sample);
   assert.equal(users.length, 1);
   assert.equal(users[0].mailbox, '1234');
+  // Skipping it is right; losing track of it is not. A caller cannot say a row is
+  // missing from a result that never mentions the row it dropped.
+  assert.deepEqual(dropped, ['not a real row at all']);
+});
+
+test('parseVoicemailUsers records a row whose mailbox overruns its fixed-width field', () => {
+  // The five-character Mbox field cannot hold `1234@devices`, so the separator positions
+  // stop landing on spaces and every column after it is unassignable.
+  const overrun = 'myaliases  1234@devices                                           0';
+  const sample = [
+    'Context    Mbox  User                      Zone       NewMsg',
+    'default    1234  Example Mailbox                           0',
+    overrun,
+    '2 voicemail users configured.',
+  ].join('\n');
+  const { users, total, dropped } = parseVoicemailUsers(sample);
+  assert.equal(users.length, 1);
+  assert.equal(total, 2);
+  assert.deepEqual(dropped, [overrun]);
+});
+
+test('parseVoicemailUsers records a row whose context column is blank', () => {
+  // Right column widths, no context: the row parses cleanly and is still not a mailbox
+  // anybody can act on, so it is dropped -- and, now, said so.
+  const blankContext = '           1234  Example Mailbox                           0';
+  const { users, dropped } = parseVoicemailUsers(blankContext);
+  assert.deepEqual(users, []);
+  assert.deepEqual(dropped, [blankContext]);
+});
+
+test('parseVoicemailUsers drops nothing when every row parses', () => {
+  const sample = [
+    'Context    Mbox  User                      Zone            NewMsg',
+    'default    1234  Alice Example              america          3',
+    '1 voicemail users configured.',
+  ].join('\n');
+  assert.deepEqual(parseVoicemailUsers(sample).dropped, []);
 });
 
 test('parseVoicemailUsers preserves report order', () => {
@@ -426,7 +463,7 @@ test('parseVoicemailUsers reads the live target output', () => {
     'other      1234  Company2 User                             0',
     '3 voicemail users configured.',
   ].join('\n');
-  const { users, total } = parseVoicemailUsers(sample);
+  const { users, total, dropped } = parseVoicemailUsers(sample);
   assert.equal(total, 3);
   // The middle row has no full name or zone printed for an alias mailbox; the parser
   // must not misassign the trailing count into the wrong column, so it is dropped
@@ -439,6 +476,11 @@ test('parseVoicemailUsers reads the live target output', () => {
   assert.equal(users[0].fullName, 'Example Mailbox');
   assert.equal(users[0].zone, '');
   assert.equal(users[1].context, 'other');
+  // The whole point of the record: the target says three, this says two, and the third
+  // is nameable. Without it the Voicemail screen shows two mailboxes and reads as
+  // complete.
+  assert.deepEqual(dropped, ['myaliases  1234@devices                                           0']);
+  assert.equal(total - users.length, dropped.length);
 });
 
 test('parseConfbridgeList reads the live target output (no rooms configured)', () => {

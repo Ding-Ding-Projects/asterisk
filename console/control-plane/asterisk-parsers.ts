@@ -68,9 +68,41 @@ export interface ManagerUser {
   username: string;
 }
 
+/**
+ * `manager show users` prints one `"%s\n"` per user and a `"%d manager users
+ * configured.\n"` trailer counted from the same traversal (`main/manager.c`
+ * `handle_showmanagers`), so `total` and `users.length` agree unless this parser lost a
+ * line -- a username that is nothing but hyphens reads as the CLI's own separator rule,
+ * for instance, and there is no way to tell the two apart from the bytes.
+ *
+ * There is deliberately no `dropped` list here, unlike `VoicemailUsersResult` below: this
+ * parser cannot name the line it lost, because the only lines it discards are ones it
+ * cannot distinguish from the report's own furniture. `total` is the honest signal, and a
+ * caller that renders `users` without comparing the two shows a shortened list that reads
+ * exactly like a complete one.
+ */
 export interface ManagerUsersResult {
   users: ManagerUser[];
+  /** The count the target printed in its own trailer, when it printed one. */
   total?: number;
+}
+
+/**
+ * `voicemail show users` output, plus everything needed to tell a short list from a
+ * complete one.
+ *
+ * `total` is the count the target itself printed in its trailer. `dropped` is every data
+ * line this parser refused to turn into a row -- see `parseVoicemailUsers` for why it
+ * refuses rather than guessing. Both exist so a caller can say a row is missing; a caller
+ * that renders `users` alone renders an incomplete table indistinguishable from a
+ * complete one, which is exactly what the Voicemail screen used to do.
+ */
+export interface VoicemailUsersResult {
+  users: VoicemailUser[];
+  /** The count the target printed in its own trailer, when it printed one. */
+  total?: number;
+  /** Every data line this parser declined, verbatim, in the order the target printed them. */
+  dropped: string[];
 }
 
 export interface AriApp {
@@ -116,8 +148,9 @@ export interface Uptime {
  * header `Context Mbox User Zone NewMsg`, data row same widths, trailing
  * `"%d voicemail users configured.\n"`.
  */
-export function parseVoicemailUsers(stdout: string): { users: VoicemailUser[]; total?: number } {
+export function parseVoicemailUsers(stdout: string): VoicemailUsersResult {
   const users: VoicemailUser[] = [];
+  const dropped: string[] = [];
   let total: number | undefined;
   // The fixed-width printf format means a Zone left blank (the common case) prints as
   // pure whitespace, not an omitted field, so a token-based regex requiring a non-blank
@@ -135,16 +168,26 @@ export function parseVoicemailUsers(stdout: string): { users: VoicemailUser[]; t
       total = Number.parseInt(totalMatch[1], 10);
       continue;
     }
-    if (line.length < 54 || line[10] !== " " || line[16] !== " " || line[42] !== " " || line[53] !== " ") continue;
+    /* Every line this loop declines from here down is recorded rather than discarded. The
+     * drop itself is still the right call -- see above -- but a caller cannot say a row is
+     * missing from a list that never mentions the row it lost, and the Voicemail screen
+     * spent its whole life rendering the short list as though it were the whole one. */
+    if (line.length < 54 || line[10] !== " " || line[16] !== " " || line[42] !== " " || line[53] !== " ") {
+      dropped.push(line);
+      continue;
+    }
     const context = line.slice(0, 10).trim();
     const mailbox = line.slice(11, 16).trim();
     const fullName = line.slice(17, 42).trim();
     const zone = line.slice(43, 53).trim();
     const newMessages = Number.parseInt(line.slice(54).trim(), 10);
-    if (!context || !mailbox) continue;
+    if (!context || !mailbox) {
+      dropped.push(line);
+      continue;
+    }
     users.push({ context, mailbox, fullName, zone, newMessages: Number.isFinite(newMessages) ? newMessages : undefined });
   }
-  return { users, total };
+  return { users, total, dropped };
 }
 
 /**

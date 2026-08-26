@@ -2,7 +2,8 @@ import type { Component, ReactNode } from 'react';
 import ConsoleShell, { APPEAR_GROUPS, ONBOARD, ORDER, SCREENS } from './generated/console';
 import { h } from './dc-runtime';
 import {
-  badgeFor, dashboardStats, formatDuration, healthBars, isReadable, reasonFor, regexMatchLabel, rowsFor, serverRows, valueOf,
+  badgeFor, dashboardStats, droppedRowNote, formatDuration, healthBars, isReadable, reasonFor,
+  regexMatchLabel, rowsFor, serverRows, valueOf,
   type ViewReadings,
 } from './readings';
 import {
@@ -5403,7 +5404,7 @@ It is shown once. The far end needs it to register.`);
        * failures reported at the bottom of this method never reach it. `endpoints` is one
        * of those screens and also reads per-endpoint detail, so a failed detail read would
        * otherwise leave two silently empty columns with nothing anywhere saying why. */
-      const summary = `${configSummary(this.configs[screen], this.target.connected)}${this.endpointDetailNote(screen)}`;
+      const summary = `${configSummary(this.configs[screen], this.target.connected)}${this.endpointDetailNote(screen)}${this.droppedRowsNote(screen)}`;
       /* Say how many controls on this screen are genuinely bound to that file. A screen
        * that reads its file but leaves half its switches on design defaults must not let
        * a reader assume every control below is live — that is the same untruth as the
@@ -5439,7 +5440,14 @@ It is shown once. The far end needs it to register.`);
     if (!isReadable(screen)) return NO_READER;
     const readings = this.readings[screen];
     if (!readings) return 'Reading…';
-    return reasonFor(readings, ['channels', 'endpoints', 'contacts', 'registrations', 'queues', 'modules', 'uptime', 'voicemailUsers', 'rooms', 'mohClasses', 'managerUsers', 'ariApps']);
+    /* A screen can be short of rows for two unrelated reasons at once -- the AMI table is
+     * fed by `manager show users` and `ari show apps`, so one can fail while the other
+     * comes back a row light -- and each sentence is the only thing that names its own
+     * cause. Both are said, the failure first, because "the table is short two rows" is a
+     * poor lead for a table that is also missing a whole reading. Picking one and dropping
+     * the other is how a real cause goes unsaid. */
+    const failed = reasonFor(readings, ['channels', 'endpoints', 'contacts', 'registrations', 'queues', 'modules', 'uptime', 'voicemailUsers', 'rooms', 'mohClasses', 'managerUsers', 'ariApps']);
+    return [failed, this.droppedRowsNote(screen).trim()].filter(Boolean).join(' ');
   }
 
   /**
@@ -5460,6 +5468,55 @@ It is shown once. The far end needs it to register.`);
     const notRead = reading.result.value?.notRead ?? [];
     if (notRead.length === 0) return '';
     return ` Transport and Codecs are empty for ${notRead.length} endpoint(s) this read did not reach: ${notRead.slice(0, 5).join(', ')}${notRead.length > 5 ? ', …' : ''}.`;
+  }
+
+  /**
+   * The sentence a screen adds when its table is short of rows the target really has.
+   *
+   * Both of these readings hand back the target's own trailer count beside the list they
+   * parsed, and both screens rendered the list and threw the count away -- so a Voicemail
+   * screen showing three of four mailboxes looked exactly like one showing all four.
+   * Measured on a live target: the trailer said `4 voicemail users configured` and the
+   * table had three rows.
+   *
+   * Empty for every other screen, and empty whenever the table is showing everything.
+   */
+  private droppedRowsNote(screen: string): string {
+    if (screen === 'voicemail') {
+      const reading = this.readings.voicemail?.voicemailUsers;
+      if (!reading) return '';
+      /* The Voicemail screen edits a file, so `note()` returns from the configuration
+       * branch above and never reaches the reading-failure report at the bottom of it.
+       * Without this line a failed `voicemail show users` leaves an empty table whose only
+       * sentence is about voicemail.conf, which names the wrong thing entirely. */
+      if (reading.result.state === 'unavailable') {
+        return ` No mailboxes are listed because \`voicemail show users\` could not be read: ${reading.result.reason}`;
+      }
+      const value = reading.result.value;
+      return droppedRowNote({
+        command: 'voicemail show users',
+        unit: 'voicemail user',
+        parsed: value.users.length,
+        total: value.total,
+        dropped: value.dropped,
+        reason: 'prints fixed-width columns, and a context or mailbox that overruns its own field leaves nothing to say where the next column begins, so the row is left out rather than filed under the wrong context',
+      });
+    }
+    if (screen === 'ami') {
+      /* No unavailable branch here on purpose: the AMI screen edits no single file, so
+       * `note()` falls all the way through to `reasonFor`, which already reports a failed
+       * `manager show users` in the target's own words. */
+      const value = valueOf(this.readings.ami?.managerUsers);
+      if (!value) return '';
+      return droppedRowNote({
+        command: 'manager show users',
+        unit: 'manager user',
+        parsed: value.users.length,
+        total: value.total,
+        reason: 'prints one username per line, and this reading could not tell every line apart from the report\'s own header, separator and trailer',
+      });
+    }
+    return '';
   }
 
   /** Real dialplan nodes/edges in the design's canvas shapes, with a bezier path per edge
