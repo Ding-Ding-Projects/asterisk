@@ -83,11 +83,179 @@ if (!siteFontFiles.includes('fonts.css')) {
   throw new Error(`No fonts.css in ${siteFontSource}; the published pages would fall back silently.`);
 }
 
+/*
+ * The real installer download, resolved by console/scripts/resolve-site-download-
+ * manifest.mjs and baked into index.html / downloads.html / app.js at build time.
+ *
+ * The manifest's absence, unreadability, or failure of any of these checks is not an
+ * error -- it is the honest "not published" fallback these pages already say, and this
+ * build must never fail or block a Pages deploy because of it. Every check below is
+ * therefore a downgrade to the fallback, never a thrown error, and the ONLY thing that
+ * legitimately throws past this point is a template marker missing from the page HTML
+ * itself, because that would mean the page can no longer express either state.
+ */
+function replaceOnce(text, needle, replacement, label) {
+  const count = text.split(needle).length - 1;
+  if (count !== 1) throw new Error(`${label}: expected exactly 1 occurrence of ${JSON.stringify(needle)}, found ${count}`);
+  return text.split(needle).join(replacement);
+}
+/* Same fail-loud contract as replaceOnce, for a substring that is deliberately
+ * repeated (once per funny-level variant, for example) rather than a single marker. */
+function replaceAllOccurrences(text, needle, replacement, expectedCount, label) {
+  const count = text.split(needle).length - 1;
+  if (count !== expectedCount) throw new Error(`${label}: expected exactly ${expectedCount} occurrence(s) of ${JSON.stringify(needle)}, found ${count}`);
+  return text.split(needle).join(replacement);
+}
+const SETUP_ASSET_NAME = 'Ding-PBX-Console-Setup.exe';
+const RELEASE_URL_PREFIX = 'https://github.com/Ding-Ding-Projects/asterisk/releases/tag/';
+const ASSET_URL_PREFIX = 'https://github.com/Ding-Ding-Projects/asterisk/releases/download/';
+const SEMVER = /^\d+\.\d+\.\d+$/;
+const SHA256_HEX = /^[0-9a-f]{64}$/;
+const manifestPath = process.env.DING_PBX_SITE_RELEASE_MANIFEST ?? join(root, 'release-manifest.local.json');
+
+function validateDownloadManifest(candidate) {
+  if (candidate?.schemaVersion !== 1) return 'schemaVersion is not 1';
+  if (candidate.resolved !== true) return 'resolved is not true';
+  if (candidate.product !== 'ding-pbx-console') return 'product does not match';
+  if (!SEMVER.test(candidate.version ?? '')) return 'version is not a semantic version';
+  if (typeof candidate.tag !== 'string' || candidate.tag.length === 0) return 'tag is missing';
+  if (!/^[0-9a-f]{40}$/.test(candidate.sourceCommit ?? '')) return 'sourceCommit is not a full commit SHA';
+  if (Number.isNaN(Date.parse(candidate.publishedAt ?? ''))) return 'publishedAt is not a valid date';
+  if (typeof candidate.releaseUrl !== 'string' || !candidate.releaseUrl.startsWith(RELEASE_URL_PREFIX)) return 'releaseUrl is not an immutable release tag URL';
+  if (typeof candidate.releaseNotesMarkdown !== 'string') return 'releaseNotesMarkdown is not a string';
+  const asset = candidate.asset ?? {};
+  if (asset.name !== SETUP_ASSET_NAME) return 'asset.name does not name the installer';
+  if (typeof asset.url !== 'string' || !asset.url.startsWith(ASSET_URL_PREFIX)) return 'asset.url is not an immutable release asset URL';
+  if (!Number.isInteger(asset.sizeBytes) || asset.sizeBytes <= 0) return 'asset.sizeBytes is not a positive integer';
+  if (!SHA256_HEX.test(asset.sha256 ?? '')) return 'asset.sha256 is not a lowercase 64-character hex digest';
+  return null;
+}
+
+let downloadManifest = null;
+let downloadManifestRejectionReason = null;
+try {
+  const candidate = JSON.parse(await readFile(manifestPath, 'utf8'));
+  const invalidReason = validateDownloadManifest(candidate);
+  if (invalidReason) downloadManifestRejectionReason = `rejected ${manifestPath}: ${invalidReason}`;
+  else downloadManifest = candidate;
+} catch (error) {
+  downloadManifestRejectionReason = `no usable manifest at ${manifestPath}: ${error.message ?? error}`;
+}
+if (downloadManifestRejectionReason) console.log(downloadManifestRejectionReason);
+
+const downloadValues = downloadManifest ? (() => {
+  const versionLabel = `v${downloadManifest.version}`;
+  const sizeMb = Math.round(downloadManifest.asset.sizeBytes / 1_000_000);
+  const publishedDate = new Date(downloadManifest.publishedAt).toISOString().slice(0, 10);
+  return {
+    homeStatusLabel: 'Published',
+    homeStatusDetail: `Verified release ${versionLabel} · ${sizeMb} MB · unsigned by permanent policy.`,
+    homeDownloadAction: `<a class="download-button" id="home-download-button" href="${downloadManifest.asset.url}" rel="noopener" aria-describedby="home-installer-status-detail">Download for Windows (${versionLabel})</a>`,
+    homeStatValue: escapeHtml(versionLabel),
+    homeStatTrendClass: 'trend',
+    homeStatTrendText: 'Verified installer',
+    dlStatusChip: '<span class="status-chip">Published</span>',
+    dlStatusDetail: `Verified release ${versionLabel}, published ${publishedDate}. The immutable asset URL and its SHA-256 were cross-checked against the release's own signed manifest and SHA256SUMS.txt before this page was published.`,
+    dlAction: `<a class="primary-button" id="download-button" href="${downloadManifest.asset.url}" aria-describedby="installer-status" rel="noopener">Download ${SETUP_ASSET_NAME} (${versionLabel})</a>`,
+    dlVersion: escapeHtml(versionLabel),
+    dlArtifact: `${SETUP_ASSET_NAME} (${sizeMb} MB)`,
+    dlSha256: `<code>${downloadManifest.asset.sha256}</code>`,
+    releaseNotesMarkdown: downloadManifest.releaseNotesMarkdown,
+    // A real installer exists: the hero copy, the homepage preview chrome, product.html's
+    // "planned desktop runtime" phrasing, and status.html's installer-release card must
+    // all say so, because a "planned"/"CONCEPT" surface next to a working download link
+    // is its own false claim -- the opposite direction from guessing a URL, but just as
+    // false. Every one of these returns to its exact honest fallback wording below when
+    // no manifest resolves.
+    heroLede: `Ding PBX Console is a Windows desktop console, downloadable today, that administers Asterisk through a bounded control plane&mdash;backup, stage, validate, apply, read back, compare. The installer is unsigned by permanent policy and the product remains in active development. This website is documentation and download infrastructure, not the installed desktop application or a PBX runtime.`,
+    homePreviewLabel: 'PREVIEW',
+    runtimePrefix: '',
+    heroLedeCopyEnNeedle: 'a planned desktop administration experience for Asterisk',
+    heroLedeCopyEnReplacement: 'a desktop administration experience for Asterisk, downloadable today',
+    heroLedeCopyZhNeedle: 'Asterisk 嘅桌面管理計劃項目',
+    heroLedeCopyZhReplacement: 'Asterisk 嘅桌面管理應用程式，而家已經可以下載',
+    statusGaugeValue: '100',
+    statusGaugeColor: '--good',
+    statusDotClass: 'good',
+    statusInstallerLabel: `Published ${versionLabel}`,
+    statusInstallerDetail: `Verified against the release's own signed manifest and SHA256SUMS.txt. ${sizeMb} MB, unsigned by permanent policy.`,
+    statusSparklineClass: 'is-good',
+    statusTimelineItem: `<li data-state="good"><strong>Installer release published</strong><p>${versionLabel} verified against SHA256SUMS.txt and the release's own signed manifest, published ${publishedDate}.</p></li>`,
+  };
+})() : {
+  homeStatusLabel: 'Not published',
+  homeStatusDetail: 'No verified release manifest exists yet, so this site does not guess a download URL.',
+  homeDownloadAction: '<a class="download-button disabled-link" href="downloads.html" aria-disabled="true">Download unavailable</a>',
+  homeStatValue: '—',
+  homeStatTrendClass: 'trend warning',
+  homeStatTrendText: 'Awaiting verification',
+  dlStatusChip: '<span class="status-chip warning-chip">Not published</span>',
+  dlStatusDetail: 'No verified release manifest exists yet, so this site does not guess a download URL.',
+  dlAction: '<button class="primary-button" type="button" disabled aria-describedby="installer-status">Download unavailable</button>',
+  dlVersion: 'Unavailable',
+  dlArtifact: 'Not verified',
+  dlSha256: 'Not published',
+  releaseNotesMarkdown: '',
+  heroLede: 'Ding PBX Console is a planned Windows desktop console that administers Asterisk through a bounded control plane&mdash;backup, stage, validate, apply, read back, compare. This website is documentation and download infrastructure, not the installed desktop application or a PBX runtime.',
+  homePreviewLabel: 'CONCEPT',
+  runtimePrefix: 'planned ',
+  heroLedeCopyEnNeedle: null,
+  heroLedeCopyEnReplacement: null,
+  heroLedeCopyZhNeedle: null,
+  heroLedeCopyZhReplacement: null,
+  statusGaugeValue: '0',
+  statusGaugeColor: '--warning',
+  statusDotClass: 'waiting',
+  statusInstallerLabel: 'Not published',
+  statusInstallerDetail: 'No verified immutable asset exists yet.',
+  statusSparklineClass: 'is-waiting',
+  statusTimelineItem: '<li data-state="waiting"><strong>Installer release pending</strong><p>Awaiting a non-draft release with a verified immutable asset and digest.</p></li>',
+};
+
 for (const asset of assets) {
   let content = await readFile(join(root, asset));
   let text = content.toString('utf8').replaceAll('../assets/fonts/', 'assets/fonts/').replaceAll('../assets/site-fonts/', 'assets/site-fonts/');
   if (asset === 'index.html') {
     text = text.replaceAll('../docs/', 'docs/').replaceAll('.md"', '.html"');
+    text = replaceOnce(text, '{{DING_PBX_HOME_STATUS_LABEL}}', downloadValues.homeStatusLabel, asset);
+    text = replaceOnce(text, '{{DING_PBX_HOME_STATUS_DETAIL}}', downloadValues.homeStatusDetail, asset);
+    text = replaceOnce(text, '{{DING_PBX_HOME_DOWNLOAD_ACTION}}', downloadValues.homeDownloadAction, asset);
+    text = replaceOnce(text, '{{DING_PBX_HOME_STAT_VALUE}}', downloadValues.homeStatValue, asset);
+    text = replaceOnce(text, '{{DING_PBX_HOME_STAT_TREND_CLASS}}', downloadValues.homeStatTrendClass, asset);
+    text = replaceOnce(text, '{{DING_PBX_HOME_STAT_TREND_TEXT}}', downloadValues.homeStatTrendText, asset);
+    text = replaceOnce(text, '{{DING_PBX_HERO_LEDE}}', downloadValues.heroLede, asset);
+    text = replaceOnce(text, '{{DING_PBX_HOME_PREVIEW_LABEL}}', downloadValues.homePreviewLabel, asset);
+  }
+  if (asset === 'product.html') {
+    text = replaceAllOccurrences(text, '{{DING_PBX_RUNTIME_PREFIX}}', downloadValues.runtimePrefix, 2, asset);
+  }
+  if (asset === 'downloads.html') {
+    text = replaceOnce(text, '{{DING_PBX_DL_STATUS_CHIP}}', downloadValues.dlStatusChip, asset);
+    text = replaceOnce(text, '{{DING_PBX_DL_STATUS_DETAIL}}', downloadValues.dlStatusDetail, asset);
+    text = replaceOnce(text, '{{DING_PBX_DL_ACTION}}', downloadValues.dlAction, asset);
+    text = replaceOnce(text, '{{DING_PBX_DL_VERSION}}', downloadValues.dlVersion, asset);
+    text = replaceOnce(text, '{{DING_PBX_DL_ARTIFACT}}', downloadValues.dlArtifact, asset);
+    text = replaceOnce(text, '{{DING_PBX_DL_SHA256}}', downloadValues.dlSha256, asset);
+  }
+  if (asset === 'status.html') {
+    text = replaceOnce(text, '{{DING_PBX_STATUS_GAUGE_VALUE}}', downloadValues.statusGaugeValue, asset);
+    text = replaceOnce(text, '{{DING_PBX_STATUS_GAUGE_COLOR}}', downloadValues.statusGaugeColor, asset);
+    text = replaceOnce(text, '{{DING_PBX_STATUS_DOT_CLASS}}', downloadValues.statusDotClass, asset);
+    text = replaceOnce(text, '{{DING_PBX_STATUS_INSTALLER_LABEL}}', downloadValues.statusInstallerLabel, asset);
+    text = replaceOnce(text, '{{DING_PBX_STATUS_INSTALLER_DETAIL}}', downloadValues.statusInstallerDetail, asset);
+    text = replaceOnce(text, '{{DING_PBX_STATUS_SPARKLINE_CLASS}}', downloadValues.statusSparklineClass, asset);
+    text = replaceOnce(text, '{{DING_PBX_STATUS_TIMELINE_ITEM}}', downloadValues.statusTimelineItem, asset);
+  }
+  if (asset === 'app.js') {
+    text = replaceOnce(text, "const RELEASE_NOTES_MARKDOWN = '';", `const RELEASE_NOTES_MARKDOWN = ${JSON.stringify(downloadValues.releaseNotesMarkdown)};`, asset);
+    // The hero lede's runtime-rendered text (COPY.heroLede, applied over the static
+    // HTML above by app.js's own applyCopy()) must agree with it in every funny-level
+    // variant and both languages, or a JS-enabled visitor sees the honest static text
+    // for one render frame and then a stale "planned" claim the moment the script runs.
+    if (downloadValues.heroLedeCopyEnNeedle) {
+      text = replaceAllOccurrences(text, downloadValues.heroLedeCopyEnNeedle, downloadValues.heroLedeCopyEnReplacement, 4, asset);
+      text = replaceAllOccurrences(text, downloadValues.heroLedeCopyZhNeedle, downloadValues.heroLedeCopyZhReplacement, 4, asset);
+    }
   }
   await writeFile(join(output, asset), Buffer.from(text));
 }
@@ -145,6 +313,9 @@ const manifest = {
   schemaVersion: 1,
   generatedBy: 'node console/site/build.mjs',
   networkFetches: 0,
+  download: downloadManifest
+    ? { resolved: true, version: downloadManifest.version, tag: downloadManifest.tag, assetUrl: downloadManifest.asset.url, sha256: downloadManifest.asset.sha256 }
+    : { resolved: false, reason: downloadManifestRejectionReason ?? `no manifest file at ${manifestPath}` },
   outputFiles: files.sort((a, b) => a.path.localeCompare(b.path))
 };
 await writeFile(join(output, 'build-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
