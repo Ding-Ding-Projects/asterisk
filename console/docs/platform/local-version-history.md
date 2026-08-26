@@ -8,7 +8,7 @@ Every user-managed setting and record change is recorded through the desktop con
 
 ## Configuration
 
-Restoring is append-only. The selected commit remains unchanged and the restore writes a new `restored` commit. The history manager has a separate credential stored in the operating-system vault. Recording can continue while the manager is locked, while browsing, diffing, comparing, restoring, exporting, and retention actions require the separate credential. History exports are JSON or validated ZIP and contain redacted metadata only. Credential-shaped values are removed by the control-plane service before they enter the local Git repository.
+Restoring is append-only. The selected commit remains unchanged and the restore writes a new `restored` commit. Restore accepts only a full commit id present in the parsed local-history listing, so another reachable Git object cannot be used as a restore source. The history manager has a separate credential stored in the operating-system vault. Recording can continue while the manager is locked, while browsing, diffing, comparing, restoring, exporting, and retention actions require the separate credential. History exports are JSON or validated ZIP and contain redacted metadata only. Credential-shaped values are removed by the control-plane service before they enter the local Git repository.
 
 ## Current status
 

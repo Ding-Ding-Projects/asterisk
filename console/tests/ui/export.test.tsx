@@ -12,6 +12,22 @@ import {
 } from '../../app/renderer/src/export.ts';
 import type { ExportFormat } from '../../app/renderer/src/export.ts';
 
+function replaceArchiveName(archive: Uint8Array, from: string, to: string): Uint8Array {
+  assert.equal(Buffer.byteLength(from), Buffer.byteLength(to), 'tampered ZIP names must preserve record lengths');
+  const output = archive.slice();
+  const needle = Buffer.from(from, 'utf8');
+  const replacement = Buffer.from(to, 'utf8');
+  let replacements = 0;
+  for (let offset = 0; offset <= output.length - needle.length; offset += 1) {
+    if (needle.every((byte, index) => output[offset + index] === byte)) {
+      output.set(replacement, offset);
+      replacements += 1;
+    }
+  }
+  assert.equal(replacements, 2, 'a store-mode ZIP must carry the name in its local and central records');
+  return output;
+}
+
 // ---------------------------------------------------------------- json / jsonl
 
 test('json exports an indented array of objects', () => {
@@ -249,6 +265,28 @@ test('ZIP validation and independent reopen preserve exact names and text', () =
     { name: 'history.json', text: '{"ok":true}' },
     { name: 'omissions.json', text: '{"omitted":true}' },
   ]);
+});
+
+test('ZIP reopen refuses structurally valid names that violate the archive path policy', () => {
+  const cases: Array<[string, string]> = [
+    ['safe.txt', '../x.txt'],
+    ['one.txt', '/ok.txt'],
+    ['one.txt', './a.txt'],
+    ['one.txt', 'a\\b.txt'],
+  ];
+  for (const [from, to] of cases) {
+    const archive = replaceArchiveName(createZipArchive([{ name: from, text: 'safe' }]), from, to);
+    assert.equal(validateZipArchive(archive).ok, false, `tampered name ${to} was accepted`);
+    assert.throws(() => reopenZipArchive(archive), /Unsafe or duplicate archive entry name/u);
+  }
+});
+
+test('ZIP reopen refuses duplicate names after normalization while accepting normal archives', () => {
+  const normal = createZipArchive([{ name: 'one.txt', text: 'one' }, { name: 'two.txt', text: 'two' }]);
+  assert.deepEqual(validateZipArchive(normal), { ok: true, entries: 2 });
+  const duplicate = replaceArchiveName(normal, 'two.txt', 'one.txt');
+  assert.equal(validateZipArchive(duplicate).ok, false);
+  assert.throws(() => reopenZipArchive(duplicate), /Unsafe or duplicate archive entry name/u);
 });
 
 // ---------------------------------------------------------------- describeLoss

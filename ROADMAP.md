@@ -41,7 +41,7 @@
 - [x] Serialize the process-wide history instance and restore complete selected trees, including removals, before appending a new restore snapshot.
 - [x] Add cursor pagination, total counts, action counts, real commit-tree inspection and comparison, bounded redaction, opaque subject ids, and control-character rejection.
 - [x] Add a hand-written mutation inventory for settings, endpoint, onboarding, runtime, server, PBX administration, and media writes.
-- [x] Add validated ZIP output, archive option metadata, omission markers, and an honest disabled 7z adapter entry until a bundled 7z implementation exists.
+- [x] Add validated ZIP output, archive option metadata, omission markers, re-opened-entry path validation, and an honest disabled 7z adapter entry until a bundled 7z implementation exists.
 
 ## Evidence and completeness
 
@@ -158,7 +158,7 @@ be one. What remains for each is the screen that uses it.
 - [x] **Colour engine** — every format both directions with alpha preserved or reported lossy, contrast checked against the reference pairs, out-of-gamut colours flagged before clipping, and the animated rainbow modelled as a sentinel that must never enter a palette of real colours.
 - [x] **Unlock ladder** — clears the waiting and never the credential, never refunds the attempt budget, budgeted to three skips an hour because a machine can play it, single-use nonces, and a timed round that cannot be won faster than it lasts. The first two rules are structural: no field exists that could carry a token, and no code path can add budget.
 - [x] **Changelog** — parsing, date and text filtering that compose, an invalid pattern reported rather than thrown, a version with nothing recorded surviving as an empty entry, and a commit reference refused unless it is a real identifier.
-- [x] **Local version history** — append-only, a restore recorded as a new entry rather than a rewrite, commit messages naming what changed, and credential-shaped values redacted before they reach disk.
+- [x] **Local version history** — append-only, restores restricted to listed history commits and recorded as new entries rather than rewrites, commit messages naming what changed, and credential-shaped values redacted before they reach disk.
 - [x] **Offline documentation** — all 82 articles generated into the application with a completeness check that fails the build when the bundled count and the count on disk disagree, plus search, link resolution and broken-link reporting.
 - [x] **Media library** — prompts and music on hold, refusing by name before a command is built, verifying content by leading bytes where the format has any, and honest that headerless formats cannot be verified that way.
 

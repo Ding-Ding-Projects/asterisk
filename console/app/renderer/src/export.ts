@@ -608,6 +608,27 @@ function crc32(bytes: Uint8Array): number {
 function u16(value: number): number[] { return [value & 0xff, (value >>> 8) & 0xff]; }
 function u32(value: number): number[] { return [value & 0xff, (value >>> 8) & 0xff, (value >>> 16) & 0xff, (value >>> 24) & 0xff]; }
 
+/**
+ * Keeps archive paths relative, portable, and collision-free at both write and read
+ * boundaries. ZIP readers disagree about path separators, so a backslash is never
+ * accepted as a path separator from an untrusted archive.
+ */
+function archiveEntryName(name: string, names: ReadonlySet<string>): string {
+  const normalizedName = name.normalize("NFC");
+  const parts = normalizedName.split("/");
+  if (
+    normalizedName.length === 0
+    || normalizedName.includes("\\")
+    || !/^[a-zA-Z0-9._/-]+$/u.test(normalizedName)
+    || normalizedName.startsWith("/")
+    || parts.some((part) => part === "" || part === "." || part === "..")
+    || names.has(normalizedName.toLowerCase())
+  ) {
+    throw new Error(`Unsafe or duplicate archive entry name: ${name}`);
+  }
+  return normalizedName;
+}
+
 /** Creates a validated, store-mode ZIP. The source bytes remain unchanged. */
 export function createZipArchive(entries: ReadonlyArray<{ name: string; text: string }>): Uint8Array {
   const encoder = new TextEncoder();
@@ -616,8 +637,7 @@ export function createZipArchive(entries: ReadonlyArray<{ name: string; text: st
   const names = new Set<string>();
   let offset = 0;
   for (const entry of entries) {
-    const normalizedName = entry.name.replace(/\\/gu, '/');
-    if (!/^[a-zA-Z0-9._/-]+$/u.test(normalizedName) || normalizedName.startsWith('/') || normalizedName.split('/').some((part) => part === '..' || part === '') || names.has(normalizedName.toLowerCase())) throw new Error(`Unsafe or duplicate archive entry name: ${entry.name}`);
+    const normalizedName = archiveEntryName(entry.name, names);
     names.add(normalizedName.toLowerCase());
     const name = encoder.encode(normalizedName);
     const data = encoder.encode(entry.text);
@@ -655,6 +675,7 @@ export function validateZipArchive(bytes: Uint8Array): { ok: true; entries: numb
   const centralOffset = read32(end + 16);
   if (centralOffset + centralSize !== end) return { ok: false, reason: 'ZIP central-directory bounds do not meet the end record.' };
   const decoder = new TextDecoder('utf-8', { fatal: true });
+  const names = new Set<string>();
   let cursor = centralOffset;
   for (let index = 0; index < count; index += 1) {
     if (read32(cursor) !== 0x02014b50) return { ok: false, reason: 'ZIP central-directory signature is invalid.' };
@@ -677,6 +698,12 @@ export function validateZipArchive(bytes: Uint8Array): { ok: true; entries: numb
     const namesEqual = centralNameBytes.length === localNameBytes.length && centralNameBytes.every((value, byteIndex) => value === localNameBytes[byteIndex]);
     if (method !== 0 || compressedSize !== uncompressedSize || read32(localOffset) !== 0x04034b50 || dataStart + compressedSize > centralOffset || nameLength !== localNameLength || !namesEqual || centralName !== localName || crc32(bytes.slice(dataStart, dataStart + compressedSize)) !== crc) {
       return { ok: false, reason: 'ZIP entry structure, offset, size, or CRC validation failed.' };
+    }
+    try {
+      archiveEntryName(centralName, names);
+      names.add(centralName.toLowerCase());
+    } catch (error) {
+      return { ok: false, reason: error instanceof Error ? error.message : 'ZIP entry name is unsafe.' };
     }
     if (nameStart + nameLength + extraLength + commentLength > centralOffset + centralSize) return { ok: false, reason: 'ZIP central-directory entry exceeds its declared bounds.' };
     cursor = nameStart + nameLength + extraLength + commentLength;

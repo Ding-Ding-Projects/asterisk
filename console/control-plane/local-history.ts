@@ -494,16 +494,11 @@ export class LocalHistory {
       throw new Error(`"${commitId}" is not a 40-character commit id, so nothing was restored.`);
     }
 
-    const commitResult = await this.#git([
-      "log",
-      "-1",
-      `--format=%H${RECORD_SEPARATOR}%cI${RECORD_SEPARATOR}%B`,
-      commitId,
-    ]);
-    if (commitResult.status !== "succeeded") {
-      throw new Error(commitResult.stderr.trim() || `Commit ${commitId} could not be read.`);
-    }
-    const original = parseLogRecord(commitResult.stdout.trim());
+    // Resolve only from the bounded, parsed local-history listing. A syntactically
+    // valid Git object may be reachable in this repository without being a history
+    // record, and must never be allowed to supply a checkout tree.
+    const original = (await this.#logAll()).find((entry) => entry.id === commitId);
+    if (!original) throw new Error(`Commit ${commitId} is not in the local history, so nothing was restored.`);
 
     const targetFiles = await this.treeFiles(commitId);
     const currentFiles = await this.#run(["ls-files", "--", "records"]);

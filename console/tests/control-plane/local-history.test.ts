@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, readFileSync, readdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { NodeProcessExecutor } from "../../control-plane/executor.js";
@@ -232,6 +233,42 @@ test("restore records a new commit rather than rewriting history", async () => {
     assert.equal(after.length, before.length + 1);
     assert.ok(after.some((c) => c.id === original.id), "the original commit must still exist");
     assert.ok(after.some((c) => c.id === restored.id), "the restore must be its own commit");
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("restore accepts a listed commit after later history changes and records append-only evidence", async () => {
+  const { dir, history } = makeHistory();
+  try {
+    await history.initialize();
+    const original = await recordEntry(history, { action: "created", payload: { version: 1 }, subject: "original record" });
+    const later = await recordEntry(history, { action: "updated", payload: { version: 2 }, subject: "later record" });
+    const restored = await history.restore(original.id);
+    const commits = await history.list();
+    assert.ok(commits.some((entry) => entry.id === original.id), "the selected listed commit disappeared");
+    assert.ok(commits.some((entry) => entry.id === later.id), "a concurrent later history change disappeared");
+    assert.equal(restored.action, "restored");
+    assert.match(restored.message, new RegExp(`^History-RestoredFrom: ${original.id}$`, "mu"));
+    assert.equal(commits[0]?.id, restored.id, "restore must append a new head commit");
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("restore refuses a parseable history-shaped commit that is reachable only outside the bounded listing", async () => {
+  const { dir, executor, history } = makeHistory();
+  try {
+    await history.initialize();
+    await recordEntry(history, { action: "created", payload: {}, subject: "listed record" });
+    execFileSync("git", ["checkout", "--quiet", "-b", "outside-history"], { cwd: dir });
+    execFileSync("git", ["commit", "--quiet", "--allow-empty", "-m", "Created outside record\n\nHistory-Action: created\nHistory-Subject: outside record"], { cwd: dir });
+    const outside = execFileSync("git", ["rev-parse", "HEAD"], { cwd: dir, encoding: "utf8" }).trim();
+    execFileSync("git", ["checkout", "--quiet", "master"], { cwd: dir });
+    const before = executor.calls.length;
+    await assert.rejects(() => history.restore(outside), /not in the local history/u);
+    const restoreCalls = executor.calls.slice(before);
+    assert.equal(restoreCalls.some((call) => call.args.includes("checkout") || call.args.includes("ls-tree")), false, "an unlisted object reached tree reading or checkout");
   } finally {
     cleanup(dir);
   }
