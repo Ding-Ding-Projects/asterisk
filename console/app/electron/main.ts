@@ -19,6 +19,23 @@ import { DESTINATION_ROUTE_SCHEME, firstDestinationRouteArgument } from '../../s
 import { createDestinationRouteRouter } from './deep-link.js';
 
 let mainWindow: BrowserWindow | null = null;
+/**
+ * The data directory is pinned to the name this application shipped under, not the name
+ * it now displays.
+ *
+ * Electron derives userData from the packaged product name, so renaming the product would
+ * silently move it -- and every stored profile, credential, setting and local history on
+ * every existing install would still be sitting in the old directory, invisible, with the
+ * application reporting itself freshly installed. Nothing would error. The user would
+ * simply open a version of their console that had forgotten them.
+ *
+ * So the display name is a label and this is identity, and they are deliberately allowed
+ * to disagree. The literal below must never be "corrected" to match the current product
+ * name: it is correct precisely because it does not.
+ */
+const SHIPPED_DATA_DIRECTORY = 'Ding PBX Console';
+app.setPath('userData', join(app.getPath('appData'), SHIPPED_DATA_DIRECTORY));
+
 const userDataPath = app.getPath('userData');
 const dispatcher = createControlPlaneDispatcher({
   /* Straight onto the same channel the updater already uses: one send, no new
@@ -202,7 +219,7 @@ function revealMainWindow(): void {
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
-    width: 1440, height: 920, minWidth: 920, minHeight: 640, frame: false, backgroundColor: '#101510', show: false, title: 'Ding PBX Console',
+    width: 1440, height: 920, minWidth: 920, minHeight: 640, frame: false, backgroundColor: '#101510', show: false, title: 'Material Asterisk',
     webPreferences: { preload: join(import.meta.dirname, '../../../app/electron/preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   mainWindow.once('ready-to-show', () => mainWindow?.show());

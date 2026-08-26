@@ -672,7 +672,7 @@ export class App extends Base {
    */
   /**
    * The appearance/notifications/history groups below are the same shape as partner and
-   * security: a real Ding PBX Console preference persisted through a relaunch, not an
+   * security: a real Material Asterisk preference persisted through a relaunch, not an
    * Asterisk key. Four of them (p_scale, p_motion, p_mono, p_start, p_tour, nt_toast,
    * nt_sound) also have a genuine live consumer -- see applyLiveConsoleSetting below and
    * its call sites. The rest persist a stated intention and nothing yet enforces it,
@@ -4202,7 +4202,7 @@ What you can do: ${offered}.` : ''}`);
     crypto.getRandomValues(secretBytes);
     const secret = encodeBase32(secretBytes);
     const account = s.lockTarget || s.lockKey || 'this element';
-    const uri = pairingUri({ issuer: 'Ding PBX Console', account, parameters: { secret } });
+    const uri = pairingUri({ issuer: 'Material Asterisk', account, parameters: { secret } });
     this.setState({ totpPendingSecret: secret, totpPendingUri: uri } as never);
     this.showInfo(
       'Authenticator secret',
@@ -7075,7 +7075,7 @@ It is shown once. The far end needs it to register.`);
      * failure reason was unreachable code. The canvas is not a configuration screen in the
      * sense that branch means: every control on it is read-only (see `canvasVals`), and
      * what it has to report is what `dialplan show` said, not what a file holds. */
-    if (screen === 'canvas') {
+    if (screen === 'canvas-disabled') {
       if (!this.canvasReadings) return 'Reading…';
       /* Two different facts, and both get said. `canvasReason` is why there is no graph;
        * the divergence note is what the graph on screen actually describes. A canvas that

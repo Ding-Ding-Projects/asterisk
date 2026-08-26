@@ -84,7 +84,7 @@ test('the title bar renders on every screen, not only the one it happened to be 
 /**
  * Two halves, pinned separately, because they used to be one and that was the defect.
  *
- * The name lived in the `<h1>`, which made the heading read `About Ding PBX Console`
+ * The name lived in the `<h1>`, which made the heading read `About Material Asterisk`
  * where the design's own reads `About`. The parity capture driver settles on the heading
  * to prove it arrived at the destination it clicked towards, so About was the single
  * destination of thirty-two with no built capture at all -- recorded in
@@ -165,7 +165,7 @@ test("the About screen keeps the design's own subheading rather than displacing 
 test('the rename control still discloses the shipped name literally, as a static string with no bound value', async () => {
   /* This is the opposite failure to guard against: a rename must not leak into copy
    * that is *explaining* the shipped-name-only boundary, or the sentence "diagnostics
-   * still say Ding PBX Console" would render self-contradictory nonsense once renamed. */
+   * still say Material Asterisk" would render self-contradictory nonsense once renamed. */
   const generated = await read('app/renderer/src/generated/console.tsx');
   const match = generated.match(/ctl\('id_name',[^)]*\{[^}]*\}\)/u);
   assert.ok(match, 'id_name control declaration not found in the compiled design output');

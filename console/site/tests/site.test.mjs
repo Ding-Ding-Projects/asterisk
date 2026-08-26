@@ -74,7 +74,7 @@ function assertFallbackPublished(dist) {
   // is just as false as a guessed URL, so the fallback must say "planned"/"CONCEPT"
   // consistently everywhere that claim is made, in both the JS-rendered hero copy and
   // its static HTML default, never a stale mix of the two states.
-  assert.match(dist['index.html'], /Ding PBX Console is a planned Windows desktop console/);
+  assert.match(dist['index.html'], /Material Asterisk is a planned Windows desktop console/);
   assert.match(dist['index.html'], /<strong>Console overview<\/strong><em>CONCEPT<\/em>/);
   assert.equal((dist['product.html'].match(/planned desktop runtime/g) || []).length, 2);
   assert.doesNotMatch(dist['product.html'], /(?<!planned )desktop runtime/);
@@ -82,7 +82,7 @@ function assertFallbackPublished(dist) {
   assert.match(dist['status.html'], /<p>No verified immutable asset exists yet\.<\/p>/);
   assert.match(dist['status.html'], /<span class="sparkline is-waiting"/);
   assert.match(dist['status.html'], /<li data-state="waiting"><strong>Installer release pending<\/strong>/);
-  assert.match(dist['app.js'], /'Ding PBX Console is a planned desktop administration experience for Asterisk\./);
+  assert.match(dist['app.js'], /'Material Asterisk is a planned desktop administration experience for Asterisk\./);
   assert.match(dist['app.js'], /Asterisk 嘅桌面管理計劃項目/);
   const manifest = JSON.parse(dist['build-manifest.json']);
   assert.equal(manifest.download.resolved, false);
@@ -342,7 +342,7 @@ test('bakes a verified download manifest into the home page, the downloads page,
     // become "downloadable today"/"PREVIEW" everywhere those claims are made -- and
     // must never leave a stale "planned" behind in the JS-rendered copy that overwrites
     // the static HTML on load.
-    assert.match(dist['index.html'], /Ding PBX Console is a Windows desktop console, downloadable today/);
+    assert.match(dist['index.html'], /Material Asterisk is a Windows desktop console, downloadable today/);
     assert.match(dist['index.html'], /<strong>Console overview<\/strong><em>PREVIEW<\/em>/);
     assert.equal((dist['product.html'].match(/(?<!planned )desktop runtime/g) || []).length, 2);
     assert.doesNotMatch(dist['product.html'], /planned desktop runtime/);
@@ -351,7 +351,7 @@ test('bakes a verified download manifest into the home page, the downloads page,
     assert.match(dist['status.html'], /<span class="state-dot good"><\/span>/);
     assert.match(dist['status.html'], /<span class="sparkline is-good"/);
     assert.match(dist['status.html'], /<li data-state="good"><strong>Installer release published<\/strong><p>v9\.9\.9 verified against SHA256SUMS\.txt/);
-    assert.match(dist['app.js'], /'Ding PBX Console is a desktop administration experience for Asterisk, downloadable today\./);
+    assert.match(dist['app.js'], /'Material Asterisk is a desktop administration experience for Asterisk, downloadable today\./);
     assert.match(dist['app.js'], /Asterisk 嘅桌面管理應用程式，而家已經可以下載/);
     assert.doesNotMatch(dist['app.js'], /a planned desktop administration experience for Asterisk/);
     assert.doesNotMatch(dist['app.js'], /Asterisk 嘅桌面管理計劃項目/);

@@ -18,7 +18,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { withTitleBarName } from '../../app/renderer/src/title-bar-name.ts';
 
-const SHIPPED_NAME = 'Ding PBX Console';
+const SHIPPED_NAME = 'Material Asterisk';
 
 /** The drag region's real shape: icon-and-name row, menu strip, connection pill,
  *  window controls -- built with plain `createElement`, the same element shape the

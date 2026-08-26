@@ -56,7 +56,7 @@ test('IDENTITY is frozen and carries no field derivable from the display name', 
   const src = read(MODULE);
   const body = src.match(/export const IDENTITY = Object\.freeze\(\{([\s\S]*?)\}\);/);
   assert.ok(body, 'expected the IDENTITY object literal to be found as text');
-  assert.match(body[1], /productName: 'Ding PBX Console',/);
+  assert.match(body[1], /productName: 'Material Asterisk',/);
   assert.match(body[1], /dataDirectory: 'ding-pbx-console',/);
   assert.match(body[1], /applicationId: 'com\.dingding\.pbx-console',/);
   assert.match(body[1], /credentialService: 'ding-pbx-console',/);
@@ -127,12 +127,12 @@ test('HONEST GAP: displayName() is called exactly once in App.tsx, only to seed 
 
 test('HONEST GAP: the compiled design\'s title bar text is a hard-coded literal, not a rendered value', () => {
   const design = read(DESIGN);
-  const literalOccurrences = [...design.matchAll(/^\s*"Ding PBX Console"\s*$/gm)];
+  const literalOccurrences = [...design.matchAll(/^\s*"Material Asterisk"\s*$/gm)];
   assert.ok(literalOccurrences.length >= 2,
     `expected the shipped product name to appear as a bare string literal at least twice in the compiled design, found ${literalOccurrences.length}`);
 });
 
 test('HONEST GAP: the Electron BrowserWindow title is also a hard-coded literal', () => {
   const main = read(MAIN);
-  assert.match(main, /title: 'Ding PBX Console',/);
+  assert.match(main, /title: 'Material Asterisk',/);
 });

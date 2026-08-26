@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Resolve the newest verified, already-published Ding PBX Console release and write a
+ * Resolve the newest verified, already-published Material Asterisk release and write a
  * download manifest that console/site/build.mjs bakes into the published site.
  *
  * Why this exists: the Pages workflow deploys on every push to master, but the release
@@ -33,7 +33,13 @@ import { fileURLToPath } from 'node:url';
 const OWNER = 'Ding-Ding-Projects';
 const REPO = 'asterisk';
 const REPO_SLUG = `${OWNER}/${REPO}`;
-const SETUP_ASSET_NAME = 'Ding-PBX-Console-Setup.exe';
+/* Both names, newest first. The product was renamed, so releases published before that
+ * carry the old installer filename and releases after it carry the new one. A resolver
+ * that knew only one of them would either refuse every release older than the rename or
+ * every release newer than it -- and because it fails by reporting no verified installer,
+ * the site would quietly go back to saying there is nothing to download rather than
+ * erroring. Silent, plausible, and wrong in the one place the site exists to be right. */
+const SETUP_ASSET_NAMES = ['Material-Asterisk-Setup.exe', 'Ding-PBX-Console-Setup.exe'];
 const RELEASES_ASSET_NAME = 'RELEASES';
 const SUMS_ASSET_NAME = 'SHA256SUMS.txt';
 const IDENTITY_ASSET_NAME = 'release-identity.json';
@@ -99,21 +105,21 @@ async function evaluateRelease(release) {
   if (release.draft) throw new Ineligible('draft');
   if (release.prerelease) throw new Ineligible('prerelease');
   const assets = release.assets ?? [];
-  const setupAsset = findAsset(assets, SETUP_ASSET_NAME);
+  const setupAsset = SETUP_ASSET_NAMES.map((name) => findAsset(assets, name)).find(Boolean);
   const releasesAsset = findAsset(assets, RELEASES_ASSET_NAME);
   const sumsAsset = findAsset(assets, SUMS_ASSET_NAME);
   const identityAsset = findAsset(assets, IDENTITY_ASSET_NAME);
   const nupkgAsset = assets.find((asset) => NUPKG_PATTERN.test(asset.name));
-  if (!setupAsset) throw new Ineligible(`missing ${SETUP_ASSET_NAME}`);
+  if (!setupAsset) throw new Ineligible(`no installer asset under any known name: ${SETUP_ASSET_NAMES.join(', ')}`);
   if (!releasesAsset) throw new Ineligible(`missing ${RELEASES_ASSET_NAME}`);
   if (!sumsAsset) throw new Ineligible(`missing ${SUMS_ASSET_NAME}`);
   if (!identityAsset) throw new Ineligible(`missing ${IDENTITY_ASSET_NAME}`);
   if (!nupkgAsset) throw new Ineligible('missing a *-full.nupkg asset');
-  if (setupAsset.state !== 'uploaded') throw new Ineligible(`${SETUP_ASSET_NAME} state is ${setupAsset.state}`);
-  if (!Number.isInteger(setupAsset.size) || setupAsset.size <= 0) throw new Ineligible(`${SETUP_ASSET_NAME} reports a non-positive size`);
+  if (setupAsset.state !== 'uploaded') throw new Ineligible(`${setupAsset.name} state is ${setupAsset.state}`);
+  if (!Number.isInteger(setupAsset.size) || setupAsset.size <= 0) throw new Ineligible(`${setupAsset.name} reports a non-positive size`);
 
   const apiDigest = typeof setupAsset.digest === 'string' ? setupAsset.digest.replace(/^sha256:/, '').toLowerCase() : undefined;
-  if (!apiDigest || !SHA256_HEX.test(apiDigest)) throw new Ineligible(`${SETUP_ASSET_NAME} carries no valid sha256 digest from the GitHub API`);
+  if (!apiDigest || !SHA256_HEX.test(apiDigest)) throw new Ineligible(`${setupAsset.name} carries no valid sha256 digest from the GitHub API`);
 
   const identity = JSON.parse(await fetchText(identityAsset.browser_download_url));
   if (identity.schemaVersion !== 1) throw new Ineligible(`release-identity.json schemaVersion is ${identity.schemaVersion}`);
@@ -123,15 +129,15 @@ async function evaluateRelease(release) {
   if (!SEMVER.test(identity.version)) throw new Ineligible(`release-identity.json version "${identity.version}" is not a semantic version`);
   if (!/^[0-9a-f]{40}$/.test(identity.candidateCommit ?? '')) throw new Ineligible('release-identity.json candidateCommit is not a full commit SHA');
   const identitySetup = identity.artifacts?.setup;
-  if (!identitySetup || identitySetup.name !== SETUP_ASSET_NAME) throw new Ineligible('release-identity.json artifacts.setup does not name the installer');
+  if (!identitySetup || identitySetup.name !== setupAsset.name) throw new Ineligible('release-identity.json artifacts.setup does not name the installer');
   const identityDigest = typeof identitySetup.sha256 === 'string' ? identitySetup.sha256.toLowerCase() : undefined;
   if (!identityDigest || !SHA256_HEX.test(identityDigest)) throw new Ineligible('release-identity.json artifacts.setup.sha256 is not a valid digest');
   if (identitySetup.size !== setupAsset.size) throw new Ineligible('release-identity.json artifacts.setup.size disagrees with the GitHub asset size');
   if (identityDigest !== apiDigest) throw new Ineligible('release-identity.json digest disagrees with the GitHub API asset digest');
 
   const sumsText = await fetchText(sumsAsset.browser_download_url);
-  const sumsDigest = parseSha256Sums(sumsText, SETUP_ASSET_NAME);
-  if (!sumsDigest || !SHA256_HEX.test(sumsDigest)) throw new Ineligible(`SHA256SUMS.txt carries no line for ${SETUP_ASSET_NAME}`);
+  const sumsDigest = parseSha256Sums(sumsText, setupAsset.name);
+  if (!sumsDigest || !SHA256_HEX.test(sumsDigest)) throw new Ineligible(`SHA256SUMS.txt carries no line for ${setupAsset.name}`);
   if (sumsDigest !== apiDigest) throw new Ineligible('SHA256SUMS.txt digest disagrees with the GitHub API asset digest');
 
   /* Prove the asset is actually reachable at the size every other signal claims, rather
@@ -151,7 +157,7 @@ async function evaluateRelease(release) {
     releaseUrl: release.html_url,
     releaseNotesMarkdown: release.body ?? '',
     asset: {
-      name: SETUP_ASSET_NAME,
+      name: setupAsset.name,
       url: setupAsset.browser_download_url,
       sizeBytes: setupAsset.size,
       sha256: apiDigest,

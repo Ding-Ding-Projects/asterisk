@@ -13,7 +13,7 @@ function Template(v: any) {
             "deployed_code"
           ),
           h("span", { style: sty(`font-size:13px; font-weight:500; letter-spacing:.1px; white-space:nowrap; flex:0 0 auto;`) },
-            "Ding PBX Console"
+            "Material Asterisk"
           )
         ),
         h("div", { style: sty(`display:flex; align-items:stretch; min-width:0; overflow-x:auto; flex:0 1 auto;`) },
@@ -2064,7 +2064,7 @@ function Template(v: any) {
                 ),
                 h("div", { style: sty(`position:absolute; left:0; right:0; bottom:24px; text-align:center;`) },
                   h("div", { style: sty(`font-size:13px; letter-spacing:3px; text-transform:uppercase; color:#9FF7C4; animation:m3Slide .6s cubic-bezier(.2,0,0,1) both;`) },
-                    "Ding PBX Console"
+                    "Material Asterisk"
                   ),
                   h("div", { style: sty(`font-size:34px; font-weight:700; color:#DFF3E5; margin-top:6px; text-shadow:0 4px 24px rgba(0,0,0,.6); animation:m3Pop .7s cubic-bezier(.2,1.5,.4,1) both;`) },
                     "Welcome to your first day on earth"
@@ -2983,7 +2983,7 @@ const SCREENS = {
       ctl('t_save','Save this trunk','segmented','Save',{ options:['Save'], action:'trunk-save' })
     ]}] },
   trunkauth:{ rail:'pbx', icon:'handshake', label:'Trunk authentication', badge:'2', title:'Trunk authentication', file:'trunk partner requests', kind:'trunkauth',
-    sub:'When a trunk partner asks to change something on the shared link — a new source address, a codec, a higher call cap — the request lands here and you answer yes or no. Nothing takes effect until you do. The six controls below are this console\'s own answering policy, not an Asterisk key -- there is no pjsip.conf setting for how quickly a request expires or whether to auto-approve one, so they persist as a Ding PBX Console preference the same way the appearance and notification groups do, restored on relaunch rather than read off any target.',
+    sub:'When a trunk partner asks to change something on the shared link — a new source address, a codec, a higher call cap — the request lands here and you answer yes or no. Nothing takes effect until you do. The six controls below are this console\'s own answering policy, not an Asterisk key -- there is no pjsip.conf setting for how quickly a request expires or whether to auto-approve one, so they persist as a Material Asterisk preference the same way the appearance and notification groups do, restored on relaunch rather than read off any target.',
     groups:[{ title:'Answering policy', desc:'How requests arrive and what may be answered without you.', ctls:[
       ctl('ta_auto','Auto-approve low-risk requests','switch',false,{ info:'Low risk means a codec addition or a health-check interval. Address changes and call caps are never auto-approved.' }),
       ctl('ta_expire','Requests expire after','slider',48,{ min:1, max:168, unit:' h' }),
@@ -3876,8 +3876,8 @@ const SCREENS = {
   customise:{ rail:'app', icon:'auto_awesome', label:'Customise everything', badge:'∞', title:'Customise everything', file:'console profile', kind:'generic',
     sub:'The global layer. Every one of these reaches across the whole console, and every individual element can still override it from its own right-click menu.',
     groups:[{ title:'Identity', desc:'What this console calls itself on screen. The name is a label like every other label here, so it is yours to change.', ctls:[
-      ctl('id_name','Display name','text','',{ placeholder:'Ding PBX Console', info:'Changes the title bar, the About screen and notifications. It does not move your data, your saved servers or your credentials, and diagnostics and bug reports still say Ding PBX Console so anyone reading one knows what software it came from.' }),
-      ctl('id_name_reset','Restore the shipped name','switch',false,{ info:'Switch this on to go back to Ding PBX Console in one action.' })
+      ctl('id_name','Display name','text','',{ placeholder:'Material Asterisk', info:'Changes the title bar, the About screen and notifications. It does not move your data, your saved servers or your credentials, and diagnostics and bug reports still say Material Asterisk so anyone reading one knows what software it came from.' }),
+      ctl('id_name_reset','Restore the shipped name','switch',false,{ info:'Switch this on to go back to Material Asterisk in one action.' })
     ]},
     { title:'External editor', desc:'Hand a config file or an export to the editor you already use. The console works fully without one; this is a convenience, not something it needs.', ctls:[
       ctl('ed_choice','Editor','select','Visual Studio Code',{ options:['Visual Studio Code','Notepad++','Sublime Text','Notepad'], info:'Only editors actually installed on this machine are offered. If yours is missing, add it below by browsing for its executable.' }),

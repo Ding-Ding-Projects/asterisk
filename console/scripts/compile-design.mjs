@@ -26,7 +26,7 @@ const outDir = process.env.DING_DESIGN_OUT_DIR
 
 /** Branding replacements recorded in console/design/inventory.json under source.sanitization. */
 const BRAND = [
-  [/Asterisk Console/g, 'Ding PBX Console'],
+  [/Asterisk Console/g, 'Material Asterisk'],
   [/AsteriskConsole/g, 'DingPbxConsole'],
 ];
 

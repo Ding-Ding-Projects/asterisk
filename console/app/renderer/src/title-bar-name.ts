@@ -2,7 +2,7 @@
  * Rewrites the compiled title bar's application-name text to the chosen display name.
  *
  * The compiled design renders that text as a literal string with no bound value at all
- * -- `h("span", {...}, "Ding PBX Console")` -- so there is nothing in `renderVals()` for
+ * -- `h("span", {...}, "Material Asterisk")` -- so there is nothing in `renderVals()` for
  * `App.tsx` to override the way every other live value on screen is overridden. The
  * renderer is compiled from the design reference and must never be hand-edited, and
  * editing the design reference itself would need a matching change to its independently
