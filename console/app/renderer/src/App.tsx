@@ -121,10 +121,12 @@ import {
 } from './changelog';
 import { CHANGELOG_MARKDOWN, CHANGELOG_REPOSITORY_URL } from './generated/changelog-bundle';
 import {
-  click as bulkClick, clearSelection as bulkClearSelection, invert as bulkInvert, planBulk, selectAll as bulkSelectAll,
-  summarise as bulkSummarise, type SelectionState,
+  click as bulkClick, clearSelection as bulkClearSelection, invert as bulkInvert, parseBulkDeleteCeremony, planBulk,
+  selectAll as bulkSelectAll, summarise as bulkSummarise, type SelectionState,
 } from './bulk';
 import { describeLoss, exportFilename, exportRows, suitableFormats, type ExportFormat } from './export';
+import { tabListText } from './tab-list';
+import { decideUndo, type CommitEntry } from './undo-toast';
 import {
   addRule, applyTheme, cssVarFor, exportTheme, importTheme, resetAll, WILDCARD_ELEMENT,
   type AppearanceProperty, type AppearanceTheme,
@@ -1730,7 +1732,40 @@ What you can do: ${offered}.` : ''}`);
    * which is exactly what these controls used to be.
    */
   hostAction = (kind: HostActionKind, payload: Record<string, unknown> = {}): void => {
-    const request = { ...payload, kind } as HostActionRequest;
+    /*
+     * The bulk-actions "Export" button hands its selection here as a generic export-json
+     * request (`{ subject:'selection', data:sel }`) instead of through `bulk()`, which is
+     * the only place that picks a format the visible columns can actually carry, states
+     * what a lossy format drops, and reports a skip for a row no longer in the table (see
+     * `bulk()` above). Every other export-json caller in the compiled shell uses a
+     * different `subject` (`group`, `tab`, `tabs and groups`, `appearance`), so this
+     * recognises this one exact shape and routes it back to the real engine rather than
+     * letting it fall through to a bare JSON dump of the selected ids.
+     */
+    if (kind === 'export-json' && payload.subject === 'selection') {
+      this.bulk('Exported', Array.isArray(payload.data) ? (payload.data as string[]) : []);
+      return;
+    }
+
+    /*
+     * "Copy tab list to clipboard" hands this a pre-built `text` of `tabs.map(t =>
+     * t.label)` -- but `tabs` is an array of screen keys, plain strings with no `label`
+     * of their own, so every entry read `undefined` and the clipboard held that word
+     * once per open tab. Recompute the real text here, the same way every other tab
+     * label in this console resolves one: `tabNames` first, the destination's compiled
+     * title second, the raw key last (see `tabListText`).
+     */
+    let payloadToRun = payload;
+    if (kind === 'copy' && payload.what === 'the tab list') {
+      const state = this.state as { tabs?: string[]; tabNames?: Record<string, string> };
+      const screens = SCREENS as Record<string, { title?: string }>;
+      payloadToRun = {
+        ...payload,
+        text: tabListText(state.tabs ?? [], state.tabNames ?? {}, (key) => screens[key]?.title),
+      };
+    }
+
+    const request = { ...payloadToRun, kind } as HostActionRequest;
     void runHostAction(request, {
       writeClipboard: async (text: string) => {
         const clipboard = (globalThis as { navigator?: { clipboard?: { writeText(t: string): Promise<void> } } })
@@ -5513,8 +5548,27 @@ It is shown once. The far end needs it to register.`);
        * happened.
        */
       executeCeremony: () => {
+        const title = String((this.state as { ceremonyTitle?: string }).ceremonyTitle ?? '');
         const command = String((this.state as { ceremonyCmd?: string }).ceremonyCmd ?? '');
         this.set('ceremonyOpen', false);
+
+        /*
+         * The bulk-actions "Delete" button opens this exact ceremony (`Delete ${n}
+         * objects` / `delete ${ids.join(' ')}`) and, once confirmed, used to send that
+         * command straight to the target -- "delete" is not a real Asterisk CLI command,
+         * so the target's own error is what came back. Route a confirmed bulk delete
+         * through bulk() instead, so it reaches the same real planBulk()/summarise()
+         * plan-and-report every other bulk verb goes through (see bulk() above). A
+         * single row's own "Delete <name>" ceremony, opened from its context menu
+         * through a different (`areYouSure`) gate, does not match this shape and keeps
+         * running through the target command below exactly as before.
+         */
+        const bulkDeleteIds = parseBulkDeleteCeremony(title, command);
+        if (bulkDeleteIds) {
+          this.bulk('Deleted', bulkDeleteIds);
+          return;
+        }
+
         void runCeremonyCommand({
           command,
           connected: this.target.connected,
@@ -5523,6 +5577,29 @@ It is shown once. The far end needs it to register.`);
           toast: (message) => this.toast(message),
           fire: (title, body) => this.fire(title, body),
         });
+      },
+      /**
+       * The shared toast's "Undo" button used to close the toast and announce "Change
+       * reverted" no matter what had actually happened -- nothing was ever reverted.
+       *
+       * Every control on this console that changes a value goes through `setVal()`,
+       * which both records the change onto `state.commits` (newest first) and raises
+       * the toast this button lives on. The History screen already has a real, working
+       * undo for exactly that: "Revert just this option" writes the most recent
+       * commit's `from` value back through the same `setVal()`. This reuses that route
+       * rather than inventing a second one -- see `decideUndo` for why it only acts
+       * when the toast on screen is genuinely the one that commit produced, and refuses
+       * honestly (never faking a revert) for everything else a toast is raised for.
+       */
+      undoToast: () => {
+        const state = this.state as { toastText?: string; commits?: CommitEntry[] };
+        const decision = decideUndo(String(state.toastText ?? ''), state.commits ?? []);
+        this.set('toastOpen', false);
+        if (decision.kind === 'revert') {
+          this.setVal({ id: decision.commit.key, label: decision.commit.label }, decision.commit.from);
+          return;
+        }
+        this.fire('Nothing to undo', decision.reason);
       },
       /* The real file, for the screens that edit one. A screen showing the target's own
        * configuration is the difference between an administration tool and a picture of

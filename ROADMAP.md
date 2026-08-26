@@ -195,7 +195,7 @@ first thing in this project to look at every one of them. Each entry below is a 
 exists, is tested in isolation, and that nothing a person can reach ever calls -- the failure
 this repository keeps repeating, because it produces no error and no failing test.
 
-- [ ] **Reach the export and bulk-action code from the buttons that claim to do it.** Both
+- [x] **Reach the export and bulk-action code from the buttons that claim to do it.** Fixed at the two points the compiled interface hands off, both inside App.tsx rather than the generated file: `hostAction()` now recognises the Export button's exact call shape (`export-json`/`subject:'selection'`) and routes it into `bulk('Exported', ...)`; a confirmed bulk-Delete ceremony's exact title/command pair (`Delete ${n} objects` / `delete ${ids.join(' ')}`) is parsed back into its id list (`parseBulkDeleteCeremony`, bulk.ts) and routed into `bulk('Deleted', ...)` instead of sending `delete <ids>` -- not a real Asterisk command -- to the target. A single row's own "Delete <name>" ceremony, gated by a different confirmation flow, is untouched. Both
       modules import cleanly and their planning logic genuinely runs, but the compiled interface
       routes Export and Delete through separate code that never passes `bulk()` the verb needed to
       reach the rich branch. Subtler than never importing it, and invisible for the same reason.
@@ -240,7 +240,7 @@ forbids: anything presented as operable must perform its labelled action.
 - [x] **Make the two canvas actions real.** Adding a step and duplicating a node both Both now push through the same mechanism the right-click duplicate already used, so the canvas genuinely gains the node.
       report a change to the canvas that the canvas never receives.
 - [x] **Make copy-to-clipboard actually copy.** Two handlers report that a value was Both colour-format handlers now perform the real clipboard write the sibling copy controls were already wired to.
-- [ ] **Fix the two remaining controls of the same class.** A global Undo on the shared
+- [x] **Fix the two remaining controls of the same class.** The tab-list copy read `t.label` off `tabs`, an array of plain screen-key strings with no `label` of their own -- fixed (`tabListText`) to resolve each key the way every other tab label in this console already does: `tabNames` first, the destination's compiled title second, the raw key last. The global Undo could not, in general, know what a given toast even was -- most toasts are not a value change at all -- so it now decides honestly (`decideUndo`, undo-toast.ts): when the toast on screen is genuinely the one `setVal()` raised for the most recently recorded control change, Undo reverts that value through the same `setVal()` route the History screen's own "Revert just this option" already uses; for anything else -- a bulk summary, a reroll, a ceremony's own "Running..." -- it says plainly there is nothing recorded here to reverse, rather than claiming "Change reverted" as before. A global Undo on the shared
       notification reverts nothing, and the copy-tab-list item writes the literal text
       `undefined` to the clipboard because it reads a label off the wrong shape.
       copied without writing to the clipboard.
