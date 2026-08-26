@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "title": "Every console reading run against a live Asterisk exchange",
-  "commit": "c84e959ef7566367d2e7ee6e33b2b87ee0d63923",
-  "performedAt": "2026-08-26T03:42:05.531Z",
+  "commit": "8ebc51c7827d598bdb75d100fb79af024e51aa58",
+  "performedAt": "2026-08-26T05:48:34.990Z",
   "exchange": {
     "kind": "WSL2 distribution provisioned by the console's own runtime.provision path",
     "distribution": "ding-pbx-console",
@@ -17,16 +17,18 @@
     }
   },
   "counts": {
-    "allowlistedCommands": 63,
-    "commandLinesRun": 64,
-    "readings": 27,
-    "readingsParsedWithoutThrowing": 27,
-    "readingsWithRowsWhenPopulated": 23,
+    "allowlistedCommands": 65,
+    "commandLinesRun": 66,
+    "readings": 30,
+    "readingsParsedWithoutThrowing": 30,
+    "readingsWithRowsWhenPopulated": 24,
     "readingsStillEmptyWhenPopulated": [
       "channels",
       "channelStats",
       "confbridgeRooms",
-      "ariApps"
+      "ariApps",
+      "bridges",
+      "ariUsers"
     ],
     "commandsUnsupportedByThisTarget": 11,
     "productionReadersDriven": 14,
@@ -155,7 +157,7 @@
   },
   "phases": {
     "baseline": {
-      "capturedAt": "2026-08-26T03:41:23.548Z",
+      "capturedAt": "2026-08-26T05:48:00.899Z",
       "commands": [
         {
           "command": "core show channels concise",
@@ -182,8 +184,8 @@
           "status": "succeeded",
           "exitCode": 0,
           "outcome": "read",
-          "stdoutLength": 38,
-          "stdoutSha256": "4b954bf8eb243fbc4c56c1e5badd2a893432a10634483dbb40093b533b004a44",
+          "stdoutLength": 37,
+          "stdoutSha256": "ac564f08c0f5cb86e54479698a9844a0764e2797048a0ba05a4c53c575cbb635",
           "redactedMarkers": 0,
           "capture": "baseline/core-show-uptime-seconds.txt"
         },
@@ -192,8 +194,8 @@
           "status": "succeeded",
           "exitCode": 0,
           "outcome": "read",
-          "stdoutLength": 316,
-          "stdoutSha256": "45e2de3929b167f93321f926a545746ad1a13946750e9ce8f9906a97a845da81",
+          "stdoutLength": 317,
+          "stdoutSha256": "d44ac343fff0bcf0583d10ec600f91653994281850cd1fcbf67018815476ad74",
           "redactedMarkers": 0,
           "capture": "baseline/core-show-sysinfo.txt"
         },
@@ -783,9 +785,29 @@
           "exitCode": 0,
           "outcome": "read",
           "stdoutLength": 6864,
-          "stdoutSha256": "8d178516bca0ff381e6d39358c4c6fbe3c42e185358deead60e9874a4a0a656c",
+          "stdoutSha256": "2b812bcd8590381530934ee067c5eb4228714d2be18d6e804c8f4efad7007d52",
           "redactedMarkers": 0,
           "capture": "baseline/core-show-threads.txt"
+        },
+        {
+          "command": "bridge show all",
+          "status": "succeeded",
+          "exitCode": 0,
+          "outcome": "read",
+          "stdoutLength": 121,
+          "stdoutSha256": "66b20168924a37cf0e4fcb2605fd1eb2ea8b67251d2252902912602d5cf37187",
+          "redactedMarkers": 0,
+          "capture": "baseline/bridge-show-all.txt"
+        },
+        {
+          "command": "core show applications",
+          "status": "succeeded",
+          "exitCode": 0,
+          "outcome": "read",
+          "stdoutLength": 11519,
+          "stdoutSha256": "3cf300cf6fa3879b4ccd2217014456528c86f596bd79df1ea5b191f3a0091ed2",
+          "redactedMarkers": 0,
+          "capture": "baseline/core-show-applications.txt"
         },
         {
           "command": "pjsip show endpoint ding-live-probe",
@@ -973,10 +995,10 @@
             "dashboard"
           ],
           "outcome": "read",
-          "parsedSha256": "5aa5ae5d26ce39b51daae5c0ef12dcd69f9a1a32ad8d304b657240f955f240e7",
+          "parsedSha256": "c8ba40595bc4dc967f9f6ea5d9efc8e8e698f91efa87a5947e726c1030c997cd",
           "rows": 1,
           "unit": "seconds",
-          "summary": 50025
+          "summary": 57625
         },
         {
           "id": "dialplan",
@@ -3571,18 +3593,18 @@
             "cli"
           ],
           "outcome": "read",
-          "parsedSha256": "bcb11d265d3d3d43dfd5a27adc8955accc4e5b3ba88fed74c453c1627c3879ac",
+          "parsedSha256": "beccc56b7ba799653346f3dea21035a201876ff6bd4ba8190c0186e34acd13eb",
           "rows": 7,
           "unit": "system values",
           "summary": {
             "values": {
-              "System Uptime": "13 hours",
+              "System Uptime": "16 hours",
               "Total RAM": "32761524 KiB",
-              "Free RAM": "30494256 KiB",
-              "Buffer RAM": "51368 KiB",
+              "Free RAM": "27692296 KiB",
+              "Buffer RAM": "858516 KiB",
               "Total Swap Space": "8388608 KiB",
               "Free Swap Space": "8388608 KiB",
-              "Number of Processes": "677"
+              "Number of Processes": "703"
             }
           }
         },
@@ -3596,13 +3618,60 @@
             "cli"
           ],
           "outcome": "read",
-          "parsedSha256": "afb5290fbe01447f6c0720527f0b18c9507ecd979e9eaf84480a2505efef80ea",
+          "parsedSha256": "b5061befb0a3ff5fce2a7d979c0975f4c343e1da0405c4745629d1cfb1ab7c88",
           "rows": 2,
           "unit": "uptime values",
           "summary": {
-            "uptimeSeconds": 50025,
-            "lastReloadSeconds": 801
+            "uptimeSeconds": 57625,
+            "lastReloadSeconds": 39
           }
+        },
+        {
+          "id": "bridges",
+          "command": "bridge show all",
+          "entry": "dispatch readView 'restbrowser'",
+          "parser": "parseBridges",
+          "screens": [
+            "restbrowser"
+          ],
+          "outcome": "read",
+          "parsedSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "rows": 0,
+          "unit": "live bridges",
+          "summary": []
+        },
+        {
+          "id": "applications",
+          "command": "core show applications",
+          "entry": "dispatch readView 'restbrowser'",
+          "parser": "parseApplications",
+          "screens": [
+            "restbrowser"
+          ],
+          "outcome": "read",
+          "parsedSha256": "13c92471933c165902cb364700ee9ecba3f5dec75537035c33fc9fd081760077",
+          "rows": 178,
+          "unit": "registered dialplan applications",
+          "summary": [
+            {
+              "name": "AddQueueMember",
+              "synopsis": "Dynamically adds queue members."
+            }
+          ]
+        },
+        {
+          "id": "ariUsers",
+          "command": "ari show users",
+          "entry": "dispatch readView 'restbrowser'",
+          "parser": "parseAriUsers",
+          "screens": [
+            "restbrowser"
+          ],
+          "outcome": "read",
+          "parsedSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "rows": 0,
+          "unit": "ARI users",
+          "summary": []
         }
       ],
       "productionReaders": [
@@ -3693,7 +3762,7 @@
       ]
     },
     "populated": {
-      "capturedAt": "2026-08-26T03:41:48.587Z",
+      "capturedAt": "2026-08-26T05:48:21.086Z",
       "commands": [
         {
           "command": "core show channels concise",
@@ -3721,7 +3790,7 @@
           "exitCode": 0,
           "outcome": "read",
           "stdoutLength": 36,
-          "stdoutSha256": "4ddee5d4bcefa64782bb1575eb0ef48e9cf4772a354b0007d8dde6c4746ced58",
+          "stdoutSha256": "080e588e98de0b921dc0a3d81815d09819156948a1b5101e6ba6ec63ebcbe3a3",
           "redactedMarkers": 0,
           "capture": "populated/core-show-uptime-seconds.txt"
         },
@@ -3730,8 +3799,8 @@
           "status": "succeeded",
           "exitCode": 0,
           "outcome": "read",
-          "stdoutLength": 316,
-          "stdoutSha256": "006d237a5596deac846a3ee9edb9a8da5cc114de78450e9f70cc9180873aa4ee",
+          "stdoutLength": 317,
+          "stdoutSha256": "f54bdb6290b4976402386084bcaeb02f196dd8a9c0d96c85d98a1771d6e8bf93",
           "redactedMarkers": 0,
           "capture": "populated/core-show-sysinfo.txt"
         },
@@ -3770,8 +3839,8 @@
           "status": "succeeded",
           "exitCode": 0,
           "outcome": "read",
-          "stdoutLength": 326,
-          "stdoutSha256": "d0d403dc154f667f34ff136929942e4fe31bbd0b665e2f2024c36706dea96bd2",
+          "stdoutLength": 330,
+          "stdoutSha256": "18cdeb00d5be278f87febafbeb692e76e777390d2b35aee4f6a20f3cbdf171df",
           "redactedMarkers": 0,
           "capture": "populated/pjsip-show-registrations.txt"
         },
@@ -3801,7 +3870,7 @@
           "exitCode": 0,
           "outcome": "read",
           "stdoutLength": 275,
-          "stdoutSha256": "50f9fb88436a7d82b970a8da5a8dbadfb0fb88df6a80cd200f6385dc615afbb8",
+          "stdoutSha256": "9d27ec92de7d5f4923d71c379f4dded0514aeff931ad7c8a0d52637db4549597",
           "redactedMarkers": 0,
           "capture": "populated/queue-show.txt"
         },
@@ -4321,9 +4390,29 @@
           "exitCode": 0,
           "outcome": "read",
           "stdoutLength": 6864,
-          "stdoutSha256": "ac5edc0ce1ef0a7b966ad231c2fbb27bdd5b3863abfc6c62fb3ae3625151affb",
+          "stdoutSha256": "fcbbce8ac5de9c3f79a5c356941920c7a10a57b5cde2413e06d9b5fc641dde5c",
           "redactedMarkers": 0,
           "capture": "populated/core-show-threads.txt"
+        },
+        {
+          "command": "bridge show all",
+          "status": "succeeded",
+          "exitCode": 0,
+          "outcome": "read",
+          "stdoutLength": 121,
+          "stdoutSha256": "66b20168924a37cf0e4fcb2605fd1eb2ea8b67251d2252902912602d5cf37187",
+          "redactedMarkers": 0,
+          "sameAsBaseline": "baseline/bridge-show-all.txt"
+        },
+        {
+          "command": "core show applications",
+          "status": "succeeded",
+          "exitCode": 0,
+          "outcome": "read",
+          "stdoutLength": 11519,
+          "stdoutSha256": "3cf300cf6fa3879b4ccd2217014456528c86f596bd79df1ea5b191f3a0091ed2",
+          "redactedMarkers": 0,
+          "sameAsBaseline": "baseline/core-show-applications.txt"
         },
         {
           "command": "pjsip show endpoint ding-live-probe",
@@ -4405,14 +4494,14 @@
             "trunkauth"
           ],
           "outcome": "read",
-          "parsedSha256": "d01039c38cbd2d603892264df58474f098f7c7f2db184e206c59afc21715048d",
+          "parsedSha256": "ae43386de345616680be85f3130e53c5aba4c888546c29c4675ceb3370dacaef",
           "rows": 1,
           "unit": "outbound registrations",
           "summary": [
             {
               "id": "ding-live-probe-registration",
               "serverUri": "sip:127.0.0.1:5099",
-              "status": "Unregistered      (exp. 4s)"
+              "status": "Rejected          (exp. 2s ago)"
             }
           ]
         },
@@ -4572,10 +4661,10 @@
             "dashboard"
           ],
           "outcome": "read",
-          "parsedSha256": "f6a373140b8cd313eaa8d5180ce5c041b91eacedccb8bf1a6a3d7d78a10aeae9",
+          "parsedSha256": "2928c1dace11eb842ef5be3141d696434371e667d7a5e0148cba38ca1c39d295",
           "rows": 1,
           "unit": "seconds",
-          "summary": 50050
+          "summary": 57645
         },
         {
           "id": "dialplan",
@@ -7188,18 +7277,18 @@
             "cli"
           ],
           "outcome": "read",
-          "parsedSha256": "a0759fd988c4691832aa6bc0136906692dd9935f70ec5db890747385962041c1",
+          "parsedSha256": "b754c864f6e95f2552e0bc119e8d77ae0d30208141a59c990d87789aaaf1009f",
           "rows": 7,
           "unit": "system values",
           "summary": {
             "values": {
-              "System Uptime": "13 hours",
+              "System Uptime": "16 hours",
               "Total RAM": "32761524 KiB",
-              "Free RAM": "30445908 KiB",
-              "Buffer RAM": "51408 KiB",
+              "Free RAM": "27666032 KiB",
+              "Buffer RAM": "858552 KiB",
               "Total Swap Space": "8388608 KiB",
               "Free Swap Space": "8388608 KiB",
-              "Number of Processes": "687"
+              "Number of Processes": "707"
             }
           }
         },
@@ -7213,13 +7302,62 @@
             "cli"
           ],
           "outcome": "read",
-          "parsedSha256": "f7404db8f93af354e1da5d7c81dab0924752b687b349f9a4a49ef034ad01f789",
+          "parsedSha256": "975ea59caa74a89b6d95befd5f4320e8deeb63ae31a4add0cc956d8e34db0a77",
           "rows": 2,
           "unit": "uptime values",
           "summary": {
-            "uptimeSeconds": 50050,
+            "uptimeSeconds": 57645,
             "lastReloadSeconds": 3
           }
+        },
+        {
+          "id": "bridges",
+          "command": "bridge show all",
+          "entry": "dispatch readView 'restbrowser'",
+          "parser": "parseBridges",
+          "screens": [
+            "restbrowser"
+          ],
+          "outcome": "read",
+          "parsedSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "rows": 0,
+          "unit": "live bridges",
+          "summary": [],
+          "notPopulatable": "A bridge exists only while two or more channels are actually being mixed together. Nothing in a configuration file creates one, and this harness places no calls."
+        },
+        {
+          "id": "applications",
+          "command": "core show applications",
+          "entry": "dispatch readView 'restbrowser'",
+          "parser": "parseApplications",
+          "screens": [
+            "restbrowser"
+          ],
+          "outcome": "read",
+          "parsedSha256": "13c92471933c165902cb364700ee9ecba3f5dec75537035c33fc9fd081760077",
+          "rows": 178,
+          "unit": "registered dialplan applications",
+          "summary": [
+            {
+              "name": "AddQueueMember",
+              "synopsis": "Dynamically adds queue members."
+            }
+          ]
+        },
+        {
+          "id": "ariUsers",
+          "command": "ari show users",
+          "entry": "dispatch readView 'restbrowser'",
+          "parser": "parseAriUsers",
+          "screens": [
+            "restbrowser"
+          ],
+          "outcome": "read",
+          "parsedSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "rows": 0,
+          "unit": "ARI users",
+          "summary": [],
+          "notPopulatable": "ari.conf.sample ships every `[username]` section commented out, so a freshly provisioned exchange has none. The fixture this harness writes creates a PJSIP endpoint, not an ARI user; adding one would be a second, unrelated fixture for a single reading."
         }
       ],
       "productionReaders": [

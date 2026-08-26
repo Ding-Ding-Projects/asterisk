@@ -80,6 +80,9 @@ export const READ_ONLY_COMMANDS = [
   "voicemail show zones",
   // Runtime health
   "stun show status", "core show threads",
+  // The REST resource browser: live bridges and registered dialplan applications,
+  // alongside the channels reading every other view already has.
+  "bridge show all", "core show applications",
 ] as const;
 
 export type ReadOnlyCommand = (typeof READ_ONLY_COMMANDS)[number];

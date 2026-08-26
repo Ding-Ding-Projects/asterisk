@@ -363,4 +363,10 @@ export const CANTONESE: Catalog = {
   'Directories & identity': '目錄同身份',
   'NAT discovery': 'NAT 探測',
   'Messaging (XMPP)': '訊息 (XMPP)',
+
+  /* Three roadmap gaps closed at once: configuration backup/restore/diff, the REST
+   * resource browser, and dialplan scripting (AGI) visibility. */
+  'Backups & recovery': '備份同復原',
+  'REST resources': 'REST 資源',
+  'Dialplan scripting': '撥號計劃程式碼',
 };

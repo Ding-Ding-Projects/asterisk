@@ -77,6 +77,26 @@ export interface AriApp {
   name: string;
 }
 
+export interface AriUser {
+  username: string;
+  readOnly: boolean;
+  hasAcl: boolean;
+}
+
+export interface Bridge {
+  id: string;
+  name: string;
+  channels: number;
+  bridgeType: string;
+  technology: string;
+  duration: string;
+}
+
+export interface DialplanApplication {
+  name: string;
+  synopsis: string;
+}
+
 export interface CdrBackend {
   name: string;
   suspended: boolean;
@@ -362,6 +382,79 @@ export function parseAriApps(stdout: string): AriApp[] {
     if (/^=+$/u.test(line.trim())) continue;
     if (/^Unable to retrieve/u.test(line)) continue;
     rows.push({ name: line.trim() });
+  }
+  return rows;
+}
+
+/**
+ * `res/ari/cli.c` `ari_show_users` (line 112): header `"r/o?  ACL?  Username\n"`
+ * (line 111), separator `"----  ----  --------\n"`, then `show_users_cb` (line 80)
+ * `"%-4s  %-4s  %s\n"` with `AST_CLI_YESNO` for the first two columns -- "Yes" or
+ * "No", never anything else, so the fixed 4-char field never overflows.
+ */
+export function parseAriUsers(stdout: string): AriUser[] {
+  const rows: AriUser[] = [];
+  for (const line of lines(stdout)) {
+    if (/^r\/o\?\s+ACL\?\s+Username\s*$/u.test(line)) continue;
+    if (/^-+\s+-+\s+-+$/u.test(line.trim())) continue;
+    const match = /^(Yes|No)\s+(Yes|No)\s+(\S.*)$/u.exec(line.trim());
+    if (!match) continue;
+    rows.push({ readOnly: match[1] === "Yes", hasAcl: match[2] === "Yes", username: match[3].trim() });
+  }
+  return rows;
+}
+
+/**
+ * `main/bridge.c` `handle_bridge_show_all`: `FORMAT_HDR`/`FORMAT_ROW` (lines
+ * 5247-5248) `"%-36s %-36s %5s %-15s %-15s %s\n"`, header row printed at line 5264
+ * (`"Bridge-ID", "Name", "Chans", "Type", "Technology", "Duration"`), one data row per
+ * live bridge at line 5273. There is no "no bridges" message -- the header prints
+ * unconditionally and simply has nothing under it when the container is empty.
+ *
+ * Sliced by the format's own column offsets, the same defence
+ * `parseVoicemailUsers` above uses: a name or id that overruns its fixed field shifts
+ * every separator position that follows it, and that row is dropped rather than
+ * misassigned to the wrong column.
+ */
+export function parseBridges(stdout: string): Bridge[] {
+  const rows: Bridge[] = [];
+  for (const line of lines(stdout)) {
+    if (line.startsWith("Bridge-ID")) continue;
+    if (
+      line.length < 112
+      || line[36] !== " " || line[73] !== " " || line[79] !== " "
+      || line[95] !== " " || line[111] !== " "
+    ) continue;
+    const id = line.slice(0, 36).trim();
+    const name = line.slice(37, 73).trim();
+    const channels = Number.parseInt(line.slice(74, 79).trim(), 10);
+    const bridgeType = line.slice(80, 95).trim();
+    const technology = line.slice(96, 111).trim();
+    const duration = line.slice(112).trim();
+    if (!id) continue;
+    rows.push({ id, name, channels: Number.isFinite(channels) ? channels : 0, bridgeType, technology, duration });
+  }
+  return rows;
+}
+
+/**
+ * `main/pbx_app.c` `handle_show_applications` (no-argument form): banner
+ * `"    -= Registered Asterisk Applications =-\n"` (line 359), one
+ * `"  %20s: %s\n"` row per registered application (line 390, name right-justified to
+ * 20 -- the literal `": "` immediately follows the padded field, with no space between
+ * the name itself and the colon), trailing `"    -= %d Applications Registered =-\n"`
+ * (line 394). When nothing is registered at all, prints only
+ * `"There are no registered applications\n"` (line 345) and nothing else. Matched by
+ * the first colon rather than a fixed offset, because an application name is never
+ * longer than its field in this checkout's own module set but the format does not
+ * guarantee that, and `%20s` does not truncate a longer name -- only pad a shorter one.
+ */
+export function parseApplications(stdout: string): DialplanApplication[] {
+  const rows: DialplanApplication[] = [];
+  for (const line of lines(stdout)) {
+    const match = /^ {2}\s*(\S+):\s(.*)$/u.exec(line);
+    if (!match) continue;
+    rows.push({ name: match[1], synopsis: match[2].trim() });
   }
   return rows;
 }

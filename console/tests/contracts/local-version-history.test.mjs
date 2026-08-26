@@ -102,10 +102,20 @@ test('the diff method exists and is reachable, and the labelling gap is still op
 
 test('history.list and history.restore are real dispatch actions', () => {
   const src = read(DISPATCH);
-  assert.match(src, /if \(request\.action === 'history\.list' \|\| request\.action === 'history\.restore'\) \{/u,
-    'the history dispatch branch no longer matches');
+  // Widened from a bare `history.list || history.restore` branch to also carry
+  // `history.diff` (ConfigHistory#diff, a real Myers line diff against what is on the
+  // target right now) and `history.prune` (ConfigHistory#prune, which existed with no
+  // caller until the Configuration backups screen gave it one) -- see
+  // config-history-rest-agi.test.tsx for the guard on those two.
+  assert.match(
+    src,
+    /if \(\s*request\.action === 'history\.list' \|\| request\.action === 'history\.restore'\s*\|\| request\.action === 'history\.diff' \|\| request\.action === 'history\.prune'\s*\) \{/u,
+    'the history dispatch branch no longer matches',
+  );
   assert.match(src, /await history\.list\(resource\)/u, 'history.list(...) is no longer called from dispatch');
   assert.match(src, /await history\.restore\(handle\)/u, 'history.restore(...) is no longer called from dispatch');
+  assert.match(src, /await history\.diff\(handle\)/u, 'history.diff(...) is no longer called from dispatch');
+  assert.match(src, /await history\.prune\(resource, keep\)/u, 'history.prune(...) is no longer called from dispatch');
 });
 
 test('PbxAdminApp lists recovery points per resource and gates restore behind the destructive-action confirmation', () => {

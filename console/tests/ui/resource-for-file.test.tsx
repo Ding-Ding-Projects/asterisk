@@ -82,8 +82,17 @@ test('the screens that declare a label instead of a filename are exactly this on
    * either -- it names rtp.conf now (its own real, primary, writable file;
    * asterisk.conf's transcode_via_sln is read separately, the same way logger verbosity
    * is) and reads it. The AMI & REST screen was fixed the same way by a different lane --
-   * see the comment above. One left. */
-  assert.deepEqual(refused, ['trunkauth'],
+   * see the comment above. One left, and then a second joined it deliberately rather
+   * than by accident: the new Dialplan scripting (AGI) screen declares
+   * 'extensions.conf · astagidir' -- a real cross-check between two different facts
+   * (the dialplan's own AGI() calls and asterisk.conf's astagidir setting), neither of
+   * which is "this screen's one file" the way every ordinary configuration screen has
+   * one. It is read through its own `pbx.read` view ('agiscripts' in
+   * `control-plane/dispatch.ts`), the same bespoke-read shape `canvas` and `sounds`
+   * already use for screens with no single `pbx.config` resource behind them -- so this
+   * refusal is correct, not a gap: nothing here should ever try to read
+   * '/etc/asterisk/extensions.conf · astagidir' as a literal path. */
+  assert.deepEqual(refused, ['agiscripts', 'trunkauth'],
     'the set of screens naming a label rather than a file has changed; update this pin and say which way');
 
   /* Every other declaration must resolve, or the rule is refusing something legitimate. */

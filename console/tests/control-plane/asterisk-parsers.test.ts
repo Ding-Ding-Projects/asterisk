@@ -11,6 +11,9 @@ import {
   parseManagerSettings,
   parseManagerUsers,
   parseAriApps,
+  parseAriUsers,
+  parseBridges,
+  parseApplications,
   parseCdrStatus,
   parseLoggerChannels,
   parseSysinfo,
@@ -295,6 +298,66 @@ test('parseAriApps returns empty on empty input', () => {
 test('parseAriApps returns empty when applications cannot be retrieved', () => {
   const sample = 'Unable to retrieve registered applications!';
   assert.deepEqual(parseAriApps(sample), []);
+});
+
+// ---------------------------------------------------------------- ari show users
+// res/ari/cli.c ari_show_users: "r/o?  ACL?  Username\n" + "----  ----  --------\n" + rows
+
+test('parseAriUsers reads a realistic sample', () => {
+  const sample = ['r/o?  ACL?  Username', '----  ----  --------', 'No    Yes   admin', 'Yes   No    dashboard'].join('\n');
+  assert.deepEqual(parseAriUsers(sample), [
+    { readOnly: false, hasAcl: true, username: 'admin' },
+    { readOnly: true, hasAcl: false, username: 'dashboard' },
+  ]);
+});
+
+test('parseAriUsers returns empty on empty input', () => {
+  assert.deepEqual(parseAriUsers(''), []);
+});
+
+// ---------------------------------------------------------------- bridge show all
+// main/bridge.c handle_bridge_show_all: "%-36s %-36s %5s %-15s %-15s %s\n"
+
+test('parseBridges reads a realistic sample', () => {
+  const header = 'Bridge-ID'.padEnd(36) + ' ' + 'Name'.padEnd(36) + ' ' + 'Chans'.padStart(5) + ' ' + 'Type'.padEnd(15) + ' ' + 'Technology'.padEnd(15) + ' ' + 'Duration';
+  const row = 'a1b2c3d4-0000-0000-0000-000000000001'.padEnd(36) + ' ' + 'into-conf'.padEnd(36) + ' ' + '3'.padStart(5) + ' ' + 'basic'.padEnd(15) + ' ' + 'simple_bridge'.padEnd(15) + ' ' + '00:04:12';
+  const sample = [header, row].join('\n');
+  assert.deepEqual(parseBridges(sample), [
+    { id: 'a1b2c3d4-0000-0000-0000-000000000001', name: 'into-conf', channels: 3, bridgeType: 'basic', technology: 'simple_bridge', duration: '00:04:12' },
+  ]);
+});
+
+test('parseBridges reads the header alone as no bridges, not an error', () => {
+  const header = 'Bridge-ID'.padEnd(36) + ' ' + 'Name'.padEnd(36) + ' ' + 'Chans'.padStart(5) + ' ' + 'Type'.padEnd(15) + ' ' + 'Technology'.padEnd(15) + ' ' + 'Duration';
+  assert.deepEqual(parseBridges(header), []);
+});
+
+test('parseBridges returns empty on empty input', () => {
+  assert.deepEqual(parseBridges(''), []);
+});
+
+// ---------------------------------------------------------------- core show applications
+// main/pbx_app.c handle_show_applications: banner, "  %20s: %s\n" rows, trailing count
+
+test('parseApplications reads a realistic sample', () => {
+  const sample = [
+    '    -= Registered Asterisk Applications =-',
+    '                Dial: Attempt a call to a channel or channels',
+    '            Playback: Play a file',
+    '    -= 2 Applications Registered =-',
+  ].join('\n');
+  assert.deepEqual(parseApplications(sample), [
+    { name: 'Dial', synopsis: 'Attempt a call to a channel or channels' },
+    { name: 'Playback', synopsis: 'Play a file' },
+  ]);
+});
+
+test('parseApplications returns empty when nothing at all is registered', () => {
+  assert.deepEqual(parseApplications('There are no registered applications'), []);
+});
+
+test('parseApplications returns empty on empty input', () => {
+  assert.deepEqual(parseApplications(''), []);
 });
 
 // ---------------------------------------------------------------- cdr show status

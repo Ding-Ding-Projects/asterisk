@@ -37,6 +37,10 @@ import {
 } from '../../../control-plane/realtime-mappings-model';
 import { PLAYABLE_EXTENSIONS, playbackMimeType, promptRows, resolvePromptRow } from './prompt-library';
 import { usableName, type MediaFile } from '../../../control-plane/media-library';
+import { formatTakenAt, historyRows, resolveHistoryRow } from './history-backups';
+import type { HistoryEntry, ConfigDiff } from '../../../control-plane/config-history';
+import { restBrowserRows } from './rest-browser';
+import { agiScriptRows } from './agi-scripting';
 import { canProvision, canRecoverRuntime, canStopRuntime, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
 import {
   buildLocalHistoryGroups, formatLocalHistoryEntry, LOCAL_HISTORY_FILTER_ALL, LOCAL_HISTORY_SCREEN_ID,
@@ -377,6 +381,19 @@ export class App extends Base {
   private promptState: 'unread' | 'reading' | 'read' | 'unavailable' = 'unread';
   private promptReason: string | undefined;
   private promptPending = false;
+  /** The target's real recovery-point list, from `history.list` (`ConfigHistory#list`)
+   *  across every configurable resource at once -- there is no `pbx.config` resource
+   *  behind a directory of backups either, so this does not live in `configs` above,
+   *  the same reasoning `promptFiles` already gives for the Sound prompts screen. */
+  private historyBackups: ReadonlyArray<HistoryEntry> | undefined;
+  private historyBackupsState: 'unread' | 'reading' | 'read' | 'unavailable' = 'unread';
+  private historyBackupsReason: string | undefined;
+  private historyBackupsPending = false;
+  /** The result of the last "Compare with what is on the target now" on the
+   *  Configuration backups screen -- kept outside `state.values` because a `ConfigDiff`
+   *  is a reading, not a bound control's own value. */
+  private historyBackupDiff: ConfigDiff | undefined;
+  private historyBackupDiffPending = false;
   /** The one prompt currently playing, so a second audition stops the first rather
    *  than layering two prompts on top of each other. */
   private auditionAudio: HTMLAudioElement | undefined;
@@ -3285,6 +3302,9 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'voicemail-greeting-save') { void this.onSaveVoicemailGreeting(); return; }
     if (action === 'ami-http-save') { void this.onSaveAmiHttp(); return; }
     if (action === 'ami-manager-save') { void this.onSaveAmiManager(); return; }
+    if (action === 'history-restore') { void this.onRestoreHistoryEntry(); return; }
+    if (action === 'history-diff') { void this.onDiffHistoryEntry(); return; }
+    if (action === 'history-prune') { void this.onPruneHistoryEntries(); return; }
   };
 
   // ---------------------------------------------------------------- server add / remove
@@ -3502,6 +3522,16 @@ What you can do: ${offered}.` : ''}`);
      * carry a CLI-appended "/<username>" the peers reader already strips, so this is a
      * real iax.conf section name -- see `onPickIaxPeerRow`. */
     if ((this.state as { screen: string }).screen === 'iaxpeers') { this.onPickIaxPeerRow(name); return; }
+    /* The Configuration backups table's rows carry the exact backup handle after a
+     * marker (`history-backups.ts` `label`/`resolveHistoryRow`) -- loading one puts it
+     * into the fields Restore/Diff/Prune below act on. */
+    if ((this.state as { screen: string }).screen === 'confighistory') { this.onPickHistoryRow(name); return; }
+    /* Neither the REST resource browser nor the Dialplan scripting screen has anything
+     * below their table for a row to populate -- both are read-only visibility, not an
+     * editor -- so a click just says what the row already shows, the same as the ivr
+     * screen's info wizard does for a row nothing here writes through. */
+    if ((this.state as { screen: string }).screen === 'restbrowser') { this.toast(`${name} -- this table is read-only; see the row for its current state.`); return; }
+    if ((this.state as { screen: string }).screen === 'agiscripts') { this.toast(`${name} -- this table is read-only; edit what a call runs from the Dialplan canvas.`); return; }
     const value = this.pjsipValue();
     if (!value) { this.fire('Not loaded', 'The pjsip.conf on this target has not been read yet.'); return; }
     const endpoint = findEndpoint(value, name);
@@ -3532,6 +3562,140 @@ What you can do: ${offered}.` : ''}`);
     } as never);
     this.toast(`${name} loaded into the editor below.`);
   }
+
+  // ---------------------------------------------------------------- Configuration backups screen
+
+  /**
+   * The five plain fields on the Configuration backups screen, read and written
+   * directly out of `state.values` by name rather than through `CONTROL_BINDINGS` --
+   * the same shape `'s_aclname'`/`'s_action'`/`'s_spec'` already use for the Security
+   * screen's "Add a rule" form, because a recovery point has no Asterisk config key of
+   * its own to bind to. `'bk_resource'`, `'bk_takenat'` and `'bk_handle'` are loaded by
+   * `onPickHistoryRow` below; `'bk_diffsummary'` is written by `onDiffHistoryEntry`;
+   * `'bk_keep'` is read by `onPruneHistoryEntries`.
+   *
+   * Loads one recovery point's resource, timestamp and exact handle into the fields
+   * Restore/Diff/Prune below act on -- see `history-backups.ts` `resolveHistoryRow`
+   * for how the row's own key resolves back to the real {@link HistoryEntry}. Also
+   * drops the last diff result: it was a comparison for whichever recovery point was
+   * previously selected, and showing it beside a newly-picked one would be a stale
+   * answer to a question nobody asked about this row.
+   */
+  private onPickHistoryRow(rowKey: string): void {
+    const entry = resolveHistoryRow(this.historyBackups, rowKey);
+    if (!entry) { this.fire('Not loaded', 'That recovery point is no longer in this target’s backup directory.'); return; }
+    this.historyBackupDiff = undefined;
+    const state = this.state as { values: Record<string, unknown> };
+    this.setState({
+      values: {
+        ...state.values,
+        bk_resource: entry.resource,
+        bk_takenat: formatTakenAt(entry.takenAt),
+        bk_handle: entry.handle,
+      },
+    } as never);
+    this.toast(`${entry.resource} @ ${formatTakenAt(entry.takenAt)} loaded below.`);
+  }
+
+  /** Forces the Configuration backups table to re-read on next render -- the "Refresh"
+   *  button's own action, and the same shape a restore/prune below leaves the screen in
+   *  once it has changed what is actually on the target. */
+  onRefreshHistoryTable = (): void => {
+    this.historyBackups = undefined;
+    this.historyBackupsState = 'unread';
+    this.forceUpdate();
+  };
+
+  /** "Restore selected recovery point": copies `bk_handle` back over the file it was
+   *  taken from through `ConfigHistory#restore`, which reads the target back afterward
+   *  and reports a byte mismatch as a failure rather than a success. */
+  onRestoreHistoryEntry = async (): Promise<void> => {
+    if (!this.target.connected) { this.fire('Not restored', 'Connect to a server first.'); return; }
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const handle = String(values.bk_handle ?? '').trim();
+    if (!handle) { this.fire('Not restored', 'Pick a recovery point from the table above first.'); return; }
+    const response = await this.request('history.restore', { serverId: this.target.id, payload: { handle } });
+    if (!response?.ok) { this.fire('Not restored', response?.message ?? 'The control plane did not answer.'); return; }
+    const result = response.data as { ok?: boolean; resource?: string; detail?: string };
+    if (!result.ok) { this.fire('Not restored', result.detail ?? 'The target did not confirm the restore.'); return; }
+    /* Every other write path in this console invalidates the one cache it just made
+     * stale (`writeConfigResource`'s own `invalidate` callback). A restore is a write
+     * too, just one this screen drives instead of a Save button, so the resource's own
+     * config cache -- whichever screen actually edits it -- is dropped the same way, on
+     * top of the backup list itself now having one fewer thing to restore onto. */
+    const restoredScreen = Object.keys(this.configs).find((id) => this.configs[id]?.resource === result.resource);
+    if (restoredScreen) { delete this.configs[restoredScreen]; this.seeded.delete(restoredScreen); }
+    this.historyBackupDiff = undefined;
+    this.fire('Restored', result.detail ?? `${result.resource} was restored.`);
+    this.forceUpdate();
+  };
+
+  /** "Compare with what is on the target now": `ConfigHistory#diff` against `bk_handle`,
+   *  shown as a one-line summary in `bk_diffsummary` -- the full aligned diff is not a
+   *  control this screen has a place to render, so the summary states the count and the
+   *  full text is copyable through the browser's own selection on the summary field. */
+  onDiffHistoryEntry = async (): Promise<void> => {
+    if (!this.target.connected) { this.fire('Not compared', 'Connect to a server first.'); return; }
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const handle = String(values.bk_handle ?? '').trim();
+    if (!handle) { this.fire('Not compared', 'Pick a recovery point from the table above first.'); return; }
+    if (this.historyBackupDiffPending) return;
+    this.historyBackupDiffPending = true;
+    const response = await this.request('history.diff', { serverId: this.target.id, payload: { handle } });
+    this.historyBackupDiffPending = false;
+    if (!response?.ok) {
+      const state = this.state as { values: Record<string, unknown> };
+      this.setState({ values: { ...state.values, bk_diffsummary: response?.message ?? 'The control plane did not answer.' } } as never);
+      this.fire('Not compared', response?.message ?? 'The control plane did not answer.');
+      return;
+    }
+    const diff = response.data as ConfigDiff;
+    this.historyBackupDiff = diff;
+    const summary = !diff.currentExists
+      ? `${diff.resource} does not exist on the target right now; restoring would create it with ${diff.removed} line(s).`
+      : diff.identical
+        ? `Identical to what is on the target right now.`
+        : diff.truncated
+          ? `+${diff.added} / -${diff.removed} line(s) (too large to show line by line; counted as whole-line differences).`
+          : `+${diff.added} / -${diff.removed} line(s) differ from what is on the target right now.`;
+    const state = this.state as { values: Record<string, unknown> };
+    this.setState({ values: { ...state.values, bk_diffsummary: summary } } as never);
+    this.toast(summary);
+  };
+
+  /** "Prune old recovery points for the selected resource": deletes every backup for
+   *  `bk_resource` beyond `bk_keep` newest, through `ConfigHistory#prune`. Refuses
+   *  outright without a selected resource rather than guessing which file the operator
+   *  meant -- pruning is destructive and per-file, never a global sweep. */
+  onPruneHistoryEntries = async (): Promise<void> => {
+    if (!this.target.connected) { this.fire('Not pruned', 'Connect to a server first.'); return; }
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const resource = String(values.bk_resource ?? '').trim();
+    if (!resource) { this.fire('Not pruned', 'Pick a recovery point from the table above first, so its resource is known.'); return; }
+    const keep = Number(values.bk_keep ?? 20);
+    const response = await this.request('history.prune', { serverId: this.target.id, payload: { resource, keep } });
+    if (!response?.ok) { this.fire('Not pruned', response?.message ?? 'The control plane did not answer.'); return; }
+    const result = response.data as { removed?: number; kept?: number };
+    this.onRefreshHistoryTable();
+    this.fire('Pruned', `${resource}: removed ${result.removed ?? 0}, kept ${result.kept ?? 0} newest.`);
+  };
+
+  // ---------------------------------------------------------------- REST resource browser / AGI screens
+
+  /** "Refresh" on the REST resource browser: drops the cached reading so the generic
+   *  `pbx.read` path (`restbrowser` is a real `PbxReadView`) re-reads on next render,
+   *  the same way every other live table screen's stale-reading re-read already works. */
+  onRefreshRestBrowser = (): void => {
+    delete this.readings.restbrowser;
+    this.forceUpdate();
+  };
+
+  /** "Refresh" on the Dialplan scripting (AGI) screen -- same shape as
+   *  `onRefreshRestBrowser` just above. */
+  onRefreshAgiScripts = (): void => {
+    delete this.readings.agiscripts;
+    this.forceUpdate();
+  };
 
   /** Loads one ACL rule's action and network into the "Add a rule" fields, so changing
    *  it and pressing "Add rule" again edits it in place -- see `onAddAclRule` above,
@@ -3946,6 +4110,32 @@ It is shown once. The phone needs it to register.`);
       }
       return;
     }
+    /* The Configuration backups screen. Same shape as `sounds` just above -- there is
+     * no `pbx.config` resource behind a directory of recovery points either -- reading
+     * through `history.list` instead, across every configurable resource at once
+     * (`resource` omitted from the payload). Re-reads whenever the last read failed or
+     * a restore/prune marked it stale (`this.historyBackups = undefined`), never on
+     * every render. */
+    if (screen === 'confighistory') {
+      const needsRead = this.historyBackups === undefined || this.historyBackupsState === 'unavailable';
+      if (needsRead && !this.historyBackupsPending && mayStartRead('confighistory')) {
+        this.historyBackupsPending = true;
+        this.historyBackupsState = 'reading';
+        this.forceUpdate();
+        const response = await this.request('history.list', { serverId: this.target.id });
+        this.historyBackupsPending = false;
+        if (response?.ok) {
+          this.historyBackups = ((response.data as { entries?: ReadonlyArray<HistoryEntry> }).entries ?? []).slice();
+          this.historyBackupsState = 'read';
+          this.historyBackupsReason = undefined;
+        } else {
+          this.historyBackupsState = 'unavailable';
+          this.historyBackupsReason = response?.message ?? 'the control plane did not answer';
+        }
+        this.forceUpdate();
+      }
+      return;
+    }
     /* A configuration screen names the file it edits. Read that file from the target so
      * the screen can show what the machine actually has, instead of standing there
      * displaying the design's own defaults as though they were settings in force. */
@@ -4319,7 +4509,13 @@ It is shown once. The phone needs it to register.`);
             ? promptRows(this.promptFiles)
             : id === 'ops'
               ? this.releaseRows()
-              : rowsFor(screen, this.readings[screen]);
+              : id === 'confighistory'
+                ? historyRows(this.historyBackups)
+                : id === 'restbrowser'
+                  ? restBrowserRows(this.readings.restbrowser)
+                  : id === 'agiscripts'
+                    ? agiScriptRows(this.readings.agiscripts?.references, this.readings.agiscripts?.files)
+                    : rowsFor(screen, this.readings[screen]);
     }
   }
 

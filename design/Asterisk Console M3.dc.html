@@ -2148,6 +2148,10 @@ const SCREENS = {
     ]}] },
   canvas:{ rail:'pbx', icon:'account_tree', label:'Dialplan canvas', badge:'∞', title:'Dialplan canvas', file:'extensions.conf', kind:'canvas',
     sub:'One infinite canvas for dialplan, IVR and queue routing. Drop a step, wire it to the next, and the console writes the priorities for you. The inspector on the right edits whichever step is selected.', groups:[] },
+  agiscripts:{ rail:'pbx', icon:'terminal', label:'Dialplan scripting', badge:'', title:'Dialplan scripting (AGI)', file:'extensions.conf · astagidir', kind:'table',
+    sub:'Every AGI(), EAGI() and DeadAGI() call the dialplan actually makes, read straight off dialplan show, next to every file this target\'s own AGI directory (asterisk.conf\'s astagidir) really has -- so a script the dialplan calls and the directory does not have, and a script sitting in the directory nothing ever calls, both show up rather than staying invisible until a call fails. A FastAGI URL (agi://…) or agi:async is not a local file and is shown as neither missing nor stray -- there is nothing on this filesystem for either to be checked against. This is read-only visibility, not an editor: change what a call runs from the Dialplan canvas.',
+    table:{ add:'Refresh', grid:'1.6fr 1.2fr 90px 130px', cols:['Script','Called from','On disk','Kind'], rows:[] },
+    groups:[] },
   ivr:{ rail:'pbx', icon:'dialpad', label:'IVR menus', badge:'5', title:'IVR menus', file:'extensions.conf', kind:'table',
     sub:'Each menu is a canvas subgraph with a prompt and a key map. Editing a key here moves the matching node on the canvas.',
     table:{ add:'New menu', grid:'1fr 1.4fr 90px 110px 120px', cols:['Menu','Prompt','Keys','Timeout','Invalid'],
@@ -2627,6 +2631,10 @@ const SCREENS = {
       ctl('am_secret','Secret / password','text','',{ placeholder:'Type a new secret', info:'AMI: configs/samples/manager.conf.sample line 96: ;secret = mysecret. ARI: configs/samples/ari.conf.sample line 29: ;password =. Write-only either way -- sent once on Add, never read back or shown again.' }),
       ctl('am_readonly','Read-only user','switch',false,{ showWhen:{ control:'am_interface', is:'ARI' }, info:'configs/samples/ari.conf.sample line 26: ;read_only = no -- when yes, this user is only authorized for read-only requests. ARI only; manager.conf has no equivalent single switch.' })
     ]}] },
+  restbrowser:{ rail:'data', icon:'hub', label:'REST resources', badge:'', title:'REST resource browser', file:'live channels · bridges · applications', kind:'table',
+    sub:'Every channel, bridge and registered dialplan application on the target right now, plus what ARI itself -- the REST interface -- reports as its own registered Stasis applications and configured users. All of it live off the target the same way Live channels already is, not a static illustration. What this cannot show yet is a live event stream: watching a channel or a bridge form while this screen stays open needs a websocket/SSE transport this console does not have, the same gap AMI & ARI already states for itself -- add a user on that screen and its permissions here still will not update until the table is re-read.',
+    table:{ add:'Refresh', grid:'110px 1.3fr 1.7fr 130px', cols:['Kind','Name','Detail','State'], rows:[] },
+    groups:[] },
   monitoring:{ rail:'data', icon:'monitoring', label:'Monitoring', badge:'', title:'Monitoring', file:'res_snmp.conf', kind:'generic',
     sub:'SNMP and Prometheus both let something else on the network learn about this system. res_snmp.conf turns on the SNMP subagent; prometheus.conf turns on the /metrics route res_prometheus serves over Asterisk\'s own HTTP server. Read what each does before switching it on -- widening either widens who can poll this machine.',
     groups:[{ title:'SNMP', desc:'res_snmp.conf\'s [general] section. The subagent model needs snmpd\'s own agentx already enabled; the standalone model needs Asterisk running as root to bind port 161.', ctls:[
@@ -2654,6 +2662,22 @@ const SCREENS = {
       ctl('mo_require','Required modules','chips',[],{ options:['chan_pjsip.so','res_pjsip.so','chan_iax2.so','res_odbc.so'], info:'configs/samples/modules.conf.sample line 27: ;require = chan_pjsip.so -- Asterisk exits with status 2 if a required module fails to load. One require= line per module, not a global on/off switch.' }),
       ctl('mo_load','Force-load these modules','chips',[],{ options:['res_musiconhold.so','res_pjsip.so','chan_iax2.so'], info:'configs/samples/modules.conf.sample line 32: ;load = res_musiconhold.so -- forces a specific module to load even with autoload off.' }),
       ctl('mo_save','Save modules.conf settings','segmented','Save',{ options:['Save'], action:'modules-save', info:'Writes autoload, preload, never-load, required and force-load above to modules.conf on the target -- backed up first, applied through the same plan/apply transaction every other write in this console uses.' })
+    ]}] },
+  confighistory:{ rail:'sys', icon:'restore', label:'Backups & recovery', badge:'', title:'Configuration backups', file:'configuration backups', kind:'table',
+    sub:'Every write this console has ever made to the target takes a timestamped backup first, across every configurable file at once -- this is that recovery-point list, read straight off the target\'s own backup directory. Click a row to select it below. Restore copies that exact backup back over the file it was taken from and reads the result back to confirm the bytes match. Diff compares it against whatever is on the file right now and reports how many lines changed. Neither one touches a second copy on the target; there is nothing here this console invented on top of what plan/apply already writes.',
+    table:{ add:'Refresh', grid:'1.5fr 1fr 90px 130px', cols:['Resource','Taken at','Size','Recovery point'], rows:[] },
+    groups:[{ title:'Selected recovery point', desc:'What Restore and Diff below act on. Click a row in the table above to load it here.', ctls:[
+      ctl('bk_resource','Resource','text','',{ info:'Which configuration file this recovery point was taken from.' }),
+      ctl('bk_takenat','Taken at','text','',{ info:'When this backup was written, in the target\'s own clock.' }),
+      ctl('bk_handle','Recovery point path','text','',{ info:'The exact backup file on the target that Restore and Diff below act on.' })
+    ]},{ title:'Restore', desc:'Copies the selected recovery point back over the file it was taken from, then reads the target back to confirm the bytes match exactly. This replaces whatever is on the target right now -- if that also might be worth keeping, it already has its own backup from whichever write put it there.', ctls:[
+      ctl('bk_restore','Restore selected recovery point','segmented','Restore',{ options:['Restore'], action:'history-restore' })
+    ]},{ title:'Diff', desc:'Compares the selected recovery point against the file currently on the target, line by line -- never against another backup, since the only question this answers is what restoring would actually change.', ctls:[
+      ctl('bk_diff','Compare with what is on the target now','segmented','Diff',{ options:['Diff'], action:'history-diff' }),
+      ctl('bk_diffsummary','Result','text','No comparison run yet.',{ info:'How many lines differ between the selected recovery point and the file on the target right now.' })
+    ]},{ title:'Retention', desc:'How many recovery points to keep per file. Pruning removes only the oldest beyond this count, for the resource currently selected above -- it never touches another file\'s backups.', ctls:[
+      ctl('bk_keep','Keep newest per file','stepper',20,{ min:1, max:200 }),
+      ctl('bk_prune','Prune old recovery points for the selected resource','segmented','Prune',{ options:['Prune'], action:'history-prune' })
     ]}] },
   logger:{ rail:'sys', icon:'article', label:'Logger', badge:'', title:'Logging', file:'logger.conf', kind:'generic',
     sub:'Severity per destination as a matrix of switches. Rotation is a picker, retention is a slider. Verbosity lives in asterisk.conf, not logger.conf, so it gets its own Save; any other named log channel below console and messages.log is added, edited and saved on its own.',
@@ -3186,7 +3210,7 @@ const DOCS = {
 
 const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','mo_load','g_queue','s_ciphers','s_verify','t_100rel','t_privacy','t_from','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
 
-const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','dahdi','sla','dundi','calendar','canvas','ivr','queues','adsi','voicemail','confbridge','moh','sounds','codecs','fax','cdr','ami','monitoring','modules','logger','httpd','security','dbrealtime','stirshaken','geolocation','phoneprov','cli','identity','stun','xmpp','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
+const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','dahdi','sla','dundi','calendar','canvas','agiscripts','ivr','queues','adsi','voicemail','confbridge','moh','sounds','codecs','fax','cdr','ami','restbrowser','monitoring','modules','confighistory','logger','httpd','security','dbrealtime','stirshaken','geolocation','phoneprov','cli','identity','stun','xmpp','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
 
 const GAMES = [
   { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },
@@ -4259,7 +4283,10 @@ class Component extends DCLogic {
         : (s.screen === 'security' && this.onAddAclRule ? this.onAddAclRule()
         : (s.screen === 'sounds' && this.onAddPromptRow ? this.onAddPromptRow()
         : (s.screen === 'ami' && this.onAddApiUser ? this.onAddApiUser()
-        : this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null }))))),
+        : (s.screen === 'confighistory' && this.onRefreshHistoryTable ? this.onRefreshHistoryTable()
+        : (s.screen === 'restbrowser' && this.onRefreshRestBrowser ? this.onRefreshRestBrowser()
+        : (s.screen === 'agiscripts' && this.onRefreshAgiScripts ? this.onRefreshAgiScripts()
+        : this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null })))))))),
 
       isDashboard:sc.kind === 'dashboard', isCanvas:sc.kind === 'canvas', isTable:sc.kind === 'table', isCli:sc.kind === 'cli', isMemory:sc.kind === 'memory', isDocs:sc.kind === 'docs', isChangelog:sc.kind === 'changelog',
       // Additive, not kind-exclusive: codecs (kind:'generic') and endpoints (kind:'table')
