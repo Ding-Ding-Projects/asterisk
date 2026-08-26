@@ -80,3 +80,31 @@ The failure modes this is built against were all observed in this repository rat
 - **Work lost on a crash.** Every iteration commits and pushes its own branch, so an interrupted loop loses at most one iteration.
 
 The logs directory is ignored. The logs are for a person reading back what happened, not a record the repository needs to carry.
+
+## Is it actually running?
+
+Two things about this loop look exactly like a hang and are not, and both have cost real
+diagnosis time.
+
+**The iteration log stays at 0 bytes for the whole iteration.** `claude -p` buffers its output
+and writes it at the end, so an empty log means "still working", not "produced nothing". Judge a
+finished iteration by its `EXIT=` line, which the runner appends itself.
+
+**The agent process is `claude.exe`, not `node.exe`.** Searching for a node process with
+`claude` in its command line finds the wrong thing and returns zero while the loop is perfectly
+healthy. The useful check is a `claude.exe` younger than the current iteration, with CPU time
+climbing:
+
+```powershell
+Get-CimInstance Win32_Process -Filter "Name='claude.exe'" |
+  Where-Object { ((Get-Date) - $_.CreationDate).TotalMinutes -lt 30 }
+```
+
+A young one burning CPU means it is thinking. None at all, while an iteration is open and its
+log has no `EXIT=` line, means it really is stuck.
+
+**A genuine hang looked different.** Iteration 7 sat for 48 minutes with a live `tee` holding the
+read end of a pipe whose write end an orphaned descendant never closed, so end-of-file never came.
+That is why the runner no longer pipes to `tee` and bounds the agent with `timeout`. Iterations 8
+through 70 all completed with an `EXIT=` line, so the fix held for 63 consecutive runs; the only
+other incomplete log is one killed externally by a session limit.
