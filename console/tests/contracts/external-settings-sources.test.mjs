@@ -10,10 +10,16 @@
  * failed relative specifier with `.ts` appended before giving up. It changes nothing else.
  *
  * The privileged half -- the actual network fetch and its host allowlist -- lives in
- * `control-plane/settings-source-fetcher.ts` and is wired up in `app/electron/main.ts`. That
- * wiring is what this file spends most of its effort on, because it is where the feature
- * turns out to be dead in a real build: the fetcher's allowlist starts empty by design, and
- * nothing anywhere populates it from what a person actually configures.
+ * `control-plane/settings-source-fetcher.ts` and is constructed in `control-plane/dispatch.ts`.
+ * That wiring is what this file spends most of its effort on, because it used to be where the
+ * feature was dead in a real build: the fetcher's allowlist option was never threaded from
+ * `app/electron/main.ts` at all, so it was permanently empty and every external settings source
+ * was refused forever. CORRECTED below (see 'the dispatcher falls back to the persisted
+ * allowlist' and `tests/control-plane/settings-source-allowlist-wiring.test.ts`): the dispatcher
+ * now defaults to whatever is persisted under `console.settingsSourceAllowlist`, the exact key
+ * the renderer's allowlist screen writes to, so a host a person actually allows really does
+ * reach the fetcher -- on the next restart, since the allowlist is read once at construction
+ * rather than watched live.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';

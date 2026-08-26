@@ -66,7 +66,7 @@ to the control plane.
 - [x] **Sound prompt management** — upload, list, audition and remove prompts. Every IVR and voicemail screen references prompts it cannot create Shipped as a Sound prompts destination listing every real file on the target, with upload through a native picker, removal behind the destructive-action gate, and audition through a new media read action. Audition refuses the five raw telephony formats outright rather than failing silently: they carry no header, sample rate or framing a browser could recover.
 - [x] **TLS and certificate management** (`http.conf` TLS, PJSIP transport certificates, STIR/SHAKEN keys) — every other screen assumes certificates that nothing can install or rotate Shipped as a TLS group that loads a named PJSIP transport and writes ten fields back, a STIR/SHAKEN key-material group, and the first write path http.conf ever had -- its bindings were complete and unreachable. Paths only, never key contents. Saving refuses outright when the typed transport does not resolve, so it cannot invent a half-built transport carrying TLS keys and no bind address.
 - [ ] **Hardware trunks** (`chan_dahdi.conf`) — analogue lines, T1/E1 and PRI.
-- [ ] **Database backends and realtime** (`res_odbc.conf`, `extconfig.conf`, `sorcery.conf`, `res_pgsql.conf`, `res_ldap.conf`) — required for hosted and multi-tenant deployments.
+- [x] **Database backends and realtime** (`res_odbc.conf`, `extconfig.conf`, `sorcery.conf`, `res_pgsql.conf`, `res_ldap.conf`) — required for hosted and multi-tenant deployments. Landed: a destination for res_odbc.conf, extconfig.conf and sorcery.conf, with a mapping model of its own and every control bound to a line in the shipped sample.
 - [x] **Fax** (`res_fax.conf`, `udptl.conf`) — sending, receiving, T.38 gateway. Landed: a Fax & T.38 destination writing res_fax.conf through the transaction.
 - [x] **Channel event logging** (`cel.conf`, `cel_odbc.conf`, `cel_pgsql.conf`) — the compliance counterpart to call records. Landed: a CEL panel on the CDR & CEL destination with its own save action writing cel.conf, plus cel_odbc.conf and cel_pgsql.conf handlers, every control bound to a line in the shipped sample. All three go through the backup/stage/validate/apply/post-read transaction.
 - [ ] **Call attestation** (`stir_shaken.conf`) — profiles, certificates, verification.
@@ -195,20 +195,29 @@ first thing in this project to look at every one of them. Each entry below is a 
 exists, is tested in isolation, and that nothing a person can reach ever calls -- the failure
 this repository keeps repeating, because it produces no error and no failing test.
 
-- [ ] **Reach the export and bulk-action code from the buttons that claim to do it.** Both
+- [x] **Reach the export and bulk-action code from the buttons that claim to do it.** Fixed at the two points the compiled interface hands off, both inside App.tsx rather than the generated file: `hostAction()` now recognises the Export button's exact call shape (`export-json`/`subject:'selection'`) and routes it into `bulk('Exported', ...)`; a confirmed bulk-Delete ceremony's exact title/command pair (`Delete ${n} objects` / `delete ${ids.join(' ')}`) is parsed back into its id list (`parseBulkDeleteCeremony`, bulk.ts) and routed into `bulk('Deleted', ...)` instead of sending `delete <ids>` -- not a real Asterisk command -- to the target. A single row's own "Delete <name>" ceremony, gated by a different confirmation flow, is untouched. Both
       modules import cleanly and their planning logic genuinely runs, but the compiled interface
       routes Export and Delete through separate code that never passes `bulk()` the verb needed to
       reach the rich branch. Subtler than never importing it, and invisible for the same reason.
-- [ ] **Give the desktop a responsive mechanism at all.** The line cited as evidence of one is a
-      per-control segmented-picker variant, not a screen breakpoint. There is no breakpoint
-      anywhere.
+- [x] **Give the desktop a responsive mechanism at all.** Real `@media (max-width: …)`
+      breakpoints now live in `console/app/renderer/src/styles.css` (targeting the compiled
+      shell's own inline styles, since it has no class or `data-*` hook to target instead) and
+      narrow the two fixed nav columns and collapse every multi-column grid to a single column
+      below the console's own enforced 920px minimum window width; a matching `min-width: 0`
+      fix restores a shrink-behind-content safety net the compiled design's own dead rule never
+      actually applied. Verified against the real built app: a genuinely clipped control (the
+      "+ New …" filter-row button on every table screen) is now fully on-screen at the enforced
+      floor. See `console/docs/platform/responsive-sizing.md` for the one known remaining gap
+      (a separate, JS-driven title-bar menu overflow below that floor, unreachable in the
+      shipped app) and `console/tests/contracts/responsive-sizing.test.mjs`, which still asserts
+      the old absence and needs updating to match.
 - [ ] **Anchor notifications in a corner and let them stack.** Toasts currently appear
       bottom-centre and do not stack, and the Notification centre screen renders the fixed rows
       that came from the design rather than a reviewable history of what was actually raised.
 - [ ] **Import the six finished modules nothing imports:** status hub, bounded overlays,
       context-menu shortcuts, long-operation progress, collapsible filters, and forge publishing.
       Each is complete and covered by its own tests; none is reachable from the interface.
-- [ ] **Correct the implementation registry where its notes are now false.** It still records that
+- [x] **Correct the implementation registry where its notes are now false.** It still records that
       per-element locks have no one-time-code option and no documented context-menu command; both
       shipped. Their real gap is that credentials sit in plain state rather than the operating
       system vault. It also understates appearance, where four of six symbols do write real styles
@@ -231,7 +240,7 @@ forbids: anything presented as operable must perform its labelled action.
 - [x] **Make the two canvas actions real.** Adding a step and duplicating a node both Both now push through the same mechanism the right-click duplicate already used, so the canvas genuinely gains the node.
       report a change to the canvas that the canvas never receives.
 - [x] **Make copy-to-clipboard actually copy.** Two handlers report that a value was Both colour-format handlers now perform the real clipboard write the sibling copy controls were already wired to.
-- [ ] **Fix the two remaining controls of the same class.** A global Undo on the shared
+- [x] **Fix the two remaining controls of the same class.** The tab-list copy read `t.label` off `tabs`, an array of plain screen-key strings with no `label` of their own -- fixed (`tabListText`) to resolve each key the way every other tab label in this console already does: `tabNames` first, the destination's compiled title second, the raw key last. The global Undo could not, in general, know what a given toast even was -- most toasts are not a value change at all -- so it now decides honestly (`decideUndo`, undo-toast.ts): when the toast on screen is genuinely the one `setVal()` raised for the most recently recorded control change, Undo reverts that value through the same `setVal()` route the History screen's own "Revert just this option" already uses; for anything else -- a bulk summary, a reroll, a ceremony's own "Running..." -- it says plainly there is nothing recorded here to reverse, rather than claiming "Change reverted" as before. A global Undo on the shared
       notification reverts nothing, and the copy-tab-list item writes the literal text
       `undefined` to the clipboard because it reads a label off the wrong shape.
       copied without writing to the clipboard.
@@ -240,6 +249,46 @@ forbids: anything presented as operable must perform its labelled action.
       separator. The transport matches a resource by exact name, so that string resolves to
       nothing and neither screen can write through it. Found while looking for a pattern to
       copy, and deliberately not copied.
+
+
+## Accessibility, which is a completion blocker and has never had an entry here
+
+The shared rules treat an accessibility defect as a blocker rather than polish, and the
+handoff has called the desktop's accessibility absent for some time. It has never been on
+this list, so it has never been anyone's next item. These numbers are measured, not
+asserted: they come from the running packaged build, driven headlessly, with the
+onboarding wizard dismissed and its dismissal verified before anything was counted.
+
+Out of **426 rendered elements** on the main surface:
+
+| Measured | Count |
+| --- | --- |
+| Elements carrying any ARIA role | **1** |
+| Semantic landmarks (`nav`, `main`, `aside`, `header`, `footer`) | **0** |
+| Elements carrying `aria-label` | **0** |
+| Elements carrying `tabindex` | **0** |
+| Distinct tag names in the whole body | **6** (`A`, `BUTTON`, `DIV`, `H1`, `P`, `SPAN`) |
+
+One thing is already right and should not be lost while fixing the rest: all **96** buttons
+carry real text, so every one of them already has an accessible name. The gap is structure,
+not naming.
+
+- [ ] **Give the interface landmarks.** A screen-reader user currently meets 96 buttons in a
+      single undifferentiated region with no way to jump between areas. The rail, the section
+      list, the content area and the title bar are all `DIV`. This has to be done in
+      `design/Asterisk Console M3.dc.html` and recompiled, never by editing the generated
+      renderer.
+- [ ] **Give the tab strip the roles it is pretending to have.** The destinations are styled
+      as tabs and behave as tabs, and expose `role=tab`/`tablist`/`tabpanel` nowhere, so
+      assistive technology is told they are buttons in a box. Roving focus and
+      `aria-controls` come with it.
+- [ ] **Make focus reachable and visible.** Nothing carries `tabindex`, so keyboard traversal
+      is whatever the DOM order happens to give. Every anchored popover, menu, dialog and the
+      appearance editor must also return focus to the control that opened it.
+- [ ] **Cover it with a test that reads the built artifact, not the source.** A unit test with
+      an injected host passes on every one of the numbers above. The probe that produced this
+      table is `console/scripts/ui-drive/smoke.mjs`; a guard should assert these counts move in
+      the right direction and never silently back.
 
 ## Release readiness
 

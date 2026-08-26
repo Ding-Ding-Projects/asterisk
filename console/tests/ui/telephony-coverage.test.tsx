@@ -113,8 +113,29 @@ function deliveredByAction(id: string): boolean {
  * and the real figure it reported read back, rather than adding the two deltas by hand.
  *
  * It may rise freely and may not fall.
+ * The floor moved on from 192 to 208 in the meantime, in changes this comment was not
+ * updated alongside -- the numbers below are what this pass measured at HEAD before its
+ * own change, and are the honest starting point for the delta actually being recorded
+ * here. Then 251 with the whole new Database backends screen (res_odbc.conf, extconfig.conf,
+ * sorcery.conf, res_pgsql.conf): net +43. Twenty are ordinary CONTROL_BINDINGS entries
+ * (eight res_pgsql.conf fields bound plainly, twelve res_odbc.conf fields bound through
+ * `sectionFrom: 'db_odbcname'`); the other twenty-three -- every picker, both write-only
+ * passwords, both password-status readouts, and every Load/Save/Remove action across the
+ * ODBC/realtime-mapping/sorcery groups -- are recognised the same two ways the Security
+ * and HTTP-server lanes above already established: an action button or a status readout
+ * carries `action:'db-*'` in the design, matched by `deliveredByAction`, and every picker
+ * and write-only field is read out of `state.values['db_*']` by name in App.tsx's own
+ * handlers, which is the quoted literal this measurement looks for. All 43 work; none are
+ * decorative.
+ *
+ * This screen's own branch counted its +43 on top of a stale 208 and called the result
+ * 251, the same way control-keys.test.tsx's Database backends paragraph called its own
+ * total 199 before this same rebase. The real tip had already reached 243 by the time
+ * this landed, so the honest number is 243 + 43 = 286 -- read back the same way, by
+ * trying a deliberately wrong value first and taking whatever this test reported.
+ *
+ * It may rise freely and may not fall.
  */
-
 function measure() {
   const files = readdirSync(srcDir).filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'));
   const raw = (f: string) => readFileSync(join(srcDir, f), 'utf8');
@@ -152,11 +173,13 @@ function measure() {
   return { working, dead, total: working + dead.length, source, reachable, files };
 }
 
-/* 243, re-derived from the code after merging four lanes rather than by adding their
- * deltas together. Three of them independently moved this number from 208, so a sum would
- * have been a guess that happened to look plausible. */
-const WORKING_FLOOR = 243;
-const TELEPHONY_TOTAL = 243;
+/* 286, re-derived from the code after rebasing the Database backends lane onto a tip
+ * that had already reached 243 by other means, rather than by adding the two deltas
+ * together. The comment above still tells the true story of every lane that got here;
+ * this number is what running this test with a deliberately wrong value read back,
+ * exactly as that comment already recommends doing instead of arithmetic. */
+const WORKING_FLOOR = 286;
+const TELEPHONY_TOTAL = 286;
 
 test('an action-delivered control is recognised even though its id never appears as a quoted literal', () => {
   for (const id of ['s_tload', 's_tsave', 's_stirsave', 'ht_save', 'fx_save', 'fx_udptlsave']) {
