@@ -80,8 +80,8 @@ to the control plane.
 - [ ] **Dialplan scripting visibility** (AGI).
 - [ ] **Distributed dialplan lookup** (`dundi.conf`).
 - [ ] **Calendars** (`calendar.conf`).
-- [ ] **Monitoring integration** (`res_snmp.conf`, `prometheus.conf`).
-- [ ] **Directory and identity settings** (`asterisk.conf`), NAT discovery (`res_stun_monitor.conf`), messaging (`xmpp.conf`), caller display (`adsi.conf`).
+- [x] **Monitoring integration** (`res_snmp.conf`, `prometheus.conf`) — a Monitoring destination on the Data rail. res_snmp.conf's own two [general] keys (subagent, enabled) and five of prometheus.conf's (enabled, core_metrics_enabled, uri, auth_username, auth_realm) are bound and round-trip through separate reads/Save actions per file; the Basic Auth password is write-only, the same take-then-blank shape res_pgsql.conf's own password already uses on the Database backends screen.
+- [x] **Directory and identity settings** (`asterisk.conf`), NAT discovery (`res_stun_monitor.conf`), messaging (`xmpp.conf`), caller display (`adsi.conf`) — four new destinations. Directories & identity binds all twelve `[directories]` paths plus seven `[options]` identity fields and four capacity limits from asterisk.conf. NAT discovery binds both res_stun_monitor.conf keys. Messaging binds xmpp.conf's six `[general]` behaviour switches; the credential-bearing `[asterisk]` connection section is deliberately left unbound. Caller display binds adsi.conf's `alignment`; the repeated `greeting =>` welcome-message lines are deliberately left unbound -- this console has no control shape for an ordered, unlimited, free-text list, and the screen says so.
 
 ### Partial gaps — a destination exists but covers a fraction
 

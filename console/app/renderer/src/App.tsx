@@ -3107,6 +3107,7 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'cel-status') return this.celBackendStatus();
     if (action === 'db-pgsql-password-status') return this.dbPgsqlPasswordStatusLine();
     if (action === 'db-odbc-password-status') return this.dbOdbcPasswordStatusLine();
+    if (action === 'monitoring-prometheus-password-status') return this.pmAuthPasswordStatusLine();
     return '';
   };
 
@@ -3227,6 +3228,12 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'db-sorcery-load') { this.onLoadSorceryMapping(); return; }
     if (action === 'db-sorcery-save') { void this.onSaveSorceryMapping(); return; }
     if (action === 'db-sorcery-remove') { void this.onRemoveSorceryMapping(); return; }
+    if (action === 'monitoring-snmp-save') { void this.onSaveSnmp(); return; }
+    if (action === 'monitoring-prometheus-save') { void this.onSavePrometheus(); return; }
+    if (action === 'identity-save') { void this.onSaveIdentity(); return; }
+    if (action === 'stun-save') { void this.onSaveStun(); return; }
+    if (action === 'xmpp-save') { void this.onSaveXmpp(); return; }
+    if (action === 'adsi-save') { void this.onSaveAdsi(); return; }
   };
 
   // ---------------------------------------------------------------- server add / remove
@@ -4030,6 +4037,33 @@ It is shown once. The phone needs it to register.`);
         const bound = readControlValues('cdr', [], { 'cel_pgsql.conf': this.configs.celPgsql.value ?? [] });
         if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
         this.seeded.add('cdr-cel-pgsql');
+      }
+    }
+
+    /* The Monitoring screen's own declared `file` is res_snmp.conf, read by the generic
+     * block above. Its Prometheus fields live in prometheus.conf, a wholly separate
+     * file, read here the same way cel.conf is read for the CDR screen above:
+     * independently of the res_snmp.conf read, cached under its own `this.configs.prometheus`
+     * key, and seeded into `values` exactly once it becomes available. pm_authpassword is
+     * NOT seeded, ever -- like db_pgpassword, it carries no binding at all, so a read of
+     * this file can never populate it. */
+    if (screen === 'monitoring') {
+      if ((!this.configs.prometheus || this.configs.prometheus.state === 'unavailable')
+          && !this.extraConfigPending.has('prometheus.conf') && mayStartRead('config:monitoring-prometheus')) {
+        this.extraConfigPending.add('prometheus.conf');
+        const resource = resourceForFile('prometheus.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('prometheus.conf');
+        this.configs.prometheus = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if (this.configs.prometheus?.state === 'read' && !this.seeded.has('monitoring-prometheus')) {
+        const state = this.state as { values: Record<string, unknown> };
+        const bound = readControlValues('monitoring', [], { 'prometheus.conf': this.configs.prometheus.value ?? [] });
+        if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
+        this.seeded.add('monitoring-prometheus');
       }
     }
 
@@ -5074,6 +5108,163 @@ It is shown once. The far end needs it to register.`);
     if (screen === 'vocab') return vocabularyNote(vocabularyStatus(this.vocabStorage).replacementCount);
     return AGENT_RAIL_SOURCES[screen].reason;
   }
+  // ---------------------------------------------------------------- Monitoring screen (SNMP / Prometheus)
+
+  /** "Save SNMP settings": res_snmp.conf's own two [general] fields. */
+  private static readonly MONITORING_SNMP_CONTROLS = ['mn_subagent', 'mn_enabled'] as const;
+
+  onSaveSnmp = async (): Promise<void> => {
+    const current = this.configs.monitoring?.state === 'read' ? this.configs.monitoring.value : undefined;
+    if (!current) { this.fire('Not written', 'res_snmp.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.MONITORING_SNMP_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('monitoring', current, changes);
+    await this.writeConfigResource(
+      this.configs.monitoring?.resource ?? (resourceForFile('res_snmp.conf') as string),
+      next,
+      'res_snmp.conf updated on the target.',
+      'SNMP settings saved',
+      () => { delete this.configs.monitoring; this.seeded.delete('monitoring'); },
+    );
+  };
+
+  /** Read by the compiled `text`-kind control marked
+   *  `action:'monitoring-prometheus-password-status'`. Reports only whether
+   *  prometheus.conf's [general] section currently has an `auth_password` line -- never
+   *  what it holds -- the same shape `dbPgsqlPasswordStatusLine` above gives res_pgsql.conf. */
+  private pmAuthPasswordStatusLine = (): string => {
+    const value = this.configs.prometheus?.state === 'read' ? this.configs.prometheus.value : undefined;
+    if (!value) return 'Read prometheus.conf to check.';
+    return findConfigEntry(value, 'general', 'auth_password') !== undefined
+      ? 'A Basic Auth password is set on the target.'
+      : 'No Basic Auth password is set on the target.';
+  };
+
+  /** "Save Prometheus settings": prometheus.conf's ordinary fields through the same
+   *  single-key path every other screen's Save uses, then -- only if a new password was
+   *  typed -- splices `auth_password` into [general] directly and blanks the field the
+   *  instant it has been read, the same take-then-blank shape `onSaveResPgsql` gives
+   *  res_pgsql.conf's own password. pm_authpassword can never be populated by a read in
+   *  the first place, because no binding for it exists anywhere in CONTROL_BINDINGS. */
+  private static readonly MONITORING_PROMETHEUS_CONTROLS = [
+    'pm_enabled', 'pm_core', 'pm_uri', 'pm_authuser', 'pm_authrealm',
+  ] as const;
+
+  onSavePrometheus = async (): Promise<void> => {
+    const current = this.configs.prometheus?.state === 'read' ? this.configs.prometheus.value : undefined;
+    if (!current) { this.fire('Not written', 'prometheus.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.MONITORING_PROMETHEUS_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    let next = applyBoundControlValues('monitoring', current, changes);
+    const { secret, values: blanked } = consumeCredential(state.values, 'pm_authpassword');
+    if (secret !== undefined) {
+      next = writeConfigEntry(next, 'general', 'auth_password', secret);
+      this.setState({ values: blanked } as never);
+    }
+    await this.writeConfigResource(
+      this.configs.prometheus?.resource ?? (resourceForFile('prometheus.conf') as string),
+      next,
+      'prometheus.conf updated on the target.',
+      'Prometheus settings saved',
+      () => { delete this.configs.prometheus; this.seeded.delete('monitoring-prometheus'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Directories & identity screen
+
+  /** "Save asterisk.conf settings": every as_* field, the [directories] stanza and the
+   *  [options] identity/capacity fields alike, all through the one Save button the
+   *  screen offers -- the same single-write shape http.conf's ht_save gives a screen
+   *  whose fields also span more than one group. */
+  private static readonly IDENTITY_CONTROLS = [
+    'as_dircache', 'as_diretc', 'as_dirmod', 'as_dirvarlib', 'as_dirdb', 'as_dirkey',
+    'as_dirdata', 'as_diragi', 'as_dirspool', 'as_dirrun', 'as_dirlog', 'as_dirsbin',
+    'as_systemname', 'as_autosystemname', 'as_entityid', 'as_runuser', 'as_rungroup',
+    'as_documentation_language', 'as_defaultlanguage',
+    'as_maxcalls', 'as_maxload', 'as_maxfiles', 'as_minmemfree',
+  ] as const;
+
+  onSaveIdentity = async (): Promise<void> => {
+    const current = this.configs.identity?.state === 'read' ? this.configs.identity.value : undefined;
+    if (!current) { this.fire('Not written', 'asterisk.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.IDENTITY_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('identity', current, changes);
+    await this.writeConfigResource(
+      this.configs.identity?.resource ?? (resourceForFile('asterisk.conf') as string),
+      next,
+      'asterisk.conf updated on the target.',
+      'Directories & identity settings saved',
+      () => { delete this.configs.identity; this.seeded.delete('identity'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- NAT discovery (STUN) screen
+
+  private static readonly STUN_CONTROLS = ['su_addr', 'su_refresh'] as const;
+
+  onSaveStun = async (): Promise<void> => {
+    const current = this.configs.stun?.state === 'read' ? this.configs.stun.value : undefined;
+    if (!current) { this.fire('Not written', 'res_stun_monitor.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.STUN_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('stun', current, changes);
+    await this.writeConfigResource(
+      this.configs.stun?.resource ?? (resourceForFile('res_stun_monitor.conf') as string),
+      next,
+      'res_stun_monitor.conf updated on the target.',
+      'NAT discovery settings saved',
+      () => { delete this.configs.stun; this.seeded.delete('stun'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Messaging (XMPP) screen
+
+  private static readonly XMPP_CONTROLS = [
+    'xm_debug', 'xm_autoprune', 'xm_autoregister', 'xm_collection_nodes',
+    'xm_pubsub_autocreate', 'xm_auth_policy',
+  ] as const;
+
+  onSaveXmpp = async (): Promise<void> => {
+    const current = this.configs.xmpp?.state === 'read' ? this.configs.xmpp.value : undefined;
+    if (!current) { this.fire('Not written', 'xmpp.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.XMPP_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('xmpp', current, changes);
+    await this.writeConfigResource(
+      this.configs.xmpp?.resource ?? (resourceForFile('xmpp.conf') as string),
+      next,
+      'xmpp.conf updated on the target.',
+      'Messaging settings saved',
+      () => { delete this.configs.xmpp; this.seeded.delete('xmpp'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Caller display (ADSI) screen
+
+  /** "Save alignment": adsi.conf's one bound field. ad_greeting is deliberately left out
+   *  -- see the long comment on CONTROL_BINDINGS.adsi -- so a Save here can never write
+   *  something the screen never actually read back. */
+  onSaveAdsi = async (): Promise<void> => {
+    const current = this.configs.adsi?.state === 'read' ? this.configs.adsi.value : undefined;
+    if (!current) { this.fire('Not written', 'adsi.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    if ('ad_alignment' in state.values) changes.ad_alignment = state.values.ad_alignment;
+    const next = applyBoundControlValues('adsi', current, changes);
+    await this.writeConfigResource(
+      this.configs.adsi?.resource ?? (resourceForFile('adsi.conf') as string),
+      next,
+      'adsi.conf updated on the target.',
+      'Caller display settings saved',
+      () => { delete this.configs.adsi; this.seeded.delete('adsi'); },
+    );
+  };
 
   private note(screen: string): string {
     if (screen === 'history') {
