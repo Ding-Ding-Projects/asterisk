@@ -4,6 +4,12 @@
 
 This handoff covers the integrated Ding PBX Console desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.
 
+## Runtime catalogue parser repair, 2026-08-26
+
+- Repaired the Unicode regular expression that normalizes literal ARI `.{format}` resource suffixes in `console/control-plane/asterisk-runtime-catalog.ts`. The former unescaped braces are an invalid Unicode regular expression and prevented the catalog and its dispatcher import path from loading.
+- Added `console/tests/control-plane/runtime-catalog-load.test.ts`. It imports the catalog and dispatcher, checks the real Electron main-process IPC registration seam, preserves the 517 source-record contract, and proves the former malformed expression is rejected before confirming the corrected literal matcher.
+- This is a source-only parser repair. It does not build, package, publish, deploy, capture, or claim a released artifact.
+
 ## Implemented
 
 - Pinned Node.js `22.23.2` for Windows x64 from the official Node.js release service with SHA-256 `1177b4137ba5adaa56354ae40f1080c7450e8ae09cecb47da459d1c52ac99f97`.

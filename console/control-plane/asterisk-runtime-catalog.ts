@@ -269,7 +269,10 @@ function normalize(value: string): string {
 }
 
 function ariResourceMatches(name: string, source: (typeof ASTERISK_CATALOG.apiResources)[number]): boolean {
-  const normalizePath = (value: string) => normalize(value).replace(/^\/(?:ari|api-docs)\//u, "/").replace(/\.{format}$/u, "");
+  // `{format}` is a literal ARI template suffix, not a regular-expression
+  // quantifier. Escaping both braces keeps this module parseable with the `u`
+  // flag and reconciles `/api-docs/foo.{format}` with `/foo`.
+  const normalizePath = (value: string) => normalize(value).replace(/^\/(?:ari|api-docs)\//u, "/").replace(/\.\{format\}$/u, "");
   const candidate = normalizePath(name);
   if (candidate === normalizePath(source.name)) return true;
   return source.apiOperations.some((operation) => candidate === normalizePath(operation.path));

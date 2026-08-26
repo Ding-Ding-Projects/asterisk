@@ -46,6 +46,7 @@
 
 ### Source-derived capability catalogue
 
+- [x] Repair the Unicode-safe ARI `{format}` template normalizer and add an import-boundary regression Chut for the runtime catalog, dispatcher, and Electron bridge seam.
 - [x] Generate a deterministic catalogue for every loadable module in `addons/`, `apps/`, `bridges/`, `cdr/`, `cel/`, `channels/`, `codecs/`, `formats/`, `funcs/`, `pbx/`, `res/`, and `main/`.
 - [x] Generate records for every checked-in configuration resource under `configs/` and every checked-in ARI resource document, including source path, family, build-condition signal, configuration names, individual CLI/AMI/ARI/AGI/media registrations and operations, documentation source, and explicit unavailable reasons.
 - [x] Record SHA-256 source provenance and hashed build-graph evidence for every generated record, rejecting empty source files.
