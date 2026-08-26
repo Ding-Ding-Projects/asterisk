@@ -529,7 +529,26 @@
   // honest fallback: no verified release manifest was found, so downloads.html
   // says so plainly instead of rendering literal "#"/"[]()" source text.
   const RELEASE_NOTES_MARKDOWN = '';
-  const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#82D9A5',fontScale:100,lowMotion:false,englishFunny:0,cantoneseFunny:0,attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false,focus:false,timeAwareness:false,oneThing:false,momentum:false,currentTask:''},scheduleEnabled:false,notifications:[],collapsed:{destinationMap:true,settingsPreview:true,documentationFilters:false,settingsFilters:false}};
+  const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#82D9A5',fontScale:100,lowMotion:false,englishFunny:0,cantoneseFunny:0,displayName:'',attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false,focus:false,timeAwareness:false,oneThing:false,momentum:false,currentTask:''},scheduleEnabled:false,notifications:[],collapsed:{destinationMap:true,settingsPreview:true,documentationFilters:false,settingsFilters:false}};
+  // ---- Display name: the name this site shows the person reading it, which is
+  // theirs to change, and the shipped product name, which is not.
+  //
+  // The two are deliberately different things and are kept apart on purpose. The
+  // shipped name identifies the product to anyone outside this browser -- a file
+  // exported from this page, a download, the link preview somebody else sees --
+  // and to this page's own storage. The display name is a label, and the rule
+  // this constant exists to make checkable is that nothing derives identity from
+  // it: STORAGE_KEY, HISTORY_KEY, the vocabulary and logo cache keys and the
+  // export filename are all literal constants that no rename can reach.
+  //
+  // Empty means "use the shipped name", rather than storing a copy of it. A copy
+  // would silently become a stale rename the day the shipped name changes, and
+  // nothing would say so.
+  const SHIPPED_PRODUCT_NAME = 'Ding PBX Console';
+  const DISPLAY_NAME_MAX = 60;
+  // Captured once, before any rename can reach it, so a second rename composes
+  // against the shipped title rather than against the previous rename's output.
+  const SHIPPED_TITLE = document.title;
   const STORAGE_KEY = 'ding-pbx-pages-v2';
   // ---- Local version history: an append-only record, isolated in its own
   // storage key so "Reset settings" never touches it. Restoring an entry
@@ -586,7 +605,7 @@
   const state=loadState();
   function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
   function update(key,value){state[key]=value;save();applyState();recordHistory('setting-changed',`${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`${key} now uses ${value}.`))}
-  function applyState(){document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyVocabulary();updateSessionTimer();updateOneThingBanner();renderAllModeStatuses()}
+  function applyState(){document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyDisplayName();applyVocabulary();updateSessionTimer();updateOneThingBanner();renderAllModeStatuses()}
   function updateAttention(key,value){state.attention={...state.attention,[key]:value};save();applyState();recordHistory('attention-changed',`attention.${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`attention.${key} now uses ${value}.`))}
   function applyLanguage(){if(!$('language-preview'))return;document.documentElement.lang=state.language==='zh'?'zh-Hant':'en';$('language-preview').textContent=state.language==='en'?'English presentation active.':state.language==='zh'?'廣東話顯示已啟用。':'Bilingual presentation active. / 雙語顯示已啟用。'}
 
@@ -606,6 +625,22 @@
       'Ding PBX Console係 Asterisk 嘅桌面管理計劃項目。講多句：呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，亦唔係 PBX 運行環境。',
       'Ding PBX Console係 Asterisk 嘅桌面管理計劃項目。老實講：呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，更加唔係 PBX 運行環境。',
       'Ding PBX Console係 Asterisk 嘅桌面管理計劃項目。認真同你講：呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，梗係唔係 PBX 運行環境喇，聽晒未？'
+    ]},
+    /* Voice moves with the slider; the two facts never do. Every level names the
+     * exact surfaces a rename reaches (the brand line and the tab title) and the
+     * exact surfaces it does not (downloads, exports, storage, link preview),
+     * because somebody choosing a name has to know which one a shared file
+     * will carry. */
+    displayNameDesc:{en:[
+      'Renames what this site calls itself on screen: the brand line at the top and bottom of every page, and this browser tab title. Nothing else moves. Downloads, exported files, this page own local storage and the link preview other people see all keep the shipped name Ding PBX Console, so anything you save or share still names the product.',
+      'Renames what this site calls itself on screen — the brand line at the top and bottom of every page, and this browser tab title. Nothing else moves: downloads, exported files, this page own local storage and the link preview other people see all keep the shipped name Ding PBX Console, so anything you save or share still names the product.',
+      'Call this site whatever you like. It changes the brand line top and bottom, and the tab title, and that is the lot. Downloads, exports, local storage and the link preview other people see all stay Ding PBX Console, so nothing you share turns up wearing your nickname.',
+      'Name it after your cat if you want. The brand line top and bottom changes, the tab title changes, and absolutely nothing else does. Downloads, exports, local storage and the link preview other people see stubbornly stay Ding PBX Console — so the file you send a colleague still says what the software actually is, cat or no cat.'
+    ],zh:[
+      '呢個設定淨係改呢個網站喺畫面上點稱呼自己：每版頂同底嘅品牌名，同埋瀏覽器分頁標題。其他嘢一律唔動。下載檔案、匯出檔案、呢版自己嘅本機儲存，以及其他人見到嘅連結預覽，全部照樣用出廠名 Ding PBX Console，所以你儲落或者分享出去嘅嘢，一樣認得返個產品。',
+      '呢個設定淨係改網站喺畫面上點稱呼自己 —— 每版頂同底嘅品牌名，同分頁標題。其餘唔動：下載、匯出檔案、本機儲存同人哋見到嘅連結預覽，全部照用出廠名 Ding PBX Console，所以你分享出去嗰份嘢一樣認得返個產品。',
+      '想叫佢乜名都得。改到嘅係頂同底嘅品牌名，加分頁標題，就咁多。下載、匯出、本機儲存同人哋見到嘅連結預覽照舊係 Ding PBX Console，唔會有嘢帶住你個花名走出去。',
+      '叫佢做「肥貓」都無問題。頂同底嘅品牌名會變，分頁標題會變，之後就真係一樣都唔變。下載、匯出、本機儲存同人哋見到嘅連結預覽死都咬住 Ding PBX Console 唔放 —— 你 send 畀同事嗰份檔案，照樣講得出呢套軟件真名，有貓無貓都一樣。'
     ]},
     themeDesc:{en:[
       'Applies immediately and persists.',
@@ -781,6 +816,79 @@
     let icon=document.querySelector('link[rel="icon"]');
     if(!icon){icon=document.createElement('link');icon.rel='icon';document.head.appendChild(icon)}
     icon.href=cached||DEFAULT_FAVICON;
+  }
+
+  // ---- Display name: applied live, to the site's own chrome and to nothing
+  // else. ----
+  //
+  // Two surfaces, named rather than swept: every `.brand-name` element (the
+  // brand line in each page's header and footer) and the browser tab title.
+  // Both are this site introducing itself to the person reading it.
+  //
+  // Deliberately NOT rewritten, because they are not that: the `og:` metadata
+  // and the page description, which are what somebody else's chat window and
+  // somebody else's search result read; the product prose on the home and
+  // product pages, which describes the real product by its real name; and the
+  // status page's factual records. A rename that edited those would be a rename
+  // that told other people something untrue about which software this is.
+  //
+  // `textContent` rather than `innerHTML`, so a name is always a name and never
+  // markup -- and, usefully, assigning it replaces the child text node, so the
+  // personal-vocabulary walker treats the new name as a fresh original and layers
+  // replacements on top of it instead of reverting to the one it cached first.
+  function currentDisplayName(){
+    const chosen=String(state.displayName||'').trim();
+    return chosen||SHIPPED_PRODUCT_NAME;
+  }
+  function displayNameIsChosen(){return currentDisplayName()!==SHIPPED_PRODUCT_NAME}
+  function applyDisplayName(){
+    const name=currentDisplayName();
+    all('.brand-name').forEach(el=>{el.textContent=name});
+    // Only the shipped name is substituted, so a title that never carried it is
+    // left exactly as it was rather than being guessed at.
+    document.title=SHIPPED_TITLE.split(SHIPPED_PRODUCT_NAME).join(name);
+    const field=$('display-name');
+    if(field&&document.activeElement!==field)field.value=state.displayName||'';
+    const status=$('display-name-status');
+    if(status){
+      status.textContent=displayNameIsChosen()
+        ? `This site calls itself “${name}” here. Downloads, exports and the link preview other people see still say ${SHIPPED_PRODUCT_NAME}.`
+        : `Using the shipped name, ${SHIPPED_PRODUCT_NAME}.`;
+    }
+  }
+
+  // Typing applies live, because a rename you cannot see is a rename you cannot
+  // judge -- but one history entry and one notification per rename, not one per
+  // keystroke, so the local history stays readable. `change` fires once the field
+  // is left or Enter is pressed, which is that moment.
+  function setDisplayName(raw){
+    state.displayName=String(raw||'').slice(0,DISPLAY_NAME_MAX);
+    save();
+    applyDisplayName();
+  }
+  function commitDisplayName(){
+    const name=currentDisplayName();
+    recordHistory('display-name-changed',displayNameIsChosen()
+      ? `This page now calls itself “${name}”. The shipped name ${SHIPPED_PRODUCT_NAME} is unchanged.`
+      : `The display name returned to the shipped name, ${SHIPPED_PRODUCT_NAME}.`);
+    notify(copyText('notifSettingSaved'),applyVocabularyText(displayNameIsChosen()
+      ? `This page is called “${name}” in your browser now. Exports and downloads still name ${SHIPPED_PRODUCT_NAME}.`
+      : `The display name is back to ${SHIPPED_PRODUCT_NAME}.`));
+  }
+  function initDisplayName(){
+    const field=$('display-name');
+    if(!field)return;
+    field.value=state.displayName||'';
+    field.oninput=event=>setDisplayName(event.target.value);
+    field.onchange=commitDisplayName;
+    const reset=$('display-name-reset');
+    if(reset)reset.onclick=()=>{
+      if(!displayNameIsChosen()){applyDisplayName();return}
+      setDisplayName('');
+      field.value='';
+      commitDisplayName();
+    };
+    applyDisplayName();
   }
 
   let sessionStart=Date.now();
@@ -1071,7 +1179,7 @@
     dialog.addEventListener('close',()=>{resetConfirmFields();$('settings-reset')?.focus()});
   }
 
-  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);$('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);$('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));$('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState();recordHistory('attention-changed','attention.currentTask changed.')};$('settings-reset').onclick=()=>{const dialog=$('reset-confirm-dialog');if(!dialog)return;resetConfirmFields();dialog.showModal()};$('settings-export').onclick=()=>download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state},null,2));$('vocabulary-file').onchange=loadVocabulary;$('vocabulary-clear').onclick=()=>{localStorage.removeItem('ding-pbx-vocabulary-cache');$('vocabulary-file').value='';$('vocabulary-status').textContent='No file loaded; original wording is active.';applyVocabulary();applyState()};$('logo-file').onchange=loadLogo;$('logo-clear').onclick=()=>{localStorage.removeItem('ding-pbx-logo-cache');$('logo-file').value='';$('logo-status').textContent='No file loaded; default mark is active.';applyLogo()};if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));initResetConfirm();initHistory()}
+  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);$('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);$('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));$('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState();recordHistory('attention-changed','attention.currentTask changed.')};$('settings-reset').onclick=()=>{const dialog=$('reset-confirm-dialog');if(!dialog)return;resetConfirmFields();dialog.showModal()};$('settings-export').onclick=()=>download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state},null,2));$('vocabulary-file').onchange=loadVocabulary;$('vocabulary-clear').onclick=()=>{localStorage.removeItem('ding-pbx-vocabulary-cache');$('vocabulary-file').value='';$('vocabulary-status').textContent='No file loaded; original wording is active.';applyVocabulary();applyState()};initDisplayName();$('logo-file').onchange=loadLogo;$('logo-clear').onclick=()=>{localStorage.removeItem('ding-pbx-logo-cache');$('logo-file').value='';$('logo-status').textContent='No file loaded; default mark is active.';applyLogo()};if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));initResetConfirm();initHistory()}
   async function loadVocabulary(event){const file=event.target.files[0];if(!file)return;if(file.size>65536){$('vocabulary-status').textContent=`Rejected: the file is ${Math.round(file.size/1024)} KiB and the limit is 64 KiB.`;return}try{const raw=JSON.parse(await file.text());
     /* Accept the spellings a real file actually uses before judging it.
      *
