@@ -10,11 +10,18 @@
  * heading it actually saw so a picture can be checked against its own caption rather than
  * only against whether pixels appeared -- a distinction that has already cost this
  * repository 109 published images of an onboarding screen.
+ *
+ * Its label reader used to be a private copy of the ligature-prefix pattern, stripping the
+ * Material Symbols glyph name off the front of `textContent` only when the real label began
+ * with a capital -- so a flag chip reading `checki · ignore case` kept the icon's name and
+ * could never be clicked by its own label. That reader now comes from `observe-panel.mjs`,
+ * which removes the icon elements exactly rather than guessing at where they end.
  */
 import { connect } from './cdp.mjs';
 import { createHash } from 'node:crypto';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { CONTROL_READING_SOURCE, OVERLAY_COUNT_SOURCE, readControlLabel } from './observe-panel.mjs';
 
 const PORT = Number(process.argv[2] || 9700);
 const OUT = process.argv[3] || 'C:/Users/cntow/AppData/Local/Temp/dinggallery';
@@ -23,17 +30,30 @@ mkdirSync(OUT, { recursive: true });
 const { send, evaluate, close } = await connect(PORT);
 const settle = (ms = 600) => new Promise((r) => setTimeout(r, ms));
 
-const LIGATURE_PREFIX = /^[a-z_]+(?=[A-Z])/;
-const labelOf = "(e) => ((e.getAttribute('aria-label') || e.textContent || '').trim().replace(/^[a-z_]+(?=[A-Z])/, ''))";
-const clickText = (text) => evaluate(`(() => {
-  const wanted = ${JSON.stringify(text)};
-  const label = ${labelOf};
-  const el = [...document.querySelectorAll('button, [role=tab], a[href], [role=option], li')]
-    .find((e) => label(e) === wanted && (e.offsetWidth || e.offsetHeight) && !e.disabled);
-  if (!el) return false;
-  el.click();
-  return true;
+/* Wider than the driver's clickable set: a gallery navigates by rail entries, which this
+ * application renders as list items rather than buttons. */
+const NAVIGABLE = 'button, [role=tab], a[href], [role=option], li';
+
+const readNavigable = () => evaluate(`(() => {
+  const read = ${CONTROL_READING_SOURCE};
+  return [...document.querySelectorAll(${JSON.stringify(NAVIGABLE)})]
+    .map((e, index) => Object.assign({ index, visible: !!(e.offsetWidth || e.offsetHeight) }, read(e)));
 })()`);
+
+const namedNavigable = async () => (await readNavigable())
+  .map((reading) => Object.assign({}, reading, readControlLabel(reading)))
+  .filter((c) => c.visible && !c.disabled && c.label.length > 0);
+
+const clickText = async (text) => {
+  const match = (await namedNavigable()).find((c) => c.label === text);
+  if (!match) return false;
+  return evaluate(`(() => {
+    const el = [...document.querySelectorAll(${JSON.stringify(NAVIGABLE)})][${match.index}];
+    if (!el || !(el.offsetWidth || el.offsetHeight) || el.disabled) return false;
+    el.click();
+    return true;
+  })()`);
+};
 
 /** Clears menus, palettes, dialogs and toasts so the screen itself is the subject. */
 const clearOverlays = async () => {
@@ -63,9 +83,11 @@ const clearOverlays = async () => {
   await settle(250);
 };
 
+/* `overlays` was a dialog-role count, and this application renders no element carrying that
+ * role, so the "(a dialog was still open)" warning printed beside each shot never fired. */
 const state = () => evaluate(`(() => ({
   heading: ((document.querySelector('h1, h2, h3') || {}).textContent || '').trim().slice(0, 60),
-  dialogs: document.querySelectorAll('[role=dialog]').length,
+  overlays: ${OVERLAY_COUNT_SOURCE},
   wizard: [...document.querySelectorAll('button')].some((b) => (b.textContent || '').trim() === 'Skip setup'),
 }))()`);
 
@@ -75,14 +97,16 @@ await clearOverlays();
 
 /* The rail destinations, read from the page rather than hard-coded. */
 const MENU_BAR = ['File', 'Edit', 'View', 'PBX', 'Agent', 'Window', 'Help'];
-const rail = await evaluate(`(() => {
-  const label = ${labelOf};
-  return [...document.querySelectorAll('button, [role=tab], a[href], [role=option], li')]
-    .map(label)
-    .filter((t) => t.length > 3 && t.length < 40);
-})()`);
+const rail = (await namedNavigable())
+  .map((c) => c.label)
+  .filter((t) => t.length > 3 && t.length < 40);
 
 const wanted = [...new Set(rail)].filter((t) => !MENU_BAR.includes(t));
+if (wanted.length === 0) {
+  console.log('REFUSING: no named destination was found, so the label reader matched nothing');
+  close();
+  process.exit(3);
+}
 const shots = [];
 let index = 0;
 
@@ -100,7 +124,7 @@ for (const label of wanted) {
   const slug = s.heading.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
   const file = `${String(index).padStart(2, '0')}-${slug}.png`;
   writeFileSync(join(OUT, file), bytes);
-  shots.push({ heading: s.heading, file, clickedLabel: label, dialogsOnScreen: s.dialogs,
+  shots.push({ heading: s.heading, file, clickedLabel: label, overlaysOnScreen: s.overlays,
                sha256: createHash('sha256').update(bytes).digest('hex'), bytes: bytes.length });
   index += 1;
   if (index >= 40) break;
@@ -108,5 +132,6 @@ for (const label of wanted) {
 
 writeFileSync(join(OUT, 'gallery.json'), JSON.stringify({ generatedAt: new Date().toISOString(), shots }, null, 2));
 console.log('captured ' + shots.length + ' clean screens');
-for (const s of shots) console.log('  ' + s.heading.padEnd(28) + ' -> ' + s.file + (s.dialogsOnScreen ? '  (a dialog was still open)' : ''));
+for (const s of shots) console.log('  ' + s.heading.padEnd(28) + ' -> ' + s.file
+  + (s.overlaysOnScreen ? `  (${s.overlaysOnScreen} overlay(s) still up)` : ''));
 close();
