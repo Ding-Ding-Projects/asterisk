@@ -8,6 +8,13 @@
 - [x] Record converter and Ollama desktop and site rows as `implemented-unverified` in the feature registries and generated completeness matrix.
 - [ ] Register the remaining converter queue and file-picker handlers, then register the full local Ollama dispatcher and run the focused built-artifact verification.
 
+## 2026-08-26 static-site evidence repair
+
+- [x] Accept and validate the canonical `component` implementation-symbol kind, including a negative schema regression.
+- [x] Require compiled design-parity evidence to name its exact rendering test, compiler method, and coverage, with a red-then-green negative regression.
+- [x] Clarify that the static site's authenticator and unlock ladder use browser-local state and do not claim trusted server enforcement.
+- [ ] Replace the current-DOM generated localization fallback with a complete hand-authored English and Cantonese catalog for every static route, generated article, and runtime template, then prove its route-wide completeness.
+
 ## Delivery foundation
 
 - [x] Add a pinned, digest-verified, user-scoped Windows dependency bootstrap.

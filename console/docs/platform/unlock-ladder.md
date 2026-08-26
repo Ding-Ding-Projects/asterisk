@@ -14,11 +14,11 @@ Every answer would be generated and graded independently of the browser, using a
 
 **Desktop application:** Partial. A lockout timer exists after repeated wrong password attempts on the desktop application's launch gate, but there are no unlock-ladder games, no attempt-budget mechanic, and no server-side challenge grading.
 
-**Documentation website:** Partial, local equivalent implemented and runtime proof unverified. Settings provides a lockout-bound local waiting timer, dim-sum choices, ten arithmetic questions with a guaranteed single-digit first pair and double-digit later pairs, a timed mole round, a clock fallback, a rolling local budget, and School-mode sum entry. A correct answer clears only the local timer, never signs in, creates a cookie, or refunds attempts. Reload reissues a worker challenge for the persisted rung and round, while trusted server-side grading remains unavailable on this static surface.
+**Documentation website:** Partial, local browser-storage equivalent implemented and runtime proof unverified. Settings provides a lockout-bound local waiting timer, dim-sum choices, ten arithmetic questions with a guaranteed single-digit first pair and double-digit later pairs, a timed mole round, a clock fallback, a rolling local budget, and School-mode sum entry. A correct answer clears only the local timer, never signs in, creates a cookie, or refunds attempts. Reload reissues a worker challenge for the persisted rung and round. This static page has no trusted server, no server nonce, and no server-side enforcement, so its local browser state must never be described as an authentication or abuse-control boundary.
 
 ## Failure modes
 
-A submission before the local wait expires is disabled and rejected by the local handler. The local ladder is not an authentication factor and has no server nonce, so the surface explicitly does not claim the server-side protections that the desktop or hosted implementation would require.
+A submission before the local wait expires is disabled and rejected by the local handler. The local ladder is not an authentication factor and has no server nonce. Browser-storage state can be changed by a person controlling the browser, so the surface explicitly does not claim the trusted server-side protections that a hosted implementation would require.
 
 ## Accessibility and localization
 

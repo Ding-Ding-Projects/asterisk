@@ -36,6 +36,7 @@ mustFail('whole-feature-disappearance', (data) => { data.features = data.feature
 mustFail('whole-page-disappearance', (data) => { data.surfaceCatalog = data.surfaceCatalog.filter((surface) => surface.id !== 'site-index'); data.surfaces = data.surfaces.filter((surface) => surface.id !== 'site-index'); });
 mustFail('renamed-symbol', (data) => { firstRow(data).implementation.symbols[0].name = 'NarratorRenamed'; });
 mustFail('commented-symbol', (data) => { firstRow(data).implementation.symbols[0].name = '//Narrator'; });
+mustFail('unsupported-component-kind', (data) => { firstRow(data).implementation.symbols[0].kind = 'widget'; });
 mustFail('stale-commit', (data) => { const row = firstRow(data); makeVerified(row); row.builtInteraction.commit = '0000000000'; });
 mustFail('missing-evidence', (data) => { const row = firstRow(data); makeVerified(row); row.captures.paths = []; });
 mustFail('route-only-prose', (data) => { const row = firstRow(data); row.status = 'partial'; row.implementation = { registry: null, paths: [], symbols: [] }; });

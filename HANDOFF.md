@@ -1,5 +1,13 @@
 # Ding PBX delivery handoff
 
+## Static-site evidence repair, 2026-08-26
+
+This lane made the inventory validator accept the already-recorded `component` implementation kind and added an exact negative regression for an unsupported kind. The design-parity validator now requires `compiledEvidence` to contain the exact rendering-test path, compiler method, and coverage description. Its deliberate removal of the rendering-test field now fails before the restored baseline passes.
+
+The Pages authenticator and unlock-ladder articles now state their browser-local boundary plainly: neither surface has a trusted server, a server nonce, or server-side enforcement. The existing site registry remains partial and does not constitute evidence of complete translation coverage.
+
+The full static localization repair remains open. The current site has eight top-level pages, generated documentation routes, and runtime templates, but only a small explicit copy table. A follow-up must introduce a complete hand-authored English and Cantonese catalog, include every static and accessibility string, make bilingual attributes bilingual, and add a route-wide completeness check. No build, browser interaction, capture, package, release, or deployment ran in this lane.
+
 ## Surface mount integration, 2026-08-23
 
 The integration lane added `console/app/renderer/src/surface-mounts.tsx` and mounted it from `main.tsx` as an addressable hash route. `#surface=converter` renders the real converter component and reads its catalog and PDF capability evidence through the local control-plane dispatcher. Picker, queue mutation, and packaged-worker proof operations still return explicit unavailable receipts because those handlers are not registered. `#surface=ollama` renders the real Ollama component and reports a typed `bridge-not-registered` state until its privileged dispatcher is registered. `#surface=docs` and `#surface=changelog` render the bundled documentation and changelog components.

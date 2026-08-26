@@ -14,11 +14,11 @@ A new pairing would be confirmed by entering one live code back before the entry
 
 **Desktop application:** Not implemented. The desktop application has no authenticator surface of any kind.
 
-**Documentation website:** Local equivalent implemented, runtime proof unverified. Settings provides issuer, account, manual Base32 registration, URI import, a bundled in-process QR encoder with a four-module quiet zone and fixed black-on-white contrast, encrypted browser-local storage, and current and next TOTP codes generated with Web Crypto. Platform credential-vault storage and cloud sync remain unavailable on this static surface.
+**Documentation website:** Local browser-storage equivalent implemented, runtime proof unverified. Settings provides issuer, account, manual Base32 registration, URI import, a bundled in-process QR encoder with a four-module quiet zone and fixed black-on-white contrast, encrypted browser-local storage, and current and next TOTP codes generated with Web Crypto. The page has no trusted server or operating-system credential vault, and browser storage is local convenience state rather than a security boundary. Platform credential-vault storage and cloud sync remain unavailable on this static surface.
 
 ## Failure modes
 
-A malformed or short Base32 secret is rejected before storage. Secrets are never included in ordinary export. Local QR rendering and local pairing confirmation exist; platform-vault storage, clock-skew diagnostics, and trusted server-side pairing confirmation remain unavailable in this static equivalent.
+A malformed or short Base32 secret is rejected before storage. Secrets are never included in ordinary export. Local QR rendering and local pairing confirmation exist; platform-vault storage, clock-skew diagnostics, trusted server-side pairing confirmation, and trusted server enforcement remain unavailable in this static equivalent.
 
 ## Accessibility and localization
 

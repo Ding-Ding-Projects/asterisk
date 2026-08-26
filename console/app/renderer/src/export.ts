@@ -499,3 +499,12 @@ export function prepareExport(request: ExportRequest): ExportPreparationResult {
     },
   };
 }
+
+/**
+ * Canonical inventory compatibility entry point. The inventory records this
+ * named export as the concrete row-export implementation, while callers that
+ * need the richer result may use prepareExport directly.
+ */
+export function exportRows(request: ExportRequest): ExportPreparationResult {
+  return prepareExport(request);
+}

@@ -16,7 +16,9 @@ const REQUIRED_NEGATIVE_CASES = ['whole-feature-disappearance', 'whole-page-disa
 const REQUIRED_SURFACE_KIND_COUNTS = { desktop: 1, 'desktop-login': 1, 'desktop-setup': 1, 'desktop-destination': 32, 'desktop-overlay': 17, 'site-page': 6, 'generated-docs-route': 82, 'browser-extension-state': 3 };
 const REQUIRED_TOP_LEVEL_SURFACES = ['site-index', 'site-product', 'site-documentation', 'site-downloads', 'site-status', 'site-settings'];
 const STATUS_VALUES = ['absent', 'partial', 'implemented-unverified', 'verified'];
-const SYMBOL_KINDS = ['class', 'const', 'function', 'import', 'method', 'mount'];
+// A component is a named UI declaration. It remains distinct from a generic
+// const so the canonical inventory can state the implementation category.
+const SYMBOL_KINDS = ['class', 'component', 'const', 'function', 'import', 'method', 'mount'];
 
 function exactSet(actual, expected, label) {
   if (!Array.isArray(actual)) throw new Error(`${label}: array required`);
@@ -39,10 +41,12 @@ function sourceHasExactSymbol(root, symbol) {
   const source = readFileSync(absolute, 'utf8').replace(/\r\n|\r/g, '\n');
   const name = escaped(symbol.name);
   const declaration = new RegExp(`^\\s*(?:export\\s+)?(?:async\\s+)?(?:function|class|const|let|var)\\s+${name}\\b`, 'm');
+  const component = new RegExp(`^\\s*(?:export\\s+)?(?:default\\s+)?(?:function|class|const)\\s+${name}\\b`, 'm');
   const member = new RegExp(`^\\s*(?:(?:public|private|protected|static|async)\\s+)*${name}\\s*(?::|=|\\()`, 'm');
   const importOrMount = new RegExp(`^\\s*(?:import[^\\n]*\\b${name}\\b|.*\\b${name}\\b.*(?:mount|render|createRoot))`, 'm');
   const imported = symbol.kind === 'import' && new RegExp(`^\\s*import\\b[^;]*\\b${name}\\b[^;]*\\bfrom\\b`, 'ms').test(source);
-  if (!(declaration.test(source) || member.test(source) || importOrMount.test(source) || imported)) throw new Error(`symbol ${symbol.path}#${symbol.name}: exact declaration or registration is absent`);
+  const exactComponent = symbol.kind === 'component' && component.test(source);
+  if (!(exactComponent || declaration.test(source) || member.test(source) || importOrMount.test(source) || imported)) throw new Error(`symbol ${symbol.path}#${symbol.name}: exact declaration or registration is absent`);
 }
 function validateSymbols(value, label, root) {
   if (!Array.isArray(value)) throw new Error(`${label}: symbols array required`);
@@ -149,6 +153,10 @@ export function validateParityInventory(data, { allowUnverified = false } = {}) 
   if (data.sourceArchive?.sha256 !== '9A4284745A745C18A18B0A23D2A2F5851A79F9B6EFCBC5EE30EDCD69CEA2863F') throw new Error('design parity inventory: source archive SHA-256 drift');
   if (data.sourceArchive?.verification !== 'independent-authoritative-audit') throw new Error('design parity inventory: source verification label drift');
   exactKeys(data.evidenceTemplates, parityTemplateKeys, 'design parity evidenceTemplates');
+  exactKeys(data.compiledEvidence, ['method', 'test', 'coverage'], 'design parity compiledEvidence');
+  if (typeof data.compiledEvidence.test !== 'string' || !/^console\/tests\/ui\/[A-Za-z0-9._-]+\.tsx$/u.test(data.compiledEvidence.test)) throw new Error('design parity inventory: compiled rendering test is required');
+  if (typeof data.compiledEvidence.method !== 'string' || !data.compiledEvidence.method.includes('console/scripts/compile-design.mjs')) throw new Error('design parity inventory: compiled design method must name the compiler');
+  if (typeof data.compiledEvidence.coverage !== 'string' || !data.compiledEvidence.coverage.trim()) throw new Error('design parity inventory: compiled evidence coverage is required');
   if (data.auditBaseline?.destinationCount !== 32) throw new Error('design parity inventory: destination count must be 32');
   exactSet(Object.keys(data.auditBaseline?.railCounts ?? {}), Object.keys(exactRails), 'rail identifiers');
   for (const [rail, count] of Object.entries(exactRails)) if (data.auditBaseline.railCounts[rail] !== count) throw new Error(`design parity inventory: rail '${rail}' count drift`);
