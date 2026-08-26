@@ -1,5 +1,10 @@
 # Ding PBX delivery roadmap
 
+## External editor materialization repair
+
+- [x] Give each completed external-editor materialization an immutable operation-scoped path.
+- [x] Retain a bounded set of completed local exports while cleaning failed and cancelled task-owned output.
+
 ## Delivery foundation
 
 - [x] Add a pinned, digest-verified, user-scoped Windows dependency bootstrap.

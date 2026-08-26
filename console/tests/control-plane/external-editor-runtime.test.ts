@@ -1,10 +1,21 @@
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
-import { mkdtempSync, existsSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, existsSync, readFileSync, readdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { ExternalEditorRuntime } from '../../control-plane/external-editor-runtime.js';
+
+function acknowledgedSpawn(): typeof import('node:child_process').spawn {
+  return (() => {
+    const child = new EventEmitter() as EventEmitter & { kill(): void; unref(): void; pid?: number };
+    child.kill = () => {};
+    child.unref = () => {};
+    child.pid = 4321;
+    queueMicrotask(() => child.emit('spawn'));
+    return child;
+  }) as unknown as typeof import('node:child_process').spawn;
+}
 
 test('materialization failure returns a typed result and removes the local file', async () => {
   const root = mkdtempSync(join(tmpdir(), 'external-editor-runtime-'));
@@ -15,7 +26,8 @@ test('materialization failure returns a typed result and removes the local file'
     if (result.ok) throw new Error('Expected materialization failure');
     assert.equal(result.operationId.length > 0, true);
     assert.equal(result.stage, 'materialization');
-    assert.equal(existsSync(join(root, 'external-editor-exports', 'failed.json')), false);
+    assert.equal(existsSync(join(root, 'external-editor-exports')), true);
+    assert.deepEqual(readdirSync(join(root, 'external-editor-exports')), []);
     assert.equal(runtime.status().operation?.state, 'failed');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
@@ -62,7 +74,100 @@ test('synchronous spawn failure returns a typed failure and removes its material
     assert.equal(result.code, 'SPAWN_FAILED');
     assert.equal(result.stage, 'materialization');
     assert.equal(runtime.status().operation?.state, 'failed');
-    assert.equal(existsSync(join(root, 'external-editor-exports', 'sync-failure.json')), false);
+    assert.deepEqual(readdirSync(join(root, 'external-editor-exports')), []);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('completed same-name materializations keep immutable operation-scoped paths and contents', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'external-editor-runtime-'));
+  try {
+    const runtime = new ExternalEditorRuntime({ userDataPath: root, spawnProcess: acknowledgedSpawn() });
+    const editor = runtime.saveCustom({ name: 'Acknowledged editor', executable: process.execPath });
+    const first = await runtime.openMaterializedFile({ name: 'status.json', content: '{"generation":1}', source: 'first', editorId: editor.selectedId });
+    const second = await runtime.openMaterializedFile({ name: 'status.json', content: '{"generation":2}', source: 'second', editorId: editor.selectedId });
+    assert.equal(first.ok, true);
+    assert.equal(second.ok, true);
+    if (!first.ok || !second.ok) throw new Error('Expected acknowledged materializations');
+    assert.notEqual(first.materializedPath, second.materializedPath);
+    assert.match(first.materializedPath!, new RegExp(`${first.operationId.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}[\\\\/]status[.]json$`, 'u'));
+    assert.match(second.materializedPath!, new RegExp(`${second.operationId.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}[\\\\/]status[.]json$`, 'u'));
+    assert.equal(readFileSync(first.materializedPath!, 'utf8'), '{"generation":1}');
+    assert.equal(readFileSync(second.materializedPath!, 'utf8'), '{"generation":2}');
+    assert.equal(first.progress.state, 'completed');
+    assert.equal(second.progress.state, 'completed');
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('concurrent materialization start is refused until the acknowledged handoff completes', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'external-editor-runtime-'));
+  let child: (EventEmitter & { kill(): void; unref(): void; pid?: number }) | undefined;
+  const deferredSpawn = (() => {
+    child = new EventEmitter() as EventEmitter & { kill(): void; unref(): void; pid?: number };
+    child.kill = () => {};
+    child.unref = () => {};
+    child.pid = 9876;
+    return child;
+  }) as unknown as typeof import('node:child_process').spawn;
+  try {
+    const runtime = new ExternalEditorRuntime({ userDataPath: root, spawnProcess: deferredSpawn });
+    const editor = runtime.saveCustom({ name: 'Deferred editor', executable: process.execPath });
+    const pending = runtime.openMaterializedFile({ name: 'one.json', content: 'one', source: 'first', editorId: editor.selectedId });
+    const busy = await runtime.openMaterializedFile({ name: 'two.json', content: 'two', source: 'second', editorId: editor.selectedId });
+    assert.equal(busy.ok, false);
+    if (busy.ok) throw new Error('Expected busy materialization');
+    assert.equal(busy.code, 'BUSY');
+    child!.emit('spawn');
+    const completed = await pending;
+    assert.equal(completed.ok, true);
+    if (!completed.ok) throw new Error('Expected acknowledged materialization');
+    assert.equal(completed.pid, 9876);
+    assert.equal(completed.progress.state, 'completed');
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('retention bounds completed operation directories without touching the newest receipt path', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'external-editor-runtime-'));
+  try {
+    const runtime = new ExternalEditorRuntime({ userDataPath: root, spawnProcess: acknowledgedSpawn() });
+    const editor = runtime.saveCustom({ name: 'Retention editor', executable: process.execPath });
+    let newest: string | undefined;
+    for (let index = 0; index < 33; index += 1) {
+      const result = await runtime.openMaterializedFile({ name: 'retained.json', content: String(index), source: 'retention', editorId: editor.selectedId });
+      assert.equal(result.ok, true);
+      if (result.ok) newest = result.materializedPath;
+    }
+    const exportRoot = join(root, 'external-editor-exports');
+    assert.equal(readdirSync(exportRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory()).length, 32);
+    assert.ok(newest);
+    assert.equal(existsSync(newest!), true);
+    assert.equal(readFileSync(newest!, 'utf8'), '32');
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('materialization cancellation and traversal names only clean the task-owned operation directory', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'external-editor-runtime-'));
+  let killed = false;
+  const pendingSpawn = (() => {
+    const child = new EventEmitter() as EventEmitter & { kill(): void; unref(): void; pid?: number };
+    child.kill = () => { killed = true; };
+    child.unref = () => {};
+    child.pid = 741;
+    return child;
+  }) as unknown as typeof import('node:child_process').spawn;
+  try {
+    const runtime = new ExternalEditorRuntime({ userDataPath: root, spawnProcess: pendingSpawn });
+    const editor = runtime.saveCustom({ name: 'Cancellable editor', executable: process.execPath });
+    const pending = runtime.openMaterializedFile({ name: '../../escape.json', content: 'safe', source: 'cancel', editorId: editor.selectedId });
+    const operationId = runtime.status().operation?.operationId;
+    assert.ok(operationId);
+    runtime.cancelOperation(operationId!);
+    const result = await pending;
+    assert.equal(killed, true);
+    assert.equal(result.ok, false);
+    if (result.ok) throw new Error('Expected cancellation');
+    assert.equal(result.code, 'MATERIALIZATION_CANCELLED');
+    assert.equal(existsSync(join(root, 'escape.json')), false);
+    assert.deepEqual(readdirSync(join(root, 'external-editor-exports')), []);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

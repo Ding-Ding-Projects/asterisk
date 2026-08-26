@@ -1,5 +1,9 @@
 # External editor runtime mount
 
+## Immutable materialized handoffs
+
+Completed same-name exports now receive separate UUID-scoped local paths. Their launch receipts retain the exact path, preserving each editor's bytes. The bounded retention policy keeps the 32 newest completed exports, while failed and cancelled handoffs clean only their own output.
+
 The external-editor settings group is now mounted into the desktop runtime. Detection runs
 in the privileged process, custom records are bounded and persistent, native executable
 picking is available, and every launch returns a typed receipt or failure. Visual Studio Code

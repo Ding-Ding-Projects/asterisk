@@ -1,5 +1,9 @@
 # Ding PBX delivery handoff
 
+## External editor materialization repair, 2026-08-26
+
+Completed external-editor materializations now use an operation-UUID directory below the local export root. The receipt identifies the immutable path opened by the editor, so two handoffs with the same sanitized file name keep independent content. Atomic write and validation remain before spawn acknowledgement. The runtime retains the 32 newest completed operation directories, and only removes task-owned failed or cancelled directories. Focused control-plane coverage includes same-name preservation, busy concurrent starts, spawn acknowledgement, retained receipts, retention, cancellation, and traversal-name containment.
+
 ## Scope
 
 This handoff covers the integrated Ding PBX Console desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.

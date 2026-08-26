@@ -1,5 +1,5 @@
 /** Privileged external-editor runtime for the Electron main process. */
-import { existsSync, mkdirSync, readFileSync, statSync, unlinkSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { basename, delimiter, dirname, extname, isAbsolute, join, normalize, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { execFileSync, spawn } from 'node:child_process';
@@ -14,6 +14,8 @@ type Persisted = { version: 1; choiceId?: string; portableExecutable?: string; c
 
 const MAX_RECORD_BYTES = 256 * 1024;
 const MAX_EXPORT_BYTES = 8 * 1024 * 1024;
+/** Completed handoffs retain recent immutable files so an editor never sees a later export's bytes. */
+const MAX_RETAINED_COMPLETED_EXPORTS = 32;
 const MAX_CUSTOM_EDITORS = 32;
 const MAX_NAME = 80;
 const MAX_PATH = 1024;
@@ -98,7 +100,7 @@ export class ExternalEditorRuntime {
   private activeOperation: ExternalEditorOperation | undefined;
   private activeChild: ReturnType<typeof spawn> | undefined;
   private activeCancel: (() => void) | undefined;
-  private activeMaterializedPath: string | undefined;
+  private activeMaterializedDirectory: string | undefined;
   private readonly statusListeners = new Set<(status: ExternalEditorStatus) => void>();
 
   constructor(options: ExternalEditorRuntimeOptions) {
@@ -370,7 +372,7 @@ export class ExternalEditorRuntime {
       catch (error) { const message = error instanceof Error ? error.message : String(error); finish(() => ({ ok: false, code: 'SPAWN_FAILED', message: `The editor could not be started: ${message}`, operationId: operation.operationId, stage }), 'failed', message); return; }
       this.activeCancel = () => {
         try { this.activeChild?.kill(); } catch { /* best effort */ }
-        if (stage === 'materialization' && this.activeMaterializedPath) { try { unlinkSync(this.activeMaterializedPath); } catch { /* best effort */ } this.activeMaterializedPath = undefined; }
+        if (stage === 'materialization' && this.activeMaterializedDirectory) { try { rmSync(this.activeMaterializedDirectory, { recursive: true, force: true }); } catch { /* best effort */ } this.activeMaterializedDirectory = undefined; }
         finish((progress) => ({ ok: false, code: stage === 'materialization' ? 'MATERIALIZATION_CANCELLED' : 'LAUNCH_CANCELLED', message: `${stage === 'materialization' ? 'Materialization' : 'Launch'} cancelled by the user.`, operationId: operation.operationId, stage, cancelled: true }), 'cancelled', `${stage === 'materialization' ? 'Materialization' : 'Launch'} cancelled by the user.`);
       };
       this.activeChild = child;
@@ -385,10 +387,31 @@ export class ExternalEditorRuntime {
     return this.openMaterializedFile({ ...input, source: input.source ?? 'renderer export' });
   }
 
+  private removeMaterialization(directory: string | undefined): void {
+    if (!directory) return;
+    try { rmSync(directory, { recursive: true, force: true }); } catch { /* best effort task-owned cleanup */ }
+  }
+
+  private retainCompletedMaterializations(root: string, currentDirectory: string): void {
+    const completed = readdirSync(root, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && /^[a-f0-9-]{36}$/iu.test(entry.name))
+      .map((entry) => {
+        const directory = join(root, entry.name);
+        return { directory, modified: statSync(directory).mtimeMs };
+      })
+      .sort((left, right) => right.modified - left.modified || right.directory.localeCompare(left.directory));
+    const retained = new Set(completed.slice(0, MAX_RETAINED_COMPLETED_EXPORTS).map((entry) => entry.directory));
+    retained.add(currentDirectory);
+    for (const entry of completed) {
+      if (!retained.has(entry.directory)) this.removeMaterialization(entry.directory);
+    }
+  }
+
   async openMaterializedFile(input: { name: string; content: string; source: string; editorId?: string }): Promise<ExternalEditorLaunchResult> {
     const operation = this.beginOperation('materialize');
     if (!operation) { const active = this.activeOperation!; return { ok: false, code: 'BUSY', message: 'Another editor operation is already running.', operationId: active.operationId, stage: 'materialization' }; }
     let path: string | undefined;
+    let directory: string | undefined;
     try {
       if (!input || typeof input.name !== 'string' || typeof input.content !== 'string' || typeof input.source !== 'string' || input.source.trim() === '') {
         this.finishOperation(operation, 'cancelled', 'Materialization cancelled because the source record was incomplete.');
@@ -399,19 +422,23 @@ export class ExternalEditorRuntime {
       const safeName = basename(input.name).replace(/[^A-Za-z0-9._-]/gu, '_') || 'export.txt';
       const root = join(this.file.replace(/external-editors\.json$/u, ''), 'external-editor-exports');
       mkdirSync(root, { recursive: true });
-      path = join(root, safeName);
-      this.activeMaterializedPath = path;
+      directory = join(root, operation.operationId);
+      mkdirSync(directory, { recursive: false });
+      path = join(directory, safeName);
+      this.activeMaterializedDirectory = directory;
       atomicWriteFileSync(path, input.content);
       const result = await this.launchWithOperation({ kind: 'file', path }, input.editorId, operation);
-      if (!result.ok) { try { unlinkSync(path); } catch { /* best effort */ } }
-      return result.ok ? { ...result, source: input.source, materializedPath: path } : result;
+      if (!result.ok) this.removeMaterialization(directory);
+      if (!result.ok) return result;
+      this.retainCompletedMaterializations(root, directory);
+      return { ...result, source: input.source, materializedPath: path };
     } catch (error) {
-      if (path) { try { unlinkSync(path); } catch { /* best effort */ } }
+      this.removeMaterialization(directory);
       const message = error instanceof Error ? error.message : String(error);
       this.finishOperation(operation, 'failed', message);
       return { ok: false, code: 'SPAWN_FAILED', message: `The local materialization could not be completed: ${message}`, operationId: operation.operationId, stage: 'materialization' };
     } finally {
-      if (this.activeMaterializedPath === path) this.activeMaterializedPath = undefined;
+      if (this.activeMaterializedDirectory === directory) this.activeMaterializedDirectory = undefined;
     }
   }
 }
