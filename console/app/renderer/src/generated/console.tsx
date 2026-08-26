@@ -2955,36 +2955,35 @@ const SCREENS = {
       rows:[['1001','10.20.4.31:5060','transport-tls','opus, g722','Reachable'],['1002','10.20.4.32:5060','transport-tls','opus, ulaw','Reachable'],['1003','10.20.4.44:5060','transport-udp','ulaw','Unreachable'],['1004','10.20.4.51:5060','transport-tls','opus, g722','Reachable'],['softphone-ada','198.51.100.9:39412','transport-wss','opus','Reachable'],['reception','10.20.4.12:5060','transport-udp','g722, ulaw','Reachable']] },
     groups:pjsipCtls() },
   trunks:{ rail:'pbx', icon:'swap_horiz', label:'Trunks', badge:'3', title:'Trunks & registrations', file:'pjsip.conf', kind:'table',
-    sub:'Outbound carriers and inbound identifies, PJSIP and IAX2 alike -- iax2 show registry reads the same table `pjsip show registrations` already fed it. Registration state is polled live; credentials live in the secret intake, never on this screen.',
+    sub:'Outbound carriers and inbound identifies, PJSIP and IAX2 alike -- iax2 show registry reads the same table `pjsip show registrations` already fed it. Registration state is polled live; credentials live in the secret intake, never on this screen. Click a PJSIP row to load that exact registration -- and, when one is paired with it, that endpoint -- into the groups below; an IAX2 row has its own editor on the IAX peers screen instead.',
     table:{ add:'New trunk', grid:'1fr 1.4fr 1fr 1fr 120px', cols:['Trunk','Registrar','Auth','Outbound','State'],
       rows:[['carrier-primary','sip.carrier.example','userpass','yes','Registered'],['carrier-backup','sip2.carrier.example','userpass','yes','Registered']] },
-    groups:[{ title:'Failover', desc:'What happens when the primary carrier stops answering.', ctls:[
-      ctl('t_retry','Retry interval','slider',60,{ min:10, max:600, step:10, unit:'s' }),
-      ctl('t_forbidden','Forbidden retry','slider',300,{ min:30, max:1800, step:30, unit:'s' }),
-      ctl('t_fatal','Fatal retry attempts','stepper',5,{ min:0, max:50 })
-    ]},{ title:'Outbound identity', desc:'How your calls appear to the carrier.', ctls:[
-      ctl('t_pai','Send P-Asserted-Identity','switch',true),
-      ctl('t_100rel','100rel','segmented','yes',{ options:['no','required','yes'] })
-    ]},{ title:'Advanced', desc:'pjsip.conf.sample\'s [endpoint] section options, written onto this trunk\'s own endpoint -- a PJSIP trunk is not a separate object type, it is an endpoint pointed at a provider. Two settings the same reference block sometimes asks for are deliberately absent here: user=phone and Support Path have no key in this Asterisk\'s sample, and writing one the build ignores looks like a working setting that does nothing.', ctls:[
-      ctl('tk_connectedline','send_connected_line','switch',true,{ info:'pjsip.conf.sample line 669: send_connected_line=yes -- Send Connected Line updates to this endpoint.' }),  // line 669
-      ctl('tk_contactuser','contact_user','text','',{ placeholder:'1234567890', info:'pjsip.conf.sample line 855: on outgoing requests, forces the user portion of the Contact header to this value.' }),  // line 855
-      ctl('tk_fromdomain','from_domain','text','',{ placeholder:'sip.carrier.example', info:'pjsip.conf.sample line 816: domain to use in the From header for requests to this endpoint.' }),  // line 816
-      ctl('tk_fromuser','from_user','text','',{ info:'pjsip.conf.sample line 812: username to use in the From header for requests to this endpoint.' }),  // line 812
-      ctl('tk_mediaaddr','media_address','text','',{ info:'pjsip.conf.sample line 687: IP address used in SDP for media handling.' })  // line 687
-    ]},{ title:'T.38 fax', desc:'res_pjsip_t38.conf keys on this same endpoint. t38_udptl_ec takes none, fec or redundancy -- three values, not a switch -- and each is read only while T.38 itself is on.', ctls:[
-      ctl('tk_t38','t38_udptl','switch',false,{ info:'pjsip.conf.sample line 772: whether T.38 UDPTL support is enabled.' }),  // line 772
-      ctl('tk_t38ec','t38_udptl_ec','segmented','none',{ options:['none','fec','redundancy'], info:'pjsip.conf.sample line 773: T.38 UDPTL error correction method.' }),  // line 773
-      ctl('tk_t38nat','t38_udptl_nat','switch',false,{ info:'pjsip.conf.sample line 781: whether NAT support is enabled on UDPTL sessions.' }),  // line 781
-      ctl('tk_t38mtu','t38_udptl_maxdatagram','stepper',0,{ min:0, max:4000, info:'pjsip.conf.sample line 774: T.38 UDPTL maximum datagram size.' }),  // line 774
-      ctl('tk_faxdetect','fax_detect','switch',false,{ info:'pjsip.conf.sample line 776: whether CNG tone detection is enabled.' })  // line 776
-    ]},{ title:'Identity trust & routing', desc:'Who this trunk believes, and what it forwards. Sending Remote-Party-ID while not trusting outbound identity is how a withheld caller number leaks to the carrier -- saving warns when both are set that way.', ctls:[
-      ctl('tk_trustout','trust_id_outbound','switch',false,{ info:'pjsip.conf.sample line 745: send private identification details to the endpoint.' }),  // line 745
-      ctl('tk_sendrpid','send_rpid','switch',false,{ info:'pjsip.conf.sample line 730: send the Remote-Party-ID header.' }),  // line 730
-      ctl('tk_senddiversion','send_diversion','switch',true,{ info:'pjsip.conf.sample line 727: send the Diversion header conveying the diversion.' }),  // line 727
-      ctl('tk_save','Save advanced trunk settings','segmented','Save',{ options:['Save'], action:'trunk-advanced-save', info:'Writes every field across these three groups onto the selected trunk\'s pjsip.conf endpoint. Select a trunk row first -- nothing here has anywhere to write until one is loaded.' })
+    groups:[{ title:'Failover', desc:'What happens when the primary carrier stops answering. pjsip.conf.sample lines 1519-1552 (the [registration] template).', ctls:[
+      ctl('t_retry','Retry interval','slider',60,{ min:10, max:600, step:10, unit:'s', info:'pjsip.conf.sample line 1542: retry_interval, seconds between retries after an unsuccessful outbound registration.' }),
+      ctl('t_forbidden','Forbidden retry','slider',300,{ min:30, max:1800, step:30, unit:'s', info:'pjsip.conf.sample line 1544: forbidden_retry_interval, used instead of the interval above when the registrar answers with a 403 Forbidden.' }),
+      ctl('t_fatal','Fatal retry attempts','stepper',5,{ min:0, max:50, info:'pjsip.conf.sample line 1532: max_retries, the maximum number of registration attempts before Asterisk gives up on this registration entirely.' })
+    ]},{ title:'Outbound identity', desc:'How your calls appear to the carrier. pjsip.conf.sample\'s [endpoint] template, paired to the loaded registration by its own endpoint= line (pjsip.conf.sample lines 1561-1564) or, lacking one, by sharing the registration\'s own bracket name.', ctls:[
+      ctl('t_pai','Send P-Asserted-Identity','switch',true,{ info:'pjsip.conf.sample line 855 region, send_pai (default no): sends the P-Asserted-Identity header carrying the caller\'s real identity to this trunk.' }),
+      ctl('t_100rel','100rel','segmented','yes',{ options:['no','required','yes'], info:'pjsip.conf.sample line 650: 100rel, RFC3262 provisional-response acknowledgement -- no, required or yes.' })
+    ]},{ title:'Advanced', desc:'Further pjsip.conf endpoint settings on the same paired endpoint above -- T.38 fax relay, identity headers, and how this trunk\'s own address is presented.', ctls:[
+      ctl('tk_connectedline','Send Connected Line updates','switch',true,{ info:'pjsip.conf.sample line 669: send_connected_line (default yes).' }),
+      ctl('tk_contactuser','Contact user','text','',{ placeholder:'', info:'pjsip.conf.sample line 855 region: contact_user, forces the Contact header\'s user portion on outgoing requests (default empty).' }),
+      ctl('tk_fromdomain','From domain','text','',{ placeholder:'sip.example.net', info:'pjsip.conf.sample line 816: from_domain, the domain used in the From header for requests to this trunk (default empty).' }),
+      ctl('tk_fromuser','From user','text','',{ placeholder:'', info:'pjsip.conf.sample line 812: from_user, the username used in the From header for requests to this trunk (default empty).' }),
+      ctl('tk_mediaaddr','Media address','text','',{ placeholder:'', info:'pjsip.conf.sample line 687: media_address, the IP address used in SDP for media handling (default empty, meaning let Asterisk decide).' }),
+      ctl('tk_t38','T.38 UDPTL','switch',false,{ info:'pjsip.conf.sample line 772: t38_udptl (default no). Enables T.38 fax relay for this trunk.' }),
+      ctl('tk_t38ec','T.38 error correction','segmented','none',{ options:['none','fec','redundancy'], info:'pjsip.conf.sample line 773: t38_udptl_ec (default none). Only read while T.38 UDPTL above is on.' }),
+      ctl('tk_t38nat','T.38 NAT support','switch',false,{ info:'pjsip.conf.sample line 781: t38_udptl_nat (default no). Only read while T.38 UDPTL above is on.' }),
+      ctl('tk_t38mtu','T.38 max datagram','stepper',0,{ min:0, max:65535, info:'pjsip.conf.sample line 774: t38_udptl_maxdatagram, in bytes (default 0). Only read while T.38 UDPTL above is on.' }),
+      ctl('tk_faxdetect','CNG fax tone detection','switch',false,{ info:'pjsip.conf.sample line 776: fax_detect (default no).' }),
+      ctl('tk_trustout','Trust ID outbound','switch',false,{ info:'pjsip.conf.sample line 745: trust_id_outbound (default no). Sends private identification details to this trunk.' }),
+      ctl('tk_sendrpid','Send Remote-Party-ID','switch',false,{ info:'pjsip.conf.sample line 730: send_rpid (default no).' }),
+      ctl('tk_senddiversion','Send Diversion header','switch',true,{ info:'pjsip.conf.sample line 727: send_diversion (default yes). Conveys call-diversion information to this trunk.' })
+    ]},{ title:'Save', desc:'Click a row above first -- this writes only the loaded registration\'s retry policy, and its paired endpoint\'s outbound identity and advanced fields, backed up first and applied through the same plan/apply transaction every other write in this console uses.', ctls:[
+      ctl('t_save','Save this trunk','segmented','Save',{ options:['Save'], action:'trunk-save' })
     ]}] },
-  trunkauth:{ rail:'pbx', icon:'handshake', label:'Trunk authentication', badge:'2', title:'Trunk authentication', file:'pjsip.conf · partner requests', kind:'trunkauth',
-    sub:'When a trunk partner asks to change something on the shared link — a new source address, a codec, a higher call cap — the request lands here and you answer yes or no. Nothing takes effect until you do.',
+  trunkauth:{ rail:'pbx', icon:'handshake', label:'Trunk authentication', badge:'2', title:'Trunk authentication', file:'trunk partner requests', kind:'trunkauth',
+    sub:'When a trunk partner asks to change something on the shared link — a new source address, a codec, a higher call cap — the request lands here and you answer yes or no. Nothing takes effect until you do. The six controls below are this console\'s own answering policy, not an Asterisk key -- there is no pjsip.conf setting for how quickly a request expires or whether to auto-approve one, so they persist as a Ding PBX Console preference the same way the appearance and notification groups do, restored on relaunch rather than read off any target.',
     groups:[{ title:'Answering policy', desc:'How requests arrive and what may be answered without you.', ctls:[
       ctl('ta_auto','Auto-approve low-risk requests','switch',false,{ info:'Low risk means a codec addition or a health-check interval. Address changes and call caps are never auto-approved.' }),
       ctl('ta_expire','Requests expire after','slider',48,{ min:1, max:168, unit:' h' }),
@@ -3002,10 +3001,21 @@ const SCREENS = {
     groups:[{ title:'Menu behaviour', desc:'Applies to the selected menu.', ctls:[
       ctl('i_timeout','Digit timeout','slider',7,{ min:1, max:30, unit:'s' }),
       ctl('i_retries','Retries before fallback','stepper',3,{ min:1, max:9 }),
-      ctl('i_invalid','On invalid entry','segmented','Repeat',{ options:['Repeat','Operator','Voicemail','Hangup'] }),
+      ctl('i_invalid','On invalid entry','segmented','Repeat',{ options:['Repeat','Operator','Voicemail','Hang up'] }),
       ctl('i_direct','Allow direct extension dial','switch',true),
       ctl('i_lang','Prompt language','select','en',{ options:['en','es','fr','de','zh'] }),
-      ctl('i_barge','Allow barge-in over prompt','switch',true),
+      ctl('i_barge','Allow barge-in over prompt','switch',true)
+    ]},{ title:'Prompt', desc:'The real greeting this menu plays -- a file from the same prompt library the Sounds screen manages, not a name typed and hoped for.', ctls:[
+      ctl('i_prompt','Prompt file','text','',{ placeholder:'welcome-greeting.wav', info:'A bare filename from the target\'s /var/lib/asterisk/sounds -- the same library the Sounds screen uploads to and lists. Background()/Playback() take the base name with no extension; that is stripped automatically. Left empty, the generated dialplan falls back to a placeholder name nothing has actually uploaded.' }),
+      ctl('i_audition','Audition this prompt','segmented','Audition',{ options:['Audition'], action:'ivr-audition', info:'Plays the exact file named above, read live off the connected target -- the same audition path the Sounds screen\'s own rows use. Refused honestly for a raw telephony encoding (gsm, ulaw, alaw, g722, sln, sln16) that a browser cannot decode from a plain file.' })
+    ]},{ title:'Key map', desc:'What each keypress does. A caller who presses a digit with no route mapped here falls through to "On invalid entry" above, exactly as an unmapped key always has.', ctls:[
+      ctl('i_keydigit','Digit','select','1',{ options:['1','2','3','4','5','6','7','8','9','0','*','#'] }),
+      ctl('i_keydest','Sends the caller to','select','Extension',{ options:['Extension','Queue','Voicemail','Operator','Hang up','Repeat menu'], info:'Extension, Queue and Voicemail need a target below. Operator, Hang up and Repeat menu route on their own -- the exact same four shapes "On invalid entry" already offers a caller who runs out of retries, made per digit instead of on exhaustion.' }),
+      ctl('i_keytarget','Target','text','',{ placeholder:'6001, support, or a mailbox', info:'An extension number for Extension, a queue name for Queue, a mailbox for Voicemail. Ignored for Operator, Hang up and Repeat menu.' }),
+      ctl('i_keyadd','Add this key','segmented','Add',{ options:['Add'], action:'ivr-key-add' }),
+      ctl('i_keys','Keys mapped so far','text','No keys mapped yet.',{ action:'ivr-keys-status', info:'Every digit currently routed, and where it goes. Type a mapped digit above and press Remove to take it back out.' }),
+      ctl('i_keyremove','Remove the digit above','segmented','Remove',{ options:['Remove'], action:'ivr-key-remove' })
+    ]},{ title:'Dialplan preview', desc:'Exactly what Save would write, read first.', ctls:[
       ctl('i_plan','The dialplan this makes','text','',{ action:'ivr-dialplan', info:'These controls do not map onto settings, because extensions.conf has no key called retries -- they describe an IVR, and an IVR is a shape made out of exten lines. This is exactly what would be written, so it can be read first: a form that silently writes call routing is a form nobody should trust.' })
     ]}] },
   queues:{ rail:'pbx', icon:'groups', label:'Queues & agents', badge:'4', title:'Queues & agents', file:'queues.conf', kind:'table',
@@ -4034,7 +4044,7 @@ const DOCS = {
   chaos_level:{ what:'How playful the console is allowed to be, from 0 to 4.', why:'One dial that scales celebrations, copy tone, motion and randomness together.', values:'0 Bank, 1 Polite, 2 Balanced, 3 Playful, 4 Unhinged.', gotcha:'Level 4 celebrates trivial changes. It is delightful for a week and then you will want level 2.' }
 };
 
-const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','mo_load','g_queue','s_ciphers','s_verify','t_100rel','t_privacy','t_from','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
+const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','mo_load','g_queue','s_ciphers','s_verify','t_100rel','tk_connectedline','tk_contactuser','tk_fromdomain','tk_fromuser','tk_mediaaddr','tk_t38','tk_t38ec','tk_t38nat','tk_t38mtu','tk_faxdetect','tk_trustout','tk_sendrpid','tk_senddiversion','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
 
 const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','dahdi','sla','dundi','calendar','canvas','ivr','queues','adsi','voicemail','confbridge','moh','sounds','codecs','fax','cdr','ami','monitoring','modules','logger','httpd','security','dbrealtime','stirshaken','geolocation','phoneprov','cli','identity','stun','xmpp','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
 
