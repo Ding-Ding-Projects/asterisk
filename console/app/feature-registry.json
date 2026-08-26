@@ -245,7 +245,7 @@
     },
     "responsive-sizing": {
       "state": "partial",
-      "note": "The compiled console carries a per-screen narrow flag (App.tsx line 709, narrow: true) used to pick a narrower layout for at least one screen, but there is no evidence of a systematic responsive strategy (100/125/150/200% scale handling, narrow-width tab collapse) across the app.",
+      "note": "styles.css carries real width breakpoints at 1200px and 1000px: the section list narrows, the icon rail narrows from 88px to 72px, and every compiled grid collapses to a single flexed column. They are forced overrides because the compiled interface writes literal pixel values into inline style strings, which no external selector can otherwise beat. Building them found a real clipping defect at the app's own 920px floor, where the new-record button on every table screen was cut off the right edge, and a dead rule in the compiled stylesheet: React re-serialises inline styles with a space after the colon, so [style*=\"display:grid\"] > * has never matched an element. Two gaps remain: below the 920px floor the main process enforces, the title bar's menu row can still overlap, and that overflow is computed in App.tsx rather than in CSS; and the per-screen narrow flag is still a per-control picker variant rather than part of the breakpoint system.",
       "files": [
         "app/renderer/src/App.tsx"
       ]

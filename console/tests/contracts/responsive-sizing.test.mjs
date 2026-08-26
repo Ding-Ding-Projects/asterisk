@@ -66,13 +66,23 @@ test('there is no window-width, devicePixelRatio, or breakpoint-driven layout lo
     'window-width or devicePixelRatio-driven layout logic now exists -- update this row');
 });
 
-test('the only @media query in styles.css is prefers-reduced-motion -- there is no width breakpoint', () => {
+test('styles.css carries the real width breakpoints, and still respects reduced motion', () => {
+  /* This assertion used to say the opposite: that prefers-reduced-motion was the ONLY
+   * @media query, because the application genuinely had no screen breakpoint of any
+   * kind. It went red the moment three landed, which is exactly what it was written to
+   * notice -- its own failure message said "a real breakpoint may have landed". One did,
+   * so it is inverted rather than deleted: what is pinned now is which breakpoints exist,
+   * so nobody can quietly lose them either. */
   const styles = read(STYLES);
-  const mediaQueries = [...styles.matchAll(/@media\s*\(([^)]+)\)/gu)].map((m) => m[1].trim());
-  assert.ok(mediaQueries.length > 0, 'expected at least one @media query in styles.css');
-  for (const query of mediaQueries) {
-    assert.match(query, /prefers-reduced-motion/u, `an @media query other than prefers-reduced-motion now exists ("${query}") -- a real breakpoint may have landed`);
-  }
+  /* Comments first: styles.css explains its own breakpoints in prose that mentions
+   * @media, and a scan that does not strip comments reads those mentions as rules. */
+  const css = styles.replace(/\/\*[\s\S]*?\*\//gu, '');
+  const queries = [...css.matchAll(/@media\s*\(([^)]+)\)/gu)].map((m) => m[1].trim()).sort();
+  assert.deepEqual(
+    queries,
+    ['max-width: 1000px', 'max-width: 1200px', 'prefers-reduced-motion: reduce'],
+    'the set of @media queries changed; say which way and why rather than editing this list to match',
+  );
 });
 
 test('the one ResizeObserver in the renderer repositions a single banner, not a general responsive layout', () => {
