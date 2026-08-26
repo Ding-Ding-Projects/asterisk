@@ -14,7 +14,7 @@ import {
   buildPayload, validateReport, type Payload, type SessionReport,
 } from './status-hub-client';
 import { trunkAuthNote } from './trunk-auth';
-import { canvasReason, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
+import { canvasReason, contextsMissingFromLoadedDialplan, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
 import {
   blameRows as historyBlameRows, commitCountLabel, commitRows as historyCommitRows, compareLabel as historyCompareLabel,
   diffFileLabel, diffLineViews, filterChips as historyFilterChips, filteredEntries as historyFilteredEntries,
@@ -24,7 +24,7 @@ import {
 import { buildCodecGraph, layoutCodecs, unreachable as unreachableCodecs } from './codec-graph';
 import { buildEndpointGraph, brokenLinks as brokenEndpointLinks, layoutTopology, summarise as summariseEndpointGraph } from './endpoint-graph';
 import { runCeremonyCommand, type CeremonyResponse } from './ceremony';
-import { configSummary, renderForDisplay, resourceForFile, type ConfigReading, type ConfigSection, type ConfigValue } from './configuration';
+import { configSummary, renderForDisplay, resourceForFile, sectionNames, type ConfigReading, type ConfigSection, type ConfigValue } from './configuration';
 import {
   readControlValues, isUninventoried, unmappedControls,
   applyControlValues as applyBoundControlValues,
@@ -376,6 +376,13 @@ export class App extends Base {
   private pending = '';
   private canvasReadings: CanvasReadings | undefined;
   private canvasPending = false;
+  /** `extensions.conf` read alongside the dialplan graph on the canvas screen, purely
+   *  so the note below can say when the loaded dialplan and the file on disk have
+   *  diverged -- see `contextsMissingFromLoadedDialplan` in `canvas.ts`. Kept separate
+   *  from `this.configs.canvas` (never otherwise populated: the canvas screen has no
+   *  bound controls for this reading to seed) so this stays purely diagnostic. */
+  private canvasExtensionsConf: ConfigReading | undefined;
+  private canvasExtensionsPending = false;
   /**
    * The History screen's real source: the console's own local, append-only git
    * repository (`LocalHistory`, `control-plane/local-history.ts`) -- not a PBX
@@ -1311,6 +1318,7 @@ export class App extends Base {
     void this.ensureDaemon();
     this.readings = {};
     this.canvasReadings = undefined;
+    this.canvasExtensionsConf = undefined;
     this.forceUpdate();
     } finally {
       this.discoveryPending = false;
@@ -1352,6 +1360,7 @@ export class App extends Base {
      * is discarded rather than left on screen as though it were current. */
     this.readings = {};
     this.canvasReadings = undefined;
+    this.canvasExtensionsConf = undefined;
     void this.refreshDaemonStatus();
     this.forceUpdate();
   };
@@ -1419,6 +1428,7 @@ export class App extends Base {
     /* Anything read before this point may no longer reflect what Asterisk is doing. */
     this.readings = {};
     this.canvasReadings = undefined;
+    this.canvasExtensionsConf = undefined;
     await this.refreshDaemonStatus();
     this.fire(`Phone system ${verb === 'start' ? 'started' : verb === 'stop' ? 'stopped' : 'restarted'}`, `Asterisk on ${this.target.label} answered after the ${verb}.`);
   };
@@ -4192,6 +4202,25 @@ It is shown once. The phone needs it to register.`);
       this.readStartedAt.set(key, now);
       return true;
     };
+    /**
+     * `extensions.conf` read purely so the canvas screen's note can say when the loaded
+     * dialplan (`dialplan show`, read by the canvas block below) and the file on disk
+     * have diverged -- see `contextsMissingFromLoadedDialplan` in `canvas.ts`. Independent
+     * of the dialplan graph read: whichever of the two finishes first, the divergence
+     * check in `note()` runs once both are in.
+     */
+    const readCanvasExtensionsConf = async () => {
+      if ((this.canvasExtensionsConf && this.canvasExtensionsConf.state !== 'unavailable')
+          || this.canvasExtensionsPending || !mayStartRead('canvas-extensions-conf')) return;
+      this.canvasExtensionsPending = true;
+      const resource = resourceForFile('extensions.conf') as string;
+      const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+      this.canvasExtensionsPending = false;
+      this.canvasExtensionsConf = response?.ok
+        ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+        : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+      this.forceUpdate();
+    };
     /*
      * The History screen's own local git repository is not a PBX reading -- it lives
      * beside this application's data and answers the same way whether or not a target
@@ -4210,13 +4239,20 @@ It is shown once. The phone needs it to register.`);
     if (!this.target.connected) return;
     if (screen === 'canvas') {
       const canvasAvailable = this.canvasReadings?.dialplan?.result.state === 'available';
-      if (canvasAvailable || this.canvasPending || !mayStartRead('canvas')) return;
+      if (canvasAvailable || this.canvasPending || !mayStartRead('canvas')) {
+        /* The dialplan graph itself is either already read or already in flight; the
+         * `extensions.conf` side-read below still runs on its own independent guard so
+         * the divergence note has something to compare against once both land. */
+        void readCanvasExtensionsConf();
+        return;
+      }
       this.canvasPending = true;
       const response = await this.request('pbx.read', { serverId: this.target.id, view: 'canvas' as PbxReadView });
       this.canvasPending = false;
       this.canvasReadings = response?.ok
         ? (response.data as CanvasReadings)
         : { dialplan: { command: 'pbx.read', result: { state: 'unavailable', observedAt: new Date().toISOString(), reason: response?.message ?? 'the control plane did not answer' } } };
+      void readCanvasExtensionsConf();
       this.forceUpdate();
       return;
     }
@@ -6795,8 +6831,14 @@ It is shown once. The far end needs it to register.`);
     /* A configuration screen reports the file it edits and what is really in it. This
      * says what was read; it does not claim the controls below are bound to it, because
      * they are not yet, and implying otherwise would be the same untruth the
-     * confirmation dialog used to tell. */
-    if (resourceForFile((SCREENS as Record<string, { file?: unknown }>)[screen]?.file)) {
+     * confirmation dialog used to tell.
+     *
+     * `canvas` declares `file: 'extensions.conf'` too, but has no bound controls at all
+     * (`groups: []`) and `this.configs.canvas` is never populated -- routing it through
+     * here left this branch's `configSummary()` stuck reporting 'Reading…' forever
+     * and the dedicated canvas branch below unreachable. Excluded so that branch, and
+     * its divergence note, actually run. */
+    if (screen !== 'canvas' && resourceForFile((SCREENS as Record<string, { file?: unknown }>)[screen]?.file)) {
       /* A screen that edits a file returns from inside this branch, so the reading
        * failures reported at the bottom of this method never reach it. `endpoints` is one
        * of those screens and also reads per-endpoint detail, so a failed detail read would
@@ -6832,7 +6874,9 @@ It is shown once. The far end needs it to register.`);
     }
     if (screen === 'canvas') {
       if (!this.canvasReadings) return 'Reading…';
-      return canvasReason(this.canvasReadings);
+      const failure = canvasReason(this.canvasReadings);
+      if (failure) return failure;
+      return this.dialplanDivergenceNote();
     }
     if (!isReadable(screen)) return NO_READER;
     const readings = this.readings[screen];
@@ -6949,6 +6993,29 @@ It is shown once. The far end needs it to register.`);
       return sentences.filter(Boolean);
     }
     return [];
+  }
+
+  /**
+   * The sentence the canvas screen adds when `dialplan show` -- the loaded dialplan --
+   * and `extensions.conf` -- the file on disk -- disagree. `dialplan show` reads what
+   * Asterisk currently has loaded, not what the file currently says; an edit that was
+   * never followed by a reload leaves the two disagreeing with nothing on either
+   * reading saying so. Verified against a live target: the file held three contexts the
+   * running dialplan had none of, because an earlier session had restored the file
+   * without reloading `pbx_config` -- see `contextsMissingFromLoadedDialplan`.
+   *
+   * Empty until both readings have landed, and empty when they agree.
+   */
+  private dialplanDivergenceNote(): string {
+    const graph = canvasValueOf(this.canvasReadings?.dialplan);
+    if (!graph) return '';
+    const fileReading = this.canvasExtensionsConf;
+    if (!fileReading || fileReading.state !== 'read') return '';
+    const missing = contextsMissingFromLoadedDialplan(graph, sectionNames(fileReading.value));
+    if (missing.length === 0) return '';
+    const shown = missing.slice(0, 5).join(', ');
+    const more = missing.length > 5 ? `, and ${missing.length - 5} more` : '';
+    return ` extensions.conf declares ${missing.length} context(s) this reading found no loaded extensions under -- ${shown}${more} -- which usually means the file has changed since Asterisk last reloaded it. This canvas shows what is loaded, not what the file currently says.`;
   }
 
   /** Real dialplan nodes/edges in the design's canvas shapes, with a bezier path per edge

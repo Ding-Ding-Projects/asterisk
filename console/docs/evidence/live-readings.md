@@ -246,6 +246,31 @@ loaded, not what is on disk**, and the console cannot presently tell an operator
 diverged. The baseline capture is a genuine reading of a dialplan that no configuration file on
 that target described.
 
+> **Repaired since this run, in a change of its own.** The canvas screen now compares the two:
+> `contextsMissingFromLoadedDialplan` (`app/renderer/src/canvas.ts`) checks every context name
+> `extensions.conf` declares against the contexts the loaded dialplan graph actually has
+> extensions under, and names the ones that are only in the file. Exactly the shape this run
+> measured: `[dundi-e164]`, `[iax2-trunk]` and `[trunkint]` would each have been reported, had
+> the file and the loaded dialplan still disagreed by the time an operator looked. It compares
+> only the direction a reading can prove without guessing -- a context declared but with no
+> loaded extension, never the reverse -- and says so in its own comment rather than overclaiming
+> what the comparison can rule out. `parseDialplanGraph`'s own return shape is untouched, so this
+> also needed no fresh live capture and does not move what `--check` re-derives above.
+>
+> Fixed alongside it: the canvas screen's status note was separately stuck reporting "Reading…"
+> forever, regardless of what `dialplan show` actually answered. `canvas` declares
+> `file: 'extensions.conf'` like a configuration-editing screen, which routed it into the note
+> logic that reports what `this.configs[screen]` holds -- but canvas has no bound controls
+> (`groups: []`) and that field is never populated for it, so the branch always returned its own
+> "Reading…" fallback and the canvas-specific reason below it was unreachable. Without that fix
+> the divergence sentence above, and every dialplan-read failure reason, would have been silently
+> discarded before reaching the screen.
+>
+> Held by `tests/ui/canvas.test.tsx` (the comparison itself, including the exact three contexts
+> above) and `tests/ui/canvas-divergence-wired.test.tsx` (rendering the real screen, including the
+> "Reading…" regression). The finding above is left as it was written, because it is what this
+> run measured and the run is not being re-taken.
+
 ## Capture records
 
 | State | Record | Run from commit | Coverage | Result |
