@@ -176,11 +176,11 @@
         },
         {
           "id": "unlock-ladder",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "built-in-authenticator",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "attention-modes",

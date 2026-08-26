@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "commit": "a476e2ff028bb9bb5601907552a335cd93c26d08",
+  "artifact": "console/dist/squirrel-windows/win-unpacked/Ding PBX Console.exe",
+  "artifactSha256": "7c8ee7d043b3a3a3742698be78ac5e7647bbd1e6317e1059de01eb928915e1f4",
+  "viewport": {
+    "width": 1440,
+    "height": 922,
+    "dpr": 1.5
+  },
+  "launch": {
+    "method": "off-screen Win32 desktop via console/scripts/launch-on-hidden-desktop.ps1",
+    "desktop": "DingEvidence",
+    "isolatedProfile": "a task-scoped --user-data-dir created for this run only",
+    "driver": "loopback Chrome DevTools Protocol, exactly one page target verified before any evaluation",
+    "visibleDesktop": "never switched to, never sent input, never captured"
+  },
+  "privacy": "no user desktop, cursor, foreground application or personal data is present",
+  "verification": "inspected-real-packaged-artifact",
+  "observedAt": "2026-08-26T09:32:13.634Z",
+  "feature": "unlock-ladder",
+  "capture": "console/release/captures/windows-console/unlock-ladder.png",
+  "captureSha256": "e4254ae040342b7a5bde655337161bc4e640f09b810865976759c0d0cc47701b",
+  "captureBytes": 290078,
+  "interaction": {
+    "route": "right-click the screen > Lock this element… > PIN only > three wrong PINs at the unlock keypad",
+    "wrongAttemptToasts": [
+      "Wrong PIN -- the surface stays locked Handled -- and yes, a tiny party happened in here about it.",
+      "Wrong PIN -- the surface stays locked Handled -- and yes, a tiny party happened in here about it.",
+      "Wrong PIN -- the surface stays locked -- or clear a quick challenge instead of waiting. It only clears the wait, not this credential. Handled -- and yes, a tiny party happened in here about it."
+    ],
+    "challengeOfferedOnAttempt": 3,
+    "rung": "dish",
+    "challengePrompt": "Quick challenge -- which dish? 1 Egg tart · 2 Lo mai gai · 3 Har gow · 4 Cheung fun -- press its digit, then the check mark",
+    "gradedAnswerToast": "Wrong -- try again. Handled -- and yes, a tiny party happened in here about it.",
+    "lockStillPresentAfterChallenge": true
+  },
+  "contractPoints": [
+    "the ladder is offered only after repeated wrong attempts, not on the first",
+    "it is offered inside the unlock dialog the person is already looking at rather than on a separate surface",
+    "the challenge is a real graded question: the prompt names its own rung and its choices",
+    "grading the challenge never clears the credential -- the element is still locked afterwards",
+    "the first two attempts get an ordinary refusal, so the ladder is an escalation rather than the default"
+  ],
+  "notInterrogatedHere": [
+    "the moles rung, which needs a visual board this build does not draw and which the application declines rather than fakes",
+    "the three-per-hour skip budget and its refill, which the module enforces and this single run cannot exhaust",
+    "single-use nonces and challenge expiry, which are module-level rules with no rendered surface",
+    "School mode starting the ladder at the sums rung"
+  ]
+}
