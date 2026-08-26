@@ -39,11 +39,17 @@ test('every bound screen exists in the generated SCREENS object', () => {
 test('total bound-screen and control counts are what this pass produced', () => {
   const screenCount = Object.keys(CONTROL_BINDINGS).length;
   const controlCount = allBindings().length;
+  assert.equal(controlCount, 244);
   // 18 once this rebase landed the Fax screen and the Database backends screen side by
   // side: both independently brought the count from 16 to 17 on their own branch, and
   // rebasing one onto the other's tip -- rather than starting from a shared commit --
   // is exactly what makes them stack to 18 instead of collide at 17.
-  assert.equal(screenCount, 18);
+  // 21 with the compliance lane: three new named-section screens joined the table --
+  // stirshaken (stir_shaken.conf's own [profile] objects, distinct from the Security
+  // screen's [attestation]/[verification] singletons), geolocation (geolocation.conf's
+  // [location] and [profile] objects) and phoneprov (phoneprov.conf's [general] section
+  // plus a named provisioning profile).
+  assert.equal(screenCount, 21);
   // 82 from the first pass, plus a_origin (ami/allowed_origins) and s_failaction
   // (security/failure_action) found on the second look, plus 21 on 2026-08-24: the eight
   // http.conf keys and the thirteen features.conf ones, which brought two whole screens
@@ -147,7 +153,15 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // 199. Rebasing onto the real tip puts it on top of 203 instead, landing on 223 --
   // read back the same way the 203 above was, by trying a deliberately wrong number
   // first and taking whatever this test actually reported.
-  assert.equal(controlCount, 223);
+  // And 224 with mo_load (modules.conf.sample line 32: ;load = res_musiconhold.so),
+  // the one new binding the Logger/Modules/Codecs deepening pass added -- mo_preload,
+  // mo_noload and mo_require already existed and only gained `repeated: true` (a
+  // correctness fix, not a new control), and g_file's key changed from the wrong
+  // 'messages' to the sample's real 'messages.log' without adding or removing a
+  // binding. Read back the same way as above: a deliberately wrong number run first,
+  // then whatever this test actually reported.
+  // 243 with the compliance lane: +20 across the three new screens above (six on
+  // stirshaken, eight on geolocation, six on phoneprov), on top of 223.
 });
 
 // ---------------------------------------------------------------- boolean parsing
@@ -308,7 +322,11 @@ test('readControlValues reads a realistic voicemail.conf onto the voicemail scre
 test('readControlValues reads a realistic logger.conf onto the logger screen', () => {
   const cfg: ConfigValue = [
     { name: 'general', entries: [{ key: 'rotatestrategy', value: 'timestamp' }, { key: 'queue_log', value: 'no' }] },
-    { name: 'logfiles', entries: [{ key: 'console', value: 'notice,warning,error' }, { key: 'messages', value: 'notice,warning' }] },
+    // logger.conf.sample line 176: the file-channel key is the literal name
+    // "messages.log", dot and all -- not "messages". A fixture using the wrong key
+    // used to pass here by matching a binding that was itself wrong the same way; both
+    // are fixed together.
+    { name: 'logfiles', entries: [{ key: 'console', value: 'notice,warning,error' }, { key: 'messages.log', value: 'notice,warning' }] },
   ];
   const values = readControlValues('logger', cfg);
   assert.equal(values.g_rotate, 'timestamp');
@@ -365,6 +383,74 @@ test('applyControlValues preserves repeated keys elsewhere in the file', () => {
       { key: 'deny', value: '0.0.0.0/0' },
     ],
   );
+});
+
+test('modules.conf writes one line per module, never a comma-joined value', () => {
+  // main/loader.c's loader_config_init reads 'noload'/'preload'/'require'/'load' one
+  // v->value at a time; a comma-joined line would be read as a single module named
+  // "chan_sip.so,chan_mobile.so", which does not exist. `repeated: true` is what makes
+  // this the shape actually written -- without it (see the "modules.conf writes
+  // exactly the wrong shape" negative test below), it would fail this same assertion.
+  const cfg: ConfigValue = [{ name: 'modules', entries: [{ key: 'autoload', value: 'yes' }] }];
+  const next = applyControlValues('modules', cfg, { mo_noload: ['chan_sip.so', 'chan_mobile.so'] });
+  const section = next.find((s) => s.name === 'modules');
+  const noloads = section?.entries.filter((e) => e.key === 'noload') ?? [];
+  assert.deepEqual(noloads.map((e) => e.value), ['chan_sip.so', 'chan_mobile.so']);
+  assert.ok(noloads.every((e) => !e.value.includes(',')), 'no noload= line should contain a comma');
+});
+
+test('modules.conf replaces every occurrence of a repeated key in place, not appended', () => {
+  const cfg: ConfigValue = [
+    {
+      name: 'modules',
+      entries: [
+        { key: 'noload', value: 'res_hep.so' },
+        { key: 'noload', value: 'res_hep_pjsip.so' },
+        { key: 'noload', value: 'res_hep_rtcp.so' },
+        { key: 'autoload', value: 'yes' },
+      ],
+    },
+  ];
+  const next = applyControlValues('modules', cfg, { mo_noload: ['app_meetme.so'] });
+  const section = next.find((s) => s.name === 'modules');
+  const entries = section?.entries ?? [];
+  assert.deepEqual(entries.map((e) => `${e.key}=${e.value}`), ['noload=app_meetme.so', 'autoload=yes']);
+});
+
+test('modules.conf: preload, require and force-load are also repeated, independently of each other', () => {
+  const cfg: ConfigValue = [{ name: 'modules', entries: [{ key: 'autoload', value: 'yes' }] }];
+  const next = applyControlValues('modules', cfg, {
+    mo_preload: ['res_odbc.so', 'res_curl.so'],
+    mo_require: ['chan_pjsip.so'],
+    mo_load: ['res_musiconhold.so'],
+  });
+  const section = next.find((s) => s.name === 'modules');
+  const of = (key: string) => (section?.entries ?? []).filter((e) => e.key === key).map((e) => e.value);
+  assert.deepEqual(of('preload'), ['res_odbc.so', 'res_curl.so']);
+  assert.deepEqual(of('require'), ['chan_pjsip.so']);
+  assert.deepEqual(of('load'), ['res_musiconhold.so']);
+});
+
+test('readControlValues reads a realistic modules.conf, one module per repeated line', () => {
+  const cfg: ConfigValue = [
+    {
+      name: 'modules',
+      entries: [
+        { key: 'autoload', value: 'yes' },
+        { key: 'preload', value: 'res_odbc.so' },
+        { key: 'noload', value: 'chan_sip.so' },
+        { key: 'noload', value: 'chan_mobile.so' },
+        { key: 'require', value: 'chan_pjsip.so' },
+        { key: 'load', value: 'res_musiconhold.so' },
+      ],
+    },
+  ];
+  const values = readControlValues('modules', cfg);
+  assert.equal(values.mo_auto, true);
+  assert.deepEqual(values.mo_preload, ['res_odbc.so']);
+  assert.deepEqual(values.mo_noload, ['chan_sip.so', 'chan_mobile.so']);
+  assert.deepEqual(values.mo_require, ['chan_pjsip.so']);
+  assert.deepEqual(values.mo_load, ['res_musiconhold.so']);
 });
 
 test('applyControlValues creates a missing key inside an existing section', () => {
@@ -1100,4 +1186,139 @@ test('applyControlValues writes the ODBC fields into exactly the section db_odbc
   assert.equal(reporting?.entries.find((e) => e.key === 'dsn')?.value, 'reporting-db');
   const asteriskUntouched = created.find((s) => s.name === 'asterisk');
   assert.deepEqual(asteriskUntouched, odbc[0], 'an unrelated existing connection must be left exactly as it was');
+});
+
+// ---------------------------------------------------------------- Call attestation (stir_shaken.conf profiles)
+
+test('the Call attestation fields read from whichever section cs_profile currently names, mapped values included', () => {
+  // configs/samples/stir_shaken.conf.sample [myprofile] example (~line 501): type=profile,
+  // endpoint_behavior=verify, failure_action=continue_return_reason, x5u_acl=myacllist.
+  const stir: ConfigValue = [
+    { name: 'myprofile', entries: [
+      { key: 'type', value: 'profile' }, { key: 'endpoint_behavior', value: 'verify' },
+      { key: 'failure_action', value: 'continue_return_reason' }, { key: 'x5u_acl', value: 'myacllist' },
+      { key: 'attest_level', value: 'B' },
+    ] },
+    { name: 'otherprofile', entries: [{ key: 'type', value: 'profile' }, { key: 'endpoint_behavior', value: 'attest' }] },
+  ];
+  const values = readControlValues('stirshaken', stir, {}, { cs_profile: 'myprofile' });
+  assert.equal(values.cs_behavior, 'Verify', 'endpoint_behavior=verify must map back to the design word Verify');
+  assert.equal(values.cs_failaction, 'Tag', 'continue_return_reason must map back to the design word Tag');
+  assert.equal(values.cs_x5uacl, 'myacllist');
+  assert.equal(values.cs_level, 'B');
+  // Picking a different profile reads that section instead, never the first one found.
+  assert.equal(readControlValues('stirshaken', stir, {}, { cs_profile: 'otherprofile' }).cs_behavior, 'Attest');
+  // With no profile name chosen yet, the fields read as absent rather than the first profile's.
+  assert.equal(readControlValues('stirshaken', stir).cs_behavior, undefined);
+});
+
+test('applyControlValues writes the Call attestation fields into exactly the section cs_profile names, mapped values included', () => {
+  const stir: ConfigValue = [{ name: 'myprofile', entries: [{ key: 'type', value: 'profile' }] }];
+  const next = applyControlValues('stirshaken', stir, {
+    cs_profile: 'myprofile', cs_behavior: 'On', cs_failaction: 'Reject', cs_level: 'A', cs_privkey: '/keys/a.pem',
+  });
+  const profile = next.find((s) => s.name === 'myprofile');
+  assert.equal(profile?.entries.find((e) => e.key === 'endpoint_behavior')?.value, 'on');
+  assert.equal(profile?.entries.find((e) => e.key === 'failure_action')?.value, 'reject_request');
+  assert.equal(profile?.entries.find((e) => e.key === 'attest_level')?.value, 'A');
+  assert.equal(profile?.entries.find((e) => e.key === 'private_key_file')?.value, '/keys/a.pem');
+  // A design value with no entry in the map (nothing this screen offers can produce one,
+  // but the write-side refusal is what stops a stray value being written verbatim) writes
+  // nothing at all -- the same refusal `toRaw`'s own valueMap branch already guarantees.
+  const refused = applyControlValues('stirshaken', stir, { cs_profile: 'myprofile', cs_behavior: 'Nonsense' });
+  assert.equal(refused.find((s) => s.name === 'myprofile')?.entries.find((e) => e.key === 'endpoint_behavior'), undefined);
+});
+
+// ---------------------------------------------------------------- Emergency-services location (geolocation.conf)
+
+test('the geolocation location and profile fields each read from whichever section their own picker names', () => {
+  // configs/samples/geolocation.conf.sample [mylocation] example (~line 151) and
+  // [myprofile] example (~line 322).
+  const geo: ConfigValue = [
+    { name: 'mylocation', entries: [
+      { key: 'type', value: 'location' }, { key: 'format', value: 'civicAddress' },
+      { key: 'location_info', value: 'country=US' }, { key: 'location_info', value: 'A1="New York"' },
+      { key: 'method', value: 'Manual' }, { key: 'location_source', value: 'sip1.myserver.net' },
+    ] },
+    { name: 'myprofile', entries: [
+      { key: 'type', value: 'profile' }, { key: 'location_reference', value: 'mylocation' },
+      { key: 'pidf_element', value: 'tuple' }, { key: 'allow_routing_use', value: 'yes' },
+    ] },
+  ];
+  const values = readControlValues('geolocation', geo, {}, { gl_location: 'mylocation', gl_profile: 'myprofile' });
+  assert.equal(values.gl_format, 'civicAddress');
+  // The FIRST location_info line only -- the second ("A1=...") is deliberately not surfaced
+  // by a plain (non-repeated) binding; see the long comment above CONTROL_BINDINGS.geolocation.
+  assert.equal(values.gl_info, 'country=US');
+  assert.equal(values.gl_method, 'Manual');
+  assert.equal(values.gl_source, 'sip1.myserver.net');
+  assert.equal(values.gl_reference, 'mylocation');
+  assert.equal(values.gl_pidf, 'tuple');
+  assert.equal(values.gl_routing, true);
+  // geolocation.conf's own bindings never leak across sections -- gl_format has no reading
+  // for the profile object, which carries no format key of its own.
+  assert.equal(readControlValues('geolocation', geo, {}, { gl_location: 'myprofile' }).gl_format, undefined);
+});
+
+test('applyControlValues writes location and profile fields into exactly the sections their own pickers name, and can create either', () => {
+  const geo: ConfigValue = [];
+  const withLocation = applyControlValues('geolocation', geo, {
+    gl_location: 'mylocation', gl_format: 'URI', gl_info: 'URI=https://example.com',
+  });
+  const location = withLocation.find((s) => s.name === 'mylocation');
+  assert.ok(location, 'a brand new [mylocation] section must be created');
+  assert.equal(location?.entries.find((e) => e.key === 'format')?.value, 'URI');
+  assert.equal(location?.entries.find((e) => e.key === 'location_info')?.value, 'URI=https://example.com');
+
+  const withProfile = applyControlValues('geolocation', withLocation, {
+    gl_profile: 'myprofile', gl_precedence: 'prefer_config', gl_routing: true,
+  });
+  const profile = withProfile.find((s) => s.name === 'myprofile');
+  assert.ok(profile, 'a brand new [myprofile] section must be created');
+  assert.equal(profile?.entries.find((e) => e.key === 'profile_precedence')?.value, 'prefer_config');
+  assert.equal(profile?.entries.find((e) => e.key === 'allow_routing_use')?.value, 'yes');
+  // Writing the profile must not have touched the location section created just above.
+  const locationUntouched = withProfile.find((s) => s.name === 'mylocation');
+  assert.deepEqual(locationUntouched, location, 'the location object must be left exactly as it was');
+});
+
+// ---------------------------------------------------------------- Handset auto-provisioning (phoneprov.conf)
+
+test('phoneprov general fields read straight from [general], and profile fields read from whichever section pv_profile names', () => {
+  // configs/samples/phoneprov.conf.sample [general] (~line 1) and [polycom] (~line 63).
+  const phoneprov: ConfigValue = [
+    { name: 'general', entries: [
+      { key: 'default_profile', value: 'polycom' }, { key: 'serveraddr', value: '192.168.1.1' },
+    ] },
+    { name: 'polycom', entries: [
+      { key: 'staticdir', value: 'configs/' }, { key: 'mime_type', value: 'text/xml' },
+    ] },
+  ];
+  const values = readControlValues('phoneprov', phoneprov, {}, { pv_profile: 'polycom' });
+  assert.equal(values.pv_default, 'polycom');
+  assert.equal(values.pv_addr, '192.168.1.1');
+  assert.equal(values.pv_staticdir, 'configs/');
+  assert.equal(values.pv_mimetype, 'text/xml');
+  // [general] itself is read even with no profile picked -- it is a fixed section, not
+  // one a picker names.
+  assert.equal(readControlValues('phoneprov', phoneprov).pv_default, 'polycom');
+});
+
+test('applyControlValues writes phoneprov [general] and a named profile independently, and can create the profile', () => {
+  const phoneprov: ConfigValue = [{ name: 'general', entries: [{ key: 'default_profile', value: 'polycom' }] }];
+  const withGeneral = applyControlValues('phoneprov', phoneprov, { pv_default: 'yealink', pv_port: 5061 });
+  const general = withGeneral.find((s) => s.name === 'general');
+  assert.equal(general?.entries.find((e) => e.key === 'default_profile')?.value, 'yealink');
+  assert.equal(general?.entries.find((e) => e.key === 'serverport')?.value, '5061');
+
+  const withProfile = applyControlValues('phoneprov', withGeneral, {
+    pv_profile: 'yealink', pv_staticdir: 'yealink-configs/', pv_mimetype: 'text/plain',
+  });
+  const profile = withProfile.find((s) => s.name === 'yealink');
+  assert.ok(profile, 'a brand new [yealink] section must be created');
+  assert.equal(profile?.entries.find((e) => e.key === 'staticdir')?.value, 'yealink-configs/');
+  assert.equal(profile?.entries.find((e) => e.key === 'mime_type')?.value, 'text/plain');
+  // [general] must not have been touched by the profile write.
+  const generalUntouched = withProfile.find((s) => s.name === 'general');
+  assert.deepEqual(generalUntouched, general, '[general] must be left exactly as it was');
 });

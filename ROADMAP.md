@@ -73,9 +73,9 @@ to the control plane.
 - [x] **Database backends and realtime** (`res_odbc.conf`, `extconfig.conf`, `sorcery.conf`, `res_pgsql.conf`, `res_ldap.conf`) — required for hosted and multi-tenant deployments. Landed: a destination for res_odbc.conf, extconfig.conf and sorcery.conf, with a mapping model of its own and every control bound to a line in the shipped sample.
 - [x] **Fax** (`res_fax.conf`, `udptl.conf`) — sending, receiving, T.38 gateway. Landed: a Fax & T.38 destination writing res_fax.conf through the transaction.
 - [x] **Channel event logging** (`cel.conf`, `cel_odbc.conf`, `cel_pgsql.conf`) — the compliance counterpart to call records. Landed: a CEL panel on the CDR & CEL destination with its own save action writing cel.conf, plus cel_odbc.conf and cel_pgsql.conf handlers, every control bound to a line in the shipped sample. All three go through the backup/stage/validate/apply/post-read transaction.
-- [ ] **Call attestation** (`stir_shaken.conf`) — profiles, certificates, verification.
-- [ ] **Emergency-services location** (`geolocation.conf`) — a regulatory requirement in several jurisdictions.
-- [ ] **Handset auto-provisioning** (`phoneprov.conf`) — the deployment flow asks how many phones and has nowhere to template them.
+- [x] **Call attestation** (`stir_shaken.conf`) — profiles, certificates, verification. Landed: a Call attestation destination for stir_shaken.conf's own `[profile]` objects, distinct from the Security screen's `[attestation]`/`[verification]` singletons -- a named profile, its endpoint behaviour and its overrides of level, signing key/certificate and x5u ACL, six controls bound to lines in the shipped sample plus `type=profile` written on save. TN objects are out of scope; the screen's own description says so.
+- [x] **Emergency-services location** (`geolocation.conf`) — a regulatory requirement in several jurisdictions. Landed: an Emergency-services location destination covering both object shapes the file has -- a named `[location]` (format, info, method, source) and a named `[profile]` (precedence, PIDF element, referenced location, routing use) -- eight controls, every one cited against the shipped sample, with `type=location`/`type=profile` written on save.
+- [x] **Handset auto-provisioning** (`phoneprov.conf`) — the deployment flow asks how many phones and has nowhere to template them. Landed: a Phone provisioning destination writing the `[general]` section's `default_profile` (what the wizard's own "How many phones?" question had nothing to feed) plus a named provisioning profile's static-file directory and MIME type. The profile's actual file list is dozens of entries in a real deployment and is edited on the target directly -- a single field here could show only one at a time, which the screen's own description says plainly is worse than no field.
 - [x] **Feature codes and parking** (`features.conf`) — transfer, park, pickup, recording keys Thirty controls bound in total: fourteen against `features.conf` for transfer, pickup and recording, and sixteen against `res_parking.conf`, which is where parking actually lives -- `features.conf.sample` says so in its own fifth line, and its `[featuremap]` carries only the park trigger. Every one cites its sample line.
 - [ ] **Shared line appearances** (`sla.conf`).
 - [x] **IAX2 trunking** (`iax.conf`) — currently only illustrative rows, which is worse than absence because it reads as configurable. Landed: an IAX peers destination writing iax.conf through the transaction, replacing the illustrative rows.
@@ -92,12 +92,67 @@ to the control plane.
 - [ ] **Security** — edits no access rule and no attestation certificate despite naming both.
 - [ ] **Trunks** — PJSIP only; no IAX2, no hardware, no registration retry detail.
 - [ ] **IVR** — no dialplan application depth, and prompts are names it cannot manage.
-- [ ] **Logger** — level chips only; no rotation, no queue log, no per-channel configuration.
+- [x] **Logger** — level chips only; no rotation, no queue log, no per-channel configuration.
+      **Closed.** The screen had five bound controls (`g_console`, `g_verbose`, `g_file`,
+      `g_rotate`, `g_queue`) and no Save button of any kind, so "level chips only" was
+      true in the strongest sense: nothing on this screen had ever been written, rotation
+      and queue log included. It now has two Save buttons -- one for logger.conf's own
+      four fields (console levels, file levels, rotation strategy, queue logging), and a
+      separate one for verbosity, which lives in asterisk.conf's `[options]` `verbose`
+      key, not in logger.conf at all. A third group, "Named log channels", closes
+      per-channel configuration: `[logfiles]` in logger.conf holds one line per channel
+      (`console`, `messages.log`, and anything else an admin adds -- `full.log`,
+      `debug.log`, `syslog.local0`), so a channel-name field plus a level chips field,
+      with Load/Save actions, edits any one of them by name without touching the others.
+      Also fixed along the way: `g_file` was bound to the key `messages`, which does not
+      exist in logger.conf.sample -- the real key is the literal channel name
+      `messages.log`, dot included (sample line 176). Nobody had noticed because nothing
+      had ever tried to write it.
 - [ ] **Modules** — no per-module reload and no dependency view.
+      **Not closed as stated, and here is exactly why.** "Reload" here would mean a live
+      CLI action (`module reload <name>`) against a running Asterisk process; this
+      console has no IPC surface for that today -- every existing write in this codebase
+      goes through `pbx.plan`/`pbx.apply` against a configuration FILE, and building a
+      new mutating-CLI-action channel (control-plane dispatch, the Electron IPC
+      contract, the renderer request plumbing) is a materially larger, cross-cutting
+      change than "deepen an existing screen" covers, and risks colliding with sibling
+      lanes touching `control-plane/`. A "dependency view" has no source: Asterisk's own
+      CLI (`module show`) reports name/description/use-count/status, not which modules a
+      module depends on, and I found no reader anywhere in this tree that could supply
+      one without inventing data. What I did close instead, because it was real and it
+      was broken: the screen had four bound fields and no Save button, so autoload,
+      preload and never-load were all display-only. It now has one ("Save modules.conf
+      settings"), plus a new `mo_load` field bound to the sample's own `load =>` key
+      (modules.conf.sample line 32, force-loads one module even with autoload off) --
+      genuinely per-module, if not "reload". Also fixed: `mo_preload`/`mo_noload` were
+      bound as a single comma-joined value, and `mo_require` as a boolean switch; neither
+      matches what `main/loader.c`'s `loader_config_init` actually reads (`preload`,
+      `noload`, `require` and `load` are each read one `v->value` at a time, never
+      comma-split -- the sample's own `noload = res_hep.so` / `noload =
+      res_hep_pjsip.so` / `noload = res_hep_rtcp.so`, three separate lines, shows this
+      directly). Writing the old shape through a real Save button would have written a
+      line Asterisk reads as one nonexistent module named
+      "chan_sip.so,chan_mobile.so" -- a wrong-binding bug that had never manifested
+      because nothing had ever saved. All four (`mo_preload`, `mo_noload`, `mo_require`,
+      `mo_load`) now use `repeated: true`, one line per module.
 - [ ] **Call records** — one status reading; no backend selection across the several available.
 - [ ] **Manager and REST** — a static table; no live event stream and no operable actions.
 - [ ] **Voicemail** — no storage backend configuration and no greeting management.
 - [ ] **Codecs** — a listing only; no per-endpoint negotiation.
+      **Not closed as stated: per-endpoint negotiation is still not implemented**, and
+      remains a materially larger feature (it would mean editing each PJSIP endpoint's
+      own `allow=`/`disallow=` codec preference in pjsip.conf, not a global rtp.conf/
+      codecs.conf setting) than this pass covered. What I did close: the screen declared
+      `file: 'codecs.conf · rtp.conf'`, a display label made of two filenames joined for
+      the reader -- the exact shape `resource-for-file.test.tsx` exists to refuse, and
+      does. `resourceForFile` returned `undefined` for it, so the generic per-screen read
+      in App.tsx never fired at all: this screen had never read a single byte from any
+      target, for as long as it existed, with no error anywhere. It now declares
+      `file: 'rtp.conf'` (its own real, primary, writable file) and reads asterisk.conf
+      separately for the one field that lives there (`k_transcode`, `transcode_via_sln`,
+      the same asterisk.conf split logger's own verbosity uses). Two Save buttons were
+      added -- one for rtp.conf's four fields (port range, strict RTP, ICE), one for the
+      asterisk.conf transcoding switch -- where previously there were none.
 
 ### How each one lands
 

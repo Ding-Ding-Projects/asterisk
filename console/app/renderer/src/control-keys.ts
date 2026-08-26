@@ -361,6 +361,21 @@ function l(control: string, section: string, key: string, file?: string): Contro
   const base = { control, section, key, kind: 'list' as const };
   return file ? { ...base, file } : base;
 }
+/** `sFrom`, for a control whose own values do not literally match Asterisk's own
+ *  spelling -- the `sectionFrom` equivalent of `sMapped`. Needed once a picked, named
+ *  section (the Call attestation screen's own STIR/SHAKEN profile) carries a field the
+ *  design shows in different words than the raw key wants, the same reason `sMapped`
+ *  exists for a fixed section. */
+function sFromMapped(
+  control: string,
+  sectionFrom: string,
+  key: string,
+  valueMap: Readonly<Record<string, string>>,
+  file?: string,
+): ControlBinding {
+  const base = { control, section: sectionFrom, sectionFrom, key, kind: 'string' as const, valueMap };
+  return file ? { ...base, file } : base;
+}
 
 /**
  * Bindings, keyed by screen id. Every binding below is justified against a specific
@@ -603,10 +618,15 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     s('h_sort', 'default', 'sort'),
   ],
 
-  // configs/samples/rtp.conf.sample — [general]. codecs.conf.sample has no [general]
-  // section at all, so k_order (no global codec-order key exists anywhere — order is
-  // only ever set per-endpoint via pjsip.conf's `allow=`, already bound as e_codecs)
-  // and k_transcode (no transcoding-toggle key of any kind) are unmapped. k_opusbr
+  // configs/samples/rtp.conf.sample — [general], now the codecs screen's own declared
+  // `file` (it used to say 'codecs.conf · rtp.conf', a display label two filenames
+  // joined for the reader; resourceForFile refuses that shape, so this screen had never
+  // read anything -- see resource-for-file.test.tsx). codecs.conf.sample has no
+  // [general] section at all, so k_order (no global codec-order key exists anywhere —
+  // order is only ever set per-endpoint via pjsip.conf's `allow=`, already bound as
+  // e_codecs) is unmapped. k_transcode is bound below, through asterisk.conf, not left
+  // unmapped -- an earlier version of this comment said otherwise and was wrong; fixed
+  // once its Save button actually made the wrong claim testable. k_opusbr
   // ("Opus bitrate", a kbps slider) looked bindable to codecs.conf.sample's commented
   // `;[opus]` template's `;bitrate=` line (~line 189) but is left unmapped on a second
   // look: that key's unit is bits per second, not kilobits (the sample documents "Any
@@ -723,12 +743,30 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     l('a_origin', 'general', 'allowed_origins'),
   ],
 
-  // configs/samples/modules.conf.sample.
+  // configs/samples/modules.conf.sample. main/loader.c's own loader_config_init reads
+  // 'preload'/'load'/'require'/'noload' by walking every [modules] variable of that
+  // exact name one at a time (v->value is ONE module per line, never split on a
+  // comma) -- lines 42-44 show it directly: three separate `noload = res_hep*.so`
+  // lines, not one comma-joined line. `l()` alone (a single key holding a
+  // comma-separated value, the shape `entryValue`/`applyControlValues` use for
+  // everything else that calls itself a "list") would therefore collapse a
+  // multi-module chip selection into one line Asterisk reads as a single, nonexistent
+  // module name -- so mo_preload/mo_noload/mo_require/mo_load below all also carry
+  // `repeated: true`, which reads and writes one line per occurrence instead (see the
+  // long comment on `ControlBinding.repeated`, written for acl.conf's `permit=`/`deny=`
+  // and unused until now). mo_require used to be a plain boolean bound straight to
+  // `require`, which is wrong the same way: the sample's own `;require = chan_pjsip.so`
+  // (line 27) names a specific module to require, not a global switch, so the design's
+  // control is now a chips list like preload/noload rather than a switch.
   modules: [
     b('mo_auto', 'modules', 'autoload'),
-    l('mo_preload', 'modules', 'preload'),
-    l('mo_noload', 'modules', 'noload'),
-    b('mo_require', 'modules', 'require'),
+    { ...l('mo_preload', 'modules', 'preload'), repeated: true },
+    { ...l('mo_noload', 'modules', 'noload'), repeated: true },
+    { ...l('mo_require', 'modules', 'require'), repeated: true },
+    // configs/samples/modules.conf.sample line 32: ;load = res_musiconhold.so -- forces
+    // a specific module to load even with autoload off, same per-line shape as the three
+    // above.
+    { ...l('mo_load', 'modules', 'load'), repeated: true },
   ],
 
   // configs/samples/logger.conf.sample — [general] for rotatestrategy/queue_log,
@@ -741,7 +779,14 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     // setting lives in.
     { control: 'g_verbose', section: 'options', key: 'verbose', kind: 'number', file: 'asterisk.conf' },
     l('g_console', 'logfiles', 'console'),
-    l('g_file', 'logfiles', 'messages'),
+    // logger.conf.sample line 176: messages.log => notice,warning,error -- the KEY is
+    // the literal channel name "messages.log", dot and all, not "messages". Binding to
+    // 'messages' silently read and wrote nothing against a real target: the file was
+    // never seeded (no key called that exists) and a write would have appended a
+    // brand-new, wrong `messages =` line beside the real `messages.log =` one rather
+    // than editing it. Found while wiring this screen's first Save button, which is
+    // what made a wrong key finally testable instead of silently inert.
+    l('g_file', 'logfiles', 'messages.log'),
     s('g_rotate', 'general', 'rotatestrategy'),
     b('g_queue', 'general', 'queue_log'),
   ],
@@ -860,6 +905,120 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     b('s_loadsyscerts', 'verification', 'load_system_certs', undefined, 'stir_shaken.conf'),
     s('s_cafile', 'verification', 'ca_file', 'stir_shaken.conf'),
     s('s_capath', 'verification', 'ca_path', 'stir_shaken.conf'),
+  ],
+  // configs/samples/stir_shaken.conf.sample — [profile] objects (description ~line
+  // 468, example [myprofile] ~line 501). The Security screen's own s_* group above
+  // already covers the file's two SINGLETON objects, [attestation] and [verification];
+  // a profile is a THIRD, differently-shaped object -- arbitrarily many of them,
+  // picked by name the same way the Security screen's own PJSIP-transport TLS fields
+  // pick a transport (`sectionFrom`) -- named in an endpoint's own `stir_shaken_profile`
+  // parameter in pjsip.conf (not bound here: that lives on the Endpoints screen).
+  // `type=profile` itself is not a bound control -- App.tsx's onSaveStirShakenProfile
+  // writes it directly, the same "not an operator choice, always this literal value"
+  // shape `sectionType` already gives pjsip.conf's own [endpoint]/[aor] sections; see
+  // the "type (required) ... Must be set to profile" note at line 471.
+  // cs_behavior/endpoint_behavior — description ~line 473 (off/attest/verify/on,
+  // default off); example line 503 (";endpoint_behavior = verify").
+  // cs_failaction/failure_action — a profile's own override of the same key
+  // description ~line 347 documents ("All of the verification parameters ... can be
+  // set on a profile"); example override line 504
+  // (";failure_action = continue_return_reason"). Same three-way valueMap as the
+  // Security screen's own s_failaction above.
+  // cs_level/attest_level — a profile's own override of the [attestation] object's
+  // own key, description ~line 96 ("All parameters ... may be overridden in a
+  // profile", line 59).
+  // cs_privkey/private_key_file — override of the [attestation] object's own key,
+  // description ~line 64.
+  // cs_certurl/public_cert_url — override of the [attestation] object's own key,
+  // description ~line 72.
+  // cs_x5uacl/x5u_acl — override of the [verification] object's own key, description
+  // ~line 423; example override line 505 (";x5u_acl = myacllist").
+  // TN objects (per-telephone-number certificate overrides, ~line 156 onward) are
+  // deliberately out of scope for this screen -- the design's own group description
+  // says so; they are a fourth, yet again differently-named-and-shaped object
+  // (`[<canonicalized-telephone-number>]`) this pass did not reach.
+  stirshaken: [
+    sFromMapped('cs_behavior', 'cs_profile', 'endpoint_behavior', {
+      Off: 'off',
+      Attest: 'attest',
+      Verify: 'verify',
+      On: 'on',
+    }),
+    sFromMapped('cs_failaction', 'cs_profile', 'failure_action', {
+      Continue: 'continue',
+      Tag: 'continue_return_reason',
+      Reject: 'reject_request',
+    }),
+    sFrom('cs_level', 'cs_profile', 'attest_level'),
+    sFrom('cs_privkey', 'cs_profile', 'private_key_file'),
+    sFrom('cs_certurl', 'cs_profile', 'public_cert_url'),
+    sFrom('cs_x5uacl', 'cs_profile', 'x5u_acl'),
+  ],
+  // configs/samples/geolocation.conf.sample — two object shapes, both named and
+  // picked exactly the way the stir_shaken.conf profile above is: a [location] object
+  // (description ~line 54, example [mylocation] ~line 151) holding the physical
+  // location, and a [profile] object (description ~line 171, example [myprofile]
+  // ~line 322) that a pjsip.conf endpoint actually references and that decides how
+  // the location is used. `type=location`/`type=profile` are not bound controls for
+  // the same reason `stirshaken`'s own profile `type` above is not: App.tsx's
+  // onSaveGeolocationLocation/onSaveGeolocationProfile write the literal value
+  // directly, per the "type (required)" note at lines 54/56 and 171/174.
+  // gl_format/format — description ~line 61; example line 86 ("format = civicAddress").
+  // gl_info/location_info — description ~line 88 ("required"). Asterisk repeats this
+  // key once per fragment and concatenates them (lines 109-112 show four for one
+  // civicAddress); this console has no free-text repeated-key control (its chip
+  // control only ever offers a closed, enumerable set -- module names, log levels --
+  // and location_info is neither), so this binds a plain text field to the FIRST
+  // occurrence only, which is exactly what the sample's own GML/URI examples (lines
+  // 116, 119) already use as a single line. Any additional pre-existing location_info
+  // lines on the target are left exactly as they are -- `applyControlValues`'s plain
+  // (non-repeated) write path only ever replaces the first matching key, never every
+  // occurrence, so a second or third line already on the target survives a save from
+  // this screen untouched rather than being silently deleted.
+  // gl_method/method — description ~line 121; example line 127 ("method = Manual").
+  // gl_source/location_source — description ~line 129 (must be a FQDN, never an IP
+  // address, per RFC8787); example line 137.
+  // gl_precedence/profile_precedence — description ~line 175; example line 204.
+  // gl_pidf/pidf_element — description ~line 206; example line 223.
+  // gl_reference/location_reference — description ~line 262, naming the [location_id]
+  // object bound above; example lines 270 (quoted) and 324 (bare).
+  // gl_routing/allow_routing_use — description ~line 247 (default no); example line 260.
+  geolocation: [
+    sFrom('gl_format', 'gl_location', 'format'),
+    sFrom('gl_info', 'gl_location', 'location_info'),
+    sFrom('gl_method', 'gl_location', 'method'),
+    sFrom('gl_source', 'gl_location', 'location_source'),
+    sFrom('gl_precedence', 'gl_profile', 'profile_precedence'),
+    sFrom('gl_pidf', 'gl_profile', 'pidf_element'),
+    sFrom('gl_reference', 'gl_profile', 'location_reference'),
+    bFrom('gl_routing', 'gl_profile', 'allow_routing_use'),
+  ],
+  // configs/samples/phoneprov.conf.sample — [general] (line 1, the screen's own
+  // primary file, no override needed) plus a named provisioning profile such as
+  // [polycom] (line 63), picked by name the same way every other named-section group
+  // in this table is (`sectionFrom`). pv_default/default_profile — line 14
+  // ("default_profile=polycom ; The default profile to use if none specified"),
+  // uncommented in the sample, unlike the three overrides above it. pv_addr/
+  // serveraddr — line 9 (";serveraddr=192.168.1.1"). pv_iface/serveriface — line 10
+  // (";serveriface=eth0"). pv_port/serverport — line 13 (";serverport=5060").
+  // pv_staticdir/staticdir — line 64 ("staticdir => configs/ ; Sub directory of
+  // AST_DATA_DIR/phoneprov that static files reside in"). pv_mimetype/mime_type —
+  // line 67 ("mime_type => text/xml ; Default mime type to use if one isn't
+  // specified"). Neither uses `=`; phoneprov.conf's own named-profile keys are
+  // written with `=>` (confirmed already working the same way res_odbc.conf's own
+  // `=>` keys are, in CONTROL_BINDINGS.dbrealtime above). The profile's actual file
+  // list (`static_file =>`, dozens of entries in the sample, plus the dynamically
+  // generated `${MAC}.cfg => ...` filename-as-key entries from line 134 onward) is
+  // deliberately left unbound: it is neither one value nor a small closed set this
+  // table's kinds can honestly carry, and a text field that only ever showed "the
+  // first file" out of sixty would be worse than no field at all.
+  phoneprov: [
+    s('pv_default', 'general', 'default_profile'),
+    s('pv_addr', 'general', 'serveraddr'),
+    s('pv_iface', 'general', 'serveriface'),
+    n('pv_port', 'general', 'serverport'),
+    sFrom('pv_staticdir', 'pv_profile', 'staticdir'),
+    sFrom('pv_mimetype', 'pv_profile', 'mime_type'),
   ],
   // configs/samples/res_pgsql.conf.sample — the screen's own primary file, [general]
   // section, no override needed. db_pgpassword is deliberately unbound: it is
@@ -1214,9 +1373,12 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
    * unbound" rather than a screen the audit has simply never reached (see
    * `isUninventoried` above for what that distinction protects). */
   sounds: [],
+  /* rtp.conf (the screen's own primary file) plus asterisk.conf's transcode_via_sln;
+   * k_save/r_save are the two one-shot Save buttons this screen never had before -- pure
+   * actions with no key of their own, recognised the same way fx_save/fx_udptlsave are. */
   codecs: [
-    'k_order', 'k_transcode',
-    'r_start', 'r_end', 'r_strict', 'r_ice',
+    'k_order', 'k_transcode', 'k_save',
+    'r_start', 'r_end', 'r_strict', 'r_ice', 'r_save',
   ],
   /* res_fax.conf's six fields plus udptl.conf's six, all bound (see CONTROL_BINDINGS.fax
    * above); fx_save and fx_udptlsave are the screen's two one-shot Save buttons -- pure
@@ -1239,8 +1401,18 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     'l_pshow', 'l_pgmtime', 'l_phost', 'l_pport', 'l_pdb', 'l_puser', 'l_ptable', 'l_pschema', 'l_papp', 'l_psave',
   ],
   ami: ['a_http', 'a_port', 'a_tls', 'a_tlsport', 'a_origin', 'a_read', 'a_write', 'a_deny', 'a_timeout'],
-  modules: ['mo_auto', 'mo_preload', 'mo_noload', 'mo_require'],
-  logger: ['g_console', 'g_verbose', 'g_file', 'g_rotate', 'g_queue'],
+  /* modules.conf, all bound as `repeated: true` lists (see CONTROL_BINDINGS.modules
+   * above for why); mo_save is the screen's one Save button, a pure action with no key
+   * of its own. */
+  modules: ['mo_auto', 'mo_preload', 'mo_noload', 'mo_require', 'mo_load', 'mo_save'],
+  /* logger.conf plus asterisk.conf's own verbose; g_save/g_vsave are the screen's two
+   * Save buttons (logger.conf's four fields, and asterisk.conf's verbosity, are two
+   * different files so they cannot share one write). g_chname/g_chlevels are the "any
+   * other named channel" editor's free-form fields -- no fixed key, read directly out of
+   * `state.values` by App.tsx the same way s_aclname/s_action/s_spec are for an ACL rule
+   * -- and g_chload/g_chsave are its Load/Save actions. */
+  logger: ['g_console', 'g_verbose', 'g_file', 'g_rotate', 'g_queue', 'g_save', 'g_vsave',
+    'g_chname', 'g_chlevels', 'g_chload', 'g_chsave'],
   security: [
     's_aclname', 's_action', 's_spec', 's_failban', 's_bantime',
     's_transport', 's_tload', 's_tprotocol', 's_tcert', 's_tprivkey', 's_tcalistfile',
@@ -1248,6 +1420,27 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     's_treqclientcert', 's_tsave',
     's_stir', 's_level', 's_verifyin', 's_failaction',
     's_privkey', 's_certurl', 's_loadsyscerts', 's_cafile', 's_capath', 's_stirsave',
+  ],
+  /* stir_shaken.conf's own [profile] objects -- see CONTROL_BINDINGS.stirshaken above.
+   * cs_profile names the section; cs_load/cs_save are the two one-shot action buttons
+   * (no key of their own, same shape as s_tload/s_tsave above). */
+  stirshaken: [
+    'cs_profile', 'cs_load', 'cs_behavior', 'cs_failaction', 'cs_level',
+    'cs_privkey', 'cs_certurl', 'cs_x5uacl', 'cs_save',
+  ],
+  /* geolocation.conf's [location] and [profile] objects -- see CONTROL_BINDINGS.geolocation
+   * above. gl_location/gl_profile name the two sections; gl_loadloc/gl_savloc/gl_loadprof/
+   * gl_savprof are the four one-shot action buttons. */
+  geolocation: [
+    'gl_location', 'gl_loadloc', 'gl_format', 'gl_info', 'gl_method', 'gl_source', 'gl_savloc',
+    'gl_profile', 'gl_loadprof', 'gl_precedence', 'gl_pidf', 'gl_reference', 'gl_routing', 'gl_savprof',
+  ],
+  /* phoneprov.conf's [general] section plus a named provisioning profile -- see
+   * CONTROL_BINDINGS.phoneprov above. pv_gensave saves the four [general] fields;
+   * pv_profile names the profile section; pv_load/pv_save are its own action pair. */
+  phoneprov: [
+    'pv_default', 'pv_addr', 'pv_iface', 'pv_port', 'pv_gensave',
+    'pv_profile', 'pv_load', 'pv_staticdir', 'pv_mimetype', 'pv_save',
   ],
   /* res_odbc.conf, extconfig.conf, sorcery.conf, res_pgsql.conf -- see the long comment
    * above CONTROL_BINDINGS.dbrealtime for which of these are bound and why the rest
