@@ -42,14 +42,35 @@ const RESTRICTED_PRESENTATION_LOCK_WORDS = [
   'lock', 'locked', 'lockout', 'clock',
   'unlock', 'unlockcontrols', 'unlockschoolmode', 'schoolunlockverdict',
 ];
+/* A third bucket, added when the right-click menu landed. `locks` reaches app.js only
+ * inside the string "per-element-toy-locks" -- this row's own id, quoted back in the
+ * reason the menu gives for the one command it can never run. A word scan cannot tell
+ * a citation of the gap from the arrival of the mechanism, so the property tests below
+ * carry that weight and this bucket exists purely so the scan stops reporting the
+ * citation as a finding. */
+const REGISTRY_ROW_LOCK_WORDS = ['locks'];
 
-test('every "lock"-shaped substring in app.js belongs either to unrelated wording or to the one page-level mode -- never to a per-element mechanism', () => {
+test('every "lock"-shaped substring in app.js belongs either to unrelated wording, to the one page-level mode, or to this row\'s own id -- never to a per-element mechanism', () => {
   const matches = [...app.matchAll(/\w*lock\w*/giu)].map((m) => m[0].toLowerCase());
   assert.ok(matches.length > 0, 'app.js no longer contains any "lock"-shaped substring at all, which would make the check below vacuous');
-  const allowed = [...UNRELATED_LOCK_WORDS, ...RESTRICTED_PRESENTATION_LOCK_WORDS];
+  const allowed = [...UNRELATED_LOCK_WORDS, ...RESTRICTED_PRESENTATION_LOCK_WORDS, ...REGISTRY_ROW_LOCK_WORDS];
   for (const word of matches) {
     assert.ok(allowed.includes(word), `an unexpected "lock"-shaped word "${word}" now appears in app.js -- a per-element lock mechanism may have been added`);
   }
+});
+
+test('the only "locks" in app.js is this row\'s own id, quoted inside the menu\'s reason -- not an identifier', () => {
+  /* The bucket above is only safe while that is true. If `locks` ever turns up as a
+   * variable, a property or a storage key, the scan would wave it through on the
+   * strength of a citation that no longer exists. */
+  /* Not `\w*locks\w*`: that pattern matches "blocks" too, and this file's first bucket is
+   * full of them. What is wanted is "locks" that is not the tail of a longer English word,
+   * which for this file means the one preceded by the hyphen in the row's own id. */
+  const occurrences = [...app.matchAll(/locks/gu)].filter((m) => !/[A-Za-z]/u.test(app[m.index - 1] ?? ''));
+  assert.ok(occurrences.length > 0, 'no standalone "locks" occurrence found at all, so this would pass vacuously');
+  const citations = [...app.matchAll(/per-element-toy-locks/gu)];
+  assert.equal(occurrences.length, citations.length,
+    `${occurrences.length} standalone "locks" occurrences but only ${citations.length} citations of the registry row -- one of them is something else`);
 });
 
 test('the site holds exactly one credential record, and it is keyed by nothing -- not by an element', () => {
@@ -68,10 +89,38 @@ test('the site holds exactly one credential record, and it is keyed by nothing -
     'a credential is now looked up by something -- a per-element lock may have been added');
 });
 
-test('no element offers a lock command of its own, and there is no menu to offer it from', () => {
-  assert.doesNotMatch(app, /Lock this element/iu, 'the canonical per-element lock command now exists');
-  assert.doesNotMatch(app, /contextmenu/iu,
-    'a context menu now exists -- the per-element lock command would be reachable from it, so re-derive this contract by hand');
+/**
+ * Re-derived by hand on 2026-08-26, exactly as the assertion this replaces asked the
+ * next person to do.
+ *
+ * A context menu now exists, and it does offer "Lock this element…" from every element's
+ * own menu -- because the canonical contract asks every menu for that item, and a menu
+ * that quietly left it out would look complete while being one item short. What it does
+ * NOT do is lock anything: the entry is permanently unavailable and its reason names
+ * this registry row.
+ *
+ * So the claim worth checking has moved. It is no longer "the command does not exist"
+ * -- it does. It is "the command can never run", which is a stronger property than the
+ * old absence and is the one that would break if somebody wired a real mechanism to it.
+ */
+test('the menu offers the canonical lock command and it can never run: no page, element or state can make it available', () => {
+  assert.match(app, /\{id:'lock-element',label:'Lock this element…',chord:null,kinds:'any',/u,
+    'the menu no longer offers the canonical per-element lock command at all');
+  /* Zero-argument, so it cannot consult anything. An `unavailable:ctx=>` here would mean
+   * some condition makes it available, and the whole claim would need re-deriving again. */
+  assert.match(app, /\{id:'lock-element'[\s\S]{0,120}?unavailable:\(\)=>'this site ships no per-element lock: per-element-toy-locks is recorded absent in site\/feature-registry\.json'/u,
+    'the lock entry no longer refuses unconditionally, or no longer names the registry row that records why');
+  assert.match(app, /\{id:'lock-element'[\s\S]{0,400}?run:\(\)=>\{\}\}/u,
+    'the lock entry now has a body -- something would happen if it could be activated');
+});
+
+test('an unavailable menu item cannot be activated, by click or by chord', () => {
+  /* The other half of the same claim. A permanently-unavailable entry is only honest
+   * while nothing will run it, and there are exactly two routes in. */
+  assert.match(app, /function activateContextMenuItem\(id\)\{[\s\S]{0,200}?if\(!item\|\|!item\.enabled\)return;/u,
+    'activating a menu item no longer refuses a disabled one');
+  assert.match(app, /function chordIsLive\(item,menuState\)\{\s*if\(!item\|\|!item\.enabled\)return false;/u,
+    'a shortcut no longer refuses to fire a disabled item');
 });
 
 test('there is no lock/unlock mechanism, no state.locks, and no wizard for it', () => {

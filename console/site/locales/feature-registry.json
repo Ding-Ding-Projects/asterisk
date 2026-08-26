@@ -9,6 +9,8 @@
   ],
   "knownCopyKeys": [
     "changelogDesc",
+    "contextMenuHint",
+    "contextMenuNoMatch",
     "dialogEmojisDesc",
     "displayNameDesc",
     "emptyDestinations",
@@ -313,11 +315,14 @@
       "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
     },
     "context-menu-shortcuts": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
-      "copyKeys": [],
+      "copyKeys": [
+        "contextMenuHint",
+        "contextMenuNoMatch"
+      ],
       "missingCopyKeys": [],
-      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+      "note": "COPY.contextMenuHint (the keyboard-route footer) and COPY.contextMenuNoMatch (the empty-filter state) each ship four English and four Cantonese variants, wired through copyText() and, for the footer, a data-copy hook so applyCopy() re-renders it on every language or funny-level change. Voice moves with the slider; the facts never do -- item labels, unavailability reasons, the result count and every printed chord are rendered from the action table and the platform rather than from COPY, so they are English at every level. That is deliberate: a shortcut is a key to press, and translating 'Alt+Shift+L' would be translating a fact."
     },
     "long-operation-progress": {
       "state": "localized",

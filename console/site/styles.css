@@ -295,8 +295,12 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
 .palette-result span{color:var(--muted);font-size:.76rem}
 .four-searches{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .four-searches label{display:flex;flex-direction:column;gap:5px}
-.context-menu{position:fixed;z-index:100;background:var(--surface-2);border:1px solid var(--outline-variant);border-radius:var(--radius);padding:8px;box-shadow:var(--shadow-2);max-width:min(370px,calc(100vw - 20px))}
-.context-menu>button{justify-content:space-between;width:100%;border-radius:var(--radius-sm)}
+/* A `.context-menu` rule and a `.context-menu>button` rule sat here from the site's first
+ * commit, styling a feature that never shipped -- nothing in any page or in app.js ever
+ * carried the class. They were removed when the real menu landed at the foot of this
+ * file, because two rules for one selector in one stylesheet is decided by source order
+ * rather than by anything a reader can see: an edit to the wrong one is a silent no-op,
+ * and the dead one styled a `>button` shape the real menu does not even use. */
 .toast-region{position:fixed;z-index:200;right:18px;bottom:18px;display:flex;flex-direction:column-reverse;gap:10px;width:min(400px,calc(100vw - 36px))}
 .toast{padding:16px;border-radius:var(--radius);background:var(--surface-3);border:1px solid var(--outline-variant);box-shadow:var(--shadow-2);display:flex;align-items:flex-start}
 .toast-text{flex:1 1 auto;min-width:0}
@@ -753,3 +757,35 @@ a.changelog-commit:hover,a.changelog-commit:focus-visible{color:var(--primary)}
 }
 .screens .shot figcaption strong { color: var(--md-sys-color-primary, #FFB224); }
 .screens .shot figcaption span { color: var(--md-sys-color-on-surface-variant, #A9B4C6); }
+
+/* ------------------------------------------------------------------
+ * The right-click menu.
+ *
+ * `position:fixed` because it is placed from viewport coordinates, and clamped in
+ * script rather than here -- CSS can keep a box inside the viewport but it cannot
+ * decide to flip a menu to the other side of the point it was opened from, and a
+ * `max-height` that is not paired with `overflow:auto` deletes whatever falls past
+ * it with no scrollbar to say anything is missing.
+ * ------------------------------------------------------------------ */
+.context-menu{position:fixed;z-index:150;width:min(var(--context-menu-width,320px),calc(100vw - 16px));display:flex;flex-direction:column;gap:8px;overflow:auto;padding:12px;border:1px solid var(--outline);border-radius:var(--radius);background:var(--surface-1);color:var(--on-surface);box-shadow:var(--shadow-2);transition:opacity .12s ease}
+.context-menu[hidden]{display:none}
+.context-menu-title{margin:0;font-size:.78rem;font-weight:700;color:var(--muted)}
+.context-menu-search-row{display:flex;gap:6px;align-items:stretch}
+.context-menu-search{flex:1 1 auto;min-width:0;padding:8px 10px;border:1px solid var(--outline-variant);border-radius:var(--radius-sm);background:var(--surface-0);color:var(--on-surface);font:inherit}
+.context-menu-regex{flex:0 0 auto;min-width:var(--touch);min-height:var(--touch);border:1px solid var(--outline-variant);border-radius:var(--radius-sm);background:var(--surface-2);color:var(--muted);font-family:var(--font-mono)}
+.context-menu-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.context-menu-item{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;min-height:var(--touch);padding:8px 10px;border-radius:var(--radius-sm);cursor:pointer}
+.context-menu-item:hover{background:var(--surface-2)}
+.context-menu-item[aria-selected="true"]{background:var(--surface-3);outline:2px solid var(--outline);outline-offset:-2px}
+.context-menu-item[aria-disabled="true"]{cursor:default;opacity:.72}
+.context-menu-item[aria-disabled="true"]:hover{background:transparent}
+.context-menu-label{grid-column:1;min-width:0}
+/* Right-aligned, in its own column, so a long label wraps rather than pushing the
+ * chord off the edge of the menu. */
+.context-menu-keys{grid-column:2;justify-self:end;white-space:nowrap;padding:2px 6px;border:1px solid var(--outline-variant);border-radius:5px;background:var(--surface-0);font-family:var(--font-mono);font-size:.72rem;color:var(--muted)}
+.context-menu-reason{grid-column:1 / -1;font-size:.72rem;line-height:1.4;color:var(--muted-2)}
+.context-menu-item.is-destructive .context-menu-label{color:var(--danger)}
+.context-menu-empty{padding:10px;font-size:.8rem;color:var(--muted)}
+.context-menu-count{margin:0;font-size:.72rem;color:var(--muted)}
+.context-menu-foot{margin:0;padding-top:6px;border-top:1px solid var(--outline-variant);font-size:.72rem;line-height:1.45;color:var(--muted-2)}
+@media(prefers-reduced-motion:reduce){.context-menu{transition:none}}
