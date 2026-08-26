@@ -60,6 +60,22 @@ test('every directory that holds tests is reached by the npm test chain', () => 
     'these directories hold tests that npm test never runs: ' + unreached.join(', '));
 });
 
+test('every deliberate red-then-green script is actually chained by npm test', () => {
+  /* The same failure one layer over: a `negative-*.mjs` that nothing runs gates nothing,
+   * and is worse than not having it, because a script that is assumed to be running is one
+   * nobody thinks to check. Derived from the filesystem for the same reason the directory
+   * walk above is -- a hand-written list cannot catch a script that was never added to it,
+   * which is exactly the failure this is here to stop. */
+  const scripts = readdirSync(resolve(root, 'scripts'))
+    .filter((entry) => entry.startsWith('negative-') && entry.endsWith('.mjs'))
+    .sort();
+  assert.ok(scripts.length > 0, 'no negative scripts were discovered, so this check would prove nothing');
+  const commands = chainedCommands();
+  const unreached = scripts.filter((entry) => !commands.includes('scripts/' + entry));
+  assert.deepEqual(unreached, [],
+    'these deliberate-break scripts are never run by npm test: ' + unreached.join(', '));
+});
+
 test('the discovery finds the directories it is supposed to, so it cannot pass by finding nothing', () => {
   /* A guard whose scan silently returns an empty set reports clean forever. These three
    * are named so that a rename which empties the walk fails here rather than passing. */

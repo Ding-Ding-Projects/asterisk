@@ -90,8 +90,14 @@ const BREAKS = [
   {
     name: 'the Voicemail screen stops appending the shortfall to its file summary',
     file: 'app/renderer/src/App.tsx',
-    find: '${this.endpointDetailNote(screen)}${this.droppedRowsNote(screen)}`;',
-    replace: '${this.endpointDetailNote(screen)}`;',
+    /* Anchored on the shortfall call alone rather than on the whole tail of the summary
+     * expression. That tail grew a third note when the media cache reading landed, so this
+     * break stopped matching -- caught, correctly, by this script's own "the text this break
+     * edits is not there any more" assertion rather than by quietly passing. Matching only
+     * the call the break is actually about stops it breaking again the next time a
+     * neighbouring note is added beside it. */
+    find: '${this.droppedRowsNote(screen)}',
+    replace: '',
     tests: [WIRED],
   },
   {

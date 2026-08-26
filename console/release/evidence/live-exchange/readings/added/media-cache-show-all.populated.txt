@@ -1,0 +1,7 @@
+URI
+	Local File
+---------------
+http://127.0.0.1:18080/probe.gsm        
+	/var/cache/asterisk/bucket-HDzQa1.gsm   
+http://127.0.0.1:18080/a-deliberately-long-path-that-overruns-forty-columns.gsm
+	/var/cache/asterisk/bucket-OMdQWL.gsm   

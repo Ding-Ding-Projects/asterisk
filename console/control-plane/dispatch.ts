@@ -18,7 +18,7 @@ import { AsteriskService } from './asterisk-service.js';
 import {
   parseVoicemailUsers, parseVoicemailZones, parseConfbridgeList, parseMohClasses, parseCodecs,
   parseTranslations, parseAclRules, parseManagerSettings, parseManagerUsers, parseAriApps,
-  parseCdrStatus, parseLoggerChannels, parseSysinfo, parseUptime,
+  parseCdrStatus, parseLoggerChannels, parseSysinfo, parseUptime, parseMediaCacheItems,
 } from './asterisk-parsers.js';
 import { planDeployment, runDeployment, type DeployTarget } from './console-deploy.js';
 import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory, MediaLibrary, LocalHistory } from './index.js';
@@ -247,7 +247,20 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       return { voicemailUsers: users, voicemailZones: zones };
     }
     if (view === 'confbridge') return { rooms: await read('confbridge list', parseConfbridgeList) };
-    if (view === 'moh') return { mohClasses: await read('moh show classes', parseMohClasses) };
+    if (view === 'moh') {
+      /* The Music on Hold destination is this console's one media surface -- its feature
+       * record (`app/renderer/src/pbx-admin-model.ts`, `moh-settings`) declares
+       * `tools: ['config', 'media']` -- so the target's media cache is read here beside the
+       * classes. The two are genuinely different things and the screen says so: a class
+       * names a directory an operator put files in, while a cache item is something
+       * Asterisk fetched from a URI at run time and stored itself. Either reading can fail
+       * without costing the other, so they are read together and reported apart. */
+      const [mohClasses, mediaCacheItems] = await Promise.all([
+        read('moh show classes', parseMohClasses),
+        read('media cache show all', parseMediaCacheItems),
+      ]);
+      return { mohClasses, mediaCacheItems };
+    }
     if (view === 'codecs') {
       const [codecs, translations] = await Promise.all([
         read('core show codecs', parseCodecs),

@@ -43,6 +43,10 @@ export interface ModuleSummary { name: string; description: string; useCount: nu
 export interface VoicemailUser { context: string; mailbox: string; fullName: string; zone: string; newMessages?: number }
 export interface ConfbridgeConference { name: string; users: number; marked: number; locked: boolean; muted: boolean }
 export interface MohClass { name: string; mode?: string; directory?: string }
+/** One item of `media cache show all` -- see `control-plane/asterisk-parsers.ts`
+ *  `parseMediaCacheItems` for the exact format string. A cache item is media Asterisk
+ *  fetched from a URI itself, which is not the same thing as a music-on-hold directory. */
+export interface MediaCacheItem { uri: string; localFile?: string }
 export interface ManagerUser { username: string }
 export interface AriApp { name: string }
 /** `cdr show status` (`main/cdr.c` `handle_cli_status`) -- see
@@ -77,6 +81,9 @@ export interface ViewReadings {
   voicemailZones?: Reading<unknown>;
   rooms?: Reading<ConfbridgeConference[]>;
   mohClasses?: Reading<MohClass[]>;
+  /** `media cache show all`, read for the `moh` view beside the classes -- see
+   *  `mediaCacheNote` below for why it becomes a sentence rather than rows in that table. */
+  mediaCacheItems?: Reading<{ items: MediaCacheItem[]; dropped: string[] }>;
   /** `total` is the target's own trailer count; `parseManagerUsers` cannot name the line
    *  it lost, so it has no `dropped` list and the count is the whole signal. */
   managerUsers?: Reading<{ users: ManagerUser[]; total?: number }>;
@@ -227,6 +234,49 @@ function quotedDroppedLines(dropped: string[]): string {
     .map((line) => `"${line.trim().replace(/\s+/gu, ' ')}"`)
     .join('; ');
   return ` The ${dropped.length === 1 ? 'line' : 'lines'} it could not read: ${shown}${dropped.length > QUOTED_DROPPED_LINES ? ', …' : ''}.`;
+}
+
+/** How many cache items a note names before it stops counting them out. */
+const QUOTED_CACHE_ITEMS = 5;
+
+/**
+ * What the Music on Hold screen says about the target's media cache.
+ *
+ * It is a sentence and not rows, deliberately. That screen's table is
+ * `musiconhold.conf`'s classes -- its columns are Class, Mode, Source and Tracks -- and a
+ * media cache item is none of those. Putting `http://…/hold.gsm` under a column headed
+ * Class would claim `musiconhold.conf` names it, which nothing has read and which is not
+ * true: a cache item is something Asterisk fetched at run time because a dialplan asked it
+ * to play a URI. Real-looking content under a label it does not belong to is the same
+ * defect as the sample rows this console removed.
+ *
+ * Never silent. An empty cache and an unread cache are different facts and the screen must
+ * not render them the same way, which is the whole reason the reading exists rather than
+ * the screen simply not mentioning it.
+ */
+export function mediaCacheNote(reading: ViewReadings['mediaCacheItems']): string {
+  if (!reading) return '';
+  if (reading.result.state === 'unavailable') {
+    return `This target's media cache could not be read: ${reading.result.reason}`;
+  }
+  const value = reading.result.value;
+  if (!value) return '';
+  const { items, dropped } = value;
+  /* `media cache show all` prints no trailer count, so unlike the voicemail and manager
+   * readings there is no total to measure a shortfall against -- `dropped` is the only
+   * signal available and it counts lines this parser refused, not rows the target has. */
+  const declined = dropped.length === 0
+    ? ''
+    : ` ${dropped.length} further line(s) of that listing could not be read: ${dropped.slice(0, QUOTED_CACHE_ITEMS).map((line) => `"${line.trim().replace(/\s+/gu, ' ')}"`).join('; ')}${dropped.length > QUOTED_CACHE_ITEMS ? ', …' : ''}.`;
+
+  if (items.length === 0) {
+    return `This target's media cache is empty: \`media cache show all\` lists media Asterisk fetched from a URI itself and stored locally, and it has fetched none. That is a separate thing from the music-on-hold classes below, which name directories on the target.${declined}`;
+  }
+  const named = items
+    .slice(0, QUOTED_CACHE_ITEMS)
+    .map((item) => `${item.uri} → ${item.localFile ?? NOT_READ}`)
+    .join('; ');
+  return `${items.length} item(s) in this target's media cache, from \`media cache show all\` — media Asterisk fetched from a URI itself, not the music-on-hold classes below: ${named}${items.length > QUOTED_CACHE_ITEMS ? ', …' : ''}.${declined}`;
 }
 
 /** The exact reason a screen has no rows, or an empty string when it does. */

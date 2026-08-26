@@ -94,6 +94,7 @@ import {
   parseLoggerChannels,
   parseManagerSettings,
   parseManagerUsers,
+  parseMediaCacheItems,
   parseMohClasses,
   parseSysinfo,
   parseTranslations,
@@ -110,6 +111,103 @@ export const CAPTURE_DIRECTORY = join(EVIDENCE_DIRECTORY, 'readings');
 
 /** The endpoint the fixture creates, and the id `pjsip show endpoint <id>` is run for. */
 export const FIXTURE_ENDPOINT = 'ding-live-probe';
+
+/** Where `--capture-added` writes, kept apart from the phase directories on purpose. */
+export const ADDED_CAPTURE_PREFIX = 'added';
+
+/**
+ * Commands allowlisted **after** the fixture-and-restore run this ledger's phases record.
+ *
+ * This exists because `checkLedger` requires every allowlisted command to have a capture,
+ * which is right: a command added to the allowlist later is a command nothing has ever run
+ * against a target, and without that requirement the ledger's headline count would go on
+ * claiming all of them were covered. But the requirement has only two honest answers, and
+ * "re-run the whole fixture cycle" is not always one of them -- so this is the other:
+ * a command gets its own run, its own captures and its own provenance, recorded separately
+ * rather than backdated into a phase it was never part of. Writing today's bytes into
+ * `phases.baseline` would claim they came from that commit, that exchange and that
+ * fixture, and they did not.
+ *
+ * It is not an escape hatch. `--check` still requires each entry to have a committed
+ * capture that hashes to what was recorded and re-parses to the recorded digest, and it
+ * **fails** on an entry naming a command no longer in the allowlist, so a stale row cannot
+ * sit here quietly satisfying a coverage check for a command that no longer exists.
+ *
+ * `populate` and `restore` are what make a capture worth having. A command run against an
+ * empty subsystem proves the command runs and proves nothing about the parser -- the same
+ * reason the main run wrote a fixture -- so an entry that can populate its subsystem does,
+ * captures it, and puts it back. `restoreProof` is checked by `--capture-added` itself: the
+ * bytes after the restore must equal the bytes before the populate.
+ */
+export const COMMANDS_ALLOWLISTED_AFTER_THE_RUN = [
+  {
+    command: 'media cache show all',
+    parser: parseMediaCacheItems,
+    /* `slug()` would give the same string; naming it means the committed path cannot move
+     * silently when a slug rule changes. */
+    slug: 'media-cache-show-all',
+    reason:
+      'The allowlist previously carried the bare `media cache show`, which is the singular CLI entry (`main/media_cache.c` line 528) and refuses any argc but 4, so it could only ever answer with its usage line. `media cache show all` (line 477) is the container listing that actually produces a reading, and it replaced it.',
+    unpopulatedIs:
+      'the header and separator with no items: this target has fetched nothing, which is the empty state the Music on Hold screen has to be able to tell apart from an unread one',
+    /**
+     * The media cache cannot be populated by writing a configuration file -- it holds what
+     * Asterisk fetched at run time, so it is filled the way a running Asterisk fills it, by
+     * retrieving a URI. `media cache create` is not a route: it needs the scheme backend to
+     * implement a create wizard, and `res_http_media_cache` implements only retrieval, so
+     * on this target it answers `Unable to create '<uri>' associated with local file '<f>'`.
+     *
+     * Two URIs, deliberately: one comfortably inside the format's 40-column pad and one at
+     * 78 characters, well past it. `%-40s` has no precision, so it pads and never truncates,
+     * and that is the property the parser depends on -- an unpadded long line beside a
+     * padded short one is what proves it rather than asserts it.
+     */
+    populate: async ({ shell, distribution }) => {
+      const server = [
+        "use strict; use warnings; use IO::Socket::INET;",
+        "my $body = do { local $/; open my $fh, '<:raw', '/var/lib/asterisk/sounds/en/activated.gsm' or die $!; <$fh> };",
+        "my $srv = IO::Socket::INET->new(LocalAddr=>'127.0.0.1', LocalPort=>18080, Listen=>8, ReuseAddr=>1, Proto=>'tcp') or die $!;",
+        "while (my $c = $srv->accept) {",
+        "  while (my $l = <$c>) { last if $l =~ /^\\r?\\n$/ }",
+        "  print $c \"HTTP/1.1 200 OK\\r\\nContent-Type: audio/gsm\\r\\nContent-Length: \" . length($body) . \"\\r\\nConnection: close\\r\\n\\r\\n\";",
+        "  print $c $body; close $c;",
+        "}",
+      ].join('\n');
+      /* Base64, because `$name` does not survive the trip. Something between `spawn` and the
+       * Linux side of `wsl.exe` expands a `$`-sigil identifier and replaces it with nothing:
+       * measured, with `shell: false` on the Node side and the payload inside a *quoted*
+       * heredoc on the shell side, which should make expansion impossible at both ends and
+       * does not. `my $body = 1; my $fh; local $/;` arrives as `my  = 1; my ; local $/;` --
+       * `$/` survives only because it is not an identifier. Nothing reports it: the file is
+       * written, the shell exits 0, and the failure surfaces much later as a perl syntax
+       * error nobody is looking at. Base64 has no `$` in it, so no layer can find one. */
+      const payload = Buffer.from(`${server}\n`, 'utf8').toString('base64');
+      await shell(`printf %s ${payload} | base64 -d > /tmp/ding-media-probe.pl`);
+      await shell('nohup perl /tmp/ding-media-probe.pl >/dev/null 2>&1 & sleep 1');
+      for (const uri of MEDIA_CACHE_PROBE_URIS) {
+        await shell(`asterisk -rx "media cache refresh ${uri}"`);
+      }
+      return { distribution, probes: MEDIA_CACHE_PROBE_URIS };
+    },
+    restore: async ({ shell }) => {
+      for (const uri of MEDIA_CACHE_PROBE_URIS) {
+        await shell(`asterisk -rx "media cache delete ${uri}"`);
+      }
+      /* Matched on the interpreter and the full script path rather than on the bare script
+       * name. `pkill -f ding-media-probe` matches the `sh -c` process running this very
+       * command, kills the shell mid-list, and leaves the `rm` below unrun -- measured, and
+       * it is why the two probe files survived the first attempt at this cleanup. */
+      await shell("pkill -f '^perl /tmp/ding-media-probe[.]pl$' || true");
+      await shell('rm -f /tmp/ding-media-probe.pl');
+    },
+  },
+];
+
+/** The URIs `--capture-added` asks the target to fetch, and then deletes again. */
+export const MEDIA_CACHE_PROBE_URIS = [
+  'http://127.0.0.1:18080/probe.gsm',
+  'http://127.0.0.1:18080/a-deliberately-long-path-that-overruns-forty-columns.gsm',
+];
 
 /**
  * Every reading the product takes, and the exact production wiring each one comes from.
@@ -218,6 +316,108 @@ export function parserNameOf(reading) {
 // ---------------------------------------------------------------- check
 
 /**
+ * Verifies the commands allowlisted after the recorded run, and returns the set of command
+ * lines they cover so the per-phase coverage check can stop asking for a capture that was
+ * never going to exist in that phase.
+ *
+ * Everything a phase capture must satisfy, one of these must satisfy too: a committed file,
+ * a hash that still matches its bytes, and a parse that still produces the recorded digest.
+ * On top of that it must name a command the allowlist still carries and say why it is here,
+ * because the failure this whole mechanism could otherwise introduce is a row that goes on
+ * covering a command nobody runs.
+ *
+ * Deliberately returns an empty set when the ledger has no such section at all: a ledger
+ * whose every allowlisted command was in its phases needs none, and requiring the key would
+ * fail a ledger that is simply complete.
+ */
+export function checkAddedCommands(ledger, readCapture, problems) {
+  const covered = new Set();
+  const records = ledger.commandsAllowlistedAfterThisRun;
+  if (records === undefined) return covered;
+  if (!Array.isArray(records)) {
+    problems.push('commandsAllowlistedAfterThisRun is present but is not a list.');
+    return covered;
+  }
+
+  const allowlisted = new Set(READ_ONLY_COMMANDS);
+  const declared = new Map(COMMANDS_ALLOWLISTED_AFTER_THE_RUN.map((entry) => [entry.command, entry]));
+
+  for (const record of records) {
+    const where = `commandsAllowlistedAfterThisRun[${record.command ?? '?'}]`;
+    if (typeof record.command !== 'string') {
+      problems.push(`${where}: names no command.`);
+      continue;
+    }
+    /* A row for a command the allowlist no longer carries is the one way this section could
+     * quietly become a hole: it would keep satisfying nothing while looking like evidence. */
+    if (!allowlisted.has(record.command)) {
+      problems.push(`${where}: records a command that is no longer in the allowlist.`);
+      continue;
+    }
+    const entry = declared.get(record.command);
+    if (!entry) {
+      problems.push(`${where}: is not declared in COMMANDS_ALLOWLISTED_AFTER_THE_RUN, so nothing says why it is recorded apart from the phases.`);
+      continue;
+    }
+    if (typeof record.reason !== 'string' || record.reason.trim().length === 0) {
+      problems.push(`${where}: records no reason for being allowlisted after the run.`);
+      continue;
+    }
+    if (typeof record.runFromCommit !== 'string' || record.runFromCommit.length === 0) {
+      problems.push(`${where}: does not say which commit it was run from.`);
+      continue;
+    }
+
+    let anyCapture = false;
+    for (const state of ['unpopulated', 'populated', 'afterRestore']) {
+      const capture = record.captures?.[state];
+      if (capture === undefined) continue;
+      anyCapture = true;
+      let text;
+      try {
+        text = readCapture(capture.path);
+      } catch {
+        problems.push(`${where}: the capture ${capture.path} for its ${state} state is missing.`);
+        continue;
+      }
+      const actual = sha256(text);
+      if (actual !== capture.stdoutSha256) {
+        problems.push(`${where}: ${capture.path} hashes ${actual}, recorded ${capture.stdoutSha256}.`);
+        continue;
+      }
+      if (capture.parsedSha256 !== undefined) {
+        const digest = sha256(canonical(entry.parser(text)));
+        if (digest !== capture.parsedSha256) {
+          problems.push(`${where}: ${entry.parser.name} over ${capture.path} now digests ${digest}, recorded ${capture.parsedSha256}.`);
+        }
+      }
+    }
+    if (!anyCapture) {
+      problems.push(`${where}: records no capture at all, so nothing here was ever run against a target.`);
+      continue;
+    }
+
+    /* The restore is proved from the committed bytes rather than from the run's own word for
+     * it: the state after the restore must hash to the state before the populate. */
+    if (record.captures?.populated && record.captures?.afterRestore) {
+      if (record.captures.afterRestore.stdoutSha256 !== record.captures.unpopulated?.stdoutSha256) {
+        problems.push(`${where}: the capture taken after the restore does not hash to the one taken before the populate, so the subsystem was not put back.`);
+      }
+    }
+    covered.add(record.command);
+  }
+
+  /* A declared entry with no record is a command someone meant to run and did not. */
+  for (const entry of COMMANDS_ALLOWLISTED_AFTER_THE_RUN) {
+    if (!records.some((record) => record.command === entry.command)) {
+      problems.push(`commandsAllowlistedAfterThisRun: \`${entry.command}\` is declared in COMMANDS_ALLOWLISTED_AFTER_THE_RUN but the ledger records no run of it.`);
+    }
+  }
+
+  return covered;
+}
+
+/**
  * Re-derives the ledger's parse half from the committed captures.
  *
  * Returns a list of problems rather than throwing on the first, so one run says everything
@@ -227,6 +427,8 @@ export function checkLedger(ledger, readCapture) {
   const problems = [];
   const phases = Object.entries(ledger.phases ?? {});
   if (phases.length === 0) problems.push('The ledger records no phases at all.');
+
+  const addedCommands = checkAddedCommands(ledger, readCapture, problems);
 
   for (const [phaseName, phase] of phases) {
     const captureFor = new Map();
@@ -260,7 +462,12 @@ export function checkLedger(ledger, readCapture) {
      * headline count would otherwise keep saying every one of them was covered. */
     const recorded = new Set((phase.commands ?? []).map((record) => record.command));
     for (const command of READ_ONLY_COMMANDS) {
-      if (!recorded.has(command)) problems.push(`${phaseName}: the allowlisted command \`${command}\` has no capture.`);
+      if (recorded.has(command)) continue;
+      /* Covered by its own run instead -- see `COMMANDS_ALLOWLISTED_AFTER_THE_RUN`. The
+       * records themselves are checked once, below, rather than once per phase, because
+       * they belong to no phase; what happens here is only that they satisfy coverage. */
+      if (addedCommands.has(command)) continue;
+      problems.push(`${phaseName}: the allowlisted command \`${command}\` has no capture.`);
     }
 
     for (const record of phase.readings ?? []) {
@@ -599,12 +806,127 @@ async function main() {
     console.log(`live-readings --reparse: ${changes.length} field(s) re-derived from committed captures; wrote ${LEDGER_PATH}`);
     return;
   }
+  if (argv.includes('--capture-added')) {
+    await captureAdded(argv);
+    return;
+  }
   if (!argv.includes('--capture')) {
-    console.error('Usage: live-readings.mjs --check | --reparse | --capture [--distribution=NAME]');
+    console.error('Usage: live-readings.mjs --check | --reparse | --capture | --capture-added [--distribution=NAME]');
     process.exitCode = 2;
     return;
   }
   await capture(argv);
+}
+
+/**
+ * Runs every command in `COMMANDS_ALLOWLISTED_AFTER_THE_RUN` against a target, populates and
+ * restores whatever subsystem each one reads, and writes the result into the ledger's
+ * `commandsAllowlistedAfterThisRun` section.
+ *
+ * It touches nothing else in the ledger. The phases, the fixture, the restore and every
+ * production-reader result stay exactly as the run that produced them recorded, because this
+ * is a different run against a different exchange state and merging the two would describe a
+ * run that never happened.
+ */
+async function captureAdded(argv) {
+  const { NodeProcessExecutor } = await import('../control-plane/executor.js');
+  const named = argv.find((argument) => argument.startsWith('--distribution='));
+  const distribution = named ? named.slice('--distribution='.length) : 'ding-pbx-console';
+  const target = { id: 'live', displayName: distribution, connectionKind: 'wsl', wslDistribution: distribution };
+  const executor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe'] });
+  const gateway = new LocalAsteriskCliGateway(executor);
+
+  /* The populate and restore steps are not production paths and are not pretending to be:
+   * this console has no way to put a file into a target's media cache, which is the whole
+   * reason the subsystem needs filling by hand before a capture of it is worth anything.
+   * The command being captured still goes through the gateway. */
+  const shell = async (script) => {
+    const result = await executor.execute({
+      executable: 'wsl.exe',
+      args: ['-d', distribution, '--', 'sh', '-c', script],
+      timeoutMs: 60_000,
+    });
+    return result.stdout;
+  };
+
+  const version = (await gateway.run(target, 'core show version')).stdout.trim();
+  const runFromCommit = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: CONSOLE_ROOT, encoding: 'utf8' }).stdout.trim();
+  console.log(`target: ${distribution} -- ${version}`);
+
+  mkdirSync(join(CAPTURE_DIRECTORY, ADDED_CAPTURE_PREFIX), { recursive: true });
+
+  const records = [];
+  for (const entry of COMMANDS_ALLOWLISTED_AFTER_THE_RUN) {
+    const take = async (state) => {
+      const result = await gateway.run(target, entry.command);
+      const relative = `${ADDED_CAPTURE_PREFIX}/${entry.slug}.${state}.txt`;
+      writeFileSync(join(CAPTURE_DIRECTORY, relative), result.stdout, 'utf8');
+      const parsed = entry.parser(result.stdout);
+      /* Both shapes, because a parser here returns either a bare array of rows or a result
+       * object carrying them beside what it refused. Reading only `.items` would record no
+       * count at all for the first kind, which reads as "no rows" rather than "nobody
+       * counted" -- and a zero nobody measured is exactly the sort of number this ledger
+       * exists to keep out. */
+      const rows = Array.isArray(parsed) ? parsed.length : parsed?.items?.length;
+      return {
+        path: relative,
+        status: result.status,
+        exitCode: result.exitCode,
+        outcome: classify(result.stdout),
+        stdoutLength: result.stdout.length,
+        stdoutSha256: sha256(result.stdout),
+        redactedMarkers: (result.stdout.match(/\[REDACTED\]/gu) ?? []).length,
+        parsedSha256: sha256(canonical(parsed)),
+        rows,
+      };
+    };
+
+    const captures = { unpopulated: await take('unpopulated') };
+    let populated;
+    if (entry.populate) {
+      populated = await entry.populate({ shell, distribution });
+      captures.populated = await take('populated');
+      /* A populate that changed nothing has to fail here, loudly, and this assertion exists
+       * because its absence already cost a run. The first `--capture-added` wrote three
+       * identical captures of an empty listing: the perl source had been silently mangled in
+       * transit, every `media cache refresh` answered `Unable to refresh`, and the restore
+       * proof below *passed* -- because after-restore trivially equals before-populate when
+       * the populate did nothing at all. Three green captures, a satisfied restore proof, and
+       * no rows anywhere. A proof whose condition cannot be violated is not a proof. */
+      if (captures.populated.stdoutSha256 === captures.unpopulated.stdoutSha256) {
+        throw new Error(`${entry.command}: the populate step changed nothing -- the populated capture is byte-identical to the unpopulated one, so there is no populated state to verify a parser against.`);
+      }
+      await entry.restore({ shell, distribution });
+      captures.afterRestore = await take('after-restore');
+    }
+    /* Proved here as well as in `--check`, so a run that failed to put the target back says
+     * so at the moment it happened rather than leaving it for a later reader to notice. */
+    const restored = captures.afterRestore === undefined
+      || captures.afterRestore.stdoutSha256 === captures.unpopulated.stdoutSha256;
+    if (!restored) {
+      throw new Error(`${entry.command}: the target was not put back -- after-restore hashes ${captures.afterRestore.stdoutSha256}, before ${captures.unpopulated.stdoutSha256}`);
+    }
+    records.push({
+      command: entry.command,
+      parser: entry.parser.name,
+      reason: entry.reason,
+      unpopulatedIs: entry.unpopulatedIs,
+      populatedBy: populated ?? null,
+      restored,
+      ranAt: new Date().toISOString(),
+      runFromCommit,
+      exchange: { distribution, version },
+      gateway: 'LocalAsteriskCliGateway over NodeProcessExecutor -- the production read path, not a re-implementation',
+      notFromThePhaseRun: 'These bytes are a separate run against a separate exchange state. The phases, fixture, restore and production-reader records above are untouched by it.',
+      captures,
+    });
+    console.log(`  ${entry.command}: ${Object.keys(captures).join(', ')}${restored ? '' : ' -- NOT RESTORED'}`);
+  }
+
+  const ledger = JSON.parse(readFileSync(LEDGER_PATH, 'utf8'));
+  ledger.commandsAllowlistedAfterThisRun = records;
+  writeFileSync(LEDGER_PATH, `${JSON.stringify(ledger, undefined, 2)}\n`, 'utf8');
+  console.log(`live-readings --capture-added: ${records.length} command(s); wrote ${LEDGER_PATH}`);
 }
 
 async function capture(argv) {

@@ -7352,5 +7352,64 @@
     "Four readings cannot be populated from configuration at all -- see `notPopulatable` on each. Their zero rows are the target being truthful, not the parser failing.",
     "Nothing here writes to an exchange anybody depends on. The target is a distribution this console created and may destroy.",
     "The executor redacts stdout before returning it, so a capture is what the console sees rather than what Asterisk printed. `redactedMarkers` counts where that happened."
+  ],
+  "commandsAllowlistedAfterThisRun": [
+    {
+      "command": "media cache show all",
+      "parser": "parseMediaCacheItems",
+      "reason": "The allowlist previously carried the bare `media cache show`, which is the singular CLI entry (`main/media_cache.c` line 528) and refuses any argc but 4, so it could only ever answer with its usage line. `media cache show all` (line 477) is the container listing that actually produces a reading, and it replaced it.",
+      "unpopulatedIs": "the header and separator with no items: this target has fetched nothing, which is the empty state the Music on Hold screen has to be able to tell apart from an unread one",
+      "populatedBy": {
+        "distribution": "ding-pbx-console",
+        "probes": [
+          "http://127.0.0.1:18080/probe.gsm",
+          "http://127.0.0.1:18080/a-deliberately-long-path-that-overruns-forty-columns.gsm"
+        ]
+      },
+      "restored": true,
+      "ranAt": "2026-08-26T05:40:51.401Z",
+      "runFromCommit": "779589df1adb53f0153720bd4f531dd63e1c9f99",
+      "exchange": {
+        "distribution": "ding-pbx-console",
+        "version": "Asterisk UNKNOWN__and_probably_unsupported built by root @ buildkitsandbox on a x86_64 running Linux on 2026-08-25 03:43:18 UTC"
+      },
+      "gateway": "LocalAsteriskCliGateway over NodeProcessExecutor -- the production read path, not a re-implementation",
+      "notFromThePhaseRun": "These bytes are a separate run against a separate exchange state. The phases, fixture, restore and production-reader records above are untouched by it.",
+      "captures": {
+        "unpopulated": {
+          "path": "added/media-cache-show-all.unpopulated.txt",
+          "status": "succeeded",
+          "exitCode": 0,
+          "outcome": "read",
+          "stdoutLength": 32,
+          "stdoutSha256": "623a5762842f4d00c1417d894c9fb49310703fa164d566e0d53aa66ee3afbc12",
+          "redactedMarkers": 0,
+          "parsedSha256": "8fab07887e55c7a162e588c5c568fb268adec0d01e6c745fd45b9d0d69f646cc",
+          "rows": 0
+        },
+        "populated": {
+          "path": "added/media-cache-show-all.populated.txt",
+          "status": "succeeded",
+          "exitCode": 0,
+          "outcome": "read",
+          "stdoutLength": 237,
+          "stdoutSha256": "ebd4a96ca5159fe512c53399784c17cfc693a47e7452b1d5ec54b43096f9c9fb",
+          "redactedMarkers": 0,
+          "parsedSha256": "d0764246d826dd330d2179aadf54067d86bd0af80106e3f4c3a950718a879c45",
+          "rows": 2
+        },
+        "afterRestore": {
+          "path": "added/media-cache-show-all.after-restore.txt",
+          "status": "succeeded",
+          "exitCode": 0,
+          "outcome": "read",
+          "stdoutLength": 32,
+          "stdoutSha256": "623a5762842f4d00c1417d894c9fb49310703fa164d566e0d53aa66ee3afbc12",
+          "redactedMarkers": 0,
+          "parsedSha256": "8fab07887e55c7a162e588c5c568fb268adec0d01e6c745fd45b9d0d69f646cc",
+          "rows": 0
+        }
+      }
+    }
   ]
 }

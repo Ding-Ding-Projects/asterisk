@@ -15,6 +15,7 @@ import test from 'node:test';
 
 import {
   CAPTURE_DIRECTORY,
+  COMMANDS_ALLOWLISTED_AFTER_THE_RUN,
   LEDGER_PATH,
   MOVES_BETWEEN_READS,
   NOT_POPULATABLE,
@@ -35,8 +36,22 @@ import * as readingsModule from '../../control-plane/asterisk-readings.js';
 
 const ledger = JSON.parse(readFileSync(LEDGER_PATH, 'utf8'));
 
+/**
+ * Every parser this ledger exercises, from either table.
+ *
+ * `READINGS` covers the fixture-and-restore run; `COMMANDS_ALLOWLISTED_AFTER_THE_RUN` covers
+ * commands allowlisted since, which get their own run and their own captures rather than
+ * being backdated into a phase they were never part of. A parser exercised by the second is
+ * genuinely exercised, and these guards mean "is this parser exercised by anything in this
+ * ledger" -- not "is it in the first table", which would be a claim about bookkeeping.
+ */
+const exercisedParsers = () => new Set([
+  ...READINGS.map((reading) => reading.parser.name),
+  ...COMMANDS_ALLOWLISTED_AFTER_THE_RUN.map((entry) => entry.parser.name),
+]);
+
 test('every parser the product exports is exercised by a reading', () => {
-  const exercised = new Set(READINGS.map((reading) => reading.parser.name));
+  const exercised = exercisedParsers();
   const exported = Object.entries(parsers)
     .filter(([name, value]) => name.startsWith('parse') && typeof value === 'function')
     .map(([name]) => name);
@@ -48,7 +63,7 @@ test('every parser the product exports is exercised by a reading', () => {
 test('every gateway-backed reading parser is exercised too', () => {
   /* `asterisk-readings.ts` exports its own parsers beside the class. They are the ones a
    * discovery-only sweep of `asterisk-parsers.ts` alone would miss entirely. */
-  const exercised = new Set(READINGS.map((reading) => reading.parser.name));
+  const exercised = exercisedParsers();
   const exported = Object.entries(readingsModule)
     .filter(([name, value]) => name.startsWith('parse') && typeof value === 'function')
     .map(([name]) => name);
@@ -77,12 +92,32 @@ test('every reading declares how a row is counted and what a row is', () => {
 test('the ledger covers every allowlisted command in both phases', () => {
   const phases = Object.keys(ledger.phases);
   assert.deepEqual(phases, ['baseline', 'populated']);
+  /* A command allowlisted after this run was never in either phase and cannot be, so it is
+   * covered by its own record instead -- with its own captures, its own commit and its own
+   * exchange state, checked exactly as a phase capture is. Read as a set, not as a licence:
+   * `checkAddedCommands` refuses a row that names a command the allowlist no longer carries,
+   * one with no reason, one with no commit and one with no capture at all, so a command
+   * cannot reach this set without a real committed run behind it. */
+  const separately = new Set(
+    (ledger.commandsAllowlistedAfterThisRun ?? []).map((record) => record.command),
+  );
   for (const name of phases) {
     const recorded = new Set(ledger.phases[name].commands.map((record) => record.command));
     for (const command of READ_ONLY_COMMANDS) {
-      assert.ok(recorded.has(command), `${name} has no record for \`${command}\``);
+      assert.ok(recorded.has(command) || separately.has(command),
+        `${name} has no record for \`${command}\`, and neither has commandsAllowlistedAfterThisRun`);
     }
   }
+});
+
+test('the separately-run commands are exactly the ones missing from the phases', () => {
+  /* The check above would still pass if the added section grew rows for commands that are
+   * perfectly well covered by the phases, which would let a real gap hide behind a pile of
+   * redundant ones. Both directions are asserted here instead. */
+  const inPhases = new Set(ledger.phases.baseline.commands.map((record) => record.command));
+  const separately = (ledger.commandsAllowlistedAfterThisRun ?? []).map((record) => record.command);
+  const missingFromPhases = READ_ONLY_COMMANDS.filter((command) => !inPhases.has(command));
+  assert.deepEqual([...separately].sort(), [...missingFromPhases].sort());
 });
 
 test('every capture the ledger names is on disk and hashes to what was recorded', () => {
@@ -103,6 +138,14 @@ test('no capture on disk is orphaned by the ledger', () => {
   const named = new Set();
   for (const phase of Object.values(ledger.phases)) {
     for (const record of phase.commands) if (record.capture) named.add(record.capture.replace(/\\/gu, '/'));
+  }
+  /* The separately-run commands keep their captures under `added/`, and they are named by
+   * their own records rather than by a phase -- so they are not orphans. Each is still
+   * hashed and re-parsed by `checkLedger`, exactly as a phase capture is. */
+  for (const record of ledger.commandsAllowlistedAfterThisRun ?? []) {
+    for (const capture of Object.values(record.captures ?? {})) {
+      if (capture?.path) named.add(capture.path.replace(/\\/gu, '/'));
+    }
   }
   const onDisk = capturesOnDisk();
   assert.ok(onDisk.length > 0, 'no captures were found on disk, so this asserted nothing');

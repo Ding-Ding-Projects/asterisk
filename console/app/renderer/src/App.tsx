@@ -2,7 +2,8 @@ import type { Component, ReactNode } from 'react';
 import ConsoleShell, { APPEAR_GROUPS, ONBOARD, ORDER, SCREENS } from './generated/console';
 import { h } from './dc-runtime';
 import {
-  badgeFor, dashboardStats, droppedRowNote, formatDuration, healthBars, isReadable, reasonFor,
+  badgeFor, dashboardStats, droppedRowNote, formatDuration, healthBars, isReadable,
+  mediaCacheNote, reasonFor,
   regexMatchLabel, rowsFor, serverRows, valueOf,
   type ViewReadings,
 } from './readings';
@@ -6317,7 +6318,7 @@ It is shown once. The far end needs it to register.`);
        * failures reported at the bottom of this method never reach it. `endpoints` is one
        * of those screens and also reads per-endpoint detail, so a failed detail read would
        * otherwise leave two silently empty columns with nothing anywhere saying why. */
-      const summary = `${configSummary(this.configs[screen], this.target.connected)}${this.endpointDetailNote(screen)}${this.droppedRowsNote(screen)}`;
+      const summary = `${configSummary(this.configs[screen], this.target.connected)}${this.endpointDetailNote(screen)}${this.droppedRowsNote(screen)}${this.mediaCacheSentence(screen)}`;
       /* Say how many controls on this screen are genuinely bound to that file. A screen
        * that reads its file but leaves half its switches on design defaults must not let
        * a reader assume every control below is live — that is the same untruth as the
@@ -6364,6 +6365,21 @@ It is shown once. The far end needs it to register.`);
    * only sign of either is an em dash in Transport and Codecs, which is the console's
    * word for "not read" and says nothing about why.
    */
+  /**
+   * What the Music on Hold screen says about the target's media cache.
+   *
+   * Empty for every other screen. This screen edits `musiconhold.conf`, so `note()` returns
+   * from its configuration branch and never reaches the reading report at the bottom of it
+   * -- the same shape that left the Voicemail and AMI screens silent about their own failed
+   * readings -- which is why the sentence is appended to the file summary here rather than
+   * left to `reasonFor`.
+   */
+  private mediaCacheSentence(screen: string): string {
+    if (screen !== 'moh') return '';
+    const note = mediaCacheNote(this.readings.moh?.mediaCacheItems);
+    return note ? ` ${note}` : '';
+  }
+
   private endpointDetailNote(screen: string): string {
     if (screen !== 'endpoints') return '';
     const reading = this.readings.endpoints?.endpointDetails;
