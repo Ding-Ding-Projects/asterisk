@@ -4823,7 +4823,11 @@ It is shown once. The far end needs it to register.`);
      * they are not yet, and implying otherwise would be the same untruth the
      * confirmation dialog used to tell. */
     if (resourceForFile((SCREENS as Record<string, { file?: unknown }>)[screen]?.file)) {
-      const summary = configSummary(this.configs[screen], this.target.connected);
+      /* A screen that edits a file returns from inside this branch, so the reading
+       * failures reported at the bottom of this method never reach it. `endpoints` is one
+       * of those screens and also reads per-endpoint detail, so a failed detail read would
+       * otherwise leave two silently empty columns with nothing anywhere saying why. */
+      const summary = `${configSummary(this.configs[screen], this.target.connected)}${this.endpointDetailNote(screen)}`;
       /* Say how many controls on this screen are genuinely bound to that file. A screen
        * that reads its file but leaves half its switches on design defaults must not let
        * a reader assume every control below is live — that is the same untruth as the
@@ -4859,10 +4863,27 @@ It is shown once. The far end needs it to register.`);
     if (!isReadable(screen)) return NO_READER;
     const readings = this.readings[screen];
     if (!readings) return 'Reading…';
-    /* `endpointDetails` comes after `endpoints` deliberately: an unreadable endpoint list
-     * is the reason the table is empty, and an unreadable detail set is only the reason
-     * two of its columns are, so the more fundamental failure is the one reported. */
-    return reasonFor(readings, ['channels', 'endpoints', 'contacts', 'registrations', 'endpointDetails', 'queues', 'modules', 'uptime', 'voicemailUsers', 'rooms', 'mohClasses', 'managerUsers', 'ariApps']);
+    return reasonFor(readings, ['channels', 'endpoints', 'contacts', 'registrations', 'queues', 'modules', 'uptime', 'voicemailUsers', 'rooms', 'mohClasses', 'managerUsers', 'ariApps']);
+  }
+
+  /**
+   * The sentence the endpoints screen adds when it could not read the per-endpoint
+   * parameter table, or when the read budget left some endpoints out.
+   *
+   * Empty for every other screen, and empty when every endpoint was read. Without it the
+   * only sign of either is an em dash in Transport and Codecs, which is the console's
+   * word for "not read" and says nothing about why.
+   */
+  private endpointDetailNote(screen: string): string {
+    if (screen !== 'endpoints') return '';
+    const reading = this.readings.endpoints?.endpointDetails;
+    if (!reading) return '';
+    if (reading.result.state === 'unavailable') {
+      return ` Transport and Codecs are empty because the per-endpoint detail could not be read: ${reading.result.reason}`;
+    }
+    const notRead = reading.result.value?.notRead ?? [];
+    if (notRead.length === 0) return '';
+    return ` Transport and Codecs are empty for ${notRead.length} endpoint(s) this read did not reach: ${notRead.slice(0, 5).join(', ')}${notRead.length > 5 ? ', …' : ''}.`;
   }
 
   /** Real dialplan nodes/edges in the design's canvas shapes, with a bezier path per edge
