@@ -8,6 +8,7 @@
     "both"
   ],
   "knownCopyKeys": [
+    "displayNameDesc",
     "emptyDestinations",
     "emptyNotifications",
     "heroLede",
@@ -275,11 +276,13 @@
       "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
     },
     "app-display-name": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
-      "copyKeys": [],
+      "copyKeys": [
+        "displayNameDesc"
+      ],
       "missingCopyKeys": [],
-      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+      "note": "Covered by COPY keys: displayNameDesc. The display-name card description carries four English and four Cantonese variants, and every one of the eight names the shipped product so the identity boundary is stated at every funny level. The field label, the reset button and the live status line are still fixed English."
     },
     "guided-forms": {
       "state": "not-localized",
