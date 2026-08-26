@@ -622,24 +622,65 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     b('r_ice', 'general', 'icesupport'),
   ],
 
-  // configs/samples/cdr.conf.sample [general] for the d_* controls;
-  // configs/samples/cel.conf.sample [general] for the l_* controls. Both sample files
-  // declare their own unrelated [general] section, and a ConfigValue for this
-  // two-file screen has no per-file namespace to keep them apart in — so the CEL
-  // keys are bound under the synthetic section name 'cel' here to avoid colliding
-  // with cdr.conf's own [general]/enable. d_backend is unmapped: cdr.conf.sample has
-  // no single key that selects a backend by name (a backend is chosen by which
-  // per-backend section, e.g. [csv] or [odbc], is present and loaded).
+  // configs/samples/cdr.conf.sample [general] (~line 10) for the d_* controls: enable
+  // ~line 14, unanswered ~line 28, congestion ~line 33, batch ~line 72, size ~line 76.
+  // d_backend is unmapped: cdr.conf.sample's own "CHOOSING A CDR BACKEND" section
+  // (~line 100 onward) is explicit that there is no single key that selects one --
+  // "you have to make sure either the right category is defined in this file, or that
+  // the appropriate config file exists" ([csv] ~line 31, [radius] ~line 34, or a
+  // separate cdr_odbc.conf/cdr_pgsql.conf/etc. file). d_status reports that honestly,
+  // reading what is really configured (this file's own sections) against what the
+  // target's running Asterisk has actually registered (`cdr show status`), rather than
+  // pretending a single-key picker exists.
+  //
+  // This screen's own file is cdr.conf; cel.conf, cel_odbc.conf and cel_pgsql.conf are
+  // secondary files read the same way pjsip.conf and stir_shaken.conf are on the
+  // Security screen (see the `screen === 'security'` block in App.tsx and the matching
+  // `screen === 'cdr'` block that reads them). Before this lane, cel.conf's own real
+  // [general] section was bound under a synthetic 'cel' name to dodge a collision with
+  // cdr.conf's [general] inside one combined (and, worse, non-existent — see the file
+  // note on SCREENS.cdr — resource named "cdr.conf · cel.conf"). Now that the two files
+  // are read as themselves, cel.conf's keys are bound to its own real section name.
+  //
+  // configs/samples/cel.conf.sample [general]: enable ~line 19, apps ~line 34, events
+  // ~line 74, dateformat ~line 90.
   cdr: [
     b('d_enable', 'general', 'enable'),
     b('d_unanswered', 'general', 'unanswered'),
     b('d_congestion', 'general', 'congestion'),
     b('d_batch', 'general', 'batch'),
     n('d_size', 'general', 'size'),
-    b('l_enable', 'cel', 'enable'),
-    l('l_events', 'cel', 'events'),
-    l('l_apps', 'cel', 'apps'),
-    s('l_date', 'cel', 'dateformat'),
+    b('l_enable', 'general', 'enable', undefined, 'cel.conf'),
+    l('l_events', 'general', 'events', 'cel.conf'),
+    l('l_apps', 'general', 'apps', 'cel.conf'),
+    s('l_date', 'general', 'dateformat', 'cel.conf'),
+
+    // configs/samples/cel_odbc.conf.sample: [general]/show_user_defined ~line 6/10.
+    // Everything else in that file is a per-context section ([first]/[second]/... in
+    // the sample, ~line 83 onward) naming its own `connection=`/`table=` (~lines 84-85,
+    // 88-89, 92-93) — there is no fixed section to bind those two keys to, the same
+    // shape the Security screen's PJSIP-transport TLS fields are in, so l_octx names
+    // the target `[section]` the same way s_transport does and l_oconn/l_otable read
+    // and write whichever one is named there.
+    b('l_oshow', 'general', 'show_user_defined', undefined, 'cel_odbc.conf'),
+    sFrom('l_oconn', 'l_octx', 'connection', 'cel_odbc.conf'),
+    sFrom('l_otable', 'l_octx', 'table', 'cel_odbc.conf'),
+
+    // configs/samples/cel_pgsql.conf.sample [global] (~line 55): show_user_defined
+    // ~line 58, usegmtime ~line 61, hostname ~line 64, port ~line 65, dbname ~line 66,
+    // user ~line 67, table ~line 69, schema ~line 70, appname ~line 72. password
+    // (~line 68) is deliberately unmapped: see unbound-controls.md — "a secret must
+    // never travel through an ordinary binding, because it would be read into renderer
+    // state and from there into exports, local history and screenshots."
+    b('l_pshow', 'global', 'show_user_defined', undefined, 'cel_pgsql.conf'),
+    b('l_pgmtime', 'global', 'usegmtime', undefined, 'cel_pgsql.conf'),
+    s('l_phost', 'global', 'hostname', 'cel_pgsql.conf'),
+    n('l_pport', 'global', 'port', 'cel_pgsql.conf'),
+    s('l_pdb', 'global', 'dbname', 'cel_pgsql.conf'),
+    s('l_puser', 'global', 'user', 'cel_pgsql.conf'),
+    s('l_ptable', 'global', 'table', 'cel_pgsql.conf'),
+    s('l_pschema', 'global', 'schema', 'cel_pgsql.conf'),
+    s('l_papp', 'global', 'appname', 'cel_pgsql.conf'),
   ],
 
   // configs/samples/manager.conf.sample — [general] (the only section header the
@@ -1119,9 +1160,16 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     'fx_udptlstart', 'fx_udptlend', 'fx_udptlchecksums', 'fx_udptlfecentries', 'fx_udptlfecspan',
     'fx_udptleven', 'fx_udptlsave',
   ],
+  /* cdr.conf, cel.conf, cel_odbc.conf and cel_pgsql.conf. d_status/l_status are the
+   * live+configured backend readouts (action controls, no key of their own, same shape
+   * as ht_status/ht_save above); d_save/l_save/l_osave/l_psave are the write actions;
+   * l_octx names the cel_odbc.conf `[section]` l_oload/l_oconn/l_otable/l_osave read
+   * and write, the same shape as s_transport on the Security screen. */
   cdr: [
-    'd_enable', 'd_unanswered', 'd_congestion', 'd_batch', 'd_size',
-    'l_enable', 'l_events', 'l_apps', 'l_date',
+    'd_enable', 'd_unanswered', 'd_congestion', 'd_batch', 'd_size', 'd_status', 'd_save',
+    'l_enable', 'l_events', 'l_apps', 'l_date', 'l_status', 'l_save',
+    'l_oshow', 'l_octx', 'l_oload', 'l_oconn', 'l_otable', 'l_osave',
+    'l_pshow', 'l_pgmtime', 'l_phost', 'l_pport', 'l_pdb', 'l_puser', 'l_ptable', 'l_pschema', 'l_papp', 'l_psave',
   ],
   ami: ['a_http', 'a_port', 'a_tls', 'a_tlsport', 'a_origin', 'a_read', 'a_write', 'a_deny', 'a_timeout'],
   modules: ['mo_auto', 'mo_preload', 'mo_noload', 'mo_require'],

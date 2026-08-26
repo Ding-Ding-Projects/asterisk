@@ -226,7 +226,18 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       return { codecs, translations };
     }
     if (view === 'security') return { aclRules: await read('acl show', parseAclRules) };
-    if (view === 'cdr') return { cdrStatus: await read('cdr show status', parseCdrStatus) };
+    if (view === 'cdr') {
+      // `modules` is fetched here too (the same `readings.modules()` the `modules` view
+      // above uses) so the CDR/CEL screen's own backend-status readouts can say whether
+      // a cdr_*/cel_* backend module is actually loaded on the target, not only whether
+      // cdr show status's own "Registered Backends" list (which only ever lists CDR,
+      // never CEL, backends) happens to mention it.
+      const [cdrStatus, modules] = await Promise.all([
+        read('cdr show status', parseCdrStatus),
+        readings.modules(target),
+      ]);
+      return { cdrStatus, modules };
+    }
     if (view === 'logger') return { loggerChannels: await read('logger show channels', parseLoggerChannels) };
     if (view === 'ami') {
       const [settings, users, apps] = await Promise.all([
