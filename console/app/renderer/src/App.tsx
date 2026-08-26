@@ -59,16 +59,13 @@ import {
 } from './feature-codes';
 import {
   applyControlValues as applyTrunkAdvancedValues, controlValuesFor as trunkAdvancedControlValuesFor,
+  applyControlValues as applyTrunkControlValues, controlValuesFor as trunkControlValuesFor,
   trunkDocument,
 } from './trunk-advanced';
 import {
   applyControlValues as applyIaxControlValues, controlValuesFor as iaxControlValuesFor,
   findPeer as findIaxPeer, IAX_CONTROLS, iaxDocument,
 } from './iax-peers';
-import {
-  applyControlValues as applyTrunkControlValues, controlValuesFor as trunkControlValuesFor,
-  trunkDocument,
-} from './trunk-advanced';
 import {
   applyRegistrationControlValues, controlValuesForRegistration, findRegistration, registeredEndpointName,
 } from './trunk-registration';

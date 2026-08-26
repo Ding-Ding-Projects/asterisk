@@ -284,8 +284,8 @@ function measure() {
  * screen at once -- the trunks and IVR screens, isolated, now measure `working: 19
  * of 19` and `working: 15 of 15` respectively, with nothing dead. */
 
-const WORKING_FLOOR = -1;
-const TELEPHONY_TOTAL = -1;
+const WORKING_FLOOR = 511;
+const TELEPHONY_TOTAL = 512;
 
 test('an action-delivered control is recognised even though its id never appears as a quoted literal', () => {
   for (const id of [
