@@ -66,6 +66,39 @@ export interface ControlPlaneDispatcherOptions {
   onProvisionStep?: (step: ProvisionStep) => void;
 }
 
+/**
+ * Everything the `endpoints` screen reads, in one place a test can reach.
+ *
+ * Registrations are read here too (not only for `trunks`) so the endpoint reachability
+ * graph can draw the outbound-registration edge for an endpoint that is also a trunk
+ * identity, exactly as `pjsip show registrations` reports it.
+ *
+ * Transport and Codecs are read twice over, from two commands that answer two different
+ * questions. `endpointDetails` reads each endpoint's own parameter table (`pjsip show
+ * endpoint <id>`) for the transport and codecs it is *configured* with, which is the
+ * reading that exists whether or not a call is up. `channelStats` reads the codec actually
+ * negotiated on a live channel, which exists only while one is. The plural `pjsip show
+ * endpoints` prints neither -- see `parseEndpointDetail`.
+ *
+ * The detail fan-out needs the endpoint list first, so it cannot join the parallel group;
+ * everything that can still run alongside it does.
+ *
+ * Exported rather than inlined into `readView` below because this is a seam: a reading
+ * taken here and dropped on the way out reaches the screen as an empty column with no
+ * failing test anywhere, which is the defect this repository keeps repeating.
+ */
+export async function readEndpointsView(readings: AsteriskReadings, target: TargetProfile) {
+  const [endpoints, contacts, registrations, channelStats] = await Promise.all([
+    readings.endpoints(target), readings.contacts(target), readings.registrations(target),
+    readings.channelStats(target),
+  ]);
+  const endpointDetails = await readings.endpointDetails(
+    target,
+    endpoints.result.state === 'available' ? (endpoints.result.value ?? []).map((endpoint) => endpoint.id) : [],
+  );
+  return { endpoints, contacts, registrations, channelStats, endpointDetails };
+}
+
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
   const { userDataPath, resourcesPath, hosted, onProvisionStep } = options;
 
@@ -167,20 +200,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       return { channels, endpoints, queues, uptime };
     }
     if (view === 'live') return { channels: await readings.channels(target) };
-    if (view === 'endpoints') {
-      // Registrations are read here too (not only for `trunks`) so the endpoint
-      // reachability graph can draw the outbound-registration edge for an endpoint
-      // that is also a trunk identity, exactly as `pjsip show registrations` reports it.
-      // `channelStats` is what lets the Transport and Codecs columns stop reading the
-      // "not read yet" placeholder -- see `AsteriskReadings.channelStats` for why the
-      // codec has to come from a live channel rather than from `pjsip show endpoints`
-      // itself, and `parseEndpoints` for where the transport id comes from instead.
-      const [endpoints, contacts, registrations, channelStats] = await Promise.all([
-        readings.endpoints(target), readings.contacts(target), readings.registrations(target),
-        readings.channelStats(target),
-      ]);
-      return { endpoints, contacts, registrations, channelStats };
-    }
+    if (view === 'endpoints') return await readEndpointsView(readings, target);
     if (view === 'trunks') {
       // IAX2 registrations read alongside the PJSIP ones so the trunks table stops being
       // PJSIP-only -- `iax2 show registry` is the IAX2 counterpart to `pjsip show

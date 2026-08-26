@@ -25,7 +25,7 @@ import {
   voicemailRows,
 } from '../../app/renderer/src/readings.ts';
 import type {
-  Channel, ChannelCodecUsage, Contact, Endpoint, IaxPeer, IaxRegistration, ModuleSummary, QueueSummary, Registration, ViewReadings,
+  Channel, ChannelCodecUsage, Contact, Endpoint, EndpointDetailSet, IaxPeer, IaxRegistration, ModuleSummary, QueueSummary, Registration, ViewReadings,
 } from '../../app/renderer/src/readings.ts';
 
 const NOW = '2026-08-22T12:00:00.000Z';
@@ -107,7 +107,10 @@ test('endpointRows reads the transport off the endpoint and the codec off a matc
     { channelName: 'PJSIP/1000-00000001', endpointId: '1000', codec: 'ulaw' },
   ];
   const rows = endpointRows(endpoints, [], channelStats);
-  assert.deepEqual(rows[0], ['1000', NOT_READ, 'transport-udp', 'ulaw', 'Not in use']);
+  // With no parameter table read, the only codec available is the one negotiated on a
+  // live call -- which is a different reading from the endpoint's configured list, so the
+  // cell says which one it is showing rather than letting the two look alike.
+  assert.deepEqual(rows[0], ['1000', NOT_READ, 'transport-udp', 'ulaw (in use)', 'Not in use']);
   assert.deepEqual(rows[1], ['2000', NOT_READ, NOT_READ, NOT_READ, 'Not in use']);
 });
 
@@ -118,6 +121,58 @@ test('endpointRows ignores a channel-stats row with no codec rather than showing
   const channelStats: ChannelCodecUsage[] = [{ channelName: 'PJSIP/1000-00000001', endpointId: '1000' }];
   const rows = endpointRows(endpoints, [], channelStats);
   assert.deepEqual(rows[0], ['1000', NOT_READ, NOT_READ, NOT_READ, 'Not in use']);
+});
+
+test('endpointRows reads the configured transport and codecs off the endpoint detail', () => {
+  const endpoints: Endpoint[] = [{ id: '1000', state: 'Not in use', channels: '0 of inf' }];
+  const details: EndpointDetailSet = {
+    byEndpoint: { 1000: { transport: 'transport-tcp', codecs: ['ulaw', 'alaw', 'g722'] } },
+    notRead: [],
+  };
+  const rows = endpointRows(endpoints, [], [], details);
+  assert.deepEqual(rows[0], ['1000', NOT_READ, 'transport-tcp', 'ulaw, alaw, g722', 'Not in use']);
+});
+
+test('endpointRows prefers the configured codec list over the one codec a live call negotiated', () => {
+  const endpoints: Endpoint[] = [{ id: '1000', state: 'In use', channels: '1 of inf' }];
+  const channelStats: ChannelCodecUsage[] = [
+    { channelName: 'PJSIP/1000-00000001', endpointId: '1000', codec: 'alaw' },
+  ];
+  const details: EndpointDetailSet = { byEndpoint: { 1000: { codecs: ['ulaw', 'alaw'] } }, notRead: [] };
+  const rows = endpointRows(endpoints, [], channelStats, details);
+  // The column is headed "Codecs": the endpoint's own list is what belongs in it, and it
+  // is not silently replaced by whichever single codec one call happened to settle on.
+  assert.deepEqual(rows[0], ['1000', NOT_READ, NOT_READ, 'ulaw, alaw', 'In use']);
+});
+
+test('endpointRows spells out an endpoint that allows no codec at all', () => {
+  const endpoints: Endpoint[] = [{ id: '1000', state: 'Not in use', channels: '0 of inf' }];
+  // Asterisk printed `allow : (nothing)` -- a real reading, and not the same thing as
+  // never having looked, so it must not render as the not-read placeholder.
+  const details: EndpointDetailSet = { byEndpoint: { 1000: { codecs: [] } }, notRead: [] };
+  const rows = endpointRows(endpoints, [], [], details);
+  assert.deepEqual(rows[0], ['1000', NOT_READ, NOT_READ, 'none allowed', 'Not in use']);
+});
+
+test('endpointRows reports a transport the detail names even when the endpoints listing omitted it', () => {
+  // `config_transport.c` `cli_iterate` prints no `Transport:` child line when the id does
+  // not resolve to a transport on the target, so the plural listing shows nothing for an
+  // endpoint pinned to a transport that is missing -- which is the case worth seeing.
+  const endpoints: Endpoint[] = [{ id: '1000', state: 'Unavailable', channels: '0 of inf' }];
+  const details: EndpointDetailSet = { byEndpoint: { 1000: { transport: 'transport-tls' } }, notRead: [] };
+  const rows = endpointRows(endpoints, [], [], details);
+  assert.equal(rows[0][2], 'transport-tls');
+});
+
+test('endpointRows leaves an endpoint the detail budget skipped as NOT_READ rather than guessing', () => {
+  const endpoints: Endpoint[] = [
+    { id: '1000', state: 'Not in use', channels: '0 of inf' },
+    { id: '9999', state: 'Not in use', channels: '0 of inf' },
+  ];
+  const details: EndpointDetailSet = { byEndpoint: { 1000: { codecs: ['ulaw'] } }, notRead: ['9999'] };
+  const rows = endpointRows(endpoints, [], [], details);
+  assert.deepEqual(rows[0], ['1000', NOT_READ, NOT_READ, 'ulaw', 'Not in use']);
+  assert.deepEqual(rows[1], ['9999', NOT_READ, NOT_READ, NOT_READ, 'Not in use']);
 });
 
 // ---------------------------------------------------------------- registrationRows
@@ -195,6 +250,31 @@ test('rowsFor dispatches to the matching parser by screen name', () => {
   assert.equal(rowsFor('live', readings).length, 1);
   assert.equal(rowsFor('queues', readings).length, 1);
   assert.deepEqual(rowsFor('endpoints', readings), []);
+});
+
+test('rowsFor(endpoints) hands the endpoint detail reading to the row builder', () => {
+  // Not a restatement of the endpointRows tests above: those call the builder directly, so
+  // every one of them passes whether or not `rowsFor` ever passes the reading along. This
+  // is the seam -- a detail set read by the control plane and dropped on the way to the
+  // table would show as two placeholder columns and no failing test anywhere.
+  const readings: ViewReadings = {
+    endpoints: available<Endpoint[]>([{ id: '1000', state: 'Not in use', channels: '0 of inf' }]),
+    endpointDetails: available<EndpointDetailSet>({
+      byEndpoint: { 1000: { transport: 'transport-tcp', codecs: ['ulaw', 'alaw'] } },
+      notRead: [],
+    }),
+  };
+  assert.deepEqual(rowsFor('endpoints', readings), [
+    ['1000', NOT_READ, 'transport-tcp', 'ulaw, alaw', 'Not in use'],
+  ]);
+});
+
+test('rowsFor(endpoints) still builds rows when only the endpoint listing was read', () => {
+  const readings: ViewReadings = {
+    endpoints: available<Endpoint[]>([{ id: '1000', state: 'Not in use', channels: '0 of inf' }]),
+    endpointDetails: unavailable('`asterisk -rx "pjsip show endpoint 1000"` failed'),
+  };
+  assert.deepEqual(rowsFor('endpoints', readings), [['1000', NOT_READ, NOT_READ, NOT_READ, 'Not in use']]);
 });
 
 test('rowsFor returns no rows for an unrecognized screen or undefined readings', () => {

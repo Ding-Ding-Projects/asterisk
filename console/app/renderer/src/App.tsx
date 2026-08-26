@@ -4859,7 +4859,10 @@ It is shown once. The far end needs it to register.`);
     if (!isReadable(screen)) return NO_READER;
     const readings = this.readings[screen];
     if (!readings) return 'Reading…';
-    return reasonFor(readings, ['channels', 'endpoints', 'contacts', 'registrations', 'queues', 'modules', 'uptime', 'voicemailUsers', 'rooms', 'mohClasses', 'managerUsers', 'ariApps']);
+    /* `endpointDetails` comes after `endpoints` deliberately: an unreadable endpoint list
+     * is the reason the table is empty, and an unreadable detail set is only the reason
+     * two of its columns are, so the more fundamental failure is the one reported. */
+    return reasonFor(readings, ['channels', 'endpoints', 'contacts', 'registrations', 'endpointDetails', 'queues', 'modules', 'uptime', 'voicemailUsers', 'rooms', 'mohClasses', 'managerUsers', 'ariApps']);
   }
 
   /** Real dialplan nodes/edges in the design's canvas shapes, with a bezier path per edge

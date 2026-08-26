@@ -14,9 +14,15 @@ export interface Channel {
 }
 export interface Endpoint { id: string; callerId?: string; state: string; channels: string; transport?: string }
 /** One row of `pjsip show channelstats` — see `control-plane/asterisk-readings.ts`
- *  `parseChannelStats` for the exact format string and why the codec column has to
- *  come from a live channel rather than from `pjsip show endpoints` itself. */
+ *  `parseChannelStats` for the exact format string. This is the codec negotiated on a
+ *  live channel, which is a different reading from `EndpointDetail.codecs` below. */
 export interface ChannelCodecUsage { channelName: string; endpointId: string; codec?: string }
+/** One endpoint's configured transport and codecs, from `pjsip show endpoint <id>` —
+ *  see `control-plane/asterisk-readings.ts` `parseEndpointDetail`. */
+export interface EndpointDetail { transport?: string; codecs?: string[] }
+/** Every endpoint detail one view read, plus the ids it did not read and so cannot
+ *  report on — see `AsteriskReadings.endpointDetails` for the budget that bounds it. */
+export interface EndpointDetailSet { byEndpoint: Record<string, EndpointDetail>; notRead: string[] }
 export interface Contact { aor: string; uri: string; status: string; roundTripMs?: number }
 export interface Registration { id: string; serverUri: string; status: string }
 /** `iax2 show peers` -- see `control-plane/asterisk-readings.ts` `parseIax2Peers` for the
@@ -51,6 +57,7 @@ export interface ViewReadings {
   channels?: Reading<Channel[]>;
   endpoints?: Reading<Endpoint[]>;
   channelStats?: Reading<ChannelCodecUsage[]>;
+  endpointDetails?: Reading<EndpointDetailSet>;
   contacts?: Reading<Contact[]>;
   registrations?: Reading<Registration[]>;
   iaxRegistrations?: Reading<IaxRegistration[]>;
@@ -142,7 +149,12 @@ export function rowsFor(screen: string, readings: ViewReadings | undefined): str
   if (!readings) return [];
   if (screen === 'live') return channelRows(valueOf(readings.channels) ?? []);
   if (screen === 'endpoints') {
-    return endpointRows(valueOf(readings.endpoints) ?? [], valueOf(readings.contacts) ?? [], valueOf(readings.channelStats) ?? []);
+    return endpointRows(
+      valueOf(readings.endpoints) ?? [],
+      valueOf(readings.contacts) ?? [],
+      valueOf(readings.channelStats) ?? [],
+      valueOf(readings.endpointDetails),
+    );
   }
   if (screen === 'trunks') return registrationRows(valueOf(readings.registrations) ?? [], valueOf(readings.iaxRegistrations) ?? []);
   if (screen === 'iaxpeers') return iaxPeerRows(valueOf(readings.iaxPeers) ?? []);
@@ -277,27 +289,55 @@ export function channelRows(channels: Channel[]): string[][] {
 }
 
 /**
- * Transport comes straight off the endpoint reading (`pjsip show endpoints`' own
- * recursed `Transport:` child line — see `parseEndpoints`). Codecs come from a separate
- * `pjsip show channelstats` reading matched back to an endpoint by id, because that is
- * the only CLI output that ever prints one for the plural endpoint listing — see
- * `parseChannelStats`. Both stay `NOT_READ` rather than a guess when genuinely absent:
- * most endpoints have no explicit `transport=`, and an idle endpoint has no live
- * channel to read a codec off.
+ * Both columns are fed from the endpoint's own parameter table (`pjsip show endpoint
+ * <id>` — see `parseEndpointDetail`), which is the only CLI output that carries either
+ * value for an endpoint that is merely configured rather than on a call.
+ *
+ * Transport falls back to the `Transport:` child line of `pjsip show endpoints` (see
+ * `parseEndpoints`) when no detail was read. The two agree whenever both exist; the
+ * detail additionally reports a `transport=` naming a transport the target does not
+ * have, which the child line omits entirely (`config_transport.c` `cli_iterate` returns
+ * -1 when the id does not resolve) — an endpoint pinned to a transport that is not there
+ * is exactly the one worth seeing.
+ *
+ * Codecs falls back to the codec negotiated on a live channel (`parseChannelStats`), and
+ * says so in the cell, because that is a different reading: one codec in use on one call
+ * rather than the list the endpoint offers. A reader must never have to guess which of
+ * the two a cell is showing.
+ *
+ * Anything genuinely unread stays `NOT_READ` rather than becoming a guess — an endpoint
+ * past `MAX_ENDPOINT_DETAILS` with no live channel has neither reading available.
  */
-export function endpointRows(endpoints: Endpoint[], contacts: Contact[], channelStats: ChannelCodecUsage[] = []): string[][] {
+export function endpointRows(
+  endpoints: Endpoint[],
+  contacts: Contact[],
+  channelStats: ChannelCodecUsage[] = [],
+  details: EndpointDetailSet | undefined = undefined,
+): string[][] {
   const byAor = new Map(contacts.map((contact) => [contact.aor, contact]));
   const codecByEndpoint = new Map<string, string>();
   for (const stat of channelStats) {
     if (stat.codec && !codecByEndpoint.has(stat.endpointId)) codecByEndpoint.set(stat.endpointId, stat.codec);
   }
-  return endpoints.map((endpoint) => [
-    endpoint.id,
-    byAor.get(endpoint.id)?.uri ?? NOT_READ,
-    endpoint.transport ?? NOT_READ,
-    codecByEndpoint.get(endpoint.id) ?? NOT_READ,
-    endpoint.state,
-  ]);
+  return endpoints.map((endpoint) => {
+    const detail = details?.byEndpoint[endpoint.id];
+    const inUse = codecByEndpoint.get(endpoint.id);
+    /* An empty `allow=` is a real reading — Asterisk printed `(nothing)` — but "this
+     * endpoint allows no codec" is not something an empty cell says, so it is spelled
+     * out rather than falling through to the live-channel branch below. */
+    const codecs = detail?.codecs
+      ? (detail.codecs.length > 0 ? detail.codecs.join(', ') : 'none allowed')
+      : inUse
+        ? `${inUse} (in use)`
+        : NOT_READ;
+    return [
+      endpoint.id,
+      byAor.get(endpoint.id)?.uri ?? NOT_READ,
+      detail?.transport ?? endpoint.transport ?? NOT_READ,
+      codecs,
+      endpoint.state,
+    ];
+  });
 }
 
 /**
