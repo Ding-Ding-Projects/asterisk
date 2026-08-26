@@ -109,6 +109,22 @@ The fixture routes around it — the aor is `ding-live-probe-aor`, and `mergeFix
 `register =>` line into the existing `[general]` rather than adding a second one — and refuses
 outright, by name, rather than discovering it three steps later.
 
+> **Repaired since this run, in a change of its own.** `renderConfigOver` now groups the desired
+> value into one ordered list of entry-lists per name and matches the *n*th `[name]` in the file
+> against the *n*th desired section of that name. The exact text above round-trips byte for byte,
+> entry counts stay `[3, 2]`, and editing, adding to, dropping and appending an occurrence each
+> reach the occurrence that asked for it — held by six tests in
+> `tests/control-plane/config-round-trip.test.ts`, each proven by breaking the repair four ways,
+> one at a time. Occurrence matching is positional, so which block's *comments* travel with a
+> surviving section is decided by position, exactly as it already was for a repeated key.
+>
+> The finding above is left as it was written, because it is what this run measured and the run
+> is not being re-taken. Two things this repair does **not** claim: nothing here has been run
+> against a live Asterisk, so the repair is proved against fixtures and this checkout's own
+> round-trip contract and no further; and the fixture still avoids the shape, because the
+> committed captures were taken under that constraint and widening it without re-running against
+> a target would describe a run that never happened.
+
 **2. The voicemail reading drops a mailbox and nothing says so — medium.** The live target's own
 trailer said **4 voicemail users configured**; the reading produced **3**, and the Voicemail
 screen renders exactly those three. The missing row is the shipped sample's
