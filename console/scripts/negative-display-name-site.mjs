@@ -155,7 +155,8 @@ const cases = [
   // Reset settings clears the chosen name without saying so, which is the "silently
   // skipping" defect applied to a destructive gate.
   ['the reset gate stops naming the display name among the things it clears',
-    swap(SETTINGS, 'text size, the display name you chose, uploaded logo', 'text size, uploaded logo')],
+    swap(SETTINGS, 'text size, the display name you chose, the dialog emoji switch, uploaded logo',
+      'text size, the dialog emoji switch, uploaded logo')],
 
   // The card stops being findable from the settings search.
   ['the card loses its settings-search terms',

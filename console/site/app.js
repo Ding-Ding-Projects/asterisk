@@ -529,7 +529,7 @@
   // honest fallback: no verified release manifest was found, so downloads.html
   // says so plainly instead of rendering literal "#"/"[]()" source text.
   const RELEASE_NOTES_MARKDOWN = '';
-  const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#82D9A5',fontScale:100,lowMotion:false,englishFunny:0,cantoneseFunny:0,displayName:'',attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false,focus:false,timeAwareness:false,oneThing:false,momentum:false,currentTask:''},scheduleEnabled:false,notifications:[],collapsed:{destinationMap:true,settingsPreview:true,documentationFilters:false,settingsFilters:false}};
+  const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#82D9A5',fontScale:100,lowMotion:false,englishFunny:0,cantoneseFunny:0,displayName:'',dialogEmojis:false,attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false,focus:false,timeAwareness:false,oneThing:false,momentum:false,currentTask:''},scheduleEnabled:false,notifications:[],collapsed:{destinationMap:true,settingsPreview:true,documentationFilters:false,settingsFilters:false}};
   // ---- Display name: the name this site shows the person reading it, which is
   // theirs to change, and the shipped product name, which is not.
   //
@@ -605,7 +605,7 @@
   const state=loadState();
   function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
   function update(key,value){state[key]=value;save();applyState();recordHistory('setting-changed',`${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`${key} now uses ${value}.`))}
-  function applyState(){document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyDisplayName();applyVocabulary();updateSessionTimer();updateOneThingBanner();renderAllModeStatuses()}
+  function applyState(){document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyDisplayName();applyVocabulary();applyDialogEmojis();updateSessionTimer();updateOneThingBanner();renderAllModeStatuses()}
   function updateAttention(key,value){state.attention={...state.attention,[key]:value};save();applyState();recordHistory('attention-changed',`attention.${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`attention.${key} now uses ${value}.`))}
   function applyLanguage(){if(!$('language-preview'))return;document.documentElement.lang=state.language==='zh'?'zh-Hant':'en';$('language-preview').textContent=state.language==='en'?'English presentation active.':state.language==='zh'?'廣東話顯示已啟用。':'Bilingual presentation active. / 雙語顯示已啟用。'}
 
@@ -641,6 +641,21 @@
       '呢個設定淨係改網站喺畫面上點稱呼自己 —— 每版頂同底嘅品牌名，同分頁標題。其餘唔動：下載、匯出檔案、本機儲存同人哋見到嘅連結預覽，全部照用出廠名 Ding PBX Console，所以你分享出去嗰份嘢一樣認得返個產品。',
       '想叫佢乜名都得。改到嘅係頂同底嘅品牌名，加分頁標題，就咁多。下載、匯出、本機儲存同人哋見到嘅連結預覽照舊係 Ding PBX Console，唔會有嘢帶住你個花名走出去。',
       '叫佢做「肥貓」都無問題。頂同底嘅品牌名會變，分頁標題會變，之後就真係一樣都唔變。下載、匯出、本機儲存同人哋見到嘅連結預覽死都咬住 Ding PBX Console 唔放 —— 你 send 畀同事嗰份檔案，照樣講得出呢套軟件真名，有貓無貓都一樣。'
+    ]},
+    /* Voice moves with the slider; the two facts never do. Every level states that the
+     * wording is unchanged and that no button, label or screen-reader name carries a
+     * glyph, because a decoration whose boundary is only stated at some settings is a
+     * boundary nobody can rely on. */
+    dialogEmojisDesc:{en:[
+      'Adds a decorative emoji beside each dialog and message box heading. The wording is identical either way, and no button, control label or screen-reader name ever carries one.',
+      'Adds a decorative emoji beside each dialog and message box heading — the wording is identical either way, and no button, control label or screen-reader name ever carries one.',
+      'Puts a small emoji next to each dialog and message box heading. Nothing else moves: the wording stays exactly as it was, and no button, label or screen-reader name gets one.',
+      'Sprinkles one emoji beside each dialog and message box heading and then stops, which is the whole trick. The wording does not budge by a single character, and no button, label or screen-reader name ever gets one — decoration you can look at is fine, decoration read aloud at you is not.'
+    ],zh:[
+      '喺每個對話框同訊息框標題旁邊加一個裝飾用 emoji。字句完全一樣，任何按鈕、控制項標籤或者螢幕閱讀器名稱都唔會有 emoji。',
+      '喺每個對話框同訊息框標題旁邊加一個裝飾用 emoji —— 字句完全一樣，任何按鈕、控制項標籤或者螢幕閱讀器名稱都唔會有。',
+      '喺對話框同訊息框標題隔籬擺個細細嘅 emoji。其他一律唔郁：字句一個字都唔會變，按鈕、標籤同螢幕閱讀器名稱一律唔會有。',
+      '喺每個對話框同訊息框標題隔籬撒一個 emoji，就咁多，冇下文。字句一個字都唔會走位，按鈕、標籤同螢幕閱讀器名稱死都唔會有 —— 睇得到嘅裝飾冇問題，讀出嚟嘈住你嘅就唔得。'
     ]},
     themeDesc:{en:[
       'Applies immediately and persists.',
@@ -891,6 +906,80 @@
     applyDisplayName();
   }
 
+  // ---- Dialog and message-box emoji: decoration, and only decoration. ----
+  //
+  // The switch puts one emoji beside a dialog's heading and beside a message box,
+  // and changes nothing else. The factual copy is byte-identical either way, which
+  // is the property the whole feature rests on: an emoji carrying a fact would be a
+  // fact only some people can see, and it would vanish the moment somebody turned
+  // the switch off.
+  //
+  // Three boundaries, each written so it can be checked rather than promised:
+  //
+  //   - the decoration is a separate element this code creates, never characters
+  //     spliced into copy somebody wrote, so switching it off restores the exact
+  //     bytes rather than an approximation of them;
+  //   - it sits OUTSIDE the heading a dialog is labelled by, and carries
+  //     `aria-hidden`, so no accessible name can ever contain it;
+  //   - it never reaches a button, a field label, an option, an accessible name or
+  //     any other control text. The canonical contract names that boundary and the
+  //     reason is plain -- a control is read aloud by its own text, so a decorative
+  //     glyph read aloud there is noise the listener cannot switch off.
+  //
+  // `data-no-vocab` keeps the glyph away from the personal-vocabulary walker, which
+  // rewrites copy from a per-node cache of the first text it saw. A decoration is
+  // not copy, so it is excluded outright rather than by being applied in a
+  // particular order that a later edit could quietly reverse.
+  const DIALOG_EMOJI_CLASS='dialog-emoji';
+  const DIALOG_EMOJI_DECORATIONS=[
+    {id:'command-palette',within:'.dialog-heading',glyph:'🔎'},
+    {id:'regex-dialog',within:'.dialog-heading',glyph:'🧩'},
+    {id:'notifications-dialog',within:'.dialog-heading',glyph:'🔔'},
+    {id:'history-dialog',within:'.dialog-heading',glyph:'🕘'},
+    {id:'reset-confirm-dialog',within:'.dialog-heading',glyph:'⚠️'},
+    {id:'notif-confirm',within:'',glyph:'⚠️'}
+  ];
+  // One glyph for every message box, because a message box carries arbitrary text
+  // and choosing a glyph from that text would be inventing a meaning for it.
+  const MESSAGE_BOX_GLYPH='💬';
+  function messageBoxGlyph(){return state.dialogEmojis?MESSAGE_BOX_GLYPH:''}
+  /**
+   * Puts exactly one decoration at the front of `host`, or removes the one there.
+   *
+   * An empty glyph means "no decoration", which is a removal rather than an empty
+   * span: an empty span still occupies the flex row and still reads as an element
+   * to anything walking the DOM, so "off" would not be off.
+   */
+  function setDialogDecoration(host,glyph){
+    if(!host)return;
+    const first=host.firstElementChild;
+    const existing=first&&first.className===DIALOG_EMOJI_CLASS?first:null;
+    if(!glyph){if(existing)existing.remove();return}
+    const span=existing||document.createElement('span');
+    span.className=DIALOG_EMOJI_CLASS;
+    span.setAttribute('aria-hidden','true');
+    span.setAttribute('data-no-vocab','');
+    span.textContent=glyph;
+    if(!existing)host.insertBefore(span,host.firstChild);
+  }
+  function applyDialogEmojis(){
+    const on=Boolean(state.dialogEmojis);
+    for(const target of DIALOG_EMOJI_DECORATIONS){
+      const element=$(target.id);
+      if(!element)continue;
+      const host=target.within?element.querySelector(target.within):element;
+      setDialogDecoration(host,on?target.glyph:'');
+    }
+    // Toasts already on screen change with the switch, rather than only the next
+    // one to arrive -- a setting whose effect you have to wait for reads as broken.
+    all('#toast-region .toast').forEach(toast=>setDialogDecoration(toast,messageBoxGlyph()));
+    if($('dialog-emojis'))$('dialog-emojis').checked=on;
+    const status=$('dialog-emojis-status');
+    if(status)status.textContent=on
+      ? `Dialogs and message boxes carry a decorative emoji beside their heading. Every word is exactly as it was, and no button, label or screen-reader name carries one.`
+      : `Dialogs and message boxes carry no emoji. Turning this on decorates ${DIALOG_EMOJI_DECORATIONS.length} dialogs and every message box, and changes no wording.`;
+  }
+
   let sessionStart=Date.now();
   function updateSessionTimer(){
     const el=$('session-timer');if(!el)return;
@@ -999,7 +1088,7 @@
   function renderPalette(query=''){const list=$('palette-results');if(!list)return;const pages=[['Home','index.html'],['Product','product.html'],['Documentation','documentation.html'],['Downloads','downloads.html'],['Status','status.html'],['Settings','settings.html']],items=[...pages,...DESTINATIONS.map(item=>[item.name,`documentation.html#destination-${item.id}`])].filter(([name])=>matchText(name,query,'palette-search'));list.innerHTML=items.length?items.map(([name,path])=>`<a class="palette-result" role="option" href="${BASE}${path}"><strong>${escapeHtml(name)}</strong><span>Open destination</span></a>`).join(''):'<p>No matching commands.</p>'}
   function openPalette(){const dialog=$('command-palette');if(!dialog)return;dialog.showModal();$('palette-search').value='';renderPalette();applyVocabulary();setTimeout(()=>$('palette-search').focus(),0)}
   let notifSeq=0;
-  function notify(title,body){state.notifications.unshift({id:`n${Date.now()}-${notifSeq++}`,title,body,time:Date.now()});state.notifications=state.notifications.slice(0,30);save();renderNotifications($('notification-search')?.value||'');const region=$('toast-region');if(!region)return;const toast=document.createElement('div');toast.className='toast';toast.innerHTML=`<strong>${escapeHtml(title)}</strong><span>${escapeHtml(body)}</span>`;region.append(toast);setTimeout(()=>toast.remove(),state.attention.extendedTimeouts?15000:5000)}
+  function notify(title,body){state.notifications.unshift({id:`n${Date.now()}-${notifSeq++}`,title,body,time:Date.now()});state.notifications=state.notifications.slice(0,30);save();renderNotifications($('notification-search')?.value||'');const region=$('toast-region');if(!region)return;const toast=document.createElement('div');toast.className='toast';toast.innerHTML=`<div class="toast-text"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(body)}</span></div>`;setDialogDecoration(toast,messageBoxGlyph());region.append(toast);setTimeout(()=>toast.remove(),state.attention.extendedTimeouts?15000:5000)}
 
   // ---- Notification centre: real multi-select, bulk dismiss, and export. ----
   let notifSelection={anchor:undefined,selected:new Set()};
@@ -1179,7 +1268,7 @@
     dialog.addEventListener('close',()=>{resetConfirmFields();$('settings-reset')?.focus()});
   }
 
-  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);$('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);$('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));$('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState();recordHistory('attention-changed','attention.currentTask changed.')};$('settings-reset').onclick=()=>{const dialog=$('reset-confirm-dialog');if(!dialog)return;resetConfirmFields();dialog.showModal()};$('settings-export').onclick=()=>download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state},null,2));$('vocabulary-file').onchange=loadVocabulary;$('vocabulary-clear').onclick=()=>{localStorage.removeItem('ding-pbx-vocabulary-cache');$('vocabulary-file').value='';$('vocabulary-status').textContent='No file loaded; original wording is active.';applyVocabulary();applyState()};initDisplayName();$('logo-file').onchange=loadLogo;$('logo-clear').onclick=()=>{localStorage.removeItem('ding-pbx-logo-cache');$('logo-file').value='';$('logo-status').textContent='No file loaded; default mark is active.';applyLogo()};if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));initResetConfirm();initHistory()}
+  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);$('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);$('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));$('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);if($('dialog-emojis'))$('dialog-emojis').onchange=event=>update('dialogEmojis',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState();recordHistory('attention-changed','attention.currentTask changed.')};$('settings-reset').onclick=()=>{const dialog=$('reset-confirm-dialog');if(!dialog)return;resetConfirmFields();dialog.showModal()};$('settings-export').onclick=()=>download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state},null,2));$('vocabulary-file').onchange=loadVocabulary;$('vocabulary-clear').onclick=()=>{localStorage.removeItem('ding-pbx-vocabulary-cache');$('vocabulary-file').value='';$('vocabulary-status').textContent='No file loaded; original wording is active.';applyVocabulary();applyState()};initDisplayName();$('logo-file').onchange=loadLogo;$('logo-clear').onclick=()=>{localStorage.removeItem('ding-pbx-logo-cache');$('logo-file').value='';$('logo-status').textContent='No file loaded; default mark is active.';applyLogo()};if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));initResetConfirm();initHistory()}
   async function loadVocabulary(event){const file=event.target.files[0];if(!file)return;if(file.size>65536){$('vocabulary-status').textContent=`Rejected: the file is ${Math.round(file.size/1024)} KiB and the limit is 64 KiB.`;return}try{const raw=JSON.parse(await file.text());
     /* Accept the spellings a real file actually uses before judging it.
      *
