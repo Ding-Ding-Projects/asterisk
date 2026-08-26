@@ -194,8 +194,8 @@ alone, for the reason given under [verification boundary](#verification-boundary
 
 Every figure above came from one full pass per side taken in one session against the build recorded
 in `console/resources/update-manifest.json`, whose `candidateCommit` is that same
-`5cc309a4421ca843721ea71d7336cd7e317f358c`. **`master` gained an IAX2 destination after that build,
-and this pass does not re-photograph it** — that is stated rather than left to inference, and it is
+`5cc309a4421ca843721ea71d7336cd7e317f358c`. **`master` gained an IAX2 destination and a further screen repair after that build,
+and this pass re-photographs neither** — that is stated rather than left to inference, and it is
 the same condition `master`'s own Fax commit left behind, which retook no capture either.
 
 ## Verification boundary
