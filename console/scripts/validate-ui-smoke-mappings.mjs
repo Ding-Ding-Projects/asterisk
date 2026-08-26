@@ -24,7 +24,7 @@ export function validateMappings() {
     if (!row.promotion.canonicalRoot.startsWith('console/docs/evidence/ui-smoke/{integratedCommit}/')) fail(`${row.id} canonical path leaves the evidence root`);
     for (const mapping of ['docs', 'wiki', 'issue', 'pages']) if (typeof row.mappings?.[mapping] !== 'string' || !row.mappings[mapping]) fail(`${row.id} lacks ${mapping} mapping`);
   }
-  if (seen.size !== 10551) fail('row mapping count drift');
+  if (seen.size !== 17127) fail('row mapping count drift');
   return { surfaceCount: captureIndex.surfaces.length, rowCount: seen.size, status: 'mapping-contract-valid-runtime-evidence-unrun' };
 }
 

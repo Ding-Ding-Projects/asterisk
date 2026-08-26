@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 2,
+  "regressions": [
+    {
+      "id": "remove-control-census-record",
+      "mutation": "remove one actual designId from control-census.json",
+      "expected": "row count, binding join, and control coverage fail"
+    },
+    {
+      "id": "replace-runtime-id",
+      "mutation": "change one control runtimeBinding or stateKey",
+      "expected": "real-control binding validation fails"
+    },
+    {
+      "id": "change-route-tuple",
+      "mutation": "change one exact expectedUrl or transition target",
+      "expected": "route proof fails exact URL equality"
+    },
+    {
+      "id": "second-cdp-target",
+      "mutation": "add a second target to a one-target receipt",
+      "expected": "privacy proof fails closed"
+    },
+    {
+      "id": "stale-source-commit",
+      "mutation": "change sourceCommit without ancestry proof",
+      "expected": "provenance validator fails"
+    },
+    {
+      "id": "missing-receipt-field",
+      "mutation": "remove one required version-1 receipt field",
+      "expected": "receipt validator fails"
+    },
+    {
+      "id": "hash-mismatch",
+      "mutation": "change one destination SHA-256",
+      "expected": "promotion fails before publish"
+    },
+    {
+      "id": "overwrite-canonical-output",
+      "mutation": "place an existing file at a canonical target",
+      "expected": "transaction refuses overwrite"
+    },
+    {
+      "id": "raw-root-in-repository",
+      "mutation": "set rawRunRootNotCommitted to false",
+      "expected": "privacy validation fails"
+    },
+    {
+      "id": "destructive-safety-drop",
+      "mutation": "remove sureCells, sureYes, sureProgress, or closeSure from a destructive row",
+      "expected": "destructive action validation fails"
+    },
+    {
+      "id": "invalid-aria-target",
+      "mutation": "remove the role or accessible name from a control target",
+      "expected": "target validation fails"
+    },
+    {
+      "id": "empty-fixture-bound",
+      "mutation": "remove byte or option bounds from a fixture",
+      "expected": "bounded-input validation fails"
+    },
+    {
+      "id": "visual-diff-missing",
+      "mutation": "remove a labelled comparison or visual-diff record",
+      "expected": "evidence validation fails"
+    }
+  ]
+}

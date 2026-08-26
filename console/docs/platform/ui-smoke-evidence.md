@@ -6,9 +6,9 @@ This article describes the source-only interaction and evidence contract for the
 
 The hand-written inventory is `console/inventories/ui-smoke-inventory.mjs`. It names exactly 44 canonical features and 143 explicit routes, runtime screens, dialogs, menus, dropdowns, design state families, site controls, and viewport equivalents.
 
-The checked-in `console/inventories/ui-smoke/control-census.json` reconciles 566 unique design control ids, 566 generated-runtime ids, 323 prior screen-model ids, 243 dynamic runtime ids, and the prior 335-record screen-model subset. Each id has declaration locations, generated-use locations, an exact binding path, an accessible role and name, a state key, a control kind, and its real action cases. `surface-control-index.json` binds every runtime id to a real surface or dynamic scope. Any non-executable source id carries an explicit exclusion code and reason. There are no modulo-generated targets.
+The checked-in `console/inventories/ui-smoke/control-census.json` reconciles 940 unique design control ids, 940 generated-runtime ids, 696 current screen-model ids, 244 dynamic runtime ids, and the earlier 335-record screen-model subset. Each id has declaration locations, generated-use locations, an exact binding path, an accessible role and name, a state key, a control kind, and its real action cases. `surface-control-index.json` binds every runtime id to a real surface or dynamic scope. Any non-executable source id carries an explicit exclusion code and reason. There are no modulo-generated targets.
 
-The exact census relation is `323 screen-model ids + 243 dynamic runtime ids + 0 excluded source ids = 566 unique ids`. The 12 duplicate ids are occurrence-specific because their labels or binding paths differ, so their declaration-location stable ids appear in action rows while the unique census remains 566.
+The exact census relation is `696 screen-model ids + 244 dynamic runtime ids + 0 excluded source ids = 940 unique ids`. The 12 duplicate ids are occurrence-specific because their labels or binding paths differ, so their declaration-location stable ids appear in action rows while the unique census remains 940. The earlier 479-declaration and 467-id design audit remains a separate structural audit and is not substituted for the current parser census.
 
 The design binding census preserves the independently audited 32 destinations, 479 controls, 265 declarative bindings, 168 distinct expressions, and 17 transient-state families. It records the SHA-256 of both checked-in design files and the generated renderer artifact. The canonical digest is recorded in `interaction-manifest.json` and must match before execution.
 
@@ -20,9 +20,9 @@ Asterisk admin-resource wiring, FreePBX parity, migration successor identities, 
 
 | Source | Derivation | Rows |
 | --- | --- | ---: |
-| Real controls | 3,294 reviewed control action cases, including 70 occurrence-specific duplicate cases, multiplied by the three language modes | 9,882 |
+| Real controls | 5,486 reviewed control action cases, including occurrence-specific duplicate cases, multiplied by the three language modes | 16,458 |
 | Route and equivalent proofs | 546 base route proofs plus 123 explicit state and viewport proofs | 669 |
-| Total | Control rows plus route and equivalent rows | 10,551 |
+| Total | Control rows plus route and equivalent rows | 17,127 |
 
 Each control row carries the real design id, declaration and generated-use locations, runtime binding, exact surface route tuple, expected URL, transition, accessible role and name, bounded fixture payload, action case, observable predicate, destructive safety, runtime identity placeholders, before and after capture paths, alt text, receipt schemas, redaction rules, and commit-addressed evidence paths.
 

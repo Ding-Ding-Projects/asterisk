@@ -105,7 +105,7 @@ function promote() {
   const relativeRaw = relative(root, rawRoot);
   if (relativeRaw === '' || (!relativeRaw.startsWith('..') && !relativeRaw.startsWith(`..${sep}`))) fail('rawRunRootNotCommitted requires the raw root to be outside the repository');
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-  if (manifest.schemaVersion !== 2 || manifest.rows?.length !== 10551) fail('reviewed manifest must be schemaVersion 2 with 10551 rows');
+  if (manifest.schemaVersion !== 2 || manifest.rows?.length !== 17127) fail('reviewed manifest must be schemaVersion 2 with 17127 rows');
   const canonicalRoot = resolve(outputRoot, integratedCommit); const stageRoot = resolve(outputRoot, '.staging', `${integratedCommit}-${Date.now()}`);
   if (existsSync(canonicalRoot)) fail(`canonical output already exists at ${canonicalRoot}, refusing overwrite`);
   const prepared = []; const surfaces = new Map();

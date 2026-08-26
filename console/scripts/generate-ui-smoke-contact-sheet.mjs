@@ -38,7 +38,7 @@ const promotionIndex = resolve(promotionIndexArgument);
   const outputHtml = resolve(outputArgument);
   const data = JSON.parse(readFileSync(promotionIndex, 'utf8'));
   if (data.schemaVersion !== 1 || data.status !== 'promoted') throw new Error('contact sheet requires a version-1 promoted index');
-  if (!Array.isArray(data.rows) || data.rows.length !== 10551) throw new Error('contact sheet requires all 10551 promoted rows');
+  if (!Array.isArray(data.rows) || data.rows.length !== 17127) throw new Error('contact sheet requires all 17127 promoted rows');
   const seen = new Set();
   const cards = [];
   const summaries = [];
