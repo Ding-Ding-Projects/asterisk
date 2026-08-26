@@ -8,6 +8,7 @@
     "both"
   ],
   "knownCopyKeys": [
+    "dialogEmojisDesc",
     "displayNameDesc",
     "emptyDestinations",
     "emptyNotifications",
@@ -38,11 +39,13 @@
       "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
     },
     "dialog-emojis": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
-      "copyKeys": [],
+      "copyKeys": [
+        "dialogEmojisDesc"
+      ],
       "missingCopyKeys": [],
-      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+      "note": "Covered by COPY keys: dialogEmojisDesc. The dialog-emoji card description carries four English and four Cantonese variants, and every one of the eight states both facts the switch turns on: that the wording is unchanged, and that no button, label or screen-reader name carries a glyph. The checkbox label, the card heading and the live status line are still fixed English."
     },
     "school-mode": {
       "state": "not-localized",

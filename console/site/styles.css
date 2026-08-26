@@ -281,7 +281,13 @@ textarea{min-height:90px;resize:vertical}
 .overlay-card{width:min(720px,calc(100vw - 24px));max-height:min(88vh,820px);overflow:auto;border:1px solid var(--outline-variant);border-radius:var(--radius-lg);background:var(--surface-1);color:var(--on-surface);padding:22px;box-shadow:var(--shadow-2)}
 dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
 .dialog-heading{display:flex;align-items:center;justify-content:space-between}
-.dialog-heading h2{margin:0}
+.dialog-heading h2{margin:0;flex:1 1 auto}
+/* The dialog-emoji decoration. `flex:0 0 auto` on the glyph and `flex:1 1 auto` on the
+ * heading above keep the glyph and the title together on the left with the close control
+ * still pushed to the right, whether the decoration is present or not -- so the switch
+ * moves nothing except the glyph itself. Sized in `em` so it tracks the text-size slider
+ * instead of standing still while everything around it grows. */
+.dialog-emoji{flex:0 0 auto;margin-inline-end:10px;font-size:1.15em;line-height:1}
 .palette-results{display:grid;gap:6px;margin-top:14px}
 .palette-result{width:100%;border:0;border-radius:var(--radius-sm);padding:14px;background:transparent;color:var(--on-surface);text-align:left}
 .palette-result:hover{background:var(--surface-2)}
@@ -292,9 +298,13 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
 .context-menu{position:fixed;z-index:100;background:var(--surface-2);border:1px solid var(--outline-variant);border-radius:var(--radius);padding:8px;box-shadow:var(--shadow-2);max-width:min(370px,calc(100vw - 20px))}
 .context-menu>button{justify-content:space-between;width:100%;border-radius:var(--radius-sm)}
 .toast-region{position:fixed;z-index:200;right:18px;bottom:18px;display:flex;flex-direction:column-reverse;gap:10px;width:min(400px,calc(100vw - 36px))}
-.toast{padding:16px;border-radius:var(--radius);background:var(--surface-3);border:1px solid var(--outline-variant);box-shadow:var(--shadow-2)}
+.toast{padding:16px;border-radius:var(--radius);background:var(--surface-3);border:1px solid var(--outline-variant);box-shadow:var(--shadow-2);display:flex;align-items:flex-start}
+.toast-text{flex:1 1 auto;min-width:0}
 .toast strong,.toast span{display:block}
 .toast span{margin-top:4px;color:var(--muted)}
+/* The decoration is not part of the message, so it takes neither the muted colour nor
+ * the gap that separates a message box's title from its body. */
+.toast .dialog-emoji{margin-top:0;color:inherit}
 .ticket{padding:11px;margin-top:8px;border-radius:var(--radius-sm);background:var(--surface-2)}
 .highlight{animation:highlight 1.2s ease}
 .reveal{opacity:0;transform:translateY(16px);transition:opacity .4s ease,transform .4s cubic-bezier(.2,0,0,1)}

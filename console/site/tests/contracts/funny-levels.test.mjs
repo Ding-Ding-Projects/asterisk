@@ -9,7 +9,7 @@
  * independently re-derived below, not trusted from a hand-written note.
  *
  * What is NOT true is that the sliders restyle the site. Only a handful of strings are
- * ever reached -- three through a `data-copy` markup hook and five more through direct
+ * ever reached -- five through a `data-copy` markup hook and seven more through direct
  * `copyText('key')` calls in notification/empty-state code. Everything else on the six
  * pages (headings, card copy, destination descriptions, documentation prose) is a fixed
  * string with no lever attached to it. This file pins both halves: the mechanism is
@@ -65,11 +65,12 @@ function copyTable() {
 
 test('the COPY table defines a genuine four-level voice for both languages, on every key', () => {
   const table = copyTable();
-  /* Last moved on 2026-08-26, 10 -> 11, when the display-name card gained its own
-   * `displayNameDesc` description. An exact pin is the point: a number that drifts fails
-   * and gets explained rather than quietly widened. */
-  assert.equal(Object.keys(table).length, 11,
-    `expected exactly 11 COPY keys, found ${Object.keys(table).length} -- update this pin if a message was deliberately added or removed`);
+  /* Last moved on 2026-08-26, 11 -> 12, when the dialog-emoji card gained its own
+   * `dialogEmojisDesc` description; it had moved 10 -> 11 earlier the same day for the
+   * display-name card. An exact pin is the point: a number that drifts fails and gets
+   * explained rather than quietly widened. */
+  assert.equal(Object.keys(table).length, 12,
+    `expected exactly 12 COPY keys, found ${Object.keys(table).length} -- update this pin if a message was deliberately added or removed`);
   for (const [key, counts] of Object.entries(table)) {
     assert.equal(counts.enCount, 4, `${key}: expected 4 English funny-level variants (Plain/Mild/Playful/Maximum), found ${counts.enCount}`);
     assert.equal(counts.zhCount, 4, `${key}: expected 4 Cantonese funny-level variants, found ${counts.zhCount}`);
@@ -137,14 +138,15 @@ test('every COPY key is genuinely reached from real markup or a real call site -
 
 test('the funny sliders reach only a small, explicitly wired subset of the six pages, not the pages themselves', () => {
   /* This is the fact that makes "partial" the honest classification rather than
-   * "implemented": the mechanism above is real, but only these four strings in the
+   * "implemented": the mechanism above is real, but only these five strings in the
    * whole site actually have a data-copy hook attached to them. The set last grew on
-   * 2026-08-26, when the display-name card was built with its description wired to the
-   * sliders from the start -- four of eleven keys is still nowhere near the whole
-   * page, so the classification does not change. */
+   * 2026-08-26, when the dialog-emoji card was built with its description wired to the
+   * sliders from the start, as the display-name card had been earlier the same day --
+   * five of twelve keys is still nowhere near the whole page, so the classification
+   * does not change. */
   const html = pageText();
   const wiredKeys = new Set([...html.matchAll(/data-copy="(\w+)"/g)].map((m) => m[1]));
-  assert.deepEqual([...wiredKeys].sort(), ['displayNameDesc', 'heroLede', 'motionDesc', 'themeDesc'],
+  assert.deepEqual([...wiredKeys].sort(), ['dialogEmojisDesc', 'displayNameDesc', 'heroLede', 'motionDesc', 'themeDesc'],
     'the set of markup-wired funny-level strings changed -- if it grew, the "partial" classification may need revisiting');
   const totalKeys = Object.keys(copyTable()).length;
   assert.ok(wiredKeys.size < totalKeys,

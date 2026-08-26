@@ -12,16 +12,20 @@
     },
     "funny-levels": {
       "state": "partial",
-      "note": "site/app.js initSettings() wires english-funny and cantonese-funny selects to state.englishFunny/state.cantoneseFunny, and applyCopy() plus copyText()/copyLevel() genuinely restyle rendered text: the COPY table holds eleven keys (heroLede, displayNameDesc, themeDesc, motionDesc, emptyDestinations, emptyNotifications, notifSettingSaved, notifSettingsReset, notifRegexApplied, searchModePlain, searchModeRegex), each with four real English and four real Cantonese variants indexed by the chosen level, and changing a select re-runs applyCopy() and visibly changes the rendered string. The real gap is coverage, not mechanism: only four elements carry a data-copy hook (heroLede, displayNameDesc, themeDesc, motionDesc, across site/index.html and site/settings.html) and the other seven keys are notification and empty-state strings reached through copyText() call sites - eleven styled strings out of the whole site copy, with everything else fixed at one tone. The selects also only offer four levels (0-3, defaulting to 0/Plain) rather than the canonical five levels defaulting to 5/Maximum. Counts corrected on 2026-08-26: this note had said eight keys and three hooks, which was already two keys and no hooks out of date before the display-name card added the eleventh key and the fourth hook. Line numbers were removed rather than refreshed, because they are what went stale first and the symbol names locate the code without them.",
+      "note": "site/app.js initSettings() wires english-funny and cantonese-funny selects to state.englishFunny/state.cantoneseFunny, and applyCopy() plus copyText()/copyLevel() genuinely restyle rendered text: the COPY table holds twelve keys (heroLede, displayNameDesc, dialogEmojisDesc, themeDesc, motionDesc, emptyDestinations, emptyNotifications, notifSettingSaved, notifSettingsReset, notifRegexApplied, searchModePlain, searchModeRegex), each with four real English and four real Cantonese variants indexed by the chosen level, and changing a select re-runs applyCopy() and visibly changes the rendered string. The real gap is coverage, not mechanism: only five elements carry a data-copy hook (heroLede, displayNameDesc, dialogEmojisDesc, themeDesc, motionDesc, across site/index.html and site/settings.html) and the other seven keys are notification and empty-state strings reached through copyText() call sites - twelve styled strings out of the whole site copy, with everything else fixed at one tone. The selects also only offer four levels (0-3, defaulting to 0/Plain) rather than the canonical five levels defaulting to 5/Maximum. Counts corrected on 2026-08-26: this note had said eight keys and three hooks, which was already two keys and no hooks out of date before the display-name card added the eleventh key and the fourth hook, and the dialog-emoji card later added the twelfth key and the fifth hook. Line numbers were removed rather than refreshed, because they are what went stale first and the symbol names locate the code without them.",
       "files": [
         "site/app.js",
         "site/settings.html"
       ]
     },
     "dialog-emojis": {
-      "state": "absent",
-      "note": "No show-emojis-in-dialogs toggle or emoji-decoration logic was found in site/app.js.",
-      "files": []
+      "state": "implemented",
+      "note": "Built on 2026-08-26. site/settings.html carries an APPEARANCE card holding a labelled 'Show emojis in dialogs and message boxes' checkbox (#dialog-emojis), a funny-level description (data-copy=\"dialogEmojisDesc\") and a live status line (#dialog-emojis-status). site/app.js holds state.dialogEmojis (DEFAULTS false, so nothing changes for anyone who never touches it), the DIALOG_EMOJI_DECORATIONS table naming the six decorated surfaces (command-palette, regex-dialog, notifications-dialog, history-dialog, reset-confirm-dialog and the inline notif-confirm alertdialog), MESSAGE_BOX_GLYPH for toasts, setDialogDecoration() as the single writer, and applyDialogEmojis() called from applyState(). The decoration is a separate span the code creates, prepended to the .dialog-heading rather than into the <h2> the dialog is labelled by, carrying aria-hidden=\"true\" so it cannot enter an accessible name and data-no-vocab so the personal-vocabulary walker never treats a glyph as copy. It never reaches a button, a control label, an option or any other control text: setDialogDecoration is the only function that writes the glyph and it writes only into an element it created. Toasts already on screen change with the switch as well as the next one to arrive.",
+      "files": [
+        "site/app.js",
+        "site/settings.html",
+        "site/styles.css"
+      ]
     },
     "school-mode": {
       "state": "absent",
