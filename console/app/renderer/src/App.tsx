@@ -6353,14 +6353,7 @@ It is shown once. The far end needs it to register.`);
     if (!isReadable(screen)) return NO_READER;
     const readings = this.readings[screen];
     if (!readings) return 'Reading…';
-    /* A screen can be short of rows for two unrelated reasons at once -- the AMI table is
-     * fed by `manager show users` and `ari show apps`, so one can fail while the other
-     * comes back a row light -- and each sentence is the only thing that names its own
-     * cause. Both are said, the failure first, because "the table is short two rows" is a
-     * poor lead for a table that is also missing a whole reading. Picking one and dropping
-     * the other is how a real cause goes unsaid. */
-    const failed = reasonFor(readings, ['channels', 'endpoints', 'contacts', 'registrations', 'queues', 'modules', 'uptime', 'voicemailUsers', 'rooms', 'mohClasses', 'managerUsers', 'ariApps']);
-    return [failed, this.droppedRowsNote(screen).trim()].filter(Boolean).join(' ');
+    return reasonFor(readings, ['channels', 'endpoints', 'contacts', 'registrations', 'queues', 'modules', 'uptime', 'voicemailUsers', 'rooms', 'mohClasses', 'managerUsers', 'ariApps']);
   }
 
   /**
@@ -6384,52 +6377,79 @@ It is shown once. The far end needs it to register.`);
   }
 
   /**
-   * The sentence a screen adds when its table is short of rows the target really has.
+   * What a screen says when its table is short of the rows the target really has.
    *
-   * Both of these readings hand back the target's own trailer count beside the list they
-   * parsed, and both screens rendered the list and threw the count away -- so a Voicemail
-   * screen showing three of four mailboxes looked exactly like one showing all four.
-   * Measured on a live target: the trailer said `4 voicemail users configured` and the
-   * table had three rows.
+   * Both readings behind these two tables hand back the target's own trailer count beside
+   * the list they parsed, and both screens rendered the list and threw the count away --
+   * so a Voicemail screen showing three of four mailboxes looked exactly like one showing
+   * all four. Measured on a live target: the trailer said `4 voicemail users configured`
+   * and the table had three rows.
    *
    * Empty for every other screen, and empty whenever the table is showing everything.
    */
   private droppedRowsNote(screen: string): string {
+    const sentences = this.readingShortfalls(screen);
+    return sentences.length === 0 ? '' : ` ${sentences.join(' ')}`;
+  }
+
+  /**
+   * Every reason this screen's table has fewer rows than its target does, one sentence
+   * each, in the order a reader wants them: a reading that never answered first, then a
+   * reading that answered short.
+   *
+   * They accumulate rather than compete. A table fed by two commands can lose one of them
+   * outright while the other comes back a row light, and each sentence is the only thing
+   * that names its own cause -- so returning whichever came first leaves a real cause
+   * unsaid on a screen that had already measured it.
+   *
+   * Both of these screens edit a configuration file, which is what makes this method
+   * necessary rather than convenient: `note()` returns from its configuration branch and
+   * never reaches the reading-failure report at the bottom, so without these lines a
+   * failed `voicemail show users` leaves an empty table whose only sentence is about
+   * voicemail.conf -- naming the wrong thing entirely. The AMI screen acquired that same
+   * shape the day it was given a real `manager.conf` to read.
+   */
+  private readingShortfalls(screen: string): string[] {
     if (screen === 'voicemail') {
-      const reading = this.readings.voicemail?.voicemailUsers;
-      if (!reading) return '';
-      /* The Voicemail screen edits a file, so `note()` returns from the configuration
-       * branch above and never reaches the reading-failure report at the bottom of it.
-       * Without this line a failed `voicemail show users` leaves an empty table whose only
-       * sentence is about voicemail.conf, which names the wrong thing entirely. */
-      if (reading.result.state === 'unavailable') {
-        return ` No mailboxes are listed because \`voicemail show users\` could not be read: ${reading.result.reason}`;
-      }
-      const value = reading.result.value;
-      return droppedRowNote({
+      const readings = this.readings.voicemail;
+      if (!readings) return [];
+      const failed = reasonFor(readings, ['voicemailUsers']);
+      if (failed) return [`No mailboxes are listed because \`voicemail show users\` could not be read: ${failed}`];
+      const value = valueOf(readings.voicemailUsers);
+      if (!value) return [];
+      return [droppedRowNote({
         command: 'voicemail show users',
         unit: 'voicemail user',
         parsed: value.users.length,
         total: value.total,
         dropped: value.dropped,
         reason: 'prints fixed-width columns, and a context or mailbox that overruns its own field leaves nothing to say where the next column begins, so the row is left out rather than filed under the wrong context',
-      });
+      }).trim()].filter(Boolean);
     }
     if (screen === 'ami') {
-      /* No unavailable branch here on purpose: the AMI screen edits no single file, so
-       * `note()` falls all the way through to `reasonFor`, which already reports a failed
-       * `manager show users` in the target's own words. */
-      const value = valueOf(this.readings.ami?.managerUsers);
-      if (!value) return '';
-      return droppedRowNote({
-        command: 'manager show users',
-        unit: 'manager user',
-        parsed: value.users.length,
-        total: value.total,
-        reason: 'prints one username per line, and this reading could not tell every line apart from the report\'s own header, separator and trailer',
-      });
+      const readings = this.readings.ami;
+      if (!readings) return [];
+      const sentences: string[] = [];
+      /* Both readings feed the one table (`amiRows`), so either failing costs it rows and
+       * neither failure reaches `reasonFor` from this screen any more. */
+      const failed = reasonFor(readings, ['managerUsers', 'ariApps']);
+      /* Deliberately not phrased "rows are missing from this table": that is the shortfall
+       * sentence's own wording, and two sentences about different causes reading the same
+       * way is how a reader, or a test needle, conflates them. */
+      if (failed) sentences.push(`This table is incomplete because a reading did not answer: ${failed}`);
+      const value = valueOf(readings.managerUsers);
+      if (value) {
+        sentences.push(droppedRowNote({
+          command: 'manager show users',
+          unit: 'manager user',
+          parsed: value.users.length,
+          total: value.total,
+          reason: 'prints one username per line, and this reading could not tell every line apart from the report\'s own header, separator and trailer',
+        }).trim());
+      }
+      return sentences.filter(Boolean);
     }
-    return '';
+    return [];
   }
 
   /** Real dialplan nodes/edges in the design's canvas shapes, with a bezier path per edge

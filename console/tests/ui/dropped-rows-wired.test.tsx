@@ -96,7 +96,9 @@ test('the Voicemail screen says nothing about a shortfall when there is none', (
     voicemailUsers: available('voicemail show users', { users: LIVE_VOICEMAIL.users, total: 3, dropped: [] }),
   });
   assert.ok(
-    !readable.includes('missing from this table'),
+    // The uninflected part of the sentence, so a claim about two rows cannot pass a needle
+    // written for a claim about one.
+    !readable.includes('voicemail users on this target'),
     `expected silence when the table is complete, got: ${readable.slice(0, 1200)}`,
   );
 });
@@ -134,20 +136,43 @@ test('the AMI screen says nothing about a shortfall when the trailer agrees with
     ariApps: available('ari show apps', []),
   });
   assert.ok(
-    !readable.includes('missing from this table'),
+    // Uninflected, for the same reason as the Voicemail case above.
+    !readable.includes('manager users on this target'),
     `expected silence when the table is complete, got: ${readable.slice(0, 1200)}`,
   );
 });
 
 test('a failed AMI reading names itself rather than being reported as a shortfall', () => {
-  // "the table is short two rows" is the wrong sentence for a table that has none because
-  // the command never answered, so a failed reading of the very list under test says so
-  // and claims no shortfall it cannot measure.
+  // This screen edits manager.conf, so it takes the same configuration branch the
+  // Voicemail screen does and its reading failures reach `reasonFor` no more than that
+  // screen's do. And "the table is short two rows" is the wrong sentence for a table that
+  // has none because the command never answered, so the failure says so and claims no
+  // shortfall it cannot measure.
   const readable = renderScreen('ami', {
     managerUsers: unavailable('manager show users', 'Unable to connect to remote asterisk'),
   });
   assert.ok(readable.includes('Unable to connect to remote asterisk'), `expected the reason, got: ${readable.slice(0, 1200)}`);
-  assert.ok(!readable.includes('missing from this table'), `expected no shortfall claim, got: ${readable.slice(0, 1200)}`);
+  /* Anchored to the shortfall sentence's own signature, and to the part of it that does
+   * not inflect. A bare "missing from this table" is satisfied by the failure sentence
+   * sitting right beside it; "on this target is missing" only catches a shortfall of
+   * exactly one, so a fabricated claim about two would walk straight past. Both of those
+   * were live here: the second was found by planting the fabrication and watching this
+   * assertion stay green. */
+  assert.ok(!readable.includes('manager users on this target'), `expected no shortfall claim, got: ${readable.slice(0, 1200)}`);
+});
+
+test('a failed `ari show apps` costs the AMI table rows and is named too', () => {
+  // `amiRows` is fed by both commands, so a screen that only ever reported the manager
+  // half would go quiet about half its own table.
+  const readable = renderScreen('ami', {
+    managerUsers: available('manager show users', { users: [{ username: 'monitor' }], total: 1 }),
+    ariApps: unavailable('ari show apps', 'Unable to connect to remote asterisk'),
+  });
+  assert.ok(
+    readable.includes('This table is incomplete because a reading did not answer')
+      && readable.includes('Unable to connect to remote asterisk'),
+    `expected the failed reading named, got: ${readable.slice(0, 1200)}`,
+  );
 });
 
 test('a screen short of rows AND missing a reading says both, not whichever came first', () => {

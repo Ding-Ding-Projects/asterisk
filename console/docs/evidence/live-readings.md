@@ -145,12 +145,14 @@ would have proved nothing about parsing a new row.
 > on this target is missing from this table*, names the mechanism, and quotes the line it could
 > not read; the AMI screen says the same about `manager show users` from its trailer alone,
 > because that parser cannot name the line it lost and the count is the whole honest signal it
-> has. A failed `voicemail show users` now names itself too: that screen edits a file, so
-> `note()` returned from the configuration branch and never reached the reading-failure report at
-> the bottom of it, leaving an empty table whose only sentence was about `voicemail.conf`. Seven
-> render tests in `tests/ui/dropped-rows-wired.test.tsx` read those sentences out of the real
-> `App`'s markup rather than out of the note builder, because a value computed and never
-> rendered is exactly the defect being repaired.
+> has. A reading that never answered now names itself too, on both screens: each edits a
+> configuration file, so `note()` returns from its configuration branch and never reaches the
+> reading-failure report at the bottom of it, leaving an empty table whose only sentence was
+> about the file. The AMI screen acquired that same shape the day it was given a real
+> `manager.conf` to read, which is why both of its commands are checked rather than only the one
+> this item named. Nine render tests in `tests/ui/dropped-rows-wired.test.tsx` read those
+> sentences out of the real `App`'s markup rather than out of the note builder, because a value
+> computed and never rendered is exactly the defect being repaired.
 >
 > **The parse half of the ledger beside this article moved, and how it moved is worth stating.**
 > Adding a field to what `parseVoicemailUsers` returns changes the canonical JSON it hashes to,
@@ -275,16 +277,25 @@ from the committed captures: that it is a no-op against a ledger already matchin
 it repairs a hand-damaged hash and names exactly what it moved, that it refuses to write when a
 capture no longer hashes to what was recorded, that it leaves every live-half field alone, and
 that the ledger still names the exact voicemail line the reading could not turn into a row.
-`scripts/negative-dropped-rows.mjs` holds the repair those describe with 16 further breaks, two
+`scripts/negative-dropped-rows.mjs` holds the repair those describe with 18 further breaks, two
 of them aimed at `--reparse` itself.
 
-One of those sixteen stayed green on the first run, and what it found is worth recording. The
-break made the AMI screen claim a shortfall for a reading that had failed -- and nothing went red,
-because `note()` returned the failure before the shortfall could be reached, so the break was
-unreachable rather than unwatched. **The property that was genuinely unguarded was the one next
-to it:** a screen fed by two commands, one of which fails while the other comes back a row light,
-reported whichever sentence came first and dropped the other. That is now reported as both, with
-its own test and three breaks around it.
+Two of those eighteen stayed green when first planted, and both found something real rather than
+merely needing rewording.
+
+The first made the AMI screen claim a shortfall for a reading that had failed, and nothing went
+red, because `note()` returned the failure before the shortfall could be reached: the break was
+unreachable rather than unwatched. **The property genuinely unguarded was the one beside it** --
+a screen fed by two commands, one failing while the other comes back a row light, reported
+whichever sentence came first and dropped the other. Both are said now.
+
+The second stayed green because of the assertion rather than the code. Three negative needles
+read `missing from this table`, and once a failed reading had a sentence of its own that phrase
+belonged to both, so the needle could no longer fail for the reason it was written for. Tightened
+to `on this target is missing from this table`, it then missed a *plural* fabricated claim, since
+that phrase inflects. All three are anchored on the uninflected `<unit>s on this target` now.
+**A negative assertion whose needle drifted onto neighbouring prose is the quietest kind of dead
+guard there is**, and only planting the exact lie it was written to catch shows it up.
 
 Two of those twelve had to be rewritten, and the reason is worth recording. Commenting out
 `if (!recorded.has(command))` inside the coverage check left everything green — not because
