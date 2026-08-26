@@ -147,7 +147,14 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // 199. Rebasing onto the real tip puts it on top of 203 instead, landing on 223 --
   // read back the same way the 203 above was, by trying a deliberately wrong number
   // first and taking whatever this test actually reported.
-  assert.equal(controlCount, 223);
+  // And 224 with mo_load (modules.conf.sample line 32: ;load = res_musiconhold.so),
+  // the one new binding the Logger/Modules/Codecs deepening pass added -- mo_preload,
+  // mo_noload and mo_require already existed and only gained `repeated: true` (a
+  // correctness fix, not a new control), and g_file's key changed from the wrong
+  // 'messages' to the sample's real 'messages.log' without adding or removing a
+  // binding. Read back the same way as above: a deliberately wrong number run first,
+  // then whatever this test actually reported.
+  assert.equal(controlCount, 224);
 });
 
 // ---------------------------------------------------------------- boolean parsing
@@ -308,7 +315,11 @@ test('readControlValues reads a realistic voicemail.conf onto the voicemail scre
 test('readControlValues reads a realistic logger.conf onto the logger screen', () => {
   const cfg: ConfigValue = [
     { name: 'general', entries: [{ key: 'rotatestrategy', value: 'timestamp' }, { key: 'queue_log', value: 'no' }] },
-    { name: 'logfiles', entries: [{ key: 'console', value: 'notice,warning,error' }, { key: 'messages', value: 'notice,warning' }] },
+    // logger.conf.sample line 176: the file-channel key is the literal name
+    // "messages.log", dot and all -- not "messages". A fixture using the wrong key
+    // used to pass here by matching a binding that was itself wrong the same way; both
+    // are fixed together.
+    { name: 'logfiles', entries: [{ key: 'console', value: 'notice,warning,error' }, { key: 'messages.log', value: 'notice,warning' }] },
   ];
   const values = readControlValues('logger', cfg);
   assert.equal(values.g_rotate, 'timestamp');
@@ -365,6 +376,74 @@ test('applyControlValues preserves repeated keys elsewhere in the file', () => {
       { key: 'deny', value: '0.0.0.0/0' },
     ],
   );
+});
+
+test('modules.conf writes one line per module, never a comma-joined value', () => {
+  // main/loader.c's loader_config_init reads 'noload'/'preload'/'require'/'load' one
+  // v->value at a time; a comma-joined line would be read as a single module named
+  // "chan_sip.so,chan_mobile.so", which does not exist. `repeated: true` is what makes
+  // this the shape actually written -- without it (see the "modules.conf writes
+  // exactly the wrong shape" negative test below), it would fail this same assertion.
+  const cfg: ConfigValue = [{ name: 'modules', entries: [{ key: 'autoload', value: 'yes' }] }];
+  const next = applyControlValues('modules', cfg, { mo_noload: ['chan_sip.so', 'chan_mobile.so'] });
+  const section = next.find((s) => s.name === 'modules');
+  const noloads = section?.entries.filter((e) => e.key === 'noload') ?? [];
+  assert.deepEqual(noloads.map((e) => e.value), ['chan_sip.so', 'chan_mobile.so']);
+  assert.ok(noloads.every((e) => !e.value.includes(',')), 'no noload= line should contain a comma');
+});
+
+test('modules.conf replaces every occurrence of a repeated key in place, not appended', () => {
+  const cfg: ConfigValue = [
+    {
+      name: 'modules',
+      entries: [
+        { key: 'noload', value: 'res_hep.so' },
+        { key: 'noload', value: 'res_hep_pjsip.so' },
+        { key: 'noload', value: 'res_hep_rtcp.so' },
+        { key: 'autoload', value: 'yes' },
+      ],
+    },
+  ];
+  const next = applyControlValues('modules', cfg, { mo_noload: ['app_meetme.so'] });
+  const section = next.find((s) => s.name === 'modules');
+  const entries = section?.entries ?? [];
+  assert.deepEqual(entries.map((e) => `${e.key}=${e.value}`), ['noload=app_meetme.so', 'autoload=yes']);
+});
+
+test('modules.conf: preload, require and force-load are also repeated, independently of each other', () => {
+  const cfg: ConfigValue = [{ name: 'modules', entries: [{ key: 'autoload', value: 'yes' }] }];
+  const next = applyControlValues('modules', cfg, {
+    mo_preload: ['res_odbc.so', 'res_curl.so'],
+    mo_require: ['chan_pjsip.so'],
+    mo_load: ['res_musiconhold.so'],
+  });
+  const section = next.find((s) => s.name === 'modules');
+  const of = (key: string) => (section?.entries ?? []).filter((e) => e.key === key).map((e) => e.value);
+  assert.deepEqual(of('preload'), ['res_odbc.so', 'res_curl.so']);
+  assert.deepEqual(of('require'), ['chan_pjsip.so']);
+  assert.deepEqual(of('load'), ['res_musiconhold.so']);
+});
+
+test('readControlValues reads a realistic modules.conf, one module per repeated line', () => {
+  const cfg: ConfigValue = [
+    {
+      name: 'modules',
+      entries: [
+        { key: 'autoload', value: 'yes' },
+        { key: 'preload', value: 'res_odbc.so' },
+        { key: 'noload', value: 'chan_sip.so' },
+        { key: 'noload', value: 'chan_mobile.so' },
+        { key: 'require', value: 'chan_pjsip.so' },
+        { key: 'load', value: 'res_musiconhold.so' },
+      ],
+    },
+  ];
+  const values = readControlValues('modules', cfg);
+  assert.equal(values.mo_auto, true);
+  assert.deepEqual(values.mo_preload, ['res_odbc.so']);
+  assert.deepEqual(values.mo_noload, ['chan_sip.so', 'chan_mobile.so']);
+  assert.deepEqual(values.mo_require, ['chan_pjsip.so']);
+  assert.deepEqual(values.mo_load, ['res_musiconhold.so']);
 });
 
 test('applyControlValues creates a missing key inside an existing section', () => {

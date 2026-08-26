@@ -177,19 +177,51 @@ function measure() {
  * that had already reached 243 by other means, rather than by adding the two deltas
  * together. The comment above still tells the true story of every lane that got here;
  * this number is what running this test with a deliberately wrong value read back,
- * exactly as that comment already recommends doing instead of arithmetic. */
-const WORKING_FLOOR = 286;
-const TELEPHONY_TOTAL = 286;
+ * exactly as that comment already recommends doing instead of arithmetic.
+ *
+ * Then 296, with the Logger/Modules/Codecs deepening pass: net +10, and every one of
+ * them works, which is the same net gain to the floor as to the total. Logger gained
+ * six -- g_save and g_vsave (its own two Save buttons, since logger.conf's four fields
+ * and asterisk.conf's verbosity are two different files and cannot share one write, the
+ * same split http.conf/httpd already established) plus g_chname/g_chlevels/g_chload/
+ * g_chsave (the "any other named channel" editor: no fixed key, so g_chname/g_chlevels
+ * are read directly out of `state.values` by name in App.tsx's onLoadLoggerChannel and
+ * onSaveLoggerChannel, the quoted-literal shape this measurement already recognises for
+ * s_aclname/s_action/s_spec, and g_chload/g_chsave are its Load/Save actions). Modules
+ * gained two -- mo_load (a real new binding, modules.conf.sample line 32) and mo_save,
+ * its first Save button ever; mo_preload/mo_noload/mo_require already counted as
+ * working before this pass and still do, even though their `repeated: true` fix changed
+ * what they actually write. Codecs gained two -- k_save and r_save, the screen's first
+ * two Save buttons, now that its own declared `file` is rtp.conf (a real, readable file)
+ * rather than the 'codecs.conf · rtp.conf' label resource-for-file.test.tsx already
+ * refused; k_order and the five previously-bound fields do not recount, only the two new
+ * action buttons do. All ten recognised via `deliveredByAction` or a quoted `state.values`
+ * literal, the same two routes this measurement has recognised since s_tload/s_tsave. */
+const WORKING_FLOOR = 296;
+const TELEPHONY_TOTAL = 296;
 
 test('an action-delivered control is recognised even though its id never appears as a quoted literal', () => {
-  for (const id of ['s_tload', 's_tsave', 's_stirsave', 'ht_save', 'fx_save', 'fx_udptlsave']) {
+  for (const id of [
+    's_tload', 's_tsave', 's_stirsave', 'ht_save', 'fx_save', 'fx_udptlsave',
+    'g_save', 'g_vsave', 'g_chload', 'g_chsave', 'mo_save', 'k_save', 'r_save',
+  ]) {
     assert.ok(deliveredByAction(id), `${id} should be recognised via its design-declared action`);
   }
   // These really do write for real -- their ACTION names, not their control ids, are the
   // quoted literals App.tsx actually contains.
   const app = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'app', 'renderer', 'src', 'App.tsx'), 'utf8');
-  for (const action of ['security-transport-load', 'security-transport-save', 'security-stir-save', 'httpd-save', 'fax-save', 'fax-udptl-save']) {
+  for (const action of [
+    'security-transport-load', 'security-transport-save', 'security-stir-save', 'httpd-save', 'fax-save', 'fax-udptl-save',
+    'logger-save', 'logger-verbosity-save', 'logger-channel-load', 'logger-channel-save',
+    'modules-save', 'codecs-transcode-save', 'codecs-rtp-save',
+  ]) {
     assert.ok(app.includes(`'${action}'`), `onControlAction should handle '${action}'`);
+  }
+  // g_chname/g_chlevels are read directly out of state.values, the same shape as
+  // s_aclname/s_action/s_spec -- the quoted-literal route this file's own header
+  // documents `deliveredByAction` was built to complement, not replace.
+  for (const id of ['g_chname', 'g_chlevels']) {
+    assert.ok(app.includes(`'${id}'`), `${id} should appear as a quoted literal read by App.tsx`);
   }
   assert.ok(!deliveredByAction('s_transport'), 's_transport has no action -- it is a plain text picker, not a one-shot button');
 });
