@@ -42,17 +42,28 @@ const strip = (markup: string) => markup.replace(/<[^>]*>/g, ' ').replace(/&#x27
  * 43 rather than 40: the compliance lane's three new screens -- Call attestation
  * (stir_shaken.conf's own [profile] objects, sys rail: 6 to 7) and Phone provisioning
  * (phoneprov.conf, sys rail: 7 to 8), plus Emergency-services location (geolocation.conf,
- * pbx rail: 10 to 11). */
+ * pbx rail: 10 to 11).
+ * And a further jump once the telephony deepening lane's four brand new screens landed
+ * on the pbx rail (11 to 15) -- chan_dahdi.conf (analogue lines, T1/E1 and PRI), sla.conf
+ * (shared line appearances), dundi.conf (distributed dialplan lookup) and calendar.conf
+ * (calendars), the roadmap's own "Hardware trunks / Shared line appearances /
+ * Distributed dialplan lookup / Calendars" line, none of which had ever had a screen or
+ * a real binding before.
+ * And a further jump once the ops lane's five screens landed at once -- Caller display
+ * (ADSI) on the pbx rail, Monitoring on the data rail, and Directories & identity, NAT
+ * discovery and Messaging (XMPP) all on the sys rail. Read back the same way as every
+ * other count on this page: a deliberately wrong number run first, then whatever this
+ * test actually reported. */
 test('the design reference supplies every rail and destination', () => {
-  assert.equal(ORDER.length, 43);
-  assert.equal(destinations.length, 43);
+  assert.equal(ORDER.length, 52);
+  assert.equal(destinations.length, 52);
   assert.deepEqual(rails.map((rail) => rail.id), ['pbx', 'media', 'data', 'sys', 'agent', 'app']);
   assert.deepEqual(
     rails.map((rail) => destinations.filter((destination) => destination.rail === rail.id).length),
-    [11, 6, 2, 8, 7, 9],
+    [16, 6, 3, 11, 7, 9],
   );
   assert.equal(RAIL.length, 6);
-  assert.equal(Object.keys(SCREENS).length, 43);
+  assert.equal(Object.keys(SCREENS).length, 52);
 });
 
 test('the design audit baseline counts survive compilation', () => {
