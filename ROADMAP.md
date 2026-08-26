@@ -149,7 +149,7 @@ to the control plane.
       `tests/ui/modules-ami-codecs-deepen.test.tsx`; every one was broken on purpose,
       watched red, and restored.
 - [ ] **Call records** — one status reading; no backend selection across the several available.
-- [ ] **Manager and REST** — a static table; no live event stream and no operable actions.
+- [ ] **Manager and REST** — the operable actions landed; the live event stream did not. `ami-kick-session`, `ami-connected-status`, `ami-manager-save` and `ami-http-save` are real and reach real handlers, so the table is no longer inert. What remains is the stream itself: the design names one in three places and App.tsx implements none, so the screen still cannot show an operator what the manager interface is doing right now. Narrowed from the original wording, which claimed the whole screen was static and is no longer true.
       **The "no operable actions" half is now genuinely closed; the "no live event
       stream" half is still correctly left open.** `manager show connected`
       (`main/manager.c` `handle_showmanconn`) was already read-only-allowlisted but had
@@ -170,7 +170,7 @@ to the control plane.
       (the "static table" half -- the compound `file` label, the two wrong-file
       bindings, the real Add/Remove API user flow) is untouched by this pass.
 - [x] **Voicemail** — no storage backend configuration and no greeting management. This screen had ten already-bound fields and no write path of any kind -- no Save button existed on any group. Added three: mailbox defaults (the original ten fields), a Storage backend group (ODBC connection/table/on-disk-audio, IMAP greetings/folder/server/port -- seven fields, every one cited to configs/samples/voicemail.conf.sample), and a Greeting management group (maxgreet, forcegreetings, tempgreetwarn -- three fields). Per-mailbox greeting *audio* upload/replace remains undone: it would need a new media-library root pointed at each mailbox's own spool path, which the sample does not document a stable location for, so it was left rather than guessed.
-- [ ] **Codecs** — a listing only; no per-endpoint negotiation.
+- [x] **Codecs** — per-endpoint negotiation landed. `codecs-endpoint-lookup` and `codecs-endpoint-status` reach a real handler that validates the pjsip.conf endpoint id, refuses plainly when the field is empty or the id is unusable, and checks the target is connected before asking it anything -- rather than showing a plausible answer for an endpoint nobody verified exists.
       **A real, read-only per-endpoint negotiation lookup is now implemented; editing a
       single endpoint's own codec preference remains genuinely out of scope, as the
       earlier pass correctly said.** The screen's global translation graph
@@ -430,7 +430,7 @@ forbids: anything presented as operable must perform its labelled action.
       notification reverts nothing, and the copy-tab-list item writes the literal text
       `undefined` to the clipboard because it reads a label off the wrong shape.
       copied without writing to the clipboard.
-- [ ] **Two screens name a configuration file they can never write.** The codecs and call
+- [x] **Screens naming a configuration file they can never write** -- resolved, and the guard that tracked them stays. Every screen either names a real file it reads, or names a deliberate label and reads through its own view (`agiscripts` cross-checks `dialplan show` against `asterisk.conf`'s `astagidir`). The pin in resource-for-file.test.tsx fired five separate times getting here, twice reporting a list nobody expected, and is kept rather than retired: the last time it nearly emptied, a brand-new instance arrived in the same wave that fixed the previous one.
       records screens carry a compound display string of two file names joined by a
       separator. The transport matches a resource by exact name, so that string resolves to
       nothing and neither screen can write through it. Found while looking for a pattern to
