@@ -926,7 +926,7 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
   // Security screen's own s_failaction above.
   // cs_level/attest_level — a profile's own override of the [attestation] object's
   // own key, description ~line 96 ("All parameters ... may be overridden in a
-  // profile", line 59).
+  // profile", line 51).
   // cs_privkey/private_key_file — override of the [attestation] object's own key,
   // description ~line 64.
   // cs_certurl/public_cert_url — override of the [attestation] object's own key,
@@ -957,12 +957,12 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
   // configs/samples/geolocation.conf.sample — two object shapes, both named and
   // picked exactly the way the stir_shaken.conf profile above is: a [location] object
   // (description ~line 54, example [mylocation] ~line 151) holding the physical
-  // location, and a [profile] object (description ~line 171, example [myprofile]
+  // location, and a [profile] object (description ~line 169, example [myprofile]
   // ~line 322) that a pjsip.conf endpoint actually references and that decides how
   // the location is used. `type=location`/`type=profile` are not bound controls for
   // the same reason `stirshaken`'s own profile `type` above is not: App.tsx's
   // onSaveGeolocationLocation/onSaveGeolocationProfile write the literal value
-  // directly, per the "type (required)" note at lines 54/56 and 171/174.
+  // directly, per the "type (required)" note at lines 54/56 and 169/173.
   // gl_format/format — description ~line 61; example line 86 ("format = civicAddress").
   // gl_info/location_info — description ~line 88 ("required"). Asterisk repeats this
   // key once per fragment and concatenates them (lines 109-112 show four for one
