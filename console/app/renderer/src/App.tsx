@@ -3227,6 +3227,13 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'db-sorcery-load') { this.onLoadSorceryMapping(); return; }
     if (action === 'db-sorcery-save') { void this.onSaveSorceryMapping(); return; }
     if (action === 'db-sorcery-remove') { void this.onRemoveSorceryMapping(); return; }
+    if (action === 'logger-save') { void this.onSaveLogger(); return; }
+    if (action === 'logger-verbosity-save') { void this.onSaveLoggerVerbosity(); return; }
+    if (action === 'logger-channel-load') { this.onLoadLoggerChannel(); return; }
+    if (action === 'logger-channel-save') { void this.onSaveLoggerChannel(); return; }
+    if (action === 'modules-save') { void this.onSaveModules(); return; }
+    if (action === 'codecs-transcode-save') { void this.onSaveCodecTranscode(); return; }
+    if (action === 'codecs-rtp-save') { void this.onSaveRtp(); return; }
   };
 
   // ---------------------------------------------------------------- server add / remove
@@ -4103,6 +4110,32 @@ It is shown once. The phone needs it to register.`);
         const bound = readControlValues('fax', [], { 'udptl.conf': this.configs.udptl.value ?? [] });
         if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
         this.seeded.add('fax-udptl');
+      }
+    }
+
+    /* The Logger screen's own declared `file` is logger.conf, read by the generic block
+     * above. Its verbosity control (g_verbose) lives in asterisk.conf instead -- there is
+     * no logger.conf key for it at all -- and the Codecs screen's transcoding switch
+     * (k_transcode) is the same story, so both screens read this one shared file the same
+     * way security reads pjsip.conf for two different screens above. One fetch, cached
+     * under `this.configs.asterisk`, seeded into whichever screen is actually showing. */
+    if (screen === 'logger' || screen === 'codecs') {
+      if ((!this.configs.asterisk || this.configs.asterisk.state === 'unavailable')
+          && !this.extraConfigPending.has('asterisk.conf') && mayStartRead('config:asterisk-general')) {
+        this.extraConfigPending.add('asterisk.conf');
+        const resource = resourceForFile('asterisk.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('asterisk.conf');
+        this.configs.asterisk = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if (this.configs.asterisk?.state === 'read' && !this.seeded.has(`${screen}-asterisk`)) {
+        const state = this.state as { values: Record<string, unknown> };
+        const bound = readControlValues(screen, [], { 'asterisk.conf': this.configs.asterisk.value ?? [] });
+        if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
+        this.seeded.add(`${screen}-asterisk`);
       }
     }
 
@@ -5286,6 +5319,189 @@ It is shown once. The far end needs it to register.`);
       ...(canvasContextItems ? { ctxItems: canvasContextItems } : {}),
     };
   }
+
+  // ---------------------------------------------------------------- Logger screen
+
+  /** "Save logger.conf settings": the screen's own four fields that actually live in
+   *  logger.conf -- console levels, file levels, rotation strategy and queue logging.
+   *  Verbosity (g_verbose) is deliberately excluded: it lives in asterisk.conf, a
+   *  different file, and gets its own Save button (`onSaveLoggerVerbosity`) below, the
+   *  same split the CDR/CEL screen's own onSaveCdr/onSaveCel already use for exactly
+   *  the same reason -- applyBoundControlValues has no notion of a binding's `file`
+   *  when deciding what to write, so passing every value on the screen through in one
+   *  call would write logger.conf's own keys into asterisk.conf too. */
+  private static readonly LOGGER_CONTROLS = ['g_console', 'g_file', 'g_rotate', 'g_queue'] as const;
+
+  onSaveLogger = async (): Promise<void> => {
+    const current = this.configs.logger?.state === 'read' ? this.configs.logger.value : undefined;
+    if (!current) { this.fire('Not written', 'logger.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.LOGGER_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('logger', current, changes);
+    await this.writeConfigResource(
+      this.configs.logger?.resource ?? (resourceForFile('logger.conf') as string),
+      next,
+      'logger.conf updated on the target.',
+      'Logger settings saved',
+      () => { delete this.configs.logger; this.seeded.delete('logger'); },
+    );
+  };
+
+  /** "Save verbosity": the one logger-screen field that is not a logger.conf key at all
+   *  (asterisk.conf.sample line 20, [options] verbose). Writes only that one field, to
+   *  asterisk.conf, leaving every other setting in that file untouched -- and clears the
+   *  cache the Codecs screen shares with this one (`this.configs.asterisk`), since a
+   *  screen that just wrote the file cannot trust a reading taken before the write. */
+  onSaveLoggerVerbosity = async (): Promise<void> => {
+    const current = this.configs.asterisk?.state === 'read' ? this.configs.asterisk.value : undefined;
+    if (!current) { this.fire('Not written', 'asterisk.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    if ('g_verbose' in state.values) changes.g_verbose = state.values.g_verbose;
+    const next = applyBoundControlValues('logger', current, changes);
+    await this.writeConfigResource(
+      this.configs.asterisk?.resource ?? (resourceForFile('asterisk.conf') as string),
+      next,
+      'asterisk.conf updated on the target.',
+      'Verbosity saved',
+      () => { delete this.configs.asterisk; this.seeded.delete('logger-asterisk'); this.seeded.delete('codecs-asterisk'); },
+    );
+  };
+
+  /** The logger.conf `[logfiles]` entry named by whatever is currently typed into
+   *  `g_chname` -- the same shape `celOdbcSection` above gives the CDR/CEL screen's
+   *  named ODBC context, except this one entry is a KEY inside one fixed section
+   *  rather than a whole named section, since console/messages.log/full.log/etc. are
+   *  all just lines in logger.conf's one `[logfiles]` block (logger.conf.sample lines
+   *  94-186). `undefined` when the name is empty, logger.conf has not been read yet, or
+   *  nothing on the target is named that -- which is not a refusal: Save is free to
+   *  create it, the same way `onSaveCelOdbc`'s named context is. */
+  private loggerChannelEntry(): { name: string; value: string } | undefined {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['g_chname'] ?? '').trim();
+    const value = this.configs.logger?.state === 'read' ? this.configs.logger.value : undefined;
+    if (!name || !value) return undefined;
+    const section = value.find((candidate) => candidate.name === 'logfiles');
+    const entry = section?.entries.find((candidate) => candidate.key === name);
+    return entry ? { name, value: entry.value } : undefined;
+  }
+
+  /** "Load from target": reads the named channel's current comma-separated level list
+   *  out of logger.conf already fetched above into `g_chlevels`. */
+  onLoadLoggerChannel = (): void => {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['g_chname'] ?? '').trim();
+    if (!name) { this.toast('Type a channel name first.'); return; }
+    const found = this.loggerChannelEntry();
+    if (!found) {
+      this.toast(`No "${name}" channel in logger.conf's [logfiles] section yet -- Save will create it with whatever is typed below.`);
+      return;
+    }
+    const levels = found.value.split(',').map((level) => level.trim()).filter((level) => level.length > 0);
+    this.setState({ values: { ...values, g_chlevels: levels } } as never);
+    this.toast(`Loaded "${name}" from logger.conf.`);
+  };
+
+  /** "Save channel": writes or creates the named channel's level list in logger.conf's
+   *  `[logfiles]` section, leaving `console`, `messages.log` and every other channel
+   *  untouched -- a hand-built edit rather than a CONTROL_BINDINGS entry, because the
+   *  key here is whatever the admin typed, not a fixed name the binding table can name
+   *  in advance (the same reason extconfig.conf's family mappings and sorcery.conf's
+   *  object-type mappings are hand-rolled too; see the long comment above
+   *  CONTROL_BINDINGS.dbrealtime). */
+  onSaveLoggerChannel = async (): Promise<void> => {
+    const current = this.configs.logger?.state === 'read' ? this.configs.logger.value : undefined;
+    if (!current) { this.fire('Not written', 'logger.conf has not been read from the target yet.'); return; }
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['g_chname'] ?? '').trim();
+    if (!name) { this.fire('Not written', 'Type a channel name before saving -- logger.conf records levels per named channel, not a single global list.'); return; }
+    const levels = values['g_chlevels'];
+    if (!Array.isArray(levels) || levels.length === 0) { this.fire('Not written', 'Pick at least one level before saving -- a channel with no levels logs nothing.'); return; }
+    const value = levels.map((level) => String(level).trim()).filter((level) => level.length > 0).join(',');
+    const sections = current.map((section) => ({ name: section.name, entries: [...section.entries] }));
+    let section = sections.find((candidate) => candidate.name === 'logfiles');
+    if (!section) { section = { name: 'logfiles', entries: [] }; sections.push(section); }
+    const entries = section.entries as { key: string; value: string }[];
+    const idx = entries.findIndex((entry) => entry.key === name);
+    if (idx === -1) entries.push({ key: name, value }); else entries[idx] = { key: name, value };
+    await this.writeConfigResource(
+      this.configs.logger?.resource ?? (resourceForFile('logger.conf') as string),
+      sections,
+      `logger.conf updated on the target: [${name}].`,
+      'Channel saved',
+      () => { delete this.configs.logger; this.seeded.delete('logger'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Modules screen
+
+  /** "Save modules.conf settings": autoload plus the four per-module lists (preload,
+   *  never-load, required, force-load), all bound `repeated: true` in
+   *  CONTROL_BINDINGS.modules -- see the long comment there for why a plain comma list
+   *  would have written a line Asterisk's own loader reads as one nonexistent module. */
+  private static readonly MODULES_CONTROLS = ['mo_auto', 'mo_preload', 'mo_noload', 'mo_require', 'mo_load'] as const;
+
+  onSaveModules = async (): Promise<void> => {
+    const current = this.configs.modules?.state === 'read' ? this.configs.modules.value : undefined;
+    if (!current) { this.fire('Not written', 'modules.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.MODULES_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('modules', current, changes);
+    await this.writeConfigResource(
+      this.configs.modules?.resource ?? (resourceForFile('modules.conf') as string),
+      next,
+      'modules.conf updated on the target.',
+      'Modules settings saved',
+      () => { delete this.configs.modules; this.seeded.delete('modules'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Codecs & RTP screen
+
+  /** "Save transcoding setting": the one codecs-screen field that is not an rtp.conf
+   *  key -- asterisk.conf.sample line 77, [options] transcode_via_sln, since
+   *  codecs.conf itself has no global transcoding switch at all. Writes only that one
+   *  field, the same split logger's own verbosity Save uses for the same reason, and
+   *  clears the config cache the two screens share. */
+  onSaveCodecTranscode = async (): Promise<void> => {
+    const current = this.configs.asterisk?.state === 'read' ? this.configs.asterisk.value : undefined;
+    if (!current) { this.fire('Not written', 'asterisk.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    if ('k_transcode' in state.values) changes.k_transcode = state.values.k_transcode;
+    const next = applyBoundControlValues('codecs', current, changes);
+    await this.writeConfigResource(
+      this.configs.asterisk?.resource ?? (resourceForFile('asterisk.conf') as string),
+      next,
+      'asterisk.conf updated on the target.',
+      'Transcoding setting saved',
+      () => { delete this.configs.asterisk; this.seeded.delete('logger-asterisk'); this.seeded.delete('codecs-asterisk'); },
+    );
+  };
+
+  /** "Save RTP settings": the screen's own four rtp.conf fields -- port range, strict
+   *  RTP and ICE support. This is the screen's declared `file` now (it used to say
+   *  'codecs.conf · rtp.conf', a display label resourceForFile refuses -- see
+   *  resource-for-file.test.tsx -- so this screen had never read anything before). */
+  private static readonly RTP_CONTROLS = ['r_start', 'r_end', 'r_strict', 'r_ice'] as const;
+
+  onSaveRtp = async (): Promise<void> => {
+    const current = this.configs.codecs?.state === 'read' ? this.configs.codecs.value : undefined;
+    if (!current) { this.fire('Not written', 'rtp.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.RTP_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('codecs', current, changes);
+    await this.writeConfigResource(
+      this.configs.codecs?.resource ?? (resourceForFile('rtp.conf') as string),
+      next,
+      'rtp.conf updated on the target.',
+      'RTP settings saved',
+      () => { delete this.configs.codecs; this.seeded.delete('codecs'); },
+    );
+  };
 
   // ---------------------------------------------------------------- History screen
   //

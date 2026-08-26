@@ -2361,16 +2361,18 @@ const SCREENS = {
       ctl('fc_comebackcontext','comebackcontext','text','',{ placeholder:'parkedcallstimeout', info:'Where a timed-out park lands in the dialplan when comebacktoorigin is off, or when ringing the parker back goes unanswered.' })
     ]}]
   },
-  codecs:{ rail:'media', icon:'graphic_eq', label:'Codecs & RTP', badge:'', title:'Codecs & RTP', file:'codecs.conf · rtp.conf', kind:'generic',
-    sub:'Transcoding, packetisation and the media port range. Drag the codec list to change preference order globally.',
+  codecs:{ rail:'media', icon:'graphic_eq', label:'Codecs & RTP', badge:'', title:'Codecs & RTP', file:'rtp.conf', kind:'generic',
+    sub:'Transcoding, packetisation and the media port range. Drag the codec list to change preference order globally. The global transcoding switch actually lives in asterisk.conf, not codecs.conf, so it gets its own Save.',
     groups:[{ title:'Codec preference', desc:'The order Asterisk offers codecs in an SDP. Drag to reorder — there is no list to type.', ctls:[
       ctl('k_order','Global order','order',['opus','g722','ulaw','alaw','g729'],{ pool:['gsm','speex','ilbc','g726'] }),
-      ctl('k_transcode','Allow transcoding','switch',true)
+      ctl('k_transcode','Allow transcoding','switch',true),
+      ctl('k_save','Save transcoding setting','segmented','Save',{ options:['Save'], action:'codecs-transcode-save', info:'configs/samples/asterisk.conf.sample line 77: ;transcode_via_sln = yes, in [options] -- codecs.conf itself has no global transcoding switch, so this writes asterisk.conf instead.' })
     ]},{ title:'RTP', desc:'Where media lands and how it survives a bad network.', ctls:[
       ctl('r_start','RTP port range start','slider',10000,{ min:1024, max:60000, step:1000 }),
       ctl('r_end','RTP port range end','slider',20000,{ min:2048, max:65000, step:1000 }),
       ctl('r_strict','strictrtp','switch',true),
-      ctl('r_ice','ICE support','switch',false)
+      ctl('r_ice','ICE support','switch',false),
+      ctl('r_save','Save RTP settings','segmented','Save',{ options:['Save'], action:'codecs-rtp-save', info:'Writes the port range, strictrtp and ICE support above to rtp.conf on the target -- backed up first, applied through the same plan/apply transaction every other write in this console uses.' })
     ]}] },
   fax:{ rail:'media', icon:'fax', label:'Fax', badge:'', title:'Fax & T.38', file:'res_fax.conf', kind:'generic',
     sub:'The fax engine and the UDPTL transport T.38 rides on -- two files, each with its own Save: res_fax.conf holds the engine’s own rate limits and negotiation timeout, udptl.conf holds the port range and error-correction shape UDPTL negotiates over.',
@@ -2448,21 +2450,30 @@ const SCREENS = {
     sub:'Every loadable module with its live state. Loading and unloading are real actions and run the full confirmation ceremony.',
     table:{ add:'Load module', grid:'1.3fr 1fr 1fr 120px', cols:['Module','Type','Use count','State'],
       rows:[['res_pjsip.so','Resource','48','Running'],['app_queue.so','Application','6','Running'],['chan_iax2.so','Channel','1','Running'],['cdr_odbc.so','CDR backend','1','Running'],['res_stir_shaken.so','Resource','0','Not loaded'],['app_confbridge.so','Application','3','Running']] },
-    groups:[{ title:'Load policy', desc:'What Asterisk does with modules it was not explicitly told about.', ctls:[
+    groups:[{ title:'Load policy', desc:'What Asterisk does with modules it was not explicitly told about. Each field below is written to modules.conf as one line per module, never a comma-joined list, because that is the only shape the Asterisk module loader reads (main/loader.c) for every one of these keys.', ctls:[
       ctl('mo_auto','autoload','switch',true),
-      ctl('mo_preload','Preload','chips',['res_odbc.so','res_config_odbc.so'],{ options:['res_odbc.so','res_config_odbc.so','res_curl.so','res_crypto.so'] }),
-      ctl('mo_noload','Never load','chips',['chan_sip.so'],{ options:['chan_sip.so','chan_mobile.so','app_meetme.so','res_snmp.so'] }),
-      ctl('mo_require','Fail startup on missing module','switch',true)
+      ctl('mo_preload','Preload','chips',['res_odbc.so','res_config_odbc.so'],{ options:['res_odbc.so','res_config_odbc.so','res_curl.so','res_crypto.so'], info:'configs/samples/modules.conf.sample line 21: ;preload = your_special_module.so -- one preload= line per module.' }),
+      ctl('mo_noload','Never load','chips',['chan_sip.so'],{ options:['chan_sip.so','chan_mobile.so','app_meetme.so','res_snmp.so'], info:'configs/samples/modules.conf.sample lines 42-44: noload = res_hep.so / res_hep_pjsip.so / res_hep_rtcp.so -- one noload= line per module.' }),
+      ctl('mo_require','Required modules','chips',[],{ options:['chan_pjsip.so','res_pjsip.so','chan_iax2.so','res_odbc.so'], info:'configs/samples/modules.conf.sample line 27: ;require = chan_pjsip.so -- Asterisk exits with status 2 if a required module fails to load. One require= line per module, not a global on/off switch.' }),
+      ctl('mo_load','Force-load these modules','chips',[],{ options:['res_musiconhold.so','res_pjsip.so','chan_iax2.so'], info:'configs/samples/modules.conf.sample line 32: ;load = res_musiconhold.so -- forces a specific module to load even with autoload off.' }),
+      ctl('mo_save','Save modules.conf settings','segmented','Save',{ options:['Save'], action:'modules-save', info:'Writes autoload, preload, never-load, required and force-load above to modules.conf on the target -- backed up first, applied through the same plan/apply transaction every other write in this console uses.' })
     ]}] },
   logger:{ rail:'sys', icon:'article', label:'Logger', badge:'', title:'Logging', file:'logger.conf', kind:'generic',
-    sub:'Severity per destination as a matrix of switches. Rotation is a picker, retention is a slider.',
+    sub:'Severity per destination as a matrix of switches. Rotation is a picker, retention is a slider. Verbosity lives in asterisk.conf, not logger.conf, so it gets its own Save; any other named log channel below console and messages.log is added, edited and saved on its own.',
     groups:[{ title:'Console', desc:'What the attached console prints.', ctls:[
-      ctl('g_console','Console levels','chips',['notice','warning','error'],{ options:['debug','trace','notice','warning','error','verbose','dtmf','fax','security'] }),
-      ctl('g_verbose','Verbosity','slider',3,{ min:0, max:10 })
+      ctl('g_console','Console levels','chips',['notice','warning','error'],{ options:['debug','trace','notice','warning','error','verbose','dtmf','fax','security'], info:'configs/samples/logger.conf.sample line 174: console => notice,warning,error, in [logfiles].' }),
+      ctl('g_verbose','Verbosity','slider',3,{ min:0, max:10, info:'configs/samples/asterisk.conf.sample line 20: ;verbose = 3, in [options] -- not a logger.conf key, so this writes asterisk.conf.' }),
+      ctl('g_vsave','Save verbosity','segmented','Save',{ options:['Save'], action:'logger-verbosity-save' })
     ]},{ title:'Files & rotation', desc:'Disk logging.', ctls:[
-      ctl('g_file','File levels','chips',['notice','warning','error','verbose'],{ options:['debug','trace','notice','warning','error','verbose','dtmf','fax','security'] }),
-      ctl('g_rotate','Rotation strategy','segmented','rotate',{ options:['sequential','rotate','timestamp','none'] }),
-      ctl('g_queue','Queue log','switch',true)
+      ctl('g_file','File levels','chips',['notice','warning','error','verbose'],{ options:['debug','trace','notice','warning','error','verbose','dtmf','fax','security'], info:'configs/samples/logger.conf.sample line 176: messages.log => notice,warning,error, in [logfiles].' }),
+      ctl('g_rotate','Rotation strategy','segmented','rotate',{ options:['sequential','rotate','timestamp','none'], info:'configs/samples/logger.conf.sample line 62: ;rotatestrategy = rotate, in [general].' }),
+      ctl('g_queue','Queue log','switch',true,{ info:'configs/samples/logger.conf.sample line 32: ;queue_log = no, in [general].' }),
+      ctl('g_save','Save logger.conf settings','segmented','Save',{ options:['Save'], action:'logger-save', info:'Writes console levels, file levels, rotation strategy and queue logging above to logger.conf on the target -- backed up first, applied through the same plan/apply transaction every other write in this console uses.' })
+    ]},{ title:'Named log channels', desc:'The [logfiles] section of logger.conf holds one line per channel -- console and messages.log above are two of them, already bound. Anything else, such as full.log, debug.log or syslog.local0, is a channel this console has no fixed control for, so it is added, edited and saved here by name instead.', ctls:[
+      ctl('g_chname','Channel name','text','',{ placeholder:'full.log', info:'configs/samples/logger.conf.sample lines 100-106: the name before => decides both the channel and its type -- a filename, "console", or "syslog.<facility>".' }),
+      ctl('g_chlevels','Levels','chips',[],{ options:['debug','trace','notice','warning','error','verbose','dtmf','fax','security'], info:'configs/samples/logger.conf.sample lines 127-138: the comma-separated list after => for this channel.' }),
+      ctl('g_chload','Load from target','segmented','Load',{ options:['Load'], action:'logger-channel-load', info:'Reads the current levels for the named channel out of logger.conf already fetched above.' }),
+      ctl('g_chsave','Save channel','segmented','Save',{ options:['Save'], action:'logger-channel-save', info:'Writes or creates this one named channel in the [logfiles] section of logger.conf, leaving every other channel untouched.' })
     ]}] },
   security:{ rail:'sys', icon:'shield', label:'Security', badge:'!', title:'Security', file:'acl.conf', kind:'table',
     sub:'Named access control lists, listed in the exact order Asterisk evaluates them -- the LAST matching rule wins, which is what makes a broad deny followed by a narrow permit work as an allowlist. TLS certificate and key paths below are typed, not chosen from a store this console does not have -- it can point Asterisk at a certificate and check the wiring looks sane, but it cannot install, generate or rotate one.',
@@ -2878,7 +2889,7 @@ const DOCS = {
   chaos_level:{ what:'How playful the console is allowed to be, from 0 to 4.', why:'One dial that scales celebrations, copy tone, motion and randomness together.', values:'0 Bank, 1 Polite, 2 Balanced, 3 Playful, 4 Unhinged.', gotcha:'Level 4 celebrates trivial changes. It is delightful for a week and then you will want level 2.' }
 };
 
-const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','g_queue','s_ciphers','s_verify','t_100rel','t_privacy','t_from','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
+const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','mo_load','g_queue','s_ciphers','s_verify','t_100rel','t_privacy','t_from','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
 
 const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','canvas','ivr','queues','voicemail','confbridge','moh','sounds','codecs','fax','cdr','ami','modules','logger','httpd','security','dbrealtime','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
 

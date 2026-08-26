@@ -46,17 +46,18 @@ test('anything that is not a string, or not a .conf, is refused', () => {
   }
 });
 
-test('the screens that declare a label instead of a filename are exactly these three', () => {
-  /* A pin, not an aspiration. Four screens declare a display label made of several names
-   * joined for the reader -- and each ends in .conf, so the old check accepted it and turned
-   * it into a path no target could have. Those screens have never read the files they name.
+test('the screens that declare a label instead of a filename are exactly these two', () => {
+  /* A pin, not an aspiration. Four screens once declared a display label made of several
+   * names joined for the reader -- and each ends in .conf, so the old check accepted it
+   * and turned it into a path no target could have. Those screens had never read the
+   * files they name.
    *
    * They are listed rather than fixed here because the design reference is being edited by
    * another lane as this lands, and a screen definition is not something to change underneath
    * somebody. This goes red when one is fixed, which is the point: the list is the work
    * remaining, and shrinking it should require saying so.
    *
-   * It also goes red if a fifth appears, which is the other half of its job. */
+   * It also goes red if a third reappears, which is the other half of its job. */
   const screens = SCREENS as unknown as Record<string, { file?: unknown }>;
   const declared = Object.entries(screens)
     .map(([id, screen]) => [id, screen.file] as const)
@@ -64,9 +65,13 @@ test('the screens that declare a label instead of a filename are exactly these t
   assert.ok(declared.length > 5, 'too few screens declare a file for this check to mean anything');
 
   const refused = declared.filter(([, file]) => resourceForFile(file) === undefined).map(([id]) => id).sort();
-  /* Was four. The call records screen was fixed by the lane that discovered why it had
-   * never read anything, so it names cdr.conf now and reads it. Three left. */
-  assert.deepEqual(refused, ['ami', 'codecs', 'trunkauth'],
+  /* Was four, then three once the call records screen was fixed by the lane that
+   * discovered why it had never read anything (it names cdr.conf now and reads it). Two
+   * left: the Codecs & RTP screen used to declare 'codecs.conf · rtp.conf', the same
+   * compound-label shape, and had never read anything either -- it names rtp.conf now
+   * (its own real, primary, writable file; asterisk.conf's transcode_via_sln is read
+   * separately, the same way logger verbosity is) and reads it. */
+  assert.deepEqual(refused, ['ami', 'trunkauth'],
     'the set of screens naming a label rather than a file has changed; update this pin and say which way');
 
   /* Every other declaration must resolve, or the rule is refusing something legitimate. */
