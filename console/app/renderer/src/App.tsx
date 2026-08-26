@@ -14,7 +14,7 @@ import {
   buildPayload, validateReport, type Payload, type SessionReport,
 } from './status-hub-client';
 import { trunkAuthNote } from './trunk-auth';
-import { canvasReason, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
+import { canvasReason, dialplanDivergenceNote, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
 import {
   blameRows as historyBlameRows, commitCountLabel, commitRows as historyCommitRows, compareLabel as historyCompareLabel,
   diffFileLabel, diffLineViews, filterChips as historyFilterChips, filteredEntries as historyFilteredEntries,
@@ -6528,6 +6528,24 @@ It is shown once. The far end needs it to register.`);
         ? 'No prompts have been uploaded to /var/lib/asterisk/sounds on this target yet — press "Upload a prompt" above the table.'
         : `${count} prompt${count === 1 ? '' : 's'} read from /var/lib/asterisk/sounds on this target.`;
     }
+    /* Before the configuration branch below, and that ordering is the repair rather than a
+     * preference. The canvas declares `file: "extensions.conf"` in the design, so it fell
+     * into that branch and returned `configSummary(this.configs.canvas, …)` — but `read()`
+     * answers this screen through its own `pbx.read` view and never populates
+     * `this.configs.canvas`, so the summary was permanently "Reading…" and the canvas's own
+     * failure reason was unreachable code. The canvas is not a configuration screen in the
+     * sense that branch means: every control on it is read-only (see `canvasVals`), and
+     * what it has to report is what `dialplan show` said, not what a file holds. */
+    if (screen === 'canvas') {
+      if (!this.canvasReadings) return 'Reading…';
+      /* Two different facts, and both get said. `canvasReason` is why there is no graph;
+       * the divergence note is what the graph on screen actually describes. A canvas that
+       * read fine used to say nothing at all, which left `dialplan show`'s loaded state
+       * looking exactly like the file an operator is about to edit. */
+      return [canvasReason(this.canvasReadings), dialplanDivergenceNote(this.canvasReadings)]
+        .filter(Boolean)
+        .join(' ');
+    }
     /* A configuration screen reports the file it edits and what is really in it. This
      * says what was read; it does not claim the controls below are bound to it, because
      * they are not yet, and implying otherwise would be the same untruth the
@@ -6565,10 +6583,6 @@ It is shown once. The far end needs it to register.`);
         }
       }
       return summary;
-    }
-    if (screen === 'canvas') {
-      if (!this.canvasReadings) return 'Reading…';
-      return canvasReason(this.canvasReadings);
     }
     if (!isReadable(screen)) return NO_READER;
     const readings = this.readings[screen];

@@ -26,6 +26,12 @@ import { ServerInventory, SettingsRegistry, parseSettingsSnapshot } from './inde
 import type { ServerInventoryStore, ServerRecord, SettingsSnapshotStore } from './index.js';
 import { atomicWriteFileSync } from './atomic-file.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
+import {
+  DIALPLAN_FILE_RESOURCE, compareDialplanToFile, parseExtensionsConfSections,
+} from './dialplan-divergence.js';
+import type { DialplanDivergence } from './dialplan-divergence.js';
+import type { DialplanGraph, DialplanReading } from './dialplan-graph.js';
+import type { Observation } from '../shared/control-plane.js';
 import type { ReadOnlyCommand, TargetProfile } from './index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
 
@@ -223,12 +229,59 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       return { auths, registrations };
     }
     if (view === 'queues') return { queues: await readings.queues(target) };
-    if (view === 'canvas') return { dialplan: await dialplanReadings.graph(target) };
+    /* The canvas draws `dialplan show`, which is *loaded* state and never the file. The
+     * divergence reading beside it is what stops the drawing being read as the file: see
+     * readDialplanDivergence below. Sequential, not parallel, because it compares against
+     * the contexts this exact run reported. */
+    if (view === 'canvas') {
+      const dialplan = await dialplanReadings.graph(target);
+      return { dialplan, dialplanFile: await readDialplanDivergence(target, dialplan) };
+    }
     if (view === 'modules') return { modules: await readings.modules(target) };
 
     const parsed = await parsedView(target, view);
     if (parsed) return parsed;
     return { modules: await readings.modules(target) };
+  }
+
+  /**
+   * Whether the dialplan Asterisk is running still matches the `extensions.conf` on the
+   * target, and the exact reason when that cannot be said.
+   *
+   * The file's text never leaves this function. `readText` deliberately does not redact,
+   * because a redacted read is the wrong thing to write back — so the bytes are parsed
+   * here and only the derived facts (context names, directive lines, counts) go out to the
+   * renderer.
+   */
+  async function readDialplanDivergence(
+    target: TargetProfile,
+    dialplan: DialplanReading<DialplanGraph>,
+  ): Promise<Observation<DialplanDivergence>> {
+    const observedAt = new Date().toISOString();
+    /* No contexts means the dialplan itself could not be read, and comparing a file against
+     * nothing would report every section in it as missing from a dialplan nobody read. */
+    if (!dialplan.contexts) {
+      return {
+        state: 'unavailable',
+        observedAt,
+        reason: `the running dialplan could not be read, so there is nothing to compare ${DIALPLAN_FILE_RESOURCE} against`,
+      };
+    }
+    try {
+      const transport = new WslConfigTransport({ executor: processExecutor, distribution: target.wslDistribution! });
+      const text = await transport.readText(DIALPLAN_FILE_RESOURCE);
+      return {
+        state: 'available',
+        observedAt,
+        value: compareDialplanToFile(dialplan.contexts, parseExtensionsConfSections(text), dialplan.contextsReported),
+      };
+    } catch (error) {
+      return {
+        state: 'unavailable',
+        observedAt,
+        reason: `${DIALPLAN_FILE_RESOURCE} could not be read: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
   }
 
   async function parsedView(target: TargetProfile, view: PbxReadView) {
