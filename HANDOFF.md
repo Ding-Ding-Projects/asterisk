@@ -4,6 +4,12 @@
 
 This lane made the inventory validator accept the already-recorded `component` implementation kind and added an exact negative regression for an unsupported kind. The design-parity validator now requires `compiledEvidence` to contain the exact rendering-test path, compiler method, and coverage description. Its deliberate removal of the rendering-test field now fails before the restored baseline passes.
 
+## 2026-08-26 inventory drift repair
+
+The canonical inventory now names the actual typed bulk execution entry point, `runBulkAction`, rather than the removed `runBulk` name. It likewise records the owning `UnlockLadder` class instead of the removed `startingRung` helper, `loadLogoFromInput` instead of `loadLogo`, and `loadVocabularyFromInput` instead of `loadVocabulary`. No no-op aliases were introduced.
+
+The language contract now derives its Pages coverage from all six explicit top-level site surface rows in the canonical matrix, rather than looking for a synthetic `pages-site` surface that does not exist. Each of those six rows must carry all 44 canonical feature identifiers. The Pages localization registry states only what the current COPY table proves. The hand-authored Cantonese catalog remains a P0 follow-up and was not edited here.
+
 The Pages authenticator and unlock-ladder articles now state their browser-local boundary plainly: neither surface has a trusted server, a server nonce, or server-side enforcement. The existing site registry remains partial and does not constitute evidence of complete translation coverage.
 
 The full static localization repair remains open. The current site has eight top-level pages, generated documentation routes, and runtime templates, but only a small explicit copy table. A follow-up must introduce a complete hand-authored English and Cantonese catalog, include every static and accessibility string, make bilingual attributes bilingual, and add a route-wide completeness check. No build, browser interaction, capture, package, release, or deployment ran in this lane.

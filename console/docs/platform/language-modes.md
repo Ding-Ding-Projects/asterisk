@@ -22,7 +22,7 @@ Where a static text node is missing from the catalog, the inventory reports it a
 
 ## Accessibility and localization
 
-This feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. The Day Teet Hui static catalog covers text nodes and the accessibility attributes it can scan, with a generated Cantonese source boundary for prose not yet phrase-translated.
+This feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. The website static catalog covers text nodes and the accessibility attributes it can scan, with a generated Cantonese source boundary for prose not yet phrase-translated.
 
 ## Verification
 

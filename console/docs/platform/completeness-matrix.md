@@ -10,7 +10,7 @@ Each row records the status (`absent`, `partial`, `implemented-unverified`, or `
 
 ## Configuration
 
-The canonical feature and requirement arrays are literal data in the matrix generator and checked-in JSON. The generator does not scan source files, infer routes, or infer features. The two surface registries point back to the canonical matrix and preserve exact implementation notes and symbols for the desktop and site surfaces. Converter and Ollama requirements remain present on every surface. There are no exemptions.
+The canonical feature and requirement arrays are literal data in the matrix generator and checked-in JSON. The generator does not scan source files, infer routes, or infer features. The two surface registries point back to the canonical matrix and preserve exact implementation notes and symbols for the desktop and site surfaces. The Pages localization contract checks the six explicit top-level site rows, not an invented aggregate route, and requires every one to carry all 44 canonical features. Converter and Ollama requirements remain present on every surface. There are no exemptions.
 
 ## Failure modes
 
@@ -22,7 +22,7 @@ The matrix contains paths, symbols, routes, statuses, and evidence references on
 
 ## Verification
 
-The focused validator is `console/scripts/verify-inventories.mjs`. The deliberate regression is `console/scripts/negative-surface-completeness.mjs`, with a companion evidence-claim regression in `console/scripts/negative-evidence-claims.mjs`. The current ultra-speed delivery boundary did not run these validators, tests, or captures, so all evidence that was not already present remains explicitly unverified. A later verification pass must run the validators against the exact integrated commit, observe every deliberate break turn red, restore the matrix, and observe green before changing any row to `verified`.
+The focused validator is `console/scripts/verify-inventories.mjs`. The deliberate regression is `console/scripts/negative-surface-completeness.mjs`, with a companion evidence-claim regression in `console/scripts/negative-evidence-claims.mjs`. The symbol checks reject renamed or commented declarations, the completeness regression rejects a missing top-level site route, and the evidence regression rejects an asserted capture or stale commit. The current delivery boundary did not produce built-artifact captures, so all evidence that was not already present remains explicitly unverified. A later verification pass must run the validators against the exact integrated commit, observe every deliberate break turn red, restore the matrix, and observe green before changing any row to `verified`.
 
 ## Suggested articles
 

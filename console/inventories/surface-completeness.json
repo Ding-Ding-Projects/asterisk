@@ -3617,12 +3617,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -4151,11 +4151,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -7464,12 +7459,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -7998,11 +7993,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -11311,12 +11301,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -11845,11 +11835,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -15158,12 +15143,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -15692,11 +15677,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -19005,12 +18985,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -19539,11 +19519,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -22852,12 +22827,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -23386,11 +23361,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -26699,12 +26669,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -27233,11 +27203,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -30546,12 +30511,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -31080,11 +31045,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -34393,12 +34353,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -34927,11 +34887,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -38240,12 +38195,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -38774,11 +38729,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -42087,12 +42037,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -42621,11 +42571,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -45934,12 +45879,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -46468,11 +46413,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -49781,12 +49721,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -50315,11 +50255,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -53628,12 +53563,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -54162,11 +54097,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -57475,12 +57405,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -58009,11 +57939,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -61322,12 +61247,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -61856,11 +61781,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -65169,12 +65089,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -65703,11 +65623,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -69016,12 +68931,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -69550,11 +69465,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -72863,12 +72773,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -73397,11 +73307,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -76710,12 +76615,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -77244,11 +77149,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -80557,12 +80457,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -81091,11 +80991,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -84404,12 +84299,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -84938,11 +84833,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -88251,12 +88141,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -88785,11 +88675,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -92098,12 +91983,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -92632,11 +92517,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -95945,12 +95825,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -96479,11 +96359,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -99792,12 +99667,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -100326,11 +100201,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -103639,12 +103509,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -104173,11 +104043,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -107486,12 +107351,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -108020,11 +107885,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -111333,12 +111193,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -111867,11 +111727,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -115180,12 +115035,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -115714,11 +115569,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -119027,12 +118877,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -119561,11 +119411,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -122874,12 +122719,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -123408,11 +123253,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -126721,12 +126561,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -127255,11 +127095,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -130568,12 +130403,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -131102,11 +130937,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -134415,12 +134245,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -134949,11 +134779,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -138262,12 +138087,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -138796,11 +138621,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -142109,12 +141929,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -142643,11 +142463,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -145956,12 +145771,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -146490,11 +146305,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -149803,12 +149613,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -150337,11 +150147,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -153650,12 +153455,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -154184,11 +153989,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -157497,12 +157297,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -158031,11 +157831,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -161344,12 +161139,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -161878,11 +161673,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -165191,12 +164981,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -165725,11 +165515,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -169038,12 +168823,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -169572,11 +169357,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -172885,12 +172665,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -173419,11 +173199,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -176732,12 +176507,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -177266,11 +177041,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -180579,12 +180349,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -181113,11 +180883,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -184426,12 +184191,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -184960,11 +184725,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -188273,12 +188033,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -188807,11 +188567,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -192120,12 +191875,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -192654,11 +192409,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -195967,12 +195717,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -196501,11 +196251,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -199814,12 +199559,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -200348,11 +200093,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -202713,7 +202453,7 @@
               },
               {
                 "path": "site/app.js",
-                "name": "loadLogo",
+                "name": "loadLogoFromInput",
                 "kind": "function"
               }
             ]
@@ -203936,7 +203676,7 @@
             "symbols": [
               {
                 "path": "site/app.js",
-                "name": "loadVocabulary",
+                "name": "loadVocabularyFromInput",
                 "kind": "function"
               }
             ]
@@ -206526,7 +206266,7 @@
               },
               {
                 "path": "site/app.js",
-                "name": "loadLogo",
+                "name": "loadLogoFromInput",
                 "kind": "function"
               }
             ]
@@ -207749,7 +207489,7 @@
             "symbols": [
               {
                 "path": "site/app.js",
-                "name": "loadVocabulary",
+                "name": "loadVocabularyFromInput",
                 "kind": "function"
               }
             ]
@@ -210339,7 +210079,7 @@
               },
               {
                 "path": "site/app.js",
-                "name": "loadLogo",
+                "name": "loadLogoFromInput",
                 "kind": "function"
               }
             ]
@@ -211562,7 +211302,7 @@
             "symbols": [
               {
                 "path": "site/app.js",
-                "name": "loadVocabulary",
+                "name": "loadVocabularyFromInput",
                 "kind": "function"
               }
             ]
@@ -214152,7 +213892,7 @@
               },
               {
                 "path": "site/app.js",
-                "name": "loadLogo",
+                "name": "loadLogoFromInput",
                 "kind": "function"
               }
             ]
@@ -215375,7 +215115,7 @@
             "symbols": [
               {
                 "path": "site/app.js",
-                "name": "loadVocabulary",
+                "name": "loadVocabularyFromInput",
                 "kind": "function"
               }
             ]
@@ -217965,7 +217705,7 @@
               },
               {
                 "path": "site/app.js",
-                "name": "loadLogo",
+                "name": "loadLogoFromInput",
                 "kind": "function"
               }
             ]
@@ -219188,7 +218928,7 @@
             "symbols": [
               {
                 "path": "site/app.js",
-                "name": "loadVocabulary",
+                "name": "loadVocabularyFromInput",
                 "kind": "function"
               }
             ]
@@ -221778,7 +221518,7 @@
               },
               {
                 "path": "site/app.js",
-                "name": "loadLogo",
+                "name": "loadLogoFromInput",
                 "kind": "function"
               }
             ]
@@ -223001,7 +222741,7 @@
             "symbols": [
               {
                 "path": "site/app.js",
-                "name": "loadVocabulary",
+                "name": "loadVocabularyFromInput",
                 "kind": "function"
               }
             ]
@@ -226539,12 +226279,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -227073,11 +226813,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -230386,12 +230121,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -230920,11 +230655,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -234233,12 +233963,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -234767,11 +234497,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -238080,12 +237805,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -238614,11 +238339,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -241927,12 +241647,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -242461,11 +242181,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -245774,12 +245489,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -246308,11 +246023,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -249621,12 +249331,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -250155,11 +249865,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -253468,12 +253173,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -254002,11 +253707,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -257315,12 +257015,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -257849,11 +257549,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -261162,12 +260857,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -261696,11 +261391,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -265009,12 +264699,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -265543,11 +265233,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -268856,12 +268541,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -269390,11 +269075,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -272703,12 +272383,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -273237,11 +272917,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -276550,12 +276225,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -277084,11 +276759,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -280397,12 +280067,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -280931,11 +280601,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -284244,12 +283909,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -284778,11 +284443,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -288091,12 +287751,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -288625,11 +288285,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -291938,12 +291593,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -292472,11 +292127,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -295785,12 +295435,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -296319,11 +295969,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -299632,12 +299277,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -300166,11 +299811,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -303479,12 +303119,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -304013,11 +303653,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -307326,12 +306961,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -307860,11 +307495,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -311173,12 +310803,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -311707,11 +311337,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -315020,12 +314645,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -315554,11 +315179,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -318867,12 +318487,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -319401,11 +319021,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -322714,12 +322329,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -323248,11 +322863,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -326561,12 +326171,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -327095,11 +326705,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -330408,12 +330013,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -330942,11 +330547,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -334255,12 +333855,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -334789,11 +334389,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -338102,12 +337697,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -338636,11 +338231,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -341949,12 +341539,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -342483,11 +342073,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -345796,12 +345381,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -346330,11 +345915,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -349643,12 +349223,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -350177,11 +349757,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -353490,12 +353065,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -354024,11 +353599,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -357337,12 +356907,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -357871,11 +357441,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -361184,12 +360749,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -361718,11 +361283,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -365031,12 +364591,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -365565,11 +365125,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -368878,12 +368433,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -369412,11 +368967,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -372725,12 +372275,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -373259,11 +372809,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -376572,12 +376117,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -377106,11 +376651,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -380419,12 +379959,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -380953,11 +380493,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -384266,12 +383801,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -384800,11 +384335,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -388113,12 +387643,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -388647,11 +388177,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -391960,12 +391485,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -392494,11 +392019,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -395807,12 +395327,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -396341,11 +395861,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -399654,12 +399169,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -400188,11 +399703,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -403501,12 +403011,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -404035,11 +403545,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -407348,12 +406853,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -407882,11 +407387,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -411195,12 +410695,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -411729,11 +411229,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -415042,12 +414537,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -415576,11 +415071,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -418889,12 +418379,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -419423,11 +418913,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -422736,12 +422221,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -423270,11 +422755,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -426583,12 +426063,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -427117,11 +426597,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -430430,12 +429905,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -430964,11 +430439,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -434277,12 +433747,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -434811,11 +434281,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -438124,12 +437589,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -438658,11 +438123,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -441971,12 +441431,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -442505,11 +441965,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -445818,12 +445273,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -446352,11 +445807,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -449665,12 +449115,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -450199,11 +449649,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -453512,12 +452957,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -454046,11 +453491,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -457359,12 +456799,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -457893,11 +457333,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -461206,12 +460641,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -461740,11 +461175,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -465053,12 +464483,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -465587,11 +465017,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -468900,12 +468325,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -469434,11 +468859,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -472747,12 +472167,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -473281,11 +472701,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -476594,12 +476009,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -477128,11 +476543,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -480441,12 +479851,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -480975,11 +480385,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -484288,12 +483693,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -484822,11 +484227,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -488135,12 +487535,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -488669,11 +488069,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -491982,12 +491377,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -492516,11 +491911,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -495829,12 +495219,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -496363,11 +495753,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -499676,12 +499061,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -500210,11 +499595,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -503523,12 +502903,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -504057,11 +503437,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -507370,12 +506745,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -507904,11 +507279,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -511217,12 +510587,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -511751,11 +511121,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -515064,12 +514429,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -515598,11 +514963,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -518911,12 +518271,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -519445,11 +518805,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -522758,12 +522113,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -523292,11 +522647,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -526605,12 +525955,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -527139,11 +526489,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -530452,12 +529797,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -530986,11 +530331,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -534299,12 +533639,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -534833,11 +534173,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -538146,12 +537481,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -538680,11 +538015,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -541993,12 +541323,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -542527,11 +541857,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -545840,12 +545165,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -546374,11 +545699,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },
@@ -549687,12 +549007,12 @@
             "symbols": [
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "runBulk",
+                "name": "runBulkAction",
                 "kind": "function"
               },
               {
                 "path": "app/renderer/src/bulk.ts",
-                "name": "planBulk",
+                "name": "planBulkAction",
                 "kind": "function"
               }
             ]
@@ -550221,11 +549541,6 @@
                 "path": "app/renderer/src/unlock-ladder.ts",
                 "name": "UnlockLadder",
                 "kind": "class"
-              },
-              {
-                "path": "app/renderer/src/unlock-ladder.ts",
-                "name": "startingRung",
-                "kind": "function"
               }
             ]
           },

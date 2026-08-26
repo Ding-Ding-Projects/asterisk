@@ -4,17 +4,83 @@
   "canonicalMatrix": "console/inventories/surface-completeness.json",
   "features": {
     "language-modes": {
-      "state": "partial",
+      "status": "absent",
       "note": "Implemented 2026-08-23, replacing an \"absent\" row. The mechanism is app/renderer/src/text-boundary.ts, mounted as `h` in app/renderer/src/dc-runtime.tsx -- the element factory every compiled template is built from -- so all three modes (en/yue/both) reach the compiled renderer without any generated file being edited. The `lang_mode` control went into the design and recompiled byte-identically; App.tsx intercepts it in setVal, applies it live and persists it through durable storage, restoring it on mount. PARTIAL rather than implemented, and deliberately so: the catalog covers 187 of roughly 217 design labels, so 21 of the 44 canonical features still render English in every mode. See app/locales/feature-registry.json for the per-feature breakdown, which is recomputed from the catalog by tests/contracts/language-modes.test.mjs and cannot be edited into agreement. An untranslated string renders English rather than a placeholder.",
-      "files": [
-        "app/renderer/src/text-boundary.ts",
-        "app/renderer/src/locale-yue.ts",
-        "app/renderer/src/dc-runtime.tsx",
-        "app/renderer/src/App.tsx",
-        "app/locales/feature-registry.json",
-        "tests/ui/text-boundary.test.tsx",
-        "tests/contracts/language-modes.test.mjs"
-      ]
+      "implementation": {
+        "paths": [
+          "app/renderer/src/text-boundary.ts",
+          "app/renderer/src/locale-yue.ts",
+          "app/renderer/src/dc-runtime.tsx",
+          "app/renderer/src/App.tsx",
+          "app/locales/feature-registry.json",
+          "tests/ui/text-boundary.test.tsx",
+          "tests/contracts/language-modes.test.mjs"
+        ],
+        "symbols": []
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/language-modes.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "funny-levels": {
       "status": "absent",
@@ -1785,12 +1851,12 @@
         "symbols": [
           {
             "path": "app/renderer/src/bulk.ts",
-            "name": "runBulk",
+            "name": "runBulkAction",
             "kind": "function"
           },
           {
             "path": "app/renderer/src/bulk.ts",
-            "name": "planBulk",
+            "name": "planBulkAction",
             "kind": "function"
           }
         ]
@@ -2010,18 +2076,101 @@
       }
     },
     "personal-vocabulary-upload": {
-      "state": "implemented",
+      "status": "partial",
       "note": "Corrected 2026-08-23, and the correction is the point: this row previously read \"implemented -- fully wired into App.tsx\", which was true of load, clear, status and storage and false of the one thing the feature exists to do. applyVocabularyText had no caller anywhere outside its own tests, so an uploaded file changed a validation status line and not one rendered word. Twelve assertions covered the function; none covered the wiring, which is why a green suite never noticed. It is now consumed through app/renderer/src/text-boundary.ts, which App.tsx hands the storage handle on mount, and tests/ui/text-boundary.test.tsx asserts a replacement actually reaches rendered text. Replacement runs after translation so a personal rename is the last word. app/renderer/src/personal-vocabulary.ts is imported and fully wired into App.tsx: file load (loadVocabularyFile), clear (clearVocabulary), status (vocabularyStatus) and storage. Corrected 2026-08-23: the durability gap noted then is fixed. The renderer no longer reaches window.localStorage (in-memory only for a file:// origin) for this cache; it now goes through app/renderer/src/durable-storage.ts, which write-through-caches against the main process's control-plane settings.snapshot/settings.write/settings.remove actions (control-plane/settings-store.ts), persisted atomically (control-plane/atomic-file.ts) to settings.json under app.getPath('userData') the way the server inventory already is. Proved by a real relaunch on a headless desktop: set a value, force-killed then gracefully closed the app, inspected settings.json on disk between runs, relaunched, and confirmed the restored value without any manual reload.",
-      "files": [
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/durable-storage.ts",
-        "app/renderer/src/personal-vocabulary.ts",
-        "app/renderer/src/text-boundary.ts",
-        "control-plane/atomic-file.ts",
-        "control-plane/dispatch.ts",
-        "control-plane/settings-store.ts",
-        "tests/ui/text-boundary.test.tsx"
-      ]
+      "implementation": {
+        "paths": [
+          "app/renderer/src/App.tsx",
+          "app/renderer/src/durable-storage.ts",
+          "app/renderer/src/personal-vocabulary.ts",
+          "app/renderer/src/text-boundary.ts",
+          "control-plane/atomic-file.ts",
+          "control-plane/dispatch.ts",
+          "control-plane/settings-store.ts",
+          "tests/ui/text-boundary.test.tsx"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/personal-vocabulary.ts",
+            "name": "loadVocabularyFile",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/personal-vocabulary.ts",
+            "name": "clearVocabulary",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/App.tsx",
+            "name": "loadVocabularyFile",
+            "kind": "import"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/personal-vocabulary-upload.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "per-element-toy-locks": {
       "status": "partial",
@@ -2189,11 +2338,6 @@
             "path": "app/renderer/src/unlock-ladder.ts",
             "name": "UnlockLadder",
             "kind": "class"
-          },
-          {
-            "path": "app/renderer/src/unlock-ladder.ts",
-            "name": "startingRung",
-            "kind": "function"
           }
         ]
       },

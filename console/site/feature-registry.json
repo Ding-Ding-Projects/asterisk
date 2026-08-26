@@ -797,11 +797,14 @@
       }
     },
     "status-hub": {
-      "status": "partial",
+      "status": "absent",
       "note": "site/status.html exposes a local Status Hub projection with a session label, state, optional HTTP(S) evidence reference, persistence, and explicit no-hosted-service boundaries. When a validated embedded release record exists, the user can generate or paste a receipt and the verifier requires exact commit, tag, setup URL, and SHA-256 equality before showing the locally verified state. Hosted sessions, cryptographic signatures, question delivery, and remote updates remain absent.",
       "implementation": {
-        "paths": ["console/site/status.html", "console/site/app.js"],
-        "symbols": [{"path": "console/site/app.js", "name": "initStatusHub", "kind": "function"}]
+        "paths": [
+          "console/site/status.html",
+          "console/site/app.js"
+        ],
+        "symbols": []
       },
       "registration": {
         "paths": [],
@@ -878,12 +881,12 @@
         ],
         "symbols": [
           {
-            "path": "console/site/app.js",
+            "path": "site/app.js",
             "name": "applyState",
             "kind": "function"
           },
           {
-            "path": "console/site/app.js",
+            "path": "site/app.js",
             "name": "initColourTranslator",
             "kind": "function"
           }
@@ -975,7 +978,7 @@
           },
           {
             "path": "site/app.js",
-            "name": "loadLogo",
+            "name": "loadLogoFromInput",
             "kind": "function"
           }
         ]
@@ -1227,11 +1230,14 @@
       }
     },
     "browser-style-tabs": {
-      "status": "implemented-unverified",
+      "status": "absent",
       "note": "site/app.js now upgrades the shared navigation into a browser-style route strip with a left default, persisted edge choice, pinned-first overflow ordering, keyboard traversal, a tab manager, navigation semantics, and local browser storage. Route links use navigation semantics because each route owns its own accessible main panel rather than pretending one document contains every panel.",
       "implementation": {
-        "paths": ["console/site/app.js", "console/site/styles.css"],
-        "symbols": [{"path": "console/site/app.js", "name": "initSiteTabs", "kind": "function"}]
+        "paths": [
+          "console/site/app.js",
+          "console/site/styles.css"
+        ],
+        "symbols": []
       },
       "registration": {
         "paths": [],
@@ -1298,11 +1304,14 @@
       }
     },
     "tab-groups-and-searches": {
-      "status": "partial",
+      "status": "absent",
       "note": "The tab manager persists groups, group metadata, collapse, pinning, reorder actions, four independently searchable views, closed routes, reopen actions, a two-key full-range close confirmation, local bulk-close controls, route-accent colour rendering, and deep group-header plus member appearance targets with reset, import, export, contrast, and history wiring. Runtime proof remains incomplete.",
       "implementation": {
-        "paths": ["console/site/app.js", "console/site/styles.css"],
-        "symbols": [{"path": "console/site/app.js", "name": "renderTabManager", "kind": "function"}]
+        "paths": [
+          "console/site/app.js",
+          "console/site/styles.css"
+        ],
+        "symbols": []
       },
       "registration": {
         "paths": [],
@@ -1369,7 +1378,7 @@
       }
     },
     "command-palette": {
-      "status": "implemented-unverified",
+      "status": "partial",
       "note": "site/app.js implements openPalette() in a real dialog with live filtering, an adjacent regex builder, Ctrl+Shift+F activation, and direct focus teleport to the chosen site control or Status Hub projection. Runtime verification was not run in this lane.",
       "implementation": {
         "paths": [
@@ -1528,7 +1537,7 @@
       }
     },
     "local-version-history": {
-      "status": "partial",
+      "status": "absent",
       "note": "settings.html now receives a bounded browser history surface with per-mutation records for settings, tabs, appearance and locks, authenticator persistence, tickets, ladder, and status metadata, date and action filters with counts and presets, filtered selection, diff output, redacted export, append-only restore receipts, retention controls, an advanced month and year calendar with local or ISO typed dates and range selection, and an explicit unsupported authenticator restore path because secrets are omitted. Full record coverage proof and runtime proof remain incomplete.",
       "implementation": {
         "paths": [],
@@ -1599,11 +1608,15 @@
       }
     },
     "changelog-viewer": {
-      "status": "partial",
+      "status": "absent",
       "note": "settings.html now mounts a changelog surface that consumes only validated release records embedded by console/site/build.mjs, supports plain-text search, an anchored regex entry, date bounds, copy, and filtered Markdown export with exact commit links. When the composer provides no record it shows an honest empty state. Locale-aware calendar polish and runtime proof remain incomplete.",
       "implementation": {
-        "paths": ["console/site/app.js", "console/site/settings.html", "console/site/build.mjs"],
-        "symbols": [{"path": "console/site/app.js", "name": "initChangelogViewer", "kind": "function"}, {"path": "console/site/build.mjs", "name": "changelogRecord", "kind": "function"}]
+        "paths": [
+          "console/site/app.js",
+          "console/site/settings.html",
+          "console/site/build.mjs"
+        ],
+        "symbols": []
       },
       "registration": {
         "paths": [],
@@ -2002,7 +2015,7 @@
       }
     },
     "responsive-sizing": {
-      "status": "implemented-unverified",
+      "status": "absent",
       "note": "site/styles.css now documents and styles a 320px floor, narrow tab-manager cards, internally scrolling tab strips on every edge, compact dialogs, pinned-first overflow ordering, and responsive Status Hub and guided-form layouts. No runtime width verification was run in this lane.",
       "implementation": {
         "paths": [],
@@ -2083,7 +2096,7 @@
         "symbols": [
           {
             "path": "site/app.js",
-            "name": "loadVocabulary",
+            "name": "loadVocabularyFromInput",
             "kind": "function"
           }
         ]
@@ -2159,11 +2172,14 @@
       }
     },
     "per-element-toy-locks": {
-      "status": "implemented-unverified",
+      "status": "absent",
       "note": "site/app.js now provides local toy locks for tabs and context-menu-selected elements, storing only SHA-256 digests in browser storage, with independent reset and an explicit statement that clearing site storage recovers the local lock. This is not encryption or a security boundary.",
       "implementation": {
-        "paths": ["console/site/app.js", "console/site/styles.css"],
-        "symbols": [{"path": "console/site/app.js", "name": "openElementLock", "kind": "function"}]
+        "paths": [
+          "console/site/app.js",
+          "console/site/styles.css"
+        ],
+        "symbols": []
       },
       "registration": {
         "paths": [],
@@ -2230,11 +2246,14 @@
       }
     },
     "support-tickets": {
-      "status": "implemented-unverified",
+      "status": "absent",
       "note": "settings.html and site/app.js now provide local fictional Support Tickets with category, severity, description, local number, immutable local status progression, canned response, no-network and no-delete disclosure, and clear-site-storage recovery copy. No hosted support route is claimed.",
       "implementation": {
-        "paths": ["console/site/settings.html", "console/site/app.js"],
-        "symbols": [{"path": "console/site/app.js", "name": "initSupportTickets", "kind": "function"}]
+        "paths": [
+          "console/site/settings.html",
+          "console/site/app.js"
+        ],
+        "symbols": []
       },
       "registration": {
         "paths": [],
@@ -2301,11 +2320,14 @@
       }
     },
     "unlock-ladder": {
-      "status": "partial",
+      "status": "absent",
       "note": "settings.html and site/app.js now provide a lockout-bound local ladder equivalent with worker-issued challenge IDs, byte-serialized payload parity on reload, stale-payload discard and fresh reissue before controls enable, worker-issued dim-sum, guaranteed mixed-width arithmetic, timed mole, clock fallback, School-mode start, nonce consumption, and a rolling local budget. It clears only the local wait and cannot be a security boundary. Trusted server-side grading remains unavailable, so this row stays partial.",
       "implementation": {
-        "paths": ["console/site/settings.html", "console/site/app.js"],
-        "symbols": [{"path": "console/site/app.js", "name": "initUnlockLadder", "kind": "function"}]
+        "paths": [
+          "console/site/settings.html",
+          "console/site/app.js"
+        ],
+        "symbols": []
       },
       "registration": {
         "paths": [],
@@ -2372,11 +2394,15 @@
       }
     },
     "built-in-authenticator": {
-      "status": "implemented-unverified",
+      "status": "absent",
       "note": "settings.html, site/app.js, and the bundled MIT QR encoder now provide browser-local TOTP registration, URI import, a scannable dark-on-light QR with a quiet zone and accessible text alternative, live current and next codes through Web Crypto, encrypted local entry storage, and ordinary-export secret omission. Platform credential-vault storage and runtime proof remain unavailable in this static lane.",
       "implementation": {
-        "paths": ["console/site/settings.html", "console/site/app.js", "console/site/qr-encoder.js"],
-        "symbols": [{"path": "console/site/app.js", "name": "initAuthenticator", "kind": "function"}]
+        "paths": [
+          "console/site/settings.html",
+          "console/site/app.js",
+          "console/site/qr-encoder.js"
+        ],
+        "symbols": []
       },
       "registration": {
         "paths": [],
@@ -2529,7 +2555,7 @@
       }
     },
     "browser-extension-download-surfaces": {
-      "status": "partial",
+      "status": "absent",
       "note": "The static site supplies a truthful download handoff equivalent with a Start download dialog, browser handoff status, and explicit limits on byte progress and completion observation. No browser extension exists in this repository, so extension-originated capture remains out of scope and is not faked.",
       "implementation": {
         "paths": [],
@@ -2757,11 +2783,15 @@
       }
     },
     "guided-forms": {
-      "status": "implemented-unverified",
+      "status": "absent",
       "note": "converter.html now offers guided local source files, a real target-format picker, an output-name field, and a native destination-folder picker with an honest browser write boundary. Disabled or unavailable adapters remain visible with exact reasons.",
       "implementation": {
-        "paths": ["console/site/converter.html", "console/site/app.js", "console/site/styles.css"],
-        "symbols": [{"path": "console/site/app.js", "name": "initConverter", "kind": "function"}]
+        "paths": [
+          "console/site/converter.html",
+          "console/site/app.js",
+          "console/site/styles.css"
+        ],
+        "symbols": []
       },
       "registration": {
         "paths": [],

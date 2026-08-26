@@ -123,7 +123,7 @@
       "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
     },
     "material-appearance": {
-      "state": "partial",
+      "state": "localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
       "copyKeys": [
         "themeDesc"
@@ -183,14 +183,14 @@
       "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
     },
     "local-version-history": {
-      "state": "partial",
+      "state": "not-localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
       "copyKeys": [],
       "missingCopyKeys": [],
       "note": "The history surface has localized dynamic filter, calendar, and restore status strings, while the full static record catalog remains unverified."
     },
     "changelog-viewer": {
-      "state": "partial",
+      "state": "not-localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
       "copyKeys": [],
       "missingCopyKeys": [],

@@ -63,6 +63,7 @@
 - [x] Enumerate the desktop shell, login and setup routes, 32 desktop destinations, 17 dialog or secondary-window states, six top-level site pages, 82 generated documentation routes, and Start, progress, and completion browser-extension states.
 - [x] Keep all 44 canonical features required on every surface, including local file conversion and the local Ollama suite manager, with no exemptions.
 - [x] Add exact implementation and registration symbol records, route, documentation, localization, persistence, provenance, focused-check, negative-evidence, built-interaction, capture, and design-parity fields to every row.
+- [x] Repair the canonical inventory's stale execution symbols and make the Pages localization registry prove all six explicit site routes carry all 44 canonical rows. The remaining hand-authored Cantonese-catalog completion stays open as P0 work.
 - [x] Add exact-boundary negative regressions for missing features and pages, renamed or commented symbols, stale commits, missing evidence, route-only claims, fake success, and sample data.
 - [ ] Run the matrix validators and capture proof on the integrated default branch. This remains unverified because the current delivery lane explicitly did not run validators or captures.
 

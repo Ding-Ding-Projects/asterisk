@@ -47,9 +47,15 @@ const expectedState = (required, present) => {
 
 test('both surfaces have a localization registry, and it covers every canonical feature', () => {
   for (const [surface, registry] of [['windows-console', consoleLocales], ['pages-site', siteLocales]]) {
-    const expected = inventory.surfaces.find((s) => s.id === surface).features.map((f) => f.id);
+    const explicitSurfaces = inventory.surfaces.filter((entry) => entry.registry === (surface === 'pages-site' ? 'site' : 'desktop'));
+    assert.ok(explicitSurfaces.length > 0, `${surface}: canonical matrix has no explicit surfaces`);
+    const expected = inventory.features.map((feature) => feature.id);
     assert.deepEqual(Object.keys(registry.features).sort(), [...expected].sort(),
-      `${surface}: the localization registry and the completeness inventory disagree about which features exist`);
+      `${surface}: the localization registry and canonical feature matrix disagree about which features exist`);
+    for (const entry of explicitSurfaces) {
+      assert.deepEqual(entry.rows.map((row) => row.featureId).sort(), [...expected].sort(),
+        `${surface}: explicit surface ${entry.id} is missing a canonical feature row`);
+    }
   }
 });
 

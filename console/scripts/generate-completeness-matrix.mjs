@@ -142,10 +142,14 @@ const implementationSymbols = {
   'destructive-action-confirmation': [{ path: 'app/renderer/src/ceremony.ts', name: 'runCeremonyCommand', kind: 'function' }, { path: 'app/renderer/src/generated/console.tsx', name: 'areYouSure', kind: 'method' }],
   'changelog-viewer': [{ path: 'app/renderer/src/changelog.ts', name: 'parseChangelog', kind: 'function' }, { path: 'app/renderer/src/changelog.ts', name: 'filterAndSearch', kind: 'function' }],
   'complete-exports': [{ path: 'app/renderer/src/export.ts', name: 'exportRows', kind: 'function' }],
-  'bulk-actions': [{ path: 'app/renderer/src/bulk.ts', name: 'runBulk', kind: 'function' }, { path: 'app/renderer/src/bulk.ts', name: 'planBulk', kind: 'function' }],
+  // These are the typed execution and planning entry points.  Keep the names
+  // exact: an inventory alias would conceal a removed execution path.
+  'bulk-actions': [{ path: 'app/renderer/src/bulk.ts', name: 'runBulkAction', kind: 'function' }, { path: 'app/renderer/src/bulk.ts', name: 'planBulkAction', kind: 'function' }],
   'personal-vocabulary-upload': [{ path: 'app/renderer/src/personal-vocabulary.ts', name: 'loadVocabularyFile', kind: 'function' }, { path: 'app/renderer/src/personal-vocabulary.ts', name: 'clearVocabulary', kind: 'function' }],
   'per-element-toy-locks': [{ path: 'app/renderer/src/generated/console.tsx', name: 'tryUnlock', kind: 'method' }],
-  'unlock-ladder': [{ path: 'app/renderer/src/unlock-ladder.ts', name: 'UnlockLadder', kind: 'class' }, { path: 'app/renderer/src/unlock-ladder.ts', name: 'startingRung', kind: 'function' }],
+  // UnlockLadder.issue() owns challenge issue and rung selection.  Do not retain
+  // a stale standalone helper name just to satisfy this canonical inventory.
+  'unlock-ladder': [{ path: 'app/renderer/src/unlock-ladder.ts', name: 'UnlockLadder', kind: 'class' }],
   'built-in-authenticator': [{ path: 'app/renderer/src/totp.ts', name: 'generateCode', kind: 'function' }, { path: 'app/renderer/src/totp.ts', name: 'pairingUri', kind: 'function' }],
   'offline-documentation-browser': [{ path: 'app/renderer/src/docs-browser.ts', name: 'search', kind: 'function' }, { path: 'app/renderer/src/docs-markdown.ts', name: 'parseMarkdown', kind: 'function' }],
   'guided-forms': [{ path: 'app/renderer/src/endpoint-create.ts', name: 'buildEndpointDraft', kind: 'function' }],
@@ -177,12 +181,12 @@ const siteImplementationSymbols = {
   'regex-builder': [{ path: 'site/app.js', name: 'openRegex', kind: 'function' }, { path: 'site/app.js', name: 'applyRegex', kind: 'function' }],
   'non-blocking-notifications': [{ path: 'site/app.js', name: 'notify', kind: 'function' }, { path: 'site/app.js', name: 'renderNotifications', kind: 'function' }],
   'material-appearance': [{ path: 'site/app.js', name: 'applyState', kind: 'function' }, { path: 'site/app.js', name: 'initColourTranslator', kind: 'function' }],
-  'app-logo-customization': [{ path: 'site/app.js', name: 'applyLogo', kind: 'function' }, { path: 'site/app.js', name: 'loadLogo', kind: 'function' }],
+  'app-logo-customization': [{ path: 'site/app.js', name: 'applyLogo', kind: 'function' }, { path: 'site/app.js', name: 'loadLogoFromInput', kind: 'function' }],
   'command-palette': [{ path: 'site/app.js', name: 'openPalette', kind: 'function' }],
   'complete-exports': [{ path: 'site/app.js', name: 'exportRows', kind: 'function' }],
   'bulk-actions': [{ path: 'site/app.js', name: 'bulkClick', kind: 'function' }, { path: 'site/app.js', name: 'bulkSelectAll', kind: 'function' }],
   accessibility: [{ path: 'site/app.js', name: 'initNavigation', kind: 'function' }],
-  'personal-vocabulary-upload': [{ path: 'site/app.js', name: 'loadVocabulary', kind: 'function' }],
+  'personal-vocabulary-upload': [{ path: 'site/app.js', name: 'loadVocabularyFromInput', kind: 'function' }],
   'attention-modes': [{ path: 'site/app.js', name: 'updateAttention', kind: 'function' }],
   'offline-documentation-browser': [{ path: 'site/app.js', name: 'renderDestinations', kind: 'function' }],
   'bounded-overlays': [{ path: 'site/app.js', name: 'initCollapsibles', kind: 'function' }],
