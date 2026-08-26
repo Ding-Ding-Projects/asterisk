@@ -97,11 +97,17 @@ climbing:
 
 ```powershell
 Get-CimInstance Win32_Process -Filter "Name='claude.exe'" |
-  Where-Object { ((Get-Date) - $_.CreationDate).TotalMinutes -lt 30 }
+  Where-Object { $_.CommandLine -like "*--print*" } |
+  ForEach-Object { [PSCustomObject]@{ Pid = $_.ProcessId; AgeMin = [Math]::Round(((Get-Date) - $_.CreationDate).TotalMinutes,1); Cpu = (Get-Process -Id $_.ProcessId).CPU } }
 ```
 
-A young one burning CPU means it is thinking. None at all, while an iteration is open and its
-log has no `EXIT=` line, means it really is stuck.
+**Do not filter by age.** A perfectly healthy iteration routinely runs an hour -- the timeout that
+bounds it is ninety minutes -- so any age cutoff shorter than that reports a working loop as a
+dead one. This was got wrong three separate times in one session, twice with a thirty-minute
+cutoff and once with forty-five, each time concluding "no agent" about an agent that was busy.
+
+**CPU time is the signal, not age.** A process burning CPU is thinking. A process with an open
+iteration, no `EXIT=` line, and CPU that has stopped climbing is the one that is actually stuck.
 
 **A genuine hang looked different.** Iteration 7 sat for 48 minutes with a live `tee` holding the
 read end of a pipe whose write end an orphaned descendant never closed, so end-of-file never came.
