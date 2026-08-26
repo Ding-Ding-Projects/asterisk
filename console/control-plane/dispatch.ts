@@ -22,7 +22,7 @@ import {
   parseCdrStatus, parseLoggerChannels, parseSysinfo, parseUptime, parseMediaCacheItems,
 } from './asterisk-parsers.js';
 import { planDeployment, runDeployment, type DeployTarget } from './console-deploy.js';
-import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory, MediaLibrary, LocalHistory } from './index.js';
+import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigUndoService, ConfigHistory, MediaLibrary, LocalHistory } from './index.js';
 import { ServerInventory, SettingsRegistry, parseSettingsSnapshot } from './index.js';
 import type { ServerInventoryStore, ServerRecord, SettingsSnapshotStore } from './index.js';
 import { atomicWriteFileSync } from './atomic-file.js';
@@ -150,6 +150,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
   const { userDataPath, resourcesPath, hosted, onProvisionStep } = options;
   const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker', 'git'] });
   const freePbxReceipts = new Map<string, FreePbxBackupReceipt>();
+  const configUndo = new ConfigUndoService();
   const freePbxReceiptPath = join(userDataPath, 'freepbx-receipts.json');
   try {
     const saved = JSON.parse(readFileSync(freePbxReceiptPath, 'utf8')) as unknown;
@@ -864,6 +865,16 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         const value = await transport.read(resource);
         return { ok: true, requestId: request.requestId, data: { resource, value, observedAt: new Date().toISOString() } };
       }
+      if (request.action === 'pbx.undo') {
+        const target = await resolveTarget(request.serverId);
+        const handle = request.payload?.handle;
+        if (!handle || typeof handle !== 'object' || Array.isArray(handle)) return { ok: false, requestId: request.requestId, code: 'UNDO_HANDLE_REQUIRED', message: 'Choose the verified apply receipt to undo.' };
+        const transport = new WslConfigTransport({ executor: processExecutor, distribution: target.wslDistribution! });
+        const history = new LocalHistory({ executor: processExecutor, repositoryPath: join(userDataPath, 'history') });
+        await history.initialize();
+        const undone = await configUndo.undo(handle as Parameters<ConfigUndoService['undo']>[0], target.id, transport, history);
+        return { ok: undone.ok, requestId: request.requestId, code: undone.ok ? undefined : undone.code, message: undone.ok ? undefined : undone.message, data: undone } as ControlPlaneResponse;
+      }
       if (request.action === 'pbx.plan' || request.action === 'pbx.apply') {
         const documents = Array.isArray(request.payload?.documents) ? request.payload.documents : [];
         if (documents.length === 0) {
@@ -892,12 +903,23 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         }
 
         const result = await new ConfigTransaction(transport).apply(plan);
+        const history = new LocalHistory({ executor: processExecutor, repositoryPath: join(userDataPath, 'history') });
+        await history.initialize();
+        const undo = result.status === 'applied'
+          ? configUndo.issue(plan, result.backups ?? [])
+          : undefined;
+        let historyEntry: unknown;
+        try {
+          historyEntry = await history.record({ action: 'updated', subject: `Configuration apply ${plan.id}`, payload: { schemaVersion: 1, result, undo: undo ? { ...undo, backupReceipt: undo.backupReceipt.map(({ resource }) => ({ resource })) } : undefined } });
+        } catch (error) {
+          historyEntry = { recorded: false, reason: error instanceof Error ? error.message : 'Local history could not record this configuration apply.' };
+        }
         return {
           ok: result.status === 'applied',
           requestId: request.requestId,
           code: result.status === 'applied' ? undefined : 'CONFIG_APPLY_FAILED',
           message: result.status === 'applied' ? undefined : result.message,
-          data: { plan, result },
+          data: { plan, result, undo, history: historyEntry },
         } as ControlPlaneResponse;
       }
       if (request.action === 'deploy.console') {

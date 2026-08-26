@@ -33,7 +33,7 @@ export type ControlPlaneAction =
    * see it. See control-plane/settings-source-fetcher.ts.
    */
   | 'settings.source.fetch'
-  | 'pbx.read' | 'pbx.command' | 'pbx.config' | 'pbx.plan'
+  | 'pbx.read' | 'pbx.command' | 'pbx.config' | 'pbx.plan' | 'pbx.undo'
   | 'freepbx.handshake' | 'freepbx.backup.list' | 'freepbx.backup' | 'freepbx.modules' | 'freepbx.module.state' | 'freepbx.module.action'
   | 'freepbx.family.schema' | 'freepbx.family.read' | 'freepbx.family.plan' | 'freepbx.family.apply'
   /* `.diff` and `.prune` back the Configuration backups screen: `.diff` compares a

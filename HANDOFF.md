@@ -463,6 +463,10 @@ repaired restart path, Later hiding the banner while retaining the staged candid
 the visible review, apply, or discard block for two drafts. The detailed public article is
 `console/docs/platform/automatic-updates-evidence.md`. No new capture was made in this lane.
 
+## Configuration apply undo receipt, issue #6
+
+`ConfigUndoService` now turns a verified successful `ConfigTransaction` apply into a typed, target-bound receipt. The receipt carries its one-time nonce, plan/action binding, catalog revision, expiry, opaque backup receipt, and before/after values. `pbx.undo` refuses unknown, mismatched-target, expired, consumed, and post-state-diverged receipts before writing anything. It marks a handle pending before asynchronous readback and consumed before restore, preventing two concurrent callers from restoring the same backup. Both success and failure history records remove opaque backup handles, so history/export does not expose a target path or recovery token. Focused target-backed TypeScript cases cover success, each invalid class, rollback failure, state mismatch, concurrent consumption, and redaction. This is source and focused-test evidence only: the issue remains open pending default-branch integration plus built-artifact interaction and capture.
+
 ## FreePBX module catalog lane added on 2026-08-24
 
 The native console now carries a generated public FreePBX 17 module catalog at

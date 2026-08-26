@@ -6,6 +6,7 @@ export * from "./live-asterisk.js";
 export * from "./ssh.js";
 export * from "./provisioning.js";
 export * from "./config-transaction.js";
+export * from "./config-undo.js";
 export * from "./asterisk-readings.js";
 export * from "./dialplan-graph.js";
 export * from "./dialplan-divergence.js";
