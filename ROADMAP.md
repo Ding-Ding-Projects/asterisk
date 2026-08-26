@@ -88,12 +88,67 @@ to the control plane.
 - [ ] **Security** — edits no access rule and no attestation certificate despite naming both.
 - [ ] **Trunks** — PJSIP only; no IAX2, no hardware, no registration retry detail.
 - [ ] **IVR** — no dialplan application depth, and prompts are names it cannot manage.
-- [ ] **Logger** — level chips only; no rotation, no queue log, no per-channel configuration.
+- [x] **Logger** — level chips only; no rotation, no queue log, no per-channel configuration.
+      **Closed.** The screen had five bound controls (`g_console`, `g_verbose`, `g_file`,
+      `g_rotate`, `g_queue`) and no Save button of any kind, so "level chips only" was
+      true in the strongest sense: nothing on this screen had ever been written, rotation
+      and queue log included. It now has two Save buttons -- one for logger.conf's own
+      four fields (console levels, file levels, rotation strategy, queue logging), and a
+      separate one for verbosity, which lives in asterisk.conf's `[options]` `verbose`
+      key, not in logger.conf at all. A third group, "Named log channels", closes
+      per-channel configuration: `[logfiles]` in logger.conf holds one line per channel
+      (`console`, `messages.log`, and anything else an admin adds -- `full.log`,
+      `debug.log`, `syslog.local0`), so a channel-name field plus a level chips field,
+      with Load/Save actions, edits any one of them by name without touching the others.
+      Also fixed along the way: `g_file` was bound to the key `messages`, which does not
+      exist in logger.conf.sample -- the real key is the literal channel name
+      `messages.log`, dot included (sample line 176). Nobody had noticed because nothing
+      had ever tried to write it.
 - [ ] **Modules** — no per-module reload and no dependency view.
+      **Not closed as stated, and here is exactly why.** "Reload" here would mean a live
+      CLI action (`module reload <name>`) against a running Asterisk process; this
+      console has no IPC surface for that today -- every existing write in this codebase
+      goes through `pbx.plan`/`pbx.apply` against a configuration FILE, and building a
+      new mutating-CLI-action channel (control-plane dispatch, the Electron IPC
+      contract, the renderer request plumbing) is a materially larger, cross-cutting
+      change than "deepen an existing screen" covers, and risks colliding with sibling
+      lanes touching `control-plane/`. A "dependency view" has no source: Asterisk's own
+      CLI (`module show`) reports name/description/use-count/status, not which modules a
+      module depends on, and I found no reader anywhere in this tree that could supply
+      one without inventing data. What I did close instead, because it was real and it
+      was broken: the screen had four bound fields and no Save button, so autoload,
+      preload and never-load were all display-only. It now has one ("Save modules.conf
+      settings"), plus a new `mo_load` field bound to the sample's own `load =>` key
+      (modules.conf.sample line 32, force-loads one module even with autoload off) --
+      genuinely per-module, if not "reload". Also fixed: `mo_preload`/`mo_noload` were
+      bound as a single comma-joined value, and `mo_require` as a boolean switch; neither
+      matches what `main/loader.c`'s `loader_config_init` actually reads (`preload`,
+      `noload`, `require` and `load` are each read one `v->value` at a time, never
+      comma-split -- the sample's own `noload = res_hep.so` / `noload =
+      res_hep_pjsip.so` / `noload = res_hep_rtcp.so`, three separate lines, shows this
+      directly). Writing the old shape through a real Save button would have written a
+      line Asterisk reads as one nonexistent module named
+      "chan_sip.so,chan_mobile.so" -- a wrong-binding bug that had never manifested
+      because nothing had ever saved. All four (`mo_preload`, `mo_noload`, `mo_require`,
+      `mo_load`) now use `repeated: true`, one line per module.
 - [ ] **Call records** — one status reading; no backend selection across the several available.
 - [ ] **Manager and REST** — a static table; no live event stream and no operable actions.
 - [ ] **Voicemail** — no storage backend configuration and no greeting management.
 - [ ] **Codecs** — a listing only; no per-endpoint negotiation.
+      **Not closed as stated: per-endpoint negotiation is still not implemented**, and
+      remains a materially larger feature (it would mean editing each PJSIP endpoint's
+      own `allow=`/`disallow=` codec preference in pjsip.conf, not a global rtp.conf/
+      codecs.conf setting) than this pass covered. What I did close: the screen declared
+      `file: 'codecs.conf · rtp.conf'`, a display label made of two filenames joined for
+      the reader -- the exact shape `resource-for-file.test.tsx` exists to refuse, and
+      does. `resourceForFile` returned `undefined` for it, so the generic per-screen read
+      in App.tsx never fired at all: this screen had never read a single byte from any
+      target, for as long as it existed, with no error anywhere. It now declares
+      `file: 'rtp.conf'` (its own real, primary, writable file) and reads asterisk.conf
+      separately for the one field that lives there (`k_transcode`, `transcode_via_sln`,
+      the same asterisk.conf split logger's own verbosity uses). Two Save buttons were
+      added -- one for rtp.conf's four fields (port range, strict RTP, ICE), one for the
+      asterisk.conf transcoding switch -- where previously there were none.
 
 ### How each one lands
 

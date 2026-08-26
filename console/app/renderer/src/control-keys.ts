@@ -603,10 +603,15 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     s('h_sort', 'default', 'sort'),
   ],
 
-  // configs/samples/rtp.conf.sample — [general]. codecs.conf.sample has no [general]
-  // section at all, so k_order (no global codec-order key exists anywhere — order is
-  // only ever set per-endpoint via pjsip.conf's `allow=`, already bound as e_codecs)
-  // and k_transcode (no transcoding-toggle key of any kind) are unmapped. k_opusbr
+  // configs/samples/rtp.conf.sample — [general], now the codecs screen's own declared
+  // `file` (it used to say 'codecs.conf · rtp.conf', a display label two filenames
+  // joined for the reader; resourceForFile refuses that shape, so this screen had never
+  // read anything -- see resource-for-file.test.tsx). codecs.conf.sample has no
+  // [general] section at all, so k_order (no global codec-order key exists anywhere —
+  // order is only ever set per-endpoint via pjsip.conf's `allow=`, already bound as
+  // e_codecs) is unmapped. k_transcode is bound below, through asterisk.conf, not left
+  // unmapped -- an earlier version of this comment said otherwise and was wrong; fixed
+  // once its Save button actually made the wrong claim testable. k_opusbr
   // ("Opus bitrate", a kbps slider) looked bindable to codecs.conf.sample's commented
   // `;[opus]` template's `;bitrate=` line (~line 189) but is left unmapped on a second
   // look: that key's unit is bits per second, not kilobits (the sample documents "Any
@@ -723,12 +728,30 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     l('a_origin', 'general', 'allowed_origins'),
   ],
 
-  // configs/samples/modules.conf.sample.
+  // configs/samples/modules.conf.sample. main/loader.c's own loader_config_init reads
+  // 'preload'/'load'/'require'/'noload' by walking every [modules] variable of that
+  // exact name one at a time (v->value is ONE module per line, never split on a
+  // comma) -- lines 42-44 show it directly: three separate `noload = res_hep*.so`
+  // lines, not one comma-joined line. `l()` alone (a single key holding a
+  // comma-separated value, the shape `entryValue`/`applyControlValues` use for
+  // everything else that calls itself a "list") would therefore collapse a
+  // multi-module chip selection into one line Asterisk reads as a single, nonexistent
+  // module name -- so mo_preload/mo_noload/mo_require/mo_load below all also carry
+  // `repeated: true`, which reads and writes one line per occurrence instead (see the
+  // long comment on `ControlBinding.repeated`, written for acl.conf's `permit=`/`deny=`
+  // and unused until now). mo_require used to be a plain boolean bound straight to
+  // `require`, which is wrong the same way: the sample's own `;require = chan_pjsip.so`
+  // (line 27) names a specific module to require, not a global switch, so the design's
+  // control is now a chips list like preload/noload rather than a switch.
   modules: [
     b('mo_auto', 'modules', 'autoload'),
-    l('mo_preload', 'modules', 'preload'),
-    l('mo_noload', 'modules', 'noload'),
-    b('mo_require', 'modules', 'require'),
+    { ...l('mo_preload', 'modules', 'preload'), repeated: true },
+    { ...l('mo_noload', 'modules', 'noload'), repeated: true },
+    { ...l('mo_require', 'modules', 'require'), repeated: true },
+    // configs/samples/modules.conf.sample line 32: ;load = res_musiconhold.so -- forces
+    // a specific module to load even with autoload off, same per-line shape as the three
+    // above.
+    { ...l('mo_load', 'modules', 'load'), repeated: true },
   ],
 
   // configs/samples/logger.conf.sample — [general] for rotatestrategy/queue_log,
@@ -741,7 +764,14 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     // setting lives in.
     { control: 'g_verbose', section: 'options', key: 'verbose', kind: 'number', file: 'asterisk.conf' },
     l('g_console', 'logfiles', 'console'),
-    l('g_file', 'logfiles', 'messages'),
+    // logger.conf.sample line 176: messages.log => notice,warning,error -- the KEY is
+    // the literal channel name "messages.log", dot and all, not "messages". Binding to
+    // 'messages' silently read and wrote nothing against a real target: the file was
+    // never seeded (no key called that exists) and a write would have appended a
+    // brand-new, wrong `messages =` line beside the real `messages.log =` one rather
+    // than editing it. Found while wiring this screen's first Save button, which is
+    // what made a wrong key finally testable instead of silently inert.
+    l('g_file', 'logfiles', 'messages.log'),
     s('g_rotate', 'general', 'rotatestrategy'),
     b('g_queue', 'general', 'queue_log'),
   ],
@@ -1214,9 +1244,12 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
    * unbound" rather than a screen the audit has simply never reached (see
    * `isUninventoried` above for what that distinction protects). */
   sounds: [],
+  /* rtp.conf (the screen's own primary file) plus asterisk.conf's transcode_via_sln;
+   * k_save/r_save are the two one-shot Save buttons this screen never had before -- pure
+   * actions with no key of their own, recognised the same way fx_save/fx_udptlsave are. */
   codecs: [
-    'k_order', 'k_transcode',
-    'r_start', 'r_end', 'r_strict', 'r_ice',
+    'k_order', 'k_transcode', 'k_save',
+    'r_start', 'r_end', 'r_strict', 'r_ice', 'r_save',
   ],
   /* res_fax.conf's six fields plus udptl.conf's six, all bound (see CONTROL_BINDINGS.fax
    * above); fx_save and fx_udptlsave are the screen's two one-shot Save buttons -- pure
@@ -1239,8 +1272,18 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     'l_pshow', 'l_pgmtime', 'l_phost', 'l_pport', 'l_pdb', 'l_puser', 'l_ptable', 'l_pschema', 'l_papp', 'l_psave',
   ],
   ami: ['a_http', 'a_port', 'a_tls', 'a_tlsport', 'a_origin', 'a_read', 'a_write', 'a_deny', 'a_timeout'],
-  modules: ['mo_auto', 'mo_preload', 'mo_noload', 'mo_require'],
-  logger: ['g_console', 'g_verbose', 'g_file', 'g_rotate', 'g_queue'],
+  /* modules.conf, all bound as `repeated: true` lists (see CONTROL_BINDINGS.modules
+   * above for why); mo_save is the screen's one Save button, a pure action with no key
+   * of its own. */
+  modules: ['mo_auto', 'mo_preload', 'mo_noload', 'mo_require', 'mo_load', 'mo_save'],
+  /* logger.conf plus asterisk.conf's own verbose; g_save/g_vsave are the screen's two
+   * Save buttons (logger.conf's four fields, and asterisk.conf's verbosity, are two
+   * different files so they cannot share one write). g_chname/g_chlevels are the "any
+   * other named channel" editor's free-form fields -- no fixed key, read directly out of
+   * `state.values` by App.tsx the same way s_aclname/s_action/s_spec are for an ACL rule
+   * -- and g_chload/g_chsave are its Load/Save actions. */
+  logger: ['g_console', 'g_verbose', 'g_file', 'g_rotate', 'g_queue', 'g_save', 'g_vsave',
+    'g_chname', 'g_chlevels', 'g_chload', 'g_chsave'],
   security: [
     's_aclname', 's_action', 's_spec', 's_failban', 's_bantime',
     's_transport', 's_tload', 's_tprotocol', 's_tcert', 's_tprivkey', 's_tcalistfile',
