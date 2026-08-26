@@ -179,6 +179,55 @@ answered `Usage: media cache show <uri>` with exit code 0. `AsteriskReadings` di
 screen as a successful reading. No parser consumes this command today, so nothing is currently
 mis-parsed; what is wrong is that the allowlist carries a line that can never produce one.
 
+> **Repaired since this run, in a change of its own, and the fix was neither of the two the
+> roadmap offered.** The entry was not a command missing an argument; it was the *wrong command*.
+> `main/media_cache.c` registers two CLI entries whose names are prefixes of one another: line 528
+> is the singular `media cache show`, which refuses any `a->argc != 4` and reads its subject from
+> `a->argv[3]`, and line 477 is `media cache show all`, the container listing that takes no
+> argument at all. The allowlist wanted the container and carried the singular. It now carries
+> `media cache show all`, `parseMediaCacheItems` reads it, the dispatcher takes it for the `moh`
+> view beside the classes, and the Music on Hold screen says what is in the cache — or that it is
+> empty, which is a different fact from unread and had to be sayable separately.
+>
+> **The singular is deliberately not a second object command.** It would fit the mechanism, and it
+> prints per-item metadata (`ext`, `content-type`, `__actual_expires`) the listing does not. It is
+> left out because its object id is a URI: `OBJECT_ID` admits no `:` and no `/`, and widening the
+> one check between a target-supplied string and an `asterisk -rx` argument, for metadata no screen
+> displays, is a bad trade. A test fails if that decision is ever reversed quietly.
+>
+> **It has its own live captures rather than being backdated into this run.** The command was run
+> against the same disposable exchange through `LocalAsteriskCliGateway` over
+> `NodeProcessExecutor`, empty and populated, and the cache was put back — recorded in
+> `commandsAllowlistedAfterThisRun`, which is checked exactly as a phase capture is (a committed
+> file, a hash that still matches, a parse that still digests the same) and additionally refuses a
+> row for a command the allowlist no longer carries. **Nothing in the phases, the fixture, the
+> restore or the production-reader records moved**, because those bytes came from a different run
+> against a different exchange state, and merging the two would describe a run that never happened.
+>
+> Populating it needed the target to *fetch* something: the media cache holds what Asterisk
+> retrieved at run time, so no configuration file can fill it, and `media cache create` is not a
+> route either — it needs the scheme backend to implement a create wizard, and
+> `res_http_media_cache` implements only retrieval, so it answers `Unable to create`. The harness
+> serves one file over loopback HTTP and asks the target to refresh two URIs, one inside the
+> format's 40-column pad and one well past it, which is what proves the parser rather than asserts
+> it: `%-40s` has no precision, so it pads and never truncates, and the long URI arrives in full
+> with no padding beside a short one padded out to 40.
+>
+> **Two things this repair found that are worth more than the repair.** The first
+> `--capture-added` run wrote three byte-identical captures of an empty listing and **passed its
+> own restore proof**, because after-restore trivially equals before-populate when the populate did
+> nothing at all. The cause was that `$name` does not survive the trip to the target: something
+> between `spawn` (with `shell: false`) and the Linux side of `wsl.exe` expands a `$`-sigil
+> identifier and replaces it with nothing, even inside a quoted heredoc — `my $body = 1; my $fh;
+> local $/;` arrives as `my  = 1; my ; local $/;`, with `$/` surviving only because it is not an
+> identifier. Nothing reports it: the file is written, the shell exits 0, and the failure surfaces
+> later as a perl syntax error nobody is looking at. The payload is base64 now, which has no `$` in
+> it for any layer to find. And the harness refuses a populate that changed nothing, because a
+> proof whose condition cannot be violated is not a proof.
+>
+> The finding above is left as it was written, because it is what this run measured and the run is
+> not being re-taken.
+
 All three are recorded on the roadmap. None is repaired here: this pass verifies readings, and
 closing a write-path or screen defect inside it would be a change nobody reviewing this item
 would be looking for.
@@ -279,6 +328,21 @@ capture no longer hashes to what was recorded, that it leaves every live-half fi
 that the ledger still names the exact voicemail line the reading could not turn into a row.
 `scripts/negative-dropped-rows.mjs` holds the repair those describe with 18 further breaks, two
 of them aimed at `--reparse` itself.
+
+The media cache repair adds `tests/control-plane/media-cache.test.ts` (12 tests, run against the
+committed live captures rather than against fixtures), `tests/ui/media-cache-wired.test.tsx` (7,
+which render the real `App` on the Music on Hold screen and read the sentence out of its markup,
+because a reading computed and never rendered is exactly the defect being repaired),
+`tests/live/live-readings-added.test.mjs` (13, mostly refusals — a mechanism that satisfies a
+coverage check is a mechanism that can become a hole in it), and
+`scripts/negative-media-cache.mjs` with 18 further breaks, each planted alone, each watched go
+red, each restored green.
+
+`tests/scripts/test-suites-are-wired.test.mjs` gained an assertion of its own at the same time,
+one layer over all of these: every `scripts/negative-*.mjs` must actually appear in the `npm test`
+chain. It is derived from the filesystem for the same reason its neighbour is — a hand-written
+list cannot catch a script that was never added to the list, which is the exact failure it exists
+to stop. Proved by unchaining the new script and watching it name it.
 
 Two of those eighteen stayed green when first planted, and both found something real rather than
 merely needing rewording.

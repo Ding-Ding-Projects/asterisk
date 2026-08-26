@@ -105,6 +105,36 @@ export interface VoicemailUsersResult {
   dropped: string[];
 }
 
+/**
+ * One item in the target's media cache: a URI Asterisk fetched and the local file it
+ * stored the result in.
+ *
+ * This is not the same thing as a prompt in `/var/lib/asterisk/sounds` or a music-on-hold
+ * directory, and a surface that shows it must say so. Both of those are files an operator
+ * put on the target; a media cache item is one Asterisk fetched itself, at run time, from a
+ * URI a dialplan asked it to play.
+ */
+export interface MediaCacheItem {
+  /** The URI, exactly as the target printed it, with the format's own padding removed. */
+  uri: string;
+  /** The local file the target stored it in, absent when the target printed that field blank. */
+  localFile?: string;
+}
+
+/**
+ * `media cache show all` output.
+ *
+ * There is no `total` here and there deliberately is not one: unlike `voicemail show users`
+ * and `manager show users`, this command prints no trailer count, so the only count anyone
+ * has is the number of rows this parser produced. A caller must not report a shortfall
+ * against a total that was never printed.
+ */
+export interface MediaCacheResult {
+  items: MediaCacheItem[];
+  /** Every line after the separator this parser declined, verbatim. See `parseMediaCacheItems`. */
+  dropped: string[];
+}
+
 export interface AriApp {
   name: string;
 }
@@ -188,6 +218,69 @@ export function parseVoicemailUsers(stdout: string): VoicemailUsersResult {
     users.push({ context, mailbox, fullName, zone, newMessages: Number.isFinite(newMessages) ? newMessages : undefined });
   }
   return { users, total, dropped };
+}
+
+/**
+ * `main/media_cache.c` `media_cache_handle_show_all`.
+ *
+ *   line 490  `ast_cli(a->fd, "URI\n\tLocal File\n");`
+ *   line 491  `ast_cli(a->fd, "---------------\n");`
+ *   line 463  `#define FORMAT_ROW "%-40s\n\t%-40s\n"`
+ *   line 467  `ast_cli(a->fd, FORMAT_ROW, ast_sorcery_object_get_id(bucket_file), bucket_file->path);`
+ *
+ * So one item is **two lines**: the URI, then a tab and the local file. Both are padded to
+ * 40 with `%-40s`, which pads and never truncates -- there is no precision on either
+ * conversion. That is the whole difference between this parser and `parseVoicemailUsers`
+ * above, and it is why this one has no fixed column offsets to slice by and no row it has
+ * to refuse: the field ends at the newline, not at a column, so a URI of any length
+ * survives. Verified against a live target, which printed a 78-character URI in full and
+ * with no padding at all beside a 32-character one padded out to 40.
+ *
+ * Items begin **after** the `---------------` separator, and this parser will not start
+ * without it. Pairing tab-continuation lines from the top of the output instead would turn
+ * the header itself -- `URI` followed by `\tLocal File` -- into an item whose URI is the
+ * word `URI`, which is an invented row, and a truncated capture is exactly when that would
+ * happen. No separator means no items, and the reason is recorded rather than assumed.
+ */
+export function parseMediaCacheItems(stdout: string): MediaCacheResult {
+  const items: MediaCacheItem[] = [];
+  const dropped: string[] = [];
+  /* Not the shared `lines()` helper, deliberately: it discards every whitespace-only line,
+   * and a continuation line here is a tab followed by `%-40s` over an empty
+   * `bucket_file->path` -- which is a tab and forty spaces, and trims to nothing. Dropping
+   * it would take the item's URI down with it, turning "the target printed no local file"
+   * into "the parser could not read this row", which are different facts. Blank lines that
+   * are *not* continuations are still skipped, including the empty final element the
+   * trailing newline leaves behind. */
+  const all = stdout.replace(/\r\n/gu, "\n").split("\n");
+  const separator = all.findIndex((line) => /^-{3,}\s*$/u.test(line));
+  if (separator === -1) return { items, dropped };
+
+  for (let index = separator + 1; index < all.length; index += 1) {
+    const line = all[index];
+    if (!line.startsWith("\t") && line.trim().length === 0) continue;
+    /* A continuation line reached on its own is one whose URI line never arrived, so it
+     * names a local file this parser cannot attribute to any URI. Recorded, not discarded:
+     * a caller that renders the items alone would show a short list reading exactly like a
+     * complete one, which is the defect the voicemail reading above was repaired for. */
+    if (line.startsWith("\t")) {
+      dropped.push(line);
+      continue;
+    }
+    const uri = line.trimEnd();
+    const next = all[index + 1];
+    if (next === undefined || !next.startsWith("\t")) {
+      dropped.push(line);
+      continue;
+    }
+    index += 1;
+    /* `%-40s` right-pads, so trailing spaces belong to the format and not to the value. A
+     * leading space would belong to the value, and is kept -- only the tab the format
+     * itself writes is removed. */
+    const localFile = next.slice(1).trimEnd();
+    items.push({ uri, localFile: localFile.length > 0 ? localFile : undefined });
+  }
+  return { items, dropped };
 }
 
 /**

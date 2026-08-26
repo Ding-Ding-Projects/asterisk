@@ -74,8 +74,17 @@ export const READ_ONLY_COMMANDS = [
   "pjsip show aors", "pjsip show identifies", "pjsip show channelstats",
   // Calendars
   "calendar show calendars", "calendar show types",
-  // Media and codecs
-  "core show translation", "core show file formats", "media cache show",
+  // Media and codecs.
+  //
+  // `media cache show all` is the container listing: `main/media_cache.c` line 477 registers
+  // it with `e->command = "media cache show all"`, and it is a complete command line taking
+  // no argument. This allowlist used to carry the bare `media cache show`, which is a
+  // *different* CLI entry -- line 528 registers it as the singular form, its usage reads
+  // `Usage: media cache show <uri>`, it refuses any `a->argc != 4`, and it takes its subject
+  // from `a->argv[3]`. Allowlisted with no argument it could never produce a reading: a live
+  // target answered it with that usage line and exit code 0, and `#read` below diverts only
+  // on `No such command`, so the usage text reached a screen as though it were data.
+  "core show translation", "core show file formats", "media cache show all",
   // Voicemail
   "voicemail show zones",
   // Runtime health
@@ -95,6 +104,17 @@ export type ReadOnlyCommand = (typeof READ_ONLY_COMMANDS)[number];
  * `ast_sip_cli_traverse_objects` (`res/res_pjsip/pjsip_cli.c` line 151) sets
  * `show_details_only_level_0` from `!is_container`, so only the singular form reaches
  * `ast_sip_cli_print_sorcery_objectset` (`pjsip_configuration.c` line 2193).
+ *
+ * **`media cache show <uri>` is deliberately not the second member of this list.** It is a
+ * genuine singular form -- `main/media_cache.c` line 528, reading `a->argv[3]` -- so the
+ * mechanism would fit it, and it prints per-item metadata (`ext`, `content-type`,
+ * `__actual_expires`) that the container listing does not. It is left out because its object
+ * id is a URI. `OBJECT_ID` below admits no `:` and no `/`, on purpose, and admitting them for
+ * this would widen the one check standing between a target-supplied string and an
+ * `asterisk -rx` argument -- for metadata no screen in this console displays. The container
+ * listing already carries both fields anything here reads: the URI and the local file. When a
+ * surface genuinely needs an item's metadata, this is the note to reopen, and widening
+ * `OBJECT_ID` for a URI is the decision to make on purpose rather than in passing.
  */
 export const READ_ONLY_OBJECT_COMMANDS = ["pjsip show endpoint"] as const;
 
