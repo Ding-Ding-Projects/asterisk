@@ -462,3 +462,9 @@ one-page target preflight. The run also recorded direct `Setup.exe` launch succe
 repaired restart path, Later hiding the banner while retaining the staged candidate, and
 the visible review, apply, or discard block for two drafts. The detailed public article is
 `console/docs/platform/automatic-updates-evidence.md`. No new capture was made in this lane.
+
+## UI-smoke source recovery baseline
+
+Recovered baseline evidence covers 566 reviewed controls and a 10,551-row contract over 29 exact paths. Recovered source hashes include the manifest generator `144d07efbf54cc896a94a34a789a10a8d41cf6a7692d13fcdbbad0a755329bf4`, negative regression `8435db9a32746ecb47b897a6f4f375d98b1938440d4f8921a3be210485c8952c`, parser `35b7aa93e4f29afb1678c29149a30c1395b4f1b2c6586e4c7cb2d24329c6f26c`, Lowlevel adapter `e6d1ba78447de2c8d74f03455364ab3ccb303aaff6c5229b44fe957b40e765b9`, and repaired promotion script `8d05c55465fb4b95d36710df0339dc8b1eda710e7252fdb906e2496e9c160f29`.
+
+Remaining work: run the cheap Lowlevel headless-only built-artifact capture route, retain raw evidence outside the repository, promote only byte-preserving evidence, and then verify the runtime contract. This source-recovery lane does not claim runtime evidence.

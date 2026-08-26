@@ -1,0 +1,5016 @@
+{
+  "schemaVersion": 2,
+  "censusKind": "exact-static-surface-control-index",
+  "sourceCensus": "console/inventories/ui-smoke/control-census.json",
+  "surfaceCount": 143,
+  "screenModelControlCount": 696,
+  "dynamicRuntimeControlCount": 244,
+  "excludedSourceControlCount": 0,
+  "surfaces": [
+    {
+      "surfaceId": "dash",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.dash.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "live",
+      "controlIds": [
+        "m_beep",
+        "m_format",
+        "m_retain",
+        "m_spy"
+      ],
+      "controlCount": 4,
+      "bindingRule": "ConsoleShell.SCREENS.live.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "endpoints",
+      "controlIds": [
+        "e_aggregate_mwi",
+        "e_busy_at",
+        "e_calleridnum",
+        "e_codecs",
+        "e_context",
+        "e_direct",
+        "e_displayname",
+        "e_dtmf",
+        "e_encryption",
+        "e_expiry",
+        "e_forcerport",
+        "e_ice",
+        "e_mailboxes",
+        "e_maxaudio",
+        "e_maxcontacts",
+        "e_maxvideo",
+        "e_mwi_replaces",
+        "e_optimistic",
+        "e_outbound_auth",
+        "e_outbound_proxy",
+        "e_qualify",
+        "e_refer_blind",
+        "e_removeexisting",
+        "e_rewrite",
+        "e_rtp_hold",
+        "e_rtp_timeout",
+        "e_symmetric",
+        "e_timers",
+        "e_timers_min_se",
+        "e_timers_sess",
+        "e_transport",
+        "e_trust",
+        "e_voicemail_ext",
+        "w_acl",
+        "w_attest",
+        "w_auth",
+        "w_busy",
+        "w_codecs",
+        "w_context",
+        "w_dir",
+        "w_direct",
+        "w_display",
+        "w_dtmf",
+        "w_encrypt",
+        "w_ext",
+        "w_kind",
+        "w_maxcontacts",
+        "w_name",
+        "w_nat",
+        "w_noanswer",
+        "w_qualify",
+        "w_reload",
+        "w_ringfor",
+        "w_secret",
+        "w_transport",
+        "w_users",
+        "w_vm",
+        "w_where"
+      ],
+      "controlCount": 58,
+      "bindingRule": "ConsoleShell.SCREENS.endpoints.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "trunks",
+      "controlIds": [
+        "t_100rel",
+        "t_fatal",
+        "t_forbidden",
+        "t_pai",
+        "t_retry",
+        "t_save",
+        "tk_connectedline",
+        "tk_contactuser",
+        "tk_faxdetect",
+        "tk_fromdomain",
+        "tk_fromuser",
+        "tk_mediaaddr",
+        "tk_senddiversion",
+        "tk_sendrpid",
+        "tk_t38",
+        "tk_t38ec",
+        "tk_t38mtu",
+        "tk_t38nat",
+        "tk_trustout"
+      ],
+      "controlCount": 19,
+      "bindingRule": "ConsoleShell.SCREENS.trunks.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "trunkauth",
+      "controlIds": [
+        "ta_auto",
+        "ta_expire",
+        "ta_log",
+        "ta_mutual",
+        "ta_notify",
+        "ta_sign"
+      ],
+      "controlCount": 6,
+      "bindingRule": "ConsoleShell.SCREENS.trunkauth.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "canvas",
+      "controlIds": [
+        "dp_after",
+        "dp_barge",
+        "dp_box",
+        "dp_cid",
+        "dp_ctx",
+        "dp_days",
+        "dp_from",
+        "dp_greet",
+        "dp_hol",
+        "dp_moh",
+        "dp_msg",
+        "dp_opts",
+        "dp_pat",
+        "dp_prompt",
+        "dp_q",
+        "dp_qt",
+        "dp_skip",
+        "dp_to",
+        "dp_wait"
+      ],
+      "controlCount": 19,
+      "bindingRule": "ConsoleShell.SCREENS.canvas.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "ivr",
+      "controlIds": [
+        "i_audition",
+        "i_barge",
+        "i_direct",
+        "i_invalid",
+        "i_keyadd",
+        "i_keydest",
+        "i_keydigit",
+        "i_keyremove",
+        "i_keys",
+        "i_keytarget",
+        "i_lang",
+        "i_plan",
+        "i_prompt",
+        "i_retries",
+        "i_timeout",
+        "wi_0",
+        "wi_1",
+        "wi_2",
+        "wi_3",
+        "wi_attest",
+        "wi_barge",
+        "wi_close",
+        "wi_closed",
+        "wi_direct",
+        "wi_file",
+        "wi_hours",
+        "wi_invalid",
+        "wi_lang",
+        "wi_open",
+        "wi_prompt",
+        "wi_retries",
+        "wi_timeout"
+      ],
+      "controlCount": 32,
+      "bindingRule": "ConsoleShell.SCREENS.ivr.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "queues",
+      "controlIds": [
+        "ad_alignment",
+        "ad_greeting",
+        "ad_save",
+        "q_autopause",
+        "q_joinempty",
+        "q_leave",
+        "q_maxlen",
+        "q_periodic",
+        "q_position",
+        "q_retry",
+        "q_ringinuse",
+        "q_service",
+        "q_strategy",
+        "q_timeout",
+        "q_wrapup",
+        "wq_attest",
+        "wq_auto",
+        "wq_hours",
+        "wq_kind",
+        "wq_maxwait",
+        "wq_members",
+        "wq_moh",
+        "wq_penalty",
+        "wq_periodic",
+        "wq_position",
+        "wq_ringinuse",
+        "wq_strategy",
+        "wq_then",
+        "wq_timeout",
+        "wq_wrapup"
+      ],
+      "controlCount": 30,
+      "bindingRule": "ConsoleShell.SCREENS.queues.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "voicemail",
+      "controlIds": [
+        "v_attach",
+        "v_delete",
+        "v_envelope",
+        "v_forcegreetings",
+        "v_format",
+        "v_greetingsfolder",
+        "v_greetsave",
+        "v_imapgreetings",
+        "v_imapport",
+        "v_imapserver",
+        "v_maxgreet",
+        "v_maxmsg",
+        "v_maxsecs",
+        "v_minsecs",
+        "v_odbcaudiodisk",
+        "v_odbcstorage",
+        "v_odbctable",
+        "v_operator",
+        "v_review",
+        "v_save",
+        "v_saycid",
+        "v_storagesave",
+        "v_tempgreetwarn",
+        "wv_attach",
+        "wv_attest",
+        "wv_box",
+        "wv_busy",
+        "wv_count",
+        "wv_delete",
+        "wv_email",
+        "wv_ext",
+        "wv_format",
+        "wv_full",
+        "wv_greet",
+        "wv_kind",
+        "wv_max",
+        "wv_min",
+        "wv_name"
+      ],
+      "controlCount": 38,
+      "bindingRule": "ConsoleShell.SCREENS.voicemail.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "confbridge",
+      "controlIds": [
+        "c_announce",
+        "c_denoise",
+        "c_jitter",
+        "c_marked",
+        "c_max",
+        "c_mixing",
+        "c_music",
+        "c_rate",
+        "c_talker",
+        "c_video"
+      ],
+      "controlCount": 10,
+      "bindingRule": "ConsoleShell.SCREENS.confbridge.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "moh",
+      "controlIds": [
+        "h_application",
+        "h_directory",
+        "h_mode",
+        "h_sort",
+        "h_upload"
+      ],
+      "controlCount": 5,
+      "bindingRule": "ConsoleShell.SCREENS.moh.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "codecs",
+      "controlIds": [
+        "fx_ecm",
+        "fx_maxrate",
+        "fx_minrate",
+        "fx_modems",
+        "fx_save",
+        "fx_statusevents",
+        "fx_t38timeout",
+        "fx_udptlchecksums",
+        "fx_udptlend",
+        "fx_udptleven",
+        "fx_udptlfecentries",
+        "fx_udptlfecspan",
+        "fx_udptlsave",
+        "fx_udptlstart",
+        "k_order",
+        "k_save",
+        "k_transcode",
+        "r_end",
+        "r_ice",
+        "r_save",
+        "r_start",
+        "r_strict"
+      ],
+      "controlCount": 22,
+      "bindingRule": "ConsoleShell.SCREENS.codecs.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "cdr",
+      "controlIds": [
+        "d_batch",
+        "d_congestion",
+        "d_enable",
+        "d_save",
+        "d_size",
+        "d_status",
+        "d_unanswered",
+        "l_apps",
+        "l_date",
+        "l_enable",
+        "l_events",
+        "l_oconn",
+        "l_octx",
+        "l_oload",
+        "l_osave",
+        "l_oshow",
+        "l_otable",
+        "l_papp",
+        "l_pdb",
+        "l_pgmtime",
+        "l_phost",
+        "l_pport",
+        "l_psave",
+        "l_pschema",
+        "l_pshow",
+        "l_ptable",
+        "l_puser",
+        "l_save",
+        "l_status"
+      ],
+      "controlCount": 29,
+      "bindingRule": "ConsoleShell.SCREENS.cdr.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "ami",
+      "controlIds": [
+        "a_deny",
+        "a_http",
+        "a_httpsave",
+        "a_mgrsave",
+        "a_origin",
+        "a_port",
+        "a_read",
+        "a_timeout",
+        "a_tls",
+        "a_tlsport",
+        "a_write",
+        "am_interface",
+        "am_readonly",
+        "am_secret",
+        "am_username",
+        "mn_enabled",
+        "mn_save",
+        "mn_subagent",
+        "pm_authpassword",
+        "pm_authpasswordstatus",
+        "pm_authrealm",
+        "pm_authuser",
+        "pm_core",
+        "pm_enabled",
+        "pm_save",
+        "pm_uri"
+      ],
+      "controlCount": 26,
+      "bindingRule": "ConsoleShell.SCREENS.ami.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "modules",
+      "controlIds": [
+        "bk_diff",
+        "bk_diffsummary",
+        "bk_handle",
+        "bk_keep",
+        "bk_prune",
+        "bk_resource",
+        "bk_restore",
+        "bk_takenat",
+        "mo_auto",
+        "mo_load",
+        "mo_noload",
+        "mo_preload",
+        "mo_require",
+        "mo_save",
+        "wm_action",
+        "wm_attest",
+        "wm_force",
+        "wm_module",
+        "wm_persist",
+        "wm_preload",
+        "wm_when"
+      ],
+      "controlCount": 21,
+      "bindingRule": "ConsoleShell.SCREENS.modules.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "logger",
+      "controlIds": [
+        "g_chlevels",
+        "g_chload",
+        "g_chname",
+        "g_chsave",
+        "g_console",
+        "g_file",
+        "g_queue",
+        "g_rotate",
+        "g_save",
+        "g_verbose",
+        "g_vsave"
+      ],
+      "controlCount": 11,
+      "bindingRule": "ConsoleShell.SCREENS.logger.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "security",
+      "controlIds": [
+        "cs_behavior",
+        "cs_certurl",
+        "cs_failaction",
+        "cs_level",
+        "cs_load",
+        "cs_privkey",
+        "cs_profile",
+        "cs_save",
+        "cs_x5uacl",
+        "db_database",
+        "db_driver",
+        "db_family",
+        "db_mappingload",
+        "db_mappingremove",
+        "db_mappingsave",
+        "db_odbcbackslash",
+        "db_odbccachetype",
+        "db_odbcconntimeout",
+        "db_odbcdsn",
+        "db_odbcenabled",
+        "db_odbcisolation",
+        "db_odbcload",
+        "db_odbclogging",
+        "db_odbcmaxconn",
+        "db_odbcname",
+        "db_odbcnegcache",
+        "db_odbcpassword",
+        "db_odbcpasswordstatus",
+        "db_odbcpreconnect",
+        "db_odbcsave",
+        "db_odbcslowquery",
+        "db_odbcusername",
+        "db_pgappname",
+        "db_pgdbname",
+        "db_pghost",
+        "db_pgorderby",
+        "db_pgpassword",
+        "db_pgpasswordstatus",
+        "db_pgport",
+        "db_pgrequirements",
+        "db_pgsave",
+        "db_pgsocket",
+        "db_pguser",
+        "db_priority",
+        "db_sorceryconfig",
+        "db_sorceryload",
+        "db_sorcerymodule",
+        "db_sorceryobjtype",
+        "db_sorceryremove",
+        "db_sorcerysave",
+        "db_sorcerywizard",
+        "db_table",
+        "gl_format",
+        "gl_info",
+        "gl_loadloc",
+        "gl_loadprof",
+        "gl_location",
+        "gl_method",
+        "gl_pidf",
+        "gl_precedence",
+        "gl_profile",
+        "gl_reference",
+        "gl_routing",
+        "gl_savloc",
+        "gl_savprof",
+        "gl_source",
+        "pv_addr",
+        "pv_default",
+        "pv_gensave",
+        "pv_iface",
+        "pv_load",
+        "pv_mimetype",
+        "pv_port",
+        "pv_profile",
+        "pv_save",
+        "pv_staticdir",
+        "s_aclname",
+        "s_action",
+        "s_bantime",
+        "s_cafile",
+        "s_capath",
+        "s_certurl",
+        "s_failaction",
+        "s_failban",
+        "s_level",
+        "s_loadsyscerts",
+        "s_privkey",
+        "s_spec",
+        "s_stir",
+        "s_stirsave",
+        "s_tcalistfile",
+        "s_tcalistpath",
+        "s_tcert",
+        "s_tcipher",
+        "s_tload",
+        "s_tmethod",
+        "s_tprivkey",
+        "s_tprotocol",
+        "s_transport",
+        "s_treqclientcert",
+        "s_tsave",
+        "s_tverifyclient",
+        "s_tverifyserver",
+        "s_verifyin",
+        "ws_acl",
+        "ws_alert",
+        "ws_attest",
+        "ws_ban",
+        "ws_bantime",
+        "ws_cap",
+        "ws_carriers",
+        "ws_cert",
+        "ws_exposed",
+        "ws_fail",
+        "ws_intl",
+        "ws_level",
+        "ws_media",
+        "ws_method",
+        "ws_nets",
+        "ws_night",
+        "ws_stir",
+        "ws_users",
+        "ws_verify",
+        "ws_vin"
+      ],
+      "controlCount": 124,
+      "bindingRule": "ConsoleShell.SCREENS.security.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "cli",
+      "controlIds": [
+        "as_autosystemname",
+        "as_defaultlanguage",
+        "as_diragi",
+        "as_dircache",
+        "as_dirdata",
+        "as_dirdb",
+        "as_diretc",
+        "as_dirkey",
+        "as_dirlog",
+        "as_dirmod",
+        "as_dirrun",
+        "as_dirsbin",
+        "as_dirspool",
+        "as_dirvarlib",
+        "as_documentation_language",
+        "as_entityid",
+        "as_maxcalls",
+        "as_maxfiles",
+        "as_maxload",
+        "as_minmemfree",
+        "as_rungroup",
+        "as_runuser",
+        "as_save",
+        "as_systemname",
+        "su_addr",
+        "su_refresh",
+        "su_save",
+        "xm_auth_policy",
+        "xm_autoprune",
+        "xm_autoregister",
+        "xm_collection_nodes",
+        "xm_debug",
+        "xm_pubsub_autocreate",
+        "xm_save"
+      ],
+      "controlCount": 34,
+      "bindingRule": "ConsoleShell.SCREENS.cli.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "memory",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.memory.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "sync",
+      "controlIds": [
+        "y_attest",
+        "y_auto",
+        "y_backup",
+        "y_every",
+        "y_retain"
+      ],
+      "controlCount": 5,
+      "bindingRule": "ConsoleShell.SCREENS.sync.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "skills",
+      "controlIds": [
+        "u_destruct",
+        "u_isolate",
+        "u_lanes",
+        "u_model",
+        "u_verify"
+      ],
+      "controlCount": 5,
+      "bindingRule": "ConsoleShell.SCREENS.skills.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "hub",
+      "controlIds": [
+        "b_build",
+        "b_close",
+        "b_notify",
+        "b_poll",
+        "b_report"
+      ],
+      "controlCount": 5,
+      "bindingRule": "ConsoleShell.SCREENS.hub.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "vocab",
+      "controlIds": [
+        "n_drift",
+        "n_guard",
+        "n_lock",
+        "n_mode",
+        "n_scan",
+        "wy_attest",
+        "wy_case",
+        "wy_depth",
+        "wy_guard",
+        "wy_limit",
+        "wy_out",
+        "wy_scope",
+        "wy_whole"
+      ],
+      "controlCount": 13,
+      "bindingRule": "ConsoleShell.SCREENS.vocab.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "ops",
+      "controlIds": [
+        "o_channel",
+        "o_check",
+        "o_hash",
+        "o_restart",
+        "o_stage"
+      ],
+      "controlCount": 5,
+      "bindingRule": "ConsoleShell.SCREENS.ops.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "secrets",
+      "controlIds": [
+        "x_export",
+        "x_mask",
+        "x_rotate",
+        "x_store"
+      ],
+      "controlCount": 4,
+      "bindingRule": "ConsoleShell.SCREENS.secrets.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "servers",
+      "controlIds": [
+        "bs_hours",
+        "bs_menu",
+        "bs_phones",
+        "bs_tls",
+        "da_restart",
+        "da_start",
+        "da_status",
+        "da_stop",
+        "dp_go",
+        "dp_status",
+        "sv_amiport",
+        "sv_amiuser",
+        "sv_auth",
+        "sv_conf",
+        "sv_container",
+        "sv_default",
+        "sv_forward",
+        "sv_host",
+        "sv_hostkey",
+        "sv_iface",
+        "sv_key",
+        "sv_kind",
+        "sv_paths",
+        "sv_probe",
+        "sv_profile",
+        "sv_readonly",
+        "sv_sounds",
+        "sv_sshport",
+        "sv_sudo",
+        "sv_tls",
+        "sv_user",
+        "sv_watch"
+      ],
+      "controlCount": 32,
+      "bindingRule": "ConsoleShell.SCREENS.servers.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "arcade",
+      "controlIds": [
+        "cr_cap",
+        "cr_cost",
+        "cr_danger",
+        "cr_enable",
+        "cr_expire"
+      ],
+      "controlCount": 5,
+      "bindingRule": "ConsoleShell.SCREENS.arcade.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "notifications",
+      "controlIds": [
+        "nt_keep",
+        "nt_levels",
+        "nt_quiet",
+        "nt_sound",
+        "nt_toast"
+      ],
+      "controlCount": 5,
+      "bindingRule": "ConsoleShell.SCREENS.notifications.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "history",
+      "controlIds": [
+        "hi_author",
+        "hi_branch",
+        "hi_commit",
+        "hi_diff",
+        "hi_gc",
+        "hi_hook",
+        "hi_keep",
+        "hi_msg",
+        "hi_push",
+        "hi_reload",
+        "hi_sign"
+      ],
+      "controlCount": 11,
+      "bindingRule": "ConsoleShell.SCREENS.history.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "customise",
+      "controlIds": [
+        "ap_contrast_status",
+        "att_focus",
+        "att_low",
+        "att_momentum",
+        "att_one",
+        "att_time",
+        "bh_commit",
+        "bh_confirm",
+        "bh_explain",
+        "bh_lockdefault",
+        "bh_start",
+        "bh_tour",
+        "bh_wizard",
+        "dlg_emoji",
+        "dp_progress",
+        "ed_choice",
+        "ed_clear",
+        "ed_custom_name",
+        "ed_custom_path",
+        "fun_celebrate",
+        "fun_confetti",
+        "fun_copy",
+        "fun_easter",
+        "fun_level",
+        "fun_level_yue",
+        "fun_mascot",
+        "fun_random",
+        "fun_random_reroll",
+        "fun_random_scope",
+        "fun_random_seed",
+        "fun_random_strength",
+        "fun_sound",
+        "id_name",
+        "id_name_reset",
+        "lang_mode",
+        "logo_pick",
+        "logo_preset",
+        "logo_reset",
+        "logo_status",
+        "ly_density",
+        "ly_dock",
+        "ly_gap",
+        "ly_mono",
+        "ly_radius",
+        "ly_sidebar",
+        "ly_tabs",
+        "mo_curve",
+        "mo_dialog",
+        "mo_hover",
+        "mo_reduce",
+        "mo_screen",
+        "mo_speed",
+        "nar_en_voice",
+        "nar_enabled",
+        "nar_language",
+        "nar_pitch",
+        "nar_rate",
+        "nar_status",
+        "nar_yue_voice",
+        "pr_active",
+        "pr_export",
+        "pr_perscreen",
+        "pr_sync",
+        "sch_status",
+        "school_credential",
+        "school_method",
+        "school_mode",
+        "school_name",
+        "school_set_credential",
+        "school_status",
+        "school_unlock",
+        "src_add",
+        "src_allow_add",
+        "src_allow_host",
+        "src_allow_remove",
+        "src_allow_status",
+        "src_clear",
+        "src_credential",
+        "src_entity",
+        "src_keys",
+        "src_kind",
+        "src_status",
+        "src_url",
+        "sup_category",
+        "sup_description",
+        "sup_open",
+        "sup_severity",
+        "th_contrast",
+        "th_hue",
+        "th_mode",
+        "th_rainbow",
+        "th_rbspeed",
+        "th_sat",
+        "th_tint"
+      ],
+      "controlCount": 94,
+      "bindingRule": "ConsoleShell.SCREENS.customise.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "appearance",
+      "controlIds": [
+        "p_confirm",
+        "p_density",
+        "p_mono",
+        "p_motion",
+        "p_scale",
+        "p_start",
+        "p_theme",
+        "p_tour",
+        "p_tray",
+        "va_clear",
+        "va_file",
+        "va_status"
+      ],
+      "controlCount": 12,
+      "bindingRule": "ConsoleShell.SCREENS.appearance.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "about",
+      "controlIds": [
+        "z_crash",
+        "z_installer",
+        "z_sign",
+        "z_telemetry"
+      ],
+      "controlCount": 4,
+      "bindingRule": "ConsoleShell.SCREENS.about.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "fcodes",
+      "controlIds": [
+        "fc_atxfer",
+        "fc_atxferabort",
+        "fc_atxfercomplete",
+        "fc_atxferdropcall",
+        "fc_atxfernoanswertimeout",
+        "fc_atxferswap",
+        "fc_atxferthreeway",
+        "fc_automixmon",
+        "fc_blindxfer",
+        "fc_comebackcontext",
+        "fc_comebackdialtime",
+        "fc_comebacktoorigin",
+        "fc_courtesytone",
+        "fc_disconnect",
+        "fc_featuredigittimeout",
+        "fc_findslot",
+        "fc_park_save",
+        "fc_parkcall",
+        "fc_parkcontext",
+        "fc_parkedcallhangup",
+        "fc_parkedcallreparking",
+        "fc_parkedcalltransfers",
+        "fc_parkeddynamic",
+        "fc_parkedmusicclass",
+        "fc_parkedplay",
+        "fc_parkext",
+        "fc_parkext_exclusive",
+        "fc_parkingtime",
+        "fc_parkpos",
+        "fc_pickupexten",
+        "fc_save",
+        "fc_transferdigittimeout"
+      ],
+      "controlCount": 32,
+      "bindingRule": "ConsoleShell.SCREENS.fcodes.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "iaxpeers",
+      "controlIds": [
+        "ca_app",
+        "ca_appdata",
+        "ca_autoreminder",
+        "ca_channel",
+        "ca_context",
+        "ca_extension",
+        "ca_fetchagain",
+        "ca_load",
+        "ca_name",
+        "ca_refresh",
+        "ca_save",
+        "ca_secret",
+        "ca_secretstatus",
+        "ca_timeframe",
+        "ca_type",
+        "ca_url",
+        "ca_user",
+        "ca_waittime",
+        "da_addspan",
+        "da_busydetect",
+        "da_context",
+        "da_echocancel",
+        "da_echocancelbridged",
+        "da_group",
+        "da_immediate",
+        "da_language",
+        "da_removespan",
+        "da_rxgain",
+        "da_savegeneral",
+        "da_signalling",
+        "da_spans",
+        "da_spec",
+        "da_switchtype",
+        "da_txgain",
+        "da_usecallerid",
+        "du_autokill",
+        "du_bindaddr",
+        "du_cachetime",
+        "du_country",
+        "du_department",
+        "du_email",
+        "du_entityid",
+        "du_locality",
+        "du_mapload",
+        "du_mapname",
+        "du_mapremove",
+        "du_mapsave",
+        "du_mapvalue",
+        "du_organization",
+        "du_outgoingsiptech",
+        "du_peerdeny",
+        "du_peereid",
+        "du_peerhost",
+        "du_peerinclude",
+        "du_peerinkey",
+        "du_peerload",
+        "du_peermodel",
+        "du_peerorder",
+        "du_peeroutkey",
+        "du_peerpermit",
+        "du_peerport",
+        "du_peerprecache",
+        "du_peerqualify",
+        "du_peerregister",
+        "du_peersave",
+        "du_phone",
+        "du_pjsipendpoint",
+        "du_port",
+        "du_savegeneral",
+        "du_stateprov",
+        "du_storehistory",
+        "du_tos",
+        "du_ttl",
+        "ix_accountcode",
+        "ix_calltoken",
+        "ix_codecs",
+        "ix_context",
+        "ix_host",
+        "ix_mailbox",
+        "ix_port",
+        "ix_qualify",
+        "ix_save",
+        "ix_secret_set",
+        "ix_transfer",
+        "ix_trunk",
+        "ix_type",
+        "ix_username",
+        "sl_attemptcid",
+        "sl_stationautocontext",
+        "sl_stationdevice",
+        "sl_stationhold",
+        "sl_stationload",
+        "sl_stationname",
+        "sl_stationringdelay",
+        "sl_stationringtimeout",
+        "sl_stationsave",
+        "sl_stationtrunkadd",
+        "sl_stationtrunkline",
+        "sl_stationtrunkremove",
+        "sl_stationtrunks",
+        "sl_stationtype",
+        "sl_trunkautocontext",
+        "sl_trunkbarge",
+        "sl_trunkdevice",
+        "sl_trunkhold",
+        "sl_trunkload",
+        "sl_trunkname",
+        "sl_trunkringtimeout",
+        "sl_trunksave",
+        "sl_trunktype"
+      ],
+      "controlCount": 110,
+      "bindingRule": "ConsoleShell.SCREENS.iaxpeers.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "httpd",
+      "controlIds": [
+        "ht_bindaddr",
+        "ht_bindport",
+        "ht_enabled",
+        "ht_notls1",
+        "ht_notls11",
+        "ht_notls12",
+        "ht_prefix",
+        "ht_save",
+        "ht_sessinact",
+        "ht_sesskeep",
+        "ht_sesslimit",
+        "ht_static",
+        "ht_status",
+        "ht_tlsaddr",
+        "ht_tlscert",
+        "ht_tlsenable",
+        "ht_tlskey",
+        "ht_tlsport"
+      ],
+      "controlCount": 18,
+      "bindingRule": "ConsoleShell.SCREENS.httpd.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "docs",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.docs.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "changelog",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.changelog.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "onboarding",
+      "controlIds": [
+        "ob_ease",
+        "ob_gates",
+        "ob_host",
+        "ob_hours",
+        "ob_intent",
+        "ob_log",
+        "ob_menu",
+        "ob_phones",
+        "ob_tls",
+        "ob_tour",
+        "ob_where"
+      ],
+      "controlCount": 11,
+      "bindingRule": "ConsoleShell.SCREENS.onboarding.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "tour",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.tour.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "settings-shell",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.settings-shell.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "settings-language",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.settings-language.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "settings-appearance",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.settings-appearance.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "settings-audio",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.settings-audio.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "settings-schedule",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.settings-schedule.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "settings-external-sources",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.settings-external-sources.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "settings-vocabulary",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.settings-vocabulary.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "settings-accessibility",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.settings-accessibility.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "settings-attention",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.settings-attention.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "settings-updater",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.settings-updater.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "settings-history",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.settings-history.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "settings-logo",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.settings-logo.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "settings-display-name",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.settings-display-name.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "settings-advanced",
+      "controlIds": [
+        "cw_attest",
+        "cw_reload",
+        "wd_attest",
+        "wd_goal",
+        "wd_level",
+        "wd_log",
+        "wd_notify",
+        "wd_scope"
+      ],
+      "controlCount": 8,
+      "bindingRule": "ConsoleShell.SCREENS.settings-advanced.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "settings-editor",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.settings-editor.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "settings-notifications",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.settings-notifications.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "settings-tabs",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.settings-tabs.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "settings-locks",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.settings-locks.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "settings-authenticator",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.settings-authenticator.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "palette",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.palette.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "tab-overflow",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.tab-overflow.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "tab-group-picker",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.tab-group-picker.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "regex-builder",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.regex-builder.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "appearance-editor",
+      "controlIds": [
+        "ap_align",
+        "ap_alpha",
+        "ap_anim",
+        "ap_blend",
+        "ap_blur",
+        "ap_bright",
+        "ap_bs",
+        "ap_bw",
+        "ap_case",
+        "ap_celebrate",
+        "ap_contrast",
+        "ap_deco",
+        "ap_dur",
+        "ap_ease",
+        "ap_family",
+        "ap_fill",
+        "ap_gap",
+        "ap_grey",
+        "ap_hrot",
+        "ap_hue",
+        "ap_lead",
+        "ap_light",
+        "ap_num",
+        "ap_pb",
+        "ap_pl",
+        "ap_pr",
+        "ap_pt",
+        "ap_r1",
+        "ap_r2",
+        "ap_r3",
+        "ap_r4",
+        "ap_rainbow",
+        "ap_rbdir",
+        "ap_rbease",
+        "ap_rblight",
+        "ap_rbrange",
+        "ap_rbsat",
+        "ap_rbspeed",
+        "ap_rot",
+        "ap_sat",
+        "ap_satf",
+        "ap_sb",
+        "ap_scale",
+        "ap_scope_status",
+        "ap_sin",
+        "ap_size",
+        "ap_skew",
+        "ap_sop",
+        "ap_ss",
+        "ap_sx",
+        "ap_sy",
+        "ap_track",
+        "ap_transition",
+        "ap_tx",
+        "ap_ty",
+        "ap_weight"
+      ],
+      "controlCount": 56,
+      "bindingRule": "ConsoleShell.SCREENS.appearance-editor.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "colour-picker",
+      "controlIds": [
+        "cp_dir",
+        "cp_ease",
+        "cp_hue",
+        "cp_light",
+        "cp_rainbow",
+        "cp_sat",
+        "cp_speed"
+      ],
+      "controlCount": 7,
+      "bindingRule": "ConsoleShell.SCREENS.colour-picker.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "font-picker",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.font-picker.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "lock-wizard",
+      "controlIds": [
+        "lk_dur",
+        "lk_hide",
+        "wc_area",
+        "wc_attest",
+        "wc_confirm",
+        "wc_dry",
+        "wc_filter",
+        "wc_goal",
+        "wc_log",
+        "wc_target"
+      ],
+      "controlCount": 10,
+      "bindingRule": "ConsoleShell.SCREENS.lock-wizard.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "support-tickets",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.support-tickets.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "authenticator",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.authenticator.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "history-manager",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.history-manager.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "update-window",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.update-window.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-home",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-home.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-product",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-product.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-documentation",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-documentation.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-downloads",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-downloads.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-status",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-status.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-settings",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-settings.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-docs-index",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-docs-index.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-docs-platform",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-docs-platform.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-docs-pbx",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-docs-pbx.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-docs-media",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-docs-media.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-docs-data",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-docs-data.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-docs-system",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-docs-system.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-docs-agent",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-docs-agent.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-docs-installer",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-docs-installer.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-docs-updates",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-docs-updates.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-docs-accessibility",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-docs-accessibility.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-docs-tabs",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-docs-tabs.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-docs-export",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-docs-export.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-docs-support",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-docs-support.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-docs-ui-smoke",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-docs-ui-smoke.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-settings-language",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-settings-language.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-settings-funny-levels",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-settings-funny-levels.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-settings-emoji",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-settings-emoji.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-settings-school",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-settings-school.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-settings-vocabulary",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-settings-vocabulary.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-settings-logo",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-settings-logo.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-settings-display-name",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-settings-display-name.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-settings-appearance",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-settings-appearance.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-settings-schedule",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-settings-schedule.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-settings-accessibility",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-settings-accessibility.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-settings-attention",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-settings-attention.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-settings-tabs",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-settings-tabs.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-settings-history",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-settings-history.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-settings-notifications",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-settings-notifications.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-settings-export",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-settings-export.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-settings-search",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-settings-search.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-feature-filter",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-feature-filter.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-surface-filter",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-surface-filter.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-release-filter",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-release-filter.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-changelog-filter",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-changelog-filter.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-regex-dialog",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-regex-dialog.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-palette-dialog",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-palette-dialog.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-tab-menu",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-tab-menu.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-context-menu",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-context-menu.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "site-notification-centre",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.site-notification-centre.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "state-default",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.state-default.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "state-empty",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.state-empty.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "state-loading",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.state-loading.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "state-success",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.state-success.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "state-error",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.state-error.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "state-offline",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.state-offline.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "state-disabled",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.state-disabled.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "state-locked",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.state-locked.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "state-unlocked",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.state-unlocked.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "state-confirmation",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.state-confirmation.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "state-progress",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.state-progress.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "state-cancelled",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.state-cancelled.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "state-no-match",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.state-no-match.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "state-invalid-input",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.state-invalid-input.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "state-narrow",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.state-narrow.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "state-high-scale",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.state-high-scale.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "state-bilingual",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.state-bilingual.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "layout-light-theme",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.layout-light-theme.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "layout-dark-theme",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.layout-dark-theme.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "layout-contrast-theme",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.layout-contrast-theme.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "layout-width-320",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.layout-width-320.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "layout-width-640",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.layout-width-640.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "layout-width-920",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.layout-width-920.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "layout-width-1440",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.layout-width-1440.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "layout-scale-100",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.layout-scale-100.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "layout-scale-125",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.layout-scale-125.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "layout-scale-150",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.layout-scale-150.groups[].ctls[].id",
+      "exclusionIds": []
+    },
+    {
+      "surfaceId": "layout-scale-200",
+      "controlIds": [],
+      "controlCount": 0,
+      "bindingRule": "ConsoleShell.SCREENS.layout-scale-200.groups[].ctls[].id",
+      "exclusionIds": []
+    }
+  ],
+  "dynamicRuntimeControls": [
+    {
+      "controlId": "ap_align",
+      "stableIds": [
+        "ap_align@design/Asterisk Console M3.dc.html:3356:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_alpha",
+      "stableIds": [
+        "ap_alpha@design/Asterisk Console M3.dc.html:3320:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_anim",
+      "stableIds": [
+        "ap_anim@design/Asterisk Console M3.dc.html:3374:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_blend",
+      "stableIds": [
+        "ap_blend@design/Asterisk Console M3.dc.html:3322:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_blur",
+      "stableIds": [
+        "ap_blur@design/Asterisk Console M3.dc.html:3359:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_bright",
+      "stableIds": [
+        "ap_bright@design/Asterisk Console M3.dc.html:3360:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_bs",
+      "stableIds": [
+        "ap_bs@design/Asterisk Console M3.dc.html:3336:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_bw",
+      "stableIds": [
+        "ap_bw@design/Asterisk Console M3.dc.html:3335:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_case",
+      "stableIds": [
+        "ap_case@design/Asterisk Console M3.dc.html:3312:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_celebrate",
+      "stableIds": [
+        "ap_celebrate@design/Asterisk Console M3.dc.html:3377:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_contrast",
+      "stableIds": [
+        "ap_contrast@design/Asterisk Console M3.dc.html:3361:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_deco",
+      "stableIds": [
+        "ap_deco@design/Asterisk Console M3.dc.html:3314:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_dur",
+      "stableIds": [
+        "ap_dur@design/Asterisk Console M3.dc.html:3375:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_ease",
+      "stableIds": [
+        "ap_ease@design/Asterisk Console M3.dc.html:3376:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_family",
+      "stableIds": [
+        "ap_family@design/Asterisk Console M3.dc.html:3307:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_fill",
+      "stableIds": [
+        "ap_fill@design/Asterisk Console M3.dc.html:3321:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_gap",
+      "stableIds": [
+        "ap_gap@design/Asterisk Console M3.dc.html:3355:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_grey",
+      "stableIds": [
+        "ap_grey@design/Asterisk Console M3.dc.html:3364:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_hrot",
+      "stableIds": [
+        "ap_hrot@design/Asterisk Console M3.dc.html:3363:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_hue",
+      "stableIds": [
+        "ap_hue@design/Asterisk Console M3.dc.html:3317:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_lead",
+      "stableIds": [
+        "ap_lead@design/Asterisk Console M3.dc.html:3311:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_light",
+      "stableIds": [
+        "ap_light@design/Asterisk Console M3.dc.html:3319:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_num",
+      "stableIds": [
+        "ap_num@design/Asterisk Console M3.dc.html:3313:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_pb",
+      "stableIds": [
+        "ap_pb@design/Asterisk Console M3.dc.html:3353:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_pl",
+      "stableIds": [
+        "ap_pl@design/Asterisk Console M3.dc.html:3354:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_pr",
+      "stableIds": [
+        "ap_pr@design/Asterisk Console M3.dc.html:3352:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_pt",
+      "stableIds": [
+        "ap_pt@design/Asterisk Console M3.dc.html:3351:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_r1",
+      "stableIds": [
+        "ap_r1@design/Asterisk Console M3.dc.html:3337:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_r2",
+      "stableIds": [
+        "ap_r2@design/Asterisk Console M3.dc.html:3338:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_r3",
+      "stableIds": [
+        "ap_r3@design/Asterisk Console M3.dc.html:3339:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_r4",
+      "stableIds": [
+        "ap_r4@design/Asterisk Console M3.dc.html:3340:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_rainbow",
+      "stableIds": [
+        "ap_rainbow@design/Asterisk Console M3.dc.html:3325:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_rbdir",
+      "stableIds": [
+        "ap_rbdir@design/Asterisk Console M3.dc.html:3329:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_rbease",
+      "stableIds": [
+        "ap_rbease@design/Asterisk Console M3.dc.html:3328:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_rblight",
+      "stableIds": [
+        "ap_rblight@design/Asterisk Console M3.dc.html:3331:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_rbrange",
+      "stableIds": [
+        "ap_rbrange@design/Asterisk Console M3.dc.html:3327:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_rbsat",
+      "stableIds": [
+        "ap_rbsat@design/Asterisk Console M3.dc.html:3330:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_rbspeed",
+      "stableIds": [
+        "ap_rbspeed@design/Asterisk Console M3.dc.html:3326:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_rot",
+      "stableIds": [
+        "ap_rot@design/Asterisk Console M3.dc.html:3370:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_sat",
+      "stableIds": [
+        "ap_sat@design/Asterisk Console M3.dc.html:3318:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_satf",
+      "stableIds": [
+        "ap_satf@design/Asterisk Console M3.dc.html:3362:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_sb",
+      "stableIds": [
+        "ap_sb@design/Asterisk Console M3.dc.html:3345:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_scale",
+      "stableIds": [
+        "ap_scale@design/Asterisk Console M3.dc.html:3369:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_scope_status",
+      "stableIds": [
+        "ap_scope_status@design/Asterisk Console M3.dc.html:3304:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_sin",
+      "stableIds": [
+        "ap_sin@design/Asterisk Console M3.dc.html:3347:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_size",
+      "stableIds": [
+        "ap_size@design/Asterisk Console M3.dc.html:3309:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_skew",
+      "stableIds": [
+        "ap_skew@design/Asterisk Console M3.dc.html:3371:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_sop",
+      "stableIds": [
+        "ap_sop@design/Asterisk Console M3.dc.html:3348:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_ss",
+      "stableIds": [
+        "ap_ss@design/Asterisk Console M3.dc.html:3346:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_sx",
+      "stableIds": [
+        "ap_sx@design/Asterisk Console M3.dc.html:3343:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_sy",
+      "stableIds": [
+        "ap_sy@design/Asterisk Console M3.dc.html:3344:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_track",
+      "stableIds": [
+        "ap_track@design/Asterisk Console M3.dc.html:3310:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_transition",
+      "stableIds": [
+        "ap_transition@design/Asterisk Console M3.dc.html:3332:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_tx",
+      "stableIds": [
+        "ap_tx@design/Asterisk Console M3.dc.html:3367:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_ty",
+      "stableIds": [
+        "ap_ty@design/Asterisk Console M3.dc.html:3368:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "ap_weight",
+      "stableIds": [
+        "ap_weight@design/Asterisk Console M3.dc.html:3308:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.APPEAR_GROUPS[].ctls[].id"
+      ],
+      "featureIds": [
+        "material-appearance",
+        "bounded-overlays"
+      ]
+    },
+    {
+      "controlId": "bs_hours",
+      "stableIds": [
+        "bs_hours@design/Asterisk Console M3.dc.html:5003:9"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.oneClick.basicCtls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "bs_menu",
+      "stableIds": [
+        "bs_menu@design/Asterisk Console M3.dc.html:5002:9"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.oneClick.basicCtls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "bs_phones",
+      "stableIds": [
+        "bs_phones@design/Asterisk Console M3.dc.html:5001:9"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.oneClick.basicCtls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "bs_tls",
+      "stableIds": [
+        "bs_tls@design/Asterisk Console M3.dc.html:5004:9"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.oneClick.basicCtls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "cp_dir",
+      "stableIds": [
+        "cp_dir@design/Asterisk Console M3.dc.html:4657:9"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.colourPickerCtls[].id"
+      ],
+      "featureIds": [
+        "responsive-sizing"
+      ]
+    },
+    {
+      "controlId": "cp_ease",
+      "stableIds": [
+        "cp_ease@design/Asterisk Console M3.dc.html:4656:9"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.colourPickerCtls[].id"
+      ],
+      "featureIds": [
+        "responsive-sizing"
+      ]
+    },
+    {
+      "controlId": "cp_hue",
+      "stableIds": [
+        "cp_hue@design/Asterisk Console M3.dc.html:4651:9"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.colourPickerCtls[].id"
+      ],
+      "featureIds": [
+        "responsive-sizing"
+      ]
+    },
+    {
+      "controlId": "cp_light",
+      "stableIds": [
+        "cp_light@design/Asterisk Console M3.dc.html:4653:9"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.colourPickerCtls[].id"
+      ],
+      "featureIds": [
+        "responsive-sizing"
+      ]
+    },
+    {
+      "controlId": "cp_rainbow",
+      "stableIds": [
+        "cp_rainbow@design/Asterisk Console M3.dc.html:4654:9"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.colourPickerCtls[].id"
+      ],
+      "featureIds": [
+        "responsive-sizing"
+      ]
+    },
+    {
+      "controlId": "cp_sat",
+      "stableIds": [
+        "cp_sat@design/Asterisk Console M3.dc.html:4652:9"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.colourPickerCtls[].id"
+      ],
+      "featureIds": [
+        "responsive-sizing"
+      ]
+    },
+    {
+      "controlId": "cp_speed",
+      "stableIds": [
+        "cp_speed@design/Asterisk Console M3.dc.html:4655:9"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.colourPickerCtls[].id"
+      ],
+      "featureIds": [
+        "responsive-sizing"
+      ]
+    },
+    {
+      "controlId": "cw_attest",
+      "stableIds": [
+        "cw_attest@design/Asterisk Console M3.dc.html:4237:10"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.transaction[].ctls[].id"
+      ],
+      "featureIds": [
+        "local-file-converter",
+        "ollama-suite-manager",
+        "guided-forms"
+      ]
+    },
+    {
+      "controlId": "cw_reload",
+      "stableIds": [
+        "cw_reload@design/Asterisk Console M3.dc.html:4236:10"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.transaction[].ctls[].id"
+      ],
+      "featureIds": [
+        "local-file-converter",
+        "ollama-suite-manager",
+        "guided-forms"
+      ]
+    },
+    {
+      "controlId": "dp_after",
+      "stableIds": [
+        "dp_after@design/Asterisk Console M3.dc.html:3424:107"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.NODES[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "dp_barge",
+      "stableIds": [
+        "dp_barge@design/Asterisk Console M3.dc.html:3421:203"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.NODES[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "dp_box",
+      "stableIds": [
+        "dp_box@design/Asterisk Console M3.dc.html:3423:7"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.NODES[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "dp_cid",
+      "stableIds": [
+        "dp_cid@design/Asterisk Console M3.dc.html:3419:216"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.NODES[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "dp_ctx",
+      "stableIds": [
+        "dp_ctx@design/Asterisk Console M3.dc.html:3419:7"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.NODES[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "dp_days",
+      "stableIds": [
+        "dp_days@design/Asterisk Console M3.dc.html:3420:7"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.NODES[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "dp_from",
+      "stableIds": [
+        "dp_from@design/Asterisk Console M3.dc.html:3420:126"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.NODES[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "dp_greet",
+      "stableIds": [
+        "dp_greet@design/Asterisk Console M3.dc.html:3423:90"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.NODES[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "dp_hol",
+      "stableIds": [
+        "dp_hol@design/Asterisk Console M3.dc.html:3420:256"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.NODES[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "dp_moh",
+      "stableIds": [
+        "dp_moh@design/Asterisk Console M3.dc.html:3422:170"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.NODES[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "dp_msg",
+      "stableIds": [
+        "dp_msg@design/Asterisk Console M3.dc.html:3424:7"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.NODES[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "dp_opts",
+      "stableIds": [
+        "dp_opts@design/Asterisk Console M3.dc.html:3422:258"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.NODES[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "dp_pat",
+      "stableIds": [
+        "dp_pat@design/Asterisk Console M3.dc.html:3419:116"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.NODES[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "dp_prompt",
+      "stableIds": [
+        "dp_prompt@design/Asterisk Console M3.dc.html:3421:7"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.NODES[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "dp_q",
+      "stableIds": [
+        "dp_q@design/Asterisk Console M3.dc.html:3422:7"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.NODES[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "dp_qt",
+      "stableIds": [
+        "dp_qt@design/Asterisk Console M3.dc.html:3422:89"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.NODES[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "dp_skip",
+      "stableIds": [
+        "dp_skip@design/Asterisk Console M3.dc.html:3423:186"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.NODES[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "dp_to",
+      "stableIds": [
+        "dp_to@design/Asterisk Console M3.dc.html:3420:191"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.NODES[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "dp_wait",
+      "stableIds": [
+        "dp_wait@design/Asterisk Console M3.dc.html:3421:130"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.NODES[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "lk_dur",
+      "stableIds": [
+        "lk_dur@design/Asterisk Console M3.dc.html:5347:17"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.lockCtls[].id"
+      ],
+      "featureIds": [
+        "destructive-action-confirmation"
+      ]
+    },
+    {
+      "controlId": "lk_hide",
+      "stableIds": [
+        "lk_hide@design/Asterisk Console M3.dc.html:5347:148"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.lockCtls[].id"
+      ],
+      "featureIds": [
+        "destructive-action-confirmation"
+      ]
+    },
+    {
+      "controlId": "ob_ease",
+      "stableIds": [
+        "ob_ease@design/Asterisk Console M3.dc.html:3697:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.ONBOARD.ctls[].id"
+      ],
+      "featureIds": [
+        "responsive-sizing"
+      ]
+    },
+    {
+      "controlId": "ob_gates",
+      "stableIds": [
+        "ob_gates@design/Asterisk Console M3.dc.html:3707:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.ONBOARD.ctls[].id"
+      ],
+      "featureIds": [
+        "responsive-sizing"
+      ]
+    },
+    {
+      "controlId": "ob_host",
+      "stableIds": [
+        "ob_host@design/Asterisk Console M3.dc.html:3704:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.ONBOARD.ctls[].id"
+      ],
+      "featureIds": [
+        "responsive-sizing"
+      ]
+    },
+    {
+      "controlId": "ob_hours",
+      "stableIds": [
+        "ob_hours@design/Asterisk Console M3.dc.html:3701:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.ONBOARD.ctls[].id"
+      ],
+      "featureIds": [
+        "responsive-sizing"
+      ]
+    },
+    {
+      "controlId": "ob_intent",
+      "stableIds": [
+        "ob_intent@design/Asterisk Console M3.dc.html:3696:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.ONBOARD.ctls[].id"
+      ],
+      "featureIds": [
+        "responsive-sizing"
+      ]
+    },
+    {
+      "controlId": "ob_log",
+      "stableIds": [
+        "ob_log@design/Asterisk Console M3.dc.html:3708:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.ONBOARD.ctls[].id"
+      ],
+      "featureIds": [
+        "responsive-sizing"
+      ]
+    },
+    {
+      "controlId": "ob_menu",
+      "stableIds": [
+        "ob_menu@design/Asterisk Console M3.dc.html:3700:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.ONBOARD.ctls[].id"
+      ],
+      "featureIds": [
+        "responsive-sizing"
+      ]
+    },
+    {
+      "controlId": "ob_phones",
+      "stableIds": [
+        "ob_phones@design/Asterisk Console M3.dc.html:3699:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.ONBOARD.ctls[].id"
+      ],
+      "featureIds": [
+        "responsive-sizing"
+      ]
+    },
+    {
+      "controlId": "ob_tls",
+      "stableIds": [
+        "ob_tls@design/Asterisk Console M3.dc.html:3705:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.ONBOARD.ctls[].id"
+      ],
+      "featureIds": [
+        "responsive-sizing"
+      ]
+    },
+    {
+      "controlId": "ob_tour",
+      "stableIds": [
+        "ob_tour@design/Asterisk Console M3.dc.html:3710:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.ONBOARD.ctls[].id"
+      ],
+      "featureIds": [
+        "responsive-sizing"
+      ]
+    },
+    {
+      "controlId": "ob_where",
+      "stableIds": [
+        "ob_where@design/Asterisk Console M3.dc.html:3703:5"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.ONBOARD.ctls[].id"
+      ],
+      "featureIds": [
+        "responsive-sizing"
+      ]
+    },
+    {
+      "controlId": "sv_amiport",
+      "stableIds": [
+        "sv_amiport@design/Asterisk Console M3.dc.html:3003:7",
+        "sv_amiport@design/Asterisk Console M3.dc.html:3519:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.SCREENS.servers.groups[].ctls[].id",
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_amiuser",
+      "stableIds": [
+        "sv_amiuser@design/Asterisk Console M3.dc.html:3522:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_auth",
+      "stableIds": [
+        "sv_auth@design/Asterisk Console M3.dc.html:3512:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_conf",
+      "stableIds": [
+        "sv_conf@design/Asterisk Console M3.dc.html:3526:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_container",
+      "stableIds": [
+        "sv_container@design/Asterisk Console M3.dc.html:2997:7",
+        "sv_container@design/Asterisk Console M3.dc.html:3507:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.SCREENS.servers.groups[].ctls[].id",
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_default",
+      "stableIds": [
+        "sv_default@design/Asterisk Console M3.dc.html:3533:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_forward",
+      "stableIds": [
+        "sv_forward@design/Asterisk Console M3.dc.html:3005:7",
+        "sv_forward@design/Asterisk Console M3.dc.html:3521:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.SCREENS.servers.groups[].ctls[].id",
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_host",
+      "stableIds": [
+        "sv_host@design/Asterisk Console M3.dc.html:2996:7",
+        "sv_host@design/Asterisk Console M3.dc.html:3506:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.SCREENS.servers.groups[].ctls[].id",
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_hostkey",
+      "stableIds": [
+        "sv_hostkey@design/Asterisk Console M3.dc.html:3000:7",
+        "sv_hostkey@design/Asterisk Console M3.dc.html:3514:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.SCREENS.servers.groups[].ctls[].id",
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_iface",
+      "stableIds": [
+        "sv_iface@design/Asterisk Console M3.dc.html:3002:7",
+        "sv_iface@design/Asterisk Console M3.dc.html:3518:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.SCREENS.servers.groups[].ctls[].id",
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_key",
+      "stableIds": [
+        "sv_key@design/Asterisk Console M3.dc.html:3513:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_kind",
+      "stableIds": [
+        "sv_kind@design/Asterisk Console M3.dc.html:2995:7",
+        "sv_kind@design/Asterisk Console M3.dc.html:3502:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.SCREENS.servers.groups[].ctls[].id",
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_paths",
+      "stableIds": [
+        "sv_paths@design/Asterisk Console M3.dc.html:3525:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_probe",
+      "stableIds": [
+        "sv_probe@design/Asterisk Console M3.dc.html:3531:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_profile",
+      "stableIds": [
+        "sv_profile@design/Asterisk Console M3.dc.html:3503:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_readonly",
+      "stableIds": [
+        "sv_readonly@design/Asterisk Console M3.dc.html:3007:7",
+        "sv_readonly@design/Asterisk Console M3.dc.html:3528:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.SCREENS.servers.groups[].ctls[].id",
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_sounds",
+      "stableIds": [
+        "sv_sounds@design/Asterisk Console M3.dc.html:3527:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_sshport",
+      "stableIds": [
+        "sv_sshport@design/Asterisk Console M3.dc.html:2999:7",
+        "sv_sshport@design/Asterisk Console M3.dc.html:3508:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.SCREENS.servers.groups[].ctls[].id",
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_sudo",
+      "stableIds": [
+        "sv_sudo@design/Asterisk Console M3.dc.html:3515:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_tls",
+      "stableIds": [
+        "sv_tls@design/Asterisk Console M3.dc.html:3004:7",
+        "sv_tls@design/Asterisk Console M3.dc.html:3520:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.SCREENS.servers.groups[].ctls[].id",
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_user",
+      "stableIds": [
+        "sv_user@design/Asterisk Console M3.dc.html:2998:7",
+        "sv_user@design/Asterisk Console M3.dc.html:3509:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.SCREENS.servers.groups[].ctls[].id",
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "sv_watch",
+      "stableIds": [
+        "sv_watch@design/Asterisk Console M3.dc.html:3006:7",
+        "sv_watch@design/Asterisk Console M3.dc.html:3532:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.SCREENS.servers.groups[].ctls[].id",
+        "ConsoleShell.WIZARDS.servers[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_acl",
+      "stableIds": [
+        "w_acl@design/Asterisk Console M3.dc.html:3454:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_attest",
+      "stableIds": [
+        "w_attest@design/Asterisk Console M3.dc.html:3470:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_auth",
+      "stableIds": [
+        "w_auth@design/Asterisk Console M3.dc.html:3451:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_busy",
+      "stableIds": [
+        "w_busy@design/Asterisk Console M3.dc.html:3466:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_codecs",
+      "stableIds": [
+        "w_codecs@design/Asterisk Console M3.dc.html:3457:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_context",
+      "stableIds": [
+        "w_context@design/Asterisk Console M3.dc.html:3445:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_dir",
+      "stableIds": [
+        "w_dir@design/Asterisk Console M3.dc.html:3441:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_direct",
+      "stableIds": [
+        "w_direct@design/Asterisk Console M3.dc.html:3459:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_display",
+      "stableIds": [
+        "w_display@design/Asterisk Console M3.dc.html:3439:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_dtmf",
+      "stableIds": [
+        "w_dtmf@design/Asterisk Console M3.dc.html:3460:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_encrypt",
+      "stableIds": [
+        "w_encrypt@design/Asterisk Console M3.dc.html:3458:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_ext",
+      "stableIds": [
+        "w_ext@design/Asterisk Console M3.dc.html:3440:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_kind",
+      "stableIds": [
+        "w_kind@design/Asterisk Console M3.dc.html:3433:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_maxcontacts",
+      "stableIds": [
+        "w_maxcontacts@design/Asterisk Console M3.dc.html:3453:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_name",
+      "stableIds": [
+        "w_name@design/Asterisk Console M3.dc.html:3438:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_nat",
+      "stableIds": [
+        "w_nat@design/Asterisk Console M3.dc.html:3446:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_noanswer",
+      "stableIds": [
+        "w_noanswer@design/Asterisk Console M3.dc.html:3464:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_qualify",
+      "stableIds": [
+        "w_qualify@design/Asterisk Console M3.dc.html:3447:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_reload",
+      "stableIds": [
+        "w_reload@design/Asterisk Console M3.dc.html:3469:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_ringfor",
+      "stableIds": [
+        "w_ringfor@design/Asterisk Console M3.dc.html:3463:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_secret",
+      "stableIds": [
+        "w_secret@design/Asterisk Console M3.dc.html:3452:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_transport",
+      "stableIds": [
+        "w_transport@design/Asterisk Console M3.dc.html:3444:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_users",
+      "stableIds": [
+        "w_users@design/Asterisk Console M3.dc.html:3435:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_vm",
+      "stableIds": [
+        "w_vm@design/Asterisk Console M3.dc.html:3465:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "w_where",
+      "stableIds": [
+        "w_where@design/Asterisk Console M3.dc.html:3434:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.endpoints[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wc_area",
+      "stableIds": [
+        "wc_area@design/Asterisk Console M3.dc.html:3629:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.confirmation[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "destructive-action-confirmation"
+      ]
+    },
+    {
+      "controlId": "wc_attest",
+      "stableIds": [
+        "wc_attest@design/Asterisk Console M3.dc.html:3641:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.confirmation[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "destructive-action-confirmation"
+      ]
+    },
+    {
+      "controlId": "wc_confirm",
+      "stableIds": [
+        "wc_confirm@design/Asterisk Console M3.dc.html:3637:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.confirmation[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "destructive-action-confirmation"
+      ]
+    },
+    {
+      "controlId": "wc_dry",
+      "stableIds": [
+        "wc_dry@design/Asterisk Console M3.dc.html:3636:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.confirmation[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "destructive-action-confirmation"
+      ]
+    },
+    {
+      "controlId": "wc_filter",
+      "stableIds": [
+        "wc_filter@design/Asterisk Console M3.dc.html:3633:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.confirmation[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "destructive-action-confirmation"
+      ]
+    },
+    {
+      "controlId": "wc_goal",
+      "stableIds": [
+        "wc_goal@design/Asterisk Console M3.dc.html:3628:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.confirmation[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "destructive-action-confirmation"
+      ]
+    },
+    {
+      "controlId": "wc_log",
+      "stableIds": [
+        "wc_log@design/Asterisk Console M3.dc.html:3638:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.confirmation[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "destructive-action-confirmation"
+      ]
+    },
+    {
+      "controlId": "wc_target",
+      "stableIds": [
+        "wc_target@design/Asterisk Console M3.dc.html:3632:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.confirmation[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "destructive-action-confirmation"
+      ]
+    },
+    {
+      "controlId": "wd_attest",
+      "stableIds": [
+        "wd_attest@design/Asterisk Console M3.dc.html:3690:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.advanced[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "local-file-converter",
+        "ollama-suite-manager",
+        "guided-forms"
+      ]
+    },
+    {
+      "controlId": "wd_goal",
+      "stableIds": [
+        "wd_goal@design/Asterisk Console M3.dc.html:3681:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.advanced[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "local-file-converter",
+        "ollama-suite-manager",
+        "guided-forms"
+      ]
+    },
+    {
+      "controlId": "wd_level",
+      "stableIds": [
+        "wd_level@design/Asterisk Console M3.dc.html:3685:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.advanced[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "local-file-converter",
+        "ollama-suite-manager",
+        "guided-forms"
+      ]
+    },
+    {
+      "controlId": "wd_log",
+      "stableIds": [
+        "wd_log@design/Asterisk Console M3.dc.html:3686:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.advanced[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "local-file-converter",
+        "ollama-suite-manager",
+        "guided-forms"
+      ]
+    },
+    {
+      "controlId": "wd_notify",
+      "stableIds": [
+        "wd_notify@design/Asterisk Console M3.dc.html:3687:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.advanced[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "local-file-converter",
+        "ollama-suite-manager",
+        "guided-forms"
+      ]
+    },
+    {
+      "controlId": "wd_scope",
+      "stableIds": [
+        "wd_scope@design/Asterisk Console M3.dc.html:3682:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.advanced[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "local-file-converter",
+        "ollama-suite-manager",
+        "guided-forms"
+      ]
+    },
+    {
+      "controlId": "wi_0",
+      "stableIds": [
+        "wi_0@design/Asterisk Console M3.dc.html:3547:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.ivr[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wi_1",
+      "stableIds": [
+        "wi_1@design/Asterisk Console M3.dc.html:3544:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.ivr[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wi_2",
+      "stableIds": [
+        "wi_2@design/Asterisk Console M3.dc.html:3545:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.ivr[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wi_3",
+      "stableIds": [
+        "wi_3@design/Asterisk Console M3.dc.html:3546:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.ivr[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wi_attest",
+      "stableIds": [
+        "wi_attest@design/Asterisk Console M3.dc.html:3562:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.ivr[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wi_barge",
+      "stableIds": [
+        "wi_barge@design/Asterisk Console M3.dc.html:3541:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.ivr[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wi_close",
+      "stableIds": [
+        "wi_close@design/Asterisk Console M3.dc.html:3558:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.ivr[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wi_closed",
+      "stableIds": [
+        "wi_closed@design/Asterisk Console M3.dc.html:3559:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.ivr[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wi_direct",
+      "stableIds": [
+        "wi_direct@design/Asterisk Console M3.dc.html:3548:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.ivr[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wi_file",
+      "stableIds": [
+        "wi_file@design/Asterisk Console M3.dc.html:3539:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.ivr[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wi_hours",
+      "stableIds": [
+        "wi_hours@design/Asterisk Console M3.dc.html:3556:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.ivr[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wi_invalid",
+      "stableIds": [
+        "wi_invalid@design/Asterisk Console M3.dc.html:3553:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.ivr[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wi_lang",
+      "stableIds": [
+        "wi_lang@design/Asterisk Console M3.dc.html:3540:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.ivr[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wi_open",
+      "stableIds": [
+        "wi_open@design/Asterisk Console M3.dc.html:3557:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.ivr[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wi_prompt",
+      "stableIds": [
+        "wi_prompt@design/Asterisk Console M3.dc.html:3538:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.ivr[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wi_retries",
+      "stableIds": [
+        "wi_retries@design/Asterisk Console M3.dc.html:3552:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.ivr[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wi_timeout",
+      "stableIds": [
+        "wi_timeout@design/Asterisk Console M3.dc.html:3551:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.ivr[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wm_action",
+      "stableIds": [
+        "wm_action@design/Asterisk Console M3.dc.html:3646:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.modules[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wm_attest",
+      "stableIds": [
+        "wm_attest@design/Asterisk Console M3.dc.html:3658:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.modules[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wm_force",
+      "stableIds": [
+        "wm_force@design/Asterisk Console M3.dc.html:3650:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.modules[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wm_module",
+      "stableIds": [
+        "wm_module@design/Asterisk Console M3.dc.html:3647:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.modules[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wm_persist",
+      "stableIds": [
+        "wm_persist@design/Asterisk Console M3.dc.html:3654:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.modules[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wm_preload",
+      "stableIds": [
+        "wm_preload@design/Asterisk Console M3.dc.html:3655:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.modules[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wm_when",
+      "stableIds": [
+        "wm_when@design/Asterisk Console M3.dc.html:3651:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.modules[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wq_attest",
+      "stableIds": [
+        "wq_attest@design/Asterisk Console M3.dc.html:3497:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.queues[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wq_auto",
+      "stableIds": [
+        "wq_auto@design/Asterisk Console M3.dc.html:3481:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.queues[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wq_hours",
+      "stableIds": [
+        "wq_hours@design/Asterisk Console M3.dc.html:3476:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.queues[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wq_kind",
+      "stableIds": [
+        "wq_kind@design/Asterisk Console M3.dc.html:3475:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.queues[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wq_maxwait",
+      "stableIds": [
+        "wq_maxwait@design/Asterisk Console M3.dc.html:3493:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.queues[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wq_members",
+      "stableIds": [
+        "wq_members@design/Asterisk Console M3.dc.html:3479:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.queues[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wq_moh",
+      "stableIds": [
+        "wq_moh@design/Asterisk Console M3.dc.html:3490:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.queues[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wq_penalty",
+      "stableIds": [
+        "wq_penalty@design/Asterisk Console M3.dc.html:3480:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.queues[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wq_periodic",
+      "stableIds": [
+        "wq_periodic@design/Asterisk Console M3.dc.html:3492:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.queues[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wq_position",
+      "stableIds": [
+        "wq_position@design/Asterisk Console M3.dc.html:3491:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.queues[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wq_ringinuse",
+      "stableIds": [
+        "wq_ringinuse@design/Asterisk Console M3.dc.html:3487:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.queues[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wq_strategy",
+      "stableIds": [
+        "wq_strategy@design/Asterisk Console M3.dc.html:3484:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.queues[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wq_then",
+      "stableIds": [
+        "wq_then@design/Asterisk Console M3.dc.html:3494:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.queues[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wq_timeout",
+      "stableIds": [
+        "wq_timeout@design/Asterisk Console M3.dc.html:3485:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.queues[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wq_wrapup",
+      "stableIds": [
+        "wq_wrapup@design/Asterisk Console M3.dc.html:3486:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.queues[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_acl",
+      "stableIds": [
+        "ws_acl@design/Asterisk Console M3.dc.html:3599:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_alert",
+      "stableIds": [
+        "ws_alert@design/Asterisk Console M3.dc.html:3620:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_attest",
+      "stableIds": [
+        "ws_attest@design/Asterisk Console M3.dc.html:3623:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_ban",
+      "stableIds": [
+        "ws_ban@design/Asterisk Console M3.dc.html:3601:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_bantime",
+      "stableIds": [
+        "ws_bantime@design/Asterisk Console M3.dc.html:3602:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_cap",
+      "stableIds": [
+        "ws_cap@design/Asterisk Console M3.dc.html:3618:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_carriers",
+      "stableIds": [
+        "ws_carriers@design/Asterisk Console M3.dc.html:3596:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_cert",
+      "stableIds": [
+        "ws_cert@design/Asterisk Console M3.dc.html:3605:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_exposed",
+      "stableIds": [
+        "ws_exposed@design/Asterisk Console M3.dc.html:3594:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_fail",
+      "stableIds": [
+        "ws_fail@design/Asterisk Console M3.dc.html:3614:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_intl",
+      "stableIds": [
+        "ws_intl@design/Asterisk Console M3.dc.html:3617:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_level",
+      "stableIds": [
+        "ws_level@design/Asterisk Console M3.dc.html:3612:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_media",
+      "stableIds": [
+        "ws_media@design/Asterisk Console M3.dc.html:3607:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_method",
+      "stableIds": [
+        "ws_method@design/Asterisk Console M3.dc.html:3606:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_nets",
+      "stableIds": [
+        "ws_nets@design/Asterisk Console M3.dc.html:3600:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_night",
+      "stableIds": [
+        "ws_night@design/Asterisk Console M3.dc.html:3619:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_stir",
+      "stableIds": [
+        "ws_stir@design/Asterisk Console M3.dc.html:3611:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_users",
+      "stableIds": [
+        "ws_users@design/Asterisk Console M3.dc.html:3595:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_verify",
+      "stableIds": [
+        "ws_verify@design/Asterisk Console M3.dc.html:3608:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "ws_vin",
+      "stableIds": [
+        "ws_vin@design/Asterisk Console M3.dc.html:3613:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.security[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wv_attach",
+      "stableIds": [
+        "wv_attach@design/Asterisk Console M3.dc.html:3578:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.voicemail[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wv_attest",
+      "stableIds": [
+        "wv_attest@design/Asterisk Console M3.dc.html:3589:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.voicemail[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wv_box",
+      "stableIds": [
+        "wv_box@design/Asterisk Console M3.dc.html:3568:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.voicemail[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wv_busy",
+      "stableIds": [
+        "wv_busy@design/Asterisk Console M3.dc.html:3573:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.voicemail[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wv_count",
+      "stableIds": [
+        "wv_count@design/Asterisk Console M3.dc.html:3585:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.voicemail[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wv_delete",
+      "stableIds": [
+        "wv_delete@design/Asterisk Console M3.dc.html:3579:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.voicemail[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wv_email",
+      "stableIds": [
+        "wv_email@design/Asterisk Console M3.dc.html:3577:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.voicemail[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wv_ext",
+      "stableIds": [
+        "wv_ext@design/Asterisk Console M3.dc.html:3569:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.voicemail[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wv_format",
+      "stableIds": [
+        "wv_format@design/Asterisk Console M3.dc.html:3580:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.voicemail[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wv_full",
+      "stableIds": [
+        "wv_full@design/Asterisk Console M3.dc.html:3586:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.voicemail[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wv_greet",
+      "stableIds": [
+        "wv_greet@design/Asterisk Console M3.dc.html:3572:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.voicemail[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wv_kind",
+      "stableIds": [
+        "wv_kind@design/Asterisk Console M3.dc.html:3567:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.voicemail[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wv_max",
+      "stableIds": [
+        "wv_max@design/Asterisk Console M3.dc.html:3583:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.voicemail[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wv_min",
+      "stableIds": [
+        "wv_min@design/Asterisk Console M3.dc.html:3584:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.voicemail[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wv_name",
+      "stableIds": [
+        "wv_name@design/Asterisk Console M3.dc.html:3574:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.voicemail[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wy_attest",
+      "stableIds": [
+        "wy_attest@design/Asterisk Console M3.dc.html:3676:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.vocabulary[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wy_case",
+      "stableIds": [
+        "wy_case@design/Asterisk Console M3.dc.html:3667:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.vocabulary[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wy_depth",
+      "stableIds": [
+        "wy_depth@design/Asterisk Console M3.dc.html:3664:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.vocabulary[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wy_guard",
+      "stableIds": [
+        "wy_guard@design/Asterisk Console M3.dc.html:3673:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.vocabulary[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wy_limit",
+      "stableIds": [
+        "wy_limit@design/Asterisk Console M3.dc.html:3669:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.vocabulary[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wy_out",
+      "stableIds": [
+        "wy_out@design/Asterisk Console M3.dc.html:3672:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.vocabulary[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wy_scope",
+      "stableIds": [
+        "wy_scope@design/Asterisk Console M3.dc.html:3663:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.vocabulary[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    },
+    {
+      "controlId": "wy_whole",
+      "stableIds": [
+        "wy_whole@design/Asterisk Console M3.dc.html:3668:8"
+      ],
+      "runtimeUses": [
+        "ConsoleShell.WIZARDS.vocabulary[].steps[].ctls[].id"
+      ],
+      "featureIds": [
+        "accessibility"
+      ]
+    }
+  ]
+}

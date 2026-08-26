@@ -488,6 +488,9 @@ of this, so every one of them already had an accessible name; the gap was always
 
 ## Release readiness
 
+- [x] Recover the UI-smoke source and evidence baseline across the exact 29-path inventory, subject to focused manifest, mapping, privacy, and negative-regression checks.
+- [ ] Capture and verify a new real built-artifact UI-smoke runtime run through the cheap Lowlevel headless-only route.
+
 - [x] Verify `download-dependencies.bat /s` from a clean user-scoped toolchain cache.
 - [x] Verify `build.bat /s` at the merged candidate commit.
 - [x] Verify `build-installer.bat /s` produces an unsigned installable Squirrel.Windows set.
