@@ -2991,6 +2991,15 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'db-sorcery-load') { this.onLoadSorceryMapping(); return; }
     if (action === 'db-sorcery-save') { void this.onSaveSorceryMapping(); return; }
     if (action === 'db-sorcery-remove') { void this.onRemoveSorceryMapping(); return; }
+    if (action === 'stirshaken-profile-load') { this.onLoadStirShakenProfile(); return; }
+    if (action === 'stirshaken-profile-save') { void this.onSaveStirShakenProfile(); return; }
+    if (action === 'geolocation-location-load') { this.onLoadGeolocationLocation(); return; }
+    if (action === 'geolocation-location-save') { void this.onSaveGeolocationLocation(); return; }
+    if (action === 'geolocation-profile-load') { this.onLoadGeolocationProfile(); return; }
+    if (action === 'geolocation-profile-save') { void this.onSaveGeolocationProfile(); return; }
+    if (action === 'phoneprov-general-save') { void this.onSavePhoneprovGeneral(); return; }
+    if (action === 'phoneprov-profile-load') { this.onLoadPhoneprovProfile(); return; }
+    if (action === 'phoneprov-profile-save') { void this.onSavePhoneprovProfile(); return; }
   };
 
   // ---------------------------------------------------------------- server add / remove
@@ -4293,6 +4302,260 @@ It is shown once. The phone needs it to register.`);
       'stir_shaken.conf updated on the target.',
       'STIR/SHAKEN settings saved',
       () => { delete this.configs.stirShaken; this.seeded.delete('security-stir'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Call attestation, Emergency location, Phone provisioning
+  //
+  // Three screens sharing one shape: a named section, picked by a text field the same
+  // way the Security screen's own `s_transport`/cel_odbc.conf's `l_octx` pick one, read
+  // with `readControlValues(screen, value, {}, { <picker>: name })` and written with
+  // `applyBoundControlValues(screen, value, changes)` -- but stir_shaken.conf's own
+  // [profile] objects and geolocation.conf's [location]/[profile] objects additionally
+  // *require* a `type=` key nothing on the design edits (the operator does not choose
+  // it; it is always the same literal word for that object), so their two writes run
+  // the result through `withRequiredType` below before sending it to the target. Every
+  // one of these three screens' own primary `file` is the config file itself, so
+  // `this.configs.stirshaken`/`.geolocation`/`.phoneprov` are populated by the generic
+  // per-screen read this class already runs for every other configuration screen --
+  // none of them need the Security screen's own extra-read wiring.
+
+  /** stir_shaken.conf/geolocation.conf both declare an object TYPE that is not a
+   *  choice made on either screen -- a profile is always `type=profile`, a location is
+   *  always `type=location` -- so it is written here directly rather than through a
+   *  design control with nothing to bind it to. Creates the section if `applyControlValues`
+   *  did not already (an entirely blank profile/location still needs its type declared),
+   *  and leaves every other entry in the file untouched. */
+  private static withRequiredType(value: ConfigValue, name: string, type: string): ConfigValue {
+    const sections = value.map((section) => ({ name: section.name, entries: [...section.entries] }));
+    let section = sections.find((candidate) => candidate.name === name);
+    if (!section) { section = { name, entries: [] }; sections.push(section); }
+    const idx = section.entries.findIndex((entry) => entry.key === 'type');
+    if (idx === -1) section.entries.unshift({ key: 'type', value: type });
+    else section.entries[idx] = { key: 'type', value: type };
+    return sections;
+  }
+
+  /** The stir_shaken.conf [section] the Call attestation screen's fields are currently
+   *  pointed at, resolved against the target's own already-read file. `undefined` when
+   *  the name is empty, the file has not been read yet, or nothing on the target is
+   *  named that -- which is not a refusal here, the same way it is not for cel_odbc.conf's
+   *  own named context above: a profile with nothing in it yet is still a valid, if
+   *  useless, profile, and Save is free to create one. */
+  private stirShakenProfileSection(): { name: string; section: ConfigSection } | undefined {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['cs_profile'] ?? '').trim();
+    const value = this.configs.stirshaken?.state === 'read' ? this.configs.stirshaken.value : undefined;
+    if (!name || !value) return undefined;
+    const section = value.find((candidate) => candidate.name === name);
+    return section ? { name, section } : undefined;
+  }
+
+  /** "Load from target" on the Call attestation screen: reads the named profile's
+   *  current settings out of the stir_shaken.conf already fetched into the fields. */
+  onLoadStirShakenProfile = (): void => {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['cs_profile'] ?? '').trim();
+    if (!name) { this.toast('Type a profile name first.'); return; }
+    const found = this.stirShakenProfileSection();
+    if (!found) {
+      this.toast(`No [${name}] section in stir_shaken.conf yet -- Save will create it as a profile object.`);
+      return;
+    }
+    const value = this.configs.stirshaken?.state === 'read' ? this.configs.stirshaken.value : undefined;
+    const bound = readControlValues('stirshaken', value, {}, { cs_profile: found.name });
+    this.setState({ values: { ...values, ...bound } } as never);
+    this.toast(`Loaded [${found.name}] from stir_shaken.conf.`);
+  };
+
+  /** The bound control ids the Call attestation screen's "Save profile" action writes --
+   *  every binding in `CONTROL_BINDINGS.stirshaken`, named explicitly the same way every
+   *  other named-section Save on this console lists its own controls, so a change to
+   *  that table cannot silently widen what one write touches. */
+  private static readonly STIRSHAKEN_PROFILE_CONTROLS = [
+    'cs_behavior', 'cs_failaction', 'cs_level', 'cs_privkey', 'cs_certurl', 'cs_x5uacl',
+  ] as const;
+
+  onSaveStirShakenProfile = async (): Promise<void> => {
+    const value = this.configs.stirshaken?.state === 'read' ? this.configs.stirshaken.value : undefined;
+    if (!value) { this.fire('Not written', 'stir_shaken.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['cs_profile'] ?? '').trim();
+    if (!name) { this.fire('Not written', 'Type a profile name before saving -- stir_shaken.conf records attestation behaviour per named profile, not a single global one.'); return; }
+    const changes: Record<string, unknown> = { cs_profile: name };
+    for (const id of App.STIRSHAKEN_PROFILE_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    let next = applyBoundControlValues('stirshaken', value, changes);
+    next = App.withRequiredType(next, name, 'profile');
+    await this.writeConfigResource(
+      this.configs.stirshaken?.resource ?? (resourceForFile('stir_shaken.conf') as string),
+      next,
+      `[${name}] attestation profile updated in stir_shaken.conf.`,
+      `[${name}] saved`,
+      () => { delete this.configs.stirshaken; },
+    );
+  };
+
+  /** geolocation.conf holds two independently-named object kinds on one screen, so this
+   *  and `geolocationProfileSection` below are each keyed off their own picker control
+   *  (`gl_location`/`gl_profile`) rather than sharing one. */
+  private geolocationLocationSection(): { name: string; section: ConfigSection } | undefined {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['gl_location'] ?? '').trim();
+    const value = this.configs.geolocation?.state === 'read' ? this.configs.geolocation.value : undefined;
+    if (!name || !value) return undefined;
+    const section = value.find((candidate) => candidate.name === name);
+    return section ? { name, section } : undefined;
+  }
+
+  private geolocationProfileSection(): { name: string; section: ConfigSection } | undefined {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['gl_profile'] ?? '').trim();
+    const value = this.configs.geolocation?.state === 'read' ? this.configs.geolocation.value : undefined;
+    if (!name || !value) return undefined;
+    const section = value.find((candidate) => candidate.name === name);
+    return section ? { name, section } : undefined;
+  }
+
+  onLoadGeolocationLocation = (): void => {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['gl_location'] ?? '').trim();
+    if (!name) { this.toast('Type a location name first.'); return; }
+    const found = this.geolocationLocationSection();
+    if (!found) {
+      this.toast(`No [${name}] section in geolocation.conf yet -- Save will create it as a location object.`);
+      return;
+    }
+    const value = this.configs.geolocation?.state === 'read' ? this.configs.geolocation.value : undefined;
+    const bound = readControlValues('geolocation', value, {}, { gl_location: found.name });
+    this.setState({ values: { ...values, ...bound } } as never);
+    this.toast(`Loaded [${found.name}] from geolocation.conf.`);
+  };
+
+  onLoadGeolocationProfile = (): void => {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['gl_profile'] ?? '').trim();
+    if (!name) { this.toast('Type a profile name first.'); return; }
+    const found = this.geolocationProfileSection();
+    if (!found) {
+      this.toast(`No [${name}] section in geolocation.conf yet -- Save will create it as a profile object.`);
+      return;
+    }
+    const value = this.configs.geolocation?.state === 'read' ? this.configs.geolocation.value : undefined;
+    const bound = readControlValues('geolocation', value, {}, { gl_profile: found.name });
+    this.setState({ values: { ...values, ...bound } } as never);
+    this.toast(`Loaded [${found.name}] from geolocation.conf.`);
+  };
+
+  private static readonly GEOLOCATION_LOCATION_CONTROLS = ['gl_format', 'gl_info', 'gl_method', 'gl_source'] as const;
+  private static readonly GEOLOCATION_PROFILE_CONTROLS = ['gl_precedence', 'gl_pidf', 'gl_reference', 'gl_routing'] as const;
+
+  onSaveGeolocationLocation = async (): Promise<void> => {
+    const value = this.configs.geolocation?.state === 'read' ? this.configs.geolocation.value : undefined;
+    if (!value) { this.fire('Not written', 'geolocation.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['gl_location'] ?? '').trim();
+    if (!name) { this.fire('Not written', 'Type a location name before saving -- geolocation.conf records a location per named object, not a single global one.'); return; }
+    const changes: Record<string, unknown> = { gl_location: name };
+    for (const id of App.GEOLOCATION_LOCATION_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    let next = applyBoundControlValues('geolocation', value, changes);
+    next = App.withRequiredType(next, name, 'location');
+    await this.writeConfigResource(
+      this.configs.geolocation?.resource ?? (resourceForFile('geolocation.conf') as string),
+      next,
+      `[${name}] location updated in geolocation.conf.`,
+      `[${name}] saved`,
+      () => { delete this.configs.geolocation; },
+    );
+  };
+
+  onSaveGeolocationProfile = async (): Promise<void> => {
+    const value = this.configs.geolocation?.state === 'read' ? this.configs.geolocation.value : undefined;
+    if (!value) { this.fire('Not written', 'geolocation.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['gl_profile'] ?? '').trim();
+    if (!name) { this.fire('Not written', 'Type a profile name before saving -- geolocation.conf records a profile per named object, not a single global one.'); return; }
+    const changes: Record<string, unknown> = { gl_profile: name };
+    for (const id of App.GEOLOCATION_PROFILE_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    let next = applyBoundControlValues('geolocation', value, changes);
+    next = App.withRequiredType(next, name, 'profile');
+    await this.writeConfigResource(
+      this.configs.geolocation?.resource ?? (resourceForFile('geolocation.conf') as string),
+      next,
+      `[${name}] profile updated in geolocation.conf.`,
+      `[${name}] saved`,
+      () => { delete this.configs.geolocation; },
+    );
+  };
+
+  /** phoneprov.conf's [general] section -- the deployment wizard's own "How many
+   *  phones?" answer has always had a `default_profile` waiting for it and nowhere
+   *  that wrote one; this does. Unlike the profile group below, [general] is a fixed
+   *  section every real phoneprov.conf already has, so there is no picker and no
+   *  Load button -- the generic per-screen read already seeds these four fields the
+   *  moment phoneprov.conf comes back from the target. */
+  private static readonly PHONEPROV_GENERAL_CONTROLS = ['pv_default', 'pv_addr', 'pv_iface', 'pv_port'] as const;
+
+  onSavePhoneprovGeneral = async (): Promise<void> => {
+    const current = this.configs.phoneprov?.state === 'read' ? this.configs.phoneprov.value : undefined;
+    if (!current) { this.fire('Not written', 'phoneprov.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.PHONEPROV_GENERAL_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('phoneprov', current, changes);
+    await this.writeConfigResource(
+      this.configs.phoneprov?.resource ?? (resourceForFile('phoneprov.conf') as string),
+      next,
+      'phoneprov.conf [general] updated on the target.',
+      'Phone provisioning settings saved',
+      () => { delete this.configs.phoneprov; },
+    );
+  };
+
+  /** phoneprov.conf's own named provisioning profile, e.g. [polycom] -- unlike
+   *  cel_odbc.conf's context or stir_shaken.conf's profile, this file's own profile
+   *  sections carry no `type=` key at all (see the sample's own [polycom] example),
+   *  so there is nothing for `withRequiredType` to do here. */
+  private phoneprovProfileSection(): { name: string; section: ConfigSection } | undefined {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['pv_profile'] ?? '').trim();
+    const value = this.configs.phoneprov?.state === 'read' ? this.configs.phoneprov.value : undefined;
+    if (!name || !value) return undefined;
+    const section = value.find((candidate) => candidate.name === name);
+    return section ? { name, section } : undefined;
+  }
+
+  onLoadPhoneprovProfile = (): void => {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['pv_profile'] ?? '').trim();
+    if (!name) { this.toast('Type a profile name first.'); return; }
+    const found = this.phoneprovProfileSection();
+    if (!found) {
+      this.toast(`No [${name}] section in phoneprov.conf yet -- Save will create it.`);
+      return;
+    }
+    const value = this.configs.phoneprov?.state === 'read' ? this.configs.phoneprov.value : undefined;
+    const bound = readControlValues('phoneprov', value, {}, { pv_profile: found.name });
+    this.setState({ values: { ...values, ...bound } } as never);
+    this.toast(`Loaded [${found.name}] from phoneprov.conf.`);
+  };
+
+  private static readonly PHONEPROV_PROFILE_CONTROLS = ['pv_staticdir', 'pv_mimetype'] as const;
+
+  onSavePhoneprovProfile = async (): Promise<void> => {
+    const value = this.configs.phoneprov?.state === 'read' ? this.configs.phoneprov.value : undefined;
+    if (!value) { this.fire('Not written', 'phoneprov.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['pv_profile'] ?? '').trim();
+    if (!name) { this.fire('Not written', 'Type a profile name before saving -- phoneprov.conf records provisioning content per named profile, not a single global one.'); return; }
+    const changes: Record<string, unknown> = { pv_profile: name };
+    for (const id of App.PHONEPROV_PROFILE_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('phoneprov', value, changes);
+    await this.writeConfigResource(
+      this.configs.phoneprov?.resource ?? (resourceForFile('phoneprov.conf') as string),
+      next,
+      `[${name}] provisioning profile updated in phoneprov.conf.`,
+      `[${name}] saved`,
+      () => { delete this.configs.phoneprov; },
     );
   };
 
