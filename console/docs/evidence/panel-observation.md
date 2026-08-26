@@ -24,18 +24,37 @@ Contract: [`tests/scripts/panel-observation.test.mjs`](../../tests/scripts/panel
 Both are measured off the compiled shell by the contract test rather than remembered here, so a
 change to either fails the suite rather than quietly changing what the harness means.
 
-**This application declares almost no roles, and no dialog role at all.** The compiled shell —
+**This application declares almost no roles, and exactly one dialog role.** The compiled shell —
 6,277 lines, effectively the whole console interface — contains zero `role` attributes and zero
-accessible-name attributes. Across the entire renderer there are exactly four roles, two `alert`
-and two `status`, and no element anywhere carries the dialog role. A selector for it therefore
-matches nothing under any state.
+accessible-name attributes. Outside it, the hand-written components declare eleven roles in total,
+and exactly one of them is `dialog`: the command palette's card, in `App.tsx`.
 
-That was not a hypothetical. `drive.mjs` counted elements carrying the dialog role as its
-`dialogs` reading, recorded it either side of every click, and used it in the flag that decides
-whether a click changed anything. The number was zero on every screen whether a panel was open or
-not, so the reading contributed nothing and the "did this click open something" test was blind to
-the one outcome it most needed to see. `gallery.mjs` printed `(a dialog was still open)` beside a
-screenshot on the same reading; that warning had never fired.
+> **Corrected on 2026-08-26.** This section used to say that *no* element anywhere carried the
+> dialog role, so a selector for it "matches nothing under any state" and a count of it "can only
+> ever be zero". That was false the whole time it was written down, and false about the one surface
+> it mattered most for: all twenty-five of the empty records were driven through the palette. The
+> test guarding the claim could not see it. Its needle was the JSX spelling `role="dialog"`, and
+> this renderer is hyperscript, which writes `role: 'dialog'` — so it reported absence and had
+> never once looked. Measured on a tree deliberately carrying the role in **two** places, the old
+> needle still came back with an empty list.
+>
+> The number now comes from the packaged application rather than from a reading of the source.
+> [`release/evidence/ui-drive/command-palette-reading.json`](../../release/evidence/ui-drive/command-palette-reading.json)
+> records `dialogRoleElements` as **0** before the chord, **1** while the palette is up, and **0**
+> again once a result is activated.
+
+`drive.mjs` counted elements carrying the dialog role as its `dialogs` reading, recorded it either
+side of every click, and used it in the flag that decides whether a click changed anything. With
+one surface in a dozen declaring the role, that reading moved for the command palette and stayed at
+zero for the wizard, the info sheet, context menus, the appearance drawer, the lock and unlock
+sheets, the confirmation gate, the colour picker and the regex builder — so the "did this click
+open something" test was blind to almost every outcome it needed to see. `gallery.mjs` printed
+`(a dialog was still open)` beside a screenshot on the same reading.
+
+**The z-index scan stays, and the reason is now stated rather than assumed.** One element in one
+state is not a reader: a driver choosing panels by the dialog role would be right about the palette
+and blind everywhere else. The contract test therefore keeps the ban on that selector for every
+driver that *chooses* a panel, and names the single script allowed to *count* it.
 
 **Icon ligatures put their own name in the DOM, before the label.** The shell renders 175
 `<span class="msym">` Material Symbols spans, and an icon-bearing control emits its icon span
@@ -71,6 +90,15 @@ level below with nothing inside it — and where two share a level the smaller w
 full-viewport flex container that centres a card reports the same level as the card and the card
 is the panel.
 
+**One surface does not have that shape, and the first real reading is of exactly that surface.**
+The command palette's scrim *wraps* its card rather than sitting beside it, and `.palette-card`
+declares neither `position` nor `z-index`, so the card is never a candidate and the scrim is what
+gets chosen. The controls found are still the card's, because they are inside it — but the
+rectangle reported is the whole viewport, `coversViewport` is true, and a palette can therefore
+never read as anchored to anything. All three are true of the reading and all three are in it. The
+contract test reads both rules out of `styles.css` on every run, so a card that gains a position or
+a scrim that loses one fails the suite instead of quietly changing what a reading means.
+
 The one interpolated `z-index` in the shell is the dialplan canvas, which is `94` when fullscreen
 and the keyword `auto` otherwise. The keyword parses to `NaN` and is rejected; the number is a
 genuine overlay and is correctly treated as one.
@@ -81,6 +109,15 @@ genuine overlay and is correctly treated as one.
 fuller readings travel beside it in `panelControlReadings`, each naming how the label was arrived
 at: an accessible name where one exists, then the text with the icons removed, then the `title`
 this application sets on its icon-only controls.
+
+**The ligature hazard has a second shape, and only a real reading found it.** The first run came
+back with a palette row named `languageHardware trunks · Signalling & routing`. `textContent` puts
+nothing between adjacent element children, and a palette row is two top-level spans — its label and
+the context it sits in. The reading was not missing; it was two different fields glued into one
+word, which reads as a broken label and can never match a name a person wrote down. The browser
+side now hands the top-level runs back separately and `readControlLabel` joins them with a space,
+in Node, where it is a pure function with a test. Top-level only: descending further would start
+putting spaces inside words a component split across spans for styling.
 
 A control that has none of those is reported with `source: "icon"` and is deliberately kept **out**
 of `observedPanelControls`. A glyph name is a finding — this control has no name a person can read
@@ -100,17 +137,17 @@ viewport can never read true.
 
 ## Capture records
 
-There are no screen captures in this record, and saying so is the point of it. This pass built
-the reader; it has not yet been run against a packaged application. What follows are the readings
-the design rests on, each taken from the tree at one commit, and the deliberate-break runs that
-prove the assertions guarding them can fail.
+The first table is the tree-read evidence the design rests on. The second is the first reading
+ever taken with this harness from a running build, added on 2026-08-26 — the section directly
+below it says what that reading did and did not settle.
 
 | State | Record | Read at commit | Coverage | Result |
 | --- | --- | --- | --- | --- |
 | Producers of `observedPanelControls` anywhere in the tree | tree-wide search for the field name | `56ca283dccfae7b9226d17950193266482605f00` | whole repository | two guard scripts, 26 evidence records, one contract test, and **no script that writes one** |
 | Committed records carrying the field | `release/evidence/windows-console/*.json` | `56ca283dccfae7b9226d17950193266482605f00` | 39 records | 26 carry it; 25 of those recorded an empty list |
 | Role attributes in the compiled shell | `app/renderer/src/generated/console.tsx` | `56ca283dccfae7b9226d17950193266482605f00` | 6,277 lines | zero roles, zero accessible-name attributes |
-| Roles anywhere in the renderer | `app/renderer/src/**/*.{ts,tsx}` | `56ca283dccfae7b9226d17950193266482605f00` | 8 sources declaring any | exactly four: two `alert`, two `status`; **no dialog role at all** |
+| Roles anywhere in the renderer, JSX spelling only | `app/renderer/src/**/*.{ts,tsx}` | `56ca283dccfae7b9226d17950193266482605f00` | whole renderer | four: two `alert`, two `status`. **This is the reading that produced the "no dialog role at all" claim, and it is a partial count** — it can only see `role="…"`, and this renderer is mostly hyperscript |
+| Roles anywhere in the renderer, both spellings | `app/renderer/src/**/*.{ts,tsx}` | `f20a66f7388979d627203fd913c153d8f8d4a001` | whole renderer | eleven: the four above plus `button`×2, `option`, `listbox`, `complementary`, `status`, and **one `dialog`** on the command palette's card |
 | Accessible names outside the shell | `app/renderer/src/**/*.tsx` | `56ca283dccfae7b9226d17950193266482605f00` | whole renderer | six, which is why the reader still prefers one where it exists |
 | Icon ligature spans in the shell | `className: "msym"` occurrences | `56ca283dccfae7b9226d17950193266482605f00` | 6,277 lines | 175, emitted before the label on every icon-bearing control |
 | Literal stacking levels in the shell | `z-index:` occurrences | `56ca283dccfae7b9226d17950193266482605f00` | 22 distinct values | page chrome tops out at 6, overlays start at 55, nothing between |
@@ -118,6 +155,46 @@ prove the assertions guarding them can fail.
 | Deliberate breaks, applied one at a time | `tests/scripts/panel-observation.test.mjs` | `56ca283dccfae7b9226d17950193266482605f00` | 21 breaks | 19 red on the first attempt; **2 stayed green** and are described below |
 | The same 21 breaks after both guards were repaired | `tests/scripts/panel-observation.test.mjs` | `56ca283dccfae7b9226d17950193266482605f00` | 21 breaks | all 21 red one at a time, all 21 green on restore |
 | The whole suite with the harness wired in | `npm test` | `56ca283dccfae7b9226d17950193266482605f00` | 3,713 assertions | 3,713 passed, 0 failed |
+
+### The first reading taken from a running build
+
+Taken by [`scripts/ui-drive/palette-reading.mjs`](../../scripts/ui-drive/palette-reading.mjs)
+against the packaged executable built from `f20a66f7388979d627203fd913c153d8f8d4a001`, launched on
+an off-screen Windows desktop under a throwaway profile, driven over loopback Chrome DevTools
+Protocol with exactly one page target proved before anything was evaluated. The query typed is
+`language`, which is the exact query `language-modes.json` records — so this is a reading of one
+of the twenty-five routes, not a convenient example.
+
+Every row below is the same five-column shape as the table above, so each one names the commit the
+artifact it was read from was built at.
+
+| State | Record | Read at commit | Coverage | Result |
+| --- | --- | --- | --- | --- |
+| Elements carrying the dialog role, packaged build | `release/evidence/ui-drive/command-palette-reading.json` | `f20a66f7388979d627203fd913c153d8f8d4a001` | 3 phases of one route | **0** before the chord, **1** while the palette is up, **0** after a result is activated |
+| Controls the reader returned | `release/evidence/ui-drive/command-palette-reading.json` | `f20a66f7388979d627203fd913c153d8f8d4a001` | same 3 phases | `panelFound` false / **true** / false; `observedPanelControls` 0 / **11** / 0 entries |
+| The panel the z-index scan chose | `release/evidence/ui-drive/command-palette-reading.json` | `f20a66f7388979d627203fd913c153d8f8d4a001` | 1 candidate considered | `.palette-scrim`, z-index 1000, 1440×922, 1 input — the scrim, never the card |
+| The chord, sent as a real key event | `release/evidence/ui-drive/command-palette-reading.json` | `f20a66f7388979d627203fd913c153d8f8d4a001` | 1 press | the palette opened; `.palette-card` present where it had not been |
+| What the palette searched | `release/evidence/ui-drive/command-palette-reading.json` | `f20a66f7388979d627203fd913c153d8f8d4a001` | 883 entries | its own hint read `10 of 883`, so 10 matched a real query rather than a list rendering unfiltered |
+| Where activating a result landed | `release/evidence/ui-drive/command-palette-reading.json` | `f20a66f7388979d627203fd913c153d8f8d4a001` | 1 activation | heading `Hardware trunks (DAHDI)`, `focusedControlId` `da_language` — the exact control, focused |
+| The two captures | `release/captures/ui-drive/palette-open-filtered.png`, `palette-after-activation.png` | `f20a66f7388979d627203fd913c153d8f8d4a001` | 2 states | both hash to what the record wrote down; both carry the update banner, which the record records rather than claims away |
+
+Four notes on the rows above, each about a sentence that had never been checked before this run:
+
+- **`Ctrl+Shift+F` reaches the handler in the packaged build.** It was sent as a real key event
+  through the input domain, never by calling the application's own toggle, which would only prove
+  that a function agrees with itself. Every one of the twenty-five records says the chord was used.
+- **The query was typed, not assigned.** `Input.insertText` rather than setting `.value`: the field
+  is a controlled React input reading `event.target.value`, and an assignment sets the property
+  without producing the event, so the component would never have seen it and the list would never
+  have filtered — a distinction that would have looked identical in the finished screenshot.
+- **Teleporting is not landing nearby.** Landing on the right screen and leaving somebody to hunt
+  for the row is the failure `focusedControlId` distinguishes, and it is a reading no screenshot
+  states outright.
+- **The update banner was up, and the record says so.** `Later` is clicked before any reading is
+  taken, and the banner returns on its own once the background check moves to downloading, so both
+  captures carry `Downloading update (0.1.264)…` in a strip above the title bar. It covers no part
+  of the palette. It is recorded as `updateBanner` rather than dismissed in prose, because a record
+  claiming a clear screen while its own picture shows a banner is describing a different picture.
 
 ## Capture method
 
@@ -135,14 +212,28 @@ was applied. Nineteen assertions in this file, run inside `npm test` through `te
 
 ## Verification boundary
 
-**This record proves that the reader exists, that its decisions are correct on the readings it is
-given, and that the DOM facts it is built on are true of the committed tree. It proves nothing
-about any running application, because no application was run.** The harness has never observed a
-real panel. `observedPanelControls` in the 39 committed records is unchanged by this pass, and no
-inventory row moved to `verified` because of it.
+**The harness has now observed one real panel, and one only.** The reading above is of the command
+palette, on one route, on one screen, from one build. It settles the two things it was taken to
+settle — that the reader returns real controls when a panel is genuinely up, and that a reading
+taken *after* a palette result is activated has no panel in it at all — and it settles nothing
+about the other twenty-four routes.
 
-What remains is to drive the packaged application with it and let the records carry real readings.
-That needs a built artifact, and it is the next step rather than a claim this document makes.
+**Nothing in the 39 committed `release/evidence/windows-console/` records changed, and no inventory
+row moved to `verified`.** The position is unchanged at 4 of 88. This reading lives in its own file
+under `release/evidence/ui-drive/`, deliberately apart from the per-feature records, because it is
+evidence about the harness rather than evidence about a feature.
+
+**What it does close is the reason those twenty-five lists were empty**, and the answer is not the
+one the previous pass expected. A missing selector was half of it. The other half is that all
+twenty-five readings were taken at the wrong moment: activating a palette result closes the palette
+before it teleports, so there was no panel to read. `observedPanelControls: []` beside no
+`panelFound` field is exactly what that looks like. The repaired reader records `panelFound: false`
+with `whyNoPanel` at that moment instead, which is the same fact stated so it cannot be mistaken for
+a panel that offered nothing.
+
+So the next pass drives the remaining twenty-four routes knowing where the reading has to be taken:
+with the palette up, and again once whatever the result teleports to has opened — not once, after
+the click, when neither is true.
 
 Two of the twenty-one breaks were applied to guards written earlier in the same pass and **stayed
 green**, which is the part worth recording:
@@ -160,6 +251,37 @@ green**, which is the part worth recording:
 The generated shell must not be hand-edited, so the assertions about its own DOM were exercised by
 pointing the scan at a renderer source that does declare roles, and the dialog-role scan by
 temporarily giving a hand-written component that role. Both went red.
+
+**And the third failure of that kind, found on 2026-08-26 and worth more than either of the two
+above, because it is the one a deliberate break did not catch.** The dialog-role scan *was* broken
+on purpose and it *did* go red — and it stayed blind anyway. The break was written in the JSX
+spelling the needle expected, `role="dialog"`, and applied to one of the four JSX components; the
+palette card is hyperscript and writes `role: 'dialog'`, which the needle cannot see. So the guard
+was proved able to fail on the shape it was looking for, while remaining unable to fail on the
+shape the codebase actually uses.
+
+That is the general lesson: **breaking a guard in the form its needle expects proves the needle
+fires, never that the needle is the right one.** Break it in the form the code is really written
+in. Re-measured here — on a tree deliberately carrying the dialog role in *two* places, one
+hyperscript and one already present, the old needle returned an empty carrier list; the replacement
+returns both. The replacement reads every attribute spelling this codebase uses, asserts the exact
+set of files carrying the role and the exact count within `App.tsx`, and pins it to the palette
+card. **Fourteen deliberate breaks, one at a time: all fourteen red, all fourteen green on
+restore.** Five on the dialog-role assertions — the role removed; a second carrier file in the
+hyperscript spelling; a second role inside `App.tsx`; the card's anchoring class renamed; the role
+pushed out of the card's attribute block — one on the prose-bundle exclusion, four on the
+stylesheet assertions, two on the label runs, and two on the driver allowance.
+
+**One of those fourteen exists because writing this correction caused the failure it now guards.**
+The scan walks every `.ts`/`.tsx` under `app/renderer/src`, and `docs-bundle.ts` is every
+documentation article serialised as string data — so the paragraph above, quoting the attribute,
+became a second "carrier" the moment the bundle was regenerated, and the suite went red on prose
+about a defect rather than on the defect. A sentence mentioning an attribute is not an element
+carrying it. Both prose bundles are excluded by exact path rather than by a `generated/` rule, since
+`console.tsx` and `m3-control.tsx` live there too and are the markup the scan exists to read, and
+each exclusion asserts that its file still exists and still declares itself generated — an excuse
+for a file that is not there any more is an excuse nobody can check, and a renamed bundle would
+rejoin the scan as a false carrier.
 
 ## Suggested articles
 

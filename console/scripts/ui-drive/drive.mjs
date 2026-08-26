@@ -20,10 +20,17 @@
  * regex builder's first tool button reads `backspaceDelete last` -- because it read raw
  * `textContent`, and its accessible-name lookup returned null on every control because the
  * compiled shell declares none. Its `dialogs` reading counted elements carrying the dialog
- * role, which this application renders nowhere, so that number was zero on every screen
- * whether a panel was open or not, and the refusal built on it never fired. Both readings
- * now come from `observe-panel.mjs`, which is one committed reader rather than a per-script
- * paste, and every click records what the panel it opened actually offered.
+ * role, and exactly one surface in this console declares it -- the command palette's card --
+ * so the refusal built on that number fired for the palette and sailed past every other
+ * overlay there is. Both readings now come from `observe-panel.mjs`, which is one committed
+ * reader rather than a per-script paste, and every click records what the panel it opened
+ * actually offered.
+ *
+ * The fourth, found by finally pointing the repaired reader at a running build rather than
+ * reasoning about the DOM: a control whose label and context are two adjacent spans came back
+ * as one glued word -- `languageHardware trunks - Signalling & routing` -- because
+ * `textContent` puts nothing between element children. The reader hands the runs back
+ * separately now, and `readControlLabel` joins them where that can be tested.
  */
 import { connect } from './cdp.mjs';
 import { createHash } from 'node:crypto';
