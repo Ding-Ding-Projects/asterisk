@@ -84,7 +84,12 @@ const probes = [
   ['navigation destinations', 'Array.from(document.querySelectorAll("[role=tab],nav button,aside button")).length'],
   ['visible text characters', '(document.body.innerText || "").trim().length'],
   ['computed body background', 'getComputedStyle(document.body).backgroundColor'],
-  ['width breakpoints reachable', 'Array.from(document.styleSheets).some((s) => { try { return Array.from(s.cssRules).some((r) => r.conditionText && /max-width/.test(r.conditionText)); } catch { return false; } })'],
+  /* Both spellings, deliberately. The bundler rewrites `(max-width: 1000px)` into the
+   * modern range form `(width<=1000px)` -- semantically identical, textually nothing
+   * alike. A probe that only knows the source spelling reports the built artifact as
+   * having no breakpoints at all, which reads as a defect in the application rather
+   * than a gap in the probe, and sends the next person to the wrong file entirely. */
+  ['width breakpoints reachable', 'Array.from(document.styleSheets).some((s) => { try { return Array.from(s.cssRules).some((r) => r.conditionText && /max-width|width\\s*<=/.test(r.conditionText)); } catch { return false; } })'],
 ];
 
 const main = async () => {
