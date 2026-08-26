@@ -185,8 +185,8 @@ const BREAKS = [
   {
     name: 'the divergence note never reaches the screen',
     file: 'app/renderer/src/App.tsx',
-    find: '      return [canvasReason(this.canvasReadings), dialplanDivergenceNote(this.canvasReadings)]',
-    replace: '      return [canvasReason(this.canvasReadings)]',
+    find: '      return [canvasReason(this.canvasReadings), dialplanDivergenceNote(this.canvasReadings), this.dialplanDivergenceNote()]',
+    replace: '      return [canvasReason(this.canvasReadings), this.dialplanDivergenceNote()]',
     tests: [WIRED, MODEL],
   },
   {

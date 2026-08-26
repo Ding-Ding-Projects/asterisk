@@ -67,7 +67,7 @@ test("the dispatcher reads the cache for the Music on Hold view", () => {
    * they all feed the parser and the screen their own bytes. */
   const source = readFileSync(new URL("../../control-plane/dispatch.ts", import.meta.url), "utf8").replace(/\r/gu, "");
   assert.ok(source.length > 1000, "dispatch.ts was not read");
-  assert.match(source, /^\s*read\('media cache show all', parseMediaCacheItems\),$/mu);
+  assert.match(source, /^\s*readHere\('media cache show all', parseMediaCacheItems\),$/mu);
 });
 
 test("an empty cache parses to no items rather than to the header", () => {

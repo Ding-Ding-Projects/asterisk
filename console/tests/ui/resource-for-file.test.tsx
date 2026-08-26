@@ -46,7 +46,7 @@ test('anything that is not a string, or not a .conf, is refused', () => {
   }
 });
 
-test('the screens that declare a label instead of a filename are exactly this one', () => {
+test('no screen declares a compound label instead of a real filename any more', () => {
   /* A pin, not an aspiration. Four screens once declared a display label made of several
    * names joined for the reader -- and each ends in .conf, so the old check accepted it
    * and turned it into a path no target could have. Those screens had never read the
@@ -82,11 +82,51 @@ test('the screens that declare a label instead of a filename are exactly this on
    * either -- it names rtp.conf now (its own real, primary, writable file;
    * asterisk.conf's transcode_via_sln is read separately, the same way logger verbosity
    * is) and reads it. The AMI & REST screen was fixed the same way by a different lane --
-   * see the comment above. One left. */
-  assert.deepEqual(refused, ['trunkauth'],
+   * see the comment above. One left, and then it went to zero and back to one, by two
+   * unrelated changes landing on the same stacked branch.
+   *
+   * Trunk authentication went to zero first: its own six controls (ta_auto/ta_expire/
+   * ta_notify/ta_mutual/ta_sign/ta_log) are already a `CONSOLE_SETTINGS` group in
+   * App.tsx -- a Ding PBX Console preference persisted through relaunch, the same shape
+   * as the appearance and notification groups, not an Asterisk key at all. There is no
+   * pjsip.conf setting for how long a partner's request stays pending. So the fix was
+   * not to invent a filename this screen could read -- it genuinely has none -- but to
+   * stop CLAIMING one: `file` is now 'trunk partner requests', which does not contain
+   * '.conf' at all any more, so it drops out of `declared` above rather than landing in
+   * `refused` -- the same way the Dashboard screen's `file: 'live'` and the Live
+   * channels screen's `file: 'core show channels'` never appear in either list.
+   *
+   * Then the Dialplan scripting (AGI) screen raised it back to one, deliberately rather
+   * than by accident: it declares 'extensions.conf · astagidir' -- a real cross-check
+   * between two different facts (the dialplan's own AGI() calls and asterisk.conf's
+   * astagidir setting), neither of which is "this screen's one file" the way every
+   * ordinary configuration screen has one. It is read through its own `pbx.read` view
+   * ('agiscripts' in `control-plane/dispatch.ts`), the same bespoke-read shape `canvas`
+   * and `sounds` already use for screens with no single `pbx.config` resource behind
+   * them -- so this refusal is correct, not a gap: nothing here should ever try to read
+   * '/etc/asterisk/extensions.conf · astagidir' as a literal path. */
+  /* And now one again, but a DIFFERENT one, which is the point of keeping this pin rather
+   * than retiring it. The trunk-authorisation screen was fixed -- it declared
+   * 'pjsip.conf . partner requests' and now declares no configuration file at all, which is
+   * honest, because it never had a single one to name. The list did not empty, though: the
+   * same wave that fixed it introduced a fresh instance, the AGI screen, declaring
+   * 'extensions.conf . astagidir'. Two files joined for a reader, ending in .conf, accepted
+   * by any check that only looks at the suffix -- exactly the shape this guard was written
+   * for, arriving new five months into the list shrinking.
+   *
+   * That is worth saying plainly: this defect is not a backlog being worked down, it is a
+   * shape people keep reaching for. Retiring the guard the moment the list hit zero would
+   * have let this one through on the very next merge. */
+  assert.deepEqual(refused, ['agiscripts'],
     'the set of screens naming a label rather than a file has changed; update this pin and say which way');
 
-  /* Every other declaration must resolve, or the rule is refusing something legitimate. */
+  /* Every declaration besides the pinned refusals above must resolve, or the rule is
+   * refusing something legitimate. This used to assert accepted.length === declared.length
+   * outright, back when the refused pin above was empty -- now that agiscripts is a real,
+   * correctly-refused entry, that equality would fail by construction (refused and accepted
+   * partition declared, so a non-empty refused pin means accepted is strictly fewer). Assert
+   * the same fact the pin above already proves instead of restating a now-false one: every
+   * declared screen not named in `refused` resolves. */
   const accepted = declared.filter(([, file]) => resourceForFile(file) !== undefined);
-  assert.ok(accepted.length >= declared.length - 2, 'the rule refused more than the two known labels');
+  assert.equal(accepted.length, declared.length - refused.length, 'the rule refused a real filename');
 });

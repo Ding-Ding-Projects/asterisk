@@ -53,17 +53,21 @@ const strip = (markup: string) => markup.replace(/<[^>]*>/g, ' ').replace(/&#x27
  * (ADSI) on the pbx rail, Monitoring on the data rail, and Directories & identity, NAT
  * discovery and Messaging (XMPP) all on the sys rail. Read back the same way as every
  * other count on this page: a deliberately wrong number run first, then whatever this
- * test actually reported. */
+ * test actually reported.
+ * 55 rather than 52: three roadmap gaps landed at once -- Dialplan scripting (AGI) on
+ * the pbx rail (16 to 17, next to the Dialplan canvas it cross-checks), the REST
+ * resource browser on the data rail (3 to 4, next to AMI & REST), and Configuration
+ * backups on the sys rail (11 to 12, next to Modules). */
 test('the design reference supplies every rail and destination', () => {
-  assert.equal(ORDER.length, 52);
-  assert.equal(destinations.length, 52);
+  assert.equal(ORDER.length, 55);
+  assert.equal(destinations.length, 55);
   assert.deepEqual(rails.map((rail) => rail.id), ['pbx', 'media', 'data', 'sys', 'agent', 'app']);
   assert.deepEqual(
     rails.map((rail) => destinations.filter((destination) => destination.rail === rail.id).length),
-    [16, 6, 3, 11, 7, 9],
+    [17, 6, 4, 12, 7, 9],
   );
   assert.equal(RAIL.length, 6);
-  assert.equal(Object.keys(SCREENS).length, 52);
+  assert.equal(Object.keys(SCREENS).length, 55);
 });
 
 test('the design audit baseline counts survive compilation', () => {

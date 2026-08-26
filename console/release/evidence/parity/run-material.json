@@ -3,16 +3,16 @@
   "audited": 32,
   "conforming": 0,
   "nonConforming": 32,
-  "interactionRulesAudited": 57,
+  "interactionRulesAudited": 68,
   "stylesheetMotionDeclarationsAudited": 8,
   "divergencesPerCheck": {
-    "typeScale": 2290,
-    "iconSize": 2653,
-    "shapeScale": 633,
+    "typeScale": 2296,
+    "iconSize": 2657,
+    "shapeScale": 627,
     "elevation": 33,
     "stateLayer": 1120,
-    "touchTarget": 1433,
-    "motion": 984
+    "touchTarget": 1420,
+    "motion": 986
   },
   "checksThatFoundNothingOnAnyDestination": [],
   "source": {

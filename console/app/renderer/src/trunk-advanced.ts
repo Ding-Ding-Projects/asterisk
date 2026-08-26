@@ -16,6 +16,12 @@
  * The T.38 group is the one worth reading twice. `t38_udptl_ec` takes none, fec or
  * redundancy -- three values, not a switch -- and collapsing it would make two of them
  * unreachable and rewrite whichever was set on the next save.
+ *
+ * `sendPai`/`send100rel` load and save `send_pai`/100rel too, though those two live in
+ * the design's own "Outbound identity" group rather than this file's "Advanced" one --
+ * the trunks screen declared both controls before this module, or `onSaveTrunk` in
+ * App.tsx, existed to give either of them anywhere to write. Reusing `t_pai`/`t_100rel`
+ * here rather than minting `tk_pai`/`tk_100rel` keeps one control id per pjsip.conf key.
  */
 import {
   parsePjsip, toConfigValuePjsip,
@@ -38,10 +44,19 @@ export const TRUNK_CONTROLS = {
   trustIdOutbound: 'tk_trustout',
   sendRpid: 'tk_sendrpid',
   sendDiversion: 'tk_senddiversion',
+  /* Reuses the "Outbound identity" group's own ids -- t_pai and t_100rel already sat
+   * on the trunks screen, unbound, before this file's editing path existed for that
+   * screen at all. Giving them a second control id here would just be two switches
+   * disagreeing about one line in pjsip.conf. */
+  sendPai: 't_pai',
+  send100rel: 't_100rel',
 } as const;
 
 /** pjsip.conf.sample: "none", "fec" or "redundancy". Three values, deliberately not a switch. */
 export const T38_ERROR_CORRECTION = ['none', 'fec', 'redundancy'] as const;
+
+/** pjsip.conf.sample line 650: "no", "required" or "yes". Three values, not a switch. */
+export const REL_100 = ['no', 'required', 'yes'] as const;
 
 const toSwitch = (value: string | undefined): boolean | undefined =>
   value === undefined ? undefined : value === 'yes';
@@ -68,6 +83,8 @@ export function controlValuesFor(endpoint: PjsipEndpointView): Record<string, un
   put(TRUNK_CONTROLS.trustIdOutbound, toSwitch(fields.trust_id_outbound));
   put(TRUNK_CONTROLS.sendRpid, toSwitch(fields.send_rpid));
   put(TRUNK_CONTROLS.sendDiversion, toSwitch(fields.send_diversion));
+  put(TRUNK_CONTROLS.sendPai, toSwitch(fields.send_pai));
+  put(TRUNK_CONTROLS.send100rel, fields['100rel']);
   return values;
 }
 
@@ -123,6 +140,8 @@ export function applyControlValues(
   set('trust_id_outbound', fromSwitch(values[TRUNK_CONTROLS.trustIdOutbound]), 'trust_id_outbound');
   set('send_rpid', fromSwitch(values[TRUNK_CONTROLS.sendRpid]), 'send_rpid');
   set('send_diversion', fromSwitch(values[TRUNK_CONTROLS.sendDiversion]), 'send_diversion');
+  set('send_pai', fromSwitch(values[TRUNK_CONTROLS.sendPai]), 'send_pai');
+  set('100rel', text(TRUNK_CONTROLS.send100rel), '100rel');
 
   const warnings: string[] = [];
   const fields = target.endpoint;

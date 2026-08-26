@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  T38_ERROR_CORRECTION, TRUNK_CONTROLS, applyControlValues, controlValuesFor, trunkDocument,
+  REL_100, T38_ERROR_CORRECTION, TRUNK_CONTROLS, applyControlValues, controlValuesFor, trunkDocument,
 } from '../../app/renderer/src/trunk-advanced.ts';
 import { buildEndpointDraft, endpointDocument, WIZARD_CONTROLS } from '../../app/renderer/src/endpoint-create.ts';
 import { parsePjsip } from '../../control-plane/subsystem-models.ts';
@@ -52,6 +52,8 @@ const FIELDS: ReadonlyArray<readonly [string, unknown, string, string]> = [
   [TRUNK_CONTROLS.trustIdOutbound, true, 'trust_id_outbound', 'yes'],
   [TRUNK_CONTROLS.sendRpid, true, 'send_rpid', 'yes'],
   [TRUNK_CONTROLS.sendDiversion, true, 'send_diversion', 'yes'],
+  [TRUNK_CONTROLS.sendPai, true, 'send_pai', 'yes'],
+  [TRUNK_CONTROLS.send100rel, 'required', '100rel', 'required'],
 ];
 
 test('every control writes its own pjsip.conf key', () => {
@@ -105,6 +107,15 @@ test('T.38 error correction keeps all three documented values', () => {
   assert.equal(T38_ERROR_CORRECTION.length, 3);
   for (const value of T38_ERROR_CORRECTION) {
     assert.equal(applied({ [TRUNK_CONTROLS.t38ErrorCorrection]: value }).t38_udptl_ec, value);
+  }
+});
+
+test('100rel keeps all three documented values', () => {
+  /* no, required and yes -- a switch would make one unreachable, same reasoning as
+   * T.38 error correction above. */
+  assert.equal(REL_100.length, 3);
+  for (const value of REL_100) {
+    assert.equal(applied({ [TRUNK_CONTROLS.send100rel]: value })['100rel'], value);
   }
 });
 

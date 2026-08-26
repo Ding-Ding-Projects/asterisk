@@ -64,15 +64,29 @@ async function compare(before, after) {
  * (search field regex toggle, regex palette tokens, per-result select, per-block link
  * spans in both paragraph and list-item form, suggested-article select) and 1 onChange
  * binding (the search field itself).
+ * The accessibility pass adds 7 onKeyDown bindings, none of them wrapped in `fn(...)`
+ * -- `onKeyDown` is not in the compiler's EVENTS set (scripts/compile-design.mjs), so
+ * it is emitted as a raw prop and counted separately below rather than by the `fn(`
+ * regex, which would silently report zero for every one of them. They are: the tab
+ * strip's tablist wrapper (arrow/Home/End roving focus across the open-tab role="tab"
+ * destinations); the tab-group header's role="button" toggle (Enter/Space activation,
+ * since it is a div rather than a native button); the version-history commit-row
+ * role="button" (Enter/Space activation); the docs-browser search-result row and
+ * suggested-article row role="button"s (Enter/Space activation); and the docs article's
+ * inline link span in both its paragraph and list-item rendering (Enter/Space
+ * activation) -- each of those five reuses the same `activateOnEnter` helper in
+ * App.tsx rather than a bespoke handler.
  */
 test('the compiled renderer reproduces every audited design binding plus the PBX editable-text input', async () => {
   const sources = await Promise.all(
     ['console.tsx', 'm3-control.tsx'].map((name) => readFile(new URL(name, generated), 'utf8')),
   );
+  const joined = sources.join('\n');
   const counts = {};
-  for (const [, event] of sources.join('\n').matchAll(/\b(on[A-Z][A-Za-z]*): fn\(/gu)) {
+  for (const [, event] of joined.matchAll(/\b(on[A-Z][A-Za-z]*): fn\(/gu)) {
     counts[event] = (counts[event] ?? 0) + 1;
   }
+  counts.onKeyDown = (joined.match(/\bonKeyDown: /gu) ?? []).length;
   assert.deepEqual(counts, {
     onClick: 212 + 3 + 1 + 6 + 5, // + 5: changelog screen (regex toggle, copy, export, one date preset button, one regex palette token)
     onChange: 10 + 1 + 1 + 1 + 3, // + 3: changelog screen (from date, to date, search query)
@@ -86,6 +100,7 @@ test('the compiled renderer reproduces every audited design binding plus the PBX
     onMouseEnter: 1,
     onMouseLeave: 1,
     onMouseUp: 1,
+    onKeyDown: 7, // tablist + tab-group header + commit row + docs result row + 2 docs link spans + suggested-article row
   });
 
   const windowControls = sources[0].match(/"data-window-button": ``/gu) ?? [];

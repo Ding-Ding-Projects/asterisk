@@ -347,11 +347,11 @@ test("the canvas note is wired into the renderer, ahead of the configuration bra
   const source = readFileSync(new URL("../../app/renderer/src/App.tsx", import.meta.url), "utf8").replace(/\r/gu, "");
   assert.ok(source.length > 1000, "App.tsx was not read");
   const canvasBranch = source.search(/^\s*if \(screen === 'canvas'\) \{$/mu);
-  const configBranch = source.search(/^\s*if \(resourceForFile\(\(SCREENS as Record<string, \{ file\?: unknown \}>\)\[screen\]\?\.file\)\) \{$/mu);
+  const configBranch = source.search(/^\s*if \(screen !== 'canvas' && resourceForFile\(\(SCREENS as Record<string, \{ file\?: unknown \}>\)\[screen\]\?\.file\)\) \{$/mu);
   assert.ok(canvasBranch > 0, "the canvas branch of note() was not found");
   assert.ok(configBranch > 0, "the configuration branch of note() was not found");
   assert.ok(canvasBranch < configBranch, "the canvas branch must come first or it is unreachable");
-  assert.match(source, /^\s*return \[canvasReason\(this\.canvasReadings\), dialplanDivergenceNote\(this\.canvasReadings\)\]$/mu);
+  assert.match(source, /^\s*return \[canvasReason\(this\.canvasReadings\), dialplanDivergenceNote\(this\.canvasReadings\), this\.dialplanDivergenceNote\(\)\]$/mu);
 });
 
 test("the live capture compared against a file describing all 28 of its pbx_config contexts agrees", () => {

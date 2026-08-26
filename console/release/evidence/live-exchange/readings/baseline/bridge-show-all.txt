@@ -1,0 +1,1 @@
+Bridge-ID                            Name                                 Chans Type            Technology      Duration

@@ -90,8 +90,8 @@ const BREAKS = [
   {
     name: 'the dispatcher stops reading the cache, so the Music on Hold screen never receives one',
     file: 'control-plane/dispatch.ts',
-    find: "        read('media cache show all', parseMediaCacheItems),",
-    replace: "        read('moh show classes', parseMohClasses),",
+    find: "        readHere('media cache show all', parseMediaCacheItems),",
+    replace: "        readHere('moh show classes', parseMohClasses),",
     tests: [PARSER],
   },
   {

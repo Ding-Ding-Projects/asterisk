@@ -10,7 +10,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  generateIvr, isUsableContextName, renderDialplan, type IvrDefinition,
+  generateIvr, isUsableContextName, isUsablePromptFile, isUsableRouteTarget, IVR_DIGITS, renderDialplan,
+  type IvrDefinition, type IvrKeyRoute,
 } from '../../app/renderer/src/ivr-dialplan.ts';
 
 const ivr = (over: Partial<IvrDefinition> = {}): IvrDefinition => ({
@@ -133,4 +134,98 @@ test('the dialplan can be read before it is applied', () => {
   const text = renderDialplan('main-menu', out);
   assert.match(text, /^\[main-menu\]\n/u);
   assert.ok(text.split('\n').filter(Boolean).slice(1).every((l) => l.startsWith('exten => ')));
+});
+
+/* --- key routes: the depth the table's "Keys" column always implied --------------------- */
+
+test('every one of Asterisk\'s own single-keypress digits is offered', () => {
+  assert.deepEqual(IVR_DIGITS, ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '*', '#']);
+});
+
+test('a mapped key becomes its own extension in the same context, reachable by WaitExten', () => {
+  const route: IvrKeyRoute = { digit: '2', destination: 'Extension', target: '6001' };
+  const generated = lines(ivr({ keys: [route] }));
+  assert.ok(generated.some((l) => l.startsWith('2,1,')), 'digit 2 got no extension of its own');
+});
+
+test('each destination kind produces its own real Asterisk application, not a shared approximation', () => {
+  const routeFor = (destination: IvrKeyRoute['destination'], target?: string): IvrKeyRoute =>
+    ({ digit: '1', destination, target });
+
+  const extension = lines(ivr({ keys: [routeFor('Extension', '6001')] }));
+  assert.ok(extension.some((l) => l === '1,1,Goto(from-internal,6001,1)'));
+
+  const queue = lines(ivr({ keys: [routeFor('Queue', 'support')] }));
+  assert.ok(queue.some((l) => l === '1,1,Queue(support)'));
+
+  const voicemail = lines(ivr({ keys: [routeFor('Voicemail', '1000')] }));
+  assert.ok(voicemail.some((l) => l === '1,1,VoiceMail(1000,u)'));
+  assert.ok(voicemail.some((l) => l === '1,n,Hangup()'), 'a voicemail key must hang up afterward, or fall through');
+
+  const operator = lines(ivr({ keys: [routeFor('Operator')] }));
+  assert.ok(operator.some((l) => l === '1,1,Goto(operator,s,1)'));
+
+  const hangup = lines(ivr({ keys: [routeFor('Hang up')] }));
+  assert.ok(hangup.some((l) => l === '1,1,Hangup()'));
+
+  const repeat = lines(ivr({ keys: [routeFor('Repeat menu')] }));
+  assert.ok(repeat.some((l) => l === '1,1,Set(TRIES=0)'));
+  assert.ok(repeat.some((l) => l === '1,n,Goto(s,menu)'));
+});
+
+test('a digit mapped twice is refused, since a caller pressing it can only go one place', () => {
+  const out = generateIvr(ivr({
+    keys: [{ digit: '1', destination: 'Hang up' }, { digit: '1', destination: 'Operator' }],
+  }));
+  assert.ok('problems' in out);
+});
+
+test('a key that is not a real keypress digit is refused', () => {
+  const out = generateIvr(ivr({ keys: [{ digit: 'A', destination: 'Hang up' } as unknown as IvrKeyRoute] }));
+  assert.ok('problems' in out);
+});
+
+test('Extension, Queue and Voicemail keys need a target; Operator, Hang up and Repeat menu do not', () => {
+  for (const destination of ['Extension', 'Queue', 'Voicemail'] as const) {
+    const out = generateIvr(ivr({ keys: [{ digit: '1', destination }] }));
+    assert.ok('problems' in out, `${destination} with no target should be refused`);
+  }
+  for (const destination of ['Operator', 'Hang up', 'Repeat menu'] as const) {
+    const out = generateIvr(ivr({ keys: [{ digit: '1', destination }] }));
+    assert.ok(!('problems' in out), `${destination} needs no target`);
+  }
+});
+
+test('a target with characters that could break the dialplan is refused', () => {
+  assert.equal(isUsableRouteTarget('6001'), true);
+  assert.equal(isUsableRouteTarget('support-queue'), true);
+  for (const bad of ['', '6001,1,Hangup()', '6001]', 'a'.repeat(41)]) {
+    assert.equal(isUsableRouteTarget(bad), false, bad);
+  }
+});
+
+test('a menu with no keys mapped still generates -- direct dial and the fallback do not need any', () => {
+  assert.ok(!('problems' in generateIvr(ivr({ keys: [] }))));
+  assert.ok(!('problems' in generateIvr(ivr()))); // keys omitted entirely
+});
+
+/* --- the real prompt library, not a guessed filename ------------------------------------- */
+
+test('a real prompt file plays by its base name, with no extension Background/Playback cannot use', () => {
+  const generated = lines(ivr({ promptFile: 'welcome-greeting.wav', allowBargeIn: true }));
+  assert.ok(generated.some((l) => l.includes('Background(welcome-greeting)')));
+  assert.ok(!generated.some((l) => l.includes('.wav')), 'the extension must not reach the dialplan');
+});
+
+test('with no prompt file chosen, the menu falls back to the placeholder it always used', () => {
+  assert.ok(lines(ivr({})).some((l) => l.includes('Background(main-menu-menu)')));
+  assert.ok(lines(ivr({ promptFile: '' })).some((l) => l.includes('Background(main-menu-menu)')));
+});
+
+test('a prompt filename with characters no real upload could carry is refused', () => {
+  assert.equal(isUsablePromptFile('welcome-greeting.wav'), true);
+  for (const bad of ['', 'a/b.wav', 'greeting;drop.wav', 'a'.repeat(129)]) {
+    assert.equal(isUsablePromptFile(bad), false, bad);
+  }
+  assert.ok('problems' in generateIvr(ivr({ promptFile: 'a/b.wav' })));
 });
