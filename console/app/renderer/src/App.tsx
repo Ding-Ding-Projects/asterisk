@@ -342,6 +342,19 @@ interface Shell {
 /** The shape the compiled shell hands every control callback. */
 interface ControlRef { id?: string; label?: string; kind?: string }
 
+/** Enter or Space on a keyboard-reachable row acts exactly like a click, mirroring what
+ *  a real `<button>` already does for free. Needed wherever a list row or inline link is
+ *  rendered as a `div`/`span` carrying `role="button"` -- the version-history commit
+ *  list, the in-app documentation results and suggested-article rows, and the inline
+ *  links inside a documentation article body -- because none of those get keyboard
+ *  activation from the browser on their own. Reused rather than redefined at each call
+ *  site, so the four places that need it cannot quietly drift out of sync. */
+const activateOnEnter = (event: { key?: string; preventDefault?: () => void; currentTarget?: EventTarget | null }): void => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault?.();
+  (event.currentTarget as HTMLElement | null)?.click?.();
+};
+
 const Base = ConsoleShell as unknown as new (props: Record<string, never>) => Component<Record<string, never>> & Shell;
 
 export class App extends Base {
@@ -538,6 +551,17 @@ export class App extends Base {
   private deployOperation: OperationState = createOperation(DEPLOY_PHASES);
 
   private stopProvisionListener: (() => void) | undefined;
+
+  /** One generic focus-return mechanism for every anchored popover, menu, dialog and
+   *  the appearance editor, rather than a hand-written `xReturnFocus` field per
+   *  overlay (the palette above is the one that predates this and is left as-is).
+   *  Every such surface in the compiled design carries `role="dialog"` or
+   *  `role="menu"`; this watches the DOM for one appearing or disappearing and
+   *  saves/restores focus around it, which covers every current and future overlay
+   *  that carries the same role without touching each one's open/close handler. */
+  private overlayFocusObserver: MutationObserver | undefined;
+
+  private overlayFocusReturn = new WeakMap<Element, HTMLElement | null>();
 
   /** What the runner is holding between ticks: the base value of every key it has
    *  overridden, and what it last applied. */
@@ -1135,6 +1159,7 @@ export class App extends Base {
     this.startVoiceEnumeration();
     this.listenForScreenReader();
     this.listenForPaletteChord();
+    this.listenForOverlayFocusReturn();
     /* The configured server list is not a reading from any PBX — it exists before
      * anything is reachable and must be on screen whether or not discovery finds a
      * target, so it is loaded independently of it. */
@@ -1156,6 +1181,8 @@ export class App extends Base {
 
   componentWillUnmount() {
     super.componentWillUnmount?.();
+    this.overlayFocusObserver?.disconnect();
+    this.overlayFocusObserver = undefined;
     if (this.refreshTimer) clearInterval(this.refreshTimer);
     this.refreshTimer = undefined;
     if (this.scheduleTimer) clearInterval(this.scheduleTimer);
@@ -2181,6 +2208,60 @@ What you can do: ${offered}.` : ''}`);
    * only when the chord actually matches, because taking every control-shift keystroke
    * would break whatever else the platform does with them.
    */
+  /** Watches for any `role="dialog"` or `role="menu"` element appearing or
+   *  disappearing anywhere in the document -- every anchored popover, context
+   *  menu, wizard, the appearance editor, and every confirmation dialog the
+   *  compiled design renders carries one of those two roles. React only removes
+   *  such a node from the DOM when its owning `sc-if` flips closed, so a mutation
+   *  here means a real open/close transition rather than an unrelated re-render
+   *  (React's reconciler leaves an unchanged subtree's nodes alone). On the way
+   *  in, the currently focused element is remembered and the overlay's first
+   *  focusable descendant is focused; on the way out, focus returns to whatever
+   *  opened it, if that element is still in the document. */
+  private listenForOverlayFocusReturn(): void {
+    /* Outside a real browser/Electron document -- the mount tests construct App
+     * directly against a bare `{ addEventListener() {} }` stand-in for `window` and
+     * no `document` or `MutationObserver` at all -- there is nothing to observe and
+     * nothing this method can safely touch. Feature-detect and skip, the same way
+     * speechSynthesis absence is treated elsewhere in this file, rather than let a
+     * ReferenceError abort the rest of componentDidMount for every test that mounts
+     * the real App. */
+    if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return;
+
+    const OVERLAY_SELECTOR = '[role="dialog"], [role="menu"]';
+    const FOCUSABLE_SELECTOR =
+      'button, [href], input, select, textarea, [role="tab"], [tabindex]:not([tabindex="-1"])';
+
+    const collect = (node: Node): Element[] => {
+      if (!(node instanceof Element)) return [];
+      const matches = node.matches(OVERLAY_SELECTOR) ? [node] : [];
+      return matches.concat(Array.from(node.querySelectorAll(OVERLAY_SELECTOR)));
+    };
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        mutation.addedNodes.forEach((node) => {
+          for (const overlay of collect(node)) {
+            if (this.overlayFocusReturn.has(overlay)) continue;
+            const active = document.activeElement;
+            this.overlayFocusReturn.set(overlay, active instanceof HTMLElement ? active : null);
+            const focusable = overlay.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+            focusable?.focus();
+          }
+        });
+        mutation.removedNodes.forEach((node) => {
+          for (const overlay of collect(node)) {
+            const target = this.overlayFocusReturn.get(overlay);
+            this.overlayFocusReturn.delete(overlay);
+            if (target && document.contains(target)) target.focus();
+          }
+        });
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    this.overlayFocusObserver = observer;
+  }
+
   private listenForPaletteChord(): void {
     const handler = (event: KeyboardEvent) => {
       if (isPaletteChord(event)) {
@@ -7083,6 +7164,7 @@ It is shown once. The far end needs it to register.`);
       pick: () => this.selectHistoryCommit(row.id),
       ctx: (e: MouseEvent) => { e.preventDefault(); this.selectHistoryCommit(row.id); },
       compare: () => this.toggleHistoryCompareRow(row.id),
+      onKeyActivate: activateOnEnter,
     }));
     const selectedCommit = entries.find((entry) => entry.id === this.historySelectedId);
     const diffActions = selectedCommit ? [
@@ -7930,7 +8012,7 @@ It is shown once. The far end needs it to register.`);
     const spansFor = (spans: readonly { text: string; href?: string }[]) => spans.map((span) => {
       const targetId = span.href && article ? resolveLink(DOCS_BUNDLE, article, span.href) : undefined;
       return targetId
-        ? { isLink: true, text: span.text, onClick: () => this.set('docsSelectedId', targetId) }
+        ? { isLink: true, text: span.text, onClick: () => this.set('docsSelectedId', targetId), onKeyActivate: activateOnEnter }
         : { isPlain: true, text: span.text };
     });
     const blockToVals = (block: DocsBlock): Record<string, unknown> => {
@@ -7954,6 +8036,7 @@ It is shown once. The far end needs it to register.`);
           icon: s.relation === 'outgoing' ? 'arrow_forward' : 'arrow_back',
           title: s.title,
           select: () => this.set('docsSelectedId', s.id),
+          onKeyActivate: activateOnEnter,
         }))
       : [];
 
@@ -7965,6 +8048,7 @@ It is shown once. The far end needs it to register.`);
         excerpt: r.excerpt,
         bg: r.id === selectedId ? '#232A24' : 'transparent',
         select: () => this.set('docsSelectedId', r.id),
+        onKeyActivate: activateOnEnter,
       })),
       docsResultsLabel: query.trim().length === 0
         ? `${results.length} article${results.length === 1 ? '' : 's'}`

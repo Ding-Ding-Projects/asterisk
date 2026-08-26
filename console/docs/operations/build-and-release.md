@@ -71,8 +71,19 @@ generator and commit the result — do not hand-edit generated output.
 
 ## Driving the built application
 
-    node console/scripts/ui-drive/drive.mjs   <port> <output>   # every click, a capture each
-    node console/scripts/ui-drive/gallery.mjs <port> <output>   # clean per-destination shots
+    node console/scripts/ui-drive/drive.mjs      <port> <output>            # every click, a capture each
+    node console/scripts/ui-drive/gallery.mjs    <port> <output>            # clean per-destination shots
+    node console/scripts/ui-drive/smoke.mjs      <port> [artifact]          # ship-readiness verdict
+    node console/scripts/ui-drive/a11y-probe.mjs <port> [dist/index.html]   # ARIA roles, landmarks, aria-label, tabindex, tags
+
+`a11y-probe.mjs` prints the same five counts the accessibility ROADMAP entry was measured
+with, dismisses the onboarding wizard the same way `smoke.mjs` does, and refuses (rather
+than reports) when the artifact is stale against its sources. It exits non-zero when any
+count drops below a floor set a little under what a healthy build actually produces —
+never the exact figure, because a guard pinned to the exact number breaks on the next
+unrelated content change and gets "fixed" by whoever hits it first. What it protects is
+the baseline the accessibility work started from: 1 role, 0 landmarks, 0 aria-label, 0
+tabindex out of 426 elements, all of which sit below every floor.
 
 Launch the application on an off-screen desktop with `--remote-debugging-port` and a
 task-scoped `--user-data-dir`, then drive it over loopback. Refuse to evaluate anything

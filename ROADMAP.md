@@ -399,41 +399,88 @@ forbids: anything presented as operable must perform its labelled action.
 ## Accessibility, which is a completion blocker and has never had an entry here
 
 The shared rules treat an accessibility defect as a blocker rather than polish, and the
-handoff has called the desktop's accessibility absent for some time. It has never been on
-this list, so it has never been anyone's next item. These numbers are measured, not
-asserted: they come from the running packaged build, driven headlessly, with the
-onboarding wizard dismissed and its dismissal verified before anything was counted.
+handoff has called the desktop's accessibility absent for some time. These numbers are
+measured, not asserted: they come from the running packaged build, driven headlessly, with
+the onboarding wizard dismissed and its dismissal verified before anything was counted.
 
-Out of **426 rendered elements** on the main surface:
+Baseline, out of **426 rendered elements** on the main surface:
 
-| Measured | Count |
-| --- | --- |
-| Elements carrying any ARIA role | **1** |
-| Semantic landmarks (`nav`, `main`, `aside`, `header`, `footer`) | **0** |
-| Elements carrying `aria-label` | **0** |
-| Elements carrying `tabindex` | **0** |
-| Distinct tag names in the whole body | **6** (`A`, `BUTTON`, `DIV`, `H1`, `P`, `SPAN`) |
+| Measured | Before | After |
+| --- | --- | --- |
+| Elements carrying any ARIA role | **1** | **9–10** (`banner`, `main`, `navigation`×2, `tablist`, `tab`×N, `tabpanel`, `status`) |
+| Semantic landmarks (`nav`, `main`, `aside`, `header`, `footer`, or the matching ARIA role) | **0** | **4** (title-bar banner, primary rail, section list, content area) |
+| Elements carrying `aria-label` | **0** | **7** |
+| Elements carrying `tabindex` | **0** | **4** on the main surface (more on the docs and history screens, see below) |
+| Distinct tag names in the whole body | **6** (`A`, `BUTTON`, `DIV`, `H1`, `P`, `SPAN`) | **12** |
 
-One thing is already right and should not be lost while fixing the rest: all **96** buttons
-carry real text, so every one of them already has an accessible name. The gap is structure,
-not naming.
+The "after" figures come from `node console/scripts/ui-drive/a11y-probe.mjs <port>` against
+the real packaged build (element count grew slightly between runs from unrelated live-state
+content, not from anything below). All **96** buttons already carried real text before any
+of this, so every one of them already had an accessible name; the gap was always structure.
 
-- [ ] **Give the interface landmarks.** A screen-reader user currently meets 96 buttons in a
-      single undifferentiated region with no way to jump between areas. The rail, the section
-      list, the content area and the title bar are all `DIV`. This has to be done in
-      `design/Asterisk Console M3.dc.html` and recompiled, never by editing the generated
-      renderer.
-- [ ] **Give the tab strip the roles it is pretending to have.** The destinations are styled
-      as tabs and behave as tabs, and expose `role=tab`/`tablist`/`tabpanel` nowhere, so
-      assistive technology is told they are buttons in a box. Roving focus and
-      `aria-controls` come with it.
-- [ ] **Make focus reachable and visible.** Nothing carries `tabindex`, so keyboard traversal
-      is whatever the DOM order happens to give. Every anchored popover, menu, dialog and the
-      appearance editor must also return focus to the control that opened it.
-- [ ] **Cover it with a test that reads the built artifact, not the source.** A unit test with
-      an injected host passes on every one of the numbers above. The probe that produced this
-      table is `console/scripts/ui-drive/smoke.mjs`; a guard should assert these counts move in
-      the right direction and never silently back.
+- [x] **Give the interface landmarks.** The title bar is `role="banner"`, the primary rail
+      and the section list are each `role="navigation"` with their own `aria-label`, and the
+      content area is `role="main"` with an `aria-label` that tracks the active screen title.
+      Done in `design/Asterisk Console M3.dc.html` and recompiled, never in the generated
+      renderer. Verified structurally (measured 4 landmarks on the live build, up from 0) and
+      functionally not re-tested beyond that, since a landmark's only job is to be found by
+      role, which the probe above confirms directly.
+- [x] **Give the tab strip the roles it is pretending to have.** `role=tablist`/`tab`/`tabpanel`
+      were already present from the prior session; what was missing was proof they actually
+      work. Verified live against the packaged build: focusing the first tab and dispatching a
+      real `ArrowRight` keydown on the tablist moved both DOM focus and `aria-selected` to the
+      next tab, flipped the roving `tabindex` from `0`/`-1` correctly on both tabs, and
+      `aria-controls`/`aria-labelledby` already tie `tabpanel-content` back to the active tab.
+      Home/End are wired the same way in `tabsKeyDown` (design script, ~line 4716).
+- [x] **Make focus reachable and visible.** Two real gaps closed, plus a fresh live-build
+      keyboard test.
+      - *Visible:* a global `:focus-visible` ring already existed for buttons, links, inputs,
+        `role=tab`/`button`/`tabpanel`/`dialog`/`menu`/`[tabindex]` (`app/renderer/src/styles.css`),
+        but six inline `outline:none` declarations on plain-chrome text inputs (regex builder,
+        PIN, passphrase, unlock passphrase, tab-filter text, rename field) sat at higher CSS
+        specificity than that rule and silently defeated it — an inline style always beats an
+        external selector without `!important`. Removed all six; verified live that a focused
+        row now measures `outline: solid rgb(130,217,165) 2px` via `getComputedStyle`.
+      - *Reachable:* swept the whole design file for every `onClick` on a non-native,
+        non-`role`-bearing element. Found 15: 8 are backdrop-scrim click-catchers (dismiss an
+        open dialog on outside click) that correctly stay out of the tab order, 5 were real
+        interactive rows with no keyboard path (the version-history commit list, the in-app
+        docs-browser result and suggested-article rows, and the article body's inline internal
+        links, in both their paragraph and list-item rendering), and 2 are the dialplan
+        canvas's topology-node picker — a draggable 2D diagram, left unfixed here because real
+        keyboard graph navigation is its own feature rather than a `tabindex` addition. Fixed
+        the 5: added `role="button" tabindex="0"` plus a shared `activateOnEnter` handler
+        (`app/renderer/src/App.tsx`) that mirrors a native button's Enter/Space activation.
+        Also gave the two context-menu item lists `role="menuitem"` for correctness against
+        their `role="menu"` parent. Verified live on the packaged build: focused the docs
+        result row for "Operations & releases" and dispatched a real `Enter` keydown; the
+        selection highlight moved from the previously-selected row to it, proving the keyboard
+        path genuinely selects rather than merely being present in the markup.
+      - *Return-to-opener:* already handled generically by `listenForOverlayFocusReturn` in
+        `App.tsx` — a `MutationObserver` on `[role="dialog"], [role="menu"]` that remembers the
+        triggering element on open and restores it on close. Confirmed by reading the code and
+        confirming the appearance editor (`appearOpen`, line ~1777) is itself `role="dialog"`,
+        so it is covered by the same mechanism as every other dialog and menu without a
+        bespoke case. Not independently re-verified live in this pass; the mechanism predates
+        this session and its own logic was read, not re-derived.
+      - **Known remaining gap:** the dialplan canvas's draggable topology nodes are not
+        keyboard-reachable. Named rather than silently left out.
+- [x] **Cover it with a test that reads the built artifact, not the source.** Added
+      `console/scripts/ui-drive/a11y-probe.mjs`: dismisses and verifies the onboarding wizard
+      exactly as `smoke.mjs` does, measures the same five counts as this table, refuses to
+      trust a stale artifact the same way `smoke.mjs` does, and exits non-zero when any count
+      drops below a floor set a little under the current measured value (never the exact
+      figure — a guard pinned to the exact number breaks on the next unrelated content change
+      and gets "fixed" by whoever hits it first). Documented in
+      `console/docs/operations/build-and-release.md`. Also fixed a pre-existing, already-broken
+      guard found while working in this area: `design-drift.test.mjs`'s binding-count test
+      expected `onKeyDown: 2` from a regex (`: fn\(`) that can never match `onKeyDown`, because
+      the compiler (`scripts/compile-design.mjs`) never wraps `onKeyDown` in `fn(...)` — so the
+      assertion was failing at the base commit before this session touched anything (confirmed
+      by stashing this session's changes and re-running the test in isolation). Fixed by
+      counting `onKeyDown` separately and updating the expected total to 7, the real count
+      after this session's five new `onKeyDown` bindings; verified red-then-green by setting a
+      deliberately wrong value, watching it fail, then restoring the correct one.
 
 ## Release readiness
 
