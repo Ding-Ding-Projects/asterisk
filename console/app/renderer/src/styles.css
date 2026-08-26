@@ -423,3 +423,102 @@ textarea {
   font-family: 'Roboto Mono', monospace;
   font-size: 11px;
 }
+
+/* --------------------------------------------------------------------------------------
+ * Real width breakpoints for the desktop window.
+ *
+ * Before this there were none anywhere in the app: design-styles.css (the compiled
+ * design) has no @media rule at all, and this file's own only @media above responds to
+ * `prefers-reduced-motion` -- a user preference, never window width. The compiled
+ * console has no `className` and no `data-*` hook on any layout element either (see the
+ * `sty()` runtime in dc-runtime.tsx) -- every dimension in it is a literal pixel value
+ * baked into an inline `style` string at compile time for the console's default 1440px
+ * window, and none of it reflows on its own.
+ *
+ * There is nothing to attach a breakpoint's selector to except that inline style, so
+ * every rule below matches on it -- the same way design-styles.css's own (broken, see
+ * the very next rule) `[style*="display:grid"] > *` already tries to. The two
+ * structural widths targeted here, `width:268px` (the section list) and `width:88px`
+ * (the icon rail), were grepped across the whole compiled console and m3-control.tsx
+ * first: each occurs exactly once, both in the same row of Template()
+ * (app/renderer/src/generated/console.tsx), so matching on them cannot reach into some
+ * unrelated screen's own 88px or 268px badge. `!important` is required throughout this
+ * section -- every value being overridden lives in the element's own inline `style`
+ * attribute, and nothing in an external stylesheet can out-specificity an inline style
+ * any other way.
+ *
+ * Selector note, the load-bearing one: every substring below has a SPACE after each
+ * colon ("width: 268px", not "width:268px" the way console.tsx itself spells it).
+ * React sets inline styles through the DOM's own CSSStyleDeclaration rather than
+ * writing the attribute text verbatim, and the browser re-serialises it on its own
+ * terms -- confirmed live against the real built app (Electron, DevTools Protocol):
+ * `document.querySelector('[style*="width: 268px"]')` matches the section list;
+ * `[style*="width:268px"]`, the compiler's own no-space spelling, matches nothing, in
+ * the real rendered DOM, ever. That is exactly why design-styles.css's
+ * `[style*="display:grid"] > *` has never actually applied to anything -- the same
+ * live query returns nothing for that exact string and something for "display: grid"
+ * -- and it is why every rule below spells the attribute the way Chromium actually
+ * renders it rather than the way the compiler wrote it. */
+
+/* Restores the shrink-below-content-size safety net design-styles.css's own (dead, see
+ * above) rule was clearly meant to give every flex and grid child in the app, spelled
+ * so it actually matches. Without it, a flex child with no min-width of its own --
+ * which is most of them -- keeps its full content width even once its row has nowhere
+ * left to put it, and something else in that row gets pushed past the window edge
+ * instead of anything shrinking to make room.
+ *
+ * Reproduced on the real built app before this rule existed: at the console's own
+ * enforced 920px minimum window width (app/electron/main.ts, `minWidth: 920`), the
+ * PJSIP endpoints and Live channels screens both clipped their own "+ New …" button
+ * off the right edge of the window -- the button is an ordinary flex child of the
+ * filter row with no min-width, so it never gave an inch no matter how little room the
+ * row had left. This one rule fixes both, and every other screen built the same way,
+ * at once -- there is no per-screen hook to fix them individually with (see the note
+ * above). It changes nothing at the console's own default 1440px width: min-width:0
+ * only lets an item shrink when its row is actually short of room, never before that. */
+[style*="display: flex"] > *,
+[style*="display: grid"] > * {
+  min-width: 0;
+}
+
+/* Tier 1 -- the section list gives back some of its fixed 268px once the window has
+ * clearly left its comfortable 1440px default behind, before anything is actually in
+ * trouble. */
+@media (max-width: 1200px) {
+  [style*="width: 268px; flex: 0 0 268px;"] {
+    width: 220px !important;
+    flex: 0 0 220px !important;
+  }
+}
+
+/* Tier 2 -- close to the console's own enforced 920px floor (app/electron/main.ts,
+ * `minWidth: 920`). Below this the fixed 88px-rail-plus-268px-section-list
+ * reservation -- 356px, unable to give up a single pixel of it before this file -- is
+ * worth more of the window than the screen content it exists to lead someone to, so
+ * both columns give back more, and every multi-column grid in the compiled console
+ * (stat tiles, table headers and rows, dialog layouts, the mini-games -- there are
+ * dozens, none with a class or id to target individually; see the dc-runtime.tsx note
+ * above) drops its column template for a single flexed column instead.
+ *
+ * CSS Grid never reflows a fixed-pixel or excess-column template on its own; nothing
+ * here does either -- this simply stops asking for the wide version below the point it
+ * can no longer be honoured cleanly. Each grid's own `gap` is untouched and keeps
+ * spacing the now-stacked fields, and grepping the compiled console and m3-control.tsx
+ * for `grid-column`/`grid-row` turns up zero uses anywhere, so there is no explicit
+ * cell placement here for a column-to-flex swap to disturb. */
+@media (max-width: 1000px) {
+  [style*="width: 268px; flex: 0 0 268px;"] {
+    width: 176px !important;
+    flex: 0 0 176px !important;
+  }
+
+  [style*="width: 88px; flex: 0 0 88px;"] {
+    width: 72px !important;
+    flex: 0 0 72px !important;
+  }
+
+  [style*="display: grid"] {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+}
