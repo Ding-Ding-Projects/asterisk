@@ -64,6 +64,10 @@ async function compare(before, after) {
  * (search field regex toggle, regex palette tokens, per-result select, per-block link
  * spans in both paragraph and list-item form, suggested-article select) and 1 onChange
  * binding (the search field itself).
+ * The accessibility pass adds 2 onKeyDown bindings: the tab strip's tablist wrapper
+ * (arrow/Home/End roving focus across the open-tab role="tab" destinations) and the
+ * tab-group header's role="button" toggle (Enter/Space activation, since it is a div
+ * rather than a native button).
  */
 test('the compiled renderer reproduces every audited design binding plus the PBX editable-text input', async () => {
   const sources = await Promise.all(
@@ -86,6 +90,7 @@ test('the compiled renderer reproduces every audited design binding plus the PBX
     onMouseEnter: 1,
     onMouseLeave: 1,
     onMouseUp: 1,
+    onKeyDown: 2, // tablist roving focus + tab-group header Enter/Space activation
   });
 
   const windowControls = sources[0].match(/"data-window-button": ``/gu) ?? [];

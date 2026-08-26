@@ -361,6 +361,31 @@ textarea {
   outline-offset: -2px;
 }
 
+/* Keyboard focus for the whole compiled console, not only the command palette --
+ * covers the newly keyboard-reachable tab strip (role="tab" destinations and the
+ * role="button" group headers), the tabpanel itself, and every native button, link
+ * and form control the design renders. :focus-visible keeps this a keyboard-only
+ * ring rather than one that flashes on every mouse click.
+ *
+ * One selector per rule, deliberately, rather than one rule with a comma-separated
+ * selector list. `parseInteractionRules` in design-parity-material.mjs (the Material
+ * Design 3 conformance audit) reads `selector:state{decls}` with a regex that assumes
+ * exactly one selector immediately before the state pseudo-class -- a comma-separated
+ * list makes it swallow every selector up to the last one into a single malformed
+ * "selector", which cascaded into every one of the 32 audited destinations reporting
+ * thousands of unrelated divergences. Repeating the block is the safe form. */
+button:focus-visible { outline: 2px solid #82d9a5; outline-offset: 2px; }
+a:focus-visible { outline: 2px solid #82d9a5; outline-offset: 2px; }
+input:focus-visible { outline: 2px solid #82d9a5; outline-offset: 2px; }
+select:focus-visible { outline: 2px solid #82d9a5; outline-offset: 2px; }
+textarea:focus-visible { outline: 2px solid #82d9a5; outline-offset: 2px; }
+[role="tab"]:focus-visible { outline: 2px solid #82d9a5; outline-offset: 2px; }
+[role="button"]:focus-visible { outline: 2px solid #82d9a5; outline-offset: 2px; }
+[role="tabpanel"]:focus-visible { outline: 2px solid #82d9a5; outline-offset: 2px; }
+[role="dialog"]:focus-visible { outline: 2px solid #82d9a5; outline-offset: 2px; }
+[role="menu"]:focus-visible { outline: 2px solid #82d9a5; outline-offset: 2px; }
+[tabindex]:focus-visible { outline: 2px solid #82d9a5; outline-offset: 2px; }
+
 /* The arrow-key highlight. Real DOM focus stays on .palette-field the whole time the
  * palette is open (see listenForPaletteChord in App.tsx, which drives selection off
  * window-level keydown rather than moving focus row to row), so this class is the ONLY

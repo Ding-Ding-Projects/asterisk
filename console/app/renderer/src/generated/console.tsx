@@ -7,7 +7,7 @@ import M3Control from './m3-control';
 function Template(v: any) {
   return F(
     h("div", { style: sty(`height:100%; display:flex; flex-direction:column; background:#0B0F0C; color:#DFE4DC; font-family:Roboto,system-ui,sans-serif; font-size:14px; overflow:hidden; position:relative;`) },
-      h("div", { style: sty(`height:40px; flex:0 0 40px; display:flex; align-items:stretch; background:#141A15; user-select:none; overflow:hidden; min-width:0;`), "data-window-drag": `` },
+      h("div", { role: `banner`, style: sty(`height:40px; flex:0 0 40px; display:flex; align-items:stretch; background:#141A15; user-select:none; overflow:hidden; min-width:0;`), "data-window-drag": `` },
         h("div", { style: sty(`display:flex; align-items:center; gap:10px; padding:0 12px; flex:0 0 auto; white-space:nowrap;`) },
           h("span", { style: sty(`font-size:20px; color:#82D9A5; flex:0 0 auto;`), className: "msym" },
             "deployed_code"
@@ -80,7 +80,7 @@ function Template(v: any) {
         )
       ),
       h("div", { style: sty(`height:38px; flex:0 0 38px; display:flex; align-items:flex-end; gap:2px; background:#0B0F0C; padding:0 6px; overflow-x:auto;`) },
-        A(v.tabGroups).map(($g, $g$i) => R($g$i, h("div", { onClick: fn($g.toggle), onContextMenu: fn($g.ctx), style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
+        A(v.tabGroups).map(($g, $g$i) => R($g$i, h("div", { role: `button`, tabIndex: `0`, "aria-expanded": $g.expanded, onClick: fn($g.toggle), onKeyDown: fn($g.onKeyActivate), onContextMenu: fn($g.ctx), style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
             h("span", { style: sty(`width:9px; height:9px; border-radius:50%; background:${S($g.colour)};`) }),
             h("span", { style: sty(`font-size:12px; font-weight:500; color:#DFE4DC; white-space:nowrap;`) },
               S($g.name)
@@ -92,43 +92,45 @@ function Template(v: any) {
               S($g.chevron)
             )
           ))),
-        A(v.tabs).map(($t, $t$i) => R($t$i, F(
-          ($t.on ? h("div", { draggable: `true`, onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`) },
-              ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
-              h("span", { style: sty(`width:7px; height:7px; border-radius:50%; background:${S($t.colour)}; flex:0 0 auto;`) }),
-              h("span", { style: sty(`font-size:16px; color:#82D9A5; flex:0 0 auto;`), className: "msym" },
-                S($t.icon)
-              ),
-              h("span", { style: sty(`flex:1; font-size:12.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
-                S($t.label)
-              ),
-              ($t.pinned ? h("span", { style: sty(`font-size:14px; color:#8FA394;`), className: "msym" },
-                  "push_pin"
-                ) : null),
-              h("button", { onClick: fn($t.close), style: sty(`width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h6" },
-                h("span", { style: sty(`font-size:14px;`), className: "msym" },
-                  "close"
+        h("div", { role: `tablist`, "aria-label": `Open tabs`, onKeyDown: fn(v.tabsKeyDown), style: sty(`display:contents;`) },
+          A(v.tabs).map(($t, $t$i) => R($t$i, F(
+            ($t.on ? h("div", { role: `tab`, id: $t.id, "aria-selected": `true`, "aria-controls": `tabpanel-content`, tabIndex: $t.tabIndex, draggable: `true`, onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`) },
+                ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
+                h("span", { style: sty(`width:7px; height:7px; border-radius:50%; background:${S($t.colour)}; flex:0 0 auto;`) }),
+                h("span", { style: sty(`font-size:16px; color:#82D9A5; flex:0 0 auto;`), className: "msym" },
+                  S($t.icon)
+                ),
+                h("span", { style: sty(`flex:1; font-size:12.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
+                  S($t.label)
+                ),
+                ($t.pinned ? h("span", { style: sty(`font-size:14px; color:#8FA394;`), className: "msym" },
+                    "push_pin"
+                  ) : null),
+                h("button", { onClick: fn($t.close), "aria-label": $t.closeLabel, style: sty(`width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h6" },
+                  h("span", { style: sty(`font-size:14px;`), className: "msym" },
+                    "close"
+                  )
                 )
-              )
-            ) : null),
-          ($t.off ? h("div", { draggable: `true`, onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#0F1510; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:200px; min-width:110px; border-top:2px solid transparent; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), className: "k-h7" },
-              ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
-              h("span", { style: sty(`font-size:16px; color:#8FA394; flex:0 0 auto;`), className: "msym" },
-                S($t.icon)
-              ),
-              h("span", { style: sty(`flex:1; font-size:12.5px; color:#9AA39B; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
-                S($t.label)
-              ),
-              ($t.pinned ? h("span", { style: sty(`font-size:14px; color:#778078;`), className: "msym" },
-                  "push_pin"
-                ) : null),
-              h("button", { onClick: fn($t.close), style: sty(`width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h6" },
-                h("span", { style: sty(`font-size:14px;`), className: "msym" },
-                  "close"
+              ) : null),
+            ($t.off ? h("div", { role: `tab`, id: $t.id, "aria-selected": `false`, "aria-controls": `tabpanel-content`, tabIndex: $t.tabIndex, draggable: `true`, onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#0F1510; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:200px; min-width:110px; border-top:2px solid transparent; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), className: "k-h7" },
+                ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
+                h("span", { style: sty(`font-size:16px; color:#8FA394; flex:0 0 auto;`), className: "msym" },
+                  S($t.icon)
+                ),
+                h("span", { style: sty(`flex:1; font-size:12.5px; color:#9AA39B; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
+                  S($t.label)
+                ),
+                ($t.pinned ? h("span", { style: sty(`font-size:14px; color:#778078;`), className: "msym" },
+                    "push_pin"
+                  ) : null),
+                h("button", { onClick: fn($t.close), "aria-label": $t.closeLabel, style: sty(`width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h6" },
+                  h("span", { style: sty(`font-size:14px;`), className: "msym" },
+                    "close"
+                  )
                 )
-              )
-            ) : null)
-        ))),
+              ) : null)
+          )))
+        ),
         h("button", { onClick: fn(v.newTab), title: `New tab`, style: sty(`width:30px; height:30px; margin-bottom:3px; border-radius:8px; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h8" },
           h("span", { style: sty(`font-size:18px;`), className: "msym" },
             "add"
@@ -154,7 +156,7 @@ function Template(v: any) {
         )
       ),
       h("div", { style: sty(`flex:1; display:flex; min-height:0; gap:0; flex-direction:${S(v.dockDirection)};`) },
-        h("div", { style: sty(`width:88px; flex:0 0 88px; background:#0B0F0C; display:flex; flex-direction:column; align-items:center; padding:8px 0 12px; gap:4px; overflow-y:auto;`) },
+        h("div", { role: `navigation`, "aria-label": `Primary sections`, style: sty(`width:88px; flex:0 0 88px; background:#0B0F0C; display:flex; flex-direction:column; align-items:center; padding:8px 0 12px; gap:4px; overflow-y:auto;`) },
           A(v.rail).map(($r, $r$i) => R($r$i, h("button", { onClick: fn($r.pick), style: sty(`width:100%; background:transparent; border:0; cursor:pointer; padding:4px 0 2px; display:flex; flex-direction:column; align-items:center; gap:4px;`) },
               ($r.on ? h("span", { style: sty(`width:56px; height:32px; border-radius:16px; background:#005230; display:flex; align-items:center; justify-content:center; animation:m3Ripple .5s ease-out;`) },
                   h("span", { style: sty(`font-size:22px; color:#9FF7C4;`), className: "msym" },
@@ -177,7 +179,7 @@ function Template(v: any) {
             )
           )
         ),
-        h("div", { style: sty(`width:268px; flex:0 0 268px; background:#141A15; border-radius:16px 0 0 0; display:flex; flex-direction:column; min-height:0;`) },
+        h("div", { role: `navigation`, "aria-label": v.groupLabel, style: sty(`width:268px; flex:0 0 268px; background:#141A15; border-radius:16px 0 0 0; display:flex; flex-direction:column; min-height:0;`) },
           h("div", { style: sty(`padding:16px 18px 12px;`) },
             h("div", { style: sty(`font-size:11px; letter-spacing:1.1px; text-transform:uppercase; color:#8FA394; font-weight:500;`) },
               S(v.groupLabel)
@@ -236,7 +238,7 @@ function Template(v: any) {
             )
           )
         ),
-        h("div", { style: sty(`flex:1; min-width:0; display:flex; flex-direction:column; background:#0F1510;`) },
+        h("div", { role: `main`, "aria-label": v.screenTitle, style: sty(`flex:1; min-width:0; display:flex; flex-direction:column; background:#0F1510;`) },
           h("div", { style: sty(`padding:20px 26px 16px; display:flex; align-items:flex-start; gap:16px;`) },
             h("div", { style: sty(`flex:1; min-width:0;`) },
               h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },
@@ -266,7 +268,7 @@ function Template(v: any) {
               )
             )
           ),
-          h("div", { onContextMenu: fn(v.ctxScreen), key: v.screenKey, style: sty(`flex:1; overflow-y:auto; padding:0 26px 80px; position:relative; animation:screenIn .3s cubic-bezier(.2,0,0,1);`) },
+          h("div", { role: `tabpanel`, id: `tabpanel-content`, "aria-labelledby": v.activeTabId, tabIndex: `0`, onContextMenu: fn(v.ctxScreen), key: v.screenKey, style: sty(`flex:1; overflow-y:auto; padding:0 26px 80px; position:relative; animation:screenIn .3s cubic-bezier(.2,0,0,1);`) },
             (v.beginner ? h("div", { style: sty(`display:flex; align-items:center; gap:13px; background:#1B4D33; border-radius:16px; padding:14px 18px; margin-bottom:12px; animation:m3Slide .3s cubic-bezier(.2,0,0,1);`) },
                 h("span", { style: sty(`font-size:24px; color:#9FF7C4; flex:0 0 auto;`), className: "msym" },
                   "school"
@@ -1621,7 +1623,7 @@ function Template(v: any) {
       ),
       (v.infoOpen ? F(
         h("div", { onClick: fn(v.closeInfo), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.32); z-index:60;`) }),
-        h("div", { style: sty(`position:absolute; ${S(v.infoChrome)} max-height:calc(100vh - 132px); overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:61;`) },
+        h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; ${S(v.infoChrome)} max-height:calc(100vh - 132px); overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:61;`) },
           h("div", { onMouseDown: fn(v.dragInfo), style: sty(`display:flex; align-items:center; gap:8px; margin:-18px -20px 10px; padding:14px 16px 8px; cursor:grab; min-width:0;`) },
             h("span", { style: sty(`font-size:16px; color:#778078; flex:0 0 auto;`), className: "msym" },
               "drag_indicator"
@@ -1761,7 +1763,7 @@ function Template(v: any) {
           )
         )
       ) : null),
-      (v.wizardOpen ? h("div", { style: sty(`position:absolute; ${S(v.wizardChrome)} max-height:100vh; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:55; display:flex; flex-direction:column;`) },
+      (v.wizardOpen ? h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; ${S(v.wizardChrome)} max-height:100vh; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:55; display:flex; flex-direction:column;`) },
           h("div", { onMouseDown: fn(v.dragWizard), style: sty(`padding:16px 20px 12px; display:flex; align-items:flex-start; gap:10px; cursor:grab;`) },
             h("span", { style: sty(`font-size:18px; color:#778078; margin-top:4px;`), className: "msym" },
               "drag_indicator"
@@ -1874,7 +1876,7 @@ function Template(v: any) {
         ) : null),
       (v.paletteOpen ? F(
         h("div", { onClick: fn(v.togglePalette), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.5); z-index:70;`) }),
-        h("div", { style: sty(`position:absolute; left:50%; top:88px; transform:translateX(-50%); width:620px; background:#252B25; border-radius:20px; box-shadow:0 12px 40px rgba(0,0,0,.6); z-index:71; overflow:hidden; animation:dlgPalette .22s cubic-bezier(.2,0,0,1);`) },
+        h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; left:50%; top:88px; transform:translateX(-50%); width:620px; background:#252B25; border-radius:20px; box-shadow:0 12px 40px rgba(0,0,0,.6); z-index:71; overflow:hidden; animation:dlgPalette .22s cubic-bezier(.2,0,0,1);`) },
           h("div", { style: sty(`display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid #333B34;`) },
             h("span", { style: sty(`font-size:22px; color:#82D9A5;`), className: "msym" },
               "search"
@@ -1903,7 +1905,7 @@ function Template(v: any) {
         )
       ) : null),
       (v.ceremonyOpen ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.66); z-index:80; display:flex; align-items:center; justify-content:center;`) },
-          h("div", { style: sty(`width:660px; max-height:88vh; overflow-y:auto; background:#252B25; border-radius:28px; padding:26px 28px; box-shadow:0 16px 48px rgba(0,0,0,.7); animation:dlgCeremony .3s cubic-bezier(.2,0,0,1);`) },
+          h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`width:660px; max-height:88vh; overflow-y:auto; background:#252B25; border-radius:28px; padding:26px 28px; box-shadow:0 16px 48px rgba(0,0,0,.7); animation:dlgCeremony .3s cubic-bezier(.2,0,0,1);`) },
             h("div", { style: sty(`display:flex; align-items:center; gap:12px;`) },
               h("span", { style: sty(`font-size:26px; color:#FFB4AB;`), className: "msym" },
                 "gpp_maybe"
@@ -2037,7 +2039,7 @@ function Template(v: any) {
               ) : null)
           )
         ) : null),
-      (v.onboardOpen ? h("div", { style: sty(`position:absolute; inset:0; background:#0B0F0C; z-index:90; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:28px 32px 40px; overflow-y:auto; animation:dlgOnboard .4s ease-out;`) },
+      (v.onboardOpen ? h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; inset:0; background:#0B0F0C; z-index:90; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:28px 32px 40px; overflow-y:auto; animation:dlgOnboard .4s ease-out;`) },
           h("div", { style: sty(`width:760px; max-width:100%; margin:auto 0;`) },
             h("div", { style: sty(`display:flex; gap:8px; margin-bottom:26px;`) },
               A(v.onboardSteps).map(($s, $s$i) => R($s$i, h("div", { style: sty(`flex:1; display:flex; flex-direction:column; gap:7px;`) },
@@ -2129,7 +2131,7 @@ function Template(v: any) {
             )
           )
         ) : null),
-      (v.tourOpen ? h("div", { style: sty(`position:absolute; left:${S(v.tourX)}; top:${S(v.tourY)}; width:320px; background:#005230; border-radius:16px; padding:16px 18px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:75; animation:dlgSure .3s cubic-bezier(.2,1.2,.3,1);`) },
+      (v.tourOpen ? h("div", { role: `dialog`, "aria-modal": `false`, style: sty(`position:absolute; left:${S(v.tourX)}; top:${S(v.tourY)}; width:320px; background:#005230; border-radius:16px; padding:16px 18px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:75; animation:dlgSure .3s cubic-bezier(.2,1.2,.3,1);`) },
           h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:#9FF7C4;`) },
             S(v.tourCount)
           ),
@@ -2151,7 +2153,7 @@ function Template(v: any) {
         ) : null),
       (v.regexOpen ? F(
         h("div", { onClick: fn(v.closeRegex), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.3); z-index:96;`) }),
-        h("div", { style: sty(`position:absolute; ${S(v.regexChrome)} max-height:86vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:97;`) },
+        h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; ${S(v.regexChrome)} max-height:86vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:97;`) },
           h("div", { onMouseDown: fn(v.dragRegex), style: sty(`display:flex; align-items:center; gap:9px; margin:-18px -20px 4px; padding:16px 20px 10px; cursor:grab;`) },
             h("span", { style: sty(`font-size:18px; color:#778078;`), className: "msym" },
               "drag_indicator"
@@ -2277,7 +2279,7 @@ function Template(v: any) {
       ) : null),
       (v.ctxOpen ? F(
         h("div", { onClick: fn(v.closeCtx), onContextMenu: fn(v.closeCtx), style: sty(`position:absolute; inset:0; z-index:78;`) }),
-        h("div", { style: sty(`position:absolute; left:${S(v.ctxX)}; top:${S(v.ctxY)}; width:274px; background:#252B25; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:79; animation:dlgCtx .14s cubic-bezier(.2,1.3,.4,1);`) },
+        h("div", { role: `menu`, style: sty(`position:absolute; left:${S(v.ctxX)}; top:${S(v.ctxY)}; width:274px; background:#252B25; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:79; animation:dlgCtx .14s cubic-bezier(.2,1.3,.4,1);`) },
           h("div", { style: sty(`padding:8px 12px 6px; font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394; border-bottom:1px solid #333B34; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
             S(v.ctxTarget)
           ),
@@ -2304,7 +2306,7 @@ function Template(v: any) {
               )))
           ) : null)
       ) : null),
-      (v.lockOpen ? h("div", { style: sty(`position:absolute; ${S(v.lockChrome)} max-height:88vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:82;`) },
+      (v.lockOpen ? h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; ${S(v.lockChrome)} max-height:88vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:82;`) },
           h("div", { onMouseDown: fn(v.dragLock), style: sty(`display:flex; align-items:center; gap:9px; cursor:grab; margin:-18px -20px 0; padding:16px 20px 8px;`) },
             h("span", { style: sty(`font-size:18px; color:#778078;`), className: "msym" },
               "drag_indicator"
@@ -2472,7 +2474,7 @@ function Template(v: any) {
           )
         ) : null),
       (v.unlockOpen ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.6); z-index:83; display:flex; align-items:center; justify-content:center;`) },
-          h("div", { style: sty(`width:376px; background:#252B25; border-radius:24px; padding:24px; text-align:center; animation:dlgUnlock .3s cubic-bezier(.2,0,0,1);`) },
+          h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`width:376px; background:#252B25; border-radius:24px; padding:24px; text-align:center; animation:dlgUnlock .3s cubic-bezier(.2,0,0,1);`) },
             h("span", { style: sty(`font-size:34px; color:#82D9A5;`), className: "msym" },
               "lock_open"
             ),
@@ -2525,7 +2527,7 @@ function Template(v: any) {
             )
           )
         ) : null),
-      (v.appearOpen ? h("div", { style: sty(`position:absolute; right:0; top:40px; bottom:0; width:468px; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:84; display:flex; flex-direction:column; animation:dlgAppear .28s cubic-bezier(.2,0,0,1);`) },
+      (v.appearOpen ? h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; right:0; top:40px; bottom:0; width:468px; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:84; display:flex; flex-direction:column; animation:dlgAppear .28s cubic-bezier(.2,0,0,1);`) },
           h("div", { style: sty(`padding:16px 20px 10px; display:flex; align-items:flex-start; gap:12px;`) },
             h("div", { style: sty(`flex:1;`) },
               h("div", { style: sty(`font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#8FA394;`) },
@@ -2622,7 +2624,7 @@ function Template(v: any) {
           )
         ) : null),
       (v.sureOpen ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.66); z-index:86; display:flex; align-items:center; justify-content:center;`) },
-          h("div", { style: sty(`width:520px; background:#252B25; border-radius:28px; padding:22px 26px; animation:dlgSure .34s cubic-bezier(.2,1.2,.3,1);`) },
+          h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`width:520px; background:#252B25; border-radius:28px; padding:22px 26px; animation:dlgSure .34s cubic-bezier(.2,1.2,.3,1);`) },
             h("div", { style: sty(`display:flex; align-items:center; gap:12px;`) },
               h("span", { style: sty(`font-size:26px; color:#FFD68A;`), className: "msym" },
                 "help_center"
@@ -2687,7 +2689,7 @@ function Template(v: any) {
         ) : null),
       (v.tabFilterOpen ? F(
         h("div", { onClick: fn(v.closeTabFilter), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`) }),
-        h("div", { style: sty(`position:absolute; left:50%; top:92px; transform:translateX(-50%); width:540px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgFilter .24s cubic-bezier(.2,0,0,1);`) },
+        h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; left:50%; top:92px; transform:translateX(-50%); width:540px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgFilter .24s cubic-bezier(.2,0,0,1);`) },
           h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },
             h("span", { style: sty(`font-size:21px; color:#82D9A5;`), className: "msym" },
               "filter_alt"
@@ -2760,7 +2762,7 @@ function Template(v: any) {
       ) : null),
       (v.tabColourOpen ? F(
         h("div", { onClick: fn(v.closeTabColour), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`) }),
-        h("div", { style: sty(`position:absolute; left:50%; top:110px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgColour .3s cubic-bezier(.2,1.3,.3,1);`) },
+        h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; left:50%; top:110px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgColour .3s cubic-bezier(.2,1.3,.3,1);`) },
           h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },
             h("span", { style: sty(`font-size:20px; color:#82D9A5;`), className: "msym" },
               "colorize"
@@ -2818,7 +2820,7 @@ function Template(v: any) {
       ) : null),
       (v.renameOpen ? F(
         h("div", { onClick: fn(v.cancelRename), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`) }),
-        h("div", { style: sty(`position:absolute; left:50%; top:120px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgRename .22s cubic-bezier(.2,0,0,1);`) },
+        h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; left:50%; top:120px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgRename .22s cubic-bezier(.2,0,0,1);`) },
           h("div", { style: sty(`font-size:16px; font-weight:500; margin-bottom:12px;`) },
             "Rename tab"
           ),
@@ -5080,7 +5082,9 @@ class ConsoleShell extends DCLogic {
       tabGroups:s.groups.map(g => ({
         name:g.name, colour:g.colour, count:g.tabs.length + '', bg:'#141A15',
         chevron:g.collapsed ? 'chevron_right' : 'expand_more',
+        expanded:!g.collapsed,
         toggle:() => this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, { collapsed:!x.collapsed }) : x) }),
+        onKeyActivate:(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } },
         ctx:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxSub:'', ctxGroupId:g.id, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'group · ' + g.name, ctxKind:'group' }); }
       })),
       renameOpen:s.renameOpen, renameValue:s.renameValue,
@@ -5212,11 +5216,36 @@ class ConsoleShell extends DCLogic {
           this.fire('Grouped', dragged + ' and ' + target + ' are now one tab group.');
         },
         on:k === s.screen, off:k !== s.screen, pinned:s.pinned.indexOf(k) >= 0,
-        go:() => this.setState({ screen:k, railId:SCREENS[k] ? SCREENS[k].rail : s.railId }),
+        id:'tab-' + k, tabIndex:k === s.screen ? 0 : -1,
+        closeLabel:'Close ' + (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)),
+        go:() => this.setState({ screen:k, railId:SCREENS[k] ? SCREENS[k].rail : s.railId }, () => {
+          // The selected and unselected tab markup are two different sc-if branches, so
+          // React unmounts one DOM node and mounts another rather than patching one in
+          // place -- which drops keyboard focus on every activation, including the one
+          // arrow-key navigation just gave it. Put it back on the tab that is now current,
+          // once the DOM this setState produced actually exists.
+          const el = document.getElementById('tab-' + k);
+          if (el && document.activeElement !== el) el.focus();
+        }),
         close:(e) => { if (e && e.stopPropagation) e.stopPropagation(); const t = s.tabs.filter(x => x !== k); this.setState({ tabs:t.length ? t : ['dash'], screen:k === s.screen ? (t[0] || 'dash') : s.screen }); },
         ctx:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxTabKey:k, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'tab · ' + (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)), ctxKind:'tab' }); }
         };
       }),
+      activeTabId:'tab-' + s.screen,
+      tabsKeyDown:(e) => {
+        const key = e.key;
+        if (key !== 'ArrowRight' && key !== 'ArrowLeft' && key !== 'Home' && key !== 'End') return;
+        e.preventDefault();
+        const list = Array.prototype.slice.call(e.currentTarget.querySelectorAll('[role="tab"]'));
+        if (!list.length) return;
+        const current = list.indexOf(document.activeElement);
+        let next;
+        if (key === 'Home') next = 0;
+        else if (key === 'End') next = list.length - 1;
+        else { const delta = key === 'ArrowRight' ? 1 : -1; next = ((current >= 0 ? current : 0) + delta + list.length) % list.length; }
+        const target = list[next];
+        if (target) { target.focus(); target.click(); }
+      },
       newTab:() => { const next = ORDER.find(k => s.tabs.indexOf(k) < 0) || 'dash'; this.setState({ tabs:s.tabs.concat([next]), screen:next, railId:SCREENS[next].rail }); },
       dockOpts:[
         { label:'Rail on the left', icon:'dock_to_right', v:'left' },
