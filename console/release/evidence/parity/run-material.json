@@ -6,13 +6,13 @@
   "interactionRulesAudited": 68,
   "stylesheetMotionDeclarationsAudited": 8,
   "divergencesPerCheck": {
-    "typeScale": 2290,
-    "iconSize": 2653,
-    "shapeScale": 633,
+    "typeScale": 2282,
+    "iconSize": 2643,
+    "shapeScale": 627,
     "elevation": 33,
     "stateLayer": 1120,
-    "touchTarget": 1433,
-    "motion": 984
+    "touchTarget": 1420,
+    "motion": 986
   },
   "checksThatFoundNothingOnAnyDestination": [],
   "source": {
