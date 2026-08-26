@@ -23,8 +23,42 @@ test('the site feature registry carries a row for external-settings-sources', ()
   assert.ok(registry.features['external-settings-sources'], 'no external-settings-sources row in site/feature-registry.json');
 });
 
-test('there is zero network fetch anywhere in app.js -- no HTTPS API source could exist without one', () => {
-  assert.doesNotMatch(app, /\bfetch\(/u, 'app.js now calls fetch(...) -- an external HTTPS settings source may have been added');
+/* This used to read "there is zero network fetch anywhere in app.js", which was a true
+ * statement and a blunt proxy for the property that matters: no setting on this site is
+ * fed from somebody else's server. On 2026-08-26 the site gained its published-version
+ * watch, which asks THIS origin for one small file, and the blanket ban went red for a
+ * request that is not an external settings source at all.
+ *
+ * So the pin is now the real property, and it is a stronger one than the ban was: there
+ * is exactly one request in the whole file, it is built by a resolver that refuses to
+ * leave this origin, it carries no credentials, and nothing it returns is ever written
+ * into a setting. A blanket ban would pass on a build where all four of those had been
+ * quietly reversed and a second fetch removed. */
+test('the single request in app.js cannot leave this origin, and no absolute URL is ever fetched', () => {
+  const calls = [...app.matchAll(/\bfetch\(/gu)];
+  assert.equal(calls.length, 1,
+    `expected exactly one fetch in app.js -- the published-version check -- and found ${calls.length}; a second request needs accounting for before this row stays "absent"`);
+  assert.match(app, /const url=versionManifestUrl\(BASE,document\.baseURI\);/u,
+    'the one request no longer takes its address from versionManifestUrl, which is the function that refuses an off-origin resolution');
+  assert.match(app, /const response=await fetch\(url,\{cache:'no-store',credentials:'omit',signal:controller\.signal\}\);/u,
+    'the one request no longer fetches that resolved address with credentials omitted');
+  assert.match(app, /if\(there\.origin!==here\.origin\)return null;/u,
+    'versionManifestUrl no longer refuses an address whose origin is not this document own');
+  assert.doesNotMatch(app, /fetch\(\s*['"`]https?:/iu,
+    'app.js now fetches an absolute URL literal -- an external settings source may have been added');
+});
+
+test('nothing the published-version check returns is ever written into a setting', () => {
+  /* The manifest reader is the whole surface the response reaches, and it returns three
+   * strings that are displayed. If it ever assigned into `state`, a remote file would be
+   * configuring this browser, which is exactly the feature this row records as absent. */
+  const start = app.indexOf('function parseVersionManifest(');
+  assert.notEqual(start, -1, 'parseVersionManifest is no longer declared in site/app.js');
+  const end = app.indexOf('function compareBuildVersions(', start);
+  assert.ok(end > start, 'compareBuildVersions no longer follows parseVersionManifest, so this slice cannot be bounded');
+  const reader = app.slice(start, end);
+  assert.doesNotMatch(reader, /state\./u,
+    'the published-version manifest reader now touches state -- a remote file would be configuring this browser');
 });
 
 test('no Home Assistant integration (binary_sensor, input_boolean, access token) exists anywhere', () => {

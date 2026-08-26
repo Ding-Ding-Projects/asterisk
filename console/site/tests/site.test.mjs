@@ -261,7 +261,23 @@ test('build composes deterministic local output without fetches', async () => {
   // holds 266 controls; 22 setting activations each reached the exact control the compiled palette
   // names, and 3 destination activations correctly focused nothing.
   // One article in, one HTML page out.
-  assert.equal(manifest.outputFiles.length, 194);
+  // 195 from 2026-08-26, for version.json: the published identity of the build, which every
+  // loaded page compares itself against so it can say when the published site has moved on.
+  // It is the one output allowed to differ between two builds of the same tree, because it
+  // records when the build happened.
+  //
+  // It is also the one output whose presence depends on the environment rather than on the
+  // source, so the count is conditional rather than quietly widened to "at least". A build
+  // made outside a git checkout cannot name its own commit, deliberately writes no manifest
+  // rather than one carrying a placeholder, and bakes no identity into app.js -- so that
+  // page reports itself unbuilt instead of asking for a file that was never published.
+  const expectedFiles = manifest.buildIdentity.resolved ? 195 : 194;
+  assert.equal(manifest.outputFiles.length, expectedFiles);
+  assert.equal(
+    manifest.outputFiles.some(file => file.path === 'version.json'),
+    manifest.buildIdentity.resolved,
+    'version.json must be published exactly when the build could name its own commit, and never otherwise',
+  );
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');

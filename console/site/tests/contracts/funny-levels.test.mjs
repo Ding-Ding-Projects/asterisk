@@ -65,13 +65,13 @@ function copyTable() {
 
 test('the COPY table defines a genuine four-level voice for both languages, on every key', () => {
   const table = copyTable();
-  /* Last moved on 2026-08-26, 13 -> 14, when the settings page gained its spoken
-   * narrator and with it a `narrationDesc` description; the same day it had moved
-   * 10 -> 11, 11 -> 12 and 12 -> 13 for the display-name, dialog-emoji and changelog
-   * cards. An exact pin is the point: a number that drifts fails and gets explained
-   * rather than quietly widened. */
-  assert.equal(Object.keys(table).length, 14,
-    `expected exactly 14 COPY keys, found ${Object.keys(table).length} -- update this pin if a message was deliberately added or removed`);
+  /* Last moved on 2026-08-26, 14 -> 15, when the settings page gained its published-
+   * version watch and with it an `updatesDesc` description; the same day it had moved
+   * 10 -> 11, 11 -> 12, 12 -> 13 and 13 -> 14 for the display-name, dialog-emoji,
+   * changelog and narration cards. An exact pin is the point: a number that drifts fails
+   * and gets explained rather than quietly widened. */
+  assert.equal(Object.keys(table).length, 15,
+    `expected exactly 15 COPY keys, found ${Object.keys(table).length} -- update this pin if a message was deliberately added or removed`);
   for (const [key, counts] of Object.entries(table)) {
     assert.equal(counts.enCount, 4, `${key}: expected 4 English funny-level variants (Plain/Mild/Playful/Maximum), found ${counts.enCount}`);
     assert.equal(counts.zhCount, 4, `${key}: expected 4 Cantonese funny-level variants, found ${counts.zhCount}`);
@@ -141,10 +141,10 @@ test('the funny sliders reach only a small, explicitly wired subset of the six p
   /* This is the fact that makes "partial" the honest classification rather than
    * "implemented": the mechanism above is real, but only these six strings in the
    * whole site actually have a data-copy hook attached to them. The set last grew on
-   * 2026-08-26, when the settings page's spoken narrator was built with its description
-   * wired to the sliders from the start, as the changelog, dialog-emoji and display-name
-   * cards had been earlier the same day -- seven of fourteen keys is still nowhere near
-   * the whole page, so the classification does not change.
+   * 2026-08-26, when the settings page's published-version watch was built with its
+   * description wired to the sliders from the start, as the narration, changelog,
+   * dialog-emoji and display-name cards had been earlier the same day -- eight of fifteen
+   * keys is still nowhere near the whole page, so the classification does not change.
    *
    * Worth saying beside this list, because it is the one place the reach deliberately
    * STOPS rather than merely not having got there yet: the changelog entries the new
@@ -153,7 +153,7 @@ test('the funny sliders reach only a small, explicitly wired subset of the six p
   const html = pageText();
   const wiredKeys = new Set([...html.matchAll(/data-copy="(\w+)"/g)].map((m) => m[1]));
   assert.deepEqual([...wiredKeys].sort(),
-    ['changelogDesc', 'dialogEmojisDesc', 'displayNameDesc', 'heroLede', 'motionDesc', 'narrationDesc', 'themeDesc'],
+    ['changelogDesc', 'dialogEmojisDesc', 'displayNameDesc', 'heroLede', 'motionDesc', 'narrationDesc', 'themeDesc', 'updatesDesc'],
     'the set of markup-wired funny-level strings changed -- if it grew, the "partial" classification may need revisiting');
   const totalKeys = Object.keys(copyTable()).length;
   assert.ok(wiredKeys.size < totalKeys,

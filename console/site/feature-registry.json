@@ -296,9 +296,14 @@
       ]
     },
     "automatic-updates": {
-      "state": "absent",
-      "note": "This is a static site with nothing to auto-update client-side; no update-check/ready-banner logic exists in site/app.js. (The console app's automatic-updates feature is a separate surface tracked on the windows-console row.)",
-      "files": []
+      "state": "implemented",
+      "note": "site/app.js carries a real deployed-version watch. site/build.mjs resolves one build identity (the commit from git plus the verified release label this site documents, or `unversioned` when there is none), bakes it into SITE_BUILD_VERSION/COMMIT/AT, and publishes the same three values as dist/version.json; a build that cannot name its own commit writes neither, so a source-served page reports itself unbuilt rather than asking for a manifest nobody published. checkForUpdate() polls that manifest on startup and every 30 minutes through versionManifestUrl(), which refuses any address that does not resolve to this origin, with cache no-store, credentials omitted, a 4096-byte bound and an 8-second deadline. parseVersionManifest() refuses a body it cannot vouch for; updateVerdict() compares the COMMIT, never the version label, and reports direction (newer/older/rebuilt/unknown) so a roll-back is not announced as an update. A persistent non-blocking banner carries the headline, what reloading costs, Reload to update, Later and a link to the changelog; Later is remembered against that exact commit and persisted, and a newly published build raises it again. Four canonical clauses have no equivalent on a page and are stated on the card rather than faked: no staged download, no signature, no restart, nothing to roll back. Reloading is the whole installation step.",
+      "files": [
+        "site/app.js",
+        "site/build.mjs",
+        "site/settings.html",
+        "site/styles.css"
+      ]
     }
   }
 }

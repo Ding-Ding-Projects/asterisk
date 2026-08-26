@@ -591,6 +591,11 @@ meter::-webkit-meter-optimum-value{background:var(--primary);border-radius:999px
 
 .one-thing-banner{margin:0 0 16px;padding:10px 16px;border:1px solid var(--outline-variant);border-radius:var(--radius);background:var(--surface-1);font-size:.85rem}
 .one-thing-banner[hidden]{display:none}
+.update-banner{margin:0 0 16px;padding:12px 16px;border:1px solid var(--outline-variant);border-left:3px solid var(--primary);border-radius:var(--radius);background:var(--surface-1);font-size:.85rem}
+.update-banner[hidden]{display:none}
+.update-banner strong{display:block;margin-bottom:4px}
+.update-banner p{margin:0 0 10px;color:var(--on-surface-variant)}
+.update-banner-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 
 body.attn-focus .topbar,body.attn-focus footer{opacity:.55;transition:opacity .2s}
 body.attn-focus .topbar:hover,body.attn-focus .topbar:focus-within,body.attn-focus footer:hover,body.attn-focus footer:focus-within{opacity:1}
