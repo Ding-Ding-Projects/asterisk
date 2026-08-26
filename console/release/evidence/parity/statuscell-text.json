@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-26T00:57:52.140Z",
+  "generatedAt": "2026-08-26T01:14:04.818Z",
   "generatedBy": "console/scripts/design-parity-statuscell-text.mjs --reproduce",
   "tuple": {
     "state": "default",
@@ -30,7 +30,7 @@
     "1106-1154": "the active button's `Beginner` label",
     "1180-1214": "the inactive button's `Expert` label"
   },
-  "cause": "App.tsx's appearance system writes its own default font-weight 500 onto the shell root at startup, so every element that inherits its weight renders one step heavier than the design draws it. `Expert` is the only text in this cell that inherits; at 500 it measures 0.359375px wider, which widens the picker by the same amount, and because the status group is packed against the right edge of the strip the picker's left edge — and everything inside it — moves left by exactly that fraction.",
+  "cause": "App.tsx's appearance system writes its own default font-weight 500 onto the shell root at startup, so every element that inherits its weight renders one step heavier than the design draws it. `Expert` is the only text in this cell that inherits; at 500 it measures 0.359375px wider, which widens the picker by the same amount, and because the status group is packed against the right edge of the strip the picker's left edge and everything inside it moves left by exactly that fraction.",
   "sourceAnchors": [
     "weight: str('ap_weight', '500')",
     "root.style.setProperty('font-weight', weightVal)"
@@ -146,11 +146,11 @@
   "frames": {
     "asDesigned": {
       "path": "console/release/captures/parity/statuscell-text/dash-design-as-designed.png",
-      "bytes": 150586
+      "bytes": 150648
     },
     "withAppearanceDefaults": {
       "path": "console/release/captures/parity/statuscell-text/dash-design-with-appearance-defaults.png",
-      "bytes": 151291
+      "bytes": 151311
     }
   },
   "target": "design/Asterisk Console M3.dc.html served by design-parity-server.mjs as the top-level document, under Electron on an off-screen Windows desktop",

@@ -135,10 +135,10 @@ Replacing the spans with text nodes changes no rectangle and no pixel.
 
 | State | Record | Run from commit | Coverage | Result |
 | --- | --- | --- | --- | --- |
-| The design as it stands, top-level document | `release/captures/parity/statuscell-text/dash-design-as-designed.png` | `971c352d69fbd0230dc9b44774a6860d0d470d71` | one frame, 1440x1000 | identical to the committed reference capture inside `statusCell`, 0 differing pixels |
-| The design with the appearance system's defaults on its shell root | `release/captures/parity/statuscell-text/dash-design-with-appearance-defaults.png` | `971c352d69fbd0230dc9b44774a6860d0d470d71` | one frame, 1440x1000 | identical to the committed built capture inside `statusCell`, 0 differing pixels |
-| Sub-pixel rectangles for both states | `release/evidence/parity/statuscell-text.json` at `measurements` | `971c352d69fbd0230dc9b44774a6860d0d470d71` | 7 rectangles per state, plus computed weights | everything inside the picker moves left by 0.359375px; the credits pill does not move |
-| Localisation across the audited set | `release/evidence/parity/statuscell-text.json` at `columnRuns` | `971c352d69fbd0230dc9b44774a6860d0d470d71` | 32 of 32 audited destinations | 555 differing pixels each, in the same three column runs |
+| The design as it stands, top-level document | `release/captures/parity/statuscell-text/dash-design-as-designed.png` | `563618c1bf799c0ea1f9c55f7e6b879955300d09` | one frame, 1440x1000 | identical to the committed reference capture inside `statusCell`, 0 differing pixels |
+| The design with the appearance system's defaults on its shell root | `release/captures/parity/statuscell-text/dash-design-with-appearance-defaults.png` | `563618c1bf799c0ea1f9c55f7e6b879955300d09` | one frame, 1440x1000 | identical to the committed built capture inside `statusCell`, 0 differing pixels |
+| Sub-pixel rectangles for both states | `release/evidence/parity/statuscell-text.json` at `measurements` | `563618c1bf799c0ea1f9c55f7e6b879955300d09` | 7 rectangles per state, plus computed weights | everything inside the picker moves left by 0.359375px; the credits pill does not move |
+| Localisation across the audited set | `release/evidence/parity/statuscell-text.json` at `columnRuns` | `563618c1bf799c0ea1f9c55f7e6b879955300d09` | 32 of 32 audited destinations | 555 differing pixels each, in the same three column runs |
 | The destination captures this was measured against | `release/captures/parity/{id}-reference.png` and `{id}-built.png` | `a2dd99c0fd28341fbdbd8f38e56a3fdada64fcfc` | 32 per side | not retaken here; they are the frames the axis-pin run took |
 
 ## Capture method
