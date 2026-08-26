@@ -319,8 +319,27 @@ test('the Not now button snoozes immediately, through the real storage seam', ()
   const overlay = instance.attentionOverlay();
   const button = findByClass(overlay, 'attn-rail-momentum-dismiss');
   assert.ok(button, 'expected a Not now button to render alongside a due prompt');
+  /* Read the clock either side of the click rather than asserting an exact zero.
+   * The handler stamps `Date.now()`, so `msSinceSnooze(...) === 0` was only ever true
+   * while no millisecond ticked over between the stamp and the assertion; it failed
+   * once with `1 !== 0` inside a full run on 2026-08-26 and passed on every rerun,
+   * which is the worst kind of red -- one nobody can reproduce and everybody learns
+   * to rerun past.
+   *
+   * The window is the assertion, so nothing here is a tolerance somebody chose until
+   * it went green: the stamp must lie between the two readings taken immediately
+   * around the click, which is exactly the claim "recorded now" was making. It still
+   * bites on both real defects -- a click that records nothing reads `undefined`, and
+   * a stale or preserved earlier stamp reads further back than the click window. */
+  const beforeClick = Date.now();
   button?.props.onClick?.();
-  assert.equal(msSinceSnooze(instance.durableStorage.storage), 0, 'expected the snooze to be recorded now');
+  const afterClick = Date.now();
+  const sinceSnooze = msSinceSnooze(instance.durableStorage.storage, afterClick);
+  assert.ok(
+    sinceSnooze !== undefined && sinceSnooze <= afterClick - beforeClick,
+    `expected the snooze to be stamped inside the click itself; msSinceSnooze read ${String(sinceSnooze)}ms `
+    + `against a ${afterClick - beforeClick}ms click window`,
+  );
   const overlayAfter = instance.attentionOverlay();
   assert.equal(findByClass(overlayAfter, 'attn-rail-momentum'), undefined, 'expected the prompt gone immediately after Not now');
 });
