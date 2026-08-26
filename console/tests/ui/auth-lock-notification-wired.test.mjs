@@ -19,11 +19,24 @@ test('auth reconciliation keeps exact typed receipts and blocks unresolved mutat
   assert.match(runtimeSource, /status: 'pending-removal-failed'/);
   assert.match(dispatchSource, /toy-lock\.remove/);
   assert.match(dispatchSource, /blockedToyLockRemovalByReconciliation\(reconciliation\)/);
+  assert.match(dispatchSource, /affectedIds: reconciliation\.affectedIds/);
+  assert.match(fs.readFileSync(path.join(root, 'shared/locks.ts'), 'utf8'), /status: 'blocked'; message: string; recoverable: true; affectedIds: ReadonlyArray<string>; reconciliation:/);
   assert.match(dispatchSource, /authenticator\.register/);
   assert.match(dispatchSource, /reconciliation\.status !== 'reconciled'/);
   assert.match(dispatchSource, /blockedToyLockRemovalByReconciliation\(reconciliation\)/);
   assert.match(fs.readFileSync(path.join(root, 'app/renderer/src/surface-mounts.tsx'), 'utf8'), /status: 'recoverable'/);
   assert.doesNotMatch(dispatchSource, /const reconciliation = .* as \{ status\?/u);
+});
+
+test('renderer-facing reconciliation runs a fresh serialized in-place pass', () => {
+  assert.match(runtimeSource, /const refreshReconciliation = async/);
+  assert.match(runtimeSource, /await metadata\.reconcile\(vault\)/);
+  assert.match(runtimeSource, /await persistence\.reconcileReceipt\(vault\)/);
+  assert.match(runtimeSource, /authenticatorReconciliation = nextAuthenticator/);
+  assert.match(runtimeSource, /lockReconciliation = nextLocks/);
+  assert.match(runtimeSource, /return await refreshReconciliation\(\)/);
+  const missingFreshPath = runtimeSource.replace('return await refreshReconciliation();', 'return { authenticator: authenticatorReconciliation, locks: lockReconciliation };');
+  assert.doesNotMatch(missingFreshPath, /return await refreshReconciliation\(\)/);
 });
 
 test('notification delete is routed through the shared destructive boundary', () => {

@@ -43,9 +43,11 @@ There is no plaintext or memory-only fallback.
 - Removal receipts distinguish `pending`, `rolledBack`, and `recoverable` outcomes. A rollback or
   pending journal is never reported as `removed`.
 - Every lock removal path, including reconciliation blocking and a bridge failure, returns a
-  `ToyLockRemovalReceipt`. The mounted lock surface exposes a bounded Retry reconciliation action,
-  and create, unlock, relock, and removal mutations remain unavailable until reconciliation is
-  explicitly `reconciled`.
+  `ToyLockRemovalReceipt`. A reconciliation-blocked removal carries the structured `affectedIds`
+  field and the full typed reconciliation receipt, so callers never infer identities by parsing
+  display text. The mounted lock surface exposes a bounded Retry reconciliation action, and create,
+  unlock, relock, and removal mutations remain unavailable until reconciliation is explicitly
+  `reconciled`.
 - If a history snapshot cannot be encrypted, no plaintext file is written and the live operation
   may continue with a separate history warning.
 - If an encrypted revision cannot be opened, restore leaves the live record unchanged.

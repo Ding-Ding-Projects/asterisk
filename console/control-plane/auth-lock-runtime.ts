@@ -294,7 +294,24 @@ export function createAuthLockRuntime(options: AuthLockRuntimeOptions) {
   const locks = new ToyLockStore({ persistence, vault, recovery: options.recovery });
   let authenticatorReconciliation: AuthenticatorReconciliationReceipt = { status: 'reconciled', affectedIds: [] };
   let lockReconciliation: ToyLockReconciliationReceipt = { status: 'reconciled', affectedIds: [] };
-  const locksReady = (async () => { authenticatorReconciliation = await metadata.reconcile(vault); lockReconciliation = await persistence.reconcileReceipt(vault); return await locks.initialize(); })();
+  let reconciliationQueue: Promise<void> = Promise.resolve();
+  const refreshReconciliation = async (): Promise<AuthLockReconciliationReceipt> => {
+    const prior = reconciliationQueue;
+    let release!: () => void;
+    reconciliationQueue = new Promise<void>((resolve) => { release = resolve; });
+    await prior;
+    try {
+      // Keep the last complete pair together. A retry must never expose one new receipt and one stale receipt.
+      const nextAuthenticator = await metadata.reconcile(vault);
+      const nextLocks = await persistence.reconcileReceipt(vault);
+      authenticatorReconciliation = nextAuthenticator;
+      lockReconciliation = nextLocks;
+      return { authenticator: nextAuthenticator, locks: nextLocks };
+    } finally {
+      release();
+    }
+  };
+  const locksReady = (async () => { await refreshReconciliation(); return await locks.initialize(); })();
   const tickets = new FileSupportTicketStore(join(options.userDataPath, "support-tickets.json"));
   const ladderState = new FileUnlockLadderStateStore(join(options.userDataPath, "unlock-ladder-state.json"));
   const ladder = new UnlockLadder({ now: () => Date.now(), random: randomUnit, createNonce, stateStore: ladderState, hasAuthoritativeWait: (lockoutId) => ladderState.hasWait(lockoutId), clearAuthoritativeWait: (lockoutId) => ladderState.clearWait(lockoutId) });
@@ -329,7 +346,10 @@ export function createAuthLockRuntime(options: AuthLockRuntimeOptions) {
     async issueLadder(request: { lockoutId: string; budgetScopeId: string; schoolMode: boolean }): Promise<UnlockLadderIssueResult> { return await ladder.issue(request); },
     async hitLadder(nonce: string, spawnId: number, cell: number): Promise<{ ok: true; value: MoleHitReceipt } | { ok: false; reason: string }> { return await ladder.recordMoleHit(nonce, spawnId, cell); },
     async createLadderWait(lockoutId: string, durationMs?: number): Promise<void> { await ladderState.createWait(lockoutId, durationMs); },
-    async awaitReconciliation(): Promise<AuthLockReconciliationReceipt> { await locksReady; return { authenticator: authenticatorReconciliation, locks: lockReconciliation }; },
+    async awaitReconciliation(): Promise<AuthLockReconciliationReceipt> {
+      await locksReady;
+      return await refreshReconciliation();
+    },
     async gradeLadder(nonce: string, answer: UnlockLadderAnswer): Promise<UnlockLadderGradeResult> { return await ladder.grade(nonce, answer); },
   };
 }

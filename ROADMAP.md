@@ -158,6 +158,7 @@ Each is a logic layer with its own tests, built to be driven by a surface rather
 be one. What remains for each is the screen that uses it.
 
 - [x] **Authenticator** — time-based one-time passwords verified against all eighteen published specification test vectors rather than against their own expectations, plus pairing-URI build and parse. Nothing prints or characterises a secret.
+- [x] **Auth reconciliation retry** — the mounted retry route performs a new serialized authenticator-and-lock pass after vault recovery, atomically replaces paired receipts, retains failed identities, and clears only identities whose durable pending journals were reconciled.
 - [x] **Narration** — off by default, injectable, a voice choice per language, strictly one utterance at a time, a superseded line replaced rather than stacked, ordinary narration rate-limited and an error never dropped.
 - [x] **Colour engine** — every format both directions with alpha preserved or reported lossy, contrast checked against the reference pairs, out-of-gamut colours flagged before clipping, and the animated rainbow modelled as a sentinel that must never enter a palette of real colours.
 - [x] **Unlock ladder** — clears the waiting and never the credential, never refunds the attempt budget, budgeted to three skips an hour because a machine can play it, single-use nonces, and a timed round that cannot be won faster than it lasts. The first two rules are structural: no field exists that could carry a token, and no code path can add budget.

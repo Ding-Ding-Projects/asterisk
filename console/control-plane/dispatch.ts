@@ -121,7 +121,7 @@ function blockedToyLockRemoval(message: string): ToyLockRemovalReceipt {
 }
 
 function blockedToyLockRemovalByReconciliation(reconciliation: import('../shared/locks.js').ToyLockReconciliationReceipt): ToyLockRemovalReceipt {
-  return { status: 'blocked', message: `${reconciliation.warning} Affected locks: ${reconciliation.affectedIds.join(', ') || 'unresolved state'}.`, recoverable: true, reconciliation };
+  return { status: 'blocked', message: `${reconciliation.warning} Affected locks: ${reconciliation.affectedIds.join(', ') || 'unresolved state'}.`, recoverable: true, affectedIds: reconciliation.affectedIds, reconciliation };
 }
 
 function neverToyLockFailure(value: never): never {

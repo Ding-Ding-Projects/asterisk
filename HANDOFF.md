@@ -443,6 +443,17 @@ Ordered by what actually blocks the next claim.
    but not an ancestor of `master`, and `master` has moved well past it -- merging would
    revert later site work. Keep it or drop it deliberately; do not merge it blindly.
 
+## Auth reconciliation retry repair, 2026-08-26
+
+The mounted reconciliation route now performs a fresh serialized pass against the existing
+authenticator metadata and toy-lock persistence after credential-vault availability changes. It
+atomically updates the paired cached receipts only after both passes finish, keeps a failed pending
+identity visible, and clears durable pending identities only after successful removal. Blocked toy
+lock removal receipts include structured `affectedIds` plus the typed reconciliation receipt; no
+consumer needs to parse human-readable text. The focused runtime behavior suite passes 2 tests and
+the focused mounted-source suite passes 9 tests, including a deliberate red-then-green guard proof.
+Unrelated existing UI inventory and design-drift failures remain outside this repair lane.
+
 ## Updater evidence added on 2026-08-23
 
 The updater evidence lane fast-forwarded this branch through source commit

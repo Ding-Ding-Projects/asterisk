@@ -6,3 +6,4 @@
 - Added reduced-motion, minimum-target, viewport-bounded overlay, keyboard panel movement, and resize primitives.
 - Added a long-operation state machine with pending, progress, cancellation, deadline, timeout, failure, completion, and duplicate-start refusal.
 - Central renderer mounting remains required. This fragment does not claim end-to-end accessibility coverage.
+- Retry reconciliation now executes a fresh serialized authenticator-and-toy-lock pass in the existing runtime, updates both cached receipts together, preserves failed pending identities, and returns structured affected lock identities on blocked removals.

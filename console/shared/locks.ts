@@ -59,7 +59,7 @@ export type ToyLockRelockReceipt =
   | { ok: false; code: Exclude<ToyLockFailureCode, 'verification-failed'>; message: string; recoverable: boolean; reconciliation?: ToyLockReconciliationReceipt };
 export type ToyLockRemovalReceipt =
   | { status: 'removed'; value: { removed: true } }
-  | { status: 'blocked'; message: string; recoverable: true; reconciliation: ToyLockReconciliationReceipt }
+  | { status: 'blocked'; message: string; recoverable: true; affectedIds: ReadonlyArray<string>; reconciliation: ToyLockReconciliationReceipt }
   | { status: 'pending'; message: string; recoverable: true }
   | { status: 'rolledBack'; message: string; recoverable: true }
   | { status: 'recoverable'; message: string; recoverable: true };
