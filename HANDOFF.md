@@ -45,7 +45,7 @@ Two branches are not ancestors of master, and neither should be merged as it sta
 
 ## Scope
 
-This handoff covers the integrated Ding PBX Console desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.
+This handoff covers the integrated Material Asterisk desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.
 
 ## Implemented
 

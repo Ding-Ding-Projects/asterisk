@@ -8,7 +8,7 @@
       "sha256": "1177b4137ba5adaa56354ae40f1080c7450e8ae09cecb47da459d1c52ac99f97",
       "archiveRoot": "node-v22.23.2-win-x64",
       "installScope": "user",
-      "purpose": "Build, package, and run the Ding PBX Console"
+      "purpose": "Build, package, and run Material Asterisk"
     }
   ],
   "projectDependencies": {
