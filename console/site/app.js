@@ -522,10 +522,12 @@
 
   const BASE = document.documentElement.dataset.base || './';
   // Release notes are provider-authored Markdown -- written by the release
-  // process, not by this site. Empty today because downloads.html is honest
-  // that no verified release manifest exists yet; the moment one does, its
-  // notes populate this constant and render through the real parser above
-  // rather than as literal "#"/"[]()" source text.
+  // process, not by this site. console/scripts/resolve-site-download-manifest.mjs
+  // resolves the newest verified non-draft release at build time, and
+  // console/site/build.mjs replaces this exact declaration with the real
+  // notes as a JSON-escaped string literal. Empty here because this is the
+  // honest fallback: no verified release manifest was found, so downloads.html
+  // says so plainly instead of rendering literal "#"/"[]()" source text.
   const RELEASE_NOTES_MARKDOWN = '';
   const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#82D9A5',fontScale:100,lowMotion:false,englishFunny:0,cantoneseFunny:0,attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false,focus:false,timeAwareness:false,oneThing:false,momentum:false,currentTask:''},scheduleEnabled:false,notifications:[],collapsed:{destinationMap:true,settingsPreview:true,documentationFilters:false,settingsFilters:false}};
   const STORAGE_KEY = 'ding-pbx-pages-v2';

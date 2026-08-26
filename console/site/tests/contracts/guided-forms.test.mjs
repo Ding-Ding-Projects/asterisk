@@ -36,7 +36,19 @@ const read = (p) => readFileSync(resolve(root, p), 'utf8');
 const norm = (s) => s.replace(/\r\n/g, '\n');
 
 const PAGE_NAMES = ['index', 'product', 'documentation', 'downloads', 'status', 'settings'];
-const pageText = () => norm(PAGE_NAMES.map((name) => read(`site/${name}.html`)).join('\n'));
+
+/**
+ * The pages plus the builder that fills them in.
+ *
+ * The download surfaces became templates when the site started resolving a real
+ * release, so the markup for the unavailable state -- including the only disabled
+ * control on the whole site -- now lives in `build.mjs` as the strings it substitutes
+ * when no manifest resolves. Reading the page sources alone therefore found nothing to
+ * check, and the disabled-control test below correctly refused to pass on an empty set
+ * rather than reporting a vacuous success. Reading both is what restores it to checking
+ * the thing it was written to check.
+ */
+const pageText = () => norm([...PAGE_NAMES.map((name) => read(`site/${name}.html`)), read('site/build.mjs')].join('\n'));
 
 test('there is no <datalist> anywhere on the site -- the one native picker-over-real-data primitive is unused', () => {
   const html = pageText();

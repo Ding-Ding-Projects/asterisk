@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { readFile, readdir, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -17,6 +18,76 @@ const pages = Object.fromEntries(await Promise.all(
     async name => [name, await readFile(join(root, name + '.html'), 'utf8')])));
 const everyPage = Object.values(pages).join();
 
+/* Guaranteed never to exist on disk; used to force build.mjs's download-manifest
+ * fallback path regardless of any manifest a developer or a resolver run left behind. */
+const ABSENT_MANIFEST_PATH = join(root, '__no_release_manifest_for_tests__.json');
+/* A structurally valid fixture manifest, shaped exactly like the real output of
+ * console/scripts/resolve-site-download-manifest.mjs, but for a release that does not
+ * exist -- this proves build.mjs's substitution logic without any network access. */
+const FIXTURE_MANIFEST = {
+  schemaVersion: 1,
+  resolved: true,
+  resolvedAt: '2026-01-01T00:00:00.000Z',
+  product: 'ding-pbx-console',
+  version: '9.9.9',
+  tag: 'ding-pbx-console-v9.9.9-r1',
+  sourceCommit: 'a'.repeat(40),
+  publishedAt: '2026-01-01T00:00:00Z',
+  releaseUrl: 'https://github.com/Ding-Ding-Projects/asterisk/releases/tag/ding-pbx-console-v9.9.9-r1',
+  releaseNotesMarkdown: '# Fixture release\n\n- A test-only note with a `code span`, a "quote", and a back\\slash.',
+  asset: {
+    name: 'Ding-PBX-Console-Setup.exe',
+    url: 'https://github.com/Ding-Ding-Projects/asterisk/releases/download/ding-pbx-console-v9.9.9-r1/Ding-PBX-Console-Setup.exe',
+    sizeBytes: 123456789,
+    sha256: 'b'.repeat(64),
+  },
+  verification: { identityManifestChecked: true, sha256sumsChecked: true, assetDigestHeaderChecked: true, remoteHeadBytesConfirmed: true },
+};
+/** Runs build.mjs against a scratch dist directory with the given manifest env override, then returns its parsed output. */
+async function buildWithManifest(manifestPath) {
+  execFileSync(process.execPath, [join(root, 'build.mjs')], {
+    cwd: repo, stdio: 'pipe',
+    env: { ...process.env, DING_PBX_SITE_RELEASE_MANIFEST: manifestPath ?? ABSENT_MANIFEST_PATH },
+  });
+  // build.mjs always writes to its own fixed root/dist -- read what we need back out
+  // immediately, before the next build (a different fixture, or the ordinary suite
+  // run) removes and recomposes that same directory.
+  const out = {};
+  for (const name of ['index.html', 'downloads.html', 'product.html', 'status.html', 'app.js', 'build-manifest.json']) {
+    out[name] = await readFile(join(root, 'dist', name), 'utf8');
+  }
+  return out;
+}
+/** Asserts the honest "not published" fallback is what actually got published, in every place it must appear. */
+function assertFallbackPublished(dist) {
+  assert.match(dist['index.html'], /<strong id="home-installer-status-label">Not published<\/strong>/);
+  assert.match(dist['index.html'], /No verified release manifest exists yet, so this site does not guess a download URL\./);
+  assert.match(dist['index.html'], /class="download-button disabled-link" href="downloads\.html" aria-disabled="true">Download unavailable</);
+  assert.match(dist['downloads.html'], /<span class="status-chip warning-chip">Not published<\/span>/);
+  assert.match(dist['downloads.html'], /<button class="primary-button" type="button" disabled aria-describedby="installer-status">Download unavailable<\/button>/);
+  assert.match(dist['downloads.html'], /<dt>Version<\/dt><dd>Unavailable<\/dd>/);
+  assert.match(dist['downloads.html'], /<dt>Artifact<\/dt><dd>Not verified<\/dd>/);
+  assert.match(dist['downloads.html'], /<dt>SHA-256<\/dt><dd>Not published<\/dd>/);
+  assert.doesNotMatch(dist['index.html'] + dist['downloads.html'], /href="https?:[^"]*Setup\.exe/i);
+  assert.match(dist['app.js'], /const RELEASE_NOTES_MARKDOWN = "";/);
+  // The reverse claim -- describing a real, downloadable product as merely planned --
+  // is just as false as a guessed URL, so the fallback must say "planned"/"CONCEPT"
+  // consistently everywhere that claim is made, in both the JS-rendered hero copy and
+  // its static HTML default, never a stale mix of the two states.
+  assert.match(dist['index.html'], /Ding PBX Console is a planned Windows desktop console/);
+  assert.match(dist['index.html'], /<strong>Console overview<\/strong><em>CONCEPT<\/em>/);
+  assert.equal((dist['product.html'].match(/planned desktop runtime/g) || []).length, 2);
+  assert.doesNotMatch(dist['product.html'], /(?<!planned )desktop runtime/);
+  assert.match(dist['status.html'], /<small>Installer release<\/small><strong>Not published<\/strong>/);
+  assert.match(dist['status.html'], /<p>No verified immutable asset exists yet\.<\/p>/);
+  assert.match(dist['status.html'], /<span class="sparkline is-waiting"/);
+  assert.match(dist['status.html'], /<li data-state="waiting"><strong>Installer release pending<\/strong>/);
+  assert.match(dist['app.js'], /'Ding PBX Console is a planned desktop administration experience for Asterisk\./);
+  assert.match(dist['app.js'], /Asterisk 嘅桌面管理計劃項目/);
+  const manifest = JSON.parse(dist['build-manifest.json']);
+  assert.equal(manifest.download.resolved, false);
+}
+
 const tests = [];
 function test(name, fn) { tests.push([name, fn]); }
 
@@ -25,12 +96,22 @@ test('declares responsive and Open Graph metadata', () => {
   for (const key of ['og:title','og:description','og:url','og:type','og:site_name','og:image','og:image:width','og:image:height','og:image:alt']) assert.match(html, new RegExp(`property="${key}"`));
   assert.match(html, /twitter:card" content="summary_large_image"/);
 });
-test('states the static site boundary and honest unavailable installer', () => {
+test('states the static site boundary and never bakes a guessed download into source', () => {
   assert.match(html, /not the installed desktop application/i);
   assert.match(html, /not a PBX runtime/i);
-  assert.match(pages.downloads, /Not published/);
-  assert.doesNotMatch(everyPage, /href="https?:[^"]*Setup.exe/i);
-  assert.match(pages.downloads, /No verified release manifest exists yet/);
+  // The real installer state (published or not) is resolved by build.mjs from a
+  // build-time manifest, never hard-coded in source -- see the {{DING_PBX_...}}
+  // markers templated below. What source must never contain, in either state, is a
+  // literal guessed download URL: that is the one thing that must be impossible
+  // regardless of what console/scripts/resolve-site-download-manifest.mjs finds.
+  assert.doesNotMatch(everyPage, /href="https?:[^"]*Setup\.exe/i);
+  for (const token of ['{{DING_PBX_DL_STATUS_CHIP}}', '{{DING_PBX_DL_STATUS_DETAIL}}', '{{DING_PBX_DL_ACTION}}', '{{DING_PBX_DL_VERSION}}', '{{DING_PBX_DL_ARTIFACT}}', '{{DING_PBX_DL_SHA256}}']) {
+    assert.ok(pages.downloads.includes(token), `downloads.html source is missing template marker ${token}`);
+  }
+  for (const token of ['{{DING_PBX_HOME_STATUS_LABEL}}', '{{DING_PBX_HOME_STATUS_DETAIL}}', '{{DING_PBX_HOME_DOWNLOAD_ACTION}}', '{{DING_PBX_HOME_STAT_VALUE}}', '{{DING_PBX_HOME_STAT_TREND_CLASS}}', '{{DING_PBX_HOME_STAT_TREND_TEXT}}']) {
+    assert.ok(pages.index.includes(token), `index.html source is missing template marker ${token}`);
+  }
+  assert.match(js, /const RELEASE_NOTES_MARKDOWN = '';/, 'app.js source default must be the empty-string fallback that build.mjs replaces');
 });
 test('contains exactly 32 destination definitions in six declared groups', () => {
   const block = js.match(/const DESTINATIONS = \[([\s\S]*?)\n  \];/)[1];
@@ -105,7 +186,10 @@ test('documents local-only validation and redacted export boundaries', () => {
   assert.match(js, /personalVocabulary:'omitted'/); assert.match(everyPage, /No data leaves this browser/);
 });
 test('build composes deterministic local output without fetches', async () => {
-  execFileSync(process.execPath, [join(root, 'build.mjs')], { cwd: repo, stdio: 'pipe' });
+  // Point at a manifest path that is guaranteed never to exist, so this determinism
+  // check never depends on whatever a developer's own working directory happens to
+  // have lying around from a manual resolver run.
+  execFileSync(process.execPath, [join(root, 'build.mjs')], { cwd: repo, stdio: 'pipe', env: { ...process.env, DING_PBX_SITE_RELEASE_MANIFEST: ABSENT_MANIFEST_PATH } });
   const manifest = JSON.parse(await readFile(join(root, 'dist', 'build-manifest.json'), 'utf8'));
   assert.equal(manifest.networkFetches, 0);
   // 91 pages, the remaining documents and the social preview, plus the 51 vendored font
@@ -177,6 +261,81 @@ test('the vendored fonts are published inside dist and every page reaches them',
     assert.ok(!html.includes('../assets/'), page + ' still points outside the published tree');
     assert.ok(html.includes('href="assets/fonts/fonts.css"'), page + ' does not reference the published fonts');
     assert.ok(html.includes('href="assets/site-fonts/fonts.css"'), page + ' does not reference the published Blueprint fonts');
+  }
+});
+
+test('publishes the honest unavailable installer state when no download manifest exists', async () => {
+  const dist = await buildWithManifest(null);
+  assertFallbackPublished(dist);
+});
+
+test('bakes a verified download manifest into the home page, the downloads page, and the release notes', async () => {
+  const scratch = await mkdtemp(join(tmpdir(), 'ding-pbx-manifest-fixture-'));
+  const manifestPath = join(scratch, 'release-manifest.json');
+  try {
+    await writeFile(manifestPath, JSON.stringify(FIXTURE_MANIFEST), 'utf8');
+    const dist = await buildWithManifest(manifestPath);
+
+    assert.match(dist['index.html'], /<strong id="home-installer-status-label">Published<\/strong>/);
+    assert.match(dist['index.html'], /Verified release v9\.9\.9 · 123 MB · unsigned by permanent policy\./);
+    assert.match(dist['index.html'], new RegExp(`<a class="download-button" id="home-download-button" href="${FIXTURE_MANIFEST.asset.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}" rel="noopener" aria-describedby="home-installer-status-detail">Download for Windows \\(v9\\.9\\.9\\)</a>`));
+    assert.match(dist['index.html'], /<strong>v9\.9\.9<\/strong><span class="trend">Verified installer<\/span>/);
+
+    assert.match(dist['downloads.html'], /<span class="status-chip">Published<\/span>/);
+    assert.match(dist['downloads.html'], /Verified release v9\.9\.9, published 2026-01-01\./);
+    assert.match(dist['downloads.html'], new RegExp(`<a class="primary-button" id="download-button" href="${FIXTURE_MANIFEST.asset.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}" aria-describedby="installer-status" rel="noopener">Download Ding-PBX-Console-Setup\\.exe \\(v9\\.9\\.9\\)</a>`));
+    assert.match(dist['downloads.html'], /<dt>Version<\/dt><dd>v9\.9\.9<\/dd>/);
+    assert.match(dist['downloads.html'], /<dt>Artifact<\/dt><dd>Ding-PBX-Console-Setup\.exe \(123 MB\)<\/dd>/);
+    assert.match(dist['downloads.html'], new RegExp(`<dt>SHA-256</dt><dd><code>${FIXTURE_MANIFEST.asset.sha256}</code></dd>`));
+
+    // A real installer exists once a manifest resolves, so "planned"/"CONCEPT" must
+    // become "downloadable today"/"PREVIEW" everywhere those claims are made -- and
+    // must never leave a stale "planned" behind in the JS-rendered copy that overwrites
+    // the static HTML on load.
+    assert.match(dist['index.html'], /Ding PBX Console is a Windows desktop console, downloadable today/);
+    assert.match(dist['index.html'], /<strong>Console overview<\/strong><em>PREVIEW<\/em>/);
+    assert.equal((dist['product.html'].match(/(?<!planned )desktop runtime/g) || []).length, 2);
+    assert.doesNotMatch(dist['product.html'], /planned desktop runtime/);
+    assert.match(dist['status.html'], /<small>Installer release<\/small><strong>Published v9\.9\.9<\/strong>/);
+    assert.match(dist['status.html'], /<span class="gauge" style="--value:100%;--gauge-color:var\(--good\)"/);
+    assert.match(dist['status.html'], /<span class="state-dot good"><\/span>/);
+    assert.match(dist['status.html'], /<span class="sparkline is-good"/);
+    assert.match(dist['status.html'], /<li data-state="good"><strong>Installer release published<\/strong><p>v9\.9\.9 verified against SHA256SUMS\.txt/);
+    assert.match(dist['app.js'], /'Ding PBX Console is a desktop administration experience for Asterisk, downloadable today\./);
+    assert.match(dist['app.js'], /Asterisk 嘅桌面管理應用程式，而家已經可以下載/);
+    assert.doesNotMatch(dist['app.js'], /a planned desktop administration experience for Asterisk/);
+    assert.doesNotMatch(dist['app.js'], /Asterisk 嘅桌面管理計劃項目/);
+
+    // A JSON.stringify'd string is always valid inside a JS string literal (its escapes
+    // are a subset of JS's), but this proves it against the fixture's own quote and
+    // backslash characters rather than trusting that in the abstract.
+    assert.equal(dist['app.js'].includes(`const RELEASE_NOTES_MARKDOWN = ${JSON.stringify(FIXTURE_MANIFEST.releaseNotesMarkdown)};`), true);
+    await writeFile(join(scratch, 'app.js'), dist['app.js'], 'utf8');
+    execFileSync(process.execPath, ['--check', join(scratch, 'app.js')], { stdio: 'pipe' });
+
+    const manifest = JSON.parse(dist['build-manifest.json']);
+    assert.equal(manifest.download.resolved, true);
+    assert.equal(manifest.download.version, '9.9.9');
+    assert.equal(manifest.download.tag, FIXTURE_MANIFEST.tag);
+    assert.equal(manifest.download.assetUrl, FIXTURE_MANIFEST.asset.url);
+    assert.equal(manifest.download.sha256, FIXTURE_MANIFEST.asset.sha256);
+  } finally {
+    await rm(scratch, { recursive: true, force: true });
+  }
+});
+
+test('rejects a structurally invalid download manifest and falls back to the honest state', async () => {
+  const scratch = await mkdtemp(join(tmpdir(), 'ding-pbx-manifest-invalid-'));
+  try {
+    // An asset URL outside github.com's release-download path: exactly what a corrupted
+    // or tampered manifest would look like, and exactly what must never reach a page.
+    const invalid = { ...FIXTURE_MANIFEST, asset: { ...FIXTURE_MANIFEST.asset, url: 'https://evil.example/Ding-PBX-Console-Setup.exe' } };
+    const manifestPath = join(scratch, 'release-manifest.json');
+    await writeFile(manifestPath, JSON.stringify(invalid), 'utf8');
+    const dist = await buildWithManifest(manifestPath);
+    assertFallbackPublished(dist);
+  } finally {
+    await rm(scratch, { recursive: true, force: true });
   }
 });
 

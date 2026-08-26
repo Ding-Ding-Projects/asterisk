@@ -23,6 +23,18 @@ jobs:
       - name: Bootstrap site build dependencies
         shell: cmd
         run: download-dependencies.bat /s
+      - name: Resolve the newest verified installer download
+        shell: powershell
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          # Never blocks the Pages deploy: the site's own fallback below is honest
+          # and correct when no verified release manifest can be resolved, so a
+          # failure here is recorded as evidence rather than failing this step.
+          $nodeRecord = (Get-Content -Raw dependency-manifest.json | ConvertFrom-Json).dependencies | Where-Object id -eq 'node-win-x64'
+          $node = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) "DingPBX\toolchains\$($nodeRecord.archiveRoot)\node.exe"
+          & $node console/scripts/resolve-site-download-manifest.mjs --out console/site/release-manifest.local.json
       - name: Compose the static Pages tree without tests or lint
         shell: powershell
         run: |
@@ -44,13 +56,18 @@ jobs:
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force -Path evidence | Out-Null
+          $download = $null
+          if (Test-Path -LiteralPath 'console/site/dist/build-manifest.json') {
+            $download = (Get-Content -Raw console/site/dist/build-manifest.json | ConvertFrom-Json).download
+          }
           @{
             runId = '${{ github.run_id }}'
             commit = '${{ github.sha }}'
             status = '${{ job.status }}'
             pageUrl = '${{ steps.deploy.outputs.page_url }}'
             runner = '${{ runner.name }}'
-          } | ConvertTo-Json | Set-Content -Encoding utf8 evidence/pages.json
+            download = $download
+          } | ConvertTo-Json -Depth 6 | Set-Content -Encoding utf8 evidence/pages.json
       - name: Upload Pages evidence even after a deployment failure
         if: ${{ always() }}
         continue-on-error: true
