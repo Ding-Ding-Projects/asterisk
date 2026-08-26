@@ -38,17 +38,21 @@ const strip = (markup: string) => markup.replace(/<[^>]*>/g, ' ').replace(/&#x27
  * where before none of the four had ever been read or written by this console. Both
  * screens forked from the same 38-destination tip and each counted its own one-screen
  * jump independently (each calling itself "39 rather than 38"); rebasing one onto the
- * other's tip is what stacks the two arrivals to 40 instead of colliding at 39. */
+ * other's tip is what stacks the two arrivals to 40 instead of colliding at 39.
+ * 45 rather than 40: the ops lane's five screens landed at once -- Caller display
+ * (ADSI) on the pbx rail (10 to 11), Monitoring on the data rail (2 to 3), and
+ * Directories & identity, NAT discovery and Messaging (XMPP) all on the sys rail
+ * (6 to 9). */
 test('the design reference supplies every rail and destination', () => {
-  assert.equal(ORDER.length, 40);
-  assert.equal(destinations.length, 40);
+  assert.equal(ORDER.length, 45);
+  assert.equal(destinations.length, 45);
   assert.deepEqual(rails.map((rail) => rail.id), ['pbx', 'media', 'data', 'sys', 'agent', 'app']);
   assert.deepEqual(
     rails.map((rail) => destinations.filter((destination) => destination.rail === rail.id).length),
-    [10, 6, 2, 6, 7, 9],
+    [11, 6, 3, 9, 7, 9],
   );
   assert.equal(RAIL.length, 6);
-  assert.equal(Object.keys(SCREENS).length, 40);
+  assert.equal(Object.keys(SCREENS).length, 45);
 });
 
 test('the design audit baseline counts survive compilation', () => {

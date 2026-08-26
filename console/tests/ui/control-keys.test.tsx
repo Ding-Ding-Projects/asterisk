@@ -43,7 +43,9 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // side: both independently brought the count from 16 to 17 on their own branch, and
   // rebasing one onto the other's tip -- rather than starting from a shared commit --
   // is exactly what makes them stack to 18 instead of collide at 17.
-  assert.equal(screenCount, 18);
+  // 23 with the ops lane's five new screens (monitoring, identity, stun, xmpp, adsi) on
+  // top of the 18 this rebase already carried.
+  assert.equal(screenCount, 23);
   // 82 from the first pass, plus a_origin (ami/allowed_origins) and s_failaction
   // (security/failure_action) found on the second look, plus 21 on 2026-08-24: the eight
   // http.conf keys and the thirteen features.conf ones, which brought two whole screens
@@ -147,7 +149,15 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // 199. Rebasing onto the real tip puts it on top of 203 instead, landing on 223 --
   // read back the same way the 203 above was, by trying a deliberately wrong number
   // first and taking whatever this test actually reported.
-  assert.equal(controlCount, 223);
+  // And 262 with the ops lane's 39 new bindings: 7 on the Monitoring screen
+  // (res_snmp.conf's two, plus five of prometheus.conf's -- auth_password is deliberately
+  // unbound, same reasoning as db_pgpassword above), 23 on Directories & identity
+  // (asterisk.conf's twelve [directories] paths plus eleven [options] fields), 2 on NAT
+  // discovery (res_stun_monitor.conf's whole [general] section), 6 on Messaging
+  // (xmpp.conf's [general] behaviour switches -- the credential-bearing [asterisk]
+  // connection section is left unbound entirely) and 1 on Caller display (adsi.conf's
+  // alignment; greeting is unbound, see the comment on CONTROL_BINDINGS.adsi).
+  assert.equal(controlCount, 262);
 });
 
 // ---------------------------------------------------------------- boolean parsing

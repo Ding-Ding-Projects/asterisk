@@ -342,4 +342,11 @@ export const CANTONESE: Catalog = {
   'Toggle command palette': '開關指令面板',
   'Version history for this': '呢個嘅版本紀錄',
   'What’s new': '最新消息',
+  /* The ops lane's five new destinations: monitoring integration, directory/identity
+   * settings, NAT discovery and messaging. */
+  'Caller display (ADSI)': '來電顯示 (ADSI)',
+  'Monitoring': '監察',
+  'Directories & identity': '目錄同身份',
+  'NAT discovery': 'NAT 探測',
+  'Messaging (XMPP)': '訊息 (XMPP)',
 };
