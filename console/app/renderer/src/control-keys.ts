@@ -649,16 +649,36 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     nt('e_expiry', 'aor', 'default_expiration'),
   ],
 
-  // configs/samples/pjsip.conf.sample — [registration] template (~line 1522) for the
-  // retry keys, [endpoint] template (~line 648) for send_pai/100rel. t_order (no key
-  // holds a failover order list), t_from (no from-domain-source enum key) and
-  // t_privacy (no privacy-header key with these exact values) are unmapped.
+  // configs/samples/pjsip.conf.sample — [registration] template (lines 1519-1552) for
+  // the retry keys, [endpoint] template for the rest. These bindings are the generic
+  // first-match baseline every screen with a `file` gets (App.tsx's per-screen auto-
+  // read), which is real but coarse: pjsip.conf can hold several registrations and
+  // several endpoints, and `sectionOfType` here only ever reaches the first of each.
+  // The real per-row editor is `App.tsx`'s `onPickTrunkRow`/`onSaveTrunk`, which reads
+  // and writes the NAMED registration the clicked row belongs to (`trunk-registration.ts`
+  // findRegistration/applyRegistrationControlValues) and, when one is paired with it,
+  // that exact endpoint (`trunk-advanced.ts`, the same module endpoint-edit.ts's own
+  // onSaveEndpoint pattern is drawn from) -- t_save carries no key of its own, same as
+  // httpd's ht_save and iaxpeers's ix_save above.
   trunks: [
     nt('t_retry', 'registration', 'retry_interval'),
     nt('t_forbidden', 'registration', 'forbidden_retry_interval'),
     nt('t_fatal', 'registration', 'max_retries'),
     bt('t_pai', 'endpoint', 'send_pai'),
     st('t_100rel', 'endpoint', '100rel'),
+    bt('tk_connectedline', 'endpoint', 'send_connected_line'),
+    st('tk_contactuser', 'endpoint', 'contact_user'),
+    st('tk_fromdomain', 'endpoint', 'from_domain'),
+    st('tk_fromuser', 'endpoint', 'from_user'),
+    st('tk_mediaaddr', 'endpoint', 'media_address'),
+    bt('tk_t38', 'endpoint', 't38_udptl'),
+    st('tk_t38ec', 'endpoint', 't38_udptl_ec'),
+    bt('tk_t38nat', 'endpoint', 't38_udptl_nat'),
+    nt('tk_t38mtu', 'endpoint', 't38_udptl_maxdatagram'),
+    bt('tk_faxdetect', 'endpoint', 'fax_detect'),
+    bt('tk_trustout', 'endpoint', 'trust_id_outbound'),
+    bt('tk_sendrpid', 'endpoint', 'send_rpid'),
+    bt('tk_senddiversion', 'endpoint', 'send_diversion'),
   ],
 
   // configs/samples/extensions.conf.sample has no keyed IVR-behaviour settings of this
@@ -1633,9 +1653,23 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     'e_mwi_replaces', 'e_outbound_proxy', 'e_outbound_auth', 'e_mailboxes', 'e_voicemail_ext',
     'e_removeexisting',
   ],
-  trunks: ['t_retry', 't_forbidden', 't_fatal', 't_pai', 't_100rel'],
+  /* t_save carries no key of its own -- App.tsx's onSaveTrunk, same as ht_save and
+   * ix_save above. */
+  trunks: [
+    't_retry', 't_forbidden', 't_fatal', 't_pai', 't_100rel',
+    'tk_connectedline', 'tk_contactuser', 'tk_fromdomain', 'tk_fromuser', 'tk_mediaaddr',
+    'tk_t38', 'tk_t38ec', 'tk_t38nat', 'tk_t38mtu', 'tk_faxdetect', 'tk_trustout',
+    'tk_sendrpid', 'tk_senddiversion', 't_save',
+  ],
   trunkauth: ['ta_auto', 'ta_expire', 'ta_notify', 'ta_mutual', 'ta_sign', 'ta_log'],
-  ivr: ['i_timeout', 'i_retries', 'i_invalid', 'i_direct', 'i_lang', 'i_barge'],
+  /* i_plan was missing from this list entirely -- its own action:'ivr-dialplan' still
+   * made it count as working (deliveredByAction), so nothing was ever silently dead,
+   * but it was never actually verified either. Listed properly now, alongside the
+   * prompt and key-map controls the same deepening pass added. */
+  ivr: [
+    'i_timeout', 'i_retries', 'i_invalid', 'i_direct', 'i_lang', 'i_barge', 'i_plan',
+    'i_prompt', 'i_audition', 'i_keydigit', 'i_keydest', 'i_keytarget', 'i_keyadd', 'i_keys', 'i_keyremove',
+  ],
   queues: [
     'q_strategy', 'q_timeout', 'q_wrapup', 'q_retry', 'q_ringinuse', 'q_autopause',
     'q_maxlen', 'q_service', 'q_joinempty', 'q_leave', 'q_periodic', 'q_position',

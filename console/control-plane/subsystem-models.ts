@@ -998,6 +998,9 @@ export interface PjsipEndpointFields {
   trust_id_inbound?: string;
   /** line 124: "Send the P Asserted Identity header". */
   send_pai?: string;
+  /** configs/samples/pjsip.conf.sample line 650: "Allow support for RFC3262
+   *  provisional ACK tags" -- no, required or yes; not a switch. */
+  "100rel"?: string;
   /** line 88-101: "A comma-separated list of ways the Endpoint or AoR can be
    *  identified" -- username, auth_username, ip, header, request_uri. */
   identify_by?: string;
@@ -1180,6 +1183,7 @@ export function parsePjsip(value: ConfigValue): PjsipView {
         rtp_symmetric: entryValue(endpointSection, "rtp_symmetric"),
         trust_id_inbound: entryValue(endpointSection, "trust_id_inbound"),
         send_pai: entryValue(endpointSection, "send_pai"),
+        "100rel": entryValue(endpointSection, "100rel"),
         identify_by: entryValue(endpointSection, "identify_by"),
         mailboxes: entryValue(endpointSection, "mailboxes"),
         voicemail_extension: entryValue(endpointSection, "voicemail_extension"),
@@ -1313,7 +1317,7 @@ export function validatePjsip(view: PjsipView): Finding[] {
 const PJSIP_ENDPOINT_MANAGED_KEYS: readonly string[] = [
   "type", "context", "disallow", "allow", "transport", "dtmf_mode", "direct_media",
   "ice_support", "use_avpf", "media_encryption", "media_encryption_optimistic",
-  "force_rport", "rewrite_contact", "rtp_symmetric", "trust_id_inbound", "send_pai",
+  "force_rport", "rewrite_contact", "rtp_symmetric", "trust_id_inbound", "send_pai", "100rel",
   "identify_by", "mailboxes", "voicemail_extension", "mwi_subscribe_replaces_unsolicited",
   "aggregate_mwi", "timers", "timers_min_se", "timers_sess_expires",
   "outbound_auth", "outbound_proxy",

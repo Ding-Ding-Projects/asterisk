@@ -2,7 +2,7 @@
 
 ## Behavior
 
-When a trunk partner asks to change something on the shared link — a new source address, a codec, a higher call cap — the request lands here and you answer yes or no. Nothing takes effect until you do. It is backed by `pjsip.conf · partner requests`. The rail badge on this destination currently reads `2`. It lives on the PBX rail, under the Telephony group: Endpoints, routing and everything a call touches while it is alive.
+When a trunk partner asks to change something on the shared link — a new source address, a codec, a higher call cap — the request lands here and you answer yes or no. Nothing takes effect until you do. It is backed by `trunk partner requests`, which is not an Asterisk configuration file -- see "Failure modes and security" below. The rail badge on this destination currently reads `2`. It lives on the PBX rail, under the Telephony group: Endpoints, routing and everything a call touches while it is alive.
 
 ## What this screen reads
 
@@ -33,7 +33,7 @@ How requests arrive and what may be answered without you.
 
 ## Failure modes and security
 
-The six controls above are this console's own settings and are stored locally. They are not keys in pjsip.conf, and there is no key in pjsip.conf for "auto-approve a low-risk partner request" — that is this console's workflow, which is why this destination's `file` field reads `pjsip.conf · partner requests` where the second half is not a file name at all. The article said otherwise until the auth reading landed, and it was wrong when it said it.
+The six controls above are this console's own settings and are stored locally. They are not keys in pjsip.conf, and there is no key in pjsip.conf for "auto-approve a low-risk partner request" — that is this console's workflow, which is why this destination's `file` field reads `trunk partner requests` rather than a real Asterisk filename: it used to read `pjsip.conf · partner requests`, which named a real file that this screen has never read a single key from, and `resource-for-file.test.tsx` pins the current label so a screen cannot drift back to claiming one.
 
 The reading beside them is unreachable-shown-as-unreachable, never backfilled: a failed `pjsip show auths` reports the target's own reason, and a target with genuinely no auth object reports that instead of leaving a blank.
 
