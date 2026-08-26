@@ -34,9 +34,21 @@ const keys = read('../../app/renderer/src/control-keys.ts');
  *
  * Caught when a lane reported that moving seven ids between those lists changed the measured
  * figure by zero. It should have changed it by seven, and the reason it did not is this.
+ *
+ * A screen's own dedicated module -- endpoint-edit.ts, trunk-advanced.ts, feature-codes.ts,
+ * extensions.ts -- is read alongside App.tsx and PbxAdminApp.tsx for the same reason: a
+ * control genuinely consumed through `ENDPOINT_CONTROLS.displayName` or `TRUNK_CONTROLS.t38Udptl`
+ * is exactly as wired as one quoted directly in App.tsx, and scanning only App.tsx reported
+ * fifteen real, tested, save-button-reachable controls (the Identity group's two caller-ID
+ * fields, and the Trunks screen's Advanced/T.38/Identity-trust groups) as orphans purely
+ * because their id string lives one file away. Confirmed by measurement: adding these four
+ * files did not merely explain the fifteen away, it lowered the ceiling below its own prior
+ * value, because nothing in them reaches into App.tsx's own id space by accident.
  */
 function appSourceWithoutInventories() {
-  let source = read('../../app/renderer/src/App.tsx') + read('../../app/renderer/src/PbxAdminApp.tsx');
+  let source = read('../../app/renderer/src/App.tsx') + read('../../app/renderer/src/PbxAdminApp.tsx')
+    + read('../../app/renderer/src/endpoint-edit.ts') + read('../../app/renderer/src/trunk-advanced.ts')
+    + read('../../app/renderer/src/feature-codes.ts') + read('../../app/renderer/src/extensions.ts');
   for (const name of ['APPLIED_APPEARANCE', 'PREVIEW_APPEARANCE', 'INERT_APPEARANCE']) {
     const at = source.indexOf(`${name} = [`);
     if (at === -1) continue;
@@ -80,8 +92,16 @@ const app = appSourceWithoutInventories();
  * dot access now counts as reached (which lowered it by nine controls that were working the
  * whole time and being reported as dead). A ratchet that reports upward invites somebody to
  * fix what already works, which is worse than one that reports downward.
+ *
+ * 174, once four dedicated per-screen modules join what the classifier reads (see the
+ * comment on `appSourceWithoutInventories` above). This pass also wired the endpoints
+ * screen's Display name / caller ID number fields (extensions.ts) and the trunks screen's
+ * whole Advanced/T.38/Identity-trust group (trunk-advanced.ts) and Feature codes' two Save
+ * actions (feature-codes.ts): fifteen real controls that were reported as new orphans by a
+ * classifier that had never read the files they are consumed in, on a checkout that had
+ * separately dropped four pre-existing orphans from unrelated parallel work.
  */
-const ORPHAN_CEILING = 178;
+const ORPHAN_CEILING = 174;
 const TOTAL_CONTROLS = 580;
 
 function classify() {

@@ -9,29 +9,41 @@
  * comment near CONSOLE_SETTINGS): a user can turn toasts or sound off and the
  * console honours it.
  *
- * Two real gaps found by reading the render position and state shape rather than
- * trusting a summary:
+ * One of the two gaps once found by reading the render position and state shape
+ * rather than trusting a summary is now fixed, and one remains:
  *
- *   1. `toast()` renders at `left:50%; bottom:24px; transform:translateX(-50%)` --
- *      bottom-CENTRE, not the bottom-left or bottom-right corner the canonical
- *      contract requires.
- *   2. `toastOpen`/`toastText` are single scalar state fields, not a list, so a
- *      second `toast()` while one is showing replaces it -- no stacking.
+ *   1. FIXED 2026-08-26: `toast()` used to render at `left:50%; bottom:24px;
+ *      transform:translateX(-50%)` -- bottom-CENTRE, not the bottom-left or
+ *      bottom-right corner the canonical contract requires. It now renders at
+ *      `right:24px; bottom:24px`, the bottom-right corner.
+ *   2. STILL OPEN: `toastOpen`/`toastText` are single scalar state fields, not a
+ *      list, so a second `toast()` while one is showing replaces it -- no
+ *      stacking. Left open rather than attempted alongside the anchor fix
+ *      because the shell's `undoToast` is written against exactly one toast at
+ *      a time: it reverts "the most recent commit" whenever the toast currently
+ *      on screen is the one that commit raised (see `undo-toast.ts`'s own
+ *      docstring), and a real stack needs that identity threaded per-toast --
+ *      which commit each visible toast's Undo button reverts, not merely which
+ *      commit was most recent -- rather than a corner reposition alone.
  *
- * A THIRD finding, and the one worth stating loudest because the implementation
- * registry's note gets it backwards: a "Notification centre" screen destination
+ * A THIRD finding, FIXED 2026-08-26: a "Notification centre" screen destination
  * genuinely EXISTS in the compiled design (rail 'app', title 'Notification
  * centre', a table of Source/Message/When/State, a 'Mark all read' action, and a
- * Delivery settings group with nt_toast/nt_sound/nt_levels/nt_quiet/nt_keep).
- * The registry note claims "there is no reviewable notification centre or
- * history for dismissed notifications" -- that is the wrong description of the
- * gap. The screen is real and reachable; what is missing is any live consumer:
- * App.tsx never overrides the 'notifications' screen's data, so the table's four
- * rows are the design's own hardcoded literals, permanently, regardless of what
- * fire()/toast() actually raised. This is the exact "decorative-looking UI must
- * be functional" failure this project has shipped before -- a control that reads
- * as working and changes nothing real. App.tsx's own comment beside
- * CONSOLE_SETTINGS says as much: nt_levels has no per-toast severity to filter
+ * Delivery settings group with nt_toast/nt_sound/nt_levels/nt_quiet/nt_keep), and
+ * it now has a real live consumer. `narratedFire` and `gatedToast` -- the two
+ * chokepoints every `fire()`/`toast()` call in this console already passes
+ * through -- each record their message into `this.notificationHistory`, newest
+ * first, and `applyRows` overrides the 'notifications' screen's table with
+ * `notificationRows()` built from that real history rather than the design's
+ * four hardcoded sample rows. "Mark all read" reaches a real handler,
+ * `onMarkAllNotificationsRead`, through the same generic table-add dispatch
+ * `onAddServer`/`onAddAclRule`/`onAddApiUser` already use for their own screens.
+ * `Source` reports honestly which of the two primitives raised each entry --
+ * 'notice' for `fire`, 'toast' for `toast` -- rather than inventing a specific
+ * subsystem (pjsip, sync, ops...) the way the design's own sample rows did,
+ * since neither primitive carries a real per-subsystem tag today. App.tsx's own
+ * comment beside CONSOLE_SETTINGS still says as much: nt_levels has no per-toast
+ * severity to filter
  * by, nt_quiet has no configured quiet-hours window, and nt_keep describes a
  * history this console does not implement yet.
  */
@@ -68,14 +80,14 @@ test('toast() sets a real, self-clearing timeout, distinct from fire()', () => {
     'toast() no longer matches the expected auto-dismissing shape');
 });
 
-test('the rendered toast is anchored bottom-CENTRE, not a screen corner -- a real gap against the canonical contract', () => {
+test('the rendered toast is anchored bottom-RIGHT, matching the canonical corner contract', () => {
   const src = read(GENERATED);
   const toastBlock = src.match(/v\.toastOpen \? h\("div", \{ style: sty\(`([^`]+)`\)/);
   assert.ok(toastBlock, 'expected to find the toast render block by its v.toastOpen guard');
-  assert.match(toastBlock[1], /left:50%/u, 'the toast style no longer centres horizontally -- re-check whether the anchor gap is fixed');
-  assert.match(toastBlock[1], /transform:translateX\(-50%\)/u, 'the toast style no longer re-centres itself -- re-check the anchor gap');
-  assert.doesNotMatch(toastBlock[1], /\bleft:\s*24px\b|\bright:\s*24px\b/u,
-    'the toast now carries a corner-anchored left/right offset -- the anchor gap may be fixed, update this row');
+  assert.match(toastBlock[1], /\bright:\s*24px\b/u, 'the toast no longer carries a right-anchored offset -- the corner fix may have regressed');
+  assert.match(toastBlock[1], /\bbottom:\s*24px\b/u, 'the toast no longer anchors to the bottom edge');
+  assert.doesNotMatch(toastBlock[1], /left:50%/u, 'the toast centres horizontally again -- the anchor fix regressed');
+  assert.doesNotMatch(toastBlock[1], /transform:translateX\(-50%\)/u, 'the toast re-centres itself again -- the anchor fix regressed');
 });
 
 test('toast state is a single scalar pair, not a list -- there is no stacking of multiple notifications', () => {
@@ -91,12 +103,23 @@ test('a real "Notification centre" screen destination exists in the compiled des
   assert.match(src, /cols:\['Source','Message','When','State'\]/u, 'the notification table no longer carries the expected columns');
 });
 
-test('the notification table is the design\'s own hardcoded rows: App.tsx never overrides the "notifications" screen with real data', () => {
+test('FIXED 2026-08-26: the notification table is real -- App.tsx now overrides the "notifications" screen with its own recorded history', () => {
   const app = read(APP);
-  assert.doesNotMatch(app, /screen\s*===\s*'notifications'/u,
-    'App.tsx now branches on the notifications screen -- a live data feed may have been wired, which would flip this gap');
-  assert.doesNotMatch(app, /notifTable|notificationRows/u,
-    'App.tsx now names a notification table/rows override -- re-check whether the mock table is now live');
+  assert.match(app, /id === 'notifications'\s*\n\s*\?\s*this\.notificationRows\(\)/u,
+    'App.tsx no longer overrides the notifications screen rows with notificationRows() -- the mock table may have regressed');
+  assert.match(app, /private notificationHistory:/u, 'the recorded notification history field is gone');
+  assert.match(app, /recordNotification\('toast', message\)/u,
+    'gatedToast no longer records every toast into notification history');
+  assert.match(app, /recordNotification\('notice', /u,
+    'narratedFire no longer records every fired notice into notification history');
+});
+
+test('"Mark all read" reaches a real handler, wired through the same generic table-add dispatch onAddServer/onAddAclRule/onAddApiUser already use', () => {
+  const generated = read(GENERATED);
+  assert.match(generated, /s\.screen === 'notifications' && this\.onMarkAllNotificationsRead \? this\.onMarkAllNotificationsRead\(\)/u,
+    'the compiled shell no longer dispatches the notifications screen\'s add button to a real handler');
+  const app = read(APP);
+  assert.match(app, /onMarkAllNotificationsRead = \(\): void => \{/u, 'App.tsx no longer defines onMarkAllNotificationsRead');
 });
 
 test("App.tsx's own comment confirms nt_levels, nt_quiet, and nt_keep are unimplemented intentions, not live filters", () => {

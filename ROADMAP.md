@@ -76,7 +76,9 @@ to the control plane.
 - [x] **Call attestation** (`stir_shaken.conf`) — profiles, certificates, verification. Landed: a Call attestation destination for stir_shaken.conf's own `[profile]` objects, distinct from the Security screen's `[attestation]`/`[verification]` singletons -- a named profile, its endpoint behaviour and its overrides of level, signing key/certificate and x5u ACL, six controls bound to lines in the shipped sample plus `type=profile` written on save. TN objects are out of scope; the screen's own description says so.
 - [x] **Emergency-services location** (`geolocation.conf`) — a regulatory requirement in several jurisdictions. Landed: an Emergency-services location destination covering both object shapes the file has -- a named `[location]` (format, info, method, source) and a named `[profile]` (precedence, PIDF element, referenced location, routing use) -- eight controls, every one cited against the shipped sample, with `type=location`/`type=profile` written on save.
 - [x] **Handset auto-provisioning** (`phoneprov.conf`) — the deployment flow asks how many phones and has nowhere to template them. Landed: a Phone provisioning destination writing the `[general]` section's `default_profile` (what the wizard's own "How many phones?" question had nothing to feed) plus a named provisioning profile's static-file directory and MIME type. The profile's actual file list is dozens of entries in a real deployment and is edited on the target directly -- a single field here could show only one at a time, which the screen's own description says plainly is worse than no field.
-- [x] **Feature codes and parking** (`features.conf`) — transfer, park, pickup, recording keys Thirty controls bound in total: fourteen against `features.conf` for transfer, pickup and recording, and sixteen against `res_parking.conf`, which is where parking actually lives -- `features.conf.sample` says so in its own fifth line, and its `[featuremap]` carries only the park trigger. Every one cites its sample line.
+- [x] **Feature codes and parking** (`features.conf`) — transfer, park, pickup, recording keys Thirty controls bound in total: fourteen against `features.conf` for transfer, pickup and recording, and sixteen against `res_parking.conf`, which is where parking actually lives -- `features.conf.sample` says so in its own fifth line, and its `[featuremap]` carries only the park trigger. Every one cites its sample line. 2026-08-26: reading was real from the start (`CONTROL_BINDINGS.fcodes` seeds the screen generically) but there was never a Save button on the screen at all, on any group, ever -- confirmed by grep. Fixed with two Save actions: `fc_save` (`fcodes-save`) writes the fourteen `features.conf` controls through `feature-codes.ts`'s own `applyControlValues`/`featuresDocument`, which preserves `[featuremap]`'s `name => sequence` list shape rather than treating it as an ordinary key/value section; `fc_park_save` (`fcodes-parking-save`) writes the sixteen `res_parking.conf` controls through the generic bound-control path, read as its own file the same way the Fax screen's udptl.conf already is.
+- [x] **Endpoint caller ID** (`pjsip.conf`) — an extension's display name and outbound caller ID number had no fields anywhere on the Endpoints screen; `extensions.ts` (`parseCallerId`/`callerIdFor`/`formatCallerId`) existed, complete and tested, with nothing on screen ever calling it. 2026-08-26: two text fields (`e_displayname`, `e_calleridnum`) added to the Identity group; `endpoint-edit.ts`'s `controlValuesFor`/`applyControlValues` now import and use `parseCallerId`/`callerIdFor` to seed and compose the one `callerid=` key from the two fields, gated so an untouched pair never overwrites an existing value with nothing.
+- [x] **Advanced trunk settings** (`pjsip.conf`) — `trunk-advanced.ts` existed, complete and tested (send_connected_line, contact_user, from_domain, from_user, media_address, the T.38 group, and outbound identity trust/RPID/Diversion -- thirteen controls total), with no group on the Trunks screen and no Save action at all. 2026-08-26: three new groups (Advanced, T.38 fax, Identity trust & routing) added to the Trunks screen with all thirteen controls plus a Save button (`tk_save`, action `trunk-advanced-save`); picking a trunk row now seeds these alongside the existing endpoint controls, since a PJSIP trunk is the same pjsip.conf endpoint `endpoint-edit.ts` already writes. Saving surfaces `trunk-advanced.ts`'s own post-write warnings (T.38 keys set while T.38 is off; Remote-Party-ID sent without trusted outbound identity) after a real write, never instead of one.
 - [x] **Shared line appearances** (`sla.conf`). Landed: a Shared line appearances destination with a Trunk group and a Station group, each a named `[section]` picked and loaded by name the same way `res_odbc.conf`'s connections already are, plus add/remove for a station's own repeated `trunk=` assignment list.
 - [x] **IAX2 trunking** (`iax.conf`) — currently only illustrative rows, which is worse than absence because it reads as configurable. Landed: an IAX peers destination writing iax.conf through the transaction, replacing the illustrative rows.
 - [ ] **Configuration backup, restore and diff** across the whole tree — no safe whole-config recovery exists.
@@ -270,9 +272,25 @@ this repository keeps repeating, because it produces no error and no failing tes
       (a separate, JS-driven title-bar menu overflow below that floor, unreachable in the
       shipped app) and `console/tests/contracts/responsive-sizing.test.mjs`, which still asserts
       the old absence and needs updating to match.
-- [ ] **Anchor notifications in a corner and let them stack.** Toasts currently appear
-      bottom-centre and do not stack, and the Notification centre screen renders the fixed rows
-      that came from the design rather than a reviewable history of what was actually raised.
+- [ ] **Anchor notifications in a corner and let them stack.** Two of three fixed 2026-08-26,
+      one still open:
+      - The toast now renders bottom-RIGHT (`right:24px; bottom:24px` in the design's toast
+        block, `design/Asterisk Console M3.dc.html`), not bottom-centre.
+      - The Notification centre screen is real: `narratedFire`/`gatedToast` (App.tsx), the two
+        chokepoints every `fire()`/`toast()` call already passes through, each record into
+        `this.notificationHistory`, and `applyRows` renders that real history as the table's
+        rows -- newest first, `Source` honestly reporting `notice`/`toast` rather than inventing
+        a subsystem neither primitive tags -- instead of the design's four hardcoded sample
+        rows. "Mark all read" reaches a real handler, `onMarkAllNotificationsRead`, through the
+        same generic table-add dispatch `onAddServer`/`onAddAclRule`/`onAddApiUser` already use.
+      - **Still open: stacking.** `toastOpen`/`toastText` are still single scalar state fields,
+        so a second `toast()` while one is showing still replaces it rather than queuing beside
+        it. Left open rather than attempted alongside the other two, because the shell's own
+        `undoToast` is written against exactly one visible toast: it reverts "the most recent
+        commit" whenever the toast on screen is the one that commit raised (`undo-toast.ts`).
+        A real stack needs that identity threaded per-toast -- which commit each visible toast's
+        own Undo button reverts, not merely which commit was most recent -- which is a real
+        state-shape change, not a corner reposition.
 - [ ] **Import the six finished modules nothing imports.** Two are genuinely reached now;
       four remain blocked on something real, precisely enough to act on:
       - [x] **Bounded overlays.** `App.tsx` shadows the compiled shell's own `setState`
@@ -321,11 +339,19 @@ this repository keeps repeating, because it produces no error and no failing tes
             keeps target-side backup handles, not a local git repository to mirror. Wiring the
             module to that switch would make an app-owned control claim an action it cannot
             perform.
-      - [ ] **Status hub.** No HTTP transport exists anywhere in the app (confirmed by grep) and
-            the "Status hub" screen (`console/app/renderer/src/generated/console.tsx`, the `hub:{…}`
-            entry) is entirely hardcoded sample rows with no `hub.*` control-plane action behind
-            it at all -- no configured host, no session key, nothing to send the module's own
-            validated payload to.
+      - [x] **Status hub.** 2026-08-26: reached for the one thing it can genuinely do without a
+            network transport -- build and validate a report about *this* window's own state,
+            locally. The Status hub screen's "Record this session" button
+            (`ctl('b_build', ...)`, action `hub-report-build`) reaches `App.tsx`'s
+            `onBuildHubSession`, which builds a `SessionReport` from `this.configs` (one lane per
+            config screen this run has tried to read, `passed`/`failed` with real evidence, never
+            invented), runs it through `validateReport`, and stores the `buildPayload` result in
+            `this.hubSessions`; `applyRows` renders that real history as the table's rows,
+            replacing the design's three hardcoded sample sessions. Still no HTTP transport
+            exists anywhere in the app -- nothing here is ever sent anywhere, and the button and
+            `agent-rail.ts`'s `hubNote` both say so plainly. Real remote consumption still needs
+            everything the paragraph above described: a configured host, a session key, and an
+            `hub.*` control-plane action to carry the validated payload to it.
 - [x] **Correct the implementation registry where its notes are now false.** It still records that
       per-element locks have no one-time-code option and no documented context-menu command; both
       shipped. Their real gap is that credentials sit in plain state rather than the operating

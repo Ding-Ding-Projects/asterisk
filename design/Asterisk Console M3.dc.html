@@ -2030,7 +2030,7 @@
   </sc-if>
 
   <sc-if value="{{ toastOpen }}">
-    <div style="position:absolute; left:50%; bottom:24px; transform:translateX(-50%); display:flex; align-items:center; gap:16px; background:#E4E9E0; color:#1A1C19; border-radius:12px; padding:12px 16px 12px 20px; box-shadow:0 6px 20px rgba(0,0,0,.5); z-index:85; animation:m3Slide .26s cubic-bezier(.2,1.3,.4,1);">
+    <div style="position:absolute; right:24px; bottom:24px; display:flex; align-items:center; gap:16px; background:#E4E9E0; color:#1A1C19; border-radius:12px; padding:12px 16px 12px 20px; box-shadow:0 6px 20px rgba(0,0,0,.5); z-index:85; animation:m3Slide .26s cubic-bezier(.2,1.3,.4,1);">
       <span style="font-size:13.5px;">{{ toastText }}</span>
       <button onClick="{{ undoToast }}" style="background:transparent; border:0; color:#146B41; font:inherit; font-size:13.5px; font-weight:500; cursor:pointer; padding:4px 8px; border-radius:8px;">Undo</button>
     </div>
@@ -2057,7 +2057,9 @@ function pjsipCtls() {
     { title:'Identity', desc:'Who this endpoint claims to be on the wire, and what the far end is allowed to present back.', ctls:[
       ctl('e_transport','Transport','select','transport-udp',{ options:['transport-udp','transport-tcp','transport-tls','transport-wss'], info:'A transport is the road the signalling travels on. UDP is the plain road, TLS is the same road inside an armoured tunnel.' }),
       ctl('e_context','Dialplan context','select','from-internal',{ options:['from-internal','from-external','from-trunk','sip-guest'], info:'When this endpoint dials, Asterisk looks for the number inside this context. Think of it as which phone book gets opened.' }),
-      ctl('e_trust','Trust inbound identity','switch',false,{ info:'Only turn this on for carriers you control. It tells Asterisk to believe P-Asserted-Identity headers the other side sends.' })
+      ctl('e_trust','Trust inbound identity','switch',false,{ info:'Only turn this on for carriers you control. It tells Asterisk to believe P-Asserted-Identity headers the other side sends.' }),
+      ctl('e_displayname','Display name','text','',{ placeholder:'Ada Deng', info:'pjsip.conf.sample line 659: half of callerid -- \'My Name <8005551212>\' (line 597\'s own example). Composed with the caller ID number below into one callerid= line; left blank with a number below, only the number is written.' }),  // line 659
+      ctl('e_calleridnum','Outbound caller ID number','text','',{ placeholder:'1001', info:'The other half of callerid=. Left blank while a display name above is set, this console sends the extension\'s own number rather than writing a name with no number a caller could see.' })  // line 659
     ]},
     { title:'Media & NAT', desc:'Every option here came out of pjsip.conf. Toggle, do not type.', ctls:[
       ctl('e_direct','direct_media','switch',false,{ info:'Off means audio goes through Asterisk. On means the two phones talk to each other directly and Asterisk steps out of the audio path.' }),
@@ -2135,6 +2137,23 @@ const SCREENS = {
     ]},{ title:'Outbound identity', desc:'How your calls appear to the carrier.', ctls:[
       ctl('t_pai','Send P-Asserted-Identity','switch',true),
       ctl('t_100rel','100rel','segmented','yes',{ options:['no','required','yes'] })
+    ]},{ title:'Advanced', desc:'pjsip.conf.sample\'s [endpoint] section options, written onto this trunk\'s own endpoint -- a PJSIP trunk is not a separate object type, it is an endpoint pointed at a provider. Two settings the same reference block sometimes asks for are deliberately absent here: user=phone and Support Path have no key in this Asterisk\'s sample, and writing one the build ignores looks like a working setting that does nothing.', ctls:[
+      ctl('tk_connectedline','send_connected_line','switch',true,{ info:'pjsip.conf.sample line 669: send_connected_line=yes -- Send Connected Line updates to this endpoint.' }),  // line 669
+      ctl('tk_contactuser','contact_user','text','',{ placeholder:'1234567890', info:'pjsip.conf.sample line 855: on outgoing requests, forces the user portion of the Contact header to this value.' }),  // line 855
+      ctl('tk_fromdomain','from_domain','text','',{ placeholder:'sip.carrier.example', info:'pjsip.conf.sample line 816: domain to use in the From header for requests to this endpoint.' }),  // line 816
+      ctl('tk_fromuser','from_user','text','',{ info:'pjsip.conf.sample line 812: username to use in the From header for requests to this endpoint.' }),  // line 812
+      ctl('tk_mediaaddr','media_address','text','',{ info:'pjsip.conf.sample line 687: IP address used in SDP for media handling.' })  // line 687
+    ]},{ title:'T.38 fax', desc:'res_pjsip_t38.conf keys on this same endpoint. t38_udptl_ec takes none, fec or redundancy -- three values, not a switch -- and each is read only while T.38 itself is on.', ctls:[
+      ctl('tk_t38','t38_udptl','switch',false,{ info:'pjsip.conf.sample line 772: whether T.38 UDPTL support is enabled.' }),  // line 772
+      ctl('tk_t38ec','t38_udptl_ec','segmented','none',{ options:['none','fec','redundancy'], info:'pjsip.conf.sample line 773: T.38 UDPTL error correction method.' }),  // line 773
+      ctl('tk_t38nat','t38_udptl_nat','switch',false,{ info:'pjsip.conf.sample line 781: whether NAT support is enabled on UDPTL sessions.' }),  // line 781
+      ctl('tk_t38mtu','t38_udptl_maxdatagram','stepper',0,{ min:0, max:4000, info:'pjsip.conf.sample line 774: T.38 UDPTL maximum datagram size.' }),  // line 774
+      ctl('tk_faxdetect','fax_detect','switch',false,{ info:'pjsip.conf.sample line 776: whether CNG tone detection is enabled.' })  // line 776
+    ]},{ title:'Identity trust & routing', desc:'Who this trunk believes, and what it forwards. Sending Remote-Party-ID while not trusting outbound identity is how a withheld caller number leaks to the carrier -- saving warns when both are set that way.', ctls:[
+      ctl('tk_trustout','trust_id_outbound','switch',false,{ info:'pjsip.conf.sample line 745: send private identification details to the endpoint.' }),  // line 745
+      ctl('tk_sendrpid','send_rpid','switch',false,{ info:'pjsip.conf.sample line 730: send the Remote-Party-ID header.' }),  // line 730
+      ctl('tk_senddiversion','send_diversion','switch',true,{ info:'pjsip.conf.sample line 727: send the Diversion header conveying the diversion.' }),  // line 727
+      ctl('tk_save','Save advanced trunk settings','segmented','Save',{ options:['Save'], action:'trunk-advanced-save', info:'Writes every field across these three groups onto the selected trunk\'s pjsip.conf endpoint. Select a trunk row first -- nothing here has anywhere to write until one is loaded.' })
     ]}] },
   trunkauth:{ rail:'pbx', icon:'handshake', label:'Trunk authentication', badge:'2', title:'Trunk authentication', file:'pjsip.conf · partner requests', kind:'trunkauth',
     sub:'When a trunk partner asks to change something on the shared link — a new source address, a codec, a higher call cap — the request lands here and you answer yes or no. Nothing takes effect until you do.',
@@ -2512,7 +2531,8 @@ const SCREENS = {
       ctl('fc_featuredigittimeout','featuredigittimeout','slider',1000,{ min:100, max:5000, step:100, unit:' ms', info:'Longest gap between digits before Asterisk stops waiting for the rest of a feature code.' }),
       ctl('fc_transferdigittimeout','transferdigittimeout','slider',3,{ min:1, max:30, unit:' s', info:'How long to wait for the transfer destination’s digits.' }),
       ctl('fc_atxfernoanswertimeout','atxfernoanswertimeout','slider',15,{ min:5, max:120, unit:' s', info:'How long to ring the attended-transfer destination before giving up.' }),
-      ctl('fc_atxferdropcall','atxferdropcall','switch',false,{ info:'When the transfer target never answers: drop the call outright, or return it to the transferrer.' })
+      ctl('fc_atxferdropcall','atxferdropcall','switch',false,{ info:'When the transfer target never answers: drop the call outright, or return it to the transferrer.' }),
+      ctl('fc_save','Save feature codes','segmented','Save',{ options:['Save'], action:'fcodes-save', info:'Writes the In-call feature map, Attended transfer and Pickup/timing groups above to features.conf on the target -- backed up first, applied through the same plan/apply transaction every other write in this console uses. The parking lot groups below write res_parking.conf separately, with their own Save.' })
     ]},
     { title:'Parking lot', desc:'res_parking.conf, not features.conf -- Asterisk carried this out of features.conf back in version 12, and this checkout\'s own sample says so on its own first line. The [default] lot every park lands in unless a channel names another.', ctls:[
       ctl('fc_parkeddynamic','Allow dynamically created lots','switch',false,{ info:'[general] in res_parking.conf, not the [default] lot below. Lets a channel spin up a new lot from a template at call time via the PARKINGDYNAMIC/PARKINGDYNCONTEXT/PARKINGDYNEXTEN/PARKINGDYNPOS channel variables.' }),
@@ -2532,7 +2552,8 @@ const SCREENS = {
       ctl('fc_parkedcallhangup','parkedcallhangup','segmented','no',{ options:['no','caller','callee','both'], info:'Whether DTMF hangup stays live once a parked call is retrieved, and for which side.' }),
       ctl('fc_comebacktoorigin','comebacktoorigin','switch',true,{ info:'On: a timed-out park rings the phone that parked it back, before falling back to comebackcontext below. Off: it goes straight to comebackcontext instead.' }),
       ctl('fc_comebackdialtime','comebackdialtime','slider',30,{ min:5, max:120, unit:' s', info:'How long to ring the original parker back before giving up, when comebacktoorigin is on.' }),
-      ctl('fc_comebackcontext','comebackcontext','text','',{ placeholder:'parkedcallstimeout', info:'Where a timed-out park lands in the dialplan when comebacktoorigin is off, or when ringing the parker back goes unanswered.' })
+      ctl('fc_comebackcontext','comebackcontext','text','',{ placeholder:'parkedcallstimeout', info:'Where a timed-out park lands in the dialplan when comebacktoorigin is off, or when ringing the parker back goes unanswered.' }),
+      ctl('fc_park_save','Save parking lot settings','segmented','Save',{ options:['Save'], action:'fcodes-parking-save', info:'Writes the two parking-lot groups above to res_parking.conf\'s [default] lot on the target -- a different file from the Save above, so it is a separate write.' })
     ]}]
   },
   codecs:{ rail:'media', icon:'graphic_eq', label:'Codecs & RTP', badge:'', title:'Codecs & RTP', file:'rtp.conf', kind:'generic',
@@ -2891,7 +2912,8 @@ const SCREENS = {
       ctl('b_poll','Reply poll interval','slider',15,{ min:5, max:300, unit:'s' }),
       ctl('b_notify','Desktop notification on reply','switch',true),
       ctl('b_close','Auto-close idle sessions','switch',false),
-      ctl('b_report','Report worktree state each run','switch',true)
+      ctl('b_report','Report worktree state each run','switch',true),
+      ctl('b_build','Record this session','segmented','Record',{ options:['Record'], action:'hub-report-build', info:'Builds a session report from this window\'s own real state -- which config screens have been read this run, and whether each succeeded -- validates it against status-hub-client.ts\'s field limits, and lists it below. Nothing here is transmitted: this console has no network client to an external status hub, so recording means building and validating the report locally.' })
     ]}] },
   vocab:{ rail:'agent', icon:'policy', label:'Vocabulary & guard', badge:'lock', title:'Vocabulary & emission guard', file:'vocabulary-dictionary.json', kind:'table',
     sub:'Terms are read from a dictionary JSON you upload from this machine. Nothing is bundled, nothing is sent anywhere, and the table stays empty until you load a file.',
@@ -4259,7 +4281,8 @@ class Component extends DCLogic {
         : (s.screen === 'security' && this.onAddAclRule ? this.onAddAclRule()
         : (s.screen === 'sounds' && this.onAddPromptRow ? this.onAddPromptRow()
         : (s.screen === 'ami' && this.onAddApiUser ? this.onAddApiUser()
-        : this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null }))))),
+        : (s.screen === 'notifications' && this.onMarkAllNotificationsRead ? this.onMarkAllNotificationsRead()
+        : this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null })))))),
 
       isDashboard:sc.kind === 'dashboard', isCanvas:sc.kind === 'canvas', isTable:sc.kind === 'table', isCli:sc.kind === 'cli', isMemory:sc.kind === 'memory', isDocs:sc.kind === 'docs', isChangelog:sc.kind === 'changelog',
       // Additive, not kind-exclusive: codecs (kind:'generic') and endpoints (kind:'table')

@@ -252,8 +252,8 @@ function measure() {
  * Security screen's own "Add a rule" form). All nineteen work, read back the same way
  * every number above it was. */
 
-const WORKING_FLOOR = 491;
-const TELEPHONY_TOTAL = 492;
+const WORKING_FLOOR = 509;
+const TELEPHONY_TOTAL = 510;
 
 test('an action-delivered control is recognised even though its id never appears as a quoted literal', () => {
   for (const id of [
@@ -310,7 +310,7 @@ test('the floor is raised when the number rises, so it cannot go stale', () => {
    * ad_greeting is the one deliberately unwired control on this whole console, left that
    * way because adsi.conf repeats a bare "greeting =>" line once per line of the welcome
    * message and nothing here can express an ordered, unlimited, free-text list. So the
-   * gap here is exactly WORKING_FLOOR to TELEPHONY_TOTAL (333 to 334), never more: a
+   * gap here is exactly WORKING_FLOOR to TELEPHONY_TOTAL, never more: a
    * second gap would mean some OTHER control was added without being wired, or one that
    * used to work stopped. */
   assert.equal(working, WORKING_FLOOR,

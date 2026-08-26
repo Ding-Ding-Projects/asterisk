@@ -56,11 +56,8 @@ export const AGENT_RAIL_SOURCES: Readonly<Record<string, AgentRailSource>> = {
       + 'describe no installed skill because there is none.',
   },
   hub: {
-    kind: 'no-store',
-    reason:
-      'No status-hub session has been opened, because nothing in this console opens one: the hub client module '
-      + 'exists and is covered by its own tests, and no surface a person can reach calls it. Until that changes '
-      + 'there is no session, no question and no reply state to list here.',
+    kind: 'wired',
+    reason: '',
   },
   vocab: {
     kind: 'withheld',
@@ -146,4 +143,32 @@ export function vocabularyNote(replacementCount: number): string {
     ? `A dictionary is loaded on this machine and ${replacementCount} replacement${replacementCount === 1 ? ' is' : 's are'} being applied to the interface.`
     : 'No dictionary is loaded, so the interface is showing its original wording.';
   return `${loaded} ${AGENT_RAIL_SOURCES.vocab.reason}`;
+}
+
+/**
+ * What the Status hub screen says about the table above it.
+ *
+ * "Open session" builds a real `status-hub-client.ts` report from this window's own
+ * state -- which config screens have been read this run, and whether each succeeded --
+ * validates it, and lists the result as a row below. Takes the count rather than the
+ * report handle for the same reason `vocabularyNote` takes a count instead of the
+ * storage: this module stays pure, and nothing routed through it can carry a lane's
+ * evidence text into a place this console's own emission rules were not written to check.
+ *
+ * Nothing here is a claim about a network transport: this build has no HTTP client to an
+ * external status hub, so "recording" a session means building and validating the report
+ * locally, never transmitting it. Saying so is the honest floor `AGENT_RAIL_SOURCES.hub`
+ * used to state directly, before there was a button to press at all.
+ */
+export function hubNote(sessionCount: number): string {
+  if (sessionCount === 0) {
+    return 'No session has been recorded yet. "Open session" below builds one from this window’s own state '
+      + '-- validated against status-hub-client.ts’s field limits -- and lists it here. This console has no '
+      + 'network client to an external status hub, so recording a session means building and validating the '
+      + 'report locally; nothing here is ever transmitted anywhere.';
+  }
+  const plural = sessionCount === 1 ? '' : 's';
+  return `${sessionCount} session${plural} recorded locally this run, each built from this window’s own real `
+    + 'state and validated before being listed. Nothing here is transmitted anywhere: this build has no network '
+    + 'client to an external status hub.';
 }
