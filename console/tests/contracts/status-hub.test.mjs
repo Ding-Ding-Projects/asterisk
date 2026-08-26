@@ -10,11 +10,14 @@
  * resynchronises and reports the gap rather than retrying forever or silently
  * skipping when a reply cursor is older than the hub.
  *
- * NOTHING IMPORTS IT YET: no surface in the renderer calls any of these
- * functions, confirmed by grepping App.tsx for an import of the module and
- * finding none. The module is real; it constrains nothing that ships. It is
- * blocked on the transport and a hub to report to -- no privileged HTTP client,
- * no configured hub address, no session key exist yet.
+ * IMPORTED SINCE 2026-08-26: the Status hub screen's own "Record this session"
+ * button (App.tsx `onBuildHubSession`) builds a real `SessionReport` from this
+ * window's own state -- one lane per config screen this run has tried to read
+ * -- validates it with `validateReport`, and lists the truncated `buildPayload`
+ * result as a row on the screen. It is still blocked on the network transport:
+ * this console has no privileged HTTP client, no configured hub address and no
+ * session key, so nothing built here is ever transmitted anywhere -- the button
+ * and the screen both say so plainly. Real remote consumption is future work.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -36,14 +39,32 @@ test('the registry row is internally honest: a defined state with a note explain
   assert.ok(['implemented', 'partial', 'absent'].includes(row.state), `undefined state "${row.state}"`);
   assert.ok(typeof row.note === 'string' && row.note.length > 40, 'no note explaining what is and is not wired');
   if (row.state === 'partial') {
-    assert.ok(typeof row.blockedBy === 'string' && row.blockedBy.length > 20, 'a partial row should record what it is blocked on');
+    /* implementation-blockers.test.mjs's "a blocked row does not also claim a consumer" rule
+     * forbids `blockedBy` on a row a real App.tsx import consumes -- which this one now is,
+     * since 2026-08-26's "Record this session" button. A row can therefore be genuinely
+     * partial (some real capability shipped, another genuinely missing) with the remaining
+     * gap folded into `note` instead of `blockedBy`; either is an honest record of what is
+     * not done, and the module-specific test below only cares that one of them exists. */
+    const explainsWhatRemains = (typeof row.blockedBy === 'string' && row.blockedBy.length > 20)
+      || row.note.length > 200;
+    assert.ok(explainsWhatRemains, 'a partial row should record what it is blocked on, in blockedBy or in note');
   }
 });
 
-test('nothing in App.tsx imports status-hub-client.ts -- it constrains nothing that ships today', () => {
+test('App.tsx imports status-hub-client.ts and calls its validated report/payload path', () => {
   const app = read(APP);
-  assert.doesNotMatch(app, /from '\.\/status-hub-client'/u,
-    'App.tsx now imports status-hub-client.ts -- the transport may have been wired, which would flip this row');
+  assert.match(app, /from '\.\/status-hub-client'/u,
+    'App.tsx no longer imports status-hub-client.ts -- the Status hub screen would have nothing real behind it');
+  assert.match(app, /validateReport\(/u, 'App.tsx no longer validates the report it builds before recording it');
+  assert.match(app, /buildPayload\(/u, 'App.tsx no longer runs the report through buildPayload before listing it');
+});
+
+test('the button that reaches it never claims a network transmission it cannot perform', () => {
+  const app = read(APP);
+  const fn = app.match(/onBuildHubSession = \(\): void => \{[\s\S]*?\n  \};/);
+  assert.ok(fn, 'expected to find onBuildHubSession in App.tsx');
+  assert.match(fn[0], /nothing was sent anywhere/iu,
+    'the handler no longer says plainly that recording a session is local-only');
 });
 
 test('validateReport refuses a lane claiming passed/failed with no evidence, and treats unrun as its own state', () => {

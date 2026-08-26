@@ -8,8 +8,11 @@ import {
   type ViewReadings,
 } from './readings';
 import {
-  AGENT_RAIL_SOURCES, isAgentRailScreen, releaseNote, releaseRows, vocabularyNote,
+  AGENT_RAIL_SOURCES, hubNote, isAgentRailScreen, releaseNote, releaseRows, vocabularyNote,
 } from './agent-rail';
+import {
+  buildPayload, validateReport, type Payload, type SessionReport,
+} from './status-hub-client';
 import { trunkAuthNote } from './trunk-auth';
 import { canvasReason, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
 import {
@@ -50,6 +53,14 @@ import { buildEndpointDraft, endpointDocument, PJSIP_RESOURCE, WIZARD_CONTROLS }
 import {
   applyControlValues, controlValuesFor, editDocument, findEndpoint, removeEndpoint,
 } from './endpoint-edit';
+import {
+  applyControlValues as applyFeatureCodeValues, controlValuesFor as featureCodeControlValuesFor,
+  featuresDocument,
+} from './feature-codes';
+import {
+  applyControlValues as applyTrunkAdvancedValues, controlValuesFor as trunkAdvancedControlValuesFor,
+  trunkDocument,
+} from './trunk-advanced';
 import {
   applyControlValues as applyIaxControlValues, controlValuesFor as iaxControlValuesFor,
   findPeer as findIaxPeer, IAX_CONTROLS, iaxDocument,
@@ -854,6 +865,42 @@ export class App extends Base {
     try { return JSON.parse(raw) as T; } catch { return fallback; }
   }
 
+  /** Every non-blocking notification this window has actually raised, newest first --
+   *  the Notification centre screen's real rows, replacing the design's four hardcoded
+   *  sample rows. Recorded at the two chokepoints every `fire()`/`toast()` call already
+   *  passes through (`narratedFire`/`gatedToast` below), so nothing here can miss one or
+   *  invent one. `source` names which of the two primitives raised it -- 'notice' for
+   *  `fire`, 'toast' for `toast` -- since neither carries a real per-subsystem tag today;
+   *  reporting a specific subsystem (pjsip, sync, ops...) the way the design's own sample
+   *  rows did would be inventing a fact nothing here actually knows. Capped so a long
+   *  session cannot grow this without bound. */
+  private static readonly NOTIFICATION_HISTORY_LIMIT = 200;
+  private notificationHistory: Array<{ source: string; message: string; when: string; read: boolean }> = [];
+
+  private recordNotification(source: 'notice' | 'toast', message: string): void {
+    const when = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    this.notificationHistory = [{ source, message, when, read: false }, ...this.notificationHistory]
+      .slice(0, App.NOTIFICATION_HISTORY_LIMIT);
+  }
+
+  /** The Notification centre table's real rows, from `this.notificationHistory`. */
+  private notificationRows(): string[][] {
+    return this.notificationHistory.map((entry) => [
+      entry.source, entry.message, entry.when, entry.read ? 'Read' : 'Unread',
+    ]);
+  }
+
+  /** The table's "Mark all read" button, wired through the generic `openWizard` dispatch
+   *  in the compiled shell exactly the way `onAddServer`/`onAddAclRule`/`onAddApiUser`
+   *  already are for their own screens. */
+  onMarkAllNotificationsRead = (): void => {
+    if (this.notificationHistory.length === 0) { this.toast('Nothing to mark read.'); return; }
+    this.notificationHistory = this.notificationHistory.map((entry) => ({ ...entry, read: true }));
+    this.applyRows('notifications');
+    this.toast('Every notification marked read.');
+    this.forceUpdate();
+  };
+
   /** `toast` carries the ambient, lower-priority notices (progress pings, "name
    *  restored to X") -- `fire`, the console's other non-blocking surface, carries the
    *  ones a person actually has to see: failures and the outcome of something
@@ -861,6 +908,7 @@ export class App extends Base {
    *  person" therefore quiets this one and leaves `fire` alone, rather than silencing
    *  every notification in the app regardless of what it is telling somebody. */
   private gatedToast = (message: string): void => {
+    this.recordNotification('toast', message);
     if (this.consoleSetting<boolean>('nt_toast', true) === false) return;
     if (this.attentionPresentation().quietNotifications) return;
 
@@ -2691,6 +2739,7 @@ What you can do: ${offered}.` : ''}`);
   private narratedFire = (title: string, body: string, isError = false): void => {
     const styled = styledDialog(this.messageStorage, this.currentCopyLanguage(), classifyDialogKind(title), title, body);
     this.narrator.enqueue('notification', styled.body ? `${styled.heading}. ${styled.body}` : styled.heading, { isError });
+    this.recordNotification('notice', styled.body ? `${styled.heading}: ${styled.body}` : styled.heading);
     this.baseFire(styled.heading, styled.body);
   };
 
@@ -3226,6 +3275,10 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'security-transport-save') { void this.onSaveTransportTls(); return; }
     if (action === 'security-stir-save') { void this.onSaveStirShaken(); return; }
     if (action === 'httpd-save') { void this.onSaveHttp(); return; }
+    if (action === 'hub-report-build') { this.onBuildHubSession(); return; }
+    if (action === 'trunk-advanced-save') { void this.onSaveTrunkAdvanced(); return; }
+    if (action === 'fcodes-save') { void this.onSaveFeatureCodes(); return; }
+    if (action === 'fcodes-parking-save') { void this.onSaveFeatureCodesParking(); return; }
     if (action === 'iaxpeers-save') { void this.onSaveIaxPeer(); return; }
     if (action === 'dahdi-save-general') { void this.onSaveDahdiGeneral(); return; }
     if (action === 'dahdi-add-channel') { void this.onDahdiAddChannel(); return; }
@@ -3510,7 +3563,14 @@ What you can do: ${offered}.` : ''}`);
     if (!endpoint) { this.fire('Not loaded', `${name} is not in this target's pjsip.conf.`); return; }
     this.editingEndpoint = name;
     const state = this.state as { values: Record<string, unknown> };
-    this.setState({ values: { ...state.values, ...controlValuesFor(endpoint) } } as never);
+    /* A PJSIP trunk is not a separate object type -- it is this same endpoint, so the
+     * trunks screen's own tk_* advanced controls (trunk-advanced.ts) are seeded here
+     * too, alongside endpoint-edit.ts's e_* ones. The two control-id sets are disjoint,
+     * so merging both costs nothing on the endpoints screen, which simply never renders
+     * the tk_* group. */
+    this.setState({
+      values: { ...state.values, ...controlValuesFor(endpoint), ...trunkAdvancedControlValuesFor(endpoint) },
+    } as never);
     this.toast(`${name} loaded into the editor below.`);
   };
 
@@ -3837,6 +3897,21 @@ What you can do: ${offered}.` : ''}`);
     if ('error' in edit) { this.fire('Not saved', edit.error); return; }
     if (edit.summary.length === 0) { this.toast('Nothing changed, so nothing was written.'); return; }
     await this.writePjsip(editDocument(edit, PJSIP_RESOURCE), edit.summary, `${this.editingEndpoint} updated`);
+  };
+
+  /** Writes the Trunks screen's advanced group (trunk-advanced.ts) onto the same pjsip.conf
+   *  endpoint `onSaveEndpoint` above writes -- a PJSIP trunk is not a separate object type.
+   *  Warnings (T.38 keys set while T.38 itself is off; Remote-Party-ID sent without trusted
+   *  outbound identity) are shown after a real write, never instead of one: they describe
+   *  what the file now says, not a reason to refuse saving it. */
+  onSaveTrunkAdvanced = async (): Promise<void> => {
+    const value = this.pjsipValue();
+    if (!value || !this.editingEndpoint) { this.fire('Nothing to save', 'Select a trunk first.'); return; }
+    const edit = applyTrunkAdvancedValues(value, this.editingEndpoint, (this.state as { values: Record<string, unknown> }).values);
+    if ('error' in edit) { this.fire('Not saved', edit.error); return; }
+    if (edit.summary.length === 0) { this.toast('Nothing changed, so nothing was written.'); return; }
+    const wrote = await this.writePjsip(trunkDocument(edit, PJSIP_RESOURCE), edit.summary, `${this.editingEndpoint} advanced settings updated`);
+    if (wrote && edit.warnings.length > 0) this.fire('Written, with a caveat', edit.warnings.join('\n'));
   };
 
   /** Removes the loaded endpoint, meaning all three of its sections. */
@@ -4193,6 +4268,30 @@ It is shown once. The phone needs it to register.`);
       }
     }
 
+    /* The Feature codes screen's two parking-lot groups (fc_park* / fc_comeback*) live in
+     * res_parking.conf's [default] lot, not features.conf -- this screen's own declared
+     * `file` and already covered by the generic per-screen block above. Same shape as the
+     * Fax screen's udptl.conf read just above. */
+    if (screen === 'fcodes') {
+      if ((!this.configs.parking || this.configs.parking.state === 'unavailable')
+          && !this.extraConfigPending.has('res_parking.conf') && mayStartRead('config:fcodes-parking')) {
+        this.extraConfigPending.add('res_parking.conf');
+        const resource = resourceForFile('res_parking.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('res_parking.conf');
+        this.configs.parking = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if (this.configs.parking?.state === 'read' && !this.seeded.has('fcodes-parking')) {
+        const state = this.state as { values: Record<string, unknown> };
+        const bound = readControlValues('fcodes', [], { 'res_parking.conf': this.configs.parking.value ?? [] });
+        if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
+        this.seeded.add('fcodes-parking');
+      }
+    }
+
     /* The Logger screen's own declared `file` is logger.conf, read by the generic block
      * above. Its verbosity control (g_verbose) lives in asterisk.conf instead -- there is
      * no logger.conf key for it at all -- and the Codecs screen's transcoding switch
@@ -4321,7 +4420,11 @@ It is shown once. The phone needs it to register.`);
             ? promptRows(this.promptFiles)
             : id === 'ops'
               ? this.releaseRows()
-              : rowsFor(screen, this.readings[screen]);
+              : id === 'hub'
+                ? this.hubRows()
+                : id === 'notifications'
+                  ? this.notificationRows()
+                  : rowsFor(screen, this.readings[screen]);
     }
   }
 
@@ -4997,6 +5100,61 @@ It is shown once. The phone needs it to register.`);
       'udptl.conf updated on the target.',
       'T.38/UDPTL transport settings saved',
       () => { delete this.configs.udptl; this.seeded.delete('fax-udptl'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Feature codes screen
+
+  /** The Feature codes screen's two parking-lot groups -- everything below this line lives
+   *  in res_parking.conf, not features.conf, and is written separately by
+   *  `onSaveFeatureCodesParking` below through the generic bound-control path, since
+   *  feature-codes.ts (used for the features.conf half above it) deliberately does not
+   *  reach into a different file. */
+  private static readonly FCODES_PARKING_CONTROLS = [
+    'fc_parkeddynamic', 'fc_parkext', 'fc_parkext_exclusive', 'fc_parkpos', 'fc_parkcontext',
+    'fc_parkingtime', 'fc_findslot', 'fc_parkedmusicclass', 'fc_courtesytone', 'fc_parkedplay',
+    'fc_parkedcalltransfers', 'fc_parkedcallreparking', 'fc_parkedcallhangup', 'fc_comebacktoorigin',
+    'fc_comebackdialtime', 'fc_comebackcontext',
+  ] as const;
+
+  /** "Save feature codes": the In-call feature map, Attended transfer and Pickup/timing
+   *  groups, written through feature-codes.ts rather than the generic bound-control table
+   *  -- `[featuremap]` is a list of `name => sequence` lines whose order and repeats the
+   *  parser preserves, which the generic table (built for ordinary key/value sections)
+   *  does not model; feature-codes.ts exists specifically to get that right. */
+  onSaveFeatureCodes = async (): Promise<void> => {
+    const current = this.configs.fcodes?.state === 'read' ? this.configs.fcodes.value : undefined;
+    if (!current) { this.fire('Not written', 'features.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const edit = applyFeatureCodeValues(current, state.values);
+    if (edit.summary.length === 0) { this.toast('Nothing changed, so nothing was written.'); return; }
+    const document = featuresDocument(edit, this.configs.fcodes?.resource ?? (resourceForFile('features.conf') as string));
+    await this.writeConfigResource(
+      document.resource,
+      document.value,
+      'features.conf updated on the target.',
+      'Feature codes saved',
+      () => { delete this.configs.fcodes; this.seeded.delete('fcodes'); },
+    );
+  };
+
+  /** "Save parking lot settings": the two groups below the Save above, a different file
+   *  (res_parking.conf) written through the same generic bound-control path every other
+   *  single-file screen already uses -- res_parking.conf holds ordinary key/value pairs,
+   *  so there is no list-preserving concern here the way there is for [featuremap]. */
+  onSaveFeatureCodesParking = async (): Promise<void> => {
+    const current = this.configs.parking?.state === 'read' ? this.configs.parking.value : undefined;
+    if (!current) { this.fire('Not written', 'res_parking.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.FCODES_PARKING_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('fcodes', current, changes);
+    await this.writeConfigResource(
+      this.configs.parking?.resource ?? (resourceForFile('res_parking.conf') as string),
+      next,
+      'res_parking.conf updated on the target.',
+      'Parking lot settings saved',
+      () => { delete this.configs.parking; this.seeded.delete('fcodes-parking'); },
     );
   };
 
@@ -5896,15 +6054,76 @@ It is shown once. The far end needs it to register.`);
   /**
    * What an agent-rail screen says, from `agent-rail.ts`'s hand-written record.
    *
-   * Two of the seven have a real local source and read it here rather than returning a
+   * Three of the seven have a real local source and read it here rather than returning a
    * fixed sentence: Operations reports the release history actually bundled into this
-   * build, and Vocabulary reports whether a dictionary is genuinely loaded. The other five
+   * build, Vocabulary reports whether a dictionary is genuinely loaded, and Status hub
+   * reports how many session reports this window has actually recorded. The other four
    * return the exact store that does not exist.
    */
   private agentRailNote(screen: string): string {
     if (screen === 'ops') return releaseNote(this.releaseRows());
     if (screen === 'vocab') return vocabularyNote(vocabularyStatus(this.vocabStorage).replacementCount);
+    if (screen === 'hub') return hubNote(this.hubSessions.length);
     return AGENT_RAIL_SOURCES[screen].reason;
+  }
+
+  // ---------------------------------------------------------------- Status hub screen
+
+  /** Session reports recorded this run, newest first -- see `onBuildHubSession` below.
+   *  Purely in-memory: this console has no local store for these and no network client
+   *  to an external hub, so nothing here survives a relaunch, and nothing claims it does. */
+  private hubSessions: Payload[] = [];
+
+  /**
+   * Builds a `status-hub-client.ts` session report from this window's own real state and,
+   * if it validates, lists it as a row on the Status hub screen.
+   *
+   * The lanes are one per config screen this run has actually tried to read: `passed` with
+   * the resource path as evidence when the read succeeded, `failed` with the target's own
+   * reported reason when it did not. A screen never opened this run is simply absent --
+   * `unrun` would be a real state to claim and nothing here has that evidence either way,
+   * so it is left out rather than guessed at, exactly as feature-codes.ts and extensions.ts
+   * leave an untouched control out of `values` rather than implying a setting nobody set.
+   */
+  onBuildHubSession = (): void => {
+    const lanes: SessionReport['lanes'] = Object.entries(this.configs)
+      .filter((entry): entry is [string, ConfigReading] => entry[1] !== undefined)
+      .slice(0, 40)
+      .map(([screen, reading]) => ({
+        id: screen,
+        label: screen.slice(0, 80),
+        state: reading.state === 'read' ? 'passed' : 'failed',
+        evidence: [reading.state === 'read'
+          ? { label: reading.resource }
+          : { label: reading.reason ?? 'the control plane did not answer' }],
+      }));
+    const report: SessionReport = {
+      title: this.target.connected ? `${this.target.label} — this session` : 'This session — no target connected',
+      summary: `${lanes.filter((l) => l.state === 'passed').length} of ${lanes.length} configuration reads `
+        + `succeeded this run.`,
+      lanes,
+    };
+    const problems = validateReport(report);
+    if (problems.length > 0) { this.fire('Not recorded', problems.map((p) => `${p.field}: ${p.message}`).join('\n')); return; }
+    this.hubSessions = [buildPayload(report), ...this.hubSessions];
+    this.applyRows('hub');
+    this.toast('Session recorded locally -- nothing was sent anywhere.');
+    this.forceUpdate();
+  };
+
+  /** The Status hub table's real rows, from `this.hubSessions` -- never the design's
+   *  invented sample sessions. `❓s` is always 0: nothing in this console asks an open
+   *  question of an external hub, so reporting anything else would be inventing one. */
+  private hubRows(): string[][] {
+    return this.hubSessions.map((payload, index) => {
+      const failed = payload.lanes.filter((lane) => lane.state === 'failed').length;
+      return [
+        `s-${this.hubSessions.length - index}`,
+        payload.title,
+        '0',
+        failed > 0 ? `Recorded (${failed} issue${failed === 1 ? '' : 's'})` : 'Recorded',
+      ];
+    });
   }
   // ---------------------------------------------------------------- Monitoring screen (SNMP / Prometheus)
 
