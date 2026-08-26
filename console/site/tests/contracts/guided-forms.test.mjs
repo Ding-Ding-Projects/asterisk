@@ -92,18 +92,28 @@ test('every <select> on the site is either a fixed, hard-coded option list, or o
    * like history-action-filter they are filled from real per-visitor data -- the
    * speech voices this browser actually reports -- which is precisely why they cannot
    * be a fixed list in the markup, since nothing can know what is installed on a
-   * computer it has not asked. All six empty-in-markup selects are named here
-   * explicitly so a newly added select falls into neither bucket by accident. */
+   * computer it has not asked. export-everything-format joined the empty bucket on
+   * 2026-08-26 with the Export everything dialog, filled the same way as the other
+   * three format pickers -- from suitableFormats(), narrowed to the intersection
+   * across the record sets that run will actually write, since one format is chosen
+   * for all of them. All seven empty-in-markup selects are named here explicitly so a
+   * newly added select falls into neither bucket by accident. */
   assert.deepEqual(withStaticOptions.sort(),
     ['cantonese-funny', 'changelog-date-preset', 'density-mode', 'english-funny', 'language-mode',
       'narration-language', 'theme-mode']);
-  assert.deepEqual(empty.sort(), ['changelog-export-format', 'doc-export-format', 'history-action-filter',
-    'narration-voice-en', 'narration-voice-zh', 'notif-export-format']);
+  assert.deepEqual(empty.sort(), ['changelog-export-format', 'doc-export-format', 'export-everything-format',
+    'history-action-filter', 'narration-voice-en', 'narration-voice-zh', 'notif-export-format']);
 });
 
-test('the three export-format selects are populated from the fixed export-format list, never from live/user data', () => {
+test('the four export-format selects are populated from the fixed export-format list, never from live/user data', () => {
   const src = norm(read('site/app.js'));
-  for (const fn of ['updateDocumentationExport', 'updateNotificationExportFormats', 'updateChangelogExport']) {
+  /* `exportEverythingFormats` rather than its caller. The Export everything dialog
+   * keeps the suitability decision in a pure function, so the intersection across
+   * record sets can be tested without a DOM, and `updateExportEverythingFormats`
+   * only writes that answer into the select. Naming the caller here would look
+   * consistent with the other three and check nothing at all. */
+  for (const fn of ['updateDocumentationExport', 'updateNotificationExportFormats', 'updateChangelogExport',
+    'exportEverythingFormats']) {
     const start = src.indexOf(`function ${fn}(`);
     assert.ok(start !== -1, `${fn}() not found`);
     let depth = 0, i = src.indexOf('{', start);

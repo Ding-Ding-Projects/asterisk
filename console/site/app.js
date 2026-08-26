@@ -658,6 +658,22 @@
   // exact wording this page already shipped, so nothing changes for anyone who never
   // touches the sliders.
   const COPY = {
+    /* Voice moves with the slider; three facts never do. Every level says that one
+     * file is written per record set in the single format chosen, that nothing
+     * leaves this browser, and that the run names the file it is writing and the
+     * count done -- the third one is what separates a progress report from a
+     * spinner, so a level that dropped it would be describing a different feature. */
+    exportEverythingDesc:{en:[
+      'Writes one file for every record set this page holds, all in the single format you choose. Nothing leaves this browser. While it runs it names the file it is writing and how many are done, so a run stopped part-way can tell you exactly which files you already have.',
+      'Writes one file for every record set this page holds, all in the one format you choose — and nothing leaves this browser. While it runs it names the file it is writing and how many of them are done, so a run stopped part-way can still tell you exactly which files you already have.',
+      'Hands you every record set on this page, one file each, in whichever single format you pick. None of it goes anywhere near a network. It talks while it works too: which file is being written, and how many are done, so stopping half way still leaves you knowing exactly what you got.',
+      'Empties the whole page into files, one per record set, in the one format you fancy — and not a byte of it leaves this browser. It narrates as it goes: which file it is on, how many are done. Stop it half way and it tells you precisely which files you already have, rather than shrugging and letting you guess.'
+    ],zh:[
+      '呢版每一組紀錄都會寫成一個檔案，全部用你揀嗰一種格式。冇任何嘢會離開呢個瀏覽器。運行期間佢會講出而家寫緊邊個檔案、已經寫咗幾多個，所以中途停低都知道自己已經攞到邊幾個檔案。',
+      '呢版每一組紀錄都會寫成一個檔案，全部用你揀嗰一種格式 —— 而且冇任何嘢離開呢個瀏覽器。運行期間佢會講出而家寫緊邊個檔案、已經寫咗幾多個，所以中途停低都仲清楚知道自己已經攞到邊幾個。',
+      '成版嘅紀錄一組一個檔案交返畀你，用你揀嗰隻格式。全程唔會掂到網絡。做嘢嗰陣仲會出聲：而家寫緊邊個、寫咗幾多個，所以中途叫停都一樣知道自己攞咗啲乜。',
+      '成版嘢一次過倒晒出嚟做檔案，一組紀錄一個，用你鍾意嗰隻格式 —— 一個 byte 都唔會離開呢個瀏覽器。佢仲會邊做邊講：而家寫緊邊個、已經寫咗幾多個。中途叫停佢都會老老實實話你知你已經攞到邊幾個檔案，唔會聳聳膊等你自己估。'
+    ]},
     /* Voice moves with the slider; four facts never do. Every level says that the
      * comparison is on the build commit, that nothing is installed or downloaded in
      * the background, that reloading is what takes the new page, and that the check
@@ -1417,6 +1433,7 @@
     {id:'notifications-dialog',within:'.dialog-heading',glyph:'🔔'},
     {id:'history-dialog',within:'.dialog-heading',glyph:'🕘'},
     {id:'reset-confirm-dialog',within:'.dialog-heading',glyph:'⚠️'},
+    {id:'export-everything-dialog',within:'.dialog-heading',glyph:'📦'},
     {id:'notif-confirm',within:'',glyph:'⚠️'}
   ];
   // One glyph for every message box, because a message box carries arbitrary text
@@ -2375,6 +2392,351 @@
     dialog.addEventListener('close',()=>{resetConfirmFields();$('settings-reset')?.focus()});
   }
 
+  // ============================================================================
+  // Long-operation progress -- the export-everything run.
+  //
+  // The canonical contract is about one shape: an operation started from a dialog
+  // reports its own progress inside that dialog rather than spinning, because a
+  // spinner and a hang look identical from the outside. Two properties carry it,
+  // and both are here rather than one of them. The submitting control is disabled
+  // for the whole run AND the handler refuses a second entry, since a keyboard
+  // submit walks straight past a disabled button. And expensive optional work is
+  // offered as a choice, shown only where it is relevant, saying plainly what
+  // declining leaves undone.
+  //
+  // The operation this site genuinely has is exporting every record set it owns,
+  // and being honest about its size matters more than the feature does. On a
+  // browser holding four notifications it finishes in milliseconds. What makes the
+  // report worth having anyway is that the unit count has no upper bound -- the
+  // changelog gains a version every time this site is published -- so a run that is
+  // instant today is not instant forever, and a surface that only spun would have
+  // no way to say which of its files had already been written when somebody
+  // cancelled it halfway.
+  //
+  // A unit is one record set, and its conversion is a single synchronous call into
+  // the shared export engine. Cancelling therefore lands BETWEEN units and never
+  // inside one, which is exactly why a cancelled run can name the files it already
+  // wrote instead of claiming nothing happened.
+  // ============================================================================
+  const EXPORT_EVERYTHING_UNITS=[
+    {id:'settings',label:'Local settings',base:'ding-pbx-page-settings',table:'setting',optional:false},
+    {id:'destinations',label:'Destination catalogue',base:'ding-pbx-destinations',table:'destination',optional:false},
+    {id:'notifications',label:'Notification history',base:'ding-pbx-notifications',table:'notification',optional:false},
+    {id:'history',label:'Local settings history',base:'ding-pbx-local-history',table:'history',optional:false},
+    {id:'changelog',label:'Changelog',base:'ding-pbx-changelog',table:'changelog',optional:true,
+      decline:'The changelog is the only record set here with no upper bound: it gains a version every time this site is published, and it is the one that makes this run take measurable time. Leaving it out finishes sooner, and leaves every released version, its date, its categories and its commit ids out of what you take away.'}
+  ];
+
+  /**
+   * One `{setting, value}` row per leaf, dotted path, scalar value.
+   *
+   * Flat on purpose. Every one of the ten export formats here is a flat table, and
+   * handing the nested settings object straight to them would make five of them
+   * correctly report a real loss on data that did not have to be nested at all.
+   */
+  function flattenSettingRows(value,prefix){
+    const rows=[];
+    for(const[key,inner]of Object.entries(value||{})){
+      const path=prefix?`${prefix}.${key}`:key;
+      if(inner&&typeof inner==='object'&&!Array.isArray(inner)){rows.push(...flattenSettingRows(inner,path));continue}
+      rows.push({setting:path,value:Array.isArray(inner)?inner.join(', '):String(inner)});
+    }
+    return rows;
+  }
+
+  function exportEverythingRows(id){
+    switch(id){
+      /* snapshotState() has already dropped the notification array, which is this
+       * run's own third unit and would otherwise be exported twice; the uploaded
+       * personal vocabulary was never in `state` at all, so neither can arrive here
+       * by accident. */
+      case 'settings':return flattenSettingRows(snapshotState(),'');
+      /* The catalogue's icon glyph is deliberately not a column. It is chrome for a
+       * navigation rail rather than a fact about a destination, and a column of
+       * glyphs in a CSV is noise a reader has to scroll past. */
+      case 'destinations':return DESTINATIONS.map(item=>({id:item.id,name:item.name,group:item.group,article:item.article,description:item.description}));
+      case 'notifications':return state.notifications.map(item=>({id:item.id,title:item.title,body:item.body,time:new Date(item.time).toISOString()}));
+      case 'history':return historyEntries.map(item=>({id:item.id,time:new Date(item.time).toISOString(),action:item.action,summary:item.summary}));
+      case 'changelog':return changelogExportRows(parseChangelog(CHANGELOG_MARKDOWN).entries);
+      default:throw new Error(`Unknown export unit: ${id}`);
+    }
+  }
+
+  /** How many rows each unit would contribute, read before anything is written. */
+  function exportEverythingCounts(){
+    const counts={};
+    for(const unit of EXPORT_EVERYTHING_UNITS)counts[unit.id]=exportEverythingRows(unit.id).length;
+    return counts;
+  }
+
+  /**
+   * What this run would do, decided before it starts and reported before it starts.
+   *
+   * Pure, and the reason it is pure is that every sentence the dialog shows about
+   * the run -- and the bound the progress bar counts against -- comes out of here,
+   * so the plan a person reads and the work that then happens cannot disagree.
+   */
+  function planExportEverything(options){
+    const includeChangelog=Boolean(options&&options.includeChangelog);
+    const counts=(options&&options.counts)||{};
+    const included=[],skipped=[];
+    for(const unit of EXPORT_EVERYTHING_UNITS){
+      const rows=Number(counts[unit.id])||0;
+      if(rows===0){skipped.push({...unit,rows:0,reason:`${unit.label} has no rows in this browser yet, so no file is written for it.`});continue}
+      if(unit.optional&&!includeChangelog){skipped.push({...unit,rows,reason:`${unit.label} was declined. Its ${rows} rows are left out of this export.`});continue}
+      included.push({...unit,rows});
+    }
+    return {included,skipped,totalUnits:included.length,totalRows:included.reduce((sum,unit)=>sum+unit.rows,0)};
+  }
+
+  /**
+   * One format is chosen for the whole run, so the list offered is an intersection.
+   *
+   * A format that suits four record sets and damages the fifth would damage the
+   * fifth silently, since each file is written on its own and nothing afterwards
+   * compares them. With nothing included there is nothing to narrow against, so the
+   * ordinary full list is offered rather than an empty select nobody can use.
+   */
+  function exportEverythingFormats(plan){
+    if(!plan||!plan.included.length)return EXPORT_FORMATS.slice();
+    let allowed=null;
+    for(const unit of plan.included){
+      const formats=suitableFormats(exportEverythingRows(unit.id));
+      allowed=allowed===null?formats:allowed.filter(format=>formats.includes(format));
+    }
+    return allowed||[];
+  }
+
+  function summariseExportEverythingPlan(plan,format){
+    const head=plan.totalUnits===0
+      ?'Nothing would be written: every record set on this page is either empty or declined.'
+      :`${plan.totalUnits} file${plan.totalUnits===1?'':'s'} will be written as ${String(format||'').toUpperCase()}, covering ${plan.totalRows} row${plan.totalRows===1?'':'s'}: ${plan.included.map(unit=>`${unit.label} (${unit.rows})`).join(', ')}.`;
+    if(!plan.skipped.length)return head;
+    return `${head} ${plan.skipped.map(unit=>unit.reason).join(' ')}`;
+  }
+
+  /**
+   * The progress sentence. It names the unit running, the count done, and -- when a
+   * run stopped early -- the files that were already written.
+   *
+   * It sits beside the bar rather than instead of it. A bar alone is a status
+   * nobody can read out and a screen reader gets only a percentage from, so the two
+   * halves of this report say the same thing in two forms.
+   */
+  function exportEverythingProgressLine(run){
+    const written=run.written.length?` Already written: ${run.written.join(', ')}.`:' No file was written.';
+    switch(run.state){
+      case 'idle':return 'Not started. Nothing has been written.';
+      /* Two running lines rather than one, because the index and the name have to
+       * agree. A single line carrying both while a unit has just finished says
+       * "writing 3 of 5" beside the name of the record set that finished second, which
+       * is an off-by-one nobody reads as one -- it simply looks like the report naming
+       * the wrong thing. Between units there is no unit to name, so it does not name
+       * one. */
+      case 'running':return run.current
+        ?`Writing ${run.done+1} of ${run.total}: ${run.current} (${run.currentRows} rows). ${run.rowsDone} of ${run.rowsTotal} rows done.`
+        :`${run.done} of ${run.total} written, ${run.rowsDone} of ${run.rowsTotal} rows done.`;
+      case 'cancelled':return `Cancelled after ${run.done} of ${run.total}.${written}`;
+      case 'failed':return `Stopped after ${run.done} of ${run.total}: ${run.reason}.${written}`;
+      case 'done':return `Finished. ${run.done} of ${run.total} written, ${run.rowsDone} rows.${written}`;
+      default:return '';
+    }
+  }
+
+  /** Exactly which condition is unmet, or '' when the control is genuinely usable. */
+  function exportEverythingStartDisabledReason(run,plan){
+    if(run.state==='running')return 'An export is already running. Wait for it to finish, or cancel it.';
+    if(!plan||plan.totalUnits===0)return 'Nothing is selected to write: every record set on this page is either empty or declined.';
+    return '';
+  }
+
+  let exportRun={state:'idle',total:0,done:0,rowsTotal:0,rowsDone:0,current:'',currentRows:0,written:[],reason:'',cancelRequested:false,refusedReentry:0};
+
+  /**
+   * One turn of the event loop between units.
+   *
+   * This is what keeps the page answering while a run is in flight, and it is where
+   * a cancel actually lands: without it the whole run would be one synchronous
+   * block, the cancel control could never be reached, and the difference between a
+   * progress report and a freeze would be decoration.
+   */
+  function operationYield(){return new Promise(resolve=>{setTimeout(resolve,0)})}
+
+  function renderExportEverything(){
+    const start=$('export-everything-start');
+    if(!start)return;
+    const running=exportRun.state==='running';
+    const counts=exportEverythingCounts();
+    const optional=$('export-everything-changelog');
+    const plan=planExportEverything({includeChangelog:optional?optional.checked:true,counts});
+    const format=$('export-everything-format')?.value||'json';
+
+    const planLine=$('export-everything-plan');
+    if(planLine)planLine.textContent=applyVocabularyText(summariseExportEverythingPlan(plan,format));
+
+    const bar=$('export-everything-progress');
+    if(bar){
+      /* Real counts, never an indeterminate bar. `max` is the number of units this
+       * run will actually write and `value` is the number it has written; a bar
+       * with no maximum is precisely the spinner this contract refuses. */
+      bar.max=exportRun.total||plan.totalUnits||1;
+      bar.value=exportRun.done;
+    }
+    const text=$('export-everything-progress-text');
+    if(text)text.textContent=applyVocabularyText(exportEverythingProgressLine(exportRun));
+
+    const why=exportEverythingStartDisabledReason(exportRun,plan);
+    start.disabled=Boolean(why);
+    if(why)start.setAttribute('title',why);else start.removeAttribute('title');
+    const reason=$('export-everything-disabled-reason');
+    if(reason)reason.textContent=why;
+
+    const cancel=$('export-everything-cancel');
+    if(cancel){
+      cancel.disabled=!running;
+      if(running)cancel.removeAttribute('title');else cancel.setAttribute('title','There is no export running to cancel.');
+    }
+    const formatSelect=$('export-everything-format');
+    if(formatSelect)formatSelect.disabled=running;
+    if(optional)optional.disabled=running;
+
+    /* The choice is offered only where it is relevant. On a build carrying no
+     * changelog there is nothing expensive to decline, and a checkbox offering to
+     * leave out something that does not exist is a question with one answer. */
+    const optionalRow=$('export-everything-optional');
+    if(optionalRow)optionalRow.hidden=counts.changelog===0;
+    const declineLine=$('export-everything-decline');
+    if(declineLine)declineLine.textContent=counts.changelog===0
+      ?''
+      :applyVocabularyText(EXPORT_EVERYTHING_UNITS.find(unit=>unit.id==='changelog').decline);
+
+    const refused=$('export-everything-reentry');
+    if(refused)refused.textContent=exportRun.refusedReentry
+      ?`${exportRun.refusedReentry} further start request${exportRun.refusedReentry===1?' was':'s were'} refused while an export was already running.`
+      :'';
+  }
+
+  function updateExportEverythingFormats(){
+    const select=$('export-everything-format');if(!select)return;
+    const optional=$('export-everything-changelog');
+    const plan=planExportEverything({includeChangelog:optional?optional.checked:true,counts:exportEverythingCounts()});
+    const formats=exportEverythingFormats(plan),previous=select.value;
+    select.innerHTML=formats.map(format=>`<option value="${format}">${format.toUpperCase()}</option>`).join('');
+    select.value=formats.includes(previous)?previous:(formats[0]||'');
+  }
+
+  function cancelExportEverything(){
+    if(exportRun.state!=='running')return false;
+    exportRun={...exportRun,cancelRequested:true};
+    renderExportEverything();
+    return true;
+  }
+
+  async function runExportEverything(options){
+    const format=(options&&options.format)||'json';
+    const includeChangelog=Boolean(options&&options.includeChangelog);
+    if(exportRun.state==='running'){
+      /* The disabled button is the visible guard and never the real one. A keyboard
+       * submit, a second click landing in the same frame, or anything calling this
+       * directly walks straight past `disabled`, so the refusal is here as well --
+       * counted, and shown, rather than swallowed. */
+      exportRun={...exportRun,refusedReentry:exportRun.refusedReentry+1};
+      renderExportEverything();
+      return {started:false,reason:'an export is already running'};
+    }
+    const plan=planExportEverything({includeChangelog,counts:exportEverythingCounts()});
+    if(plan.totalUnits===0){
+      exportRun={...exportRun,state:'failed',total:0,done:0,rowsTotal:0,rowsDone:0,current:'',currentRows:0,written:[],reason:'nothing was selected to write',cancelRequested:false};
+      renderExportEverything();
+      return {started:false,reason:'nothing to write',plan};
+    }
+    exportRun={state:'running',total:plan.totalUnits,done:0,rowsTotal:plan.totalRows,rowsDone:0,
+      current:'',currentRows:0,written:[],reason:'',
+      cancelRequested:false,refusedReentry:exportRun.refusedReentry};
+    renderExportEverything();
+    for(const unit of plan.included){
+      if(exportRun.cancelRequested){
+        exportRun={...exportRun,state:'cancelled',current:'',currentRows:0};
+        renderExportEverything();
+        return {started:true,cancelled:true,written:exportRun.written.slice(),plan};
+      }
+      exportRun={...exportRun,current:unit.label,currentRows:unit.rows};
+      renderExportEverything();
+      /* Announce the record set, THEN give the browser a turn, THEN do the work. The
+       * other order writes the sentence and overwrites it inside one synchronous block
+       * with no paint between, so the name is never seen at all and the page appears to
+       * freeze on whatever the previous line said -- which is the exact "a spinner and
+       * a hang look identical" failure, with a sentence instead of a spinner. */
+      await operationYield();
+      /* And a cancel pressed while that line was up is honoured before the work rather
+       * than after it, since that window is precisely when somebody reads the name and
+       * decides they did not want it. */
+      if(exportRun.cancelRequested){
+        exportRun={...exportRun,state:'cancelled',current:'',currentRows:0};
+        renderExportEverything();
+        return {started:true,cancelled:true,written:exportRun.written.slice(),plan};
+      }
+      let name;
+      try{
+        const rows=exportEverythingRows(unit.id);
+        name=exportFilename(unit.base,format,'');
+        download(name,exportRows({rows,format,table:unit.table}),EXPORT_MIME[format]);
+      }catch(error){
+        /* Named, with the already-written files named beside it. A run that stopped
+         * on its fourth file has still produced three, and a report saying only
+         * "the export failed" would leave somebody deleting three good files. */
+        exportRun={...exportRun,state:'failed',current:'',currentRows:0,reason:`${unit.label} could not be written (${error.message})`};
+        renderExportEverything();
+        return {started:true,failed:true,written:exportRun.written.slice(),plan};
+      }
+      /* `current` is cleared as the count goes up, so the page never claims to be
+       * writing one record set while naming another. */
+      exportRun={...exportRun,done:exportRun.done+1,rowsDone:exportRun.rowsDone+unit.rows,
+        current:'',currentRows:0,written:[...exportRun.written,name]};
+      renderExportEverything();
+      /* The second turn of the loop, and it is not spare. Without it this render is
+       * superseded by the next unit's announcement inside the same synchronous block,
+       * so the count never paints, the between-units line becomes a branch nothing can
+       * reach, and the cancel check at the top of the loop has no window to fire in --
+       * three things that look present in the source and are unreachable in a browser.
+       * Found by planting exactly those three breaks and watching the suite stay green
+       * for all of them. */
+      await operationYield();
+    }
+    /* A cancel that arrived after the last unit was written still finishes as done:
+     * every file the plan named exists, so nothing was left out, and reporting it
+     * as cancelled would understate what the person actually has. */
+    exportRun={...exportRun,state:'done',current:'',currentRows:0};
+    renderExportEverything();
+    notify('Export finished',applyVocabularyText(`Wrote ${exportRun.done} file${exportRun.done===1?'':'s'} covering ${exportRun.rowsDone} row${exportRun.rowsDone===1?'':'s'}. Nothing left this browser.`),
+      {category:'export',en:`Export finished. ${exportRun.done} files written, and nothing left this browser.`,zh:`匯出完成，寫咗 ${exportRun.done} 個檔案，冇任何嘢離開過呢個瀏覽器。`});
+    return {started:true,written:exportRun.written.slice(),plan};
+  }
+
+  function initExportEverything(){
+    const open=$('export-everything-open');
+    if(!open)return;
+    open.addEventListener('click',()=>{
+      const dialog=$('export-everything-dialog');if(!dialog)return;
+      /* A freshly opened dialog reports nothing rather than the tail of a run that
+       * ended ten minutes ago: a leftover "Finished" line reads as this attempt
+       * having already succeeded. A run still in flight is left exactly alone. */
+      if(exportRun.state!=='running')exportRun={...exportRun,state:'idle',total:0,done:0,rowsTotal:0,rowsDone:0,current:'',currentRows:0,written:[],reason:''};
+      updateExportEverythingFormats();
+      renderExportEverything();
+      dialog.showModal();
+    });
+    $('export-everything-format')?.addEventListener('change',renderExportEverything);
+    $('export-everything-changelog')?.addEventListener('change',()=>{updateExportEverythingFormats();renderExportEverything()});
+    $('export-everything-start')?.addEventListener('click',()=>{
+      const optional=$('export-everything-changelog');
+      runExportEverything({format:$('export-everything-format')?.value||'json',includeChangelog:optional?optional.checked:true});
+    });
+    $('export-everything-cancel')?.addEventListener('click',cancelExportEverything);
+    updateExportEverythingFormats();
+    renderExportEverything();
+  }
+
   function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);el('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);el('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));el('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);if($('dialog-emojis'))$('dialog-emojis').onchange=event=>update('dialogEmojis',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState();recordHistory('attention-changed','attention.currentTask changed.')};$('settings-reset').onclick=()=>{const dialog=$('reset-confirm-dialog');if(!dialog)return;resetConfirmFields();dialog.showModal()};$('settings-export').onclick=()=>{download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state,restrictedPresentation:schoolExportSummary()},null,2));notify('Settings exported',applyVocabularyText('Exported the local settings on this page as ding-pbx-page-settings.json. Uploaded personal vocabulary was omitted.'),{category:'export',en:'Exported the local settings on this page. Uploaded personal vocabulary was omitted.',zh:'已經匯出呢版嘅本地設定，上載嘅個人詞彙冇包埋。'});};el('vocabulary-file').onchange=loadVocabulary;el('vocabulary-clear').onclick=()=>{localStorage.removeItem('ding-pbx-vocabulary-cache');el('vocabulary-file').value='';el('vocabulary-status').textContent='No file loaded; original wording is active.';applyVocabulary();applyState()};initDisplayName();initNarration();initSchool();$('logo-file').onchange=loadLogo;$('logo-clear').onclick=()=>{localStorage.removeItem('ding-pbx-logo-cache');$('logo-file').value='';$('logo-status').textContent='No file loaded; default mark is active.';applyLogo()};if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));initResetConfirm();initHistory()}
   /* One writer for every vocabulary rejection, so the rule below holds for all of them
    * rather than for whichever branch somebody remembered.
@@ -2829,6 +3191,6 @@
     sync();
   }
 
-  function init(){ensureAttentionUI();initSchoolWatch();applyState();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initUpdates();initTimeAwareness();initMomentum();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
+  function init(){ensureAttentionUI();initSchoolWatch();applyState();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initUpdates();initExportEverything();initTimeAwareness();initMomentum();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
   init();
 })();
