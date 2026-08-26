@@ -451,7 +451,8 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       if (request.action === 'backup.prune') {
         const keep = Number(request.payload?.keep ?? 30);
         const selectedPaths = Array.isArray(request.payload?.selectedPaths) ? request.payload.selectedPaths.filter((path): path is string => typeof path === 'string') : [];
-        const previewToken = typeof request.payload?.previewToken === 'string' ? request.payload.previewToken : undefined;
+        const previewToken = typeof request.payload?.previewToken === 'string' ? request.payload.previewToken : '';
+        if (!previewToken.trim()) return { ok: false, requestId: request.requestId, code: 'PRUNE_PREVIEW_TOKEN_REQUIRED', message: 'Preview the exact backup set first. A nonempty preview token is required before candidate enumeration or removal.' };
         return { ok: true, requestId: request.requestId, data: await migration.pruneBackups(keep, selectedPaths, previewToken) };
       }
       if (request.action === 'git.history.status') {

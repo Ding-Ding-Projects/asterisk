@@ -7,3 +7,5 @@ Verification for this lane is limited to design compilation, documentation bundl
 Commit link: [`c086ecca12`](https://github.com/Ding-Ding-Projects/asterisk/commit/c086ecca12), the implementation commit for this lane. The default branch integration may add a later merge commit.
 
 Safety repair link: [`9c99388ceb`](https://github.com/Ding-Ding-Projects/asterisk/commit/9c99388ceb), covering protected destinations, journaled swap recovery, strict records, detached-head bundle proof, and focused contract Chuts.
+
+Follow-up safety repair: backup deletion now requires a nonempty preview token at both the dispatch and service boundaries before any candidate enumeration or removal. The frozen preview still expires and rejects a changed selection or backup-index revision. A blank optional push URL now clears a previous custom push URL and verifies that fetch and effective push read back to the validated fetch URL. Focused disposable-repository tests exercise the actual strict JSON import boundary, pruning refusal paths, cancellation response, and remote readback.
