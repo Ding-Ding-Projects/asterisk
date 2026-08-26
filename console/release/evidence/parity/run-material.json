@@ -3,7 +3,7 @@
   "audited": 32,
   "conforming": 0,
   "nonConforming": 32,
-  "interactionRulesAudited": 57,
+  "interactionRulesAudited": 68,
   "stylesheetMotionDeclarationsAudited": 8,
   "divergencesPerCheck": {
     "typeScale": 2245,

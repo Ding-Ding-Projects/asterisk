@@ -395,7 +395,7 @@
               </div>
               <div style="max-height:460px; overflow-y:auto;">
                 <sc-for list="{{ commitRows }}" as="c" hint-placeholder-count="6">
-                  <div onClick="{{ c.pick }}" onContextMenu="{{ c.ctx }}" style="display:flex; align-items:flex-start; gap:12px; padding:11px 16px; border-top:1px solid #262B26; cursor:pointer; background:{{ c.bg }}; animation:m3Slide .28s cubic-bezier(.2,0,0,1) both;" style-hover="background:#232A24;">
+                  <div role="button" tabindex="0" onClick="{{ c.pick }}" onKeyDown="{{ c.onKeyActivate }}" onContextMenu="{{ c.ctx }}" style="display:flex; align-items:flex-start; gap:12px; padding:11px 16px; border-top:1px solid #262B26; cursor:pointer; background:{{ c.bg }}; animation:m3Slide .28s cubic-bezier(.2,0,0,1) both;" style-hover="background:#232A24;">
                     <div style="display:flex; flex-direction:column; align-items:center; padding-top:3px; flex:0 0 auto;">
                       <span style="width:11px; height:11px; border-radius:50%; background:{{ c.dot }}; border:2px solid #0F1510;"></span>
                       <span style="width:2px; flex:1; min-height:22px; background:#333B34;"></span>
@@ -947,7 +947,7 @@
                 <div style="padding:12px 16px; font-size:12px; color:#9AA39B;">{{ docsResultsLabel }}</div>
                 <div style="overflow-y:auto; flex:1;">
                   <sc-for list="{{ docsResults }}" as="r" hint-placeholder-count="8">
-                    <div onClick="{{ r.select }}" style="padding:10px 16px; border-top:1px solid #262B26; cursor:pointer; background:{{ r.bg }};" style-hover="background:#232A24;">
+                    <div role="button" tabindex="0" onClick="{{ r.select }}" onKeyDown="{{ r.onKeyActivate }}" style="padding:10px 16px; border-top:1px solid #262B26; cursor:pointer; background:{{ r.bg }};" style-hover="background:#232A24;">
                       <div style="display:flex; align-items:center; gap:8px;">
                         <span style="font-family:'Roboto Mono',monospace; font-size:10.5px; color:#82D9A5; text-transform:uppercase;">{{ r.category }}</span>
                         <span style="font-size:13px; color:#E2E9E1; font-weight:500;">{{ r.title }}</span>
@@ -983,7 +983,7 @@
                       <span>
                         <sc-for list="{{ b.spans }}" as="sp" hint-placeholder-count="2">
                           <sc-if value="{{ sp.isLink }}">
-                            <span onClick="{{ sp.onClick }}" style="color:#9FF7C4; text-decoration:underline; cursor:pointer;">{{ sp.text }}</span>
+                            <span role="button" tabindex="0" onClick="{{ sp.onClick }}" onKeyDown="{{ sp.onKeyActivate }}" style="color:#9FF7C4; text-decoration:underline; cursor:pointer;">{{ sp.text }}</span>
                           </sc-if>
                           <sc-if value="{{ sp.isPlain }}" hint-placeholder-val="{{ true }}">
                             <span>{{ sp.text }}</span>
@@ -996,7 +996,7 @@
                     <div style="margin:8px 0;">
                       <sc-for list="{{ b.spans }}" as="sp" hint-placeholder-count="3">
                         <sc-if value="{{ sp.isLink }}">
-                          <span onClick="{{ sp.onClick }}" style="color:#9FF7C4; text-decoration:underline; cursor:pointer;">{{ sp.text }}</span>
+                          <span role="button" tabindex="0" onClick="{{ sp.onClick }}" onKeyDown="{{ sp.onKeyActivate }}" style="color:#9FF7C4; text-decoration:underline; cursor:pointer;">{{ sp.text }}</span>
                         </sc-if>
                         <sc-if value="{{ sp.isPlain }}" hint-placeholder-val="{{ true }}">
                           <span>{{ sp.text }}</span>
@@ -1010,7 +1010,7 @@
                 <div style="margin-top:14px; background:#0C110D; border-radius:12px; padding:14px 16px;">
                   <div style="font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394; margin-bottom:8px;">Suggested articles</div>
                   <sc-for list="{{ docsSuggested }}" as="sg" hint-placeholder-count="4">
-                    <div onClick="{{ sg.select }}" style="display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:#9FF7C4; font-size:12.5px;" style-hover="color:#C7FFDD;"><span class="msym" style="font-size:15px;">{{ sg.icon }}</span>{{ sg.title }}</div>
+                    <div role="button" tabindex="0" onClick="{{ sg.select }}" onKeyDown="{{ sg.onKeyActivate }}" style="display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:#9FF7C4; font-size:12.5px;" style-hover="color:#C7FFDD;"><span class="msym" style="font-size:15px;">{{ sg.icon }}</span>{{ sg.title }}</div>
                   </sc-for>
                 </div>
               </sc-if>
@@ -1538,7 +1538,7 @@
       <div style="font-size:12.5px; color:#9AA39B; line-height:1.55; margin-bottom:14px;">Tap pieces to build the pattern. Each piece says what it does in plain words, and the preview underneath shows exactly what it matches right now.</div>
       <div style="display:flex; align-items:center; gap:8px; background:#0C110D; border:1px solid #333B34; border-radius:12px; padding:10px 12px;">
         <span style="font-family:'Roboto Mono',monospace; font-size:15px; color:#8FA394;">/</span>
-        <input type="text" value="{{ rxText }}" onChange="{{ onRxText }}" onInput="{{ onRxText }}" placeholder="type a pattern, or tap the pieces below" spellcheck="false" style="flex:1; background:transparent; border:0; outline:none; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:15px;" />
+        <input type="text" value="{{ rxText }}" onChange="{{ onRxText }}" onInput="{{ onRxText }}" placeholder="type a pattern, or tap the pieces below" spellcheck="false" style="flex:1; background:transparent; border:0; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:15px;" />
         <span style="font-family:'Roboto Mono',monospace; font-size:15px; color:#8FA394;">/{{ regexFlagStr }}</span>
         <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:{{ regexValidColor }};">{{ regexValid }}</span>
       </div>
@@ -1601,7 +1601,7 @@
     <div role="menu" style="position:absolute; left:{{ ctxX }}; top:{{ ctxY }}; width:274px; background:#252B25; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:79; animation:dlgCtx .14s cubic-bezier(.2,1.3,.4,1);">
       <div style="padding:8px 12px 6px; font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394; border-bottom:1px solid #333B34; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ ctxTarget }}</div>
       <sc-for list="{{ ctxItems }}" as="i" hint-placeholder-count="6">
-        <button onClick="{{ i.act }}" onMouseEnter="{{ i.hover }}" style="width:100%; display:flex; align-items:center; gap:11px; background:{{ i.bg }}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;" style-hover="background:#333B34;">
+        <button role="menuitem" onClick="{{ i.act }}" onMouseEnter="{{ i.hover }}" style="width:100%; display:flex; align-items:center; gap:11px; background:{{ i.bg }}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;" style-hover="background:#333B34;">
           <span class="msym" style="font-size:18px; color:#82D9A5;">{{ i.icon }}</span>
           <span style="flex:1;">{{ i.label }}</span>
           <span style="font-family:'Roboto Mono',monospace; font-size:10.5px; color:#778078;">{{ i.hint }}</span>
@@ -1609,9 +1609,9 @@
       </sc-for>
     </div>
     <sc-if value="{{ subOpen }}">
-      <div style="position:absolute; left:{{ subX }}; top:{{ subY }}; width:230px; background:#252B25; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:80; animation:dlgCtx .13s cubic-bezier(.2,1.3,.4,1);">
+      <div role="menu" style="position:absolute; left:{{ subX }}; top:{{ subY }}; width:230px; background:#252B25; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:80; animation:dlgCtx .13s cubic-bezier(.2,1.3,.4,1);">
         <sc-for list="{{ subItems }}" as="i" hint-placeholder-count="6">
-          <button onClick="{{ i.run }}" style="width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;" style-hover="background:#333B34;">
+          <button role="menuitem" onClick="{{ i.run }}" style="width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;" style-hover="background:#333B34;">
             <span class="msym" style="font-size:18px; color:#82D9A5;">{{ i.icon }}</span>
             <span style="flex:1;">{{ i.label }}</span>
           </button>
@@ -1678,7 +1678,7 @@
             <div style="font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394; margin-bottom:6px;">Or type it</div>
             <div style="display:flex; align-items:center; gap:8px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:9px 12px;">
               <span class="msym" style="font-size:17px; color:#82D9A5;">keyboard</span>
-              <input type="{{ pwInputType }}" value="{{ pinValue }}" onChange="{{ onPinInput }}" onInput="{{ onPinInput }}" inputmode="numeric" maxlength="6" placeholder="000000" style="flex:1; background:transparent; border:0; outline:none; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px; letter-spacing:4px;" />
+              <input type="{{ pwInputType }}" value="{{ pinValue }}" onChange="{{ onPinInput }}" onInput="{{ onPinInput }}" inputmode="numeric" maxlength="6" placeholder="000000" style="flex:1; background:transparent; border:0; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px; letter-spacing:4px;" />
               <button onClick="{{ pinReveal }}" style="width:28px; height:28px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;" style-hover="background:#262B26; color:#82D9A5;"><span class="msym" style="font-size:17px;">{{ pinEyeIcon }}</span></button>
             </div>
           </div>
@@ -1693,7 +1693,7 @@
           </div>
           <div style="display:flex; align-items:center; gap:8px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:11px 12px;">
             <span class="msym" style="font-size:17px; color:#82D9A5;">password</span>
-            <input type="{{ pwInputType }}" value="{{ pwValue }}" onChange="{{ onPwInput }}" onInput="{{ onPwInput }}" placeholder="Type a passphrase" style="flex:1; background:transparent; border:0; outline:none; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;" />
+            <input type="{{ pwInputType }}" value="{{ pwValue }}" onChange="{{ onPwInput }}" onInput="{{ onPwInput }}" placeholder="Type a passphrase" style="flex:1; background:transparent; border:0; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;" />
             <button onClick="{{ pinReveal }}" style="width:28px; height:28px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;" style-hover="background:#262B26; color:#82D9A5;"><span class="msym" style="font-size:17px;">{{ pinEyeIcon }}</span></button>
           </div>
           <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
@@ -1742,7 +1742,7 @@
         <sc-if value="{{ unlockNeedsPw }}" hint-placeholder-val="{{ true }}">
           <div style="display:flex; align-items:center; gap:8px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:11px 12px; margin-top:12px;">
             <span class="msym" style="font-size:17px; color:#82D9A5;">password</span>
-            <input type="password" value="{{ unlockPwValue }}" onChange="{{ onUnlockPw }}" onInput="{{ onUnlockPw }}" placeholder="Passphrase" style="flex:1; background:transparent; border:0; outline:none; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;" />
+            <input type="password" value="{{ unlockPwValue }}" onChange="{{ onUnlockPw }}" onInput="{{ onUnlockPw }}" placeholder="Passphrase" style="flex:1; background:transparent; border:0; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;" />
           </div>
         </sc-if>
         <sc-if value="{{ unlockNeedsTotp }}">
@@ -1926,7 +1926,7 @@
       <sc-if value="{{ tabFilterIsText }}">
       <div style="display:flex; align-items:center; gap:8px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:11px 12px; margin-top:14px;">
         <span class="msym" style="font-size:17px; color:#82D9A5;">keyboard</span>
-        <input type="text" value="{{ tabFilterText }}" onChange="{{ onTabFilterText }}" onInput="{{ onTabFilterText }}" placeholder="Text to match, e.g. queue" style="flex:1; background:transparent; border:0; outline:none; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;" />
+        <input type="text" value="{{ tabFilterText }}" onChange="{{ onTabFilterText }}" onInput="{{ onTabFilterText }}" placeholder="Text to match, e.g. queue" style="flex:1; background:transparent; border:0; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;" />
         <button onClick="{{ openTabRegex }}" title="Build a pattern instead" style="display:flex; align-items:center; gap:6px; background:#262B26; border:0; border-radius:8px; padding:6px 11px; color:#9FF7C4; font:inherit; font-size:11.5px; cursor:pointer;" style-hover="background:#005230;"><span class="msym" style="font-size:15px;">data_object</span>Regex</button>
       </div>
       </sc-if>
@@ -2007,7 +2007,7 @@
       <div style="font-size:16px; font-weight:500; margin-bottom:12px;">Rename tab</div>
       <div style="display:flex; align-items:center; gap:8px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:11px 12px;">
         <span class="msym" style="font-size:17px; color:#82D9A5;">edit</span>
-        <input type="text" value="{{ renameValue }}" onChange="{{ onRename }}" onInput="{{ onRename }}" style="flex:1; background:transparent; border:0; outline:none; color:#DFE4DC; font-size:14px;" />
+        <input type="text" value="{{ renameValue }}" onChange="{{ onRename }}" onInput="{{ onRename }}" style="flex:1; background:transparent; border:0; color:#DFE4DC; font-size:14px;" />
       </div>
       <div style="display:flex; gap:8px; margin-top:16px;">
         <button onClick="{{ cancelRename }}" style="flex:1; background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 0; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;">Cancel</button>

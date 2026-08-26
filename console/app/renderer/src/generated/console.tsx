@@ -80,7 +80,7 @@ function Template(v: any) {
         )
       ),
       h("div", { style: sty(`height:38px; flex:0 0 38px; display:flex; align-items:flex-end; gap:2px; background:#0B0F0C; padding:0 6px; overflow-x:auto;`) },
-        A(v.tabGroups).map(($g, $g$i) => R($g$i, h("div", { role: `button`, tabIndex: `0`, "aria-expanded": $g.expanded, onClick: fn($g.toggle), onKeyDown: fn($g.onKeyActivate), onContextMenu: fn($g.ctx), style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
+        A(v.tabGroups).map(($g, $g$i) => R($g$i, h("div", { role: `button`, tabIndex: `0`, "aria-expanded": $g.expanded, onClick: fn($g.toggle), onKeyDown: $g.onKeyActivate, onContextMenu: fn($g.ctx), style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
             h("span", { style: sty(`width:9px; height:9px; border-radius:50%; background:${S($g.colour)};`) }),
             h("span", { style: sty(`font-size:12px; font-weight:500; color:#DFE4DC; white-space:nowrap;`) },
               S($g.name)
@@ -92,7 +92,7 @@ function Template(v: any) {
               S($g.chevron)
             )
           ))),
-        h("div", { role: `tablist`, "aria-label": `Open tabs`, onKeyDown: fn(v.tabsKeyDown), style: sty(`display:contents;`) },
+        h("div", { role: `tablist`, "aria-label": `Open tabs`, onKeyDown: v.tabsKeyDown, style: sty(`display:contents;`) },
           A(v.tabs).map(($t, $t$i) => R($t$i, F(
             ($t.on ? h("div", { role: `tab`, id: $t.id, "aria-selected": `true`, "aria-controls": `tabpanel-content`, tabIndex: $t.tabIndex, draggable: `true`, onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`) },
                 ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
@@ -537,7 +537,7 @@ function Template(v: any) {
                     )))
                   ),
                   h("div", { style: sty(`max-height:460px; overflow-y:auto;`) },
-                    A(v.commitRows).map(($c, $c$i) => R($c$i, h("div", { onClick: fn($c.pick), onContextMenu: fn($c.ctx), style: sty(`display:flex; align-items:flex-start; gap:12px; padding:11px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($c.bg)}; animation:m3Slide .28s cubic-bezier(.2,0,0,1) both;`), className: "k-h16" },
+                    A(v.commitRows).map(($c, $c$i) => R($c$i, h("div", { role: `button`, tabIndex: `0`, onClick: fn($c.pick), onKeyDown: $c.onKeyActivate, onContextMenu: fn($c.ctx), style: sty(`display:flex; align-items:flex-start; gap:12px; padding:11px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($c.bg)}; animation:m3Slide .28s cubic-bezier(.2,0,0,1) both;`), className: "k-h16" },
                         h("div", { style: sty(`display:flex; flex-direction:column; align-items:center; padding-top:3px; flex:0 0 auto;`) },
                           h("span", { style: sty(`width:11px; height:11px; border-radius:50%; background:${S($c.dot)}; border:2px solid #0F1510;`) }),
                           h("span", { style: sty(`width:2px; flex:1; min-height:22px; background:#333B34;`) })
@@ -1375,7 +1375,7 @@ function Template(v: any) {
                       S(v.docsResultsLabel)
                     ),
                     h("div", { style: sty(`overflow-y:auto; flex:1;`) },
-                      A(v.docsResults).map(($r, $r$i) => R($r$i, h("div", { onClick: fn($r.select), style: sty(`padding:10px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($r.bg)};`), className: "k-h16" },
+                      A(v.docsResults).map(($r, $r$i) => R($r$i, h("div", { role: `button`, tabIndex: `0`, onClick: fn($r.select), onKeyDown: $r.onKeyActivate, style: sty(`padding:10px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($r.bg)};`), className: "k-h16" },
                           h("div", { style: sty(`display:flex; align-items:center; gap:8px;`) },
                             h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; color:#82D9A5; text-transform:uppercase;`) },
                               S($r.category)
@@ -1420,7 +1420,7 @@ function Template(v: any) {
                           ),
                           h("span", null,
                             A($b.spans).map(($sp, $sp$i) => R($sp$i, F(
-                              ($sp.isLink ? h("span", { onClick: fn($sp.onClick), style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
+                              ($sp.isLink ? h("span", { role: `button`, tabIndex: `0`, onClick: fn($sp.onClick), onKeyDown: $sp.onKeyActivate, style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
                                   S($sp.text)
                                 ) : null),
                               ($sp.isPlain ? h("span", null,
@@ -1431,7 +1431,7 @@ function Template(v: any) {
                         ) : null),
                       ($b.isParagraph ? h("div", { style: sty(`margin:8px 0;`) },
                           A($b.spans).map(($sp, $sp$i) => R($sp$i, F(
-                            ($sp.isLink ? h("span", { onClick: fn($sp.onClick), style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
+                            ($sp.isLink ? h("span", { role: `button`, tabIndex: `0`, onClick: fn($sp.onClick), onKeyDown: $sp.onKeyActivate, style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
                                 S($sp.text)
                               ) : null),
                             ($sp.isPlain ? h("span", null,
@@ -1445,7 +1445,7 @@ function Template(v: any) {
                       h("div", { style: sty(`font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394; margin-bottom:8px;`) },
                         "Suggested articles"
                       ),
-                      A(v.docsSuggested).map(($sg, $sg$i) => R($sg$i, h("div", { onClick: fn($sg.select), style: sty(`display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:#9FF7C4; font-size:12.5px;`), className: "k-h29" },
+                      A(v.docsSuggested).map(($sg, $sg$i) => R($sg$i, h("div", { role: `button`, tabIndex: `0`, onClick: fn($sg.select), onKeyDown: $sg.onKeyActivate, style: sty(`display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:#9FF7C4; font-size:12.5px;`), className: "k-h29" },
                           h("span", { style: sty(`font-size:15px;`), className: "msym" },
                             S($sg.icon)
                           ),
@@ -2188,7 +2188,7 @@ function Template(v: any) {
             h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:15px; color:#8FA394;`) },
               "/"
             ),
-            h("input", { type: `text`, value: v.rxText, onChange: fn(v.onRxText), onInput: fn(v.onRxText), placeholder: `type a pattern, or tap the pieces below`, spellCheck: `false`, style: sty(`flex:1; background:transparent; border:0; outline:none; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:15px;`) }),
+            h("input", { type: `text`, value: v.rxText, onChange: fn(v.onRxText), onInput: fn(v.onRxText), placeholder: `type a pattern, or tap the pieces below`, spellCheck: `false`, style: sty(`flex:1; background:transparent; border:0; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:15px;`) }),
             h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:15px; color:#8FA394;`) },
               `/${S(v.regexFlagStr)}`
             ),
@@ -2283,7 +2283,7 @@ function Template(v: any) {
           h("div", { style: sty(`padding:8px 12px 6px; font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394; border-bottom:1px solid #333B34; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
             S(v.ctxTarget)
           ),
-          A(v.ctxItems).map(($i, $i$i) => R($i$i, h("button", { onClick: fn($i.act), onMouseEnter: fn($i.hover), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:${S($i.bg)}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
+          A(v.ctxItems).map(($i, $i$i) => R($i$i, h("button", { role: `menuitem`, onClick: fn($i.act), onMouseEnter: fn($i.hover), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:${S($i.bg)}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
               h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                 S($i.icon)
               ),
@@ -2295,8 +2295,8 @@ function Template(v: any) {
               )
             )))
         ),
-        (v.subOpen ? h("div", { style: sty(`position:absolute; left:${S(v.subX)}; top:${S(v.subY)}; width:230px; background:#252B25; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:80; animation:dlgCtx .13s cubic-bezier(.2,1.3,.4,1);`) },
-            A(v.subItems).map(($i, $i$i) => R($i$i, h("button", { onClick: fn($i.run), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
+        (v.subOpen ? h("div", { role: `menu`, style: sty(`position:absolute; left:${S(v.subX)}; top:${S(v.subY)}; width:230px; background:#252B25; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:80; animation:dlgCtx .13s cubic-bezier(.2,1.3,.4,1);`) },
+            A(v.subItems).map(($i, $i$i) => R($i$i, h("button", { role: `menuitem`, onClick: fn($i.run), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
                 h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                   S($i.icon)
                 ),
@@ -2398,7 +2398,7 @@ function Template(v: any) {
                   h("span", { style: sty(`font-size:17px; color:#82D9A5;`), className: "msym" },
                     "keyboard"
                   ),
-                  h("input", { type: v.pwInputType, value: v.pinValue, onChange: fn(v.onPinInput), onInput: fn(v.onPinInput), inputMode: `numeric`, maxLength: `6`, placeholder: `000000`, style: sty(`flex:1; background:transparent; border:0; outline:none; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px; letter-spacing:4px;`) }),
+                  h("input", { type: v.pwInputType, value: v.pinValue, onChange: fn(v.onPinInput), onInput: fn(v.onPinInput), inputMode: `numeric`, maxLength: `6`, placeholder: `000000`, style: sty(`flex:1; background:transparent; border:0; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px; letter-spacing:4px;`) }),
                   h("button", { onClick: fn(v.pinReveal), style: sty(`width:28px; height:28px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h4" },
                     h("span", { style: sty(`font-size:17px;`), className: "msym" },
                       S(v.pinEyeIcon)
@@ -2418,7 +2418,7 @@ function Template(v: any) {
                 h("span", { style: sty(`font-size:17px; color:#82D9A5;`), className: "msym" },
                   "password"
                 ),
-                h("input", { type: v.pwInputType, value: v.pwValue, onChange: fn(v.onPwInput), onInput: fn(v.onPwInput), placeholder: `Type a passphrase`, style: sty(`flex:1; background:transparent; border:0; outline:none; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;`) }),
+                h("input", { type: v.pwInputType, value: v.pwValue, onChange: fn(v.onPwInput), onInput: fn(v.onPwInput), placeholder: `Type a passphrase`, style: sty(`flex:1; background:transparent; border:0; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;`) }),
                 h("button", { onClick: fn(v.pinReveal), style: sty(`width:28px; height:28px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h4" },
                   h("span", { style: sty(`font-size:17px;`), className: "msym" },
                     S(v.pinEyeIcon)
@@ -2495,7 +2495,7 @@ function Template(v: any) {
                 h("span", { style: sty(`font-size:17px; color:#82D9A5;`), className: "msym" },
                   "password"
                 ),
-                h("input", { type: `password`, value: v.unlockPwValue, onChange: fn(v.onUnlockPw), onInput: fn(v.onUnlockPw), placeholder: `Passphrase`, style: sty(`flex:1; background:transparent; border:0; outline:none; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;`) })
+                h("input", { type: `password`, value: v.unlockPwValue, onChange: fn(v.onUnlockPw), onInput: fn(v.onUnlockPw), placeholder: `Passphrase`, style: sty(`flex:1; background:transparent; border:0; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;`) })
               ) : null),
             (v.unlockNeedsTotp ? h("div", { style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:11px 12px; margin-top:8px;`) },
                 h("span", { style: sty(`font-size:17px; color:#82D9A5;`), className: "msym" },
@@ -2728,7 +2728,7 @@ function Template(v: any) {
               h("span", { style: sty(`font-size:17px; color:#82D9A5;`), className: "msym" },
                 "keyboard"
               ),
-              h("input", { type: `text`, value: v.tabFilterText, onChange: fn(v.onTabFilterText), onInput: fn(v.onTabFilterText), placeholder: `Text to match, e.g. queue`, style: sty(`flex:1; background:transparent; border:0; outline:none; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;`) }),
+              h("input", { type: `text`, value: v.tabFilterText, onChange: fn(v.onTabFilterText), onInput: fn(v.onTabFilterText), placeholder: `Text to match, e.g. queue`, style: sty(`flex:1; background:transparent; border:0; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;`) }),
               h("button", { onClick: fn(v.openTabRegex), title: `Build a pattern instead`, style: sty(`display:flex; align-items:center; gap:6px; background:#262B26; border:0; border-radius:8px; padding:6px 11px; color:#9FF7C4; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h11" },
                 h("span", { style: sty(`font-size:15px;`), className: "msym" },
                   "data_object"
@@ -2828,7 +2828,7 @@ function Template(v: any) {
             h("span", { style: sty(`font-size:17px; color:#82D9A5;`), className: "msym" },
               "edit"
             ),
-            h("input", { type: `text`, value: v.renameValue, onChange: fn(v.onRename), onInput: fn(v.onRename), style: sty(`flex:1; background:transparent; border:0; outline:none; color:#DFE4DC; font-size:14px;`) })
+            h("input", { type: `text`, value: v.renameValue, onChange: fn(v.onRename), onInput: fn(v.onRename), style: sty(`flex:1; background:transparent; border:0; color:#DFE4DC; font-size:14px;`) })
           ),
           h("div", { style: sty(`display:flex; gap:8px; margin-top:16px;`) },
             h("button", { onClick: fn(v.cancelRename), style: sty(`flex:1; background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 0; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;`) },

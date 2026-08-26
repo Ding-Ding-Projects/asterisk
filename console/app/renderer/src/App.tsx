@@ -329,6 +329,19 @@ interface Shell {
 /** The shape the compiled shell hands every control callback. */
 interface ControlRef { id?: string; label?: string; kind?: string }
 
+/** Enter or Space on a keyboard-reachable row acts exactly like a click, mirroring what
+ *  a real `<button>` already does for free. Needed wherever a list row or inline link is
+ *  rendered as a `div`/`span` carrying `role="button"` -- the version-history commit
+ *  list, the in-app documentation results and suggested-article rows, and the inline
+ *  links inside a documentation article body -- because none of those get keyboard
+ *  activation from the browser on their own. Reused rather than redefined at each call
+ *  site, so the four places that need it cannot quietly drift out of sync. */
+const activateOnEnter = (event: { key?: string; preventDefault?: () => void; currentTarget?: EventTarget | null }): void => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault?.();
+  (event.currentTarget as HTMLElement | null)?.click?.();
+};
+
 const Base = ConsoleShell as unknown as new (props: Record<string, never>) => Component<Record<string, never>> & Shell;
 
 export class App extends Base {
@@ -6839,6 +6852,7 @@ It is shown once. The far end needs it to register.`);
       pick: () => this.selectHistoryCommit(row.id),
       ctx: (e: MouseEvent) => { e.preventDefault(); this.selectHistoryCommit(row.id); },
       compare: () => this.toggleHistoryCompareRow(row.id),
+      onKeyActivate: activateOnEnter,
     }));
     const selectedCommit = entries.find((entry) => entry.id === this.historySelectedId);
     const diffActions = selectedCommit ? [
@@ -7686,7 +7700,7 @@ It is shown once. The far end needs it to register.`);
     const spansFor = (spans: readonly { text: string; href?: string }[]) => spans.map((span) => {
       const targetId = span.href && article ? resolveLink(DOCS_BUNDLE, article, span.href) : undefined;
       return targetId
-        ? { isLink: true, text: span.text, onClick: () => this.set('docsSelectedId', targetId) }
+        ? { isLink: true, text: span.text, onClick: () => this.set('docsSelectedId', targetId), onKeyActivate: activateOnEnter }
         : { isPlain: true, text: span.text };
     });
     const blockToVals = (block: DocsBlock): Record<string, unknown> => {
@@ -7710,6 +7724,7 @@ It is shown once. The far end needs it to register.`);
           icon: s.relation === 'outgoing' ? 'arrow_forward' : 'arrow_back',
           title: s.title,
           select: () => this.set('docsSelectedId', s.id),
+          onKeyActivate: activateOnEnter,
         }))
       : [];
 
@@ -7721,6 +7736,7 @@ It is shown once. The far end needs it to register.`);
         excerpt: r.excerpt,
         bg: r.id === selectedId ? '#232A24' : 'transparent',
         select: () => this.set('docsSelectedId', r.id),
+        onKeyActivate: activateOnEnter,
       })),
       docsResultsLabel: query.trim().length === 0
         ? `${results.length} article${results.length === 1 ? '' : 's'}`
