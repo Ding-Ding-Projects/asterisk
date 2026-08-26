@@ -507,6 +507,67 @@ export function parseManagerUsers(stdout: string): ManagerUsersResult {
   return { users, total };
 }
 
+/** One row of `manager show connected` -- see `parseManagerConnections` below for the
+ *  exact format string. `fileDescriptor` is the identifier `manager kick session`
+ *  actually takes; it is not the username, and it is not stable across a reconnect. */
+export interface ManagerConnection {
+  username: string;
+  ipAddress: string;
+  startEpochSeconds: number;
+  elapsedSeconds: number;
+  fileDescriptor: number;
+  httpCount: number;
+  readPerms: number;
+  writePerms: number;
+}
+
+export interface ManagerConnectionsResult {
+  connections: ManagerConnection[];
+  /** The count the target printed in its own trailer, when it printed one. */
+  total?: number;
+}
+
+/**
+ * `main/manager.c` `handle_showmanconn`: header row printed with `HSMCONN_FORMAT1`
+ * (`"  %-15.15s  %-55.55s  %-10.10s  %-10.10s  %-8.8s  %-8.8s  %-10.10s  %-10.10s\n"`)
+ * naming the columns "Username", "IP Address", "Start", "Elapsed", "FileDes", "HttpCnt",
+ * "ReadPerms", "WritePerms"; one data row per session in the same eight columns with
+ * `HSMCONN_FORMAT2` (the last six as `%d`); trailer `"%d users connected.\n"`. Columns
+ * are split on runs of two or more spaces rather than by fixed width, the same shape
+ * `parseAriUsers` below already uses, because the format string pads every field to its
+ * own width and a short value (a two-digit file descriptor, say) leaves far more than
+ * two spaces before the next column starts.
+ */
+export function parseManagerConnections(stdout: string): ManagerConnectionsResult {
+  const connections: ManagerConnection[] = [];
+  let total: number | undefined;
+  for (const line of lines(stdout)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (/^Username\s+IP Address\s+Start\s+Elapsed\s+FileDes\s+HttpCnt\s+ReadPerms\s+WritePerms$/u.test(trimmed)) continue;
+    const totalMatch = /^(\d+)\s+users connected\.?$/u.exec(trimmed);
+    if (totalMatch) {
+      total = Number.parseInt(totalMatch[1], 10);
+      continue;
+    }
+    const cols = trimmed.split(/\s{2,}/u);
+    if (cols.length !== 8) continue;
+    const [username, ipAddress, start, elapsed, fd, httpCount, readPerms, writePerms] = cols;
+    if (![start, elapsed, fd, httpCount, readPerms, writePerms].every((value) => /^-?\d+$/u.test(value))) continue;
+    connections.push({
+      username,
+      ipAddress,
+      startEpochSeconds: Number.parseInt(start, 10),
+      elapsedSeconds: Number.parseInt(elapsed, 10),
+      fileDescriptor: Number.parseInt(fd, 10),
+      httpCount: Number.parseInt(httpCount, 10),
+      readPerms: Number.parseInt(readPerms, 10),
+      writePerms: Number.parseInt(writePerms, 10),
+    });
+  }
+  return { connections, total };
+}
+
 /**
  * `res/ari/cli.c` `ari_show_apps`: `"Application Name         \n"` then a `=`
  * separator, then one registered application name per line (`"%s\n"`).
