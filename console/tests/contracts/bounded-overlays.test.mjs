@@ -52,8 +52,15 @@ test('setState is overridden so a click-opened context menu is clamped before th
   const app = read(APP);
   assert.match(app, /this\.setState = this\.boundedOverlaySetState/u,
     'App.tsx no longer shadows setState with the clamping wrapper');
-  assert.match(app, /boundedOverlaySetState = \(update: Record<string, unknown>\): void => \{/u,
-    'boundedOverlaySetState no longer exists');
+  /* Deliberately open-ended after the first parameter. This used to pin the whole list,
+   * and that made it fail on a genuine repair rather than a regression: the override was
+   * shipped taking only the update, which silently discarded React's completion callback,
+   * and adding the callback back broke this assertion. What this test is for is that the
+   * clamping wrapper is installed and reads the update -- the callback's own contract is
+   * pinned properly in tests/ui/setstate-callback-forwarded.test.mjs, so restating the
+   * exact signature here only bought a second place to break. */
+  assert.match(app, /boundedOverlaySetState = \(update: Record<string, unknown>/u,
+    'boundedOverlaySetState no longer exists, or no longer takes the state update as its first argument');
   assert.match(app, /update\.ctxX/u, 'the override no longer looks at ctxX -- the one key every context-menu open sets');
 });
 

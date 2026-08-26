@@ -685,7 +685,7 @@ export class App extends Base {
    *  one shape every context-menu-opening handler in the compiled design actually calls
    *  it with (a plain object), which is what makes shadowing it here legal at all --
    *  see `boundedOverlaySetState` below for why it is worth doing. */
-  private readonly baseSetState: (update: Record<string, unknown>) => void;
+  private readonly baseSetState: (update: Record<string, unknown>, callback?: () => void) => void;
 
   constructor(props: Record<string, never>) {
     super(props);
@@ -701,7 +701,7 @@ export class App extends Base {
     this.showInfo = this.styledShowInfo;
     this.baseSet = this.set as (key: string, value: unknown) => void;
     this.set = this.screenTrackingSet;
-    this.baseSetState = this.setState.bind(this) as (update: Record<string, unknown>) => void;
+    this.baseSetState = this.setState.bind(this) as (update: Record<string, unknown>, callback?: () => void) => void;
     this.setState = this.boundedOverlaySetState;
   }
 
@@ -807,13 +807,20 @@ export class App extends Base {
    * guess only ever pushes it further from an edge than it strictly needed to be, never
    * the other way round.
    */
-  private boundedOverlaySetState = (update: Record<string, unknown>): void => {
+  /* The callback is forwarded, not dropped. React's setState takes an optional second
+   * argument that runs once the update has been applied, and this override replaces
+   * setState for the whole component -- so a one-argument signature here would silently
+   * discard it. Nothing passes one today, which is exactly what makes it worth handling
+   * now: the failure would be a callback that never runs, with no error, no failing test
+   * and nothing to search for, arriving whenever somebody first writes the perfectly
+   * ordinary `this.setState({...}, () => ...)`. */
+  private boundedOverlaySetState = (update: Record<string, unknown>, callback?: () => void): void => {
     if (typeof update.ctxX === 'string' && typeof update.ctxY === 'string') {
       const clamped = this.clampOverlayPixelPosition(update.ctxX, update.ctxY, 274, 560);
-      this.baseSetState({ ...update, ctxX: clamped.x, ctxY: clamped.y });
+      this.baseSetState({ ...update, ctxX: clamped.x, ctxY: clamped.y }, callback);
       return;
     }
-    this.baseSetState(update);
+    this.baseSetState(update, callback);
   };
 
   /** `p_start`'s own copy of `set` (the shell's `set(key, value)` is the same generic
