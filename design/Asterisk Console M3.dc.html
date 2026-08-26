@@ -2551,6 +2551,56 @@ const SCREENS = {
       ctl('db_pgorderby','Order multi-row results by the initial column','switch',true,{ info:'On by default; turning it off removes the ORDER BY realtime adds to a multi-row SELECT. res_pgsql.conf.sample: ";order_multi_row_results_by_initial_column=no".' }),
       ctl('db_pgsave','Save res_pgsql.conf settings','segmented','Save',{ options:['Save'], action:'db-pgsql-save', info:'Writes every field above, including the password if one was typed, to res_pgsql.conf on the target.' })
     ]}] },
+  stirshaken:{ rail:'sys', icon:'verified_user', label:'Call attestation', badge:'', title:'Call attestation', file:'stir_shaken.conf', kind:'generic',
+    sub:'Named STIR/SHAKEN profile objects, picked by an endpoint’s own stir_shaken_profile parameter in pjsip.conf -- so different trunks or carriers can attest and verify differently. The Security screen still holds the one global attestation switch, the one global verification switch and the signing/verification material every profile falls back to; this is where a profile overrides any of that for the endpoints that reference it. TN objects, which pin a signing certificate to one specific outbound telephone number, are out of scope here.',
+    groups:[{ title:'Attestation profile', desc:'Type a profile name that matches (or will become) an endpoint’s stir_shaken_profile, load what stir_shaken.conf already has for it, edit, then save -- save creates the [name] section as a type=profile object if it does not exist yet.', ctls:[
+      ctl('cs_profile','Profile name','text','',{ placeholder:'myprofile', info:'The stir_shaken.conf [section] this group reads and writes.' }),
+      ctl('cs_load','Load from target','segmented','Load',{ options:['Load'], action:'stirshaken-profile-load', info:'Reads the named profile’s current settings from stir_shaken.conf into the fields below.' }),
+      ctl('cs_behavior','Endpoint behavior','segmented','Off',{ options:['Off','Attest','Verify','On'], info:'endpoint_behavior. Off does no STIR/SHAKEN processing for endpoints referencing this profile, Attest signs their outgoing calls, Verify checks their incoming ones, On does both. Default: off.' }),
+      ctl('cs_failaction','On verification failure','segmented','Continue',{ options:['Continue','Tag','Reject'], info:'This profile’s own override of failure_action. Leave at Continue to fall back to the Security screen’s global switch.' }),
+      ctl('cs_level','Attestation level override','segmented','A',{ options:['A','B','C'], info:'This profile’s own override of attest_level. A means you know the caller and their right to the number; C means the call merely passed through you. Leave alone to fall back to the Security screen’s global level.' }),
+      ctl('cs_privkey','Signing private key file override','text','',{ placeholder:'/var/lib/asterisk/keys/stir_shaken/tns/multi-tns-key.pem', info:'This profile’s own override of private_key_file. Leave blank to fall back to the Security screen’s own signing key.' }),
+      ctl('cs_certurl','Signing certificate URL override','text','',{ placeholder:'https://example.com/tncerts/multi-tns-cert.pem', info:'This profile’s own override of public_cert_url. Leave blank to fall back to the Security screen’s own certificate URL.' }),
+      ctl('cs_x5uacl','x5u ACL override','text','',{ placeholder:'myacllist', info:'Names an acl.conf list that constrains which hosts an incoming Identity header’s certificate URL may point at, for calls using this profile.' }),
+      ctl('cs_save','Save profile','segmented','Save',{ options:['Save'], action:'stirshaken-profile-save', info:'Writes type=profile plus every field above to the named [section] of stir_shaken.conf, creating it if it does not already exist.' })
+    ]}]
+  },
+  geolocation:{ rail:'pbx', icon:'location_on', label:'Emergency location', badge:'', title:'Emergency-services location', file:'geolocation.conf', kind:'generic',
+    sub:'A regulatory requirement in several jurisdictions: the physical location Asterisk attaches to a call so an emergency responder can find the caller. A named location object holds the address, coordinates or an external URI; a named profile object decides how that location is used and is what a pjsip.conf endpoint actually references.',
+    groups:[{ title:'Location object', desc:'Type a name, load what geolocation.conf already has for it, edit, then save -- save creates the [name] section as a type=location object if it does not exist yet.', ctls:[
+      ctl('gl_location','Location name','text','',{ placeholder:'mylocation', info:'The geolocation.conf [section] this group reads and writes.' }),
+      ctl('gl_loadloc','Load from target','segmented','Load',{ options:['Load'], action:'geolocation-location-load', info:'Reads the named location’s current settings from geolocation.conf into the fields below.' }),
+      ctl('gl_format','Format','segmented','civicAddress',{ options:['civicAddress','GML','URI'], info:'How the location is expressed. civicAddress and GML are placed in an outgoing INVITE’s body; URI points at externally hosted location information instead.' }),
+      ctl('gl_info','Location info','text','',{ placeholder:'country=US', info:'location_info, format-specific (for civicAddress: country=US, A1="New York", HNO=1633, ...; for GML: type=Point, crs=2d, pos="lat lon"; for URI: URI=https://...). Asterisk allows several of these lines concatenated together for readability -- this field edits only the first; any further lines already on the target are preserved untouched rather than deleted.' }),
+      ctl('gl_method','Method','segmented','Manual',{ options:['GPS','A-GPS','Manual','DHCP','Triangulation','Cell','802.11'], info:'How location_info was determined.' }),
+      ctl('gl_source','Location source','text','',{ placeholder:'sip1.myserver.net', info:'location_source. Must be a fully-qualified domain name -- an IP address is specifically not allowed, per RFC8787.' }),
+      ctl('gl_savloc','Save location','segmented','Save',{ options:['Save'], action:'geolocation-location-save', info:'Writes type=location plus every field above to the named [section] of geolocation.conf, creating it if it does not already exist.' })
+    ]},{ title:'Profile object', desc:'What a pjsip.conf endpoint actually references. Type a name, load, edit, then save -- save creates the [name] section as a type=profile object if it does not exist yet.', ctls:[
+      ctl('gl_profile','Profile name','text','',{ placeholder:'myprofile', info:'The geolocation.conf [section] this group reads and writes.' }),
+      ctl('gl_loadprof','Load from target','segmented','Load',{ options:['Load'], action:'geolocation-profile-load', info:'Reads the named profile’s current settings from geolocation.conf into the fields below.' }),
+      ctl('gl_precedence','Precedence','segmented','discard_incoming',{ options:['prefer_incoming','prefer_config','discard_incoming','discard_config'], info:'How to reconcile a location description that arrived on the call itself against this profile’s own configured one. Default: discard_incoming.' }),
+      ctl('gl_pidf','PIDF element','segmented','device',{ options:['tuple','device','person'], info:'Which PIDF-LO element the location description is placed in. Device is preferred by RFC5491 and is the default.' }),
+      ctl('gl_reference','Referenced location','text','',{ placeholder:'mylocation', info:'Names the [location_id] object from the group above that this profile uses.' }),
+      ctl('gl_routing','Allow routing use','switch',false,{ info:'Adds a Geolocation-Routing header so servers later in the call path may use this location for routing purposes. Default: no.' }),
+      ctl('gl_savprof','Save profile','segmented','Save',{ options:['Save'], action:'geolocation-profile-save', info:'Writes type=profile plus every field above to the named [section] of geolocation.conf, creating it if it does not already exist.' })
+    ]}]
+  },
+  phoneprov:{ rail:'sys', icon:'phonelink_setup', label:'Phone provisioning', badge:'', title:'Handset auto-provisioning', file:'phoneprov.conf', kind:'generic',
+    sub:'How a phone finds its own configuration the first time it is plugged in. default_profile below is the template new phones are handed unless something else names one -- the piece the deployment wizard’s "How many phones?" question had nowhere to feed into until this screen existed. A provisioning profile such as [polycom] then says where its static configuration files live and what they are served as; the profile’s actual file list (dozens of static_file entries in a real deployment) is edited on the target directly -- a single field here could show only one of them at a time, which would be worse than no field at all.',
+    groups:[{ title:'General', desc:'phoneprov.conf’s own [general] section.', ctls:[
+      ctl('pv_default','Default profile','text','polycom',{ info:'default_profile -- the profile used for a phone if none is specified in phoneprov_users.conf.' }),
+      ctl('pv_addr','Override server address','text','',{ placeholder:'192.168.1.1', info:'serveraddr. Leave blank unless you have an unusual setup: by default Asterisk sets this to the address the phone actually used to reach the provisioning server.' }),
+      ctl('pv_iface','Override server interface','text','',{ placeholder:'eth0', info:'serveriface. An alternative to the address above -- useful when that interface uses DHCP and the HTTP server listens on a different address than SIP does.' }),
+      ctl('pv_port','Override server port','stepper',5060,{ min:1, max:65535, info:'serverport. Leave at the default unless the provisioning server genuinely listens somewhere else.' }),
+      ctl('pv_gensave','Save general settings','segmented','Save',{ options:['Save'], action:'phoneprov-general-save', info:'Writes the four fields above to phoneprov.conf’s [general] section.' })
+    ]},{ title:'Provisioning profile', desc:'Type a profile name, load what phoneprov.conf already has for it, edit, then save -- save creates the [name] section if it does not exist yet.', ctls:[
+      ctl('pv_profile','Profile name','text','',{ placeholder:'polycom', info:'The phoneprov.conf [section] this group reads and writes.' }),
+      ctl('pv_load','Load from target','segmented','Load',{ options:['Load'], action:'phoneprov-profile-load', info:'Reads the named profile’s current staticdir and mime_type from phoneprov.conf into the fields below.' }),
+      ctl('pv_staticdir','Static file directory','text','',{ placeholder:'configs/', info:'staticdir -- the subdirectory of AST_DATA_DIR/phoneprov this profile’s static files live in.' }),
+      ctl('pv_mimetype','Default MIME type','text','',{ placeholder:'text/xml', info:'mime_type -- used when a served file does not specify its own MIME type and the extension is not recognised.' }),
+      ctl('pv_save','Save profile','segmented','Save',{ options:['Save'], action:'phoneprov-profile-save', info:'Writes staticdir and mime_type to the named [section] of phoneprov.conf, creating it if it does not already exist.' })
+    ]}]
+  },
   cli:{ rail:'sys', icon:'terminal', label:'CLI builder', badge:'', title:'CLI builder', file:'asterisk -rx', kind:'cli',
     sub:'Build a real Asterisk CLI command by choosing its parts. The raw console beside it is read-only output, shown only in expert mode.', groups:[] },
   memory:{ rail:'agent', icon:'database', label:'Memory console', badge:'2.4k', title:'Memory console', file:'agent global memory', kind:'memory',
@@ -2880,7 +2930,7 @@ const DOCS = {
 
 const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','g_queue','s_ciphers','s_verify','t_100rel','t_privacy','t_from','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
 
-const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','canvas','ivr','queues','voicemail','confbridge','moh','sounds','codecs','fax','cdr','ami','modules','logger','httpd','security','dbrealtime','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
+const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','canvas','ivr','queues','voicemail','confbridge','moh','sounds','codecs','fax','cdr','ami','modules','logger','httpd','security','dbrealtime','stirshaken','geolocation','phoneprov','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
 
 const GAMES = [
   { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },

@@ -177,9 +177,22 @@ function measure() {
  * that had already reached 243 by other means, rather than by adding the two deltas
  * together. The comment above still tells the true story of every lane that got here;
  * this number is what running this test with a deliberately wrong value read back,
- * exactly as that comment already recommends doing instead of arithmetic. */
-const WORKING_FLOOR = 286;
-const TELEPHONY_TOTAL = 286;
+ * exactly as that comment already recommends doing instead of arithmetic.
+ *
+ * Then 319 with the compliance lane's three new screens: Call attestation (nine
+ * controls -- a name picker, a Load button, six bound overrides and a Save button, all
+ * on stir_shaken.conf's own [profile] objects), Emergency-services location (fourteen,
+ * split across geolocation.conf's [location] and [profile] object groups) and Phone
+ * provisioning (ten, split across phoneprov.conf's [general] section and its own named
+ * profile). 9 + 14 + 10 = 33, and this test reported all 33 as reached the first time
+ * it ran against them -- every picker is read via `values['...']` in App.tsx (the
+ * quoted form `measure()` looks for), and every Load/Save button carries a design
+ * `action:` recognised by `deliveredByAction`, the same two routes every other
+ * named-section screen on this console already uses.
+ *
+ * It may rise freely and may not fall. */
+const WORKING_FLOOR = 319;
+const TELEPHONY_TOTAL = 319;
 
 test('an action-delivered control is recognised even though its id never appears as a quoted literal', () => {
   for (const id of ['s_tload', 's_tsave', 's_stirsave', 'ht_save', 'fx_save', 'fx_udptlsave']) {
