@@ -250,6 +250,46 @@ forbids: anything presented as operable must perform its labelled action.
       nothing and neither screen can write through it. Found while looking for a pattern to
       copy, and deliberately not copied.
 
+
+## Accessibility, which is a completion blocker and has never had an entry here
+
+The shared rules treat an accessibility defect as a blocker rather than polish, and the
+handoff has called the desktop's accessibility absent for some time. It has never been on
+this list, so it has never been anyone's next item. These numbers are measured, not
+asserted: they come from the running packaged build, driven headlessly, with the
+onboarding wizard dismissed and its dismissal verified before anything was counted.
+
+Out of **426 rendered elements** on the main surface:
+
+| Measured | Count |
+| --- | --- |
+| Elements carrying any ARIA role | **1** |
+| Semantic landmarks (`nav`, `main`, `aside`, `header`, `footer`) | **0** |
+| Elements carrying `aria-label` | **0** |
+| Elements carrying `tabindex` | **0** |
+| Distinct tag names in the whole body | **6** (`A`, `BUTTON`, `DIV`, `H1`, `P`, `SPAN`) |
+
+One thing is already right and should not be lost while fixing the rest: all **96** buttons
+carry real text, so every one of them already has an accessible name. The gap is structure,
+not naming.
+
+- [ ] **Give the interface landmarks.** A screen-reader user currently meets 96 buttons in a
+      single undifferentiated region with no way to jump between areas. The rail, the section
+      list, the content area and the title bar are all `DIV`. This has to be done in
+      `design/Asterisk Console M3.dc.html` and recompiled, never by editing the generated
+      renderer.
+- [ ] **Give the tab strip the roles it is pretending to have.** The destinations are styled
+      as tabs and behave as tabs, and expose `role=tab`/`tablist`/`tabpanel` nowhere, so
+      assistive technology is told they are buttons in a box. Roving focus and
+      `aria-controls` come with it.
+- [ ] **Make focus reachable and visible.** Nothing carries `tabindex`, so keyboard traversal
+      is whatever the DOM order happens to give. Every anchored popover, menu, dialog and the
+      appearance editor must also return focus to the control that opened it.
+- [ ] **Cover it with a test that reads the built artifact, not the source.** A unit test with
+      an injected host passes on every one of the numbers above. The probe that produced this
+      table is `console/scripts/ui-drive/smoke.mjs`; a guard should assert these counts move in
+      the right direction and never silently back.
+
 ## Release readiness
 
 - [x] Verify `download-dependencies.bat /s` from a clean user-scoped toolchain cache.
