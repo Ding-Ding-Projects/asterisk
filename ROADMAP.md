@@ -199,9 +199,18 @@ this repository keeps repeating, because it produces no error and no failing tes
       modules import cleanly and their planning logic genuinely runs, but the compiled interface
       routes Export and Delete through separate code that never passes `bulk()` the verb needed to
       reach the rich branch. Subtler than never importing it, and invisible for the same reason.
-- [ ] **Give the desktop a responsive mechanism at all.** The line cited as evidence of one is a
-      per-control segmented-picker variant, not a screen breakpoint. There is no breakpoint
-      anywhere.
+- [x] **Give the desktop a responsive mechanism at all.** Real `@media (max-width: …)`
+      breakpoints now live in `console/app/renderer/src/styles.css` (targeting the compiled
+      shell's own inline styles, since it has no class or `data-*` hook to target instead) and
+      narrow the two fixed nav columns and collapse every multi-column grid to a single column
+      below the console's own enforced 920px minimum window width; a matching `min-width: 0`
+      fix restores a shrink-behind-content safety net the compiled design's own dead rule never
+      actually applied. Verified against the real built app: a genuinely clipped control (the
+      "+ New …" filter-row button on every table screen) is now fully on-screen at the enforced
+      floor. See `console/docs/platform/responsive-sizing.md` for the one known remaining gap
+      (a separate, JS-driven title-bar menu overflow below that floor, unreachable in the
+      shipped app) and `console/tests/contracts/responsive-sizing.test.mjs`, which still asserts
+      the old absence and needs updating to match.
 - [ ] **Anchor notifications in a corner and let them stack.** Toasts currently appear
       bottom-centre and do not stack, and the Notification centre screen renders the fixed rows
       that came from the design rather than a reviewable history of what was actually raised.
