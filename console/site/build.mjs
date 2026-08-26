@@ -373,6 +373,42 @@ function readGeneratedString(source, name) {
 
 const changelogValues = resolveChangelog();
 
+/**
+ * The identity of this build: what `version.json` publishes and what gets baked into
+ * `app.js` so a loaded page knows which build it is.
+ *
+ * The commit is the thing that decides, so a build that cannot resolve one publishes
+ * NOTHING rather than a manifest with a placeholder in it. The page then reports itself
+ * unbuilt and never asks -- which is the honest outcome, and is also why the two halves
+ * cannot disagree: they come from this one resolution or neither exists.
+ *
+ * The version label is for a person to read and is never compared. It is the verified
+ * release this site documents when there is one, and `unversioned` when there is not;
+ * inventing a version number for an unreleased build would be a reading nobody took.
+ */
+function resolveBuildIdentity() {
+  let commit = '';
+  try {
+    commit = execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: resolve(root, '..', '..'),
+      encoding: 'utf8',
+    }).trim();
+  } catch {
+    commit = '';
+  }
+  if (!/^[0-9a-f]{40}$/.test(commit)) {
+    return { resolved: false, reason: 'git could not name the commit this site was built from' };
+  }
+  return {
+    resolved: true,
+    version: downloadManifest ? `v${downloadManifest.version}` : 'unversioned',
+    commit,
+    builtAt: new Date().toISOString(),
+  };
+}
+
+const buildIdentity = resolveBuildIdentity();
+
 for (const asset of assets) {
   let content = await readFile(join(root, asset));
   let text = content.toString('utf8').replaceAll('../assets/fonts/', 'assets/fonts/').replaceAll('../assets/site-fonts/', 'assets/site-fonts/');
@@ -411,6 +447,14 @@ for (const asset of assets) {
     text = replaceOnce(text, "const RELEASE_NOTES_MARKDOWN = '';", `const RELEASE_NOTES_MARKDOWN = ${JSON.stringify(downloadValues.releaseNotesMarkdown)};`, asset);
     text = replaceOnce(text, "const CHANGELOG_MARKDOWN = '';", `const CHANGELOG_MARKDOWN = ${JSON.stringify(changelogValues.markdown)};`, asset);
     text = replaceOnce(text, "const CHANGELOG_REPOSITORY_URL = '';", `const CHANGELOG_REPOSITORY_URL = ${JSON.stringify(changelogValues.repository)};`, asset);
+    // All three or none of the three. A page carrying a commit whose manifest was never
+    // written would ask on every load and report a site that is down; a page carrying a
+    // version with no commit would have nothing to compare.
+    if (buildIdentity.resolved) {
+      text = replaceOnce(text, "const SITE_BUILD_VERSION = '';", `const SITE_BUILD_VERSION = ${JSON.stringify(buildIdentity.version)};`, asset);
+      text = replaceOnce(text, "const SITE_BUILD_COMMIT = '';", `const SITE_BUILD_COMMIT = ${JSON.stringify(buildIdentity.commit)};`, asset);
+      text = replaceOnce(text, "const SITE_BUILD_AT = '';", `const SITE_BUILD_AT = ${JSON.stringify(buildIdentity.builtAt)};`, asset);
+    }
     // The hero lede's runtime-rendered text (COPY.heroLede, applied over the static
     // HTML above by app.js's own applyCopy()) must agree with it in every funny-level
     // variant and both languages, or a JS-enabled visitor sees the honest static text
@@ -423,6 +467,16 @@ for (const asset of assets) {
   await writeFile(join(output, asset), Buffer.from(text));
 }
 await copyFile(socialPreview, join(output, 'social-preview.png'));
+// The published identity of this build, which every loaded page compares itself
+// against. Written only when the identity resolved, for the reason above.
+if (buildIdentity.resolved) {
+  await writeFile(join(output, 'version.json'), `${JSON.stringify({
+    schemaVersion: 1,
+    version: buildIdentity.version,
+    commit: buildIdentity.commit,
+    builtAt: buildIdentity.builtAt,
+  }, null, 2)}\n`, 'utf8');
+}
 
 function escapeHtml(value) {
   return value.replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[character]);
@@ -476,6 +530,12 @@ const manifest = {
   schemaVersion: 1,
   generatedBy: 'node console/site/build.mjs',
   networkFetches: 0,
+  // Whether this build could name itself. Recorded here because it decides whether
+  // `version.json` exists at all, and therefore whether the published output carries one
+  // more file than a build made outside a git checkout would.
+  buildIdentity: buildIdentity.resolved
+    ? { resolved: true, version: buildIdentity.version, commit: buildIdentity.commit }
+    : { resolved: false, reason: buildIdentity.reason },
   download: downloadManifest
     ? { resolved: true, version: downloadManifest.version, tag: downloadManifest.tag, assetUrl: downloadManifest.asset.url, sha256: downloadManifest.asset.sha256 }
     : { resolved: false, reason: downloadManifestRejectionReason ?? `no manifest file at ${manifestPath}` },
@@ -483,4 +543,7 @@ const manifest = {
 };
 await writeFile(join(output, 'build-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
 console.log(`Composed ${output}`);
-console.log(`Output files: ${files.length}; runtime network fetches: 0`);
+// Build-time fetches, which is what `networkFetches` has always counted. A published
+// page now makes exactly one runtime request of its own -- `version.json`, on this same
+// origin -- so saying "runtime" here would be saying something false.
+console.log(`Output files: ${files.length}; build-time network fetches: 0`);

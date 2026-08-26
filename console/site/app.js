@@ -545,7 +545,34 @@
   // text; a link that goes nowhere is worse than a fact with no link on it.
   const CHANGELOG_MARKDOWN = '';
   const CHANGELOG_REPOSITORY_URL = '';
-  const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#82D9A5',fontScale:100,lowMotion:false,englishFunny:0,cantoneseFunny:0,displayName:'',dialogEmojis:false,narration:{enabled:false,language:'en',voiceEn:'',voiceZh:'',rate:1,pitch:1},attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false,focus:false,timeAwareness:false,oneThing:false,momentum:false,currentTask:''},scheduleEnabled:false,notifications:[],collapsed:{destinationMap:true,settingsPreview:true,documentationFilters:false,settingsFilters:false,changelogFilters:false}};
+  // ---- The deployed-version watch: what "automatic updates" means for a page. ----
+  //
+  // A page installs nothing, so the canonical updater has to be read for what it is FOR
+  // rather than copied clause by clause: notice that what is published has moved on, say
+  // so without interrupting anybody, and let the person take the new one when they choose.
+  // Reloading is the whole installation step. There is no staged download, no signature,
+  // no restart and nothing to roll back, and the card says all four out loud rather than
+  // implying machinery this surface does not have.
+  //
+  // The identity that decides is the COMMIT and never the version label. A label is for a
+  // person to read; two different builds of one release carry the same label, so a check
+  // resting on it would report "current" about a page that is not.
+  //
+  // All three are empty here on purpose and are filled in by `site/build.mjs`, exactly as
+  // the changelog above is. A page served straight out of the source directory therefore
+  // knows it was never built, says so, and never asks for a manifest it could not be
+  // judged against -- which is better than a request that fails and reads as a site that
+  // is down.
+  const SITE_BUILD_VERSION = '';
+  const SITE_BUILD_COMMIT = '';
+  const SITE_BUILD_AT = '';
+  // Same-origin by construction: resolved against this document rather than written as an
+  // absolute URL, and refused outright below if it ever resolves somewhere else.
+  const VERSION_MANIFEST_NAME = 'version.json';
+  const UPDATE_CHECK_INTERVAL_MS = 1800000;
+  const UPDATE_MANIFEST_MAX_BYTES = 4096;
+  const UPDATE_FETCH_TIMEOUT_MS = 8000;
+  const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#82D9A5',fontScale:100,lowMotion:false,englishFunny:0,cantoneseFunny:0,displayName:'',dialogEmojis:false,narration:{enabled:false,language:'en',voiceEn:'',voiceZh:'',rate:1,pitch:1},attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false,focus:false,timeAwareness:false,oneThing:false,momentum:false,currentTask:''},scheduleEnabled:false,updateDismissedCommit:'',notifications:[],collapsed:{destinationMap:true,settingsPreview:true,documentationFilters:false,settingsFilters:false,changelogFilters:false}};
   // ---- Display name: the name this site shows the person reading it, which is
   // theirs to change, and the shipped product name, which is not.
   //
@@ -621,7 +648,7 @@
   const state=loadState();
   function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
   function update(key,value){state[key]=value;save();applyState();recordHistory('setting-changed',`${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`${key} now uses ${value}.`),{category:'setting',copyKey:'notifSettingSaved'})}
-  function applyState(){applySchoolMode();document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyDisplayName();applyVocabulary();applyDialogEmojis();applyNarration();updateSessionTimer();updateOneThingBanner();renderAllModeStatuses()}
+  function applyState(){applySchoolMode();document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyDisplayName();applyVocabulary();applyDialogEmojis();applyNarration();updateSessionTimer();updateOneThingBanner();renderAllModeStatuses();renderUpdateState()}
   function updateAttention(key,value){state.attention={...state.attention,[key]:value};save();applyState();recordHistory('attention-changed',`attention.${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`attention.${key} now uses ${value}.`),{category:'setting',copyKey:'notifSettingSaved'})}
   function applyLanguage(){if(!$('language-preview'))return;document.documentElement.lang=state.language==='zh'?'zh-Hant':'en';$('language-preview').textContent=state.language==='en'?'English presentation active.':state.language==='zh'?'廣東話顯示已啟用。':'Bilingual presentation active. / 雙語顯示已啟用。'}
 
@@ -631,6 +658,21 @@
   // exact wording this page already shipped, so nothing changes for anyone who never
   // touches the sliders.
   const COPY = {
+    /* Voice moves with the slider; four facts never do. Every level says that the
+     * comparison is on the build commit, that nothing is installed or downloaded in
+     * the background, that reloading is what takes the new page, and that the check
+     * asks this same site for one small file and nothing else. */
+    updatesDesc:{en:[
+      'Checks whether the published site has moved on from the page you are reading, and says so without interrupting you. The comparison is on the build commit this page was made from, not on the version label beside it. Nothing is installed and nothing downloads in the background: reloading is what takes the new page. The check asks this site for one small version file and sends nothing anywhere.',
+      'Checks whether the published site has moved on from the page you are reading, and says so without interrupting you — the comparison is on the build commit this page was made from, not the version label beside it. Nothing is installed and nothing downloads in the background: reloading is what takes the new page. The check asks this site for one small version file and sends nothing anywhere.',
+      'Keeps half an eye on whether the published site has run ahead of the page in front of you, and mentions it quietly rather than throwing a dialog at you. It compares build commits, not the friendly version label. Nothing installs, nothing downloads in the background, and reloading is the entire upgrade. The check asks this site for one small version file and sends nothing anywhere.',
+      'Politely coughs when the published site has left this page behind. It compares build commits, because two builds can wear the same version label and cheerfully lie to you about it. Nothing installs, nothing sneaks down in the background, and reloading is the whole ceremony — there is no restart to sit through. The check asks this site for one small version file and sends nothing anywhere, to anyone.'
+    ],zh:[
+      '呢個設定會留意已發佈嘅網站有冇行前咗，行前咗就話你知，但唔會打斷你。比較嘅係呢版整出嚟嗰個 build commit，唔係旁邊嗰個版本標籤。冇任何嘢會安裝，亦冇任何嘢喺背景下載：重新載入就係攞新版嘅方法。呢個檢查淨係向呢個網站攞一個細細嘅版本檔案，唔會將任何嘢送去邊度。',
+      '呢個設定會留意已發佈嘅網站有冇行前咗，有就話你知，但唔會打斷你 —— 比較嘅係呢版整出嚟嗰個 build commit，唔係旁邊嗰個版本標籤。冇嘢會安裝，亦冇嘢喺背景下載：重新載入就係攞新版嘅方法。個檢查淨係向呢個網站攞一個細版本檔案，唔會送任何嘢出去。',
+      '佢會幫你望住已發佈嘅網站有冇跑咗喺你面前呢版前面，有就靜靜雞講一聲，唔會彈個對話框嚇你。佢比較嘅係 build commit，唔係嗰個好聽嘅版本標籤。冇嘢安裝，冇嘢喺背景偷偷落載，重新載入就係成個升級程序。個檢查淨係向呢個網站攞一個細版本檔案，唔會送任何嘢出去。',
+      '已發佈嘅網站行咗前，佢就好有禮貌噉咳一聲。佢比較 build commit，因為兩個 build 可以掛住同一個版本標籤，然後理直氣壯噉呃你。冇嘢安裝，冇嘢喺背景偷偷落載，重新載入就係成個儀式 —— 唔使坐喺度等重啟。個檢查淨係向呢個網站攞一個細細嘅版本檔案，唔會送任何嘢去任何地方、畀任何人。'
+    ]},
     heroLede:{en:[
       'Ding PBX Console is a planned desktop administration experience for Asterisk. This website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
       'Ding PBX Console is a planned desktop administration experience for Asterisk. Worth saying plainly: this website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
@@ -2507,6 +2549,278 @@
     sync(accent.value);
   }
 
+  // ------------------------------------------------------------------
+  // The deployed-version watch.
+  //
+  // Every decision below is a pure function taking values a caller supplies, and the
+  // three that touch the page do nothing else. That split is deliberate: "the value is
+  // stored" and "the banner is on the page" are both true of a watch that never notices
+  // anything, and only the pure half can be asked what it concludes.
+  // ------------------------------------------------------------------
+
+  /** The build identity this page is running. Empty commit means it was never built. */
+  function runningBuild(){return {version:SITE_BUILD_VERSION,commit:SITE_BUILD_COMMIT,builtAt:SITE_BUILD_AT}}
+  function shortCommit(commit){return String(commit||'').slice(0,7)}
+
+  /**
+   * Where the published manifest lives, or null when that is not this origin.
+   *
+   * The refusal is the point rather than a formality. Everything else on this site is a
+   * bundled local asset, and this is its one request, so the property worth being able
+   * to check is not "it fetched the right file" but "it could not have fetched somebody
+   * else's". A hand-edited `data-base` is enough to move it, and nothing would say so.
+   */
+  function versionManifestUrl(base,baseUri){
+    let here,there;
+    try{here=new URL(String(baseUri))}catch{return null}
+    try{there=new URL(`${String(base||'')}${VERSION_MANIFEST_NAME}`,here)}catch{return null}
+    if(there.origin!==here.origin)return null;
+    return there.href;
+  }
+
+  /**
+   * Reads the published manifest, refusing everything it cannot vouch for.
+   *
+   * Bounded first, because the size check is the only one that holds whatever the body
+   * turns out to be -- a proxy error page, an HTML 404, a truncated write.
+   */
+  function parseVersionManifest(text){
+    if(typeof text!=='string')return {ok:false,reason:'the published version manifest was not text'};
+    if(text.length>UPDATE_MANIFEST_MAX_BYTES)return {ok:false,reason:`the published version manifest is larger than the ${UPDATE_MANIFEST_MAX_BYTES}-byte bound this page will read`};
+    let parsed;
+    try{parsed=JSON.parse(text)}catch{return {ok:false,reason:'the published version manifest is not valid JSON'}}
+    if(typeof parsed!=='object'||parsed===null||Array.isArray(parsed))return {ok:false,reason:'the published version manifest is not a JSON object'};
+    if(parsed.schemaVersion!==1)return {ok:false,reason:`the published version manifest declares schema version ${JSON.stringify(parsed.schemaVersion)}, which this page cannot read`};
+    const version=parsed.version;
+    if(typeof version!=='string'||version.length===0||version.length>40||!/^[0-9A-Za-z][0-9A-Za-z.+-]*$/.test(version))return {ok:false,reason:'the published version manifest carries no readable version label'};
+    const commit=parsed.commit;
+    if(typeof commit!=='string'||!/^[0-9a-f]{40}$/.test(commit))return {ok:false,reason:'the published version manifest carries no full 40-character commit'};
+    const builtAt=parsed.builtAt;
+    if(typeof builtAt!=='string'||!Number.isFinite(Date.parse(builtAt)))return {ok:false,reason:'the published version manifest carries no readable build time'};
+    return {ok:true,manifest:{version,commit,builtAt}};
+  }
+
+  /**
+   * -1, 0 or 1 for two `v0.1.N`-shaped labels, and null for anything else.
+   *
+   * Null rather than a guess, because ordering two arbitrary strings is exactly how a
+   * roll-back gets announced to somebody as an update.
+   */
+  function compareBuildVersions(left,right){
+    const parse=label=>{const match=/^v?(\d+)\.(\d+)\.(\d+)$/.exec(String(label==null?'':label));return match?[Number(match[1]),Number(match[2]),Number(match[3])]:null};
+    const a=parse(left),b=parse(right);
+    if(!a||!b)return null;
+    for(let i=0;i<3;i+=1)if(a[i]!==b[i])return a[i]<b[i]?-1:1;
+    return 0;
+  }
+
+  /**
+   * What the two identities mean together. `direction` exists so the wording can stay
+   * honest when the published site moved BACKWARDS, which "an update is available" would
+   * describe wrongly.
+   */
+  function updateVerdict(running,deployed){
+    if(!running||!running.commit)return {state:'unbuilt',direction:'unknown'};
+    if(!deployed||!deployed.commit)return {state:'unknown',direction:'unknown'};
+    if(deployed.commit===running.commit)return {state:'current',direction:'same'};
+    const order=compareBuildVersions(running.version,deployed.version);
+    if(order===-1)return {state:'available',direction:'newer'};
+    if(order===1)return {state:'available',direction:'older'};
+    if(order===0)return {state:'available',direction:'rebuilt'};
+    return {state:'available',direction:'unknown'};
+  }
+
+  /** The headline the banner and the card both use, phrased by direction. */
+  function updateHeadline(watch){
+    const deployed=watch&&watch.deployed;
+    if(!deployed)return '';
+    const named=`${deployed.version} (${shortCommit(deployed.commit)})`;
+    if(watch.direction==='newer')return `A newer version of this page has been published: ${named}.`;
+    if(watch.direction==='older')return `The published page has been rolled back to ${named}.`;
+    if(watch.direction==='rebuilt')return `This page has been rebuilt and republished at the same version, ${named}.`;
+    return `The published page is now ${named}, which is not the build you are reading.`;
+  }
+
+  /** The identity line under the card: what this page actually is. */
+  function runningBuildLine(running){
+    if(!running||!running.commit)return 'This page was served straight out of the source directory, so it carries no build identity and cannot be compared with anything.';
+    return `You are reading ${running.version} (${shortCommit(running.commit)}), built ${running.builtAt}.`;
+  }
+
+  /** The status line under the card, for every state the watch can be in. */
+  function updateStatusLine(watch,running){
+    switch(watch&&watch.state){
+      case 'unbuilt':return 'Not checked: an unbuilt page has nothing to compare.';
+      case 'checking':return 'Checking the published version…';
+      case 'failed':return `Could not check: ${watch.reason}`;
+      case 'current':return 'This is the published version.';
+      case 'available':return `${updateHeadline(watch)} Reload to take it.`;
+      default:return 'Not checked yet.';
+    }
+  }
+
+  /**
+   * Why the check button is disabled, or '' when it is not. A disabled control that says
+   * nothing reads as broken rather than as waiting for a condition.
+   */
+  function updateCheckDisabledReason(watch,running){
+    if(!running||!running.commit)return 'This page was not produced by the site build, so there is no build identity to compare against the published one.';
+    if(watch&&watch.inFlight)return 'A check is already running.';
+    return '';
+  }
+
+  let updateWatch={state:'idle',direction:'unknown',reason:'',deployed:null,checkedAt:0,inFlight:false};
+  let updateTimer=null;
+
+  function ensureUpdateUI(){
+    const main=document.querySelector('main');
+    if(!main||$('update-banner'))return;
+    const banner=document.createElement('div');
+    banner.id='update-banner';banner.className='update-banner';banner.hidden=true;
+    banner.setAttribute('role','status');banner.setAttribute('aria-live','polite');
+    main.prepend(banner);
+  }
+
+  /**
+   * The banner is built with `textContent` throughout rather than a markup string. The
+   * values are validated above and would survive either way; what would not is the next
+   * person adding an unvalidated one to the same template.
+   */
+  function renderUpdateBanner(){
+    const banner=$('update-banner');if(!banner)return;
+    const deployed=updateWatch.deployed;
+    const show=updateWatch.state==='available'&&Boolean(deployed)&&state.updateDismissedCommit!==deployed.commit;
+    banner.hidden=!show;
+    banner.replaceChildren();
+    if(!show)return;
+    const headline=document.createElement('strong');
+    headline.textContent=applyVocabularyText(updateHeadline(updateWatch));
+    const note=document.createElement('p');
+    note.textContent=applyVocabularyText('Reloading fetches the published page. Your settings are saved as you change them, but anything typed into a field and not yet saved is lost.');
+    const actions=document.createElement('div');
+    actions.className='update-banner-actions';
+    const reload=document.createElement('button');
+    reload.type='button';reload.id='update-reload';reload.className='primary-button';
+    reload.textContent='Reload to update';
+    reload.addEventListener('click',()=>{location.reload()});
+    const later=document.createElement('button');
+    later.type='button';later.id='update-later';later.className='text-button';
+    later.textContent='Later';
+    later.addEventListener('click',dismissUpdateBanner);
+    const changes=document.createElement('a');
+    changes.className='text-button';changes.id='update-changes';
+    changes.href=`${BASE}downloads.html#changelog`;
+    changes.textContent='What changed';
+    actions.append(reload,later,changes);
+    banner.append(headline,note,actions);
+  }
+
+  /**
+   * `Later` is remembered against the exact commit it was said about, and persisted, so
+   * it survives moving to another page of this site. A newly published build is a
+   * different answer to a different question and raises the banner again.
+   */
+  function dismissUpdateBanner(){
+    if(!updateWatch.deployed)return;
+    state.updateDismissedCommit=updateWatch.deployed.commit;
+    save();
+    renderUpdateState();
+  }
+
+  function renderUpdateState(){
+    const running=runningBuild();
+    if($('update-status'))$('update-status').textContent=applyVocabularyText(updateStatusLine(updateWatch,running));
+    if($('update-identity'))$('update-identity').textContent=applyVocabularyText(runningBuildLine(running));
+    const button=$('update-check');
+    if(button){
+      const why=updateCheckDisabledReason(updateWatch,running);
+      button.disabled=why!=='';
+      if(why)button.title=why;else button.removeAttribute('title');
+    }
+    renderUpdateBanner();
+  }
+
+  /**
+   * One check. Re-entrant calls are refused rather than queued, because two checks in
+   * flight can settle in either order and the loser would overwrite the winner.
+   */
+  async function checkForUpdate(options){
+    const manual=Boolean(options&&options.manual);
+    const running=runningBuild();
+    if(!running.commit){
+      updateWatch={...updateWatch,state:'unbuilt',direction:'unknown',reason:'',inFlight:false};
+      renderUpdateState();
+      return updateWatch;
+    }
+    if(updateWatch.inFlight)return updateWatch;
+    /* Held before the state moves to `checking`, because that move is what the
+     * "have we already announced this build" question is asked against. Reading it
+     * afterwards always answers no, and the watch notifies on every poll. */
+    const previous=updateWatch;
+    const url=versionManifestUrl(BASE,document.baseURI);
+    if(!url){
+      updateWatch={...updateWatch,state:'failed',reason:'the published version manifest does not resolve to an address on this site',inFlight:false};
+      renderUpdateState();
+      return updateWatch;
+    }
+    updateWatch={...updateWatch,inFlight:true,state:'checking',reason:''};
+    renderUpdateState();
+    let text=null,failure='';
+    const controller=new AbortController();
+    const timer=setTimeout(()=>{controller.abort()},UPDATE_FETCH_TIMEOUT_MS);
+    try{
+      const response=await fetch(url,{cache:'no-store',credentials:'omit',signal:controller.signal});
+      if(!response.ok)failure=`the published version manifest answered HTTP ${response.status}`;
+      else text=await response.text();
+    }catch{
+      failure=controller.signal.aborted
+        ? `the published version manifest did not answer within ${UPDATE_FETCH_TIMEOUT_MS/1000} seconds`
+        : 'this browser could not reach the published version manifest';
+    }finally{clearTimeout(timer)}
+    if(!failure){
+      const parsed=parseVersionManifest(text);
+      if(!parsed.ok)failure=parsed.reason;
+      else{
+        const verdict=updateVerdict(running,parsed.manifest);
+        const repeat=previous.state==='available'&&Boolean(previous.deployed)&&previous.deployed.commit===parsed.manifest.commit;
+        updateWatch={...updateWatch,inFlight:false,state:verdict.state,direction:verdict.direction,deployed:parsed.manifest,reason:'',checkedAt:Date.now()};
+        renderUpdateState();
+        /* Told once per published build, and again on a check the person asked for. A
+         * banner that raises a notification on every poll is the nagging this site is
+         * not allowed to do. */
+        if(verdict.state==='available'&&!repeat){
+          const headline=updateHeadline(updateWatch);
+          notify('A new version is published',applyVocabularyText(`${headline} Reload to take it.`),
+            {category:'notification',en:`${headline} Reload to take it.`,zh:`網站已經發佈咗新版本 ${updateWatch.deployed.version}，重新載入就攞到。`});
+        }else if(manual&&verdict.state==='current'){
+          notify('This page is up to date',applyVocabularyText('This is the published version.'),
+            {category:'notification',en:'This page is already the published version.',zh:'呢版已經係已發佈嘅版本。'});
+        }
+        return updateWatch;
+      }
+    }
+    updateWatch={...updateWatch,inFlight:false,state:'failed',reason:failure,checkedAt:Date.now()};
+    renderUpdateState();
+    if(manual)notify('Update check failed',applyVocabularyText(`Could not check: ${failure}`),
+      {category:'error',isError:true,en:`The update check failed: ${failure}.`,zh:`更新檢查失敗：${failure}。`});
+    return updateWatch;
+  }
+
+  function startUpdateWatch(){
+    stopUpdateWatch();
+    if(!runningBuild().commit)return;
+    updateTimer=setInterval(()=>{checkForUpdate({manual:false})},UPDATE_CHECK_INTERVAL_MS);
+  }
+  function stopUpdateWatch(){if(updateTimer!==null){clearInterval(updateTimer);updateTimer=null}}
+
+  function initUpdates(){
+    ensureUpdateUI();
+    if($('update-check'))$('update-check').onclick=()=>{checkForUpdate({manual:true})};
+    renderUpdateState();
+    checkForUpdate({manual:false});
+    startUpdateWatch();
+  }
+
   function initReleaseNotes(){renderMarkdownBlock($('release-notes'),RELEASE_NOTES_MARKDOWN,'No release notes were provided yet -- no verified release manifest exists.')}
 
   function initSettingsPreview(){
@@ -2516,6 +2830,6 @@
     sync();
   }
 
-  function init(){ensureAttentionUI();initSchoolWatch();applyState();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initTimeAwareness();initMomentum();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
+  function init(){ensureAttentionUI();initSchoolWatch();applyState();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initUpdates();initTimeAwareness();initMomentum();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
   init();
 })();

@@ -52,8 +52,22 @@ test('no live status-hub project, session card, or question-card logic exists in
 });
 
 test('the status page has no polling, session key, or authenticated connection to a live hub', () => {
-  assert.doesNotMatch(app, /\bfetch\(|sessionKey|hubToken/iu,
-    'a live hub connection now exists in app.js -- re-check the "absent" state');
+  /* The blanket "no fetch anywhere" ban this line used to carry went red on 2026-08-26
+   * for the published-version watch, which polls this same origin for one small file.
+   * That is polling, and it is deliberately not the thing this row is about, so the pin
+   * is the difference rather than the mechanism: exactly one request, on this origin,
+   * with credentials OMITTED so it cannot carry a session even if somebody wanted it to,
+   * and still no session key or hub token anywhere in the file. An authenticated
+   * connection to a live hub would have to break at least one of those. */
+  const calls = [...app.matchAll(/\bfetch\(/gu)];
+  assert.equal(calls.length, 1,
+    `expected exactly one request in app.js -- the published-version check -- and found ${calls.length}; a second one needs accounting for before this row stays "absent"`);
+  assert.match(app, /const url=versionManifestUrl\(BASE,document\.baseURI\);/u,
+    'the one request no longer takes its address from versionManifestUrl, which refuses anything off this origin');
+  assert.match(app, /credentials:'omit'/u,
+    'the one request no longer omits credentials, so it could now carry a session');
+  assert.doesNotMatch(app, /sessionKey|hubToken/iu,
+    'a session key or hub token now exists in app.js -- re-check the "absent" state');
 });
 
 test('status.html states plainly why it does not implement a live status hub, rather than leaving a silent gap', () => {
