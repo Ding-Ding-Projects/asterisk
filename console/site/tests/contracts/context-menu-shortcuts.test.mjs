@@ -212,12 +212,12 @@ function load({ ids = [], regexState = new Map(), copy = (key) => `COPY:${key}` 
     applyVocabularyText: (text) => text,
     applyVocabulary: () => {},
     copyText: copy,
-    matchText: (text, query, target) => {
-      if (!query) return true;
-      const config = regexState.get(target);
-      if (config?.enabled) { try { return new RegExp(config.pattern, config.flags).test(text); } catch { return false; } }
-      return String(text).toLocaleLowerCase().includes(String(query).toLocaleLowerCase());
-    },
+    /* The real one, lifted out of site/app.js rather than restated here. It was restated
+     * once, and then master changed it so a compiled pattern is consulted BEFORE the
+     * query -- the fix for a builder that announced itself and filtered nothing -- and a
+     * hand-written stub would have gone on testing the old behaviour with nothing saying
+     * so. A shared helper is exactly where a copy silently stops being a copy. */
+    matchText: realMatchText(regexState),
     openPalette: () => { own.palette += 1; },
     renderModeStatus: () => {},
     /* A fired timer leaves the list, exactly as a real one does. Leaving it behind would
@@ -247,6 +247,19 @@ function load({ ids = [], regexState = new Map(), copy = (key) => `COPY:${key}` 
     assert.ok(api[name] !== undefined, `${name} did not survive extraction -- the block no longer declares it`);
   }
   return { ...api, page: own };
+}
+
+/**
+ * The site's own `matchText`, compiled out of `site/app.js` against a supplied regex map.
+ *
+ * The menu's filter is not its own engine; it is the shared one every search field on this
+ * site uses, and the property that matters is that it behaves identically here. Restating
+ * it would make this file assert a second implementation that happens to agree today.
+ */
+function realMatchText(regexState) {
+  const line = app.split('\n').find((l) => /^\s*function matchText\(text,query,target\)\{/u.test(l));
+  assert.ok(line, 'matchText(text,query,target) was not found as a single source line in site/app.js');
+  return new Function('regexState', `${line.trim()}\nreturn matchText;`)(regexState);
 }
 
 /** A keyboard event carrying exactly one chord, and nothing else. */
@@ -590,6 +603,20 @@ test('an empty filter returns everything, as a copy rather than the original arr
   const all = api.filterMenuItems(items, '   ', 'context-menu-search');
   assert.deepEqual(all.map((i) => i.id), items.map((i) => i.id));
   assert.notEqual(all, items, 'the caller was handed the live array, which it could sort out from under the menu');
+});
+
+test('an active pattern filters even with an empty query box, exactly as every other field does', () => {
+  /* The property master fixed on the site's other search fields on 2026-08-26: matchText()
+   * consults a compiled pattern BEFORE it looks at the query, so a builder left switched on
+   * keeps filtering when the box is cleared. A menu that short-circuited on an empty query
+   * would be the one search here that announced a builder and then ignored it. */
+  const regexState = new Map([['context-menu-search', { pattern: '^Copy link', flags: 'u', enabled: true }]]);
+  const api = load({ ids: ALL_IDS, regexState });
+  const items = api.menuItemsFor({ ...api.contextMenuContext(null), kind: 'link', href: '/x' }, 'Win32');
+  assert.deepEqual(api.filterMenuItems(items, '', 'context-menu-search').map((i) => i.id), ['copy-link'],
+    'an empty query box returned every item while a pattern was still active');
+  assert.deepEqual(api.filterMenuItems(items, '   ', 'context-menu-search').map((i) => i.id), ['copy-link'],
+    'a whitespace-only query box returned every item while a pattern was still active');
 });
 
 test('the filter goes through the shared regex engine, keyed by this field and no other', () => {

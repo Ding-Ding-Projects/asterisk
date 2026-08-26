@@ -146,15 +146,24 @@ const cases = [
       '    if(!item)return;\n    const action=MENU_ACTIONS.find(entry=>entry.id===id);')],
 
   ['filtering reorders the menu, so the same keystroke lands somewhere else',
-    swap(APP, '    return items.filter(item=>matchText(`${item.label} ${item.shortcut} ${item.unavailableReason}`,query,target));',
+    swap(APP, '    return items.filter(item=>matchText(`${item.label} ${item.shortcut} ${item.unavailableReason}`,trimmed,target));',
       '    return items.filter(item=>matchText(`${item.label} ${item.shortcut} ${item.unavailableReason}`,query,target)).slice().reverse();')],
 
   ['filtering hands back copies, so a filtered item could carry a different action',
-    swap(APP, '    return items.filter(item=>matchText(`${item.label} ${item.shortcut} ${item.unavailableReason}`,query,target));',
+    swap(APP, '    return items.filter(item=>matchText(`${item.label} ${item.shortcut} ${item.unavailableReason}`,trimmed,target));',
       '    return items.filter(item=>matchText(`${item.label} ${item.shortcut} ${item.unavailableReason}`,query,target)).map(item=>({...item}));')],
 
+  // The exact shape master fixed on the site's other search fields the same day: a
+  // builder that announces itself and then filters nothing the moment the box is empty.
+  ['the filter short-circuits on an empty query and ignores its own active pattern',
+    swap(APP, "    const trimmed=String(query||'').trim();\n    return items.filter(item=>matchText(",
+      "    const trimmed=String(query||'').trim();\n    if(!trimmed)return items.slice();\n    return items.filter(item=>matchText(")],
+
+  ['the filter passes the untrimmed query, so a stray space filters everything away',
+    swap(APP, '${item.unavailableReason}`,trimmed,target));', '${item.unavailableReason}`,query,target));')],
+
   ['the menu filter reads another field\'s compiled pattern',
-    swap(APP, '${item.unavailableReason}`,query,target));', "${item.unavailableReason}`,query,'feature-search'));")],
+    swap(APP, '${item.unavailableReason}`,trimmed,target));', "${item.unavailableReason}`,trimmed,'feature-search'));")],
 
   ['an empty result renders a blank surface rather than saying anything',
     swap(APP, "    if(visible.length===0){\n      const empty=document.createElement('li');", '    if(false){\n      const empty=document.createElement(\'li\');')],

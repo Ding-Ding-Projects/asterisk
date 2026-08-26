@@ -2210,8 +2210,15 @@
    * the one way a search box over a menu can do real damage.
    */
   function filterMenuItems(items,query,target){
-    if(!String(query||'').trim())return items.slice();
-    return items.filter(item=>matchText(`${item.label} ${item.shortcut} ${item.unavailableReason}`,query,target));
+    /* The query is trimmed and then handed to matchText() unconditionally. There is no
+     * short-circuit on an empty one, and that is deliberate rather than an oversight:
+     * matchText() consults a compiled pattern BEFORE it looks at the query, so a field
+     * with an active regular expression filters even with an empty box. A menu that
+     * returned everything on an empty query would be the one search on this site that
+     * quietly ignored its own builder, which is the exact defect that was found and
+     * fixed on the other fields. */
+    const trimmed=String(query||'').trim();
+    return items.filter(item=>matchText(`${item.label} ${item.shortcut} ${item.unavailableReason}`,trimmed,target));
   }
 
   function menuResultSummary(shown,total,query){
