@@ -91,7 +91,12 @@ test('a validated upload is stored only in localStorage, under the documented ca
 });
 
 test('clearing the vocabulary removes the cache and restores the original-wording status line', () => {
-  const line = app.split('\n').find((l) => /\$\('vocabulary-clear'\)\.onclick=/.test(l));
+  /* `el(` rather than `$(` since the restricted presentation landed: that mode removes
+   * the whole vocabulary card from the document while it is on, and this handler is
+   * bound once at load. `el()` resolves an id whether the control is in the document or
+   * currently held out of it, so the control works when it comes back instead of
+   * returning as a dead one. */
+  const line = app.split('\n').find((l) => /\bel\('vocabulary-clear'\)\.onclick=/.test(l));
   assert.ok(line, 'the vocabulary-clear click handler was not found');
   assert.match(line, /localStorage\.removeItem\('ding-pbx-vocabulary-cache'\)/u, 'clearing no longer removes the vocabulary cache');
   assert.match(line, /original wording is active/u, 'clearing no longer restores the original-wording status text');
