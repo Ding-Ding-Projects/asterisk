@@ -235,6 +235,15 @@ So the next pass drives the remaining twenty-four routes knowing where the readi
 with the palette up, and again once whatever the result teleports to has opened — not once, after
 the click, when neither is true.
 
+> **Done, on 2026-08-26.** All twenty-five palette routes have been driven, at both of those
+> moments, and the readings are in
+> [`release/evidence/ui-drive/palette-route-readings.json`](../../release/evidence/ui-drive/palette-route-readings.json).
+> The field that recorded an empty list twenty-five times now holds **266 controls**, between 2 and
+> 60 per route. [`palette-route-readings.md`](palette-route-readings.md) is that run: what it
+> established, the three things it found, and what it still does not claim. This paragraph's
+> prediction held: every one of the twenty-five reported no panel after activation, which is what
+> the empty lists were a reading of.
+
 Two of the twenty-one breaks were applied to guards written earlier in the same pass and **stayed
 green**, which is the part worth recording:
 
