@@ -138,6 +138,11 @@ import {
 import {
   UnlockLadder, type Challenge, type GradeResult,
 } from './unlock-ladder';
+import {
+  completeOperation, createOperation, failOperation, reportProgress, snapshot, startOperation,
+  type OperationPhase, type OperationState,
+} from './long-operation-progress';
+import { computeOverlayPlacement, type Rect } from './bounded-overlays';
 
 /** Module-scope side effect, run once when this file loads -- the same pattern
  *  `registerPbxAdminScreens()` uses in `PbxAdminApp.tsx`. Registering it here rather
@@ -152,6 +157,54 @@ registerLocalHistoryScreen();
  *  whatever `SCREENS.servers.groups` currently holds -- appending on every render
  *  would duplicate the maintenance group on every `forceUpdate`. */
 const SERVERS_BASE_GROUPS = ((SCREENS as unknown as Record<string, { groups?: unknown[] }>).servers?.groups ?? []).slice();
+
+/**
+ * The two step sequences `WslProvisioning` can emit through its shared `onStep` callback
+ * -- `console/control-plane/wsl-provisioning.ts` -- and dispatch.ts picks between them
+ * (`provisioning.provision(true)` vs `provisioning.provisionFromBaseImage()`) depending
+ * on whether this build carries the packaged runtime, which App has no way to know
+ * before the first step actually arrives. Every phase id is a literal `step.name` one of
+ * the two methods reports, so a step maps onto a phase by exact string equality rather
+ * than a guess -- see `firstStepPlan` below for how the right list gets chosen.
+ *
+ * Both are weighted by what each step actually costs, not by count. `provision`'s first
+ * three are near-instant local checks, `wsl --import` is the one that can run for
+ * minutes (its own timeout is fifteen), and verifying the imported distribution answers
+ * spawns one more process inside it. `provisionFromBaseImage` additionally downloads and
+ * hashes the base image before importing it and installing Asterisk into it, so the
+ * download itself -- genuinely the slowest single step here, network permitting -- carries
+ * the largest share. Neither list's weights need to sum to 100; they do here only so the
+ * resulting percentage reads naturally.
+ */
+const DEPLOY_PHASES: readonly OperationPhase[] = [
+  { id: 'packaged runtime', label: 'Checking the packaged runtime', weight: 1 },
+  { id: 'WSL available', label: 'Checking WSL', weight: 2 },
+  { id: 'distribution absent', label: 'Checking for an existing distribution', weight: 1 },
+  { id: 'import runtime', label: 'Importing the runtime (this is the slow part)', weight: 90 },
+  { id: 'verify Asterisk', label: 'Verifying Asterisk answers', weight: 6 },
+];
+
+const DEPLOY_PHASES_FROM_BASE_IMAGE: readonly OperationPhase[] = [
+  { id: 'base image configured', label: 'Checking the base image is configured', weight: 1 },
+  { id: 'WSL available', label: 'Checking WSL', weight: 1 },
+  { id: 'distribution absent', label: 'Checking for an existing distribution', weight: 1 },
+  { id: 'download base image', label: 'Downloading the base image (this is the slow part)', weight: 60 },
+  { id: 'verify base image', label: 'Verifying the download against its digest', weight: 2 },
+  { id: 'import runtime', label: 'Importing the runtime', weight: 25 },
+  { id: 'install Asterisk', label: 'Installing Asterisk into the distribution', weight: 8 },
+  { id: 'verify Asterisk', label: 'Verifying Asterisk answers', weight: 2 },
+];
+
+/** Which plan a run is actually following, decided from the one step name that only
+ *  ever opens one of the two sequences above. Returns undefined for a step name this
+ *  App has never seen open a run -- the control plane has changed in a way this list has
+ *  not caught up with -- so the caller can degrade to plain step text instead of
+ *  guessing a plan and immediately throwing on the second step. */
+function firstStepPlan(stepName: string): readonly OperationPhase[] | undefined {
+  if (stepName === DEPLOY_PHASES[0].id) return DEPLOY_PHASES;
+  if (stepName === DEPLOY_PHASES_FROM_BASE_IMAGE[0].id) return DEPLOY_PHASES_FROM_BASE_IMAGE;
+  return undefined;
+}
 
 /**
  * The interface is the compiled design reference. This subclass supplies what a static
@@ -453,6 +506,11 @@ export class App extends Base {
    *  alone is not. */
   private deploySteps: { name: string; ok: boolean; detail: string }[] = [];
 
+  /** The weighted state machine behind `deployProgressLine` -- `long-operation-progress.ts`.
+   *  Idle until `resetDeployProgress` starts a real run; see `DEPLOY_PHASES` above for
+   *  where the five phase ids come from. */
+  private deployOperation: OperationState = createOperation(DEPLOY_PHASES);
+
   private stopProvisionListener: (() => void) | undefined;
 
   /** What the runner is holding between ticks: the base value of every key it has
@@ -619,6 +677,12 @@ export class App extends Base {
   private readonly baseFire: (title: string, body: string) => void;
   private readonly baseAreYouSure: (title: string, body: string, seconds: number, onConfirm: () => void) => void;
   private readonly baseShowInfo: (title: string, body: string, plain: string, x: string, y: string) => void;
+  /** The shell's own `setState` -- really `Component.prototype.setState`, captured for
+   *  the same reason as every other override on this page. `Shell` types it down to the
+   *  one shape every context-menu-opening handler in the compiled design actually calls
+   *  it with (a plain object), which is what makes shadowing it here legal at all --
+   *  see `boundedOverlaySetState` below for why it is worth doing. */
+  private readonly baseSetState: (update: Record<string, unknown>) => void;
 
   constructor(props: Record<string, never>) {
     super(props);
@@ -634,6 +698,8 @@ export class App extends Base {
     this.showInfo = this.styledShowInfo;
     this.baseSet = this.set as (key: string, value: unknown) => void;
     this.set = this.screenTrackingSet;
+    this.baseSetState = this.setState.bind(this) as (update: Record<string, unknown>) => void;
+    this.setState = this.boundedOverlaySetState;
   }
 
   /** The dial that governs dialog copy in whatever language the console is currently
@@ -675,7 +741,76 @@ export class App extends Base {
    *  it unstyled. */
   private styledShowInfo = (title: string, body: string, plain: string, x: string, y: string): void => {
     const styled = styledDialog(this.messageStorage, this.currentCopyLanguage(), classifyDialogKind(title), title, body);
-    this.baseShowInfo(styled.heading, styled.body, plain, x, y);
+    /* 392px is `dockChrome`'s own width for the `'info'` panel (`console.tsx`); 260px is
+     * a modest height estimate -- the panel's real `max-height:calc(100vh - 132px);
+     * overflow-y:auto` already scrolls rather than crops, so this only has to keep the
+     * panel's top-left corner from opening off-screen, not predict its exact height. */
+    const clamped = this.clampOverlayPixelPosition(x, y, 392, 260);
+    this.baseShowInfo(styled.heading, styled.body, plain, clamped.x, clamped.y);
+  };
+
+  /** The viewport `clampOverlayPixelPosition` below clamps every floating overlay into.
+   *  Read from the real window so a genuinely small or resized one is respected; the
+   *  fallback keeps this callable from a test environment with no live `window`. */
+  private overlayViewport(): Rect {
+    const w = globalThis as { window?: { innerWidth?: number; innerHeight?: number } };
+    const innerWidth = w.window?.innerWidth;
+    const innerHeight = w.window?.innerHeight;
+    return {
+      x: 0,
+      y: 0,
+      width: typeof innerWidth === 'number' && innerWidth > 0 ? innerWidth : 1280,
+      height: typeof innerHeight === 'number' && innerHeight > 0 ? innerHeight : 800,
+    };
+  }
+
+  /**
+   * Clamps a click-anchored floating panel's top-left corner into the real viewport --
+   * `bounded-overlays.ts`'s own job, reached here because every one of this console's
+   * floating panels sets its position with raw `left:${x}; top:${y}` and no clamp at all
+   * in the compiled design (`console.tsx`'s `ctxOpen` context menu and `dockChrome`'s
+   * `'float'` mode alike). A menu or panel opened near the right or bottom edge would
+   * otherwise render partly or entirely off-screen with no scrollbar to say so -- the
+   * exact failure this module exists to prevent.
+   *
+   * Only a genuine `"NNNpx"` pair -- the shape every click handler in the compiled
+   * design actually produces -- is clamped. A percent-based position (most of
+   * `showInfo`'s fixed call sites, e.g. `'46%'`) is left untouched: it is already inside
+   * the viewport by construction, and there is no anchor rectangle to compute against
+   * without knowing the panel's real pixel size, which those call sites -- unlike a
+   * click -- never had.
+   */
+  private clampOverlayPixelPosition(x: string, y: string, desiredWidth: number, desiredHeight: number): { x: string; y: string } {
+    const px = /^(-?\d+(?:\.\d+)?)px$/u.exec(x);
+    const py = /^(-?\d+(?:\.\d+)?)px$/u.exec(y);
+    if (!px || !py) return { x, y };
+    const anchor: Rect = { x: Number(px[1]), y: Number(py[1]), width: 0, height: 0 };
+    const placement = computeOverlayPlacement(anchor, { width: desiredWidth, height: desiredHeight }, this.overlayViewport(), 'bottom');
+    return { x: `${Math.round(placement.x)}px`, y: `${Math.round(placement.y)}px` };
+  }
+
+  /**
+   * Clamps a click-opened context menu's position before it ever reaches the compiled
+   * shell's real `setState` -- every one of the ~15 places the design opens one sets
+   * `ctxX`/`ctxY` together, in one plain object, straight from the click event
+   * (`console.tsx`'s `position:absolute; left:${ctxX}; top:${ctxY}`, with no bound
+   * against the window anywhere). `lockX`/`lockY` and `regexX`/`regexY` copy
+   * `ctxX`/`ctxY` at the moment they open (`lockX:s.ctxX, lockY:s.ctxY`), so clamping it
+   * here reaches those floating panels too, for free.
+   *
+   * The estimate below (274px wide, tall enough for the biggest menu this console
+   * opens -- the 13-item screen-tab menu) is a deliberate overestimate: the menu still
+   * renders at its own natural height regardless of what is fed in here, so a generous
+   * guess only ever pushes it further from an edge than it strictly needed to be, never
+   * the other way round.
+   */
+  private boundedOverlaySetState = (update: Record<string, unknown>): void => {
+    if (typeof update.ctxX === 'string' && typeof update.ctxY === 'string') {
+      const clamped = this.clampOverlayPixelPosition(update.ctxX, update.ctxY, 274, 560);
+      this.baseSetState({ ...update, ctxX: clamped.x, ctxY: clamped.y });
+      return;
+    }
+    this.baseSetState(update);
   };
 
   /** `p_start`'s own copy of `set` (the shell's `set(key, value)` is the same generic
@@ -959,6 +1094,7 @@ export class App extends Base {
     this.sourceTimer = undefined;
     if (this.attentionTimer) clearInterval(this.attentionTimer);
     this.attentionTimer = undefined;
+    this.stopDeployTicker();
     /* Torn down with the unsubscribe the bridge returns. A listener that outlives the
      * component fires into a dead tree on the next reload. */
     this.stopProvisionListener?.();
@@ -1582,18 +1718,78 @@ ${resolution.disclosure}`);
     this.stopProvisionListener = provisioning.onStep((step) => this.onProvisionStep(step));
   }
 
+  /** A ticker only while a deploy is genuinely running -- see `resetDeployProgress` and
+   *  `stopDeployTicker` below. `import runtime` (`wsl --import`) is a single opaque call
+   *  that can run for minutes with no intermediate step of its own; without this, the
+   *  percentage and the stall message computed in `refreshDeployProgressLine` would only
+   *  ever be recomputed at the next step boundary -- exactly the point after the long
+   *  silent stretch, rather than during it, which is when a bare spinner most looks like
+   *  a hang. */
+  private deployTicker: ReturnType<typeof setInterval> | undefined;
+
+  /** Recomputes `deployProgressLine` from the real weighted state machine, so a step
+   *  event and an idle tick can never disagree about the format. `extra` is the one
+   *  piece neither `deployOperation` nor its snapshot knows: the human detail string a
+   *  step carried, or the recovery summary a failure carried. Never shows a percentage
+   *  while the operation is still `idle` -- before the first step of a run there is
+   *  nothing real to compute one from. */
+  private refreshDeployProgressLine(extra?: string): void {
+    if (this.deployOperation.status === 'idle') {
+      this.deployProgressLine = extra ? `${extra}.` : 'Starting...';
+      this.forceUpdate();
+      return;
+    }
+    const progress = snapshot(this.deployOperation, Date.now());
+    const percent = Math.round(progress.overallFraction * 100);
+    const phase = progress.phaseLabel ?? 'Starting';
+    const stalledNote = progress.stalled && progress.stalledMessage ? ` ${progress.stalledMessage}` : '';
+    this.deployProgressLine = `${percent}% -- ${phase}${extra ? `: ${extra}` : ''}.${stalledNote}`;
+    this.forceUpdate();
+  }
+
   /** One step has finished. Says what happened, and stops at the first failure rather
-   *  than continuing to count as though the deploy were still going. */
+   *  than continuing to count as though the deploy were still going. Also drives the
+   *  real weighted operation (`long-operation-progress.ts`) behind the percentage in
+   *  `deployProgressLine` -- see `DEPLOY_PHASES`/`DEPLOY_PHASES_FROM_BASE_IMAGE` above
+   *  for where the phase ids come from, and `firstStepPlan` for how the right one of
+   *  the two gets picked the moment the first real step names which one this run is. */
   private onProvisionStep(step: { name: string; ok: boolean; detail: string }): void {
     this.deploySteps.push(step);
-    const done = this.deploySteps.filter((candidate) => candidate.ok).length;
+    const now = Date.now();
+    if (this.deploySteps.length === 1 && step.name !== this.deployOperation.plan.included[0]?.id) {
+      /* `resetDeployProgress` had to start tracking against a default plan before any
+       * step existed to decide from -- this run's first step says it actually chose the
+       * other of the two provisioning sequences, so tracking restarts against the plan
+       * that step genuinely opens. Safe to replace outright: nothing has been banked
+       * yet, because this is still the first step of the run. */
+      const plan = firstStepPlan(step.name);
+      if (plan) this.deployOperation = startOperation(createOperation(plan), now).state;
+    }
+    const isFinalPhase = this.deployOperation.status === 'running'
+      && step.name === this.deployOperation.plan.included[this.deployOperation.plan.included.length - 1]?.id;
+    if (this.deployOperation.status === 'running') {
+      try {
+        if (step.ok) {
+          const reported = reportProgress(this.deployOperation, step.name, 1, now);
+          this.deployOperation = isFinalPhase ? completeOperation(reported, now) : reported;
+        } else {
+          this.deployOperation = failOperation(this.deployOperation, now);
+        }
+      } catch {
+        /* A step name neither plan recognises, or one reported out of order, means the
+         * control plane has moved in a way this module has not caught up with -- the
+         * percentage is dropped for the rest of this run rather than thrown at the
+         * user, and the plain detail text below still says exactly what happened. */
+      }
+    }
+    if (!step.ok || isFinalPhase) this.stopDeployTicker();
     if (!step.ok) {
       /* A failure is where a recovery route is worth having, so it is offered here rather
        * than leaving somebody at a dead end holding an error string. The route never
        * includes a remedy that loses work -- see in-context-recovery.ts. */
       const recovery = recoveryFor(App.classifyStepFailure(step), step.detail, { target: step.name });
       const offered = recovery.actions.map((entry) => entry.label).join(', ');
-      this.deployProgressLine = `Stopped at ${step.name}. ${recovery.summary}`;
+      this.refreshDeployProgressLine(`stopped at ${step.name} -- ${recovery.summary}`);
       this.fire(`Deploy stopped at ${step.name}`,
         `${recovery.summary}
 
@@ -1601,9 +1797,8 @@ ${recovery.detail}${offered ? `
 
 What you can do: ${offered}.` : ''}`);
     } else {
-      this.deployProgressLine = `${done} step${done === 1 ? '' : 's'} done -- ${step.name}: ${step.detail}`;
+      this.refreshDeployProgressLine(`${step.name}: ${step.detail}`);
     }
-    this.forceUpdate();
   }
 
   /**
@@ -1622,11 +1817,42 @@ What you can do: ${offered}.` : ''}`);
     return 'unknown';
   }
 
-  /** Clears the record so a second deploy does not read as a continuation of the first. */
+  /** Clears the record so a second deploy does not read as a continuation of the first,
+   *  and genuinely starts the weighted operation -- `startOperation`'s own re-entry
+   *  guard refuses a second start while one is already `running`, so a stray double
+   *  call here cannot silently reset a deploy that is mid-import. Call this once, right
+   *  before the `runtime.provision` request that will produce the steps, from either of
+   *  its two call sites (`onboardDeploy`, the servers-screen `provisionRuntime`).
+   *
+   *  Starts against `DEPLOY_PHASES` as a placeholder -- this function runs before the
+   *  request that will decide which of the two real sequences a run actually follows,
+   *  so there is nothing yet to choose between. `onProvisionStep` swaps in the correct
+   *  plan (`firstStepPlan`) the moment the first real step names which one it is. */
   private resetDeployProgress(): void {
     this.deploySteps = [];
-    this.deployProgressLine = 'Starting...';
-    this.forceUpdate();
+    const { state, result } = startOperation(createOperation(DEPLOY_PHASES), Date.now());
+    this.deployOperation = state;
+    if (!result.started) {
+      /* Refused: a deploy is already running. Leave its own progress line alone rather
+       * than overwriting it with "Starting..." for a run that is not, in fact, starting. */
+      return;
+    }
+    this.startDeployTicker();
+    this.refreshDeployProgressLine();
+  }
+
+  /** Recomputes the live percentage every couple of seconds while a deploy is running,
+   *  so `import runtime`'s multi-minute silence still moves the number and can trip the
+   *  stall message -- see `deployTicker`'s own comment for why a step-boundary refresh
+   *  alone would never show it during the one phase where it matters most. */
+  private startDeployTicker(): void {
+    this.stopDeployTicker();
+    this.deployTicker = setInterval(() => this.refreshDeployProgressLine(), 2_000);
+  }
+
+  private stopDeployTicker(): void {
+    if (this.deployTicker) clearInterval(this.deployTicker);
+    this.deployTicker = undefined;
   }
 
   // ---------------------------------------------------------------- readability
@@ -3105,7 +3331,9 @@ What you can do: ${offered}.` : ''}`);
         return;
       }
       this.toast('Creating the Asterisk runtime for the wizard — this takes a while.');
+      this.resetDeployProgress();
       const provisioned = await this.request('runtime.provision');
+      this.stopDeployTicker();
       if (!provisioned?.ok) {
         this.fire('Not created', provisioned?.message ?? 'Creating the runtime did not succeed, so there is nothing to deploy to.');
         return;
@@ -5648,7 +5876,9 @@ It is shown once. The far end needs it to register.`);
           return;
         }
         this.toast('Creating the Asterisk runtime — this imports a root filesystem and takes a while.');
+        this.resetDeployProgress();
         void this.request('runtime.provision').then((response) => {
+          this.stopDeployTicker();
           if (!response) {
             this.fire('Not run', 'The desktop bridge is unavailable, so nothing was created.');
             return;

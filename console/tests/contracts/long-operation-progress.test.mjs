@@ -8,17 +8,17 @@
  * from stalled, a stall detector, and cancellation reporting partial
  * completion honestly.
  *
- * NOTHING IMPORTS IT YET: no surface in the renderer calls it, confirmed by
- * grepping App.tsx and finding no import. It is blocked on a sharper problem
- * than "no progress events exist" (those now exist: provisioning emits every
- * step live through a real onStep callback, threaded through the dispatcher
- * and rendered by App). What does not fit is this module's own plan-shape
- * requirement: `planOperation` needs its phases known upfront, and
- * `reportProgress` refuses a phase that skips more than one ahead -- but
- * provisioning legitimately skips phases when a packaged payload is already
- * present, so a plan listing them would throw partway through a normal
- * deploy. The deploy-progress line on screen today is App counting steps
- * itself, deliberately not this module.
+ * CONSUMED as of 2026-08-25. Provisioning is really TWO fixed step sequences
+ * (dispatch.ts picks `provisioning.provision(true)` or
+ * `provisioning.provisionFromBaseImage()` up front, depending on whether this
+ * build carries the packaged payload), and `planOperation` needs one plan's
+ * phases known upfront -- the earlier blocker. Resolved with two separate
+ * phase lists (`DEPLOY_PHASES`, `DEPLOY_PHASES_FROM_BASE_IMAGE`) and
+ * `firstStepPlan`, which reads the very first `onProvisionStep` call to pick
+ * the sequence the run actually opened. `deployProgressLine` is now driven by
+ * `snapshot()` -- a real weighted percentage and stall message, refreshed by
+ * a 2-second ticker while running so `wsl --import`/the base-image download's
+ * silent minutes still move the number.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -41,10 +41,19 @@ test('the registry row is internally honest: a defined state with a note explain
   assert.ok(typeof row.note === 'string' && row.note.length > 40, 'no note explaining what is and is not wired');
 });
 
-test('nothing in App.tsx imports long-operation-progress.ts -- it constrains nothing that ships today', () => {
+test('App.tsx imports long-operation-progress.ts and drives it with startOperation/reportProgress/snapshot', () => {
   const app = read(APP);
-  assert.doesNotMatch(app, /from '\.\/long-operation-progress'/u,
-    'App.tsx now imports long-operation-progress.ts -- the plan-shape mismatch with provisioning may have been resolved, which would flip this row');
+  assert.match(app, /from '\.\/long-operation-progress'/u, 'App.tsx no longer imports long-operation-progress.ts');
+  assert.match(app, /startOperation\(/u, 'App.tsx no longer calls startOperation');
+  assert.match(app, /reportProgress\(/u, 'App.tsx no longer calls reportProgress');
+  assert.match(app, /snapshot\(/u, 'App.tsx no longer calls snapshot');
+});
+
+test('two distinct phase lists exist, one per real provisioning sequence, and firstStepPlan picks between them', () => {
+  const app = read(APP);
+  assert.match(app, /const DEPLOY_PHASES: readonly OperationPhase\[\] = \[/u, 'the packaged-payload phase list no longer exists');
+  assert.match(app, /const DEPLOY_PHASES_FROM_BASE_IMAGE: readonly OperationPhase\[\] = \[/u, 'the base-image phase list no longer exists');
+  assert.match(app, /function firstStepPlan\(stepName: string\)/u, 'firstStepPlan no longer exists to pick the right plan from the first real step');
 });
 
 test('the re-entry guard refuses a second start unconditionally, regardless of UI state, and says so in its own message', () => {
@@ -53,17 +62,21 @@ test('the re-entry guard refuses a second start unconditionally, regardless of U
     'the re-entry refusal no longer matches the expected shape');
 });
 
-test('planOperation requires phases known upfront -- this is the real reason provisioning cannot use it yet', () => {
+test('planOperation still requires phases known upfront -- why two separate lists exist rather than one', () => {
   const src = read(MODULE);
   assert.match(src, /export function planOperation\(/u, 'planOperation no longer exists');
   assert.match(src, /export interface OperationPlan \{/u, 'OperationPlan no longer exists');
 });
 
-test('provisioning already emits real progress independently, through App-owned step counting, deliberately not through this module', () => {
+test('App.tsx still tracks deploySteps for its plain-text log, alongside the real weighted operation', () => {
   const app = read(APP);
   assert.match(app, /this\.deploySteps\.push\(step\);/u, 'App.tsx no longer tracks deploy steps the way the note describes');
-  assert.doesNotMatch(app, /planOperation\(|createOperation\(|reportProgress\(/u,
-    'App.tsx now calls long-operation-progress.ts functions directly -- the plan-shape mismatch may have been resolved');
+  assert.match(app, /createOperation\(/u, 'App.tsx no longer calls createOperation');
+});
+
+test('a step name neither plan recognises degrades to plain text rather than throwing at the user', () => {
+  const app = read(APP);
+  assert.match(app, /catch \{/u, 'onProvisionStep no longer catches an unrecognised or out-of-order phase');
 });
 
 test('the module has its own dedicated test coverage', () => {
