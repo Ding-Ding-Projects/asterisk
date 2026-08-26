@@ -8,6 +8,7 @@ import {
   channelRows,
   confbridgeRows,
   dashboardStats,
+  droppedRowNote,
   endpointRows,
   formatDuration,
   formatUptime,
@@ -25,7 +26,7 @@ import {
   voicemailRows,
 } from '../../app/renderer/src/readings.ts';
 import type {
-  Channel, ChannelCodecUsage, Contact, Endpoint, EndpointDetailSet, IaxPeer, IaxRegistration, ModuleSummary, QueueSummary, Registration, ViewReadings,
+  Channel, ChannelCodecUsage, Contact, Endpoint, EndpointDetailSet, IaxPeer, IaxRegistration, ModuleSummary, QueueSummary, Registration, RowShortfall, ViewReadings,
 } from '../../app/renderer/src/readings.ts';
 
 const NOW = '2026-08-22T12:00:00.000Z';
@@ -480,7 +481,7 @@ test('amiRows lists manager users and ARI apps with unreadable columns marked ho
 
 test('rowsFor dispatches voicemail/confbridge/moh/ami to their own row builders', () => {
   const readings: ViewReadings = {
-    voicemailUsers: available({ users: [{ context: 'default', mailbox: '1001', fullName: 'Ada Deng', zone: '', newMessages: 1 }] }),
+    voicemailUsers: available({ users: [{ context: 'default', mailbox: '1001', fullName: 'Ada Deng', zone: '', newMessages: 1 }], dropped: [] }),
     rooms: available([{ name: '9000', users: 1, marked: 0, locked: false, muted: false }]),
     mohClasses: available([{ name: 'default', mode: 'files' }]),
     managerUsers: available({ users: [{ username: 'monitor' }] }),
@@ -496,4 +497,66 @@ test('rowsFor dispatches voicemail/confbridge/moh/ami to their own row builders'
 test('a screen with an unavailable reading reports the real reason, not silence', () => {
   const readings: ViewReadings = { rooms: unavailable('`asterisk -rx "confbridge list"` failed: No such command') };
   assert.equal(reasonFor(readings, ['rooms']), '`asterisk -rx "confbridge list"` failed: No such command');
+});
+
+// ---------------------------------------------------------------- droppedRowNote
+//
+// A table that is short of rows must say so. The measured case these guard is the live
+// target whose `voicemail show users` trailer said 4 and whose Voicemail screen showed 3.
+
+const shortfall = (over: Partial<RowShortfall> = {}): RowShortfall => ({
+  command: 'voicemail show users',
+  unit: 'voicemail user',
+  parsed: 3,
+  total: 4,
+  dropped: ['myaliases  1234@devices                                           0'],
+  reason: 'left a mailbox overrunning its own field',
+  ...over,
+});
+
+test('droppedRowNote says how many rows are missing and out of how many', () => {
+  const note = droppedRowNote(shortfall());
+  assert.match(note, /1 of the 4 voicemail users on this target is missing from this table/u);
+});
+
+test('droppedRowNote names the command, so a reader can go and run it themselves', () => {
+  assert.ok(droppedRowNote(shortfall()).includes('`voicemail show users` left a mailbox'), droppedRowNote(shortfall()));
+});
+
+test('droppedRowNote carries the parser\'s own reason and the line it could not read', () => {
+  const note = droppedRowNote(shortfall());
+  assert.ok(note.includes('left a mailbox overrunning its own field.'), `expected the reason in: ${note}`);
+  // Quoted with runs of spaces collapsed: these are fixed-width rows, so the raw line is
+  // fifty columns of padding and the surface collapses runs regardless.
+  assert.ok(note.includes('"myaliases 1234@devices 0"'), `expected the dropped line in: ${note}`);
+});
+
+test('droppedRowNote is silent when every row the target reported is on the table', () => {
+  assert.equal(droppedRowNote(shortfall({ parsed: 4, dropped: [] })), '');
+});
+
+test('droppedRowNote trusts the target trailer over the parser, so an unread non-row is not a missing row', () => {
+  // A line the parser choked on is not automatically a row: the target says it has four
+  // and four are on the table, so nothing is missing however many lines went unread.
+  assert.equal(droppedRowNote(shortfall({ parsed: 4, total: 4, dropped: ['*** a warning, not a mailbox'] })), '');
+});
+
+test('droppedRowNote falls back to the dropped count when the target printed no trailer', () => {
+  const note = droppedRowNote(shortfall({ total: undefined, parsed: 0, dropped: ['a', 'b'] }));
+  assert.match(note, /2 voicemail users on this target are missing from this table/u);
+});
+
+test('droppedRowNote reports a count with no lines when the parser cannot name them', () => {
+  const note = droppedRowNote({
+    command: 'manager show users', unit: 'manager user', parsed: 2, total: 3,
+    reason: 'printed a line that could not be told apart from the report\'s own furniture',
+  });
+  assert.match(note, /1 of the 3 manager users on this target is missing from this table/u);
+  assert.ok(!note.includes('could not read:'), `expected no quoted lines in: ${note}`);
+});
+
+test('droppedRowNote stops quoting after three lines and says it has', () => {
+  const note = droppedRowNote(shortfall({ parsed: 0, total: 4, dropped: ['a', 'b', 'c', 'd'] }));
+  assert.ok(note.includes('"a"; "b"; "c", …'), `expected a bounded list in: ${note}`);
+  assert.ok(!note.includes('"d"'), `expected the fourth line held back in: ${note}`);
 });

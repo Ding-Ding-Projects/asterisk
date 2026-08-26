@@ -139,6 +139,40 @@ This is also why the fixture's voicemail context is `dingvm` and not `ding-live-
 eighteen-character context would have added a mailbox the reading could not see, and the fixture
 would have proved nothing about parsing a new row.
 
+> **Repaired since this run, in a change of its own.** `parseVoicemailUsers` now hands back
+> `dropped` beside `users` and `total` -- every data line it refused, verbatim -- and both screens
+> read the count they were throwing away. The Voicemail screen says *1 of the 4 voicemail users
+> on this target is missing from this table*, names the mechanism, and quotes the line it could
+> not read; the AMI screen says the same about `manager show users` from its trailer alone,
+> because that parser cannot name the line it lost and the count is the whole honest signal it
+> has. A reading that never answered now names itself too, on both screens: each edits a
+> configuration file, so `note()` returns from its configuration branch and never reaches the
+> reading-failure report at the bottom of it, leaving an empty table whose only sentence was
+> about the file. The AMI screen acquired that same shape the day it was given a real
+> `manager.conf` to read, which is why both of its commands are checked rather than only the one
+> this item named. Nine render tests in `tests/ui/dropped-rows-wired.test.tsx` read those
+> sentences out of the real `App`'s markup rather than out of the note builder, because a value
+> computed and never rendered is exactly the defect being repaired.
+>
+> **The parse half of the ledger beside this article moved, and how it moved is worth stating.**
+> Adding a field to what `parseVoicemailUsers` returns changes the canonical JSON it hashes to,
+> so `--check` went red on both phases -- correctly: the recorded hash no longer described what
+> the parser produced. It was re-derived from the *same committed captures* by a new `--reparse`
+> mode rather than by editing four hashes into JSON by hand. `--reparse` touches only what a
+> parser decides (`parsedSha256`, `rows`, `summary`, `threw`), prints every field it moves, and
+> refuses to write at all when a capture no longer hashes to what the ledger recorded, so it
+> cannot launder an altered capture into a fresh-looking record. Four fields moved: two hashes
+> and two summaries, each gaining the `myaliases  1234@devices` line. **No capture was retaken
+> and no live-half field was touched** -- the commit, the exchange, the fixture, the restore and
+> every production-reader result are exactly as that run recorded them, and a test asserts it.
+>
+> The finding above is left as it was written, because it is what this run measured and the run
+> is not being re-taken. Two things this repair does **not** claim: nothing here ran against a
+> live Asterisk, so it is proved against the committed captures, fixtures and render tests and no
+> further; and the note reports a shortfall against the target's own trailer wherever there is
+> one, so a reading whose target printed no trailer falls back to counting the lines the parser
+> refused -- the best estimate available rather than the same measurement.
+
 **3. `media cache show` is allowlisted without the argument it needs — medium.** The live target
 answered `Usage: media cache show <uri>` with exit code 0. `AsteriskReadings` diverts only on
 `No such command` and `Unable to connect to remote asterisk`, so a usage line reaches the CLI
@@ -235,8 +269,33 @@ looking for.
 
 ## Guards
 
-`tests/live/live-readings.test.mjs` (21 tests) and `scripts/negative-live-readings.mjs`
+`tests/live/live-readings.test.mjs` (26 tests) and `scripts/negative-live-readings.mjs`
 (12 breaks, each planted alone, each watched go red, each restored green).
+
+The five tests added after this run guard `--reparse`, the mode that re-derives the parse half
+from the committed captures: that it is a no-op against a ledger already matching its bytes, that
+it repairs a hand-damaged hash and names exactly what it moved, that it refuses to write when a
+capture no longer hashes to what was recorded, that it leaves every live-half field alone, and
+that the ledger still names the exact voicemail line the reading could not turn into a row.
+`scripts/negative-dropped-rows.mjs` holds the repair those describe with 18 further breaks, two
+of them aimed at `--reparse` itself.
+
+Two of those eighteen stayed green when first planted, and both found something real rather than
+merely needing rewording.
+
+The first made the AMI screen claim a shortfall for a reading that had failed, and nothing went
+red, because `note()` returned the failure before the shortfall could be reached: the break was
+unreachable rather than unwatched. **The property genuinely unguarded was the one beside it** --
+a screen fed by two commands, one failing while the other comes back a row light, reported
+whichever sentence came first and dropped the other. Both are said now.
+
+The second stayed green because of the assertion rather than the code. Three negative needles
+read `missing from this table`, and once a failed reading had a sentence of its own that phrase
+belonged to both, so the needle could no longer fail for the reason it was written for. Tightened
+to `on this target is missing from this table`, it then missed a *plural* fabricated claim, since
+that phrase inflects. All three are anchored on the uninflected `<unit>s on this target` now.
+**A negative assertion whose needle drifted onto neighbouring prose is the quietest kind of dead
+guard there is**, and only planting the exact lie it was written to catch shows it up.
 
 Two of those twelve had to be rewritten, and the reason is worth recording. Commenting out
 `if (!recorded.has(command))` inside the coverage check left everything green — not because

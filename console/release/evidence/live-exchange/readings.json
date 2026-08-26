@@ -3284,7 +3284,7 @@
             "voicemail"
           ],
           "outcome": "read",
-          "parsedSha256": "6984d9736b72d88622414d782079e54e7f2c51e8f06a01b9ce907c923478f10b",
+          "parsedSha256": "8e296be84e52214c2b270373373f92d074da46db02466cedd741a67a84c02278",
           "rows": 2,
           "unit": "mailboxes",
           "summary": {
@@ -3304,7 +3304,10 @@
                 "newMessages": 0
               }
             ],
-            "total": 3
+            "total": 3,
+            "dropped": [
+              "myaliases  1234@devices                                           0"
+            ]
           }
         },
         {
@@ -6883,7 +6886,7 @@
             "voicemail"
           ],
           "outcome": "read",
-          "parsedSha256": "3db657abcdf5c9169d41ab1cc41b45dd9dee8aa4e26ec743bb9097986db66e3c",
+          "parsedSha256": "7bb69398c9595afb986c8604c67f232c3225d8611895f5d48e4fa3adf1621d15",
           "rows": 3,
           "unit": "mailboxes",
           "summary": {
@@ -6910,7 +6913,10 @@
                 "newMessages": 0
               }
             ],
-            "total": 4
+            "total": 4,
+            "dropped": [
+              "myaliases  1234@devices                                           0"
+            ]
           }
         },
         {

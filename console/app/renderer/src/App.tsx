@@ -2,7 +2,8 @@ import type { Component, ReactNode } from 'react';
 import ConsoleShell, { APPEAR_GROUPS, ONBOARD, ORDER, SCREENS } from './generated/console';
 import { h } from './dc-runtime';
 import {
-  badgeFor, dashboardStats, formatDuration, healthBars, isReadable, reasonFor, regexMatchLabel, rowsFor, serverRows, valueOf,
+  badgeFor, dashboardStats, droppedRowNote, formatDuration, healthBars, isReadable, reasonFor,
+  regexMatchLabel, rowsFor, serverRows, valueOf,
   type ViewReadings,
 } from './readings';
 import {
@@ -6316,7 +6317,7 @@ It is shown once. The far end needs it to register.`);
        * failures reported at the bottom of this method never reach it. `endpoints` is one
        * of those screens and also reads per-endpoint detail, so a failed detail read would
        * otherwise leave two silently empty columns with nothing anywhere saying why. */
-      const summary = `${configSummary(this.configs[screen], this.target.connected)}${this.endpointDetailNote(screen)}`;
+      const summary = `${configSummary(this.configs[screen], this.target.connected)}${this.endpointDetailNote(screen)}${this.droppedRowsNote(screen)}`;
       /* Say how many controls on this screen are genuinely bound to that file. A screen
        * that reads its file but leaves half its switches on design defaults must not let
        * a reader assume every control below is live — that is the same untruth as the
@@ -6373,6 +6374,82 @@ It is shown once. The far end needs it to register.`);
     const notRead = reading.result.value?.notRead ?? [];
     if (notRead.length === 0) return '';
     return ` Transport and Codecs are empty for ${notRead.length} endpoint(s) this read did not reach: ${notRead.slice(0, 5).join(', ')}${notRead.length > 5 ? ', …' : ''}.`;
+  }
+
+  /**
+   * What a screen says when its table is short of the rows the target really has.
+   *
+   * Both readings behind these two tables hand back the target's own trailer count beside
+   * the list they parsed, and both screens rendered the list and threw the count away --
+   * so a Voicemail screen showing three of four mailboxes looked exactly like one showing
+   * all four. Measured on a live target: the trailer said `4 voicemail users configured`
+   * and the table had three rows.
+   *
+   * Empty for every other screen, and empty whenever the table is showing everything.
+   */
+  private droppedRowsNote(screen: string): string {
+    const sentences = this.readingShortfalls(screen);
+    return sentences.length === 0 ? '' : ` ${sentences.join(' ')}`;
+  }
+
+  /**
+   * Every reason this screen's table has fewer rows than its target does, one sentence
+   * each, in the order a reader wants them: a reading that never answered first, then a
+   * reading that answered short.
+   *
+   * They accumulate rather than compete. A table fed by two commands can lose one of them
+   * outright while the other comes back a row light, and each sentence is the only thing
+   * that names its own cause -- so returning whichever came first leaves a real cause
+   * unsaid on a screen that had already measured it.
+   *
+   * Both of these screens edit a configuration file, which is what makes this method
+   * necessary rather than convenient: `note()` returns from its configuration branch and
+   * never reaches the reading-failure report at the bottom, so without these lines a
+   * failed `voicemail show users` leaves an empty table whose only sentence is about
+   * voicemail.conf -- naming the wrong thing entirely. The AMI screen acquired that same
+   * shape the day it was given a real `manager.conf` to read.
+   */
+  private readingShortfalls(screen: string): string[] {
+    if (screen === 'voicemail') {
+      const readings = this.readings.voicemail;
+      if (!readings) return [];
+      const failed = reasonFor(readings, ['voicemailUsers']);
+      if (failed) return [`No mailboxes are listed because \`voicemail show users\` could not be read: ${failed}`];
+      const value = valueOf(readings.voicemailUsers);
+      if (!value) return [];
+      return [droppedRowNote({
+        command: 'voicemail show users',
+        unit: 'voicemail user',
+        parsed: value.users.length,
+        total: value.total,
+        dropped: value.dropped,
+        reason: 'prints fixed-width columns, and a context or mailbox that overruns its own field leaves nothing to say where the next column begins, so the row is left out rather than filed under the wrong context',
+      }).trim()].filter(Boolean);
+    }
+    if (screen === 'ami') {
+      const readings = this.readings.ami;
+      if (!readings) return [];
+      const sentences: string[] = [];
+      /* Both readings feed the one table (`amiRows`), so either failing costs it rows and
+       * neither failure reaches `reasonFor` from this screen any more. */
+      const failed = reasonFor(readings, ['managerUsers', 'ariApps']);
+      /* Deliberately not phrased "rows are missing from this table": that is the shortfall
+       * sentence's own wording, and two sentences about different causes reading the same
+       * way is how a reader, or a test needle, conflates them. */
+      if (failed) sentences.push(`This table is incomplete because a reading did not answer: ${failed}`);
+      const value = valueOf(readings.managerUsers);
+      if (value) {
+        sentences.push(droppedRowNote({
+          command: 'manager show users',
+          unit: 'manager user',
+          parsed: value.users.length,
+          total: value.total,
+          reason: 'prints one username per line, and this reading could not tell every line apart from the report\'s own header, separator and trailer',
+        }).trim());
+      }
+      return sentences.filter(Boolean);
+    }
+    return [];
   }
 
   /** Real dialplan nodes/edges in the design's canvas shapes, with a bezier path per edge

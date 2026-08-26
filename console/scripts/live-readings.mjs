@@ -43,7 +43,23 @@
  * It cannot re-derive the gateway, the executor, the reload or the restore. Those are recorded
  * once, and `notVerified` in the ledger says so in the ledger's own words rather than here.
  *
+ * WHAT `--reparse` IS FOR, AND WHY IT IS NOT A WAY ROUND `--check`.
+ *
+ * A parser that is deliberately changed after a capture makes `--check` red, and correctly so:
+ * the recorded hash no longer describes what the parser produces. The repair is not to edit a
+ * hash by hand -- four hashes typed into JSON is exactly the shape of evidence nobody can
+ * check -- but to re-derive the parse half from the same committed bytes. That is `--reparse`.
+ *
+ * It touches only the three fields a parser decides: `parsedSha256`, `rows` and `summary` (or
+ * `threw`). Every live-half field -- the capture hashes, the production readers, the fixture,
+ * the restore, the commit the captures were taken at -- is left exactly as the run recorded
+ * it, because nothing here re-runs any of that and rewriting it would describe a run that
+ * never happened. It prints every field it changed, and refuses to write when the captures on
+ * disk no longer hash to what the ledger says they do, so it cannot launder a tampered capture
+ * into a fresh-looking hash.
+ *
  *   node console/scripts/live-readings.mjs --check
+ *   node console/scripts/live-readings.mjs --reparse
  *   npx tsx console/scripts/live-readings.mjs --capture [--distribution=NAME]
  */
 import { spawnSync } from 'node:child_process';
@@ -323,6 +339,125 @@ export function checkLedger(ledger, readCapture) {
   return problems;
 }
 
+// ---------------------------------------------------------------- reparse
+
+/**
+ * Re-derives the parse half of the ledger from the committed captures, in place.
+ *
+ * Returns `{ ledger, changes, problems }` rather than writing anything, so the caller owns
+ * the decision and a test can drive it without a filesystem. `changes` names every field that
+ * moved and both of its values; `problems` is non-empty when the re-derivation cannot be
+ * trusted, and a non-empty `problems` must stop the write.
+ *
+ * The narrowness is the point. Only `parsedSha256`, `rows`, `summary` and `threw` are touched
+ * -- the four things a parser decides -- and the record is rebuilt field by field rather than
+ * replaced wholesale, so a field this does not understand survives untouched instead of
+ * quietly disappearing.
+ */
+export function reparseLedger(ledger, readCapture) {
+  const changes = [];
+  const problems = [];
+
+  for (const [phaseName, phase] of Object.entries(ledger.phases ?? {})) {
+    const captureFor = new Map();
+    for (const record of phase.commands ?? []) {
+      const path = record.capture ?? record.sameAsBaseline;
+      if (typeof path !== 'string') continue;
+      let text;
+      try {
+        text = readCapture(path);
+      } catch {
+        problems.push(`${phaseName}: the capture ${path} for \`${record.command}\` is missing.`);
+        continue;
+      }
+      /* A capture whose bytes no longer hash to what the ledger recorded is a capture that
+       * has been altered, and re-deriving a parse hash from it would stamp that alteration
+       * with a fresh-looking record. Refuse rather than launder it. */
+      if (record.capture && sha256(text) !== record.stdoutSha256) {
+        problems.push(`${phaseName}: ${path} no longer hashes to what the ledger recorded, so it is not the bytes that run captured.`);
+        continue;
+      }
+      captureFor.set(record.command, text);
+    }
+
+    for (const record of phase.readings ?? []) {
+      const reading = READINGS.find((candidate) => candidate.id === record.id);
+      if (!reading) {
+        problems.push(`${phaseName}: the ledger records a reading \`${record.id}\` that no longer exists, so it cannot be re-derived.`);
+        continue;
+      }
+      const text = captureFor.get(reading.command);
+      if (text === undefined) {
+        problems.push(`${phaseName}: ${record.id} has no usable capture of \`${reading.command}\` to re-parse.`);
+        continue;
+      }
+      const note = (field, before, after) => {
+        if (JSON.stringify(before) === JSON.stringify(after)) return;
+        changes.push({ phase: phaseName, id: record.id, field, before, after });
+      };
+
+      let value;
+      let threw;
+      try {
+        value = reading.parser(text);
+      } catch (error) {
+        threw = error instanceof Error ? error.message : String(error);
+      }
+
+      /* The parser this record names is re-derived too, so a reading rewired to a different
+       * parser is recorded as such rather than silently keeping the old name beside a new
+       * hash. */
+      note('parser', record.parser, parserNameOf(reading));
+      record.parser = parserNameOf(reading);
+
+      if (threw !== undefined) {
+        note('threw', record.threw, threw);
+        note('parsedSha256', record.parsedSha256, undefined);
+        record.threw = threw;
+        delete record.parsedSha256;
+        delete record.rows;
+        delete record.unit;
+        delete record.summary;
+        continue;
+      }
+
+      const digest = sha256(canonical(value));
+      const rows = reading.count(value);
+      const summary = summarize(value);
+      note('threw', record.threw, undefined);
+      note('parsedSha256', record.parsedSha256, digest);
+      note('rows', record.rows, rows);
+      note('summary', record.summary, summary);
+      delete record.threw;
+      record.parsedSha256 = digest;
+      record.rows = rows;
+      record.unit = reading.unit;
+      record.summary = summary;
+    }
+  }
+
+  /* `readingsStillEmptyWhenPopulated` is derived from the rows this just recomputed, and
+   * `checkLedger` compares the two, so leaving it stale would make `--check` red immediately
+   * after a `--reparse` that succeeded. It is a restatement of the rows rather than a claim
+   * about the live run, which is why it is in scope here and the fixture and restore are not. */
+  const populated = ledger.phases?.populated;
+  if (populated && ledger.counts) {
+    const empty = populated.readings.filter((record) => (record.rows ?? 0) === 0).map((record) => record.id);
+    const before = ledger.counts.readingsStillEmptyWhenPopulated;
+    if (JSON.stringify(before) !== JSON.stringify(empty)) {
+      changes.push({ phase: 'counts', id: 'readingsStillEmptyWhenPopulated', field: 'counts', before, after: empty });
+      ledger.counts.readingsStillEmptyWhenPopulated = empty;
+    }
+    const withRows = populated.readings.filter((record) => (record.rows ?? 0) > 0).length;
+    if (ledger.counts.readingsWithRowsWhenPopulated !== withRows) {
+      changes.push({ phase: 'counts', id: 'readingsWithRowsWhenPopulated', field: 'counts', before: ledger.counts.readingsWithRowsWhenPopulated, after: withRows });
+      ledger.counts.readingsWithRowsWhenPopulated = withRows;
+    }
+  }
+
+  return { ledger, changes, problems };
+}
+
 // ---------------------------------------------------------------- capture
 
 /**
@@ -440,8 +575,32 @@ async function main() {
     console.log(`live-readings --check: ${phases} phase(s), ${READ_ONLY_COMMANDS.length} commands, ${READINGS.length} readings re-derived from committed bytes.`);
     return;
   }
+  if (argv.includes('--reparse')) {
+    const { ledger, changes, problems } = reparseLedger(
+      JSON.parse(readFileSync(LEDGER_PATH, 'utf8')),
+      (path) => readFileSync(join(CAPTURE_DIRECTORY, path), 'utf8'),
+    );
+    if (problems.length > 0) {
+      console.error(`live-readings --reparse refused to write, ${problems.length} problem(s):`);
+      for (const problem of problems) console.error(`  - ${problem}`);
+      process.exitCode = 1;
+      return;
+    }
+    if (changes.length === 0) {
+      console.log('live-readings --reparse: the parse half already matches the committed captures; nothing written.');
+      return;
+    }
+    /* Printed rather than summarised. A mode that rewrites recorded evidence has to say
+     * exactly what it rewrote, or it is indistinguishable from one that rewrote anything. */
+    for (const change of changes) {
+      console.log(`  ${change.phase}/${change.id}.${change.field}: ${JSON.stringify(change.before)} -> ${JSON.stringify(change.after)}`);
+    }
+    writeFileSync(LEDGER_PATH, `${JSON.stringify(ledger, undefined, 2)}\n`, 'utf8');
+    console.log(`live-readings --reparse: ${changes.length} field(s) re-derived from committed captures; wrote ${LEDGER_PATH}`);
+    return;
+  }
   if (!argv.includes('--capture')) {
-    console.error('Usage: live-readings.mjs --check | --capture [--distribution=NAME]');
+    console.error('Usage: live-readings.mjs --check | --reparse | --capture [--distribution=NAME]');
     process.exitCode = 2;
     return;
   }
