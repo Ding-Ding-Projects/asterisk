@@ -244,7 +244,7 @@ const cases = [
   // Commented out rather than removed, for the same reason as above: this is how a
   // wiring line actually dies, and a substring needle is satisfied by the comment.
   ['the startup call is commented out rather than removed',
-    swap(APP, 'initReleaseNotes();initChangelog();initTimeAwareness();', 'initReleaseNotes();/*initChangelog();*/initTimeAwareness();')],
+    swap(APP, 'initReleaseNotes();initChangelog();initUpdates();', 'initReleaseNotes();/*initChangelog();*/initUpdates();')],
 
   // The first render never happens, so the section is empty until somebody types.
   ['nothing renders the changelog until the reader touches a control',

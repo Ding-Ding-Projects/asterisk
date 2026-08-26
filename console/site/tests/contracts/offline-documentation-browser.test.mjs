@@ -45,8 +45,31 @@ test('DESTINATIONS is a real embedded catalogue, not an empty placeholder', () =
   assert.ok(idMatches.length > 10, `expected a substantial catalogue of destination entries, found ${idMatches.length}`);
 });
 
-test('there is zero network fetch anywhere in app.js -- the catalogue is embedded, not fetched separately', () => {
-  assert.doesNotMatch(app, /\bfetch\(/u, 'app.js now calls fetch(...) -- the "no network request beyond the page load" claim needs re-checking');
+/* This used to read "there is zero network fetch anywhere in app.js", which proved the
+ * catalogue was embedded by proving that nothing at all was fetched. On 2026-08-26 the
+ * site gained its published-version watch and that ban went red for a request with
+ * nothing to do with the catalogue.
+ *
+ * The property this row actually rests on is narrower, and is now pinned directly: the
+ * catalogue is a literal in this file, the one request in the file is the version
+ * manifest, and none of the bodies that browse the catalogue makes a request. Browsing
+ * still reaches the network never. */
+test('the catalogue is embedded, and the single request in app.js is not part of browsing it', () => {
+  const calls = [...app.matchAll(/\bfetch\(/gu)];
+  assert.equal(calls.length, 1,
+    `expected exactly one fetch in app.js -- the published-version check -- and found ${calls.length}; a second request needs accounting for before this row's offline claim stays true`);
+  assert.match(app, /const response=await fetch\(url,\{cache:'no-store',credentials:'omit',signal:controller\.signal\}\);/u,
+    'the one request is no longer the published-version check -- the "browsing reaches no network" claim needs re-checking');
+  /* The bodies that browse the catalogue, checked one at a time rather than as one blob:
+   * a request appearing in any of them is the defect this row exists to refuse. */
+  for (const name of ['renderDestinations', 'initSearch', 'initDestinationMap']) {
+    const start = app.indexOf(`function ${name}(`);
+    assert.notEqual(start, -1, `function ${name} is no longer declared in site/app.js`);
+    const next = app.indexOf('\n  function ', start + 1);
+    const body = app.slice(start, next === -1 ? app.length : next);
+    assert.ok(body.length > 40, `the extracted body of ${name} is too short to trust a "no request" result from it`);
+    assert.doesNotMatch(body, /\bfetch\(/u, `${name} now makes a request -- the catalogue is no longer purely embedded`);
+  }
 });
 
 test('renderDestinations genuinely searches the real catalogue and reports a real match count', () => {
