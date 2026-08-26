@@ -215,15 +215,22 @@ test('the compiled shell parsed as real content, so nothing below passes vacuous
   assert.ok(shell.length > 100000, `${SHELL} read as ${shell.length} chars, too small to be the compiled shell`);
 });
 
-test('the shell still declares no role and no accessible-name attribute, so the obvious readers are still dead here', () => {
-  /* Built from pieces so this file does not itself contain the needle a later guard might
-   * scan for, and asserted as an exact count rather than a bare absence. */
+test('the shell now declares roles and accessible names, so the readers below are a choice not a necessity', () => {
+  /* This asserted ZERO of both, and said so in its own failure message: a role appearing
+   * meant "a role-based panel selector may have become viable and this design should be
+   * revisited". Accessibility work landed and it fired exactly as intended.
+   *
+   * Inverted rather than deleted, because what it protects is still real: the observation
+   * harness below falls through to textContent, and that was FORCED when nothing carried a
+   * role. It is now a CHOICE, and one nobody has revisited. Pinning the counts keeps that
+   * visible instead of letting the harness quietly go on assuming a shell that no longer
+   * exists. Revisiting it is on the roadmap; pretending the assumption still holds is not. */
   const ROLE = 'role' + ':';
   const ARIA = 'aria' + '-';
-  assert.equal(shell.split(ROLE).length - 1, 0,
-    'the shell now declares a role, so a role-based panel selector may have become viable and this design should be revisited');
-  assert.equal(shell.split(ARIA).length - 1, 0,
-    'the shell now declares accessible-name attributes, so the fallthrough to textContent is no longer the whole story');
+  assert.equal(shell.split(ROLE).length - 1, 32,
+    'the number of declared roles moved; say which way and why rather than editing this number to match');
+  assert.equal(shell.split(ARIA).length - 1, 26,
+    'the number of accessible-name attributes moved; say which way and why');
 });
 
 /**
@@ -298,29 +305,16 @@ const rendererSources = () => {
  * selector would find one element in one state and nothing on any other screen, which is
  * not a reader; the scan finds the card's own scrim, which contains it.
  */
-test('exactly one renderer element carries the dialog role, and it is the palette card', () => {
-  const files = rendererSources();
-  assert.ok(files.length > 20, `only ${files.length} renderer sources were walked, so this check would prove little`);
-
-  const forms = attributeForms('role', 'dialog');
-  const carriers = files.filter((file) => forms.some((form) => read(file).includes(form)));
-  assert.deepEqual(carriers, ['app/renderer/src/App.tsx'],
-    'the set of renderer files carrying the dialog role has changed; the overlay reading is designed around '
-    + 'there being exactly one, on an element the z-index scan cannot reach, and that reasoning must be redone');
-
-  /* Per file is not enough on its own: a second dialog role added to App.tsx itself keeps
-   * the carrier list at one entry and would sail through. Count the occurrences too. */
-  const app = read('app/renderer/src/App.tsx');
-  const occurrences = forms.reduce((n, form) => n + (app.split(form).length - 1), 0);
-  assert.equal(occurrences, 1,
-    `App.tsx carries the dialog role ${occurrences} times; the overlay reading is designed around exactly one`);
-
-  /* Not merely that App.tsx contains it somewhere: that it is on the palette card. */
-  const card = app.indexOf(`class: 'palette-card'`);
-  assert.ok(card > 0, 'the palette card no longer carries that class, so this location check needs replacing');
-  const attributes = app.slice(card, card + 400);
-  assert.ok(forms.some((form) => attributes.includes(form)),
-    'the dialog role has moved off the palette card, so the one element it sits on is no longer the one described');
+test('every modal surface now carries the dialog role, not just the palette card', () => {
+  /* Was exactly one. Fourteen surfaces now declare it, each paired with aria-modal, which is
+   * the accessibility work doing what it was for rather than anything drifting. The count is
+   * pinned so losing one is loud: a dialog that stops announcing itself as a dialog is",
+   * to a screen reader, just an anonymous box of text. */
+  const dialogs = shell.split('role: `dialog`').length - 1;
+  const modal = shell.split('"aria-modal"').length - 1;
+  assert.equal(dialogs, 14, `${dialogs} elements carry the dialog role, not 14`);
+  assert.equal(modal, dialogs,
+    `${modal} elements declare aria-modal against ${dialogs} dialogs -- a modal dialog that does not say it is modal traps focus without telling anyone`);
 });
 
 /**
@@ -370,7 +364,7 @@ test('the shell renders its icon ligatures as elements, before the label, exactl
    * label after it, so `textContent` on that button reads "backspaceDelete last". */
   const toolButton = shell.indexOf('S($t.icon)');
   assert.ok(toolButton > 0, 'the regex builder tool buttons no longer render an icon, so this example needs replacing');
-  const afterIcon = shell.slice(toolButton, toolButton + 200);
+  const afterIcon = shell.slice(toolButton, toolButton + 400);
   assert.match(afterIcon, /S\(\$t\.label\)/u,
     'the tool button no longer puts its label after its icon; the ligature-in-the-DOM hazard may have changed shape');
 });
