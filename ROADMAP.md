@@ -208,7 +208,7 @@ this repository keeps repeating, because it produces no error and no failing tes
 - [ ] **Import the six finished modules nothing imports:** status hub, bounded overlays,
       context-menu shortcuts, long-operation progress, collapsible filters, and forge publishing.
       Each is complete and covered by its own tests; none is reachable from the interface.
-- [ ] **Correct the implementation registry where its notes are now false.** It still records that
+- [x] **Correct the implementation registry where its notes are now false.** It still records that
       per-element locks have no one-time-code option and no documented context-menu command; both
       shipped. Their real gap is that credentials sit in plain state rather than the operating
       system vault. It also understates appearance, where four of six symbols do write real styles
