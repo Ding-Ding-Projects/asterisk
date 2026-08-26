@@ -46,7 +46,7 @@ test('anything that is not a string, or not a .conf, is refused', () => {
   }
 });
 
-test('the screens that declare a label instead of a filename are exactly these four', () => {
+test('the screens that declare a label instead of a filename are exactly these three', () => {
   /* A pin, not an aspiration. Four screens declare a display label made of several names
    * joined for the reader -- and each ends in .conf, so the old check accepted it and turned
    * it into a path no target could have. Those screens have never read the files they name.
@@ -64,10 +64,12 @@ test('the screens that declare a label instead of a filename are exactly these f
   assert.ok(declared.length > 5, 'too few screens declare a file for this check to mean anything');
 
   const refused = declared.filter(([, file]) => resourceForFile(file) === undefined).map(([id]) => id).sort();
-  assert.deepEqual(refused, ['ami', 'cdr', 'codecs', 'trunkauth'],
+  /* Was four. The call records screen was fixed by the lane that discovered why it had
+   * never read anything, so it names cdr.conf now and reads it. Three left. */
+  assert.deepEqual(refused, ['ami', 'codecs', 'trunkauth'],
     'the set of screens naming a label rather than a file has changed; update this pin and say which way');
 
   /* Every other declaration must resolve, or the rule is refusing something legitimate. */
   const accepted = declared.filter(([, file]) => resourceForFile(file) !== undefined);
-  assert.ok(accepted.length >= declared.length - 4, 'the rule refused more than the four known labels');
+  assert.ok(accepted.length >= declared.length - 3, 'the rule refused more than the three known labels');
 });

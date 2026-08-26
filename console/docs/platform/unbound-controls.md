@@ -31,9 +31,19 @@ booleans. A binding that wrote one would leave the other saying something differ
 
 ### A control whose values are sections, not a value
 
-The CDR **backend** picker offers csv, odbc, pgsql and the rest. `cdr.conf` has no key
-naming a backend: each is its own `[section]`, and choosing one means writing a section.
-The **active ACL** picker on the security screen is the same shape against `acl.conf`.
+The CDR **backend** picker would offer csv, odbc, pgsql and the rest. `cdr.conf` has no key
+naming a backend: each is its own `[section]`, and choosing one means writing a section. The
+**active ACL** picker on the security screen is the same shape against `acl.conf`.
+
+**This one never came back as a picker, and it is not going to.** What it got instead, on the
+CDR/CEL screen, is a live `d_status`/`l_status` readout: what cdr.conf/cel_odbc.conf/
+cel_pgsql.conf actually have configured, against what the target's running Asterisk actually
+has registered (`cdr show status`, and `modules show` for the `cel_*.so` module names) --
+answering "which backend" honestly instead of offering a single control that could never be
+one real key. cel_odbc.conf's own per-context `connection`/`table` pair, which IS a plain pair
+of keys once a context section is named, is bound the same way the security screen's PJSIP-
+transport TLS fields are: `l_octx` names the `[section]`, the same `sectionFrom` mechanism
+`s_permit`'s own removal note documented and the TLS lane above already reused once.
 
 ### A control that is a repeated key
 

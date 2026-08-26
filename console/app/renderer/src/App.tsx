@@ -2826,8 +2826,81 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'deploy-status') return this.deployStatusLine();
     if (action === 'ivr-dialplan') return this.ivrDialplanText();
     if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
+    if (action === 'cdr-status') return this.cdrBackendStatus();
+    if (action === 'cel-status') return this.celBackendStatus();
     return '';
   };
+
+  /** Every CDR backend name cdr.conf.sample's own "CHOOSING A CDR BACKEND" section
+   *  (~line 100) names as selected by a `[section]` living directly in cdr.conf, rather
+   *  than in a file of its own -- `[csv]` (~line 31) and `[radius]` (~line 34) are the
+   *  only two the sample shows spelled that way; `custom`, `manager`, `odbc`, `pgsql`
+   *  and the rest all read from a SEPARATE file this console reads under its own key
+   *  (see `cdrBackendStatus` below), never from a section here. */
+  private static readonly CDR_INLINE_BACKEND_SECTIONS = ['csv', 'radius'] as const;
+
+  /** "Configured" (what cdr.conf/cel_*.conf actually have written) against "loaded"
+   *  (what the target's running Asterisk has actually registered) for the CDR half of
+   *  the CDR/CEL screen -- the honest answer to "no backend selection across the
+   *  several available", since cdr.conf itself has no single key naming one (see the
+   *  `d_backend is unmapped` note on `CONTROL_BINDINGS.cdr`). Configured is read from
+   *  this screen's own already-cached files; loaded comes from `cdr show status`'s own
+   *  "Registered Backends" list, which the `cdr` view now fetches alongside `modules`
+   *  (see `control-plane/dispatch.ts`). */
+  private cdrBackendStatus(): string {
+    if (!this.target.connected) return 'No target is connected.';
+    const cdrValue = this.configs.cdr?.state === 'read' ? this.configs.cdr.value : undefined;
+    if (!cdrValue) return 'cdr.conf has not been read from the target yet.';
+    const configured = new Set<string>();
+    for (const name of App.CDR_INLINE_BACKEND_SECTIONS) {
+      if (cdrValue.some((section) => section.name === name && section.entries.length > 0)) configured.add(name);
+    }
+    /* odbc/pgsql are configured through their own file's [global] section, not read by
+     * this screen's own `configs.cdr` -- only cel_odbc.conf/cel_pgsql.conf are, so this
+     * reports what this screen HAS read (cdr.conf's own two inline sections) plus what
+     * the live target itself already knows about the rest, rather than reading five
+     * more files just to answer this one line. */
+    const reading = this.readings['cdr'];
+    const status = reading?.cdrStatus?.result.state === 'available' ? reading.cdrStatus.result.value : undefined;
+    if (!status) {
+      const configuredLine = configured.size > 0 ? `Configured in cdr.conf: ${[...configured].join(', ')}.` : 'No [csv] or [radius] section is configured in cdr.conf.';
+      return `${configuredLine} Registered backends: not read yet.`;
+    }
+    const configuredLine = configured.size > 0 ? `Configured in cdr.conf: ${[...configured].join(', ')}.` : 'No [csv] or [radius] section is configured in cdr.conf (odbc/pgsql/custom/manager/etc. are each their own file -- see PBX Admin).';
+    const backends = status.backends;
+    const loadedLine = backends.length === 0
+      ? 'This target has no CDR backend module registered.'
+      : `Registered on this target: ${backends.map((b) => `${b.name}${b.suspended ? ' (suspended)' : ''}`).join(', ')}.`;
+    const logging = status.settings['Logging'];
+    const loggingLine = logging ? ` Logging: ${logging}.` : '';
+    return `${configuredLine} ${loadedLine}${loggingLine}`;
+  }
+
+  /** The CEL half of the same distinction. There is no `cel show status` CLI command in
+   *  Asterisk (`main/cel.c` has no `handle_cli_status`, unlike `main/cdr.c`), so "loaded"
+   *  here comes from the one live signal this console does have: whether `modules show`
+   *  lists the matching `cel_*.so` module at all, which the `cdr` view's own `modules`
+   *  fetch (added alongside `cdrStatus` in `dispatch.ts`) already carries for the CDR
+   *  half above. "Configured" is cel_odbc.conf/cel_pgsql.conf actually having a
+   *  populated section, not merely existing as an empty file. */
+  private celBackendStatus(): string {
+    if (!this.target.connected) return 'No target is connected.';
+    const odbcValue = this.configs.celOdbc?.state === 'read' ? this.configs.celOdbc.value : undefined;
+    const pgsqlValue = this.configs.celPgsql?.state === 'read' ? this.configs.celPgsql.value : undefined;
+    if (!odbcValue && !pgsqlValue) return 'cel_odbc.conf and cel_pgsql.conf have not been read from the target yet.';
+    const configured: string[] = [];
+    if (odbcValue?.some((section) => section.name !== 'general' && section.entries.length > 0)) configured.push('odbc');
+    if (pgsqlValue?.some((section) => section.name === 'global' && section.entries.length > 0)) configured.push('pgsql');
+    const configuredLine = configured.length > 0
+      ? `Configured: ${configured.join(', ')}.`
+      : 'Neither cel_odbc.conf nor cel_pgsql.conf has a populated section configured yet.';
+    const reading = this.readings['cdr'];
+    const modules = reading?.modules?.result.state === 'available' ? reading.modules.result.value : undefined;
+    if (!modules) return `${configuredLine} Module state: not read yet.`;
+    const loaded = ['cel_odbc.so', 'cel_pgsql.so'].filter((name) => modules.some((m) => m.name === name));
+    const loadedLine = loaded.length > 0 ? `Loaded on this target: ${loaded.join(', ')}.` : 'Neither cel_odbc.so nor cel_pgsql.so is loaded on this target.';
+    return `${configuredLine} ${loadedLine}`;
+  }
 
   /** Read by every control the design marks with `c.action`, whatever its kind.
    *  `_control` and `selected` mirror `PbxAdminApp.onControlAction`'s own signature --
@@ -2859,6 +2932,11 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'security-stir-save') { void this.onSaveStirShaken(); return; }
     if (action === 'httpd-save') { void this.onSaveHttp(); return; }
     if (action === 'iaxpeers-save') { void this.onSaveIaxPeer(); return; }
+    if (action === 'cdr-save') { void this.onSaveCdr(); return; }
+    if (action === 'cel-save') { void this.onSaveCel(); return; }
+    if (action === 'cel-odbc-load') { this.onLoadCelOdbc(); return; }
+    if (action === 'cel-odbc-save') { void this.onSaveCelOdbc(); return; }
+    if (action === 'cel-pgsql-save') { void this.onSaveCelPgsql(); return; }
     if (action === 'fax-save') { void this.onSaveFax(); return; }
     if (action === 'fax-udptl-save') { void this.onSaveFaxUdptl(); return; }
   };
@@ -3601,6 +3679,70 @@ It is shown once. The phone needs it to register.`);
       }
     }
 
+    /* The CDR/CEL screen's own declared `file` is cdr.conf, read by the generic block
+     * above. Its CEL controls live in three OTHER files -- cel.conf, cel_odbc.conf and
+     * cel_pgsql.conf -- read here the same way pjsip.conf and stir_shaken.conf are read
+     * for the Security screen just above: independently of the cdr.conf read and of
+     * each other, cached under their own `this.configs` keys, and seeded into `values`
+     * exactly once each becomes available. `l_oconn`/`l_otable` are NOT seeded here:
+     * like the Security screen's PJSIP-transport TLS fields, they read through
+     * `sectionFrom: 'l_octx'`, and nothing has been typed into that control on first
+     * load, so seeding now would find no section to read -- they seed on demand from
+     * the "Load from target" action instead. */
+    if (screen === 'cdr') {
+      if ((!this.configs.cel || this.configs.cel.state === 'unavailable')
+          && !this.extraConfigPending.has('cel.conf') && mayStartRead('config:cdr-cel')) {
+        this.extraConfigPending.add('cel.conf');
+        const resource = resourceForFile('cel.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('cel.conf');
+        this.configs.cel = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if ((!this.configs.celOdbc || this.configs.celOdbc.state === 'unavailable')
+          && !this.extraConfigPending.has('cel_odbc.conf') && mayStartRead('config:cdr-cel-odbc')) {
+        this.extraConfigPending.add('cel_odbc.conf');
+        const resource = resourceForFile('cel_odbc.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('cel_odbc.conf');
+        this.configs.celOdbc = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if ((!this.configs.celPgsql || this.configs.celPgsql.state === 'unavailable')
+          && !this.extraConfigPending.has('cel_pgsql.conf') && mayStartRead('config:cdr-cel-pgsql')) {
+        this.extraConfigPending.add('cel_pgsql.conf');
+        const resource = resourceForFile('cel_pgsql.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('cel_pgsql.conf');
+        this.configs.celPgsql = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if (this.configs.cel?.state === 'read' && !this.seeded.has('cdr-cel')) {
+        const state = this.state as { values: Record<string, unknown> };
+        const bound = readControlValues('cdr', [], { 'cel.conf': this.configs.cel.value ?? [] });
+        if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
+        this.seeded.add('cdr-cel');
+      }
+      if (this.configs.celOdbc?.state === 'read' && !this.seeded.has('cdr-cel-odbc')) {
+        const state = this.state as { values: Record<string, unknown> };
+        const bound = readControlValues('cdr', [], { 'cel_odbc.conf': this.configs.celOdbc.value ?? [] });
+        if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
+        this.seeded.add('cdr-cel-odbc');
+      }
+      if (this.configs.celPgsql?.state === 'read' && !this.seeded.has('cdr-cel-pgsql')) {
+        const state = this.state as { values: Record<string, unknown> };
+        const bound = readControlValues('cdr', [], { 'cel_pgsql.conf': this.configs.celPgsql.value ?? [] });
+        if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
+        this.seeded.add('cdr-cel-pgsql');
+      }
+    }
+
     /* The Fax screen's six fx_udptl* fields live in udptl.conf -- the transport T.38
      * rides on -- not in res_fax.conf, which is this screen's own declared `file` and
      * already covered by the generic per-screen block above. Same shape as security's
@@ -4166,6 +4308,132 @@ It is shown once. The phone needs it to register.`);
 
 It is shown once. The far end needs it to register.`);
     }
+  };
+
+  // ---------------------------------------------------------------- CDR / CEL screen
+
+  /** "Save call records settings": cdr.conf's five fields, named explicitly rather
+   *  than passed as the whole `values` state, because `CONTROL_BINDINGS.cdr` spans
+   *  four files (cdr.conf itself, cel.conf, cel_odbc.conf, cel_pgsql.conf) and
+   *  `applyControlValues` has no notion of `binding.file` when deciding what to write
+   *  -- passing the unfiltered state here would write cel.conf's own l_* keys into
+   *  cdr.conf as well, the same reason the Security screen's TLS/STIR-SHAKEN saves
+   *  build an explicit list instead of forwarding `state.values` whole. */
+  private static readonly CDR_CONTROLS = ['d_enable', 'd_unanswered', 'd_congestion', 'd_batch', 'd_size'] as const;
+
+  onSaveCdr = async (): Promise<void> => {
+    const current = this.configs.cdr?.state === 'read' ? this.configs.cdr.value : undefined;
+    if (!current) { this.fire('Not written', 'cdr.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.CDR_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('cdr', current, changes);
+    await this.writeConfigResource(
+      this.configs.cdr?.resource ?? (resourceForFile('cdr.conf') as string),
+      next,
+      'cdr.conf updated on the target.',
+      'Call records settings saved',
+      () => { delete this.configs.cdr; this.seeded.delete('cdr'); },
+    );
+  };
+
+  /** "Save channel event logging settings": cel.conf's own four [general] fields. */
+  private static readonly CEL_CONTROLS = ['l_enable', 'l_events', 'l_apps', 'l_date'] as const;
+
+  onSaveCel = async (): Promise<void> => {
+    const current = this.configs.cel?.state === 'read' ? this.configs.cel.value : undefined;
+    if (!current) { this.fire('Not written', 'cel.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.CEL_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('cdr', current, changes);
+    await this.writeConfigResource(
+      this.configs.cel?.resource ?? (resourceForFile('cel.conf') as string),
+      next,
+      'cel.conf updated on the target.',
+      'Channel event logging settings saved',
+      () => { delete this.configs.cel; this.seeded.delete('cdr-cel'); },
+    );
+  };
+
+  /** The cel_odbc.conf `[section]` the ODBC group's context fields are currently
+   *  pointed at, resolved against the target's own already-read file -- the same shape
+   *  `transportSection()` above gives the Security screen's TLS group. `undefined`
+   *  when the name is empty, cel_odbc.conf has not been read yet, or nothing on the
+   *  target is named that (which is not a refusal here: Save is free to create it). */
+  private celOdbcSection(): { name: string; section: ConfigSection } | undefined {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['l_octx'] ?? '').trim();
+    const value = this.configs.celOdbc?.state === 'read' ? this.configs.celOdbc.value : undefined;
+    if (!name || !value) return undefined;
+    const section = value.find((candidate) => candidate.name === name);
+    return section ? { name, section } : undefined;
+  }
+
+  /** "Load from target" on the ODBC group: reads the named context's current
+   *  connection/table out of the cel_odbc.conf already fetched above into the fields
+   *  below. A name that does not resolve to an existing section is not a refusal --
+   *  unlike a PJSIP transport, a cel_odbc.conf context needs nothing but these two
+   *  keys to be usable, so Save is free to create one from a blank pair of fields. */
+  onLoadCelOdbc = (): void => {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['l_octx'] ?? '').trim();
+    if (!name) { this.toast('Type a context name first.'); return; }
+    const found = this.celOdbcSection();
+    if (!found) {
+      this.toast(`No [${name}] section in cel_odbc.conf yet -- Save will create it with whatever is typed below.`);
+      return;
+    }
+    const odbcValue = this.configs.celOdbc?.state === 'read' ? this.configs.celOdbc.value : undefined;
+    const bound = readControlValues('cdr', [], { 'cel_odbc.conf': odbcValue ?? [] }, { l_octx: found.name });
+    this.setState({ values: { ...values, ...bound } } as never);
+    this.toast(`Loaded [${found.name}] from cel_odbc.conf.`);
+  };
+
+  /** "Save ODBC context": writes the show-events switch (a fixed [general] key) and
+   *  the named context's connection/table (wherever `l_octx` currently names, created
+   *  fresh if it does not exist yet) in one cel_odbc.conf write. */
+  private static readonly CEL_ODBC_CONTROLS = ['l_oshow', 'l_octx', 'l_oconn', 'l_otable'] as const;
+
+  onSaveCelOdbc = async (): Promise<void> => {
+    const current = this.configs.celOdbc?.state === 'read' ? this.configs.celOdbc.value : undefined;
+    if (!current) { this.fire('Not written', 'cel_odbc.conf has not been read from the target yet.'); return; }
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['l_octx'] ?? '').trim();
+    if (!name) { this.fire('Not written', 'Type a context name before saving -- cel_odbc.conf records connections per named context, not a single global one.'); return; }
+    const changes: Record<string, unknown> = {};
+    for (const id of App.CEL_ODBC_CONTROLS) if (id in values) changes[id] = values[id];
+    const next = applyBoundControlValues('cdr', current, changes);
+    await this.writeConfigResource(
+      this.configs.celOdbc?.resource ?? (resourceForFile('cel_odbc.conf') as string),
+      next,
+      `cel_odbc.conf updated on the target: [${name}].`,
+      'ODBC context saved',
+      () => { delete this.configs.celOdbc; this.seeded.delete('cdr-cel-odbc'); },
+    );
+  };
+
+  /** "Save PostgreSQL settings": every l_p* field is fixed to cel_pgsql.conf's own
+   *  single [global] section, so all nine can be written together -- password is
+   *  never among them; see the unmapped-control note on `CONTROL_BINDINGS.cdr`. */
+  private static readonly CEL_PGSQL_CONTROLS = [
+    'l_pshow', 'l_pgmtime', 'l_phost', 'l_pport', 'l_pdb', 'l_puser', 'l_ptable', 'l_pschema', 'l_papp',
+  ] as const;
+
+  onSaveCelPgsql = async (): Promise<void> => {
+    const current = this.configs.celPgsql?.state === 'read' ? this.configs.celPgsql.value : undefined;
+    if (!current) { this.fire('Not written', 'cel_pgsql.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.CEL_PGSQL_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('cdr', current, changes);
+    await this.writeConfigResource(
+      this.configs.celPgsql?.resource ?? (resourceForFile('cel_pgsql.conf') as string),
+      next,
+      'cel_pgsql.conf updated on the target.',
+      'PostgreSQL settings saved',
+      () => { delete this.configs.celPgsql; this.seeded.delete('cdr-cel-pgsql'); },
+    );
   };
 
   private note(screen: string): string {

@@ -85,11 +85,35 @@ function deliveredByAction(id: string): boolean {
  * udptl.conf) plus fx_save/fx_udptlsave, two action buttons recognised via
  * `deliveredByAction` the same way as httpd-save above, each writing through its own
  * `onSaveFax`/`onSaveFaxUdptl`. All fourteen work, so 209 + 14 = 223.
+ * Then 228 with the channel-event-logging lane: net +20 on the CDR/CEL screen. Twelve are
+ * new CONTROL_BINDINGS.cdr entries -- cel_odbc.conf's show_user_defined plus a per-context
+ * connection/table pair (l_octx names the section, the same sectionFrom shape s_transport
+ * uses above), and cel_pgsql.conf's whole [global] section bar password. l_octx itself is
+ * one more: a plain text picker with no binding of its own, read via `values['l_octx']`
+ * (the quoted form this measurement looks for) exactly the way s_transport already is.
+ * The remaining seven are one-shot action buttons -- d_save/d_status, l_save/l_status,
+ * l_oload/l_osave, l_psave -- real write and live-status paths through onControlAction,
+ * recognised the same way as s_tload/s_tsave/s_stirsave/ht_save, via `deliveredByAction`.
+ * All 228 work: this lane also fixed cdr.conf's own five d_* fields and cel.conf's own
+ * four l_* fields, which had never been read from a real target before (the screen's
+ * declared `file` was the non-existent combined resource "cdr.conf · cel.conf"), but
+ * those nine were already counted as working before this pass -- `measure()` only checks
+ * whether a control is bound or delivered by an action, not whether the file it targets
+ * was ever actually reachable, so their count does not move even though their behaviour
+ * just went from silently inert to genuinely live.
+ *
+ * Then 222: the new Fax screen, fourteen controls -- twelve bound in CONTROL_BINDINGS.fax
+ * (six res_fax.conf, six udptl.conf) plus fx_save/fx_udptlsave, two action buttons
+ * recognised via `deliveredByAction` the same way as httpd-save above, each writing
+ * through its own `onSaveFax`/`onSaveFaxUdptl`. All fourteen work.
+ *
+ * Merged: both lanes moved the floor independently from 208 (228 and 222 respectively),
+ * so the reconciled number is neither -- it is 208 + 20 + 14, confirmed the same way as
+ * control-keys.test.tsx's controlCount: a deliberately wrong value run through this test,
+ * and the real figure it reported read back, rather than adding the two deltas by hand.
  *
  * It may rise freely and may not fall.
  */
-const WORKING_FLOOR = 223;
-const TELEPHONY_TOTAL = 223;
 
 function measure() {
   const files = readdirSync(srcDir).filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'));
@@ -127,6 +151,12 @@ function measure() {
   }
   return { working, dead, total: working + dead.length, source, reachable, files };
 }
+
+/* 243, re-derived from the code after merging four lanes rather than by adding their
+ * deltas together. Three of them independently moved this number from 208, so a sum would
+ * have been a guess that happened to look plausible. */
+const WORKING_FLOOR = 243;
+const TELEPHONY_TOTAL = 243;
 
 test('an action-delivered control is recognised even though its id never appears as a quoted literal', () => {
   for (const id of ['s_tload', 's_tsave', 's_stirsave', 'ht_save', 'fx_save', 'fx_udptlsave']) {
