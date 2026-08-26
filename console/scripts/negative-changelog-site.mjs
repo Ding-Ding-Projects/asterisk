@@ -46,6 +46,7 @@ const DOWNLOADS = file('site/downloads.html');
 const BUILD = file('site/build.mjs');
 const REGISTRY = file('site/feature-registry.json');
 const LOCALES = file('site/locales/feature-registry.json');
+const WORKFLOW = resolve(repo, '.github', 'workflows', 'pages.yml');
 
 /**
  * Replaces `from` with `to` exactly once, refusing anything that is not exactly once.
@@ -303,6 +304,48 @@ const cases = [
   ['a commit git reports missing no longer fails the build',
     swap(BUILD, '    throw new Error(`Changelog: git reports ${missing.length} referenced commit(s) missing from this repository, `\n      + `so their links would be dead: ${missing.slice(0, 5).join(\', \')}`);',
       '    console.log(`Changelog: ${missing.length} referenced commit(s) are missing.`);')],
+
+  // THE DEFECT THAT ACTUALLY SHIPPED. A shallow clone that simply never fetched the
+  // objects reports them missing, and reading that as "the repository lost them" fails
+  // the build on a repository that has every one of them. It broke a real Pages deploy;
+  // 45 breaks had gone red and green beforehand and none of them saw it, because they
+  // were all about the shape of the resolver rather than the judgement inside it.
+  ['a missing object in a shallow clone is read as a dead link again',
+    swap(BUILD, "  return shallow === false ? 'dead' : 'unverifiable';", "  return 'dead';")],
+
+  // The other direction: a complete clone reporting a commit missing stops failing, so a
+  // genuinely dead link ships.
+  ['a complete clone reporting a missing commit no longer fails the build',
+    swap(BUILD, "  return shallow === false ? 'dead' : 'unverifiable';", "  return 'unverifiable';")],
+
+  // Nothing missing stops meaning verified, so a perfectly good build drops its links.
+  ['a clean verification stops counting as verified',
+    swap(BUILD, "  if (missingCount === 0) return 'verified';", "  if (missingCount < 0) return 'verified';")],
+
+  // An unknown clone depth is treated as a complete clone, so a machine where git will
+  // not answer fails the build instead of declining to link.
+  ['an unknown clone depth is treated as a complete clone',
+    swap(BUILD, "    if (answer === 'false') return false;\n    return undefined;", '    return false;')],
+
+  // The resolver stops asking about depth at all and asserts a complete clone, which is
+  // the state the defect shipped in. Wired at one end and consumed at neither is this
+  // repository's most-repeated failure, and a pure function nobody calls is exactly it.
+  //
+  // A weaker break was tried here first and is recorded rather than replaced quietly:
+  // breaking the git invocation itself inside `isShallowCheckout` left everything green,
+  // and correctly so. Every failure path in that function returns `undefined`, and
+  // `undefined` is already treated as "cannot tell", so a broken invocation degrades to
+  // dropping the links rather than to anything wrong. The only genuinely dangerous
+  // answer is a WRONG `false`, and that has its own case above.
+  ['the resolver stops asking about depth and asserts a complete clone',
+    swap(BUILD, 'changelogVerificationVerdict(missing.length, isShallowCheckout())',
+      'changelogVerificationVerdict(missing.length, false)')],
+
+  // The Pages checkout goes back to one commit, so the build is correct and the
+  // published changelog silently loses every commit link -- the quiet half of the same
+  // defect, where nothing fails and the page just gets worse.
+  ['the Pages checkout goes back to cloning one commit',
+    swap(WORKFLOW, '          fetch-depth: 200\n', '')],
 
   // A repository that is not https is passed through to the page.
   ['the build stops refusing a repository URL that is not https',
