@@ -149,12 +149,12 @@ const cases = [
   // A funny level quietly drops the boundary, so the disclosure is stated at some levels
   // and not at others -- which is worse than never stating it, because it looks stated.
   ['the maximum English funny level stops naming the shipped product',
-    swap(APP, 'stubbornly stay Ding PBX Console', 'stubbornly stay put')],
+    swap(APP, 'stubbornly stay Material Asterisk', 'stubbornly stay put')],
 
   // One page loses its hook, so five pages rename and the sixth silently does not.
   ['one page loses its footer brand-name hook',
-    swap(INDEX, '<strong class="brand-name">Ding PBX Console</strong><small>Documentation &amp; download surface</small>',
-      '<strong>Ding PBX Console</strong><small>Documentation &amp; download surface</small>')],
+    swap(INDEX, '<strong class="brand-name">Material Asterisk</strong><small>Documentation &amp; download surface</small>',
+      '<strong>Material Asterisk</strong><small>Documentation &amp; download surface</small>')],
 
   // Reset settings clears the chosen name without saying so, which is the "silently
   // skipping" defect applied to a destructive gate.

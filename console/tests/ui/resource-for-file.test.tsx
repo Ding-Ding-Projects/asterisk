@@ -87,7 +87,7 @@ test('no screen declares a compound label instead of a real filename any more', 
    *
    * Trunk authentication went to zero first: its own six controls (ta_auto/ta_expire/
    * ta_notify/ta_mutual/ta_sign/ta_log) are already a `CONSOLE_SETTINGS` group in
-   * App.tsx -- a Ding PBX Console preference persisted through relaunch, the same shape
+   * App.tsx -- a Material Asterisk preference persisted through relaunch, the same shape
    * as the appearance and notification groups, not an Asterisk key at all. There is no
    * pjsip.conf setting for how long a partner's request stays pending. So the fix was
    * not to invent a filename this screen could read -- it genuinely has none -- but to

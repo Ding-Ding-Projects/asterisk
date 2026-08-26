@@ -2,7 +2,7 @@
  * Rewrites the compiled title bar's application-name text to the chosen display name.
  *
  * The compiled design renders that text as a literal string with no bound value at all
- * -- `h("span", {...}, "Ding PBX Console")` -- so there is nothing in `renderVals()` for
+ * -- `h("span", {...}, "Material Asterisk")` -- so there is nothing in `renderVals()` for
  * `App.tsx` to override the way every other live value on screen is overridden. The
  * renderer is compiled from the design reference and must never be hand-edited, and
  * editing the design reference itself would need a matching change to its independently
@@ -45,6 +45,27 @@ function asElement(node: ReactNode): ElementLike | undefined {
   return isValidElement(node) ? (node as unknown as ElementLike) : undefined;
 }
 
+/**
+ * `React.cloneElement(node, config, singleChildValue)` and
+ * `React.cloneElement(node, config, ...manyChildren)` are not the same call. Passed a
+ * whole array as that one `singleChildValue` -- which is what handing it `rewritten`
+ * or `next` directly used to do whenever a node had more than one child -- React has
+ * no way to tell the array apart from a `.map()` result nobody keyed, so it silently
+ * skips its own "these were written as literal siblings, no key needed" bookkeeping
+ * for every element inside. That bookkeeping is what stands between a normal,
+ * static, multi-child node and a spurious "each child in a list should have a
+ * unique key" warning the moment it renders inside any array -- which the title
+ * bar's own row always does, since it sits inside the compiled shell's top-level
+ * list of screens and overlays. Spreading the array back into individual arguments,
+ * exactly as the original compiled call passed them, is what tells React they were
+ * static children all along.
+ */
+function cloneWithChildren(node: ReactNode, children: ReactNode): ReactNode {
+  return Array.isArray(children)
+    ? cloneElement(node as never, undefined, ...children)
+    : cloneElement(node as never, undefined, children);
+}
+
 /** Finds the `data-window-drag` node and returns it with its name span rewritten. */
 export function withTitleBarName(tree: ReactNode, name: string, searchDepth = 8): ReactNode {
   return findDragRegion(tree, name, searchDepth);
@@ -56,12 +77,12 @@ function findDragRegion(node: ReactNode, name: string, depth: number): ReactNode
   if (el.props[DRAG_MARKER] !== undefined) {
     const children = el.props.children;
     const rewritten = mapChildren(children, (child) => rewriteIconRow(child, name));
-    return rewritten === children ? node : cloneElement(node as never, undefined, rewritten);
+    return rewritten === children ? node : cloneWithChildren(node, rewritten);
   }
   const children = el.props.children;
   if (children === undefined) return node;
   const rewritten = mapChildren(children, (child) => findDragRegion(child, name, depth - 1));
-  return rewritten === children ? node : cloneElement(node as never, undefined, rewritten);
+  return rewritten === children ? node : cloneWithChildren(node, rewritten);
 }
 
 /**
@@ -83,7 +104,7 @@ function rewriteIconRow(node: ReactNode, name: string): ReactNode {
     changed = true;
     return cloneElement(child as never, undefined, name);
   });
-  return changed ? cloneElement(node as never, undefined, next) : node;
+  return changed ? cloneWithChildren(node, next) : node;
 }
 
 function isIconSpan(node: ReactNode): boolean {

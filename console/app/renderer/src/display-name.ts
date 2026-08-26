@@ -25,7 +25,7 @@
  */
 export const IDENTITY = Object.freeze({
   /** The shipped product name. Used wherever a reader has to know what software this is. */
-  productName: 'Ding PBX Console',
+  productName: 'Material Asterisk',
   /** The application-data directory name. Renaming the app must never change this. */
   dataDirectory: 'ding-pbx-console',
   /** The packaging identifier, as the installer and the update feed know it. */
@@ -134,7 +134,7 @@ export const RENAME_DISCLOSURE =
  * The sentence the About screen adds under its heading to say what this console calls
  * itself.
  *
- * The name used to live in the About screen's `<h1>`, which read `About Ding PBX Console`
+ * The name used to live in the About screen's `<h1>`, which read `About Material Asterisk`
  * where the design's own heading reads `About`. That divergence cost more than it looked
  * worth: the parity capture driver settles on the heading to prove it arrived at the right
  * destination, so About was the one destination of thirty-two that could never be captured

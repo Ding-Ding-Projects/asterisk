@@ -4,7 +4,7 @@ This file is a public-safe repository mirror. The canonical shared instructions 
 
 ## Scope and product boundaries
 
-- Treat `console/` as the Ding PBX Console product, `control-plane/` as its local service boundary, and `console/site/` as the static documentation and download surface.
+- Treat `console/` as the Material Asterisk product, `control-plane/` as its local service boundary, and `console/site/` as the static documentation and download surface.
 - Preserve the inherited Asterisk source unless the current task explicitly requires a telephony-core change.
 - Keep user-facing implementation aligned with Material Design 3, accessibility, local-first privacy, responsive layouts, complete localization, and documented failure states.
 - Do not edit any checked-in original design-reference source. Render it as data through the dedicated design-reference evidence path.

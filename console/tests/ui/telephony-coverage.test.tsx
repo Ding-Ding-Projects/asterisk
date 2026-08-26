@@ -282,10 +282,30 @@ function measure() {
  * that produced it because of how `n` (every control the design declares) and
  * `unmappedControls` (controls not in `CONTROL_BINDINGS`) both moved for the IVR
  * screen at once -- the trunks and IVR screens, isolated, now measure `working: 19
- * of 19` and `working: 15 of 15` respectively, with nothing dead. */
+ * of 19` and `working: 15 of 15` respectively, with nothing dead.
+ *
+ * Then a further move once Modules, AMI & REST and Codecs gained real per-object
+ * operations: net +6, and every one of them works. AMI & REST gained three --
+ * a_connected (a live `manager show connected` readout, `deliveredByAction` via
+ * `action:'ami-connected-status'`), a_kickfd (read directly out of `state.values` by
+ * name in App.tsx's `onKickManagerSession`, the same quoted-literal shape
+ * am_username/am_secret already use) and a_kick (`deliveredByAction` via
+ * `action:'ami-kick-session'`) -- the screen's first genuinely live-connection action,
+ * "manager kick session <fd>" (write-commands.ts), rather than the static
+ * manager.conf/ari.conf user table it already had. Codecs gained three -- k_endpoint
+ * (read directly by name, the same shape), k_endpointlookup and k_endpointresult
+ * (both `deliveredByAction`) -- a real on-demand "pjsip show endpoint <id>" lookup,
+ * the one thing the screen's global translation graph could never show. The Modules
+ * screen's own Load/Unload/Reload row-menu actions and its "declared policy" lookup
+ * add no new `ctl()` ids at all (they operate on the existing table row, through the
+ * row's own context menu, the same way isAclRow/isApiUserRow already special-case
+ * that menu for other screens), so this measurement -- which counts declared design
+ * controls, not context-menu items -- does not move for that screen. Read back the
+ * same way every number above it was: a deliberately wrong value run through this
+ * test, and the real figures it reported taken verbatim. */
 
-const WORKING_FLOOR = 511;
-const TELEPHONY_TOTAL = 512;
+const WORKING_FLOOR = 517;
+const TELEPHONY_TOTAL = 518;
 
 test('an action-delivered control is recognised even though its id never appears as a quoted literal', () => {
   for (const id of [

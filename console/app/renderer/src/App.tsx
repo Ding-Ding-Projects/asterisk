@@ -3,7 +3,7 @@ import ConsoleShell, { APPEAR_GROUPS, ONBOARD, ORDER, SCREENS } from './generate
 import { h } from './dc-runtime';
 import {
   badgeFor, dashboardStats, droppedRowNote, formatDuration, healthBars, isReadable,
-  mediaCacheNote, reasonFor,
+  managerConnectionsStatus, mediaCacheNote, reasonFor,
   regexMatchLabel, rowsFor, serverRows, valueOf,
   type ViewReadings,
 } from './readings';
@@ -46,6 +46,9 @@ import { usableName, type MediaFile } from '../../../control-plane/media-library
 import { formatTakenAt, historyRows, resolveHistoryRow } from './history-backups';
 import type { HistoryEntry, ConfigDiff } from '../../../control-plane/config-history';
 import { restBrowserRows } from './rest-browser';
+import {
+  buildManagerKickSessionCommand, buildModuleActionCommand, type ModuleActionKind,
+} from '../../../control-plane/write-commands';
 import { agiScriptRows } from './agi-scripting';
 import { canProvision, canRecoverRuntime, canStopRuntime, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
 import {
@@ -672,7 +675,7 @@ export class App extends Base {
    */
   /**
    * The appearance/notifications/history groups below are the same shape as partner and
-   * security: a real Ding PBX Console preference persisted through a relaunch, not an
+   * security: a real Material Asterisk preference persisted through a relaunch, not an
    * Asterisk key. Four of them (p_scale, p_motion, p_mono, p_start, p_tour, nt_toast,
    * nt_sound) also have a genuine live consumer -- see applyLiveConsoleSetting below and
    * its call sites. The rest persist a stated intention and nothing yet enforces it,
@@ -3406,6 +3409,8 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'sla-station-trunks-status') return this.slaStationTrunksStatus();
     if (action === 'calendar-secret-status') return this.calendarSecretStatusLine();
     if (action === 'monitoring-prometheus-password-status') return this.pmAuthPasswordStatusLine();
+    if (action === 'ami-connected-status') return managerConnectionsStatus(this.readings.ami?.managerConnections);
+    if (action === 'codecs-endpoint-status') return this.endpointCodecLine;
     return '';
   };
 
@@ -3558,6 +3563,7 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'modules-save') { void this.onSaveModules(); return; }
     if (action === 'codecs-transcode-save') { void this.onSaveCodecTranscode(); return; }
     if (action === 'codecs-rtp-save') { void this.onSaveRtp(); return; }
+    if (action === 'codecs-endpoint-lookup') { void this.onLookupEndpointCodecs(); return; }
     if (action === 'stirshaken-profile-load') { this.onLoadStirShakenProfile(); return; }
     if (action === 'stirshaken-profile-save') { void this.onSaveStirShakenProfile(); return; }
     if (action === 'geolocation-location-load') { this.onLoadGeolocationLocation(); return; }
@@ -3578,6 +3584,7 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'voicemail-greeting-save') { void this.onSaveVoicemailGreeting(); return; }
     if (action === 'ami-http-save') { void this.onSaveAmiHttp(); return; }
     if (action === 'ami-manager-save') { void this.onSaveAmiManager(); return; }
+    if (action === 'ami-kick-session') { this.onKickManagerSession(); return; }
     if (action === 'history-restore') { void this.onRestoreHistoryEntry(); return; }
     if (action === 'history-diff') { void this.onDiffHistoryEntry(); return; }
     if (action === 'history-prune') { void this.onPruneHistoryEntries(); return; }
@@ -4202,7 +4209,7 @@ What you can do: ${offered}.` : ''}`);
     crypto.getRandomValues(secretBytes);
     const secret = encodeBase32(secretBytes);
     const account = s.lockTarget || s.lockKey || 'this element';
-    const uri = pairingUri({ issuer: 'Ding PBX Console', account, parameters: { secret } });
+    const uri = pairingUri({ issuer: 'Material Asterisk', account, parameters: { secret } });
     this.setState({ totpPendingSecret: secret, totpPendingUri: uri } as never);
     this.showInfo(
       'Authenticator secret',
@@ -7044,6 +7051,24 @@ It is shown once. The far end needs it to register.`);
     this.fire('Not removed', `[${name}] is not in manager.conf or ari.conf on this target -- or neither file has been read yet.`);
   };
 
+  /** "Kick session": the AMI & REST screen's one genuinely live-connection action. The
+   *  configured-user table above (`amiRows`) is manager.conf/ari.conf, never a live
+   *  connection; the readout `a_connected` shows next to this button (`action:
+   *  'ami-connected-status'`, see `managerConnectionsStatus` in readings.ts) is the live
+   *  one, off `manager show connected`, and the file descriptor it prints for each row is
+   *  exactly what this field wants -- `main/manager.c` `handle_kickmanconn` takes an fd,
+   *  never a username. Runs through the same confirmation ceremony every other real
+   *  action on this console uses, with the exact CLI line `write-commands.ts` builds and
+   *  the dispatcher's own allowlist re-checks before it ever reaches a target. */
+  onKickManagerSession = (): void => {
+    const state = this.state as { values: Record<string, unknown> };
+    const fd = String(state.values['a_kickfd'] ?? '').trim();
+    if (!fd) { this.fire('Not run', 'Type the file descriptor to kick first -- it is the "fd" number in the connected-sessions list above, not a username.'); return; }
+    const command = buildManagerKickSessionCommand(fd);
+    if (!command) { this.fire('Not run', `"${fd}" is not a file descriptor -- it must be the plain positive number \`manager show connected\` printed for that session.`); return; }
+    this.ceremony(`Kick manager session ${fd}`, command);
+  };
+
   private note(screen: string): string {
     if (screen === 'history') {
       if (this.historyReading === undefined) return NO_HISTORY;
@@ -7528,6 +7553,47 @@ It is shown once. The far end needs it to register.`);
     );
   };
 
+  /** The Modules row menu's Load/Unload/Reload items. Every one of these is a real,
+   *  immediately-effective action against the running target (`main/cli.c` `handle_load`
+   *  / `handle_unload` / `handle_reload`) -- unloading a channel driver hangs up every
+   *  call it owns, which is exactly what the screen's own `sub` copy already warns
+   *  about. `buildModuleActionCommand` (`write-commands.ts`) is the one place the exact
+   *  command line is built and the one place a module name is validated, so the row menu
+   *  and the dispatcher's own re-check can never drift apart on what counts as safe. */
+  onModuleAction = (kind: ModuleActionKind, moduleName: string): void => {
+    const command = buildModuleActionCommand(kind, moduleName);
+    if (!command) { this.fire('Not run', `"${moduleName}" is not a loadable module name this console has read -- refresh the Modules screen first.`); return; }
+    const verb = kind === 'load' ? 'Load' : kind === 'unload' ? 'Unload' : 'Reload';
+    this.ceremony(`${verb} ${moduleName}`, command);
+  };
+
+  /**
+   * "Show declared policy for …" on a module row -- the closest this console can come to
+   * a dependency view. Asterisk's own CLI has no command that lists a module's runtime
+   * dependents or dependencies (`module show` prints only name/description/use
+   * count/status/support level, `main/cli.c` `MODLIST_FORMAT`); the only real, sourced
+   * relationship data this console has for a module is whatever modules.conf itself
+   * already says about it -- the four chip lists this same screen's "Load policy" group
+   * already edits (`mo_preload`/`mo_noload`/`mo_require`/`mo_load`). This reads those
+   * bound values back rather than inventing a dependency graph Asterisk does not expose.
+   */
+  moduleDeclaredPolicyLine = (moduleName: string): string => {
+    const state = this.state as { values: Record<string, unknown> };
+    const listed = (id: string): boolean => {
+      const value = state.values[id];
+      return Array.isArray(value) && value.includes(moduleName);
+    };
+    const roles: string[] = [];
+    if (listed('mo_preload')) roles.push('preloaded before autoload');
+    if (listed('mo_noload')) roles.push('never loaded (noload)');
+    if (listed('mo_require')) roles.push('required -- Asterisk exits if this fails to load');
+    if (listed('mo_load')) roles.push('force-loaded even with autoload off');
+    if (roles.length === 0) {
+      return `modules.conf names no policy for ${moduleName}: it loads or not by the autoload switch alone. Asterisk's own CLI has no command listing a module's runtime dependents or dependencies -- only "module show"'s use count, which the table already shows.`;
+    }
+    return `modules.conf declares ${moduleName} as: ${roles.join('; ')}.`;
+  };
+
   // ---------------------------------------------------------------- Codecs & RTP screen
 
   /** "Save transcoding setting": the one codecs-screen field that is not an rtp.conf
@@ -7571,6 +7637,62 @@ It is shown once. The far end needs it to register.`);
       'RTP settings saved',
       () => { delete this.configs.codecs; this.seeded.delete('codecs'); },
     );
+  };
+
+  /** The Codecs screen's own copy of `asterisk-readings.ts`'s `OBJECT_ID` check, kept
+   *  local rather than importing that control-plane module into the renderer -- the same
+   *  boundary `EndpointDetail` in readings.ts already keeps by holding its own copy of
+   *  the shape `parseEndpointDetail` produces rather than importing the parser itself.
+   *  `asterisk -rx` takes the whole command as one argv element with no shell, so a
+   *  rejected id is refused by name here rather than trimmed or substituted. */
+  private static readonly CODECS_ENDPOINT_ID = /^[A-Za-z0-9_.+@-]{1,128}$/;
+
+  /** Read by the `k_endpointresult` text control (`action:'codecs-endpoint-status'`). */
+  private endpointCodecLine = 'Type a pjsip.conf endpoint id above and press "Look up".';
+
+  /**
+   * "Look up" on the Codecs screen's per-endpoint negotiation group: the one thing the
+   * screen's own translation graph cannot show, because `core show translation`/`core
+   * show codecs` are both global -- neither names a single endpoint. `pjsip show
+   * endpoint <id>` (`res/res_pjsip/pjsip_configuration.c`) is the only CLI output that
+   * prints one endpoint's own configured `allow=` codec list and `transport=`; the
+   * Endpoints screen already reads it in bulk for its own table
+   * (`AsteriskReadings.endpointDetails`, bounded to `MAX_ENDPOINT_DETAILS` rows), but
+   * this screen has no endpoint table to bound a read against, so it looks up exactly
+   * the one endpoint asked for, on demand, through the same allowlisted `pbx.command`
+   * route the confirmation ceremony uses -- read-only, so it runs directly rather than
+   * behind that ceremony's confirmation gate, the same way `pbx.config`/`pbx.read`
+   * already do for every other plain read on this console. The raw CLI text is shown
+   * verbatim rather than re-parsed a second time in the renderer, so nothing here can
+   * silently disagree with what the Endpoints screen's own parser reads from the same
+   * output.
+   */
+  onLookupEndpointCodecs = async (): Promise<void> => {
+    const state = this.state as { values: Record<string, unknown> };
+    const id = String(state.values['k_endpoint'] ?? '').trim();
+    if (!id) { this.fire('Not looked up', 'Type a pjsip.conf endpoint id first.'); return; }
+    if (!App.CODECS_ENDPOINT_ID.test(id)) {
+      this.endpointCodecLine = `"${id}" is not a usable endpoint id.`;
+      this.fire('Not looked up', this.endpointCodecLine);
+      this.forceUpdate();
+      return;
+    }
+    if (!this.target.connected) {
+      this.endpointCodecLine = `No target is connected -- ${this.target.detail}.`;
+      this.fire('Not looked up', this.endpointCodecLine);
+      this.forceUpdate();
+      return;
+    }
+    this.toast(`Reading pjsip show endpoint ${id}…`);
+    const response = await this.request('pbx.command', { serverId: this.target.id, payload: { command: `pjsip show endpoint ${id}` } });
+    if (!response?.ok) {
+      this.endpointCodecLine = response?.message ?? `"${id}" could not be read from the target.`;
+      this.forceUpdate();
+      return;
+    }
+    const output = String((response.data as { output?: string } | undefined)?.output ?? '').trim();
+    this.endpointCodecLine = output.length > 0 ? output : `${id} returned no output -- it may not exist on this target.`;
+    this.forceUpdate();
   };
 
   // ---------------------------------------------------------------- History screen
@@ -8167,6 +8289,20 @@ It is shown once. The far end needs it to register.`);
           request: (action, extra) => this.request(action, extra) as Promise<CeremonyResponse | undefined>,
           toast: (message) => this.toast(message),
           fire: (title, body) => this.fire(title, body),
+        }).then((ok) => {
+          /* `module load|unload|reload <name>` and `manager kick session <fd>` are the
+           * only two non-read-only command lines this console will run at all (see
+           * `write-commands.ts`); either one, once it genuinely ran, makes the console's
+           * own cached reading of that screen stale -- a module's use count/state, or
+           * who is still connected. Dropping the cache is what makes the very next
+           * refresh cycle re-read the target instead of going on showing the state from
+           * before the action, the same "delete the cache key, let the normal read path
+           * repopulate it" shape `writeConfigResource`'s own callback uses everywhere
+           * else on this console. */
+          if (!ok) return;
+          if (/^module (load|unload|reload) /u.test(command)) delete this.readings.modules;
+          if (/^manager kick session /u.test(command)) delete this.readings.ami;
+          this.forceUpdate();
         });
       },
       /**

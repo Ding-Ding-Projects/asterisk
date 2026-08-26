@@ -587,7 +587,7 @@
   // Empty means "use the shipped name", rather than storing a copy of it. A copy
   // would silently become a stale rename the day the shipped name changes, and
   // nothing would say so.
-  const SHIPPED_PRODUCT_NAME = 'Ding PBX Console';
+  const SHIPPED_PRODUCT_NAME = 'Material Asterisk';
   const DISPLAY_NAME_MAX = 60;
   // Captured once, before any rename can reach it, so a second rename composes
   // against the shipped title rather than against the previous rename's output.
@@ -674,15 +674,15 @@
       '已發佈嘅網站行咗前，佢就好有禮貌噉咳一聲。佢比較 build commit，因為兩個 build 可以掛住同一個版本標籤，然後理直氣壯噉呃你。冇嘢安裝，冇嘢喺背景偷偷落載，重新載入就係成個儀式 —— 唔使坐喺度等重啟。個檢查淨係向呢個網站攞一個細細嘅版本檔案，唔會送任何嘢去任何地方、畀任何人。'
     ]},
     heroLede:{en:[
-      'Ding PBX Console is a planned desktop administration experience for Asterisk. This website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
-      'Ding PBX Console is a planned desktop administration experience for Asterisk. Worth saying plainly: this website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
-      'Ding PBX Console is a planned desktop administration experience for Asterisk. Friendly reminder: this website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
-      'Ding PBX Console is a planned desktop administration experience for Asterisk. Say it with us: this website is documentation and download infrastructure—not the installed desktop application, and definitely not a PBX runtime.'
+      'Material Asterisk is a planned desktop administration experience for Asterisk. This website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
+      'Material Asterisk is a planned desktop administration experience for Asterisk. Worth saying plainly: this website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
+      'Material Asterisk is a planned desktop administration experience for Asterisk. Friendly reminder: this website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
+      'Material Asterisk is a planned desktop administration experience for Asterisk. Say it with us: this website is documentation and download infrastructure—not the installed desktop application, and definitely not a PBX runtime.'
     ],zh:[
-      'Ding PBX Console係 Asterisk 嘅桌面管理計劃項目。呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，亦唔係 PBX 運行環境。',
-      'Ding PBX Console係 Asterisk 嘅桌面管理計劃項目。講多句：呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，亦唔係 PBX 運行環境。',
-      'Ding PBX Console係 Asterisk 嘅桌面管理計劃項目。老實講：呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，更加唔係 PBX 運行環境。',
-      'Ding PBX Console係 Asterisk 嘅桌面管理計劃項目。認真同你講：呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，梗係唔係 PBX 運行環境喇，聽晒未？'
+      'Material Asterisk係 Asterisk 嘅桌面管理計劃項目。呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，亦唔係 PBX 運行環境。',
+      'Material Asterisk係 Asterisk 嘅桌面管理計劃項目。講多句：呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，亦唔係 PBX 運行環境。',
+      'Material Asterisk係 Asterisk 嘅桌面管理計劃項目。老實講：呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，更加唔係 PBX 運行環境。',
+      'Material Asterisk係 Asterisk 嘅桌面管理計劃項目。認真同你講：呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，梗係唔係 PBX 運行環境喇，聽晒未？'
     ]},
     /* Voice moves with the slider; the two facts never do. Every level names the
      * exact surfaces a rename reaches (the brand line and the tab title) and the
@@ -690,15 +690,15 @@
      * because somebody choosing a name has to know which one a shared file
      * will carry. */
     displayNameDesc:{en:[
-      'Renames what this site calls itself on screen: the brand line at the top and bottom of every page, and this browser tab title. Nothing else moves. Downloads, exported files, this page own local storage and the link preview other people see all keep the shipped name Ding PBX Console, so anything you save or share still names the product.',
-      'Renames what this site calls itself on screen — the brand line at the top and bottom of every page, and this browser tab title. Nothing else moves: downloads, exported files, this page own local storage and the link preview other people see all keep the shipped name Ding PBX Console, so anything you save or share still names the product.',
-      'Call this site whatever you like. It changes the brand line top and bottom, and the tab title, and that is the lot. Downloads, exports, local storage and the link preview other people see all stay Ding PBX Console, so nothing you share turns up wearing your nickname.',
-      'Name it after your cat if you want. The brand line top and bottom changes, the tab title changes, and absolutely nothing else does. Downloads, exports, local storage and the link preview other people see stubbornly stay Ding PBX Console — so the file you send a colleague still says what the software actually is, cat or no cat.'
+      'Renames what this site calls itself on screen: the brand line at the top and bottom of every page, and this browser tab title. Nothing else moves. Downloads, exported files, this page own local storage and the link preview other people see all keep the shipped name Material Asterisk, so anything you save or share still names the product.',
+      'Renames what this site calls itself on screen — the brand line at the top and bottom of every page, and this browser tab title. Nothing else moves: downloads, exported files, this page own local storage and the link preview other people see all keep the shipped name Material Asterisk, so anything you save or share still names the product.',
+      'Call this site whatever you like. It changes the brand line top and bottom, and the tab title, and that is the lot. Downloads, exports, local storage and the link preview other people see all stay Material Asterisk, so nothing you share turns up wearing your nickname.',
+      'Name it after your cat if you want. The brand line top and bottom changes, the tab title changes, and absolutely nothing else does. Downloads, exports, local storage and the link preview other people see stubbornly stay Material Asterisk — so the file you send a colleague still says what the software actually is, cat or no cat.'
     ],zh:[
-      '呢個設定淨係改呢個網站喺畫面上點稱呼自己：每版頂同底嘅品牌名，同埋瀏覽器分頁標題。其他嘢一律唔動。下載檔案、匯出檔案、呢版自己嘅本機儲存，以及其他人見到嘅連結預覽，全部照樣用出廠名 Ding PBX Console，所以你儲落或者分享出去嘅嘢，一樣認得返個產品。',
-      '呢個設定淨係改網站喺畫面上點稱呼自己 —— 每版頂同底嘅品牌名，同分頁標題。其餘唔動：下載、匯出檔案、本機儲存同人哋見到嘅連結預覽，全部照用出廠名 Ding PBX Console，所以你分享出去嗰份嘢一樣認得返個產品。',
-      '想叫佢乜名都得。改到嘅係頂同底嘅品牌名，加分頁標題，就咁多。下載、匯出、本機儲存同人哋見到嘅連結預覽照舊係 Ding PBX Console，唔會有嘢帶住你個花名走出去。',
-      '叫佢做「肥貓」都無問題。頂同底嘅品牌名會變，分頁標題會變，之後就真係一樣都唔變。下載、匯出、本機儲存同人哋見到嘅連結預覽死都咬住 Ding PBX Console 唔放 —— 你 send 畀同事嗰份檔案，照樣講得出呢套軟件真名，有貓無貓都一樣。'
+      '呢個設定淨係改呢個網站喺畫面上點稱呼自己：每版頂同底嘅品牌名，同埋瀏覽器分頁標題。其他嘢一律唔動。下載檔案、匯出檔案、呢版自己嘅本機儲存，以及其他人見到嘅連結預覽，全部照樣用出廠名 Material Asterisk，所以你儲落或者分享出去嘅嘢，一樣認得返個產品。',
+      '呢個設定淨係改網站喺畫面上點稱呼自己 —— 每版頂同底嘅品牌名，同分頁標題。其餘唔動：下載、匯出檔案、本機儲存同人哋見到嘅連結預覽，全部照用出廠名 Material Asterisk，所以你分享出去嗰份嘢一樣認得返個產品。',
+      '想叫佢乜名都得。改到嘅係頂同底嘅品牌名，加分頁標題，就咁多。下載、匯出、本機儲存同人哋見到嘅連結預覽照舊係 Material Asterisk，唔會有嘢帶住你個花名走出去。',
+      '叫佢做「肥貓」都無問題。頂同底嘅品牌名會變，分頁標題會變，之後就真係一樣都唔變。下載、匯出、本機儲存同人哋見到嘅連結預覽死都咬住 Material Asterisk 唔放 —— 你 send 畀同事嗰份檔案，照樣講得出呢套軟件真名，有貓無貓都一樣。'
     ]},
     /* Voice moves with the slider; the two facts never do. Every level states that the
      * wording is unchanged and that no button, label or screen-reader name carries a
@@ -747,13 +747,13 @@
       '撳落去，呢版就正經到極：淨係簡單英文，冇第二種語言，冇笑話。廣東話同雙語、兩個好笑程度、個人詞彙上載全部搬走晒，唔會變灰咁喺度引你撳。你之前揀嘅嘢一件都冇少，關返佢就大搖大擺行返入嚟 —— 不過想關，就要你而家揀嘅個值，揀個記得住嘅。'
     ]},
     changelogDesc:{en:[
-      'Every released version of Ding PBX Console, newest first, with the real commit behind each line. Filter by date, search the text, and export exactly what you can see. The entries themselves are the release history and are never restyled.',
-      'Every released version of Ding PBX Console, newest first, with the real commit behind each line. Filter by date, search the text, and export exactly what you can see — the entries themselves are release history, so they are never restyled.',
+      'Every released version of Material Asterisk, newest first, with the real commit behind each line. Filter by date, search the text, and export exactly what you can see. The entries themselves are the release history and are never restyled.',
+      'Every released version of Material Asterisk, newest first, with the real commit behind each line. Filter by date, search the text, and export exactly what you can see — the entries themselves are release history, so they are never restyled.',
       'Every version that actually shipped, newest first, each line carrying the commit that did it. Filter by date, search it, export what you can see. The entries stay exactly as the release wrote them, because that is the point of them.',
       'Every version that ever shipped, newest at the top, and each line hands you the commit that did the deed — no taking anybody word for it. Filter by date, search it, export precisely what is on screen and nothing else. The entries themselves never get restyled at any setting, because a joke about what changed is no longer a record of what changed.'
     ],zh:[
-      'Ding PBX Console 每一個已發佈版本，最新嘅喺最上面，每一行都附上真正嘅 commit。可以按日期篩選、搜尋內文，亦可以將見到嘅原樣匯出。條目本身係發佈紀錄，唔會改寫語氣。',
-      'Ding PBX Console 每一個已發佈版本，最新嘅行先，每一行都帶住真正嘅 commit。可以按日期篩選、搜尋、將見到嘅嘢匯出 —— 條目本身係發佈紀錄，所以永遠唔會改寫語氣。',
+      'Material Asterisk 每一個已發佈版本，最新嘅喺最上面，每一行都附上真正嘅 commit。可以按日期篩選、搜尋內文，亦可以將見到嘅原樣匯出。條目本身係發佈紀錄，唔會改寫語氣。',
+      'Material Asterisk 每一個已發佈版本，最新嘅行先，每一行都帶住真正嘅 commit。可以按日期篩選、搜尋、將見到嘅嘢匯出 —— 條目本身係發佈紀錄，所以永遠唔會改寫語氣。',
       '每個真係出過嘅版本，最新嗰個喺頂，每行都揸住做嗰件事嘅 commit。想按日期篩就篩，想搵就搵，見到咩就匯出咩。條目維持發佈時嘅原文，因為咁先有用。',
       '每一個出過街嘅版本，最新嗰個坐喺最頂，每一行都拎住犯案嘅 commit 出嚟 —— 唔使信人講。想按日期篩、想搵、想將畫面上嘅原封不動匯出都得。條目本身喺任何設定下都唔會改寫語氣，因為講笑咁講返改咗乜，就已經唔算係紀錄。'
     ]},
@@ -1933,7 +1933,7 @@
       notify('Destinations exported',applyVocabularyText(`Exported ${rows.length} of ${DESTINATIONS.length} destinations as ${format.toUpperCase()}, covering the current search ("${lastDocumentationQuery||'no filter'}").`),{category:'export',en:`Exported ${rows.length} of ${DESTINATIONS.length} destinations as ${format.toUpperCase()}.`,zh:`已經匯出 ${rows.length} 個目的地，一共 ${DESTINATIONS.length} 個，格式係 ${format.toUpperCase()}。`});
     });
   }
-  function matchText(text,query,target){if(!query)return true;const config=regexState.get(target);if(config?.enabled){try{return new RegExp(config.pattern,config.flags).test(text)}catch{return false}}return text.toLocaleLowerCase().includes(query.toLocaleLowerCase())}
+  function matchText(text,query,target){const config=regexState.get(target);if(config?.enabled){try{return new RegExp(config.pattern,config.flags).test(text)}catch{return false}}if(!query)return true;return text.toLocaleLowerCase().includes(query.toLocaleLowerCase())}
   function filter(selector,query,target){all(selector).forEach(item=>item.hidden=!matchText(item.dataset.search||item.textContent,query,target))}
 
   function initSearch(){all('[data-filter-target]').forEach(input=>input.addEventListener('input',()=>filter(input.dataset.filterTarget,input.value,input.id)));if($('feature-search'))$('feature-search').addEventListener('input',event=>{destinationPage=0;renderDestinations(event.target.value)});$('destination-pagination')?.addEventListener('click',event=>{const button=event.target.closest('[data-page]');if(!button)return;destinationPage=Number(button.dataset.page);renderDestinations($('feature-search')?.value||'');$('destination-grid').focus?.()});all('.regex-trigger').forEach(button=>button.onclick=event=>{event.preventDefault();openRegex(button.dataset.regexFor)})}
@@ -2706,7 +2706,6 @@
    * exactly as it does everywhere else.
    */
   function changelogSearch(entries,query){
-    if(!query)return entries;
     return entries.filter(entry=>matchText(
       `${entry.version} ${entry.changes.map(change=>`${change.category} ${change.summary}`).join(' ')}`,
       query,'changelog-search'));
@@ -2994,7 +2993,7 @@
     dialog.addEventListener('close',()=>{resetConfirmFields();$('settings-reset')?.focus()});
   }
 
-  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);el('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);el('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));el('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);if($('dialog-emojis'))$('dialog-emojis').onchange=event=>update('dialogEmojis',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState();recordHistory('attention-changed','attention.currentTask changed.')};$('settings-reset').onclick=()=>{const dialog=$('reset-confirm-dialog');if(!dialog)return;resetConfirmFields();dialog.showModal()};$('settings-export').onclick=()=>download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state,restrictedPresentation:schoolExportSummary()},null,2));el('vocabulary-file').onchange=loadVocabulary;el('vocabulary-clear').onclick=()=>{localStorage.removeItem('ding-pbx-vocabulary-cache');el('vocabulary-file').value='';el('vocabulary-status').textContent='No file loaded; original wording is active.';applyVocabulary();applyState()};initDisplayName();initNarration();initSchool();$('logo-file').onchange=loadLogo;$('logo-clear').onclick=()=>{localStorage.removeItem('ding-pbx-logo-cache');$('logo-file').value='';$('logo-status').textContent='No file loaded; default mark is active.';applyLogo()};if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));initResetConfirm();initHistory()}
+  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);el('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);el('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));el('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);if($('dialog-emojis'))$('dialog-emojis').onchange=event=>update('dialogEmojis',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState();recordHistory('attention-changed','attention.currentTask changed.')};$('settings-reset').onclick=()=>{const dialog=$('reset-confirm-dialog');if(!dialog)return;resetConfirmFields();dialog.showModal()};$('settings-export').onclick=()=>{download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state,restrictedPresentation:schoolExportSummary()},null,2));notify('Settings exported',applyVocabularyText('Exported the local settings on this page as ding-pbx-page-settings.json. Uploaded personal vocabulary was omitted.'),{category:'export',en:'Exported the local settings on this page. Uploaded personal vocabulary was omitted.',zh:'已經匯出呢版嘅本地設定，上載嘅個人詞彙冇包埋。'});};el('vocabulary-file').onchange=loadVocabulary;el('vocabulary-clear').onclick=()=>{localStorage.removeItem('ding-pbx-vocabulary-cache');el('vocabulary-file').value='';el('vocabulary-status').textContent='No file loaded; original wording is active.';applyVocabulary();applyState()};initDisplayName();initNarration();initSchool();$('logo-file').onchange=loadLogo;$('logo-clear').onclick=()=>{localStorage.removeItem('ding-pbx-logo-cache');$('logo-file').value='';$('logo-status').textContent='No file loaded; default mark is active.';applyLogo()};if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));initResetConfirm();initHistory()}
   /* One writer for every vocabulary rejection, so the rule below holds for all of them
    * rather than for whichever branch somebody remembered.
    *
