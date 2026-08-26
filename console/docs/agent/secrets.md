@@ -4,6 +4,10 @@
 
 Credentials are captured once through the intake flow and referenced by name everywhere else. No secret value is ever rendered. It is backed by `templates/secret-intake`. The rail badge on this destination currently reads `6`. It lives on the Agent rail, under the Agent global memory group: Memory, sync, skills, hub sessions and the emission guard.
 
+## What this screen reads
+
+Nothing, because this console stores no secret of its own. A credential typed into a control is consumed and the field blanked in the same step — precisely so that nothing keeps it — which also means there is nothing here to name, date or rotate. The table is empty for that reason rather than for want of a phone system to read.
+
 ## Configuration
 
 ### Handling

@@ -1,22 +1,82 @@
-import type { Component } from 'react';
-import ConsoleShell, { ONBOARD, ORDER, SCREENS } from './generated/console';
+import type { Component, ReactNode } from 'react';
+import ConsoleShell, { APPEAR_GROUPS, ONBOARD, ORDER, SCREENS } from './generated/console';
+import { h } from './dc-runtime';
 import {
-  badgeFor, dashboardStats, formatDuration, healthBars, isReadable, reasonFor, regexMatchLabel, rowsFor, serverRows, valueOf,
+  badgeFor, dashboardStats, droppedRowNote, formatDuration, healthBars, isReadable,
+  managerConnectionsStatus, mediaCacheNote, reasonFor,
+  regexMatchLabel, rowsFor, serverRows, valueOf,
   type ViewReadings,
 } from './readings';
-import { canvasReason, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
+import {
+  AGENT_RAIL_SOURCES, hubNote, isAgentRailScreen, releaseNote, releaseRows, vocabularyNote,
+} from './agent-rail';
+import {
+  buildPayload, validateReport, type Payload, type SessionReport,
+} from './status-hub-client';
+import { trunkAuthNote } from './trunk-auth';
+import { resolveDestinationRoute, type DestinationRoute } from '../../../shared/destination-route';
+import { canvasReason, contextsMissingFromLoadedDialplan, dialplanDivergenceNote, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
+import {
+  blameRows as historyBlameRows, commitCountLabel, commitRows as historyCommitRows, compareLabel as historyCompareLabel,
+  diffFileLabel, diffLineViews, filterChips as historyFilterChips, filteredEntries as historyFilteredEntries,
+  toggleCompare as toggleHistoryCompareIds,
+  type HistoryCommit, type HistoryDiff, type LocalHistoryReading,
+} from './local-history-view';
 import { buildCodecGraph, layoutCodecs, unreachable as unreachableCodecs } from './codec-graph';
 import { buildEndpointGraph, brokenLinks as brokenEndpointLinks, layoutTopology, summarise as summariseEndpointGraph } from './endpoint-graph';
 import { runCeremonyCommand, type CeremonyResponse } from './ceremony';
-import { configSummary, renderForDisplay, resourceForFile, type ConfigReading, type ConfigValue } from './configuration';
-import { readControlValues, unmappedControls } from './control-keys';
-import { canProvision, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
+import { configSummary, renderForDisplay, resourceForFile, sectionNames, type ConfigReading, type ConfigSection, type ConfigValue } from './configuration';
+import {
+  readControlValues, isUninventoried, unmappedControls,
+  applyControlValues as applyBoundControlValues,
+} from './control-keys';
+import { aclFindings, aclRuleRows, resolveAclRowKey } from './acl-editor';
+import {
+  addRule as addAclRule, moveRule as moveAclRuleModel, parseAcl, removeRule as removeAclRuleModel,
+  toConfigValue, validateRule as validateAclRule, type AclModel,
+} from '../../../control-plane/acl-model';
+import {
+  findEntry as findConfigEntry, writeEntry as writeConfigEntry, removeEntry as removeConfigEntry,
+  findRealtimeMapping, writeRealtimeMapping, removeRealtimeMapping,
+  findSorceryMapping, writeSorceryMapping, removeSorceryMapping,
+  usableMappingName,
+} from '../../../control-plane/realtime-mappings-model';
+import { PLAYABLE_EXTENSIONS, playbackMimeType, promptRows, resolvePromptRow } from './prompt-library';
+import { usableName, type MediaFile } from '../../../control-plane/media-library';
+import { formatTakenAt, historyRows, resolveHistoryRow } from './history-backups';
+import type { HistoryEntry, ConfigDiff } from '../../../control-plane/config-history';
+import { restBrowserRows } from './rest-browser';
+import {
+  buildManagerKickSessionCommand, buildModuleActionCommand, type ModuleActionKind,
+} from '../../../control-plane/write-commands';
+import { agiScriptRows } from './agi-scripting';
+import { canProvision, canRecoverRuntime, canStopRuntime, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
+import {
+  buildLocalHistoryGroups, formatLocalHistoryEntry, LOCAL_HISTORY_FILTER_ALL, LOCAL_HISTORY_SCREEN_ID,
+  registerLocalHistoryScreen,
+} from './local-history-screen';
 import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
 import { ServerSwitcher } from './servers';
 import { buildEndpointDraft, endpointDocument, PJSIP_RESOURCE, WIZARD_CONTROLS } from './endpoint-create';
 import {
   applyControlValues, controlValuesFor, editDocument, findEndpoint, removeEndpoint,
 } from './endpoint-edit';
+import {
+  applyControlValues as applyFeatureCodeValues, controlValuesFor as featureCodeControlValuesFor,
+  featuresDocument,
+} from './feature-codes';
+import {
+  applyControlValues as applyTrunkAdvancedValues, controlValuesFor as trunkAdvancedControlValuesFor,
+  applyControlValues as applyTrunkControlValues, controlValuesFor as trunkControlValuesFor,
+  trunkDocument,
+} from './trunk-advanced';
+import {
+  applyControlValues as applyIaxControlValues, controlValuesFor as iaxControlValuesFor,
+  findPeer as findIaxPeer, IAX_CONTROLS, iaxDocument,
+} from './iax-peers';
+import {
+  applyRegistrationControlValues, controlValuesForRegistration, findRegistration, registeredEndpointName,
+} from './trunk-registration';
 import {
   clearVocabulary, loadVocabularyFile, vocabularyStatus, type VocabularyStorage,
 } from './personal-vocabulary';
@@ -27,12 +87,63 @@ import {
 } from './text-boundary';
 import { CANTONESE } from './locale-yue';
 import {
-  IDENTITY, displayName, resetDisplayName, setDisplayName,
+  IDENTITY, aboutIdentityLine, displayName, nameFor, renamedConfirmation, resetConfirmation,
+  resetDisplayName, setDisplayName,
 } from './display-name';
+import { withTitleBarName } from './title-bar-name';
 import { setEmojisEnabled } from './dialog-emojis';
-import { isAttentionMode, setModeEnabled } from './attention-modes';
-import { openTicket, resolutionFor, type TicketCategory, type TicketSeverity } from './support-tickets';
-import { KNOWN_EDITORS, chooseEditor, clearEditorChoice } from './external-editor';
+import {
+  classifyDialogKind, copyLanguageFor, styledDialog, styledToastText, type MessageStorage,
+} from './message-styling';
+import {
+  elapsedPhrase, FOCUS_DIM_CSS, isAttentionMode, modeEnabled, momentumPrompt, msSinceSnooze,
+  nextAction, presentationFor, setModeEnabled, setNextAction, snoozeMomentum,
+  type AttentionMode, type PresentationState,
+} from './attention-modes';
+import { openTicket, resolutionFor, type Ticket, type TicketCategory, type TicketSeverity } from './support-tickets';
+import {
+  KNOWN_EDITORS, chooseEditor, chosenEditor, clearEditorChoice, saveCustomEditor, validateCustomEditor, CUSTOM_EDITOR_ID,
+} from './external-editor';
+import type { CustomEditor, DetectedEditor } from './external-editor';
+import { loadRules } from './scheduled-settings';
+import {
+  activateSchoolMode, deactivateSchoolMode, hasCredential, renameSchoolMode,
+  schoolModeActive, schoolModeName, setCredential, type CredentialMethod,
+} from './school-mode';
+import { attemptMessage, consumeCredential } from './credential-field';
+import { isFunnyLevel, setFunnyLevel, type CopyLanguage } from './funny-levels';
+import { recoveryFor, type FailureKind } from './in-context-recovery';
+import {
+  DEFAULT_PITCH, DEFAULT_RATE, MAX_PITCH, MAX_RATE, MIN_PITCH, MIN_RATE, Narrator,
+  defaultNarrationSettings, resolveVoiceStatus,
+  type NarrationLanguage, type NarrationSettings, type SpeechVoice,
+} from './narration';
+import { NULL_SPEECH_ENGINE, createWebSpeechEngine } from './narration-engine';
+import { HEADER_BYTES, readHeaderFacts } from '../../../control-plane/image-facts';
+import {
+  DEFAULT_PRESET_ID, LOGO_PRESETS, acceptLogo, chooseCustom, choosePreset, currentChoice, resetLogo,
+} from './logo-customization';
+import {
+  buildPalette, isPaletteChord, moveSelection, searchPalette,
+  type PaletteEntry, type PaletteMatch,
+} from './command-palette';
+import { runHostAction, type HostActionKind, type HostActionRequest } from './host-actions';
+import {
+  generateIvr, isUsableRouteTarget, renderDialplan,
+  type InvalidAction, type IvrDefinition, type IvrKeyRoute, type KeyDestination,
+} from './ivr-dialplan';
+import { applyResponse, isRejected, MIN_REFRESH_MS } from './external-settings-sources';
+import {
+  buildSource, loadSources, saveSources, sourcesStatusLine,
+  type SourceDraft, type SourceReport,
+} from './source-store';
+import {
+  addAllowlistHost, loadAllowlist, removeAllowlistHost, sourceAllowlistStatusLine,
+} from './settings-source-allowlist-store';
+import {
+  AA_LARGE_TEXT_RATIO, AA_NORMAL_TEXT_RATIO, contrastLevel, contrastRatioFromHex,
+} from './accessibility-contract';
+import { EMPTY_RUNNER_STATE, statusLine, tick, type RunnerState } from './schedule-runner';
 import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
 import { listArticles, resolveLink, search as docsSearch, suggested as docsSuggestedFor } from './docs-browser';
 import { DOCS_BUNDLE } from './generated/docs-bundle';
@@ -42,10 +153,12 @@ import {
 } from './changelog';
 import { CHANGELOG_MARKDOWN, CHANGELOG_REPOSITORY_URL } from './generated/changelog-bundle';
 import {
-  click as bulkClick, clearSelection as bulkClearSelection, invert as bulkInvert, planBulk, selectAll as bulkSelectAll,
-  summarise as bulkSummarise, type SelectionState,
+  click as bulkClick, clearSelection as bulkClearSelection, invert as bulkInvert, parseBulkDeleteCeremony, planBulk,
+  selectAll as bulkSelectAll, summarise as bulkSummarise, type SelectionState,
 } from './bulk';
 import { describeLoss, exportFilename, exportRows, suitableFormats, type ExportFormat } from './export';
+import { tabListText } from './tab-list';
+import { decideUndo, type CommitEntry } from './undo-toast';
 import {
   addRule, applyTheme, cssVarFor, exportTheme, importTheme, resetAll, WILDCARD_ELEMENT,
   type AppearanceProperty, type AppearanceTheme,
@@ -57,6 +170,73 @@ import {
 import {
   UnlockLadder, type Challenge, type GradeResult,
 } from './unlock-ladder';
+import {
+  completeOperation, createOperation, failOperation, reportProgress, snapshot, startOperation,
+  type OperationPhase, type OperationState,
+} from './long-operation-progress';
+import { computeOverlayPlacement, type Rect } from './bounded-overlays';
+
+/** Module-scope side effect, run once when this file loads -- the same pattern
+ *  `registerPbxAdminScreens()` uses in `PbxAdminApp.tsx`. Registering it here rather
+ *  than in that PBX-specific module keeps the Local history screen reachable even for
+ *  a build that never mounts `PbxAdminIntegratedApp`. */
+registerLocalHistoryScreen();
+
+/** The `servers` screen's own design-authored groups ("Host the console here",
+ *  "Route", "Manager interface", ...), captured once before `prepareServersScreen`
+ *  below ever runs. Every render recomputes the full groups array from this frozen
+ *  base plus a freshly built runtime-maintenance group, rather than appending onto
+ *  whatever `SCREENS.servers.groups` currently holds -- appending on every render
+ *  would duplicate the maintenance group on every `forceUpdate`. */
+const SERVERS_BASE_GROUPS = ((SCREENS as unknown as Record<string, { groups?: unknown[] }>).servers?.groups ?? []).slice();
+
+/**
+ * The two step sequences `WslProvisioning` can emit through its shared `onStep` callback
+ * -- `console/control-plane/wsl-provisioning.ts` -- and dispatch.ts picks between them
+ * (`provisioning.provision(true)` vs `provisioning.provisionFromBaseImage()`) depending
+ * on whether this build carries the packaged runtime, which App has no way to know
+ * before the first step actually arrives. Every phase id is a literal `step.name` one of
+ * the two methods reports, so a step maps onto a phase by exact string equality rather
+ * than a guess -- see `firstStepPlan` below for how the right list gets chosen.
+ *
+ * Both are weighted by what each step actually costs, not by count. `provision`'s first
+ * three are near-instant local checks, `wsl --import` is the one that can run for
+ * minutes (its own timeout is fifteen), and verifying the imported distribution answers
+ * spawns one more process inside it. `provisionFromBaseImage` additionally downloads and
+ * hashes the base image before importing it and installing Asterisk into it, so the
+ * download itself -- genuinely the slowest single step here, network permitting -- carries
+ * the largest share. Neither list's weights need to sum to 100; they do here only so the
+ * resulting percentage reads naturally.
+ */
+const DEPLOY_PHASES: readonly OperationPhase[] = [
+  { id: 'packaged runtime', label: 'Checking the packaged runtime', weight: 1 },
+  { id: 'WSL available', label: 'Checking WSL', weight: 2 },
+  { id: 'distribution absent', label: 'Checking for an existing distribution', weight: 1 },
+  { id: 'import runtime', label: 'Importing the runtime (this is the slow part)', weight: 90 },
+  { id: 'verify Asterisk', label: 'Verifying Asterisk answers', weight: 6 },
+];
+
+const DEPLOY_PHASES_FROM_BASE_IMAGE: readonly OperationPhase[] = [
+  { id: 'base image configured', label: 'Checking the base image is configured', weight: 1 },
+  { id: 'WSL available', label: 'Checking WSL', weight: 1 },
+  { id: 'distribution absent', label: 'Checking for an existing distribution', weight: 1 },
+  { id: 'download base image', label: 'Downloading the base image (this is the slow part)', weight: 60 },
+  { id: 'verify base image', label: 'Verifying the download against its digest', weight: 2 },
+  { id: 'import runtime', label: 'Importing the runtime', weight: 25 },
+  { id: 'install Asterisk', label: 'Installing Asterisk into the distribution', weight: 8 },
+  { id: 'verify Asterisk', label: 'Verifying Asterisk answers', weight: 2 },
+];
+
+/** Which plan a run is actually following, decided from the one step name that only
+ *  ever opens one of the two sequences above. Returns undefined for a step name this
+ *  App has never seen open a run -- the control plane has changed in a way this list has
+ *  not caught up with -- so the caller can degrade to plain step text instead of
+ *  guessing a plan and immediately throwing on the second step. */
+function firstStepPlan(stepName: string): readonly OperationPhase[] | undefined {
+  if (stepName === DEPLOY_PHASES[0].id) return DEPLOY_PHASES;
+  if (stepName === DEPLOY_PHASES_FROM_BASE_IMAGE[0].id) return DEPLOY_PHASES_FROM_BASE_IMAGE;
+  return undefined;
+}
 
 /**
  * The interface is the compiled design reference. This subclass supplies what a static
@@ -103,22 +283,48 @@ const BOUNDARY_PLAIN =
 
 const NO_READER = 'This screen has no live reading wired yet, so it stays empty.';
 
+/* Shown only before the History screen's first real read has resolved (or in a static
+ * render that never mounts, such as `app-no-sample-data.test.tsx`'s disconnected
+ * check) -- once `historyReading` exists, `HISTORY_EMPTY` below replaces it with the
+ * honest post-read reason instead. */
 const NO_HISTORY =
   'No configuration change has been written this session. The console only reads a PBX right now — it has ' +
   'no wired path that stages, applies or commits a change — so there is nothing yet for this screen to show.';
 
-const NO_MEMORY =
-  'This console has no local agent-memory store wired in. There is no memory corpus to search, sync, or ' +
-  'attest, so this screen stays empty rather than showing invented records.';
+/* The console genuinely can read its own local history store now (`local-history.list`
+ * -- see `historyVals`), and this is what it found there: nothing yet, because nothing
+ * outside this reading path calls `local-history.record` when it changes something.
+ * That is a different, truer reason than NO_HISTORY's "there is no wired path" once a
+ * real read has actually happened, so the two must never be conflated. */
+const HISTORY_EMPTY =
+  'The console’s own local history repository was just read and is genuinely empty: nothing that changes ' +
+  'an endpoint, a queue, or another record calls into this store yet, so there is nothing to show.';
 
-const NO_AUTH_REQUESTS =
-  'There is no partner-request channel wired into this console. No trunk partner can reach it to ask for a ' +
-  'change, so there is nothing pending or answered to show.';
+/* The agent rail's own seven reasons used to be one constant here (`NO_MEMORY`, covering
+ * the Memory console) with the other six falling through to the PBX branch below and
+ * reporting "No target is connected" — true, irrelevant, and read by anybody looking at
+ * the Skills registry as "discover a phone system and this will fill in". It will not.
+ * They now live in `agent-rail.ts`, one per destination, and the trunk-authentication
+ * screen's own reason lives in `trunk-auth.ts` beside the real reading that joins it. */
+
+/** Exactly the extensions `MediaLibrary#ALLOWED_EXTENSIONS` accepts, so the native file
+ *  picker for the Sound prompts screen never offers a choice the target would refuse. */
+const PROMPT_ACCEPT = '.wav,.gsm,.ulaw,.alaw,.g722,.sln,.sln16,.ogg,.opus';
 
 /** Table screens whose design sample rows must never render. */
 const TABLE_SCREENS = Object.entries(SCREENS as Record<string, { table?: { rows: string[][] } }>)
   .filter(([, screen]) => Array.isArray(screen.table?.rows))
   .map(([id]) => id);
+
+/** A dundi.conf peer section name safe to write as a literal `[name]` header: either the
+ *  special "*" peer that matches any unspecified entity (dundi.conf.sample line 288), or a
+ *  colon-separated entity id such as "00:50:8B:F3:75:BB" (line 239). `usableSectionName`'s
+ *  own charset in control-keys.ts refuses the colon, which a real entity id always carries,
+ *  so this widens it by exactly that one character rather than reusing a pattern that would
+ *  reject every genuine dundi peer name. */
+function usableDundiPeerName(value: unknown): string | undefined {
+  return typeof value === 'string' && /^(\*|[A-Za-z0-9:_-]{1,79})$/u.test(value) ? value : undefined;
+}
 
 /** The generated shell is untyped; this is the surface the console builds on. */
 interface Shell {
@@ -127,20 +333,45 @@ interface Shell {
    *  cross-cutting setting can be noticed without touching a compiled file. */
   setVal: (control: ControlRef, value: unknown) => void;
   componentDidMount?(): void;
+  /** The compiled shell's own markup, which App wraps rather than replaces. */
+  render(): ReactNode;
   componentWillUnmount?(): void;
   showInfo(title: string, body: string, plain: string, x: string, y: string): void;
   ceremony(title: string, command: string): void;
+  /** Set by the app; the compiled menus call it for anything with a real effect. */
+  hostAction?: (kind: HostActionKind, payload: Record<string, unknown>) => void;
   set(key: string, value: unknown): void;
+  /** The compiled shell's own navigation: sets the screen AND the rail it belongs to,
+   *  which `setState({ screen })` alone does not. */
+  openScreen(id: string): void;
   setState(update: Record<string, unknown>): void;
   moveNode(id: string, dx: number, dy: number): void;
   addEdgeFrom(): void;
   toast(message: string): void;
   areYouSure(title: string, body: string, seconds: number, onConfirm: () => void): void;
-  fire(title: string, body: string): void;
+  /* The compiled shell's real implementation takes exactly two arguments and simply
+   * ignores a third; declaring the optional `isError` here is purely a typing device
+   * so App's own two genuine-failure call sites (`daemonAction`/`ensureDaemon`) can
+   * pass it without a cast, while every other of the ~60 call sites -- unaware this
+   * exists -- keeps compiling and behaving exactly as before. */
+  fire(title: string, body: string, isError?: boolean): void;
 }
 
 /** The shape the compiled shell hands every control callback. */
 interface ControlRef { id?: string; label?: string; kind?: string }
+
+/** Enter or Space on a keyboard-reachable row acts exactly like a click, mirroring what
+ *  a real `<button>` already does for free. Needed wherever a list row or inline link is
+ *  rendered as a `div`/`span` carrying `role="button"` -- the version-history commit
+ *  list, the in-app documentation results and suggested-article rows, and the inline
+ *  links inside a documentation article body -- because none of those get keyboard
+ *  activation from the browser on their own. Reused rather than redefined at each call
+ *  site, so the four places that need it cannot quietly drift out of sync. */
+const activateOnEnter = (event: { key?: string; preventDefault?: () => void; currentTarget?: EventTarget | null }): void => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault?.();
+  (event.currentTarget as HTMLElement | null)?.click?.();
+};
 
 const Base = ConsoleShell as unknown as new (props: Record<string, never>) => Component<Record<string, never>> & Shell;
 
@@ -156,13 +387,82 @@ export class App extends Base {
   private pending = '';
   private canvasReadings: CanvasReadings | undefined;
   private canvasPending = false;
+  /** `extensions.conf` read alongside the dialplan graph on the canvas screen, purely
+   *  so the note below can say when the loaded dialplan and the file on disk have
+   *  diverged -- see `contextsMissingFromLoadedDialplan` in `canvas.ts`. Kept separate
+   *  from `this.configs.canvas` (never otherwise populated: the canvas screen has no
+   *  bound controls for this reading to seed) so this stays purely diagnostic. */
+  private canvasExtensionsConf: ConfigReading | undefined;
+  private canvasExtensionsPending = false;
+  /**
+   * The History screen's real source: the console's own local, append-only git
+   * repository (`LocalHistory`, `control-plane/local-history.ts`) -- not a PBX
+   * reading, so it is fetched independently of `this.target.connected` in `refresh`
+   * below. `undefined` means "not read yet", not "empty"; `entries.length === 0`
+   * once it has resolved means the honest opposite: read, and genuinely nothing has
+   * been recorded there yet.
+   */
+  private historyReading: LocalHistoryReading | undefined;
+  private historyPending = false;
+  private historySelectedId = '';
+  private historyDiff: HistoryDiff | undefined;
+  private historyDiffPending = false;
+  private historyFilterAction = '';
+  private historyCompareIds: string[] = [];
+  private historyCompareFiles: string[] | undefined;
+  private historyComparePending = false;
   /** Live configuration per screen, keyed by screen id. */
   private configs: Partial<Record<string, ConfigReading>> = {};
   private configPending = '';
+  /** Files the Security screen's TLS/STIR-SHAKEN fields read from besides acl.conf,
+   *  currently being fetched -- keyed by bare filename, independent of `configPending`
+   *  above so these two reads can run alongside the screen's own primary read rather
+   *  than waiting behind it. */
+  private extraConfigPending = new Set<string>();
   /** Screens whose bound controls have already been seeded from the target. */
   private seeded = new Set<string>();
+  /** The target's real `/var/lib/asterisk/sounds`, from `media.list` -- there is no
+   *  `pbx.config` resource behind a directory of files, so this does not live in
+   *  `configs` above; see the Sound prompts screen's own note in the design for why. */
+  private promptFiles: ReadonlyArray<MediaFile> | undefined;
+  private promptState: 'unread' | 'reading' | 'read' | 'unavailable' = 'unread';
+  private promptReason: string | undefined;
+  private promptPending = false;
+  /** The target's real recovery-point list, from `history.list` (`ConfigHistory#list`)
+   *  across every configurable resource at once -- there is no `pbx.config` resource
+   *  behind a directory of backups either, so this does not live in `configs` above,
+   *  the same reasoning `promptFiles` already gives for the Sound prompts screen. */
+  private historyBackups: ReadonlyArray<HistoryEntry> | undefined;
+  private historyBackupsState: 'unread' | 'reading' | 'read' | 'unavailable' = 'unread';
+  private historyBackupsReason: string | undefined;
+  private historyBackupsPending = false;
+  /** The result of the last "Compare with what is on the target now" on the
+   *  Configuration backups screen -- kept outside `state.values` because a `ConfigDiff`
+   *  is a reading, not a bound control's own value. */
+  private historyBackupDiff: ConfigDiff | undefined;
+  private historyBackupDiffPending = false;
+  /** The one prompt currently playing, so a second audition stops the first rather
+   *  than layering two prompts on top of each other. */
+  private auditionAudio: HTMLAudioElement | undefined;
   /** What the console's own Asterisk runtime can do right now. */
   private runtime: RuntimeStatus | undefined;
+  /** True for the whole span of a `runtime.stop`/`runtime.remove` request. `M3Control`
+   *  has no disabled state for a segmented control, so the guard is enforced by leaving
+   *  the control out of `runtimeMaintenanceGroup` while this is true (see there) as well
+   *  as by every handler below refusing to start a second request while one is already
+   *  in flight -- the control-plane side of `wsl.exe --terminate`/`--unregister` is a
+   *  real external process and a second concurrent call against the same distribution
+   *  is not something to invite. */
+  private runtimeBusy = false;
+  /** Entries read from `local-history.list`, newest first -- the console's own
+   *  append-only record of what it created, changed, stopped or removed on its own
+   *  behalf. See `local-history-screen.ts`. */
+  private localHistoryEntries: readonly HistoryCommit[] = [];
+  private localHistoryCounts: Readonly<Record<string, number>> = {};
+  private localHistoryStatus = 'Local history has not been read yet.';
+  private localHistoryLoaded = false;
+  private localHistoryPending = false;
+  private localHistoryBusy = false;
   /** Discovery and refresh are real operations, so the shell can show their current
    * state instead of leaving the generated setup card in its design-only idle state. */
   private discoveryPending = false;
@@ -190,6 +490,134 @@ export class App extends Base {
 
   private static readonly LANGUAGE_SETTING = 'console.languageMode';
 
+  /** How often the schedule is re-evaluated. A window boundary is noticed within
+   *  this, which is close enough for a setting and cheap enough to run forever. */
+  private static readonly SCHEDULE_TICK_MS = 30_000;
+
+  /** Sources are polled on their own timer, floored by the module rather than here
+   *  so a faster interval cannot be set by editing this one number. */
+  private static readonly SOURCE_POLL_MS = MIN_REFRESH_MS;
+
+  private static readonly NARRATION_SETTING = 'console.narration';
+
+  private narration: NarrationSettings = defaultNarrationSettings();
+
+  /**
+   * The one real narrator instance, for the whole life of the component.
+   *
+   * Constructed eagerly as a field — like `ladder` above — rather than lazily on the
+   * first `nar_enabled` toggle, so `restoreNarration` can hand it the saved settings
+   * the instant they are read back instead of needing to remember to build it first.
+   * Off by default (the settings it starts with say so), so nothing speaks until the
+   * user actually turns narration on, however early this is constructed.
+   *
+   * `createWebSpeechEngine()` reaches for `window.speechSynthesis`; where that does
+   * not exist (a locked-down build, a machine with no OS voices, this test suite) it
+   * falls back to `NULL_SPEECH_ENGINE`, which never speaks but still resolves — the
+   * honest "nothing can be spoken here" state then surfaces through
+   * `resolveVoiceStatus`'s own `no-voice-available` kind rather than through a second,
+   * separate silent-failure path.
+   */
+  private readonly narrator = new Narrator(createWebSpeechEngine() ?? NULL_SPEECH_ENGINE);
+
+  /** What the platform reports it can speak with. Empty until enumeration fills in. */
+  private voices: SpeechVoice[] = [];
+
+  /** Read by the compiled `text`-kind control marked `action:'narration-status'`. */
+  private narrationStatusLine = 'Not started.';
+
+  private stopVoiceListener: (() => void) | undefined;
+
+  /** Torn down on unmount; set only when the desktop bridge actually reports
+   *  accessibility-support changes (see `listenForScreenReader` below). */
+  private stopScreenReaderListener: (() => void) | undefined;
+
+  /** Torn down on unmount; set only when the desktop bridge can deliver a
+   *  `ding-pbx://destination/<id>` deep link (see `listenForDestinationRoutes` below). */
+  private stopDeepLinkListener: (() => void) | undefined;
+
+  /** Read by the compiled `text`-kind control marked `action:'logo-status'`. */
+  private logoStatusLine = 'The shipped mark.';
+
+  /* --- command palette ---------------------------------------------------------------
+   * Built once: it is derived from the compiled design, which cannot change while the
+   * console is running, so rebuilding it per keystroke would be work with no possible
+   * different answer. */
+  private readonly palette: PaletteEntry[] = buildPalette(
+    ORDER as string[],
+    SCREENS as unknown as Record<string, { label: string; title: string; sub?: string; groups?: { title?: string; ctls?: { id: string; label: string; kind: string; info?: string }[] }[] }>,
+    APPEAR_GROUPS as unknown as { title?: string; ctls?: { id: string; label: string; kind: string; info?: string }[] }[],
+  );
+
+  private paletteOpen = false;
+
+  private paletteQuery = '';
+
+  private paletteRow = 0;
+
+  /** Where focus was when the palette opened, so Escape can put it back. */
+  private paletteReturnFocus: HTMLElement | undefined;
+
+  private stopPaletteKeys: (() => void) | undefined;
+
+  private sourceReports: SourceReport[] = [];
+
+  /** Read by the compiled `text`-kind control marked `action:'source-status'`. */
+  private sourceStatusLine = 'No sources configured.';
+
+  private sourceTimer: ReturnType<typeof setInterval> | undefined;
+
+  /** One generation per poll round. An answer carrying an older one is dropped by
+   *  applyResponse, so a slow reply cannot land after a fast one. */
+  private sourceGeneration = 0;
+
+  /** Read by the compiled `text`-kind control marked `action:'school-status'`. */
+  private schoolStatusLine = 'Off.';
+
+  /** The console's own surface, which every accent is read against. Taken from the
+   *  compiled design's root background rather than guessed, so the measurement is
+   *  against what is actually behind the text. */
+  private static readonly SURFACE_HEX = '#0B0F0C';
+
+  /** Read by the compiled `text`-kind control marked `action:'deploy-progress'`. */
+  private deployProgressLine = 'No deploy has run in this session.';
+
+  /** Steps seen this run, so the line can say how many have completed rather than only
+   *  naming the latest -- "3 done, importing runtime" is a position, "importing runtime"
+   *  alone is not. */
+  private deploySteps: { name: string; ok: boolean; detail: string }[] = [];
+
+  /** The weighted state machine behind `deployProgressLine` -- `long-operation-progress.ts`.
+   *  Idle until `resetDeployProgress` starts a real run; see `DEPLOY_PHASES` above for
+   *  where the five phase ids come from. */
+  private deployOperation: OperationState = createOperation(DEPLOY_PHASES);
+
+  private stopProvisionListener: (() => void) | undefined;
+
+  /** One generic focus-return mechanism for every anchored popover, menu, dialog and
+   *  the appearance editor, rather than a hand-written `xReturnFocus` field per
+   *  overlay (the palette above is the one that predates this and is left as-is).
+   *  Every such surface in the compiled design carries `role="dialog"` or
+   *  `role="menu"`; this watches the DOM for one appearing or disappearing and
+   *  saves/restores focus around it, which covers every current and future overlay
+   *  that carries the same role without touching each one's open/close handler. */
+  private overlayFocusObserver: MutationObserver | undefined;
+
+  private overlayFocusReturn = new WeakMap<Element, HTMLElement | null>();
+
+  /** What the runner is holding between ticks: the base value of every key it has
+   *  overridden, and what it last applied. */
+  private scheduleState: RunnerState = EMPTY_RUNNER_STATE;
+
+  /** Read by the compiled `text`-kind control marked `action:'schedule-status'`. */
+  private scheduleStatusLine = 'No schedule is in force; your own settings are in effect.';
+
+  private scheduleTimer: ReturnType<typeof setInterval> | undefined;
+
+  /** The values the person themselves chose, which every override is measured against
+   *  and restored to. A scheduled change never writes into this. */
+  private scheduleBase: Record<string, string> = {};
+
   /** Control id to attention mode. Each mode is independent, so this is a flat map
    *  rather than anything that could switch two of them together. */
   private static readonly ATTENTION_CONTROLS: Record<string, string> = {
@@ -203,6 +631,132 @@ export class App extends Base {
     'att_momentum': 'momentum',
   };
 
+  /** When this render of the console opened. Time awareness reads elapsed time from
+   *  this, not from anything persisted -- "this session" means this one. */
+  private sessionStartedAt = Date.now();
+
+  /** The last moment any real control changed, updated from one place in
+   *  {@link languageAwareSetVal} so every screen's edits count. Momentum's idle clock
+   *  and time awareness's "since anything changed" reading both come from here. */
+  private lastChangeAt = Date.now();
+
+  /** Redraws the attention rail on a slow clock so the elapsed-time reading and a
+   *  momentum prompt that has just become due both appear without requiring the user
+   *  to touch anything else first. */
+  private attentionTimer: ReturnType<typeof setInterval> | undefined;
+
+  /**
+   * The trunk-authentication screen's own settings, which are the console's and not
+   * Asterisk's.
+   *
+   * They looked like configuration and were counted as unbound for it, but there is no key
+   * in pjsip.conf for "auto-approve a low-risk partner request" -- that is this console's
+   * workflow, and the screen's file field says so: "trunk partner requests", which does not
+   * end in ".conf" and is refused by resourceForFile the same way the Dashboard's "live" and
+   * Live channels' "core show channels" already are (it used to read "pjsip.conf · partner
+   * requests", a real filename with a second half glued on, which resourceForFile also
+   * refused, but for the wrong reason -- see resource-for-file.test.tsx). Quoted for the same
+   * reason as the attention ids above: the wiring contract greps for each id as a literal.
+   */
+  /**
+   * Settings that belong to this console rather than to Asterisk, grouped by subject.
+   *
+   * Each group gets its own storage prefix so one subject cannot overwrite another, and a
+   * third group is an entry here rather than another branch below.
+   *
+   * The security pair is the same kind of thing as the partner ones: neither failban nor
+   * bantime nor autoban nor banduration appears in ANY Asterisk sample file, because banning
+   * a repeat offender is this console's behaviour. They were counted as unbound
+   * configuration, which was the wrong diagnosis rather than missing work.
+   *
+   * Keeping a value is not the same as acting on it. Nothing here yet counts failures or
+   * enforces a ban; these persist a stated intention, and saying so matters because
+   * "persisted" reads like "implemented" to somebody skimming.
+   */
+  /**
+   * The appearance/notifications/history groups below are the same shape as partner and
+   * security: a real Material Asterisk preference persisted through a relaunch, not an
+   * Asterisk key. Four of them (p_scale, p_motion, p_mono, p_start, p_tour, nt_toast,
+   * nt_sound) also have a genuine live consumer -- see applyLiveConsoleSetting below and
+   * its call sites. The rest persist a stated intention and nothing yet enforces it,
+   * exactly like s_failban and s_bantime above: p_density and p_theme have no density or
+   * light-theme token system to apply to (the compiled design bakes literal dark-mode hex
+   * colours and pixel paddings, not CSS custom properties); p_confirm is never allowed to
+   * weaken the destructive-action ceremony, which is mandatory everywhere in this app;
+   * p_tray has no tray implementation in the main process to hand it to; nt_levels has no
+   * per-toast severity to filter by; nt_quiet has no configured quiet-hours window; nt_keep
+   * and every hi_* control describe tracking the *target's own* configuration files
+   * (`/etc/asterisk/.git`, a real per-machine repository these settings would name a
+   * commit author/message template for) under version control, which nothing in this
+   * console does yet -- a different, unbuilt feature from the History screen itself,
+   * which now shows real commits from this application's own local, append-only
+   * `LocalHistory` store (see `historyVals`, `control-plane/local-history.ts`) rather
+   * than the design's invented rows.
+   */
+  private static readonly CONSOLE_SETTINGS: Readonly<Record<string, readonly string[]>> = {
+    partner: ['ta_auto', 'ta_expire', 'ta_notify', 'ta_mutual', 'ta_sign', 'ta_log'],
+    security: ['s_failban', 's_bantime'],
+    /* The six agent/ops screens below are the console's own operating policy, not
+     * Asterisk configuration -- there is no `sync.conf` or `skills.conf` for any of
+     * these to bind to, because the thing each one describes (the memory sync
+     * scheduler, the skills orchestrator, the status hub client, the vocabulary
+     * emission guard, the update/release pipeline, the secret intake handling rule)
+     * runs outside this renderer, in the agent tooling that hosts it. Persisting the
+     * chosen value and restoring it on relaunch is the same honest floor as the
+     * partner and security groups above: a stated intention that survives a
+     * relaunch and is shown back in the control, not a claim that this window is
+     * itself running a sync loop, a lane scheduler, or an update checker. */
+    sync: ['y_auto', 'y_every', 'y_backup', 'y_attest'],
+    skills: ['u_lanes', 'u_isolate', 'u_model', 'u_verify', 'u_destruct'],
+    hub: ['b_poll', 'b_notify', 'b_close', 'b_report'],
+    vocab: ['n_guard', 'n_mode', 'n_scan', 'n_lock', 'n_drift'],
+    ops: ['o_check', 'o_stage', 'o_restart', 'o_channel', 'o_hash'],
+    /* None of these four carries a secret's value -- they are handling policy for
+     * the intake (where it is stored, when to nag about rotation, whether to mask,
+     * whether export is allowed at all). A control that actually set or revealed a
+     * secret would go through announceSecretIntent below instead, exactly as
+     * ix_secret_set already does; these four never touch that boundary. */
+    secrets: ['x_store', 'x_rotate', 'x_mask', 'x_export'],
+    appearance: ['p_density', 'p_theme', 'p_scale', 'p_motion', 'p_mono', 'p_start', 'p_tour', 'p_tray', 'p_confirm'],
+    notifications: ['nt_toast', 'nt_sound', 'nt_levels', 'nt_quiet', 'nt_keep'],
+    history: ['hi_msg', 'hi_author', 'hi_hook', 'hi_keep', 'hi_diff', 'hi_branch', 'hi_reload'],
+    /* Customise > Fun's remaining controls, once `fun_level`/`fun_level_yue` (the two
+     * playfulness dials) and `fun_random*` (the per-element appearance editor's own
+     * randomiser, already applied through `applyAppearanceToDom`) are set aside. These
+     * are the tone, celebration and effect controls the dials themselves do not cover
+     * yet: real settings, persisted and restored, without a renderer for confetti or a
+     * mascot behind them yet. */
+    fun: ['fun_copy', 'fun_celebrate', 'fun_confetti', 'fun_sound', 'fun_mascot', 'fun_easter'],
+    /* Customise > Motion. `ap_anim`/`ap_dur`/`ap_ease` already drive the per-element
+     * appearance editor's own transitions; these are the console-wide defaults a
+     * screen transition or a dialog entrance falls back to before any per-element
+     * override applies. */
+    motion: ['mo_speed', 'mo_screen', 'mo_reduce', 'mo_hover'],
+    /* Customise > Layout. Global defaults for rail position, density and the tab
+     * strip -- distinct from the Quick settings screen's own `p_density`, which is
+     * that screen's own working copy rather than the console-wide default. */
+    layout: ['ly_dock', 'ly_density', 'ly_tabs', 'ly_mono'],
+    /* Customise > Theme's global accent, mode and rainbow settings. These sit
+     * alongside, and do not replace, the per-element appearance editor's own
+     * `ap_hue`/`ap_sat`/`ap_rainbow` -- the screen's own intro says every element can
+     * still override this global layer from its own right-click menu. */
+    accentTheme: ['th_mode', 'th_hue', 'th_sat', 'th_contrast', 'th_rainbow', 'th_rbspeed'],
+    /* Customise > Behaviour. What the console opens to, how much ceremony a
+     * destructive action gets, and whether the wizard and tour offer themselves. */
+    behavior: ['bh_start', 'bh_confirm', 'bh_commit', 'bh_lockdefault', 'bh_wizard', 'bh_explain', 'bh_tour'],
+    /* Customise > Profiles. Which named profile is active and whether it follows
+     * agent memory. `pr_perscreen` and `pr_export` are a separate piece of work: the
+     * classifier that scoped this batch already counted them as reaching something. */
+    profile: ['pr_active', 'pr_sync'],
+  };
+
+  private static readonly CONSOLE_SETTING_PREFIX = 'console.setting.';
+
+  /** The group a control belongs to, or undefined when it is not a console setting. */
+  private static consoleSettingGroup(id: string): string | undefined {
+    return Object.keys(App.CONSOLE_SETTINGS).find((group) => App.CONSOLE_SETTINGS[group].includes(id));
+  }
+
   /** The shell's own `setVal`, captured so the override below can delegate to it.
    *  It is a class property rather than a prototype method, so `super.setVal` does not
    *  exist and the only way to wrap it is to take a copy before replacing it. That has
@@ -210,11 +764,368 @@ export class App extends Base {
    *  body, so by then an override declared as a field would already have replaced the
    *  shell's and the copy would point at itself -- a recursion with no base case. */
   private readonly baseSetVal: (control: ControlRef, value: unknown) => void;
+  private readonly baseToast: (message: string) => void;
+  /** The shell's own `fire`/`areYouSure`/`showInfo`, captured for the same reason as
+   *  `baseSetVal` above -- each is wrapped below so the funny-level and dialog-emoji
+   *  settings actually reach the three real dialog/message-box surfaces the shell
+   *  exposes, rather than the two modules sitting fully tested and fully unused. */
+  private readonly baseFire: (title: string, body: string) => void;
+  private readonly baseAreYouSure: (title: string, body: string, seconds: number, onConfirm: () => void) => void;
+  private readonly baseShowInfo: (title: string, body: string, plain: string, x: string, y: string) => void;
+  /** The shell's own `setState` -- really `Component.prototype.setState`, captured for
+   *  the same reason as every other override on this page. `Shell` types it down to the
+   *  one shape every context-menu-opening handler in the compiled design actually calls
+   *  it with (a plain object), which is what makes shadowing it here legal at all --
+   *  see `boundedOverlaySetState` below for why it is worth doing. */
+  private readonly baseSetState: (update: Record<string, unknown>, callback?: () => void) => void;
 
   constructor(props: Record<string, never>) {
     super(props);
     this.baseSetVal = this.setVal as (control: ControlRef, value: unknown) => void;
     this.setVal = this.languageAwareSetVal;
+    this.baseToast = this.toast as (message: string) => void;
+    this.toast = this.gatedToast;
+    this.baseFire = this.fire as (title: string, body: string) => void;
+    this.fire = this.narratedFire;
+    this.baseAreYouSure = this.areYouSure as (title: string, body: string, seconds: number, onConfirm: () => void) => void;
+    this.areYouSure = this.styledAreYouSure;
+    this.baseShowInfo = this.showInfo as (title: string, body: string, plain: string, x: string, y: string) => void;
+    this.showInfo = this.styledShowInfo;
+    this.baseSet = this.set as (key: string, value: unknown) => void;
+    this.set = this.screenTrackingSet;
+    this.baseSetState = this.setState.bind(this) as (update: Record<string, unknown>, callback?: () => void) => void;
+    this.setState = this.boundedOverlaySetState;
+  }
+
+  /** The dial that governs dialog copy in whatever language the console is currently
+   *  showing (see `message-styling.ts` for why dialog copy is never itself translated). */
+  private currentCopyLanguage(): CopyLanguage {
+    return copyLanguageFor(languageMode());
+  }
+
+  /** `this.durableStorage.storage` typed for what the styling pipeline actually reads:
+   *  both the two funny-level keys and the one dialog-emoji key, which is every one of
+   *  those settings this console persists. */
+  private get messageStorage(): MessageStorage {
+    return this.durableStorage.storage;
+  }
+
+  /** Wraps the shell's own `fire` (a celebratory title/body popup): the title and body
+   *  it was given are real, freshly-supplied call-site text on every invocation, so
+   *  styling them here can never double-decorate or double-frame an already-styled
+   *  string -- there is nothing to re-style, only ever something new to style. */
+  private styledFire = (title: string, body: string): void => {
+    const kind = classifyDialogKind(title);
+    const styled = styledDialog(this.messageStorage, this.currentCopyLanguage(), kind, title, body);
+    this.baseFire(styled.heading, styled.body);
+  };
+
+  /** Wraps `areYouSure`. Every call site uses it to gate a consequential action behind
+   *  a confirmation, so it is classified 'question' unconditionally rather than through
+   *  the title-based heuristic `fire`/`toast`/`showInfo` fall back to -- there is no
+   *  ambiguity here to resolve by guessing. */
+  private styledAreYouSure = (title: string, body: string, seconds: number, onConfirm: () => void): void => {
+    const styled = styledDialog(this.messageStorage, this.currentCopyLanguage(), 'question', title, body);
+    this.baseAreYouSure(styled.heading, styled.body, seconds, onConfirm);
+  };
+
+  /** Wraps `showInfo`. Only the title and body go through the pipeline; `plain` is the
+   *  screen's own plain-language fallback explainer and is left exactly as written, on
+   *  the same principle that keeps `buildDialog` away from a control's own label --
+   *  a caller reaching for the plain explanation is reaching for it because they want
+   *  it unstyled. */
+  private styledShowInfo = (title: string, body: string, plain: string, x: string, y: string): void => {
+    const styled = styledDialog(this.messageStorage, this.currentCopyLanguage(), classifyDialogKind(title), title, body);
+    /* 392px is `dockChrome`'s own width for the `'info'` panel (`console.tsx`); 260px is
+     * a modest height estimate -- the panel's real `max-height:calc(100vh - 132px);
+     * overflow-y:auto` already scrolls rather than crops, so this only has to keep the
+     * panel's top-left corner from opening off-screen, not predict its exact height. */
+    const clamped = this.clampOverlayPixelPosition(x, y, 392, 260);
+    this.baseShowInfo(styled.heading, styled.body, plain, clamped.x, clamped.y);
+  };
+
+  /** The viewport `clampOverlayPixelPosition` below clamps every floating overlay into.
+   *  Read from the real window so a genuinely small or resized one is respected; the
+   *  fallback keeps this callable from a test environment with no live `window`. */
+  private overlayViewport(): Rect {
+    const w = globalThis as { window?: { innerWidth?: number; innerHeight?: number } };
+    const innerWidth = w.window?.innerWidth;
+    const innerHeight = w.window?.innerHeight;
+    return {
+      x: 0,
+      y: 0,
+      width: typeof innerWidth === 'number' && innerWidth > 0 ? innerWidth : 1280,
+      height: typeof innerHeight === 'number' && innerHeight > 0 ? innerHeight : 800,
+    };
+  }
+
+  /**
+   * Clamps a click-anchored floating panel's top-left corner into the real viewport --
+   * `bounded-overlays.ts`'s own job, reached here because every one of this console's
+   * floating panels sets its position with raw `left:${x}; top:${y}` and no clamp at all
+   * in the compiled design (`console.tsx`'s `ctxOpen` context menu and `dockChrome`'s
+   * `'float'` mode alike). A menu or panel opened near the right or bottom edge would
+   * otherwise render partly or entirely off-screen with no scrollbar to say so -- the
+   * exact failure this module exists to prevent.
+   *
+   * Only a genuine `"NNNpx"` pair -- the shape every click handler in the compiled
+   * design actually produces -- is clamped. A percent-based position (most of
+   * `showInfo`'s fixed call sites, e.g. `'46%'`) is left untouched: it is already inside
+   * the viewport by construction, and there is no anchor rectangle to compute against
+   * without knowing the panel's real pixel size, which those call sites -- unlike a
+   * click -- never had.
+   */
+  private clampOverlayPixelPosition(x: string, y: string, desiredWidth: number, desiredHeight: number): { x: string; y: string } {
+    const px = /^(-?\d+(?:\.\d+)?)px$/u.exec(x);
+    const py = /^(-?\d+(?:\.\d+)?)px$/u.exec(y);
+    if (!px || !py) return { x, y };
+    const anchor: Rect = { x: Number(px[1]), y: Number(py[1]), width: 0, height: 0 };
+    const placement = computeOverlayPlacement(anchor, { width: desiredWidth, height: desiredHeight }, this.overlayViewport(), 'bottom');
+    return { x: `${Math.round(placement.x)}px`, y: `${Math.round(placement.y)}px` };
+  }
+
+  /**
+   * Clamps a click-opened context menu's position before it ever reaches the compiled
+   * shell's real `setState` -- every one of the ~15 places the design opens one sets
+   * `ctxX`/`ctxY` together, in one plain object, straight from the click event
+   * (`console.tsx`'s `position:absolute; left:${ctxX}; top:${ctxY}`, with no bound
+   * against the window anywhere). `lockX`/`lockY` and `regexX`/`regexY` copy
+   * `ctxX`/`ctxY` at the moment they open (`lockX:s.ctxX, lockY:s.ctxY`), so clamping it
+   * here reaches those floating panels too, for free.
+   *
+   * The estimate below (274px wide, tall enough for the biggest menu this console
+   * opens -- the 13-item screen-tab menu) is a deliberate overestimate: the menu still
+   * renders at its own natural height regardless of what is fed in here, so a generous
+   * guess only ever pushes it further from an edge than it strictly needed to be, never
+   * the other way round.
+   */
+  /* The callback is forwarded, not dropped. React's setState takes an optional second
+   * argument that runs once the update has been applied, and this override replaces
+   * setState for the whole component -- so a one-argument signature here would silently
+   * discard it. Nothing passes one today, which is exactly what makes it worth handling
+   * now: the failure would be a callback that never runs, with no error, no failing test
+   * and nothing to search for, arriving whenever somebody first writes the perfectly
+   * ordinary `this.setState({...}, () => ...)`. */
+  private boundedOverlaySetState = (update: Record<string, unknown>, callback?: () => void): void => {
+    if (typeof update.ctxX === 'string' && typeof update.ctxY === 'string') {
+      const clamped = this.clampOverlayPixelPosition(update.ctxX, update.ctxY, 274, 560);
+      this.baseSetState({ ...update, ctxX: clamped.x, ctxY: clamped.y }, callback);
+      return;
+    }
+    this.baseSetState(update, callback);
+  };
+
+  /** `p_start`'s own copy of `set` (the shell's `set(key, value)` is the same generic
+   *  single-value setter `setVal` wraps for controls -- screen navigation goes through
+   *  it too, with key `'screen'`), so 'Last screen' has a real, continuously-updated
+   *  value to restore instead of only the value at the moment the setting was touched. */
+  private baseSet!: (key: string, value: unknown) => void;
+
+  private screenTrackingSet = (key: string, value: unknown): void => {
+    if (key === 'screen' && typeof value === 'string') this.rememberLastScreen(value);
+    this.baseSet(key, value);
+  };
+
+  private consoleSetting<T>(id: string, fallback: T): T {
+    const group = App.consoleSettingGroup(id);
+    if (group === undefined) return fallback;
+    const raw = this.durableStorage.storage.getItem(App.CONSOLE_SETTING_PREFIX + group + '.' + id);
+    if (typeof raw !== 'string' || raw === '') return fallback;
+    try { return JSON.parse(raw) as T; } catch { return fallback; }
+  }
+
+  /** Every non-blocking notification this window has actually raised, newest first --
+   *  the Notification centre screen's real rows, replacing the design's four hardcoded
+   *  sample rows. Recorded at the two chokepoints every `fire()`/`toast()` call already
+   *  passes through (`narratedFire`/`gatedToast` below), so nothing here can miss one or
+   *  invent one. `source` names which of the two primitives raised it -- 'notice' for
+   *  `fire`, 'toast' for `toast` -- since neither carries a real per-subsystem tag today;
+   *  reporting a specific subsystem (pjsip, sync, ops...) the way the design's own sample
+   *  rows did would be inventing a fact nothing here actually knows. Capped so a long
+   *  session cannot grow this without bound. */
+  private static readonly NOTIFICATION_HISTORY_LIMIT = 200;
+  private notificationHistory: Array<{ source: string; message: string; when: string; read: boolean }> = [];
+
+  private recordNotification(source: 'notice' | 'toast', message: string): void {
+    const when = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    this.notificationHistory = [{ source, message, when, read: false }, ...this.notificationHistory]
+      .slice(0, App.NOTIFICATION_HISTORY_LIMIT);
+  }
+
+  /** The Notification centre table's real rows, from `this.notificationHistory`. */
+  private notificationRows(): string[][] {
+    return this.notificationHistory.map((entry) => [
+      entry.source, entry.message, entry.when, entry.read ? 'Read' : 'Unread',
+    ]);
+  }
+
+  /** The table's "Mark all read" button, wired through the generic `openWizard` dispatch
+   *  in the compiled shell exactly the way `onAddServer`/`onAddAclRule`/`onAddApiUser`
+   *  already are for their own screens. */
+  onMarkAllNotificationsRead = (): void => {
+    if (this.notificationHistory.length === 0) { this.toast('Nothing to mark read.'); return; }
+    this.notificationHistory = this.notificationHistory.map((entry) => ({ ...entry, read: true }));
+    this.applyRows('notifications');
+    this.toast('Every notification marked read.');
+    this.forceUpdate();
+  };
+
+  /** `toast` carries the ambient, lower-priority notices (progress pings, "name
+   *  restored to X") -- `fire`, the console's other non-blocking surface, carries the
+   *  ones a person actually has to see: failures and the outcome of something
+   *  substantial. Low stimulation's "only the notifications that genuinely need a
+   *  person" therefore quiets this one and leaves `fire` alone, rather than silencing
+   *  every notification in the app regardless of what it is telling somebody. */
+  private gatedToast = (message: string): void => {
+    this.recordNotification('toast', message);
+    if (this.consoleSetting<boolean>('nt_toast', true) === false) return;
+    if (this.attentionPresentation().quietNotifications) return;
+
+    /* Narrated in its own category, separate from `narratedFire`'s 'notification' --
+     * a toast and a fired notice are visually distinct surfaces in this console and
+     * frequently arrive back to back for one flow (a toast on start, a fire on the
+     * outcome), so sharing one cooldown bucket would let the second silently eat the
+     * first. Gated on the same `nt_toast` setting that decides whether the toast is
+     * shown at all: a toast the user asked never to see is not narrated either. */
+    this.narrator.enqueue('toast', message);
+    if (this.consoleSetting<boolean>('nt_sound', false) === true) this.playNotificationSound();
+    /* The one-line message box: funny-level styling then the same emoji boundary a
+     * heading/body dialog gets, classified from the message itself since a toast has no
+     * separate title to classify from. */
+    const kind = classifyDialogKind(message);
+    this.baseToast(styledToastText(this.messageStorage, this.currentCopyLanguage(), kind, message));
+  };
+
+  private playNotificationSound(): void {
+    try {
+      const w = globalThis as { AudioContext?: new () => AudioContext; webkitAudioContext?: new () => AudioContext };
+      const Ctx = w.AudioContext ?? w.webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+      osc.onended = () => void ctx.close().catch(() => undefined);
+    } catch { /* No audio output available. */ }
+  }
+
+  private applyLiveAppearanceSetting(id: string, value: unknown): void {
+    const root = (globalThis as { document?: Document }).document?.documentElement;
+    if (!root) return;
+    if (id === 'p_scale' && typeof value === 'number' && Number.isFinite(value)) {
+      const clamped = Math.min(150, Math.max(80, value));
+      root.style.fontSize = clamped + '%';
+    } else if (id === 'p_motion') {
+      /* Reduced motion is no longer this switch's alone: low stimulation composes with
+       * it rather than owning a second copy of the same style element, so this delegates
+       * to the one place that combines every source of the preference. */
+      this.applyLiveAttentionSetting();
+    } else if (id === 'p_mono') {
+      root.style.setProperty('font-variant-numeric', value === true ? 'tabular-nums' : '');
+    }
+  }
+
+  private reducedMotionStyleEl: HTMLStyleElement | undefined;
+
+  private setReducedMotion(on: boolean): void {
+    const doc = (globalThis as { document?: Document }).document;
+    if (!doc) return;
+    if (!on) {
+      this.reducedMotionStyleEl?.remove();
+      this.reducedMotionStyleEl = undefined;
+      return;
+    }
+    if (this.reducedMotionStyleEl) return;
+    const el = doc.createElement('style');
+    el.setAttribute('data-console-setting', 'p_motion');
+    el.textContent = '*, *::before, *::after { animation-duration:0.001ms !important; '
+      + 'animation-iteration-count:1 !important; transition-duration:0.001ms !important; '
+      + 'scroll-behavior:auto !important; }';
+    doc.head?.appendChild(el);
+    this.reducedMotionStyleEl = el;
+  }
+
+  /** Whatever preference the operating system already carries -- checked defensively,
+   *  because plenty of environments this renders in (a server-side render, a bare test)
+   *  have no `matchMedia` at all. */
+  private osPrefersReducedMotion(): boolean {
+    const w = globalThis as { matchMedia?: (query: string) => { matches: boolean } };
+    try { return w.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true; } catch { return false; }
+  }
+
+  /**
+   * The five attention modes plus whatever the platform already prefers, folded into
+   * one state. `platform.prefersReducedMotion` here is deliberately not only the real
+   * operating-system signal -- the console's own "Reduced motion" switch (`p_motion`)
+   * is exactly the same kind of already-expressed preference, so it feeds the same
+   * input rather than fighting low stimulation for ownership of one style element.
+   * Low stimulation only ever ORs on top of both, per {@link presentationFor}'s own
+   * contract: it can turn motion reduction on, never off.
+   */
+  private attentionPresentation(): PresentationState {
+    return presentationFor(this.durableStorage.storage, {
+      prefersReducedMotion: this.consoleSetting<boolean>('p_motion', false) || this.osPrefersReducedMotion(),
+    });
+  }
+
+  /** Applies what {@link attentionPresentation} computes to the live document, and
+   *  redraws so the rail (elapsed time, the chosen next action, a due momentum prompt)
+   *  reflects it too. Called after every attention-mode toggle, after the Reduced
+   *  motion switch changes, and once on restore -- the same shape every other live
+   *  console setting already uses. */
+  private applyLiveAttentionSetting(): void {
+    const presentation = this.attentionPresentation();
+    this.setReducedMotion(presentation.reduceMotion);
+    this.forceUpdate();
+  }
+
+  /** The switch controls' own on/off position is stored separately from the mode
+   *  itself (`console.attention.<mode>`, not the control's value), so without this the
+   *  behaviour would keep working across a relaunch while every switch silently showed
+   *  itself off -- correct underneath, misleading on screen. Mirrors
+   *  `restoreDisplayName`'s shape: seed `state.values`, never guess at a value that
+   *  was never actually set. */
+  private restoreAttentionModes(): void {
+    const restored: Record<string, unknown> = {};
+    for (const [controlId, mode] of Object.entries(App.ATTENTION_CONTROLS)) {
+      restored[controlId] = modeEnabled(this.durableStorage.storage, mode as AttentionMode);
+    }
+    this.setState((prior: { values?: Record<string, unknown> }) => ({
+      values: { ...(prior.values ?? {}), ...restored },
+    }) as never);
+  }
+
+  private applyRestoredLiveConsoleSettings(): void {
+    this.applyLiveAppearanceSetting('p_scale', this.consoleSetting<number>('p_scale', 100));
+    this.applyLiveAppearanceSetting('p_mono', this.consoleSetting<boolean>('p_mono', true));
+    this.restoreAttentionModes();
+    this.applyLiveAttentionSetting();
+    if (this.consoleSetting<boolean>('p_tour', false) === true) this.set('onboardOpen', true);
+    this.applyStartScreen();
+  }
+
+  private applyStartScreen(): void {
+    const choice = this.consoleSetting<string>('p_start', 'Dashboard');
+    if (choice === 'Endpoints') { this.set('screen', 'endpoints'); return; }
+    if (choice === 'Last screen') {
+      const last = this.durableStorage.storage.getItem(App.LAST_SCREEN_KEY);
+      if (typeof last === 'string' && last !== '') this.set('screen', last);
+      return;
+    }
+    this.set('screen', 'dash');
+  }
+
+  private static readonly LAST_SCREEN_KEY = 'console.setting.appearance.p_start_last_screen';
+
+  private rememberLastScreen(screen: string): void {
+    if (typeof screen !== 'string' || screen === '') return;
+    this.durableStorage.storage.setItem(App.LAST_SCREEN_KEY, screen);
   }
   /** The chosen file's own name, kept only for display — never its contents. */
   private pickedFileNames = new Map<string, string>();
@@ -245,6 +1156,12 @@ export class App extends Base {
    *  repeated failures rather than on the first typo. */
   private wrongUnlockCounts: Record<string, number> = {};
 
+  /** Which of the built-in editors real detection found on this machine, refreshed on
+   *  mount. Empty until the first detection round trip resolves -- the picker shows the
+   *  honest "nothing found yet" state rather than the previous hard-coded four names in
+   *  the meantime, never the other way around. See `refreshEditorDetection`. */
+  private detectedEditors: DetectedEditor[] = [];
+
   private bridge() {
     return (window as unknown as { dingDesktop?: DesktopBridge }).dingDesktop;
   }
@@ -263,9 +1180,32 @@ export class App extends Base {
     void this.durableStorage.bootstrap().then(() => {
       this.restoreLanguageMode();
       this.restoreDisplayName();
+      this.startScheduler();
+      this.startSourcePolling();
+      this.restoreNarration();
+      this.applyQuietFromAttentionModes();
+      this.restorePartnerSettings();
+      this.applyRestoredLiveConsoleSettings();
+      this.refreshLogoStatus();
+      this.refreshSchoolStatus();
       this.restoreAppearance();
       this.forceUpdate();
+      /* Not awaited: it is its own round trip to the privileged process and forces its
+       * own update once it resolves, so it must not hold up everything else restoring
+       * above. Depends on the storage snapshot having loaded (it reads the persisted
+       * editor choice), which is why it still lives inside this `.then()`. */
+      void this.refreshEditorDetection();
     });
+    /* Outside the bootstrap chain deliberately: this subscribes to a live channel and
+     * reads no persisted state, so making it wait would delay the first steps of a deploy
+     * that had already started. Everything above it does depend on the snapshot having
+     * loaded, which is why it stays inside. */
+    this.listenForProvisionSteps();
+    this.startVoiceEnumeration();
+    this.listenForScreenReader();
+    this.listenForDestinationRoutes();
+    this.listenForPaletteChord();
+    this.listenForOverlayFocusReturn();
     /* The configured server list is not a reading from any PBX — it exists before
      * anything is reachable and must be on screen whether or not discovery finds a
      * target, so it is loaded independently of it. */
@@ -277,16 +1217,47 @@ export class App extends Base {
         void this.refreshDaemonStatus();
       }
     }, 1000);
+    /* Reads no persisted state either -- the values it redraws for come from the modes
+     * and storage read at render time, not from anything that needs the bootstrap
+     * snapshot first. Idle cost is one redraw every 15s, which is what keeps "open for
+     * 41 minutes" honest and lets a momentum prompt appear without the user having to
+     * touch something else first. */
+    this.attentionTimer = setInterval(() => this.forceUpdate(), 15_000);
   }
 
   componentWillUnmount() {
     super.componentWillUnmount?.();
+    this.overlayFocusObserver?.disconnect();
+    this.overlayFocusObserver = undefined;
     if (this.refreshTimer) clearInterval(this.refreshTimer);
     this.refreshTimer = undefined;
+    if (this.scheduleTimer) clearInterval(this.scheduleTimer);
+    this.scheduleTimer = undefined;
+    if (this.sourceTimer) clearInterval(this.sourceTimer);
+    this.sourceTimer = undefined;
+    if (this.attentionTimer) clearInterval(this.attentionTimer);
+    this.attentionTimer = undefined;
+    this.stopDeployTicker();
+    /* Torn down with the unsubscribe the bridge returns. A listener that outlives the
+     * component fires into a dead tree on the next reload. */
+    this.stopProvisionListener?.();
+    this.stopProvisionListener = undefined;
+    this.stopVoiceListener?.();
+    this.stopVoiceListener = undefined;
+    this.stopScreenReaderListener?.();
+    this.stopScreenReaderListener = undefined;
+    this.stopDeepLinkListener?.();
+    this.stopDeepLinkListener = undefined;
+    this.stopPaletteKeys?.();
+    this.stopPaletteKeys = undefined;
+    /* Cancels anything mid-utterance and drops the voice-list subscription the narrator
+     * holds internally — the same "torn down on unmount" rule as every listener above. */
+    this.narrator.dispose();
   }
 
   componentDidUpdate() {
     void this.refresh();
+    if ((this.state as { screen?: string }).screen === LOCAL_HISTORY_SCREEN_ID) void this.refreshLocalHistory();
   }
 
   private async request(action: string, extra: Record<string, unknown> = {}): Promise<ControlPlaneResponse | undefined> {
@@ -378,6 +1349,7 @@ export class App extends Base {
     void this.ensureDaemon();
     this.readings = {};
     this.canvasReadings = undefined;
+    this.canvasExtensionsConf = undefined;
     this.forceUpdate();
     } finally {
       this.discoveryPending = false;
@@ -411,13 +1383,15 @@ export class App extends Base {
     this.toast('Starting the phone system…');
     const started = await this.request('daemon.start');
     if (!started?.ok) {
-      this.fire('The phone system did not start', started?.message ?? 'Asterisk did not answer after it was started.');
+      const detail = started?.message ?? 'Asterisk did not answer after it was started.';
+      this.fire('The phone system did not start', detail, true);
       return;
     }
     /* Anything read before this point was read against a daemon that was not up, so it
      * is discarded rather than left on screen as though it were current. */
     this.readings = {};
     this.canvasReadings = undefined;
+    this.canvasExtensionsConf = undefined;
     void this.refreshDaemonStatus();
     this.forceUpdate();
   };
@@ -427,16 +1401,20 @@ export class App extends Base {
   /** Read by the compiled `file` control kind for the file-picker's own label. */
   fileControlName = (ctl: { id: string }): string => {
     const named = this.pickedFileNames.get(ctl.id);
+    if (ctl.id === 'logo_pick') return named ?? 'No picture chosen';
     if (named) return named;
     const status = vocabularyStatus(this.vocabStorage);
     return status.replacementCount > 0 ? `${status.replacementCount} replacement(s) loaded` : 'No file chosen';
   };
 
-  fileControlHasFile = (): boolean => vocabularyStatus(this.vocabStorage).replacementCount > 0;
+  fileControlHasFile = (ctl: { id: string }): boolean => (ctl.id === 'logo_pick'
+    ? currentChoice(this.durableStorage.storage).kind === 'custom'
+    : vocabularyStatus(this.vocabStorage).replacementCount > 0);
 
   /** The file's bytes never leave this process: read locally, validated by the pure
    *  loader in `personal-vocabulary.ts`, and — only on success — cached locally. */
   onFilePicked = (ctl: { id: string }, file: File): void => {
+    if (ctl.id === 'logo_pick') { this.pickLogo(file); return; }
     const reader = new FileReader();
     reader.onload = () => {
       const text = typeof reader.result === 'string' ? reader.result : '';
@@ -451,6 +1429,12 @@ export class App extends Base {
   };
 
   onFileCleared = (ctl: { id: string }): void => {
+    if (ctl.id === 'logo_pick') {
+      resetLogo(this.durableStorage.storage);
+      this.pickedFileNames.delete(ctl.id);
+      this.refreshLogoStatus();
+      return;
+    }
     const result = clearVocabulary(this.vocabStorage);
     this.pickedFileNames.delete(ctl.id);
     this.forceUpdate();
@@ -467,13 +1451,15 @@ export class App extends Base {
     this.toast(`${verb === 'start' ? 'Starting' : verb === 'stop' ? 'Stopping' : 'Restarting'} the phone system…`);
     const response = await this.request(`daemon.${verb}`);
     if (!response?.ok) {
-      this.fire('Not done', response?.message ?? `The phone system did not ${verb}.`);
+      const detail = response?.message ?? `The phone system did not ${verb}.`;
+      this.fire('Not done', detail, true);
       await this.refreshDaemonStatus();
       return;
     }
     /* Anything read before this point may no longer reflect what Asterisk is doing. */
     this.readings = {};
     this.canvasReadings = undefined;
+    this.canvasExtensionsConf = undefined;
     await this.refreshDaemonStatus();
     this.fire(`Phone system ${verb === 'start' ? 'started' : verb === 'stop' ? 'stopped' : 'restarted'}`, `Asterisk on ${this.target.label} answered after the ${verb}.`);
   };
@@ -498,16 +1484,241 @@ export class App extends Base {
     this.forceUpdate();
   };
 
+  // ---------------------------------------------------------------- runtime maintenance
+
+  /**
+   * Terminates the console's own WSL distribution.
+   *
+   * `runtime.provision` (create) and `runtime.status` (read) were already reached from
+   * the onboarding wizard and `discover()` respectively; `runtime.stop` and
+   * `runtime.remove` were implemented in `wsl-provisioning.ts` and dispatched by
+   * `control-plane/dispatch.ts`, and nothing in the interface ever called either --
+   * the exact "wired at one end, consumed at neither" shape this codebase's own
+   * conventions warn about repeatedly. Stopping is non-destructive (`wsl --terminate`
+   * merely shuts the instance down; `wsl -d <name>` starts it again on the next use),
+   * so it needs no confirmation gate -- unlike `removeRuntime` below.
+   */
+  private stopRuntime = async (): Promise<void> => {
+    if (this.runtimeBusy) return;
+    if (!canStopRuntime(this.runtime)) {
+      this.fire('Not available', runtimeLabel(this.runtime));
+      return;
+    }
+    this.runtimeBusy = true;
+    this.forceUpdate();
+    this.toast('Stopping the console runtime…');
+    try {
+      const response = await this.request('runtime.stop');
+      if (!response?.ok) {
+        this.fire('Not stopped', response?.message ?? 'The console runtime did not stop.');
+        return;
+      }
+      const detail = (response.data as { detail?: string } | undefined)?.detail;
+      this.fire('Runtime stopped', detail ?? 'The console runtime was terminated.');
+      void this.request('local-history.record', {
+        payload: { action: 'updated', subject: 'Console runtime stopped', payload: { distribution: this.runtime?.status?.distribution ?? this.runtime?.managedDistribution } },
+      });
+      const status = await this.request('runtime.status');
+      this.runtime = status?.ok ? (status.data as RuntimeStatus) : this.runtime;
+    } finally {
+      this.runtimeBusy = false;
+      this.forceUpdate();
+    }
+  };
+
+  /**
+   * Unregisters the console's own WSL distribution, discarding everything inside it.
+   *
+   * `canRecoverRuntime` was already written and tested (`runtime.test.tsx`) as the exact
+   * gate for this: true only when the distribution is registered and not answering,
+   * which is the one state `runtimeHint` already tells the person to fix by removing it
+   * first -- nothing before this called it, so the state it names had no way out from
+   * the interface. Irreversible, so it goes through the same `areYouSure` gate every
+   * other destructive action in this file uses.
+   */
+  private removeRuntime = (): void => {
+    if (this.runtimeBusy) return;
+    if (!canRecoverRuntime(this.runtime)) {
+      this.fire('Not available', runtimeLabel(this.runtime));
+      return;
+    }
+    const distribution = this.runtime?.status?.distribution ?? this.runtime?.managedDistribution ?? 'the managed distribution';
+    this.areYouSure(
+      `Remove ${distribution}`,
+      `${runtimeLabel(this.runtime)}. Unregistering discards everything inside it. This console only ever removes its own managed distribution and will refuse anything else.`,
+      3,
+      () => { void this.removeRuntimeConfirmed(distribution); },
+    );
+  };
+
+  private removeRuntimeConfirmed = async (distribution: string): Promise<void> => {
+    if (this.runtimeBusy) return;
+    this.runtimeBusy = true;
+    this.forceUpdate();
+    this.toast('Removing the console runtime…');
+    try {
+      const response = await this.request('runtime.remove', { serverId: distribution });
+      if (!response?.ok) {
+        this.fire('Not removed', response?.message ?? 'The console runtime was not removed.');
+        return;
+      }
+      const detail = (response.data as { detail?: string } | undefined)?.detail;
+      this.fire('Runtime removed', detail ?? `${distribution} was unregistered.`);
+      void this.request('local-history.record', {
+        payload: { action: 'deleted', subject: 'Console runtime removed', payload: { distribution } },
+      });
+      const status = await this.request('runtime.status');
+      this.runtime = status?.ok ? (status.data as RuntimeStatus) : undefined;
+    } finally {
+      this.runtimeBusy = false;
+      this.forceUpdate();
+    }
+  };
+
+  /** Injected onto the real `servers` screen ("Deploy & servers") -- the same screen
+   *  `system-admin`'s PBX Admin feature already delegates to for "Ding
+   *  deployment/runtime/server controls" (`pbx-admin-model.ts`), so this is where a
+   *  person already looks for the console's own runtime. Recomputed from
+   *  `SERVERS_BASE_GROUPS` on every render rather than mutated in place -- see there. */
+  private runtimeMaintenanceGroup(): { title: string; desc: string; ctls: Array<Record<string, unknown> & { id: string; label: string; kind: string; value: unknown }> } {
+    const ctls: Array<Record<string, unknown> & { id: string; label: string; kind: string; value: unknown }> = [];
+    if (!this.runtimeBusy) {
+      if (canStopRuntime(this.runtime)) {
+        ctls.push({
+          id: 'rt_stop', label: 'Stop the console runtime', kind: 'segmented', value: 'Stop the console runtime',
+          options: ['Stop the console runtime'], action: 'runtime-stop',
+          info: 'Terminates the WSL instance. It starts again the next time this console connects to it -- nothing inside it is discarded.',
+        });
+      }
+      if (canRecoverRuntime(this.runtime)) {
+        ctls.push({
+          id: 'rt_remove', label: 'Remove the console runtime', kind: 'segmented', value: 'Remove the console runtime',
+          options: ['Remove the console runtime'], action: 'runtime-remove',
+          info: 'Unregisters the distribution and discards everything inside it. Offered only because it is registered but not answering -- removing a working runtime is not something this screen recommends.',
+        });
+      }
+    }
+    return {
+      title: 'Runtime maintenance',
+      desc: this.runtimeBusy ? 'A runtime operation is in progress…' : runtimeLabel(this.runtime),
+      ctls,
+    };
+  }
+
+  private prepareServersScreen(): void {
+    const screens = SCREENS as unknown as Record<string, { groups?: unknown[] }>;
+    screens.servers!.groups = [...SERVERS_BASE_GROUPS, this.runtimeMaintenanceGroup()];
+  }
+
+  // ---------------------------------------------------------------- local history
+
+  private localHistoryFilter(): string {
+    const value = (this.state as { values?: Record<string, unknown> }).values?.lh_filter;
+    return typeof value === 'string' && value.length > 0 ? value : LOCAL_HISTORY_FILTER_ALL;
+  }
+
+  /** Reads `local-history.list`, honouring the action filter bound to `lh_filter`.
+   *  `force` re-reads even when a read already succeeded once, the same convention
+   *  `PbxAdminApp.loadAdminHistory`/`loadAdminMedia` use for their own refresh
+   *  actions. `filterOverride` lets `onControlAction` pass the just-picked option
+   *  straight through: the option's own `pick()` writes it into `this.state` via
+   *  `setState`, which React does not guarantee has committed by the time this runs in
+   *  the same synchronous handler, so reading `this.state` back here would risk one
+   *  request running against the filter that was selected before this one. */
+  private refreshLocalHistory = async (force = false, filterOverride?: string): Promise<void> => {
+    if (!force && this.localHistoryLoaded) return;
+    if (this.localHistoryPending) return;
+    this.localHistoryPending = true;
+    this.forceUpdate();
+    const filter = filterOverride ?? this.localHistoryFilter();
+    const response = await this.request('local-history.list', {
+      payload: filter === LOCAL_HISTORY_FILTER_ALL ? {} : { action: filter },
+    });
+    this.localHistoryPending = false;
+    this.localHistoryLoaded = true;
+    if (!response?.ok) {
+      this.localHistoryStatus = response?.message ?? 'Local history could not be read.';
+      this.forceUpdate();
+      return;
+    }
+    const data = response.data as { entries?: HistoryCommit[]; counts?: Record<string, number> };
+    this.localHistoryEntries = data.entries ?? [];
+    this.localHistoryCounts = data.counts ?? {};
+    this.localHistoryStatus = this.localHistoryEntries.length === 0
+      ? 'No local history entry has been recorded yet.'
+      : `${this.localHistoryEntries.length} entr${this.localHistoryEntries.length === 1 ? 'y' : 'ies'} read.`;
+    this.forceUpdate();
+  };
+
+  private selectedLocalHistoryEntry(): HistoryCommit | undefined {
+    if (this.localHistoryEntries.length === 0) return undefined;
+    const options = this.localHistoryEntries.map((entry, index) => formatLocalHistoryEntry(entry, index));
+    const selected = String((this.state as { values?: Record<string, unknown> }).values?.lh_entry ?? options[0]);
+    const index = options.indexOf(selected);
+    return this.localHistoryEntries[index >= 0 ? index : 0];
+  }
+
+  /** Gated by `areYouSure` because a restore rewrites files -- it never rewrites the
+   *  history entry itself; `LocalHistory.restore` always records the restore as a new,
+   *  separate commit, so this can always be undone in turn. */
+  private restoreLocalHistory = (): void => {
+    if (this.localHistoryBusy) return;
+    const entry = this.selectedLocalHistoryEntry();
+    if (!entry) {
+      this.fire('Nothing to restore', 'Refresh local history first.');
+      return;
+    }
+    this.areYouSure(
+      `Restore ${entry.subject}`,
+      'Writes the files this entry recorded back, and records the restore itself as a brand-new entry so it can always be undone in turn.',
+      3,
+      () => { void this.restoreLocalHistoryConfirmed(entry); },
+    );
+  };
+
+  private restoreLocalHistoryConfirmed = async (entry: HistoryCommit): Promise<void> => {
+    if (this.localHistoryBusy) return;
+    this.localHistoryBusy = true;
+    this.forceUpdate();
+    try {
+      const response = await this.request('local-history.restore', { payload: { commitId: entry.id } });
+      if (!response?.ok) {
+        this.fire('Not restored', response?.message ?? 'The control plane did not answer.');
+        return;
+      }
+      this.fire('Local history entry restored', `${entry.subject} was restored and recorded as a new entry.`);
+      await this.refreshLocalHistory(true);
+    } finally {
+      this.localHistoryBusy = false;
+      this.forceUpdate();
+    }
+  };
+
+  private prepareLocalHistoryScreen(): void {
+    const screens = SCREENS as unknown as Record<string, { groups?: unknown[] }>;
+    const options = this.localHistoryEntries.map((entry, index) => formatLocalHistoryEntry(entry, index));
+    const selected = String((this.state as { values?: Record<string, unknown> }).values?.lh_entry ?? options[0] ?? '');
+    screens[LOCAL_HISTORY_SCREEN_ID]!.groups = buildLocalHistoryGroups({
+      entries: this.localHistoryEntries,
+      counts: this.localHistoryCounts,
+      status: this.localHistoryStatus,
+      filter: this.localHistoryFilter(),
+      selectedOption: selected,
+      busy: this.localHistoryBusy,
+    });
+  }
+
   // ---------------------------------------------------------------- support tickets
 
-  /** Files the ticket locally and shows the resolution. Nothing leaves the machine, and
-   *  nothing is deleted here: the console opens the folder and the person deletes it. */
+  /** Files the ticket locally and opens the resolution folder. Nothing leaves the
+   *  machine, and nothing is deleted here: the console opens the folder and the person
+   *  deletes it themselves. */
   private fileSupportTicket(): void {
     const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
     const result = openTicket({
-      category: String(values.sup_category ?? 'Something else') as TicketCategory,
-      description: String(values.sup_description ?? ''),
-      severity: String(values.sup_severity ?? 'Normal') as TicketSeverity,
+      category: String(values['sup_category'] ?? 'Something else') as TicketCategory,
+      description: String(values['sup_description'] ?? ''),
+      severity: String(values['sup_severity'] ?? 'Normal') as TicketSeverity,
       openedAt: new Date().toISOString(),
       draw: Math.random(),
     });
@@ -515,15 +1726,1426 @@ export class App extends Base {
       this.fire('That ticket will not file', result.problems[0].message);
       return;
     }
-    const resolution = resolutionFor(IDENTITY.dataDirectory);
+    void this.openSupportTicketFolder(result);
+  }
+
+  /**
+   * The actual "This console will open it for you" the resolution copy promises.
+   *
+   * `IDENTITY.dataDirectory` is only a directory *name* ("ding-pbx-console"), never a
+   * real path -- the real absolute path only exists in the privileged process, which is
+   * why this is a round trip rather than something computed locally. Reports honestly
+   * both when this mode has no local folder at all (hosted, no `window.dingDesktop`) and
+   * when the file manager itself would not start, per `support-tickets.md`'s failure
+   * mode: the exact path is always shown as text either way, so the person can navigate
+   * there by hand.
+   */
+  private async openSupportTicketFolder(result: Ticket): Promise<void> {
+    const localData = window.dingDesktop?.localData;
+    if (!localData) {
+      const resolution = resolutionFor(IDENTITY.dataDirectory);
+      this.fire(`Ticket ${result.id} — ${result.status}`,
+        `${result.firstResponse}
+
+${resolution.instructions}
+
+This mode has no local file manager to open it in; find the folder by hand.
+
+${resolution.consequence}
+
+${resolution.disclosure}`);
+      return;
+    }
+    const path = await localData.path();
+    const resolution = resolutionFor(path);
+    const outcome = await localData.openFolder();
+    const openedLine = outcome.ok
+      ? 'The folder is open now.'
+      : `The folder could not be opened automatically (${outcome.reason}); navigate to the path above by hand.`;
     this.fire(`Ticket ${result.id} — ${result.status}`,
       `${result.firstResponse}
 
 ${resolution.instructions}
 
+${openedLine}
+
 ${resolution.consequence}
 
 ${resolution.disclosure}`);
+  }
+
+  // ---------------------------------------------------------------- external editor
+
+  /** The "External editor" group's controls, found by title rather than a fixed array
+   *  index so a design reorder cannot silently point this at the wrong group. Mutated
+   *  in place (options, info, and -- for `ed_open` -- a genuinely new control) rather
+   *  than recompiled from `design/`, per the task brief's second precedent: this avoids
+   *  re-auditing the pinned binding/expression counts in `design/inventory.json` and
+   *  `inventories/design-parity.json` for a change that is pure runtime wiring. */
+  private editorCtls(): EditorCtl[] | undefined {
+    const screens = SCREENS as unknown as Record<string, { groups?: { title?: string; ctls: EditorCtl[] }[] }>;
+    return screens['customise']?.groups?.find((g) => g.title === 'External editor')?.ctls;
+  }
+
+  /**
+   * Real detection, run once on mount (and safe to re-run after installing an editor).
+   *
+   * Replaces the picker's previously hard-coded four names with whatever installed
+   * editors were actually found, matching the info text's own claim ("Only editors
+   * actually installed on this machine are offered"), and reflects the persisted choice
+   * back into the picker -- nothing did that before either. Also adds the "open here"
+   * action control the compiled design does not have at all yet.
+   */
+  private async refreshEditorDetection(): Promise<void> {
+    const detect = window.dingDesktop?.editors?.detect;
+    this.detectedEditors = detect ? await detect()
+      .then((found) => found
+        .map((entry) => {
+          const definition = KNOWN_EDITORS.find((candidate) => candidate.id === entry.id);
+          return definition ? { definition, resolved: entry.resolved } : undefined;
+        })
+        .filter((entry): entry is DetectedEditor => entry !== undefined))
+      : [];
+    const choice = this.editorCtls()?.find((c) => c.id === 'ed_choice');
+    if (choice) {
+      choice.options = this.detectedEditors.map((entry) => entry.definition.name);
+      choice.info = this.detectedEditors.length > 0
+        ? 'Only editors actually installed on this machine are offered. If yours is missing, add it below by browsing for its executable.'
+        : 'No installed editor was found on this machine. The console works fully without one; add yours below by browsing for its executable.';
+    }
+    const chosen = chosenEditor(this.durableStorage.storage, this.detectedEditors);
+    if (chosen) {
+      this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, ed_choice: chosen.definition.name } } as never));
+    }
+    this.ensureEditorOpenControl();
+    this.forceUpdate();
+  }
+
+  /** Adds the "open here" action control exactly once -- a second detection round trip
+   *  must never append a duplicate. */
+  private ensureEditorOpenControl(): void {
+    const ctls = this.editorCtls();
+    if (!ctls || ctls.some((c) => c.id === 'ed_open')) return;
+    ctls.push({
+      id: 'ed_open', label: 'Open here in the chosen editor', kind: 'switch', value: false,
+      info: 'Opens this console’s own local data folder as a workspace root in the chosen editor. The console works fully without one; this is a convenience, not something it needs.',
+    });
+  }
+
+  /** "ed_open": hands the console's local-data folder to the chosen editor, as a
+   *  workspace root rather than a bare unrooted file — see `external-editor.md`. */
+  private async launchExternalEditor(): Promise<void> {
+    const editors = window.dingDesktop?.editors;
+    const localData = window.dingDesktop?.localData;
+    if (!editors || !localData) {
+      this.fire('Nothing to open here', 'This mode has no local editor integration.');
+      return;
+    }
+    const path = await localData.path();
+    const outcome = await editors.open({ kind: 'folder', path });
+    if (outcome.ok) {
+      this.toast('Opened in your editor');
+      return;
+    }
+    this.fire('Not opened', outcome.downloadUrl ? `${outcome.message} ${outcome.downloadUrl}` : outcome.message);
+  }
+
+  // ---------------------------------------------------------------- deploy progress
+
+  /**
+   * Subscribes to provisioning steps, when the surface running this has a privileged
+   * process to report from.
+   *
+   * The hosted HTTP bridge does not, so the capability is checked rather than assumed --
+   * a renderer that took it for granted would fail on that surface instead of simply
+   * having no live progress there.
+   */
+  private listenForProvisionSteps(): void {
+    const provisioning = window.dingDesktop?.provisioning;
+    if (!provisioning) return;
+    this.stopProvisionListener = provisioning.onStep((step) => this.onProvisionStep(step));
+  }
+
+  /** A ticker only while a deploy is genuinely running -- see `resetDeployProgress` and
+   *  `stopDeployTicker` below. `import runtime` (`wsl --import`) is a single opaque call
+   *  that can run for minutes with no intermediate step of its own; without this, the
+   *  percentage and the stall message computed in `refreshDeployProgressLine` would only
+   *  ever be recomputed at the next step boundary -- exactly the point after the long
+   *  silent stretch, rather than during it, which is when a bare spinner most looks like
+   *  a hang. */
+  private deployTicker: ReturnType<typeof setInterval> | undefined;
+
+  /** Recomputes `deployProgressLine` from the real weighted state machine, so a step
+   *  event and an idle tick can never disagree about the format. `extra` is the one
+   *  piece neither `deployOperation` nor its snapshot knows: the human detail string a
+   *  step carried, or the recovery summary a failure carried. Never shows a percentage
+   *  while the operation is still `idle` -- before the first step of a run there is
+   *  nothing real to compute one from. */
+  private refreshDeployProgressLine(extra?: string): void {
+    if (this.deployOperation.status === 'idle') {
+      this.deployProgressLine = extra ? `${extra}.` : 'Starting...';
+      this.forceUpdate();
+      return;
+    }
+    const progress = snapshot(this.deployOperation, Date.now());
+    const percent = Math.round(progress.overallFraction * 100);
+    const phase = progress.phaseLabel ?? 'Starting';
+    const stalledNote = progress.stalled && progress.stalledMessage ? ` ${progress.stalledMessage}` : '';
+    this.deployProgressLine = `${percent}% -- ${phase}${extra ? `: ${extra}` : ''}.${stalledNote}`;
+    this.forceUpdate();
+  }
+
+  /** One step has finished. Says what happened, and stops at the first failure rather
+   *  than continuing to count as though the deploy were still going. Also drives the
+   *  real weighted operation (`long-operation-progress.ts`) behind the percentage in
+   *  `deployProgressLine` -- see `DEPLOY_PHASES`/`DEPLOY_PHASES_FROM_BASE_IMAGE` above
+   *  for where the phase ids come from, and `firstStepPlan` for how the right one of
+   *  the two gets picked the moment the first real step names which one this run is. */
+  private onProvisionStep(step: { name: string; ok: boolean; detail: string }): void {
+    this.deploySteps.push(step);
+    const now = Date.now();
+    if (this.deploySteps.length === 1 && step.name !== this.deployOperation.plan.included[0]?.id) {
+      /* `resetDeployProgress` had to start tracking against a default plan before any
+       * step existed to decide from -- this run's first step says it actually chose the
+       * other of the two provisioning sequences, so tracking restarts against the plan
+       * that step genuinely opens. Safe to replace outright: nothing has been banked
+       * yet, because this is still the first step of the run. */
+      const plan = firstStepPlan(step.name);
+      if (plan) this.deployOperation = startOperation(createOperation(plan), now).state;
+    }
+    const isFinalPhase = this.deployOperation.status === 'running'
+      && step.name === this.deployOperation.plan.included[this.deployOperation.plan.included.length - 1]?.id;
+    if (this.deployOperation.status === 'running') {
+      try {
+        if (step.ok) {
+          const reported = reportProgress(this.deployOperation, step.name, 1, now);
+          this.deployOperation = isFinalPhase ? completeOperation(reported, now) : reported;
+        } else {
+          this.deployOperation = failOperation(this.deployOperation, now);
+        }
+      } catch {
+        /* A step name neither plan recognises, or one reported out of order, means the
+         * control plane has moved in a way this module has not caught up with -- the
+         * percentage is dropped for the rest of this run rather than thrown at the
+         * user, and the plain detail text below still says exactly what happened. */
+      }
+    }
+    if (!step.ok || isFinalPhase) this.stopDeployTicker();
+    if (!step.ok) {
+      /* A failure is where a recovery route is worth having, so it is offered here rather
+       * than leaving somebody at a dead end holding an error string. The route never
+       * includes a remedy that loses work -- see in-context-recovery.ts. */
+      const recovery = recoveryFor(App.classifyStepFailure(step), step.detail, { target: step.name });
+      const offered = recovery.actions.map((entry) => entry.label).join(', ');
+      this.refreshDeployProgressLine(`stopped at ${step.name} -- ${recovery.summary}`);
+      this.fire(`Deploy stopped at ${step.name}`,
+        `${recovery.summary}
+
+${recovery.detail}${offered ? `
+
+What you can do: ${offered}.` : ''}`);
+    } else {
+      this.refreshDeployProgressLine(`${step.name}: ${step.detail}`);
+    }
+  }
+
+  /**
+   * Which kind of failure a provisioning step represents.
+   *
+   * Matched on the reported detail rather than the step name, because the name says what
+   * was being attempted and the detail says why it did not work -- and a step can fail for
+   * more than one reason. Anything unrecognised falls to `unknown`, which offers the full
+   * error rather than inventing a route.
+   */
+  private static classifyStepFailure(step: { name: string; detail: string }): FailureKind {
+    const detail = step.detail.toLowerCase();
+    if (/permission|denied|not permitted|elevat/u.test(detail)) return 'permission-denied';
+    if (/no space|disk full|enospc/u.test(detail)) return 'disk-full';
+    if (/unreachable|refused|timed out|not running|no such host/u.test(detail)) return 'target-unreachable';
+    return 'unknown';
+  }
+
+  /** Clears the record so a second deploy does not read as a continuation of the first,
+   *  and genuinely starts the weighted operation -- `startOperation`'s own re-entry
+   *  guard refuses a second start while one is already `running`, so a stray double
+   *  call here cannot silently reset a deploy that is mid-import. Call this once, right
+   *  before the `runtime.provision` request that will produce the steps, from either of
+   *  its two call sites (`onboardDeploy`, the servers-screen `provisionRuntime`).
+   *
+   *  Starts against `DEPLOY_PHASES` as a placeholder -- this function runs before the
+   *  request that will decide which of the two real sequences a run actually follows,
+   *  so there is nothing yet to choose between. `onProvisionStep` swaps in the correct
+   *  plan (`firstStepPlan`) the moment the first real step names which one it is. */
+  private resetDeployProgress(): void {
+    this.deploySteps = [];
+    const { state, result } = startOperation(createOperation(DEPLOY_PHASES), Date.now());
+    this.deployOperation = state;
+    if (!result.started) {
+      /* Refused: a deploy is already running. Leave its own progress line alone rather
+       * than overwriting it with "Starting..." for a run that is not, in fact, starting. */
+      return;
+    }
+    this.startDeployTicker();
+    this.refreshDeployProgressLine();
+  }
+
+  /** Recomputes the live percentage every couple of seconds while a deploy is running,
+   *  so `import runtime`'s multi-minute silence still moves the number and can trip the
+   *  stall message -- see `deployTicker`'s own comment for why a step-boundary refresh
+   *  alone would never show it during the one phase where it matters most. */
+  private startDeployTicker(): void {
+    this.stopDeployTicker();
+    this.deployTicker = setInterval(() => this.refreshDeployProgressLine(), 2_000);
+  }
+
+  private stopDeployTicker(): void {
+    if (this.deployTicker) clearInterval(this.deployTicker);
+    this.deployTicker = undefined;
+  }
+
+  // ---------------------------------------------------------------- readability
+
+  /**
+   * The WCAG contrast of the accent currently being chosen, against the surface behind it.
+   *
+   * Reports and never refuses. A colour that fails AA is still the person's to keep -- it
+   * is their console -- but they should not have to discover it is unreadable by trying to
+   * read it. The ratio is stated as well as the level, because "fail" alone does not say
+   * whether the colour is slightly short or hopeless.
+   */
+  private contrastStatus(): string {
+    const vals = this.currentAppearanceValues();
+    /* Reuses the same translator the colour panel itself uses two methods down, so the
+     * measured value is exactly the one the person is being shown rather than a second
+     * conversion that could round differently. */
+    const translated = translateColour(`hsl(${vals.hue} ${vals.sat}% ${vals.light}%)`);
+    const hex = translated?.hex;
+    if (!hex) return 'Not measured yet.';
+    const ratio = contrastRatioFromHex(hex, App.SURFACE_HEX);
+    if (ratio === undefined) return 'Not measured yet.';
+    const rounded = Math.round(ratio * 100) / 100;
+    const normal = contrastLevel(ratio, false);
+    const large = contrastLevel(ratio, true);
+    if (normal !== 'fail') {
+      return `${hex} on ${App.SURFACE_HEX} is ${rounded}:1 -- ${normal} for ordinary text.`;
+    }
+    if (large !== 'fail') {
+      return `${hex} on ${App.SURFACE_HEX} is ${rounded}:1 -- ${large} for large text only. Ordinary text needs ${AA_NORMAL_TEXT_RATIO}:1.`;
+    }
+    return `${hex} on ${App.SURFACE_HEX} is ${rounded}:1, below the ${AA_LARGE_TEXT_RATIO}:1 floor even for large text. It is yours to keep, but it will be hard to read.`;
+  }
+
+  // ---------------------------------------------------------------- school mode
+
+  /** Turning it ON needs nothing. Turning it OFF needs the credential, which is the whole
+   *  point of the mode -- so the two directions deliberately do not share a path. */
+  private setSchoolMode(on: boolean): void {
+    const name = schoolModeName(this.durableStorage.storage);
+    if (on) {
+      activateSchoolMode(this.durableStorage.storage);
+      this.refreshSchoolStatus();
+      this.toast(`${name} is on.`);
+      return;
+    }
+    if (!hasCredential(this.durableStorage.storage)) {
+      this.fire(name, attemptMessage('missing', name));
+      return;
+    }
+    const { secret, values } = this.consumeSchoolCredential();
+    if (secret === undefined) {
+      this.fire(name, `Type the unlock credential first, then switch this off again.`);
+      return;
+    }
+    const result = deactivateSchoolMode(this.durableStorage.storage, secret);
+    this.setState({ values } as never);
+    this.refreshSchoolStatus();
+    this.fire(name, attemptMessage(result.ok ? 'accepted' : 'rejected', name));
+  }
+
+  private storeSchoolCredential(): void {
+    const name = schoolModeName(this.durableStorage.storage);
+    const { secret, values } = this.consumeSchoolCredential();
+    this.setState({ values } as never);
+    if (secret === undefined) {
+      this.fire(name, 'Type a PIN or password in the field above first.');
+      return;
+    }
+    const raw = (this.state as { values?: Record<string, unknown> }).values?.['school_method'];
+    const method: CredentialMethod = raw === 'password' ? 'password' : 'pin';
+    setCredential(this.durableStorage.storage, method, secret);
+    this.refreshSchoolStatus();
+    /* Says that one was set, never what it was, and repeats that this is not security. */
+    this.fire(name, `Unlock credential set. Deleting the shared local application-data record still resets ${name}, so this is a speed bump rather than protection.`);
+  }
+
+  /** Takes the secret out of the bound control and blanks the field in one step. */
+  private consumeSchoolCredential(): { secret?: string; values: Record<string, unknown> } {
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    return consumeCredential(values, 'school_credential');
+  }
+
+  private refreshSchoolStatus(): void {
+    const storage = this.durableStorage.storage;
+    const name = schoolModeName(storage);
+    const credential = hasCredential(storage) ? 'an unlock credential is set' : 'no unlock credential is set yet';
+    this.schoolStatusLine = schoolModeActive(storage)
+      ? `${name} is on and ${credential}.`
+      : `${name} is off and ${credential}.`;
+    this.forceUpdate();
+  }
+
+  // ---------------------------------------------------------------- real menu actions
+
+  /**
+   * Carries out a menu item that used to only announce itself.
+   *
+   * Fourteen of them claimed to copy, export, import or save and did none of it. The
+   * decisions live in host-actions.ts so they can be tested without a clipboard or a
+   * filesystem; this supplies the doing, and reports what came back either way. A refusal
+   * named plainly is worth far more than a cheerful message about work that never happened,
+   * which is exactly what these controls used to be.
+   */
+  hostAction = (kind: HostActionKind, payload: Record<string, unknown> = {}): void => {
+    /*
+     * The bulk-actions "Export" button hands its selection here as a generic export-json
+     * request (`{ subject:'selection', data:sel }`) instead of through `bulk()`, which is
+     * the only place that picks a format the visible columns can actually carry, states
+     * what a lossy format drops, and reports a skip for a row no longer in the table (see
+     * `bulk()` above). Every other export-json caller in the compiled shell uses a
+     * different `subject` (`group`, `tab`, `tabs and groups`, `appearance`), so this
+     * recognises this one exact shape and routes it back to the real engine rather than
+     * letting it fall through to a bare JSON dump of the selected ids.
+     */
+    if (kind === 'export-json' && payload.subject === 'selection') {
+      this.bulk('Exported', Array.isArray(payload.data) ? (payload.data as string[]) : []);
+      return;
+    }
+
+    /*
+     * "Copy tab list to clipboard" hands this a pre-built `text` of `tabs.map(t =>
+     * t.label)` -- but `tabs` is an array of screen keys, plain strings with no `label`
+     * of their own, so every entry read `undefined` and the clipboard held that word
+     * once per open tab. Recompute the real text here, the same way every other tab
+     * label in this console resolves one: `tabNames` first, the destination's compiled
+     * title second, the raw key last (see `tabListText`).
+     */
+    let payloadToRun = payload;
+    if (kind === 'copy' && payload.what === 'the tab list') {
+      const state = this.state as { tabs?: string[]; tabNames?: Record<string, string> };
+      const screens = SCREENS as Record<string, { title?: string }>;
+      payloadToRun = {
+        ...payload,
+        text: tabListText(state.tabs ?? [], state.tabNames ?? {}, (key) => screens[key]?.title),
+      };
+    }
+
+    const request = { ...payloadToRun, kind } as HostActionRequest;
+    void runHostAction(request, {
+      writeClipboard: async (text: string) => {
+        const clipboard = (globalThis as { navigator?: { clipboard?: { writeText(t: string): Promise<void> } } })
+          .navigator?.clipboard;
+        if (!clipboard) return false;
+        try { await clipboard.writeText(text); return true; } catch { return false; }
+      },
+      offerFile: async (name: string, mimeType: string, contents: string) => {
+        const doc = (globalThis as { document?: Document }).document;
+        const url = (globalThis as { URL?: typeof URL }).URL;
+        if (!doc || !url?.createObjectURL) return false;
+        try {
+          const href = url.createObjectURL(new Blob([contents], { type: mimeType }));
+          const link = doc.createElement('a');
+          link.href = href;
+          link.download = name;
+          doc.body.appendChild(link);
+          link.click();
+          link.remove();
+          /* Revoked on the next turn rather than immediately: revoking before the click has
+           * been serviced cancels the download on some platforms, and a download that
+           * silently does not happen is the defect this whole change is about. */
+          setTimeout(() => url.revokeObjectURL(href), 0);
+          return true;
+        } catch { return false; }
+      },
+      requestFile: async (accept: string) => {
+        const doc = (globalThis as { document?: Document }).document;
+        if (!doc) return undefined;
+        return new Promise<{ name: string; text: string } | undefined>((resolve) => {
+          const input = doc.createElement('input');
+          input.type = 'file';
+          input.accept = accept;
+          input.addEventListener('change', () => {
+            const file = input.files?.[0];
+            if (!file) { resolve(undefined); return; }
+            void file.text()
+              .then((text) => resolve({ name: file.name, text }))
+              .catch(() => resolve(undefined));
+          });
+          /* A cancelled picker fires no change event on most platforms, so a promise that
+           * only waits for one would never settle and the menu would appear to hang. */
+          input.addEventListener('cancel', () => resolve(undefined));
+          input.click();
+        });
+      },
+      store: (key: string, value: string) => {
+        try { this.durableStorage.storage.setItem(key, value); return true; } catch { return false; }
+      },
+      now: () => new Date().toISOString().slice(0, 10),
+      /**
+       * Picks a colour from anywhere on the screen.
+       *
+       * Chromium has had this since version 95 and this runtime is far past it; the control
+       * simply never called it. It needs a user gesture, which the menu click supplies.
+       *
+       * Resolves undefined rather than throwing when the person presses Escape, because a
+       * cancelled pick is an ordinary outcome and not a failure to report as one.
+       */
+      pickColour: async () => {
+        const Picker = (globalThis as { EyeDropper?: new () => { open(): Promise<{ sRGBHex: string }> } }).EyeDropper;
+        if (!Picker) return undefined;
+        try { return (await new Picker().open()).sRGBHex; } catch { return undefined; }
+      },
+      /** What save() kept, or undefined when nothing was ever saved under that name. */
+      readSaved: (bucket: string) => {
+        const raw = this.durableStorage.storage.getItem(`console.saved.${bucket}`);
+        if (typeof raw !== 'string' || raw === '') return undefined;
+        try { return JSON.parse(raw); } catch { return undefined; }
+      },
+      /**
+       * Puts a saved workspace back on screen.
+       *
+       * Every id is checked against the destinations that actually exist. A workspace saved
+       * by an older build can name a screen this one does not have, and opening it would
+       * render a blank tab -- which reads as the app breaking rather than as an old file. So
+       * the unknown ones are counted and left out, and the count is reported.
+       */
+      applySaved: (data: unknown) => {
+        const saved = data as { data?: { tabs?: unknown; groups?: unknown } } | undefined;
+        const tabs = saved?.data?.tabs;
+        if (!Array.isArray(tabs)) return undefined;
+        const known = new Set(ORDER as unknown as string[]);
+        const usable = tabs.filter((id): id is string => typeof id === 'string' && known.has(id));
+        if (usable.length === 0) return { restored: 0, skipped: tabs.length };
+        const groups = Array.isArray(saved?.data?.groups) ? saved.data.groups : [];
+        this.setState({ tabs: usable, groups, screen: usable[0] });
+        return { restored: usable.length, skipped: tabs.length - usable.length };
+      },
+      /* Applied through the same three values the appearance system already persists, so a
+       * picked colour changes the console itself rather than a preview swatch. */
+      applyAccent: (hex: string) => {
+        const translated = translateColour(hex);
+        const hsl = translated?.hsl;
+        if (!hsl) return false;
+        const numbers = hsl.match(/-?\d+(?:\.\d+)?/gu);
+        if (!numbers || numbers.length < 3) return false;
+        const [hue, sat, light] = numbers.map(Number);
+        this.setState((st: { values: Record<string, unknown> }) => ({
+          values: { ...st.values, ap_hue: hue, ap_sat: sat, ap_light: light },
+        }));
+        return true;
+      },
+    }).then((outcome) => {
+      if (outcome.ok) this.toast(`${outcome.title} — ${outcome.detail}`);
+      else this.fire(outcome.title, outcome.detail);
+    });
+  };
+
+  // ---------------------------------------------------------------- command palette
+
+  /**
+   * One discoverable global shortcut.
+   *
+   * Captured rather than bubbled, so a field that stops keys from propagating cannot
+   * swallow the one chord that is meant to work from anywhere. The default is prevented
+   * only when the chord actually matches, because taking every control-shift keystroke
+   * would break whatever else the platform does with them.
+   */
+  /** Watches for any `role="dialog"` or `role="menu"` element appearing or
+   *  disappearing anywhere in the document -- every anchored popover, context
+   *  menu, wizard, the appearance editor, and every confirmation dialog the
+   *  compiled design renders carries one of those two roles. React only removes
+   *  such a node from the DOM when its owning `sc-if` flips closed, so a mutation
+   *  here means a real open/close transition rather than an unrelated re-render
+   *  (React's reconciler leaves an unchanged subtree's nodes alone). On the way
+   *  in, the currently focused element is remembered and the overlay's first
+   *  focusable descendant is focused; on the way out, focus returns to whatever
+   *  opened it, if that element is still in the document. */
+  private listenForOverlayFocusReturn(): void {
+    /* Outside a real browser/Electron document -- the mount tests construct App
+     * directly against a bare `{ addEventListener() {} }` stand-in for `window` and
+     * no `document` or `MutationObserver` at all -- there is nothing to observe and
+     * nothing this method can safely touch. Feature-detect and skip, the same way
+     * speechSynthesis absence is treated elsewhere in this file, rather than let a
+     * ReferenceError abort the rest of componentDidMount for every test that mounts
+     * the real App. */
+    if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return;
+
+    const OVERLAY_SELECTOR = '[role="dialog"], [role="menu"]';
+    const FOCUSABLE_SELECTOR =
+      'button, [href], input, select, textarea, [role="tab"], [tabindex]:not([tabindex="-1"])';
+
+    const collect = (node: Node): Element[] => {
+      if (!(node instanceof Element)) return [];
+      const matches = node.matches(OVERLAY_SELECTOR) ? [node] : [];
+      return matches.concat(Array.from(node.querySelectorAll(OVERLAY_SELECTOR)));
+    };
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        mutation.addedNodes.forEach((node) => {
+          for (const overlay of collect(node)) {
+            if (this.overlayFocusReturn.has(overlay)) continue;
+            const active = document.activeElement;
+            this.overlayFocusReturn.set(overlay, active instanceof HTMLElement ? active : null);
+            const focusable = overlay.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+            focusable?.focus();
+          }
+        });
+        mutation.removedNodes.forEach((node) => {
+          for (const overlay of collect(node)) {
+            const target = this.overlayFocusReturn.get(overlay);
+            this.overlayFocusReturn.delete(overlay);
+            if (target && document.contains(target)) target.focus();
+          }
+        });
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    this.overlayFocusObserver = observer;
+  }
+
+  private listenForPaletteChord(): void {
+    const handler = (event: KeyboardEvent) => {
+      if (isPaletteChord(event)) {
+        event.preventDefault();
+        this.togglePalette();
+        return;
+      }
+      if (!this.paletteOpen) return;
+      if (event.key === 'Escape') { event.preventDefault(); this.closePalette(); return; }
+      const matches = this.paletteMatches();
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        this.paletteRow = moveSelection(matches.length, this.paletteRow, event.key === 'ArrowDown' ? 1 : -1);
+        this.forceUpdate();
+        return;
+      }
+      if (event.key === 'Enter' && matches.length > 0) {
+        event.preventDefault();
+        this.activatePaletteEntry(matches[this.paletteRow].entry);
+      }
+    };
+    window.addEventListener('keydown', handler, true);
+    this.stopPaletteKeys = () => window.removeEventListener('keydown', handler, true);
+  }
+
+  private paletteMatches(): PaletteMatch[] {
+    return searchPalette(this.palette, this.paletteQuery);
+  }
+
+  private togglePalette(): void {
+    if (this.paletteOpen) { this.closePalette(); return; }
+    const active = (globalThis as { document?: Document }).document?.activeElement;
+    this.paletteReturnFocus = active instanceof HTMLElement ? active : undefined;
+    this.paletteOpen = true;
+    this.paletteQuery = '';
+    this.paletteRow = 0;
+    this.forceUpdate();
+  }
+
+  private closePalette(): void {
+    this.paletteOpen = false;
+    this.forceUpdate();
+    /* Focus goes back where it came from. Leaving it on a control that has just been
+     * removed from the document drops it to the body, and a keyboard user then has to
+     * tab from the top of the page to get back to what they were doing. */
+    this.paletteReturnFocus?.focus?.();
+    this.paletteReturnFocus = undefined;
+  }
+
+  /**
+   * Opens the destination, then reveals and focuses the exact control.
+   *
+   * Landing on the right screen and leaving somebody to hunt for the row is not
+   * teleporting. The reveal waits a frame because the destination's markup does not exist
+   * until the screen change has rendered.
+   */
+  private activatePaletteEntry(entry: PaletteEntry): void {
+    this.closePalette();
+    this.setState({ screen: entry.screen });
+    if (entry.controlId === undefined) return;
+    const id = entry.controlId;
+    const raf = (globalThis as { requestAnimationFrame?: (fn: () => void) => void }).requestAnimationFrame;
+    const reveal = () => {
+      const document = (globalThis as { document?: Document }).document;
+      const row = document?.querySelector(`[data-ctl="${id}"]`);
+      if (!(row instanceof HTMLElement)) {
+        /* Said plainly rather than silently doing nothing: a result that appears to work
+         * and does not is worse than one that admits it could not. */
+        this.toast('That setting is on this screen but its row is not on display right now.');
+        return;
+      }
+      row.scrollIntoView({ block: 'center' });
+      const focusable = row.querySelector('input, select, button, [tabindex]');
+      (focusable instanceof HTMLElement ? focusable : row).focus?.();
+    };
+    if (raf) raf(() => raf(reveal)); else reveal();
+  }
+
+  /** The palette itself. Absent from the document entirely when closed, so nothing of it
+   *  can be reached by tab or read by a screen reader while it is not in use. */
+  private paletteOverlay(): ReactNode {
+    if (!this.paletteOpen) return null;
+    const matches = this.paletteMatches();
+    const rows = matches.map((match, index) => h('button', {
+      key: match.entry.key,
+      class: `palette-row${index === this.paletteRow ? ' palette-row-on' : ''}`,
+      role: 'option',
+      'aria-selected': index === this.paletteRow ? 'true' : 'false',
+      onClick: () => this.activatePaletteEntry(match.entry),
+      onMouseEnter: () => { this.paletteRow = index; this.forceUpdate(); },
+    },
+      h('span', { class: 'palette-label' }, match.entry.label),
+      h('span', { class: 'palette-context' }, match.entry.context)));
+    return h('div', {
+      class: 'palette-scrim',
+      onClick: () => this.closePalette(),
+    }, h('div', {
+      class: 'palette-card',
+      role: 'dialog',
+      'aria-modal': 'true',
+      'aria-label': 'Find a screen or a setting',
+      onClick: (event: { stopPropagation(): void }) => event.stopPropagation(),
+    },
+      h('input', {
+        class: 'palette-field',
+        type: 'text',
+        autoFocus: true,
+        placeholder: 'Find a screen or a setting',
+        'aria-label': 'Find a screen or a setting',
+        'aria-controls': 'palette-results',
+        value: this.paletteQuery,
+        onInput: (event: { target: { value: string } }) => {
+          this.paletteQuery = event.target.value;
+          /* Back to the top on every keystroke: keeping the old row means Enter activates
+           * whatever happens to sit at that index in a list somebody has not read yet. */
+          this.paletteRow = 0;
+          this.forceUpdate();
+        },
+      }),
+      h('div', { id: 'palette-results', class: 'palette-results', role: 'listbox' },
+        rows.length > 0
+          ? rows
+          : h('p', { class: 'palette-empty' }, `Nothing here matches ${this.paletteQuery}.`)),
+      h('p', { class: 'palette-hint' },
+        `${matches.length} of ${this.palette.length}. Arrow keys to move, Enter to go, Escape to close.`)));
+  }
+
+  /**
+   * Time awareness, the one chosen next action, and momentum's own prompt -- rendered
+   * here, above every screen, rather than as a row on a settings page, so "where the
+   * work happens" means the console itself and not a place you have to go looking.
+   * Absent from the document entirely when none of the three currently has anything to
+   * show, exactly like the palette above.
+   */
+  private attentionOverlay(): ReactNode {
+    const storage = this.durableStorage.storage;
+    const presentation = this.attentionPresentation();
+    const now = Date.now();
+    const prompt = momentumPrompt(storage, now - this.lastChangeAt, msSinceSnooze(storage, now));
+    if (!presentation.showElapsedTime && !presentation.showNextAction && !prompt.show) return null;
+    return h('div', { class: 'attn-rail', role: 'complementary', 'aria-label': 'Attention accommodations' },
+      !presentation.showElapsedTime ? null : h('p', { class: 'attn-rail-time' },
+        `Open for ${elapsedPhrase(now - this.sessionStartedAt)}. `
+        + `Last change ${elapsedPhrase(now - this.lastChangeAt)} ago.`),
+      !presentation.showNextAction ? null : h('div', { class: 'attn-rail-next' },
+        h('span', { class: 'attn-rail-next-label' }, 'One thing'),
+        h('input', {
+          type: 'text',
+          class: 'attn-rail-next-input',
+          placeholder: 'Choose the one thing you are doing',
+          'aria-label': 'The one thing you are doing right now',
+          value: nextAction(storage),
+          onInput: (event: { target: { value: string } }) => {
+            setNextAction(storage, event.target.value);
+            this.forceUpdate();
+          },
+        })),
+      !prompt.show ? null : h('div', { class: 'attn-rail-momentum', role: 'status' },
+        h('p', { class: 'attn-rail-momentum-message' }, prompt.message),
+        h('button', {
+          type: 'button',
+          class: 'attn-rail-momentum-dismiss',
+          onClick: () => { snoozeMomentum(storage); this.forceUpdate(); },
+        }, 'Not now')));
+  }
+
+  render(): ReactNode {
+    /* Wrapping the compiled shell rather than replacing it. Two lanes each added a layer
+     * here and both are kept: the chosen display name is applied to the already-built tree
+     * (the compiled title bar has no bound value to override through renderVals -- see
+     * title-bar-name.ts), and `.attn-content` wraps the result so Focus dimming is scoped
+     * to it and can never reach the rail or the palette, neither of which is "the rest of
+     * the interface" the mode exists to push back. */
+    const shell = withTitleBarName(super.render(), nameFor('titleBar', this.durableStorage.storage));
+    const presentation = this.attentionPresentation();
+    return h('div', { class: 'app-root' },
+      h('div', { class: 'attn-content' },
+        !presentation.dimInactive ? null : h('style', {}, FOCUS_DIM_CSS),
+        shell),
+      this.paletteOverlay(),
+      this.attentionOverlay());
+  }
+
+  /**
+   * Puts the partner-request settings back after a relaunch.
+   *
+   * A value that cannot be read is left at the design's own default rather than guessed at:
+   * these decide whether a change to a live trunk is approved without anybody looking, and a
+   * corrupt profile is not a reason to start approving things.
+   */
+  private restorePartnerSettings(): void {
+    const restored: Record<string, unknown> = {};
+    for (const [group, ids] of Object.entries(App.CONSOLE_SETTINGS)) {
+      for (const id of ids) {
+        const raw = this.durableStorage.storage.getItem(`${App.CONSOLE_SETTING_PREFIX}${group}.${id}`);
+        if (typeof raw !== 'string' || raw === '') continue;
+        try {
+          restored[id] = JSON.parse(raw);
+        } catch {
+          /* Left out entirely, so the shipped default stands. */
+        }
+      }
+    }
+    if (Object.keys(restored).length === 0) return;
+    this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, ...restored } }));
+  }
+
+  /**
+   * The dialplan the IVR form currently describes.
+   *
+   * Regenerated from the controls each time it is read, so every one of them visibly changes
+   * something -- which is the point, since none of them binds to a key and for a long time
+   * none of them did anything at all.
+   *
+   * A form that cannot be generated says why instead of showing a stale plan. Showing the
+   * last good one beside settings that would not produce it is worse than showing nothing:
+   * it reads as though the change was accepted.
+   */
+  private ivrDialplanText(): string {
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    const num = (key: string, fallback: number): number => {
+      const raw = Number(values[key]);
+      return Number.isFinite(raw) ? Math.round(raw) : fallback;
+    };
+    const definition: IvrDefinition = {
+      /* The screen edits one IVR at a time and does not name it yet, so the context is named
+       * for what it is. Naming it after something the person did not choose would be worse. */
+      name: 'main-menu',
+      digitTimeout: num('i_timeout', 7),
+      retries: num('i_retries', 3),
+      /* Quoted keys, not property access: the wiring contract greps App for each control id
+       * as a literal, and values.i_invalid satisfies TypeScript while being invisible to any
+       * search for the id -- which is the exact thing that contract exists to catch. */
+      onInvalid: (typeof values['i_invalid'] === 'string' ? values['i_invalid'] : 'Repeat') as InvalidAction,
+      allowDirectDial: values['i_direct'] !== false,
+      language: typeof values['i_lang'] === 'string' ? values['i_lang'] : 'en',
+      allowBargeIn: values['i_barge'] !== false,
+      /* Quoted for the same reason as i_invalid above. */
+      promptFile: typeof values['i_prompt'] === 'string' ? values['i_prompt'] : '',
+      keys: this.ivrKeys,
+    };
+    const generated = generateIvr(definition);
+    if ('problems' in generated) {
+      return `This cannot be generated yet: ${generated.problems.map((p) => p.message).join(' ')}`;
+    }
+    return renderDialplan(definition.name, generated);
+  }
+
+  /**
+   * The key map the IVR form currently describes -- not bound to any pjsip.conf-style
+   * key, the same reasoning every other control on this screen already carries, and
+   * held here rather than in `state.values` because it is a genuine ordered list, not
+   * a single scalar `readControlValues` shape can carry.
+   */
+  private ivrKeys: IvrKeyRoute[] = [];
+
+  /** Whether this destination needs somewhere to send the caller -- the same three
+   *  `generateIvr` itself requires a target for. Kept beside it rather than imported,
+   *  since a form field disabling itself before Save is the useful moment for this,
+   *  and `generateIvr`'s own check exists to catch what slips past it. */
+  private static readonly IVR_KEY_TARGETS: ReadonlySet<KeyDestination> = new Set(['Extension', 'Queue', 'Voicemail']);
+
+  /** Read by the compiled `text`-kind control marked `action:'ivr-keys-status'`. */
+  private ivrKeysStatus(): string {
+    if (this.ivrKeys.length === 0) return 'No keys mapped yet.';
+    return this.ivrKeys
+      .map((route) => `${route.digit} → ${route.destination}${route.target ? ` (${route.target})` : ''}`)
+      .join(', ');
+  }
+
+  /** "Add this key": reads i_keydigit/i_keydest/i_keytarget, validates the same way
+   *  `generateIvr` itself would refuse an unusable one, and either appends a new
+   *  mapping or replaces the existing one for that digit -- so pressing Add again for
+   *  a digit already mapped is how a key's destination is changed, not a second,
+   *  silently-ignored route for the same keypress. */
+  private onAddIvrKey(): void {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const digit = String(values['i_keydigit'] ?? '');
+    const destination = String(values['i_keydest'] ?? '') as KeyDestination;
+    const target = String(values['i_keytarget'] ?? '').trim();
+    if (App.IVR_KEY_TARGETS.has(destination) && !isUsableRouteTarget(target)) {
+      this.fire('Not added', `${destination} needs a target -- letters, digits, dashes and underscores only.`);
+      return;
+    }
+    const route: IvrKeyRoute = App.IVR_KEY_TARGETS.has(destination) ? { digit, destination, target } : { digit, destination };
+    const next = this.ivrKeys.filter((existing) => existing.digit !== digit);
+    next.push(route);
+    this.ivrKeys = next;
+    this.toast(`Key ${digit} now sends the caller to ${destination}${route.target ? ` (${route.target})` : ''}.`);
+    this.forceUpdate();
+  }
+
+  /** "Remove the digit above": takes whatever i_keydigit currently names out of the
+   *  key map, if it is mapped at all. */
+  private onRemoveIvrKey(): void {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const digit = String(values['i_keydigit'] ?? '');
+    if (!this.ivrKeys.some((route) => route.digit === digit)) {
+      this.toast(`Key ${digit} is not mapped, so there is nothing to remove.`);
+      return;
+    }
+    this.ivrKeys = this.ivrKeys.filter((route) => route.digit !== digit);
+    this.toast(`Key ${digit} no longer routes anywhere -- a caller who presses it falls through to "On invalid entry".`);
+    this.forceUpdate();
+  }
+
+  /** "Audition this prompt": plays i_prompt's exact filename off the connected
+   *  target, through the same read-and-play path the Sounds screen's own rows use
+   *  (`onAuditionPromptRow`) -- so this menu's prompt can be verified before it is
+   *  ever written into a dialplan, instead of being a name typed and hoped for. */
+  private async onAuditionIvrPrompt(): Promise<void> {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['i_prompt'] ?? '').trim();
+    if (!name) { this.fire('Not auditioned', 'Type a prompt filename first, e.g. welcome-greeting.wav.'); return; }
+    await this.onAuditionPromptRow(name);
+  }
+
+  /**
+   * Says what setting a new IAX secret will and will not do.
+   *
+   * The switch used to do nothing at all, recorded as deliberately unbound because a secret
+   * must never travel through an ordinary binding -- true, and not the same thing as doing
+   * nothing, though the two had been written down as though they were.
+   *
+   * Nothing here ever holds a secret. It names the flow and the boundary; the value itself
+   * only ever exists in the credential field, which clears itself the moment it is used.
+   */
+  private announceSecretIntent(turningOn: boolean): void {
+    if (!turningOn) {
+      this.toast('The existing secret is left exactly as it is.');
+      return;
+    }
+    this.fire('A new secret will be set',
+      'It is generated when you apply, kept by the operating system credential store, and '
+      + 'never written into pjsip.conf, an export, the local history or a screenshot. The '
+      + 'console cannot show it to you afterwards, which is the point of keeping it there.');
+  }
+
+  // ---------------------------------------------------------------- hosting it elsewhere
+
+  /* Its own field, not the provisioning one above. Both are step progress and both arrive on
+   * the same channel, but they are different operations -- sharing one list would interleave
+   * a runtime import with an install onto another machine and report the mixture. */
+  /** Progress from the running install, newest last. Empty until one is started. */
+  private hostingSteps: { name: string; ok: boolean; detail: string }[] = [];
+
+  private hostingRunning = false;
+
+  /**
+   * Says what pressing the switch would actually do, before it is pressed.
+   *
+   * Including when the answer is that it cannot: the deployment installs onto a machine
+   * reached over SSH, so a local or container connection has nowhere to send anything, and
+   * saying so is better than offering an action that would refuse.
+   */
+  private deployStatusLine(): string {
+    if (this.hostingRunning || this.hostingSteps.length > 0) {
+      const last = this.hostingSteps[this.hostingSteps.length - 1];
+      const done = this.hostingSteps.filter((step) => step.ok).length;
+      if (this.hostingRunning) return `Step ${done + 1}: ${last?.name ?? 'starting'}. ${last?.detail ?? ''}`.trim();
+      return last?.ok
+        ? `Installed. ${this.hostingSteps.length} steps, all of them done.`
+        : `Stopped at "${last?.name}". ${last?.detail ?? ''}`.trim();
+    }
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    const kind = String(values.sv_kind ?? 'Local');
+    if (!kind.startsWith('SSH')) {
+      return `This connection is ${kind}, so there is no machine to install onto. `
+        + 'Choose an SSH connection above and fill in its host and account first.';
+    }
+    const host = String(values.sv_host ?? '').trim();
+    const user = String(values.sv_user ?? '').trim();
+    const missing = [host === '' ? 'a host' : '', user === '' ? 'an account' : ''].filter(Boolean);
+    if (missing.length > 0) return `Fill in ${missing.join(' and ')} above first.`;
+    return `It will install onto ${host} as ${user}, over SSH on port ${String(values.sv_sshport ?? 22)}. `
+      + 'Nothing of Asterisk is changed; the console installs into paths it creates itself.';
+  }
+
+  /**
+   * Sends this console to the machine described on this screen.
+   *
+   * The control plane owns every decision about what runs there -- the plan is built and
+   * validated on that side, and refused there too, so a renderer cannot talk it into a
+   * different command by sending a different payload.
+   */
+  private async deployConsole(): Promise<void> {
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    if (!String(values.sv_kind ?? 'Local').startsWith('SSH')) {
+      this.fire('Nothing to install onto', this.deployStatusLine());
+      return;
+    }
+    this.hostingSteps = [];
+    this.hostingRunning = true;
+    this.forceUpdate();
+    const response = await this.request('deploy.console', {
+      payload: {
+        host: String(values.sv_host ?? ''),
+        user: String(values.sv_user ?? ''),
+        port: Number(values.sv_sshport ?? 22),
+        knownHostsPath: String(values.sv_hostkey ?? ''),
+        bundlePath: String(values.dp_bundle ?? ''),
+        stamp: new Date().toISOString().replace(/[^0-9]/gu, '').slice(0, 14),
+      },
+    }) as { ok?: boolean; message?: string; data?: { steps?: { name: string; ok: boolean; detail: string }[] } } | undefined;
+    this.hostingRunning = false;
+    /* Whatever came back, the steps are kept: when it failed, which step it failed at is
+     * most of the diagnosis, and a single message throws that away. */
+    this.hostingSteps = response?.data?.steps ?? this.hostingSteps;
+    this.forceUpdate();
+    if (response?.ok) this.fire('Console installed', 'It is running on that machine and reachable from a browser.');
+    else this.fire('Not installed', response?.message ?? 'The desktop bridge did not answer, so nothing was installed.');
+  }
+
+  // ---------------------------------------------------------------- the console mark
+
+  /**
+   * Decides whether a chosen picture may become the mark.
+   *
+   * Only the HEAD is read. Discovering that a file is too large by reading all of it does
+   * the expensive thing before the cheap check, and the head carries both the signature and
+   * the dimensions. The SIZE comes from the File rather than from what was read -- a capped
+   * read reports the cap, so every oversized file would measure exactly the limit and sail
+   * through the check written to catch it.
+   */
+  private pickLogo(file: File): void {
+    void file.slice(0, HEADER_BYTES).arrayBuffer().then((head) => {
+      const bytes = new Uint8Array(head);
+      const facts = readHeaderFacts(bytes);
+      if (!facts) {
+        /* Unreadable means unreadable, never "probably fine". A header that cannot be read
+         * is exactly the file that deserves the least benefit of the doubt -- and it is
+         * named by what it is not, since its name was the thing that turned out untrue. */
+        this.rejectLogo(file, 'That file is not a PNG, JPEG, WebP or SVG this console can read, whatever its name says.');
+        return;
+      }
+      /* acceptLogo owns every bound and every message, so one place holds the rules rather
+       * than two that would eventually disagree -- and the one that disagreed would be the
+       * one nobody checked. */
+      const verdict = acceptLogo(bytes, facts, { fileName: file.name, mimeType: file.type, fileBytes: file.size });
+      if ('problems' in verdict) {
+        this.rejectLogo(file, verdict.problems.map((problem) => problem.message).join(' '));
+        return;
+      }
+      this.pickedFileNames.set('logo_pick', file.name);
+      chooseCustom(this.durableStorage.storage, `logo/${file.name}`);
+      this.refreshLogoStatus(verdict.notices);
+      /* Stated before it becomes the mark rather than discovered when it looks soft in the
+       * title bar. */
+      for (const notice of verdict.notices) this.toast(notice);
+    }).catch(() => this.rejectLogo(file, 'That file could not be read from disk.'));
+  }
+
+  /** Nothing partially applied: a rejected picture leaves the previous mark exactly as it
+   *  was, and says so, because a half-applied logo is a console that looks broken with no
+   *  obvious way back. */
+  private rejectLogo(file: File, why: string): void {
+    this.pickedFileNames.set('logo_pick', `${file.name} — rejected`);
+    this.logoStatusLine = `${why} The previous mark is unchanged.`;
+    this.forceUpdate();
+    this.fire('Picture rejected', why);
+  }
+
+  /** Names the mark actually in use, plus anything stated before it became the mark. */
+  private refreshLogoStatus(notices: readonly string[] = []): void {
+    const choice = currentChoice(this.durableStorage.storage);
+    const chosenName = this.pickedFileNames.get('logo_pick');
+    const preset = LOGO_PRESETS.find((candidate) => candidate.id === (choice.presetId ?? DEFAULT_PRESET_ID));
+    this.logoStatusLine = choice.kind === 'custom'
+      ? [`Your own picture is in use${chosenName ? `: ${chosenName}` : ''}.`, ...notices].join(' ')
+      : `The shipped mark is in use: ${preset?.label ?? 'Ding'}.`;
+    this.forceUpdate();
+  }
+
+  // ---------------------------------------------------------------- spoken narration
+
+  /**
+   * Reads the voices the platform actually has.
+   *
+   * Enumeration commonly returns nothing on the first call and fills in a moment later
+   * behind an event. A picker that reads it once reports "no voices installed" on a
+   * machine with forty, and looks broken rather than slow -- so this subscribes as well
+   * as reading, and unsubscribes on unmount.
+   */
+  private startVoiceEnumeration(): void {
+    const speech = (globalThis as { speechSynthesis?: SpeechSynthesis }).speechSynthesis;
+    if (!speech) {
+      this.narrationStatusLine = 'This computer has no speech synthesis, so nothing can be spoken.';
+      return;
+    }
+    const read = () => {
+      this.voices = speech.getVoices().map((voice) => ({
+        id: voice.voiceURI, name: voice.name, lang: voice.lang, localService: voice.localService,
+      }));
+      this.refreshNarrationStatus();
+    };
+    read();
+    const handler = () => read();
+    speech.addEventListener('voiceschanged', handler);
+    this.stopVoiceListener = () => speech.removeEventListener('voiceschanged', handler);
+  }
+
+  private applyNarrationControl(id: string, value: unknown): void {
+    const next: NarrationSettings = { ...this.narration, voices: { ...this.narration.voices } };
+    if (id === 'nar_enabled' && typeof value === 'boolean') next.enabled = value;
+    /* The design offers these in the words somebody reads, so they are mapped here rather
+     * than stored as typed. Storing the label would tie the saved profile to the wording. */
+    if (id === 'nar_language' && typeof value === 'string') {
+      const byLabel: Record<string, NarrationLanguage> = { English: 'en', '廣東話': 'zh', Both: 'both' };
+      next.language = byLabel[value] ?? next.language;
+    }
+    /* "Choose automatically" is stored as no choice at all rather than as a voice named
+     * that, so a machine gaining a better voice starts using it. */
+    if (id === 'nar_en_voice' && typeof value === 'string') {
+      next.voices.en = value === 'Choose automatically' ? undefined : this.voiceIdByName(value);
+    }
+    if (id === 'nar_yue_voice' && typeof value === 'string') {
+      next.voices.zh = value === 'Choose automatically' ? undefined : this.voiceIdByName(value);
+    }
+    /* Clamped rather than refused: a slider cannot produce an out-of-range value through
+     * the interface, so one arriving here came from a hand-edited profile and the nearest
+     * usable value is friendlier than a refusal nobody can act on. */
+    if (id === 'nar_rate' && typeof value === 'number') {
+      next.rate = Math.min(MAX_RATE, Math.max(MIN_RATE, value));
+    }
+    if (id === 'nar_pitch' && typeof value === 'number') {
+      next.pitch = Math.min(MAX_PITCH, Math.max(MIN_PITCH, value));
+    }
+    this.narration = next;
+    this.durableStorage.storage.setItem(App.NARRATION_SETTING, JSON.stringify(next));
+    /* The real narrator hears every one of these the moment they're chosen -- the
+     * switch, the language, either voice, rate and pitch -- rather than only on the
+     * next restart. This is the one line that makes the seven `nar_*` controls above
+     * actually reach something that speaks instead of only reaching localStorage. */
+    this.narrator.setSettings(next);
+    this.refreshNarrationStatus();
+  }
+
+  /** Names are not unique -- one machine can carry several voices with the same name from
+   *  different engines -- so the stable identity is stored and the name only displayed. */
+  private voiceIdByName(name: string): string | undefined {
+    return this.voices.find((voice) => voice.name === name)?.id;
+  }
+
+  private restoreNarration(): void {
+    const raw = this.durableStorage.storage.getItem(App.NARRATION_SETTING);
+    if (typeof raw === 'string' && raw !== '') {
+      try {
+        const parsed = JSON.parse(raw) as NarrationSettings;
+        if (parsed && typeof parsed === 'object') {
+          this.narration = { ...defaultNarrationSettings(), ...parsed };
+        }
+      } catch {
+        /* A hand-edited profile falls back to the shipped settings rather than failing to
+         * start. Narration off is the safe direction for something that makes noise. */
+        this.narration = defaultNarrationSettings();
+      }
+    }
+    /* Handed to the real narrator unconditionally, including the "nothing saved yet"
+     * branch above. The narrator's own field default happens to already match
+     * `defaultNarrationSettings()`, but this makes that an explicit guarantee instead
+     * of leaving two independently-constructed defaults to keep agreeing by accident. */
+    this.narrator.setSettings(this.narration);
+    this.refreshNarrationStatus();
+  }
+
+  /**
+   * Says what will ACTUALLY speak.
+   *
+   * A picker merely showing a value implies that value will be heard, which is exactly
+   * the state that needs saying out loud when it is not true -- a chosen voice that is
+   * not installed, a network-backed one that goes quiet offline, or a language nothing
+   * on this machine can read.
+   */
+  private refreshNarrationStatus(): void {
+    const languages: ('en' | 'zh')[] = this.narration.language === 'both'
+      ? ['en', 'zh']
+      : [this.narration.language === 'zh' ? 'zh' : 'en'];
+    const lines = languages.map((language) =>
+      resolveVoiceStatus(language, this.narration.voices[language], this.voices).message);
+    this.narrationStatusLine = this.narration.enabled
+      ? lines.join(' ')
+      : `Narration is off. ${lines.join(' ')}`;
+    this.forceUpdate();
+  }
+
+  /**
+   * Quiet hours, borrowed from the Low stimulation attention mode rather than invented
+   * fresh: that mode already means "only the notifications that genuinely need a
+   * person" (see `attention-modes.ts`'s `quietNotifications`), which is exactly what
+   * the narrator's own `setQuiet` is for. Read at mount and re-applied the moment the
+   * mode itself is toggled, in `languageAwareSetVal`'s `att_` branch below.
+   */
+  private applyQuietFromAttentionModes(): void {
+    this.narrator.setQuiet(modeEnabled(this.durableStorage.storage, 'lowStimulation'));
+  }
+
+  /**
+   * Ducks the narrator while a real screen reader is active, using Electron's own
+   * accessibility-support signal where the desktop bridge exposes one (see
+   * `app/electron/main.ts` and `preload.ts` — `app.isAccessibilitySupportEnabled()`).
+   * The hosted HTTP surface has no such signal, so `accessibility` is optional on the
+   * bridge exactly like `provisioning` above, and this degrades to doing nothing
+   * there rather than guessing.
+   */
+  private listenForScreenReader(): void {
+    const accessibility = window.dingDesktop?.accessibility;
+    if (!accessibility) return;
+    void accessibility.isScreenReaderActive().then((active) => this.narrator.setScreenReaderActive(active));
+    this.stopScreenReaderListener = accessibility.onChange((active) => this.narrator.setScreenReaderActive(active));
+  }
+
+  /**
+   * The renderer's half of the `ding-pbx://destination/<id>` deep link.
+   *
+   * The privileged process has already refused anything that is not a route; what it
+   * cannot decide is whether the id names a destination, because the catalogue is compiled
+   * into this bundle and the main process has no copy of it. Optional on the bridge like
+   * every other main-process signal: a hosted browser tab has no registered protocol
+   * client, so this does nothing there rather than pretending to listen.
+   */
+  private listenForDestinationRoutes(): void {
+    const deepLink = window.dingDesktop?.deepLink;
+    if (!deepLink) return;
+    this.stopDeepLinkListener = deepLink.onDestination((route) => this.openDestinationRoute(route));
+  }
+
+  /**
+   * Opens the destination a route names, or says why it did not.
+   *
+   * Nothing falls back to the dashboard on an unknown id. A link that quietly lands
+   * somewhere else looks exactly like a link that worked, and the person who followed it
+   * would have no reason to doubt the screen in front of them.
+   *
+   * `openScreen` rather than `setState({ screen })`: the compiled shell derives the open
+   * rail from the active destination, so setting the screen alone leaves the rail showing
+   * a different group's section list.
+   */
+  private openDestinationRoute(route: DestinationRoute): void {
+    const resolution = resolveDestinationRoute(route, ORDER as string[]);
+    if (!resolution.ok) { this.toast(`That link could not be opened: ${resolution.reason}`); return; }
+    this.openScreen(resolution.destinationId);
+  }
+
+  /**
+   * The single path every `this.fire(...)` call is narrated through, wired in the
+   * constructor exactly the way `toast`/`setVal`/`set` already override the compiled
+   * shell's own class-field implementations. One category ('notification') so a burst
+   * of ordinary notices shares one cooldown and the newest supersedes the rest, per the
+   * contract's "infrequent" and "replaced, not stacked" requirements. `isError` is the
+   * one place a caller opts a specific failure out of that cooldown -- see
+   * `daemonAction`/`ensureDaemon`, the two genuine boolean-checked failures this passes
+   * `true` for -- so a real error is never the line that gets dropped for arriving too
+   * soon after a chattier notice.
+   */
+  /* Two lanes independently wrapped `fire`: one styles copy by humour level and emoji
+   * setting, the other speaks it. Composed rather than picked between, and the order is
+   * the point -- the narrator speaks the STYLED text, so the humour level reaches speech
+   * as the narration contract requires. Narrating the raw text would have the console
+   * say one thing while the screen showed another. */
+  private narratedFire = (title: string, body: string, isError = false): void => {
+    const styled = styledDialog(this.messageStorage, this.currentCopyLanguage(), classifyDialogKind(title), title, body);
+    this.narrator.enqueue('notification', styled.body ? `${styled.heading}. ${styled.body}` : styled.heading, { isError });
+    this.recordNotification('notice', styled.body ? `${styled.heading}: ${styled.body}` : styled.heading);
+    this.baseFire(styled.heading, styled.body);
+  };
+
+  // ---------------------------------------------------------------- settings sources
+
+  /** Adds what is currently typed, or says every reason it cannot be added. */
+  private addSettingsSource(): void {
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    const draft: SourceDraft = {
+      url: String(values['src_url'] ?? ''),
+      kind: values['src_kind'] === 'home-assistant' ? 'home-assistant' : 'https-api',
+      entityId: String(values['src_entity'] ?? ''),
+      allowedKeys: String(values['src_keys'] ?? ''),
+      credentialKey: String(values['src_credential'] ?? ''),
+    };
+    const existing = loadSources(this.durableStorage.storage);
+    const built = buildSource(draft, `src-${existing.length + 1}-${Date.now()}`);
+    if ('problems' in built) {
+      this.fire('That source will not work', built.problems.map((problem) => problem.message).join(' '));
+      return;
+    }
+    saveSources(this.durableStorage.storage, [...existing, built]);
+    this.refreshSourceStatus();
+    this.toast(`Source added. It may set ${built.allowedKeys.join(', ')} and nothing else.`);
+  }
+
+  private startSourcePolling(): void {
+    void this.pollSettingsSources();
+    this.sourceTimer = setInterval(() => { void this.pollSettingsSources(); }, App.SOURCE_POLL_MS);
+  }
+
+  /**
+   * Asks the privileged process for each source, and hands what comes back to the
+   * renderer's own allowlist.
+   *
+   * The renderer never makes the request itself -- it would need the token, and a renderer
+   * holding a token is what every credential rule here exists to prevent. What it does
+   * own is the decision about what an answer may change.
+   */
+  private async pollSettingsSources(): Promise<void> {
+    const sources = loadSources(this.durableStorage.storage);
+    if (sources.length === 0) {
+      if (this.sourceReports.length > 0) { this.sourceReports = []; this.refreshSourceStatus(); }
+      return;
+    }
+    this.sourceGeneration += 1;
+    const generation = this.sourceGeneration;
+    const reports: SourceReport[] = [];
+    const applied: Record<string, string> = {};
+
+    for (const source of sources) {
+      /* Nested under `payload`, which is what the dispatch action reads. Spreading these
+       * at the top level would put them on the request object where nothing looks. */
+      const response = await this.request('settings.source.fetch', {
+        payload: { url: source.url, credentialKey: source.credentialKey },
+      });
+      const at = new Date().toISOString();
+      if (!response) {
+        /* No bridge at all -- the hosted surface. Recorded rather than silently skipped,
+         * so the status says why nothing is tracking. */
+        reports.push({ sourceId: source.id, at, ok: false, detail: 'No privileged process to fetch through.' });
+        continue;
+      }
+      if (!response.ok) {
+        /* A source that has stopped working is recorded rather than skipped: silently
+         * ceasing to track is the failure this whole feature exists to avoid. */
+        reports.push({ sourceId: source.id, at, ok: false, detail: response.message });
+        continue;
+      }
+      const raw = response.data as {
+        status: number; body: string; byteLength: number; redirected: boolean;
+      };
+      const outcome = applyResponse(source, { ...raw, generation }, this.sourceGeneration);
+      if (isRejected(outcome)) {
+        reports.push({ sourceId: source.id, at, ok: false, detail: outcome.rejected });
+        continue;
+      }
+      Object.assign(applied, outcome.applied);
+      reports.push({ sourceId: source.id, at, ok: true, detail: 'answering' });
+    }
+
+    this.sourceReports = reports;
+    /* Applied through the same path a person's own edit takes, so a sourced value is
+     * validated and noticed exactly as a manual one is. */
+    for (const [key, value] of Object.entries(applied)) {
+      this.baseSetVal({ id: key, label: key, kind: 'text' }, value);
+    }
+    this.refreshSourceStatus();
+  }
+
+  private refreshSourceStatus(): void {
+    this.sourceStatusLine = sourcesStatusLine(
+      loadSources(this.durableStorage.storage),
+      this.sourceReports,
+    );
+    this.forceUpdate();
+  }
+
+  /** Reads the `src_allow_host` field exactly as `addSettingsSource` reads its own
+   *  fields -- straight out of component state, the same value the control on screen is
+   *  showing -- and adds it to the persisted allowlist a settings source may reach. */
+  private addSettingsSourceAllowlistHost(): void {
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    const typed = String(values['src_allow_host'] ?? '');
+    const result = addAllowlistHost(this.durableStorage.storage, typed);
+    if (!result.ok) {
+      this.fire('That host will not work', result.problems.map((problem) => problem.message).join(' '));
+      return;
+    }
+    this.forceUpdate();
+    this.toast(`${result.host} allowed. A settings source can reach it once the console restarts.`);
+  }
+
+  /** The removal half of the control above -- same field, same validator, so a host
+   *  that could never have been added is refused with the same message rather than a
+   *  confusing "not found" for something that was never a valid host in the first
+   *  place. */
+  private removeSettingsSourceAllowlistHost(): void {
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    const typed = String(values['src_allow_host'] ?? '');
+    const result = removeAllowlistHost(this.durableStorage.storage, typed);
+    if (!result.ok) {
+      this.fire('That host was not removed', result.problems.map((problem) => problem.message).join(' '));
+      return;
+    }
+    this.forceUpdate();
+    this.toast(`${result.host} removed. A settings source configured for it is refused once the console restarts.`);
+  }
+
+  // ---------------------------------------------------------------- scheduled settings
+
+  /** Starts the schedule tick and runs one immediately, so a window already in force at
+   *  launch applies now rather than up to a tick later. */
+  private startScheduler(): void {
+    this.runScheduleTick();
+    this.scheduleTimer = setInterval(() => this.runScheduleTick(), App.SCHEDULE_TICK_MS);
+  }
+
+  /**
+   * One tick: work out what should be in force now, and apply only what changed.
+   *
+   * Every change goes through baseSetVal -- the same path a person's own edit takes -- so
+   * a scheduled change is validated, persisted and noticed by the language, emoji and
+   * attention interceptions exactly as a manual one is. Writing the values directly would
+   * bypass all of that and let the two paths drift apart.
+   */
+  private runScheduleTick(): void {
+    const rules = loadRules(this.durableStorage.storage);
+    if (rules.length === 0 && Object.keys(this.scheduleState.applied).length === 0) {
+      return;
+    }
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    /* A key the runner is not currently overriding is the person's own, so its current
+     * value is the base. A key it IS overriding must not be re-read, or the override
+     * would be mistaken for the base the moment the window ends. */
+    for (const [key, value] of Object.entries(values)) {
+      if (key in this.scheduleState.applied) continue;
+      if (typeof value === 'string') this.scheduleBase[key] = value;
+    }
+
+    const result = tick(this.scheduleBase, rules, new Date(), this.scheduleState);
+    this.scheduleState = result.state;
+    this.scheduleStatusLine = statusLine(
+      result,
+      Object.fromEntries(rules.map((rule) => [rule.id, rule.label])),
+    );
+    for (const [key, value] of Object.entries(result.changes)) {
+      this.baseSetVal({ id: key, label: key, kind: 'text' }, value);
+    }
+    this.forceUpdate();
   }
 
   // ---------------------------------------------------------------- display name
@@ -533,10 +3155,29 @@ ${resolution.disclosure}`);
    *  had chosen it, so the difference between default and chosen stays visible. */
   private restoreDisplayName(): void {
     const current = displayName(this.durableStorage.storage);
+    this.syncWindowTitle();
     if (current === IDENTITY.productName) return;
     this.setState((prior: { values?: Record<string, unknown> }) => ({
       values: { ...(prior.values ?? {}), id_name: current },
     }) as never);
+  }
+
+  /**
+   * Pushes the chosen name to the native OS window title -- the one surface a rename
+   * cannot reach by re-rendering, because it lives in the main process rather than in
+   * anything React draws. Every other surface (the in-app title bar, the About heading,
+   * the confirmation toast) recomputes from storage on its own next render; this is the
+   * one that has to be told.
+   *
+   * Safe to call before the bridge exists (a test, or a host with no preload): it is
+   * simply a no-op then, exactly like every other `this.bridge()?.` call in this file.
+   */
+  private syncWindowTitle(): void {
+    /* Optional through `window`, not only through the bridge. The hosted HTTP surface has
+     * no Electron window at all, and a capability another change adds to the bridge is not
+     * automatically present in every caller's view of it -- guarding only the bridge threw
+     * `window.setTitle is not a function` the first time these two met. */
+    this.bridge()?.window?.setTitle?.(nameFor('windowTitle', this.durableStorage.storage));
   }
 
   // ---------------------------------------------------------------- language mode
@@ -553,6 +3194,11 @@ ${resolution.disclosure}`);
    *  the language one on its way past, applies it live and persists it, then hands the
    *  change on unchanged so the control behaves like every other control. */
   private languageAwareSetVal = (control: ControlRef, value: unknown): void => {
+    /* Momentum's idle clock and time awareness's "since anything changed" reading both
+     * read this one field. Every real control passes through here, so this is the one
+     * place that can honestly say something changed -- updated before any branch below
+     * can return early, so no kind of change is missed. */
+    this.lastChangeAt = Date.now();
     /* The display name and the dialog-emoji switch ride the same interception as the
      * language mode: one place that notices a cross-cutting setting going past, rather
      * than three places that each have to remember to. */
@@ -564,20 +3210,150 @@ ${resolution.disclosure}`);
         this.fire('That name will not work', problems[0].message);
         return;
       }
+      /* baseSetVal is called explicitly (and skipped at the bottom of this method,
+       * below) rather than left to the shared fall-through: it records the change in
+       * history and shows its own generic "<label> set to <value>" toast, and that
+       * toast would otherwise win the race and silently replace the one below with a
+       * less useful message, since both land in the same synchronous state update. */
+      this.baseSetVal(control, value);
+      /* The title bar and the About heading pick the new name up on their own next
+       * render (both read straight from storage), but the native window title lives
+       * in the main process and has to be told directly. */
+      this.syncWindowTitle();
+      this.toast(renamedConfirmation(nameFor('notification', this.durableStorage.storage)));
+      return;
     }
     if (control?.id === 'id_name_reset' && value === true) {
       resetDisplayName(this.durableStorage.storage);
-      this.toast(`Name restored to ${IDENTITY.productName}`);
+      this.baseSetVal(control, value);
+      this.syncWindowTitle();
+      this.toast(resetConfirmation());
+      return;
     }
     /* The five attention modes share one prefix and one handler, so adding a sixth is
      * a registry entry rather than another branch here. */
+    /* Two dials, one per language, deliberately not one shared slider. */
+    if ((control?.id === 'fun_level' || control?.id === 'fun_level_yue') && typeof value === 'number') {
+      const language: CopyLanguage = control.id === 'fun_level_yue' ? 'yue' : 'en';
+      if (isFunnyLevel(value)) setFunnyLevel(this.durableStorage.storage, language, value);
+    }
+    const settingGroup = control?.id === undefined ? undefined : App.consoleSettingGroup(control.id);
+    if (settingGroup !== undefined && control?.id !== undefined) {
+      /* Falls through to baseSetVal afterwards, so the control shows what was chosen. */
+      this.durableStorage.storage.setItem(
+        `${App.CONSOLE_SETTING_PREFIX}${settingGroup}.${control.id}`, JSON.stringify(value));
+      if (control.id === 'p_scale' || control.id === 'p_motion' || control.id === 'p_mono') {
+        this.applyLiveAppearanceSetting(control.id, value);
+      } else if (control.id === 'p_start') {
+        this.applyStartScreen();
+      } else if (control.id === 'p_tour' && value === true) {
+        /* Fires immediately when the switch is turned on -- 'on launch' still governs
+         * the next real relaunch, via applyRestoredLiveConsoleSettings. */
+        this.set('onboardOpen', true);
+      }
+    }
+    if (control?.id === 'ix_secret_set') {
+      this.announceSecretIntent(value === true);
+      /* Falls through to baseSetVal deliberately, unlike the pure-action switches below
+       * that return early: this one is a real value `onSaveIaxPeer` reads at save time
+       * (see `iax-peers.ts` `applyControlValues`'s own `setNewSecret` check), so the
+       * switch has to actually move when it is touched or the flag it is meant to carry
+       * is never true when Save reads it. */
+    }
+    if (control?.id === 'dp_go' && value === true) {
+      void this.deployConsole();
+      return;
+    }
+    if (control?.id === 'logo_preset' && typeof value === 'string') {
+      /* Matched by LABEL because that is what the picker offers; the stable id is what
+       * gets stored, so a renamed label never orphans somebody's choice. */
+      const preset = LOGO_PRESETS.find((candidate) => candidate.label === value);
+      if (preset) choosePreset(this.durableStorage.storage, preset.id);
+      this.refreshLogoStatus();
+      /* Falls through to baseSetVal deliberately. Returning here would apply the change and
+       * leave the picker showing the old value -- a control you operate that visibly does
+       * not move reads as broken, whatever it did underneath. The action-style switches
+       * below DO return, because their value is a press rather than a state. */
+    }
+    if (control?.id === 'logo_reset' && value === true) {
+      resetLogo(this.durableStorage.storage);
+      this.pickedFileNames.delete('logo_pick');
+      this.refreshLogoStatus();
+      return;
+    }
+    if (control?.id?.startsWith('nar_')) {
+      /* Same as the mark picker above: apply, then fall through so the switch, the two voice
+       * pickers and both sliders actually show what was chosen. */
+      this.applyNarrationControl(control.id, value);
+    }
+    if (control?.id === 'src_add' && value === true) {
+      this.addSettingsSource();
+      return;
+    }
+    if (control?.id === 'src_clear' && value === true) {
+      saveSources(this.durableStorage.storage, []);
+      this.sourceReports = [];
+      this.refreshSourceStatus();
+      this.toast('Every settings source removed. Your own settings are unaffected.');
+      return;
+    }
+    if (control?.id === 'src_allow_add' && value === true) {
+      this.addSettingsSourceAllowlistHost();
+      return;
+    }
+    if (control?.id === 'src_allow_remove' && value === true) {
+      this.removeSettingsSourceAllowlistHost();
+      return;
+    }
+    if (control?.id === 'school_mode' && typeof value === 'boolean') {
+      this.setSchoolMode(value);
+      return;
+    }
+    if (control?.id === 'school_unlock' && value === true) {
+      this.setSchoolMode(false);
+      return;
+    }
+    if (control?.id === 'school_set_credential' && value === true) {
+      this.storeSchoolCredential();
+      return;
+    }
+    if (control?.id === 'school_name' && typeof value === 'string' && value.trim() !== '') {
+      const renamed = renameSchoolMode(this.durableStorage.storage, value);
+      if (!renamed.ok) {
+        this.fire('That name will not work', renamed.reason ?? 'The name was refused.');
+        return;
+      }
+      this.refreshSchoolStatus();
+    }
     if (control?.id === 'ed_choice' && typeof value === 'string') {
       const editor = KNOWN_EDITORS.find((candidate) => candidate.name === value);
       if (editor) chooseEditor(this.durableStorage.storage, editor.id);
     }
+    if (control?.id === 'ed_custom_name' || control?.id === 'ed_custom_path') {
+      /* Neither field alone names an editor; a candidate is built from both, using the
+       * value this change is carrying for the one that just changed and whatever the
+       * other field already held. Saved only once it passes the same validation the
+       * editor screen's info text promises -- a bare executable, never a command line. */
+      const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+      const candidate: CustomEditor = {
+        name: String(control.id === 'ed_custom_name' ? value : values['ed_custom_name'] ?? ''),
+        executable: String(control.id === 'ed_custom_path' ? value : values['ed_custom_path'] ?? ''),
+      };
+      if (validateCustomEditor(candidate).length === 0) {
+        saveCustomEditor(this.durableStorage.storage, candidate);
+        chooseEditor(this.durableStorage.storage, CUSTOM_EDITOR_ID);
+      }
+      /* Falls through to baseSetVal: the field must keep showing what was typed even
+       * before both halves are complete enough to save. */
+    }
     if (control?.id === 'ed_clear' && value === true) {
       clearEditorChoice(this.durableStorage.storage);
       this.toast('Editor choice forgotten');
+      this.setState((st: { values: Record<string, unknown> }) => ({ values: { ...st.values, ed_choice: '' } } as never));
+    }
+    if (control?.id === 'ed_open' && value === true) {
+      void this.launchExternalEditor();
+      return;
     }
     if (control?.id === 'sup_open' && value === true) {
       this.fileSupportTicket();
@@ -585,7 +3361,16 @@ ${resolution.disclosure}`);
     }
     if (control?.id?.startsWith('att_') && typeof value === 'boolean') {
       const mode = App.ATTENTION_CONTROLS[control.id];
-      if (isAttentionMode(mode)) setModeEnabled(this.durableStorage.storage, mode, value);
+      if (isAttentionMode(mode)) {
+        setModeEnabled(this.durableStorage.storage, mode, value);
+        /* Persisting the switch was the entire wiring before this lane: presentationFor
+         * and momentumPrompt existed, computed the right thing, and were never once
+         * called from here or from render(). This is the line that actually applies
+         * what the switch says -- reduced motion live, and the rail's redraw for
+         * dimming, elapsed time, the chosen next action and a due momentum prompt. */
+        this.applyLiveAttentionSetting();
+        if (mode === 'lowStimulation') this.narrator.setQuiet(value);
+      }
     }
     if (control?.id === 'dlg_emoji' && typeof value === 'boolean') {
       setEmojisEnabled(this.durableStorage.storage, value);
@@ -603,16 +3388,206 @@ ${resolution.disclosure}`);
   /** Read by the compiled `text`-kind control marked `action:'daemon-status'`/`'vocab-status'`. */
   controlActionText = (action: string): string => {
     if (action === 'daemon-status') return this.daemonStatusLine;
+    if (action === 'schedule-status') return this.scheduleStatusLine;
+    if (action === 'school-status') return this.schoolStatusLine;
+    if (action === 'contrast-status') return this.contrastStatus();
+    if (action === 'appearance-scope') return this.appearanceScope();
+    if (action === 'deploy-progress') return this.deployProgressLine;
+    if (action === 'source-status') return this.sourceStatusLine;
+    if (action === 'settings-source-allowlist-status') return sourceAllowlistStatusLine(loadAllowlist(this.durableStorage.storage));
+    if (action === 'narration-status') return this.narrationStatusLine;
+    if (action === 'logo-status') return this.logoStatusLine;
+    if (action === 'deploy-status') return this.deployStatusLine();
+    if (action === 'ivr-dialplan') return this.ivrDialplanText();
+    if (action === 'ivr-keys-status') return this.ivrKeysStatus();
     if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
+    if (action === 'cdr-status') return this.cdrBackendStatus();
+    if (action === 'cel-status') return this.celBackendStatus();
+    if (action === 'db-pgsql-password-status') return this.dbPgsqlPasswordStatusLine();
+    if (action === 'db-odbc-password-status') return this.dbOdbcPasswordStatusLine();
+    if (action === 'dahdi-spans-status') return this.dahdiSpansStatus();
+    if (action === 'sla-station-trunks-status') return this.slaStationTrunksStatus();
+    if (action === 'calendar-secret-status') return this.calendarSecretStatusLine();
+    if (action === 'monitoring-prometheus-password-status') return this.pmAuthPasswordStatusLine();
+    if (action === 'ami-connected-status') return managerConnectionsStatus(this.readings.ami?.managerConnections);
+    if (action === 'codecs-endpoint-status') return this.endpointCodecLine;
     return '';
   };
 
-  /** Read by every control the design marks with `c.action`, whatever its kind. */
-  onControlAction = (action: string): void => {
+  /** Every CDR backend name cdr.conf.sample's own "CHOOSING A CDR BACKEND" section
+   *  (~line 100) names as selected by a `[section]` living directly in cdr.conf, rather
+   *  than in a file of its own -- `[csv]` (~line 31) and `[radius]` (~line 34) are the
+   *  only two the sample shows spelled that way; `custom`, `manager`, `odbc`, `pgsql`
+   *  and the rest all read from a SEPARATE file this console reads under its own key
+   *  (see `cdrBackendStatus` below), never from a section here. */
+  private static readonly CDR_INLINE_BACKEND_SECTIONS = ['csv', 'radius'] as const;
+
+  /** "Configured" (what cdr.conf/cel_*.conf actually have written) against "loaded"
+   *  (what the target's running Asterisk has actually registered) for the CDR half of
+   *  the CDR/CEL screen -- the honest answer to "no backend selection across the
+   *  several available", since cdr.conf itself has no single key naming one (see the
+   *  `d_backend is unmapped` note on `CONTROL_BINDINGS.cdr`). Configured is read from
+   *  this screen's own already-cached files; loaded comes from `cdr show status`'s own
+   *  "Registered Backends" list, which the `cdr` view now fetches alongside `modules`
+   *  (see `control-plane/dispatch.ts`). */
+  private cdrBackendStatus(): string {
+    if (!this.target.connected) return 'No target is connected.';
+    const cdrValue = this.configs.cdr?.state === 'read' ? this.configs.cdr.value : undefined;
+    if (!cdrValue) return 'cdr.conf has not been read from the target yet.';
+    const configured = new Set<string>();
+    for (const name of App.CDR_INLINE_BACKEND_SECTIONS) {
+      if (cdrValue.some((section) => section.name === name && section.entries.length > 0)) configured.add(name);
+    }
+    /* odbc/pgsql are configured through their own file's [global] section, not read by
+     * this screen's own `configs.cdr` -- only cel_odbc.conf/cel_pgsql.conf are, so this
+     * reports what this screen HAS read (cdr.conf's own two inline sections) plus what
+     * the live target itself already knows about the rest, rather than reading five
+     * more files just to answer this one line. */
+    const reading = this.readings['cdr'];
+    const status = reading?.cdrStatus?.result.state === 'available' ? reading.cdrStatus.result.value : undefined;
+    if (!status) {
+      const configuredLine = configured.size > 0 ? `Configured in cdr.conf: ${[...configured].join(', ')}.` : 'No [csv] or [radius] section is configured in cdr.conf.';
+      return `${configuredLine} Registered backends: not read yet.`;
+    }
+    const configuredLine = configured.size > 0 ? `Configured in cdr.conf: ${[...configured].join(', ')}.` : 'No [csv] or [radius] section is configured in cdr.conf (odbc/pgsql/custom/manager/etc. are each their own file -- see PBX Admin).';
+    const backends = status.backends;
+    const loadedLine = backends.length === 0
+      ? 'This target has no CDR backend module registered.'
+      : `Registered on this target: ${backends.map((b) => `${b.name}${b.suspended ? ' (suspended)' : ''}`).join(', ')}.`;
+    const logging = status.settings['Logging'];
+    const loggingLine = logging ? ` Logging: ${logging}.` : '';
+    return `${configuredLine} ${loadedLine}${loggingLine}`;
+  }
+
+  /** The CEL half of the same distinction. There is no `cel show status` CLI command in
+   *  Asterisk (`main/cel.c` has no `handle_cli_status`, unlike `main/cdr.c`), so "loaded"
+   *  here comes from the one live signal this console does have: whether `modules show`
+   *  lists the matching `cel_*.so` module at all, which the `cdr` view's own `modules`
+   *  fetch (added alongside `cdrStatus` in `dispatch.ts`) already carries for the CDR
+   *  half above. "Configured" is cel_odbc.conf/cel_pgsql.conf actually having a
+   *  populated section, not merely existing as an empty file. */
+  private celBackendStatus(): string {
+    if (!this.target.connected) return 'No target is connected.';
+    const odbcValue = this.configs.celOdbc?.state === 'read' ? this.configs.celOdbc.value : undefined;
+    const pgsqlValue = this.configs.celPgsql?.state === 'read' ? this.configs.celPgsql.value : undefined;
+    if (!odbcValue && !pgsqlValue) return 'cel_odbc.conf and cel_pgsql.conf have not been read from the target yet.';
+    const configured: string[] = [];
+    if (odbcValue?.some((section) => section.name !== 'general' && section.entries.length > 0)) configured.push('odbc');
+    if (pgsqlValue?.some((section) => section.name === 'global' && section.entries.length > 0)) configured.push('pgsql');
+    const configuredLine = configured.length > 0
+      ? `Configured: ${configured.join(', ')}.`
+      : 'Neither cel_odbc.conf nor cel_pgsql.conf has a populated section configured yet.';
+    const reading = this.readings['cdr'];
+    const modules = reading?.modules?.result.state === 'available' ? reading.modules.result.value : undefined;
+    if (!modules) return `${configuredLine} Module state: not read yet.`;
+    const loaded = ['cel_odbc.so', 'cel_pgsql.so'].filter((name) => modules.some((m) => m.name === name));
+    const loadedLine = loaded.length > 0 ? `Loaded on this target: ${loaded.join(', ')}.` : 'Neither cel_odbc.so nor cel_pgsql.so is loaded on this target.';
+    return `${configuredLine} ${loadedLine}`;
+  }
+
+  /** Read by every control the design marks with `c.action`, whatever its kind.
+   *  `_control` and `selected` mirror `PbxAdminApp.onControlAction`'s own signature --
+   *  `buildCtl` (`generated/console.tsx`) always calls with three arguments, and
+   *  `PbxAdminApp`'s fallback path now forwards all three here rather than dropping the
+   *  last two, so a `select`/`segmented` control's chosen option (`local-history-filter`
+   *  below) is available synchronously rather than read back out of `this.state` before
+   *  React has committed it. */
+  onControlAction = (action: string, _control?: { id?: string }, selected?: string): void => {
     if (action === 'vocab-clear') { this.onFileCleared({ id: 'va_file' }); return; }
     if (action === 'daemon-start') { void this.daemonAction('start'); return; }
     if (action === 'daemon-stop') { void this.daemonAction('stop'); return; }
     if (action === 'daemon-restart') { void this.daemonAction('restart'); return; }
+    if (action === 'runtime-stop') { void this.stopRuntime(); return; }
+    if (action === 'runtime-remove') { this.removeRuntime(); return; }
+    if (action === 'local-history-refresh') { void this.refreshLocalHistory(true); return; }
+    if (action === 'local-history-filter') {
+      // `selected` is the option's own label -- the just-picked filter -- passed
+      // straight through rather than read back out of `this.state`, which `setState`
+      // (inside the option's own `pick()`, run a moment ago in this same handler) is
+      // not guaranteed to have committed yet.
+      void this.refreshLocalHistory(true, selected);
+      return;
+    }
+    if (action === 'local-history-select') return;
+    if (action === 'local-history-restore') { this.restoreLocalHistory(); return; }
+    if (action === 'security-transport-load') { this.onLoadTransportTls(); return; }
+    if (action === 'security-transport-save') { void this.onSaveTransportTls(); return; }
+    if (action === 'security-stir-save') { void this.onSaveStirShaken(); return; }
+    if (action === 'httpd-save') { void this.onSaveHttp(); return; }
+    if (action === 'hub-report-build') { this.onBuildHubSession(); return; }
+    if (action === 'trunk-advanced-save') { void this.onSaveTrunkAdvanced(); return; }
+    if (action === 'fcodes-save') { void this.onSaveFeatureCodes(); return; }
+    if (action === 'fcodes-parking-save') { void this.onSaveFeatureCodesParking(); return; }
+    if (action === 'iaxpeers-save') { void this.onSaveIaxPeer(); return; }
+    if (action === 'trunk-save') { void this.onSaveTrunk(); return; }
+    if (action === 'ivr-key-add') { this.onAddIvrKey(); return; }
+    if (action === 'ivr-key-remove') { this.onRemoveIvrKey(); return; }
+    if (action === 'ivr-audition') { void this.onAuditionIvrPrompt(); return; }
+    if (action === 'dahdi-save-general') { void this.onSaveDahdiGeneral(); return; }
+    if (action === 'dahdi-add-channel') { void this.onDahdiAddChannel(); return; }
+    if (action === 'dahdi-remove-channel') { void this.onDahdiRemoveChannel(); return; }
+    if (action === 'sla-trunk-load') { this.onLoadSlaTrunk(); return; }
+    if (action === 'sla-trunk-save') { void this.onSaveSlaTrunk(); return; }
+    if (action === 'sla-station-load') { this.onLoadSlaStation(); return; }
+    if (action === 'sla-station-save') { void this.onSaveSlaStation(); return; }
+    if (action === 'sla-station-trunk-add') { void this.onSlaStationTrunkAdd(); return; }
+    if (action === 'sla-station-trunk-remove') { void this.onSlaStationTrunkRemove(); return; }
+    if (action === 'dundi-save-general') { void this.onSaveDundiGeneral(); return; }
+    if (action === 'dundi-mapping-load') { this.onLoadDundiMapping(); return; }
+    if (action === 'dundi-mapping-save') { void this.onSaveDundiMapping(); return; }
+    if (action === 'dundi-mapping-remove') { void this.onRemoveDundiMapping(); return; }
+    if (action === 'dundi-peer-load') { this.onLoadDundiPeer(); return; }
+    if (action === 'dundi-peer-save') { void this.onSaveDundiPeer(); return; }
+    if (action === 'calendar-load') { this.onLoadCalendar(); return; }
+    if (action === 'calendar-save') { void this.onSaveCalendar(); return; }
+    if (action === 'cdr-save') { void this.onSaveCdr(); return; }
+    if (action === 'cel-save') { void this.onSaveCel(); return; }
+    if (action === 'cel-odbc-load') { this.onLoadCelOdbc(); return; }
+    if (action === 'cel-odbc-save') { void this.onSaveCelOdbc(); return; }
+    if (action === 'cel-pgsql-save') { void this.onSaveCelPgsql(); return; }
+    if (action === 'fax-save') { void this.onSaveFax(); return; }
+    if (action === 'fax-udptl-save') { void this.onSaveFaxUdptl(); return; }
+    if (action === 'db-pgsql-save') { void this.onSaveResPgsql(); return; }
+    if (action === 'db-odbc-load') { this.onLoadOdbcConnection(); return; }
+    if (action === 'db-odbc-save') { void this.onSaveOdbcConnection(); return; }
+    if (action === 'db-mapping-load') { this.onLoadRealtimeMapping(); return; }
+    if (action === 'db-mapping-save') { void this.onSaveRealtimeMapping(); return; }
+    if (action === 'db-mapping-remove') { void this.onRemoveRealtimeMapping(); return; }
+    if (action === 'db-sorcery-load') { this.onLoadSorceryMapping(); return; }
+    if (action === 'db-sorcery-save') { void this.onSaveSorceryMapping(); return; }
+    if (action === 'db-sorcery-remove') { void this.onRemoveSorceryMapping(); return; }
+    if (action === 'logger-save') { void this.onSaveLogger(); return; }
+    if (action === 'logger-verbosity-save') { void this.onSaveLoggerVerbosity(); return; }
+    if (action === 'logger-channel-load') { this.onLoadLoggerChannel(); return; }
+    if (action === 'logger-channel-save') { void this.onSaveLoggerChannel(); return; }
+    if (action === 'modules-save') { void this.onSaveModules(); return; }
+    if (action === 'codecs-transcode-save') { void this.onSaveCodecTranscode(); return; }
+    if (action === 'codecs-rtp-save') { void this.onSaveRtp(); return; }
+    if (action === 'codecs-endpoint-lookup') { void this.onLookupEndpointCodecs(); return; }
+    if (action === 'stirshaken-profile-load') { this.onLoadStirShakenProfile(); return; }
+    if (action === 'stirshaken-profile-save') { void this.onSaveStirShakenProfile(); return; }
+    if (action === 'geolocation-location-load') { this.onLoadGeolocationLocation(); return; }
+    if (action === 'geolocation-location-save') { void this.onSaveGeolocationLocation(); return; }
+    if (action === 'geolocation-profile-load') { this.onLoadGeolocationProfile(); return; }
+    if (action === 'geolocation-profile-save') { void this.onSaveGeolocationProfile(); return; }
+    if (action === 'phoneprov-general-save') { void this.onSavePhoneprovGeneral(); return; }
+    if (action === 'phoneprov-profile-load') { this.onLoadPhoneprovProfile(); return; }
+    if (action === 'phoneprov-profile-save') { void this.onSavePhoneprovProfile(); return; }
+    if (action === 'monitoring-snmp-save') { void this.onSaveSnmp(); return; }
+    if (action === 'monitoring-prometheus-save') { void this.onSavePrometheus(); return; }
+    if (action === 'identity-save') { void this.onSaveIdentity(); return; }
+    if (action === 'stun-save') { void this.onSaveStun(); return; }
+    if (action === 'xmpp-save') { void this.onSaveXmpp(); return; }
+    if (action === 'adsi-save') { void this.onSaveAdsi(); return; }
+    if (action === 'voicemail-save') { void this.onSaveVoicemail(); return; }
+    if (action === 'voicemail-storage-save') { void this.onSaveVoicemailStorage(); return; }
+    if (action === 'voicemail-greeting-save') { void this.onSaveVoicemailGreeting(); return; }
+    if (action === 'ami-http-save') { void this.onSaveAmiHttp(); return; }
+    if (action === 'ami-manager-save') { void this.onSaveAmiManager(); return; }
+    if (action === 'ami-kick-session') { this.onKickManagerSession(); return; }
+    if (action === 'history-restore') { void this.onRestoreHistoryEntry(); return; }
+    if (action === 'history-diff') { void this.onDiffHistoryEntry(); return; }
+    if (action === 'history-prune') { void this.onPruneHistoryEntries(); return; }
   };
 
   // ---------------------------------------------------------------- server add / remove
@@ -727,7 +3702,9 @@ ${resolution.disclosure}`);
         return;
       }
       this.toast('Creating the Asterisk runtime for the wizard — this takes a while.');
+      this.resetDeployProgress();
       const provisioned = await this.request('runtime.provision');
+      this.stopDeployTicker();
       if (!provisioned?.ok) {
         this.fire('Not created', provisioned?.message ?? 'Creating the runtime did not succeed, so there is nothing to deploy to.');
         return;
@@ -794,9 +3771,42 @@ ${resolution.disclosure}`);
   /** The endpoint whose settings the controls below are currently showing. */
   private editingEndpoint = '';
 
+  /** The IAX peer/friend whose settings the controls below are currently showing --
+   *  the same role `editingEndpoint` plays for pjsip.conf, above. */
+  private editingIaxPeer = '';
+
+  /** The [registration] section the trunks screen's retry-policy controls are
+   *  currently showing -- the trunks table's own row name, per `onPickTrunkRow`. */
+  private editingTrunkRegistration = '';
+
+  /** The endpoint paired with `editingTrunkRegistration`, when one was found --
+   *  `registeredEndpointName`'s result, resolved once at load time so Save writes
+   *  the outbound-identity and advanced fields back onto the same endpoint they
+   *  were read from even if the registration's own `endpoint=` line changes before
+   *  Save runs. Empty when the row's registration named no reachable endpoint at
+   *  all -- see `onPickTrunkRow`. */
+  private editingTrunkEndpoint = '';
+
   /** The target's real pjsip.conf, or undefined when it has not been read. */
   private pjsipValue(): ConfigValue | undefined {
     return this.configs.endpoints?.state === 'read' ? this.configs.endpoints.value : undefined;
+  }
+
+  /** The target's real iax.conf, or undefined when it has not been read. Read the same
+   *  way `pjsipValue` is: `iaxpeers.file = 'iax.conf'`, so the generic per-screen config
+   *  read in `refresh()` already populates `this.configs.iaxpeers` whenever that screen
+   *  is open -- nothing extra to wire up here. */
+  private iaxValue(): ConfigValue | undefined {
+    return this.configs.iaxpeers?.state === 'read' ? this.configs.iaxpeers.value : undefined;
+  }
+
+  /** The target's real pjsip.conf as read for the trunks screen specifically.
+   *  `endpoints` and `trunks` both declare `file: 'pjsip.conf'` in the design, and the
+   *  generic per-screen read in `refresh()` keys its cache by screen name rather than
+   *  by resource -- so a target visited only through Trunks never populates
+   *  `this.configs.endpoints`, and `pjsipValue()` above would silently see nothing. */
+  private trunksPjsipValue(): ConfigValue | undefined {
+    return this.configs.trunks?.state === 'read' ? this.configs.trunks.value : undefined;
   }
 
   /**
@@ -807,15 +3817,254 @@ ${resolution.disclosure}`);
    * loaded and the toast was simply untrue.
    */
   onPickRow = (name: string): void => {
+    if ((this.state as { screen: string }).screen === 'security') { this.onPickAclRow(name); return; }
+    /* A prompt row names a real file, not a section to reload into an editor -- there is
+     * nothing below the table for it to populate. Row-pick plays it back instead, exactly
+     * as the row's own context menu (`Audition …`) does; see `onAuditionPromptRow`. */
+    if ((this.state as { screen: string }).screen === 'sounds') { void this.onAuditionPromptRow(name); return; }
+    /* The IAX peers table's rows are `iax2 show peers`, a live reading; the row name may
+     * carry a CLI-appended "/<username>" the peers reader already strips, so this is a
+     * real iax.conf section name -- see `onPickIaxPeerRow`. */
+    if ((this.state as { screen: string }).screen === 'iaxpeers') { this.onPickIaxPeerRow(name); return; }
+    /* The trunks table's rows are `pjsip show registrations` merged with `iax2 show
+     * registry` (readings.ts registrationRows), so a row is either a PJSIP
+     * registration or an IAX2 one -- this screen's controls only reach the former. */
+    if ((this.state as { screen: string }).screen === 'trunks') { this.onPickTrunkRow(name); return; }
+    /* The Configuration backups table's rows carry the exact backup handle after a
+     * marker (`history-backups.ts` `label`/`resolveHistoryRow`) -- loading one puts it
+     * into the fields Restore/Diff/Prune below act on. */
+    if ((this.state as { screen: string }).screen === 'confighistory') { this.onPickHistoryRow(name); return; }
+    /* Neither the REST resource browser nor the Dialplan scripting screen has anything
+     * below their table for a row to populate -- both are read-only visibility, not an
+     * editor -- so a click just says what the row already shows, the same as the ivr
+     * screen's info wizard does for a row nothing here writes through. */
+    if ((this.state as { screen: string }).screen === 'restbrowser') { this.toast(`${name} -- this table is read-only; see the row for its current state.`); return; }
+    if ((this.state as { screen: string }).screen === 'agiscripts') { this.toast(`${name} -- this table is read-only; edit what a call runs from the Dialplan canvas.`); return; }
     const value = this.pjsipValue();
     if (!value) { this.fire('Not loaded', 'The pjsip.conf on this target has not been read yet.'); return; }
     const endpoint = findEndpoint(value, name);
     if (!endpoint) { this.fire('Not loaded', `${name} is not in this target's pjsip.conf.`); return; }
     this.editingEndpoint = name;
     const state = this.state as { values: Record<string, unknown> };
-    this.setState({ values: { ...state.values, ...controlValuesFor(endpoint) } } as never);
+    /* A PJSIP trunk is not a separate object type -- it is this same endpoint, so the
+     * trunks screen's own tk_* advanced controls (trunk-advanced.ts) are seeded here
+     * too, alongside endpoint-edit.ts's e_* ones. The two control-id sets are disjoint,
+     * so merging both costs nothing on the endpoints screen, which simply never renders
+     * the tk_* group. */
+    this.setState({
+      values: { ...state.values, ...controlValuesFor(endpoint), ...trunkAdvancedControlValuesFor(endpoint) },
+    } as never);
     this.toast(`${name} loaded into the editor below.`);
   };
+
+  /**
+   * The IAX peers table's own row-pick, the counterpart to `onPickRow` above for
+   * iax.conf. `ix_secret_set` is explicitly reset to `false` here: `controlValuesFor`
+   * (`iax-peers.ts`) never includes it -- a secret is write-only and must never be
+   * implied by a value read back off the file -- so without this reset, switching it on
+   * for one peer and then picking a different row without saving would leave the switch
+   * silently armed against a peer nobody meant to touch.
+   */
+  private onPickIaxPeerRow(name: string): void {
+    const value = this.iaxValue();
+    if (!value) { this.fire('Not loaded', 'The iax.conf on this target has not been read yet.'); return; }
+    const peer = findIaxPeer(value, name);
+    if (!peer) { this.fire('Not loaded', `${name} is not in this target's iax.conf.`); return; }
+    this.editingIaxPeer = name;
+    const state = this.state as { values: Record<string, unknown> };
+    this.setState({
+      values: { ...state.values, ...iaxControlValuesFor(peer), [IAX_CONTROLS.setNewSecret]: false },
+    } as never);
+    this.toast(`${name} loaded into the editor below.`);
+  }
+
+  /**
+   * The trunks table's own row-pick: loads a named PJSIP registration's retry policy
+   * (t_retry/t_forbidden/t_fatal, `trunk-registration.ts`) and, when a paired endpoint
+   * can be found, that endpoint's outbound-identity and advanced fields too
+   * (`trunk-advanced.ts`) -- the same combined load `onSaveTrunk` below writes back.
+   *
+   * An IAX2 row in this live table has no PJSIP registration by that name at all;
+   * that is reported plainly rather than as though the row's own read had failed.
+   */
+  private onPickTrunkRow(name: string): void {
+    const value = this.trunksPjsipValue();
+    if (!value) { this.fire('Not loaded', 'The pjsip.conf on this target has not been read yet.'); return; }
+    const registration = findRegistration(value, name);
+    if (!registration) {
+      this.fire('Not loaded', `${name} is not a PJSIP registration in this target's pjsip.conf -- IAX2 trunks have their own editor on the IAX peers screen.`);
+      return;
+    }
+    this.editingTrunkRegistration = name;
+    const state = this.state as { values: Record<string, unknown> };
+    let values: Record<string, unknown> = { ...state.values, ...controlValuesForRegistration(registration) };
+    const endpointName = registeredEndpointName(registration);
+    const endpoint = findEndpoint(value, endpointName);
+    this.editingTrunkEndpoint = endpoint ? endpointName : '';
+    if (endpoint) values = { ...values, ...trunkControlValuesFor(endpoint) };
+    this.setState({ values } as never);
+    this.toast(endpoint
+      ? `${name} loaded into the editor below, with its ${endpointName} endpoint.`
+      : `${name} loaded into the editor below. No paired endpoint was found, so outbound identity and advanced fields are unchanged.`);
+  }
+
+  // ---------------------------------------------------------------- Configuration backups screen
+
+  /**
+   * The five plain fields on the Configuration backups screen, read and written
+   * directly out of `state.values` by name rather than through `CONTROL_BINDINGS` --
+   * the same shape `'s_aclname'`/`'s_action'`/`'s_spec'` already use for the Security
+   * screen's "Add a rule" form, because a recovery point has no Asterisk config key of
+   * its own to bind to. `'bk_resource'`, `'bk_takenat'` and `'bk_handle'` are loaded by
+   * `onPickHistoryRow` below; `'bk_diffsummary'` is written by `onDiffHistoryEntry`;
+   * `'bk_keep'` is read by `onPruneHistoryEntries`.
+   *
+   * Loads one recovery point's resource, timestamp and exact handle into the fields
+   * Restore/Diff/Prune below act on -- see `history-backups.ts` `resolveHistoryRow`
+   * for how the row's own key resolves back to the real {@link HistoryEntry}. Also
+   * drops the last diff result: it was a comparison for whichever recovery point was
+   * previously selected, and showing it beside a newly-picked one would be a stale
+   * answer to a question nobody asked about this row.
+   */
+  private onPickHistoryRow(rowKey: string): void {
+    const entry = resolveHistoryRow(this.historyBackups, rowKey);
+    if (!entry) { this.fire('Not loaded', 'That recovery point is no longer in this target’s backup directory.'); return; }
+    this.historyBackupDiff = undefined;
+    const state = this.state as { values: Record<string, unknown> };
+    this.setState({
+      values: {
+        ...state.values,
+        bk_resource: entry.resource,
+        bk_takenat: formatTakenAt(entry.takenAt),
+        bk_handle: entry.handle,
+      },
+    } as never);
+    this.toast(`${entry.resource} @ ${formatTakenAt(entry.takenAt)} loaded below.`);
+  }
+
+  /** Forces the Configuration backups table to re-read on next render -- the "Refresh"
+   *  button's own action, and the same shape a restore/prune below leaves the screen in
+   *  once it has changed what is actually on the target. */
+  onRefreshHistoryTable = (): void => {
+    this.historyBackups = undefined;
+    this.historyBackupsState = 'unread';
+    this.forceUpdate();
+  };
+
+  /** "Restore selected recovery point": copies `bk_handle` back over the file it was
+   *  taken from through `ConfigHistory#restore`, which reads the target back afterward
+   *  and reports a byte mismatch as a failure rather than a success. */
+  onRestoreHistoryEntry = async (): Promise<void> => {
+    if (!this.target.connected) { this.fire('Not restored', 'Connect to a server first.'); return; }
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const handle = String(values.bk_handle ?? '').trim();
+    if (!handle) { this.fire('Not restored', 'Pick a recovery point from the table above first.'); return; }
+    const response = await this.request('history.restore', { serverId: this.target.id, payload: { handle } });
+    if (!response?.ok) { this.fire('Not restored', response?.message ?? 'The control plane did not answer.'); return; }
+    const result = response.data as { ok?: boolean; resource?: string; detail?: string };
+    if (!result.ok) { this.fire('Not restored', result.detail ?? 'The target did not confirm the restore.'); return; }
+    /* Every other write path in this console invalidates the one cache it just made
+     * stale (`writeConfigResource`'s own `invalidate` callback). A restore is a write
+     * too, just one this screen drives instead of a Save button, so the resource's own
+     * config cache -- whichever screen actually edits it -- is dropped the same way, on
+     * top of the backup list itself now having one fewer thing to restore onto. */
+    const restoredScreen = Object.keys(this.configs).find((id) => this.configs[id]?.resource === result.resource);
+    if (restoredScreen) { delete this.configs[restoredScreen]; this.seeded.delete(restoredScreen); }
+    this.historyBackupDiff = undefined;
+    this.fire('Restored', result.detail ?? `${result.resource} was restored.`);
+    this.forceUpdate();
+  };
+
+  /** "Compare with what is on the target now": `ConfigHistory#diff` against `bk_handle`,
+   *  shown as a one-line summary in `bk_diffsummary` -- the full aligned diff is not a
+   *  control this screen has a place to render, so the summary states the count and the
+   *  full text is copyable through the browser's own selection on the summary field. */
+  onDiffHistoryEntry = async (): Promise<void> => {
+    if (!this.target.connected) { this.fire('Not compared', 'Connect to a server first.'); return; }
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const handle = String(values.bk_handle ?? '').trim();
+    if (!handle) { this.fire('Not compared', 'Pick a recovery point from the table above first.'); return; }
+    if (this.historyBackupDiffPending) return;
+    this.historyBackupDiffPending = true;
+    const response = await this.request('history.diff', { serverId: this.target.id, payload: { handle } });
+    this.historyBackupDiffPending = false;
+    if (!response?.ok) {
+      const state = this.state as { values: Record<string, unknown> };
+      this.setState({ values: { ...state.values, bk_diffsummary: response?.message ?? 'The control plane did not answer.' } } as never);
+      this.fire('Not compared', response?.message ?? 'The control plane did not answer.');
+      return;
+    }
+    const diff = response.data as ConfigDiff;
+    this.historyBackupDiff = diff;
+    const summary = !diff.currentExists
+      ? `${diff.resource} does not exist on the target right now; restoring would create it with ${diff.removed} line(s).`
+      : diff.identical
+        ? `Identical to what is on the target right now.`
+        : diff.truncated
+          ? `+${diff.added} / -${diff.removed} line(s) (too large to show line by line; counted as whole-line differences).`
+          : `+${diff.added} / -${diff.removed} line(s) differ from what is on the target right now.`;
+    const state = this.state as { values: Record<string, unknown> };
+    this.setState({ values: { ...state.values, bk_diffsummary: summary } } as never);
+    this.toast(summary);
+  };
+
+  /** "Prune old recovery points for the selected resource": deletes every backup for
+   *  `bk_resource` beyond `bk_keep` newest, through `ConfigHistory#prune`. Refuses
+   *  outright without a selected resource rather than guessing which file the operator
+   *  meant -- pruning is destructive and per-file, never a global sweep. */
+  onPruneHistoryEntries = async (): Promise<void> => {
+    if (!this.target.connected) { this.fire('Not pruned', 'Connect to a server first.'); return; }
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const resource = String(values.bk_resource ?? '').trim();
+    if (!resource) { this.fire('Not pruned', 'Pick a recovery point from the table above first, so its resource is known.'); return; }
+    const keep = Number(values.bk_keep ?? 20);
+    const response = await this.request('history.prune', { serverId: this.target.id, payload: { resource, keep } });
+    if (!response?.ok) { this.fire('Not pruned', response?.message ?? 'The control plane did not answer.'); return; }
+    const result = response.data as { removed?: number; kept?: number };
+    this.onRefreshHistoryTable();
+    this.fire('Pruned', `${resource}: removed ${result.removed ?? 0}, kept ${result.kept ?? 0} newest.`);
+  };
+
+  // ---------------------------------------------------------------- REST resource browser / AGI screens
+
+  /** "Refresh" on the REST resource browser: drops the cached reading so the generic
+   *  `pbx.read` path (`restbrowser` is a real `PbxReadView`) re-reads on next render,
+   *  the same way every other live table screen's stale-reading re-read already works. */
+  onRefreshRestBrowser = (): void => {
+    delete this.readings.restbrowser;
+    this.forceUpdate();
+  };
+
+  /** "Refresh" on the Dialplan scripting (AGI) screen -- same shape as
+   *  `onRefreshRestBrowser` just above. */
+  onRefreshAgiScripts = (): void => {
+    delete this.readings.agiscripts;
+    this.forceUpdate();
+  };
+
+  /** Loads one ACL rule's action and network into the "Add a rule" fields, so changing
+   *  it and pressing "Add rule" again edits it in place -- see `onAddAclRule` above,
+   *  which checks `aclEditingRowKey` to turn the next add into a remove-and-replace. */
+  private onPickAclRow(rowKey: string): void {
+    const value = this.aclConfigValue();
+    if (!value) { this.fire('Not loaded', 'acl.conf on this target has not been read yet.'); return; }
+    const resolved = resolveAclRowKey(value, rowKey);
+    if (!resolved) { this.fire('Not loaded', 'That rule is no longer in this target’s acl.conf.'); return; }
+    let model: AclModel;
+    try {
+      model = parseAcl(value);
+    } catch (error) {
+      this.fire('Not loaded', error instanceof Error ? error.message : String(error));
+      return;
+    }
+    const acl = model.find((candidate) => candidate.name === resolved.aclName);
+    const rule = acl?.rules[resolved.ruleIndex];
+    if (!rule) { this.fire('Not loaded', 'That rule is no longer in this target’s acl.conf.'); return; }
+    this.aclEditingRowKey = rowKey;
+    const state = this.state as { values: Record<string, unknown> };
+    this.setState({ values: { ...state.values, s_aclname: resolved.aclName, s_action: rule.action, s_spec: rule.spec } } as never);
+    this.toast(`${resolved.aclName}: ${rule.action} ${rule.spec} loaded into the editor below. Change it and press "Add rule" to save, or "Add rule" with nothing changed to leave it as is.`);
+  }
 
   /**
    * Real bulk-action handling for every table-like screen.
@@ -921,6 +4170,16 @@ ${resolution.disclosure}`);
 
     return {
       tableRows,
+      /* Every screen with a table shares this one renderer, so every one of them drew a header
+       * row with nothing underneath and no word about why. On the endpoints screen -- a first
+       * run, nothing configured -- that is the whole table: five column names and blank space,
+       * which reads as a table that failed to load rather than as one with nothing in it yet.
+       * The message is deliberately about the rows, not about the system: a filter that matches
+       * nothing and a target that has nothing are different situations and say so. */
+      noTableRows: tableRows.length === 0,
+      tableEmptyText: ids.length === 0
+        ? 'Nothing here yet. Anything this screen reads from the target, or that you add with the button above, appears in this table.'
+        : 'No rows match the current search or filter. Clear them to see all ' + String(ids.length) + '.',
       toggleAll: () => apply(selectedArr.length === ids.length && ids.length > 0
         ? bulkClearSelection(sel)
         : bulkSelectAll(sel, 'page', ids, ids).state),
@@ -950,7 +4209,7 @@ ${resolution.disclosure}`);
     crypto.getRandomValues(secretBytes);
     const secret = encodeBase32(secretBytes);
     const account = s.lockTarget || s.lockKey || 'this element';
-    const uri = pairingUri({ issuer: 'Ding PBX Console', account, parameters: { secret } });
+    const uri = pairingUri({ issuer: 'Material Asterisk', account, parameters: { secret } });
     this.setState({ totpPendingSecret: secret, totpPendingUri: uri } as never);
     this.showInfo(
       'Authenticator secret',
@@ -1087,6 +4346,21 @@ ${resolution.disclosure}`);
     await this.writePjsip(editDocument(edit, PJSIP_RESOURCE), edit.summary, `${this.editingEndpoint} updated`);
   };
 
+  /** Writes the Trunks screen's advanced group (trunk-advanced.ts) onto the same pjsip.conf
+   *  endpoint `onSaveEndpoint` above writes -- a PJSIP trunk is not a separate object type.
+   *  Warnings (T.38 keys set while T.38 itself is off; Remote-Party-ID sent without trusted
+   *  outbound identity) are shown after a real write, never instead of one: they describe
+   *  what the file now says, not a reason to refuse saving it. */
+  onSaveTrunkAdvanced = async (): Promise<void> => {
+    const value = this.pjsipValue();
+    if (!value || !this.editingEndpoint) { this.fire('Nothing to save', 'Select a trunk first.'); return; }
+    const edit = applyTrunkAdvancedValues(value, this.editingEndpoint, (this.state as { values: Record<string, unknown> }).values);
+    if ('error' in edit) { this.fire('Not saved', edit.error); return; }
+    if (edit.summary.length === 0) { this.toast('Nothing changed, so nothing was written.'); return; }
+    const wrote = await this.writePjsip(trunkDocument(edit, PJSIP_RESOURCE), edit.summary, `${this.editingEndpoint} advanced settings updated`);
+    if (wrote && edit.warnings.length > 0) this.fire('Written, with a caveat', edit.warnings.join('\n'));
+  };
+
   /** Removes the loaded endpoint, meaning all three of its sections. */
   onDeleteEndpoint = (): void => {
     const value = this.pjsipValue();
@@ -1135,7 +4409,6 @@ It is shown once. The phone needs it to register.`);
   /** Reads the screen currently on top, once per screen change. */
   private refresh = async () => {
     const screen = (this.state as { screen: string }).screen;
-    if (!this.target.connected) return;
     const now = Date.now();
     const mayStartRead = (key: string): boolean => {
       const previous = this.readStartedAt.get(key) ?? 0;
@@ -1143,16 +4416,110 @@ It is shown once. The phone needs it to register.`);
       this.readStartedAt.set(key, now);
       return true;
     };
+    /**
+     * `extensions.conf` read purely so the canvas screen's note can say when the loaded
+     * dialplan (`dialplan show`, read by the canvas block below) and the file on disk
+     * have diverged -- see `contextsMissingFromLoadedDialplan` in `canvas.ts`. Independent
+     * of the dialplan graph read: whichever of the two finishes first, the divergence
+     * check in `note()` runs once both are in.
+     */
+    const readCanvasExtensionsConf = async () => {
+      if ((this.canvasExtensionsConf && this.canvasExtensionsConf.state !== 'unavailable')
+          || this.canvasExtensionsPending || !mayStartRead('canvas-extensions-conf')) return;
+      this.canvasExtensionsPending = true;
+      const resource = resourceForFile('extensions.conf') as string;
+      const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+      this.canvasExtensionsPending = false;
+      this.canvasExtensionsConf = response?.ok
+        ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+        : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+      this.forceUpdate();
+    };
+    /*
+     * The History screen's own local git repository is not a PBX reading -- it lives
+     * beside this application's data and answers the same way whether or not a target
+     * is connected -- so it is read here, ahead of the `target.connected` guard below
+     * that everything else in this method depends on.
+     */
+    if (screen === 'history' && this.historyReading === undefined && !this.historyPending && mayStartRead('history')) {
+      this.historyPending = true;
+      const response = await this.request('local-history.list', {});
+      this.historyPending = false;
+      this.historyReading = response?.ok
+        ? (response.data as LocalHistoryReading)
+        : { entries: [], counts: {}, branch: '' };
+      this.forceUpdate();
+    }
+    if (!this.target.connected) return;
     if (screen === 'canvas') {
       const canvasAvailable = this.canvasReadings?.dialplan?.result.state === 'available';
-      if (canvasAvailable || this.canvasPending || !mayStartRead('canvas')) return;
+      if (canvasAvailable || this.canvasPending || !mayStartRead('canvas')) {
+        /* The dialplan graph itself is either already read or already in flight; the
+         * `extensions.conf` side-read below still runs on its own independent guard so
+         * the divergence note has something to compare against once both land. */
+        void readCanvasExtensionsConf();
+        return;
+      }
       this.canvasPending = true;
       const response = await this.request('pbx.read', { serverId: this.target.id, view: 'canvas' as PbxReadView });
       this.canvasPending = false;
       this.canvasReadings = response?.ok
         ? (response.data as CanvasReadings)
         : { dialplan: { command: 'pbx.read', result: { state: 'unavailable', observedAt: new Date().toISOString(), reason: response?.message ?? 'the control plane did not answer' } } };
+      void readCanvasExtensionsConf();
       this.forceUpdate();
+      return;
+    }
+    /* The Sound prompts screen has no `pbx.config` resource behind it -- there is no
+     * `[section]`/`key=value` file for a directory of media files -- so it reads through
+     * `media.list` instead, same as `canvas` above reads through its own dedicated view
+     * rather than falling into the generic config path below. Re-reads whenever the last
+     * read failed or an upload/remove/`this.promptFiles = undefined` marked it stale;
+     * never on every render, via the same `mayStartRead` debounce every other screen uses. */
+    if (screen === 'sounds') {
+      const needsRead = this.promptFiles === undefined || this.promptState === 'unavailable';
+      if (needsRead && !this.promptPending && mayStartRead('sounds')) {
+        this.promptPending = true;
+        this.promptState = 'reading';
+        this.forceUpdate();
+        const response = await this.request('media.list', { serverId: this.target.id, payload: { root: 'prompts' } });
+        this.promptPending = false;
+        if (response?.ok) {
+          this.promptFiles = ((response.data as { files?: ReadonlyArray<MediaFile> }).files ?? []).slice();
+          this.promptState = 'read';
+          this.promptReason = undefined;
+        } else {
+          this.promptState = 'unavailable';
+          this.promptReason = response?.message ?? 'the control plane did not answer';
+        }
+        this.forceUpdate();
+      }
+      return;
+    }
+    /* The Configuration backups screen. Same shape as `sounds` just above -- there is
+     * no `pbx.config` resource behind a directory of recovery points either -- reading
+     * through `history.list` instead, across every configurable resource at once
+     * (`resource` omitted from the payload). Re-reads whenever the last read failed or
+     * a restore/prune marked it stale (`this.historyBackups = undefined`), never on
+     * every render. */
+    if (screen === 'confighistory') {
+      const needsRead = this.historyBackups === undefined || this.historyBackupsState === 'unavailable';
+      if (needsRead && !this.historyBackupsPending && mayStartRead('confighistory')) {
+        this.historyBackupsPending = true;
+        this.historyBackupsState = 'reading';
+        this.forceUpdate();
+        const response = await this.request('history.list', { serverId: this.target.id });
+        this.historyBackupsPending = false;
+        if (response?.ok) {
+          this.historyBackups = ((response.data as { entries?: ReadonlyArray<HistoryEntry> }).entries ?? []).slice();
+          this.historyBackupsState = 'read';
+          this.historyBackupsReason = undefined;
+        } else {
+          this.historyBackupsState = 'unavailable';
+          this.historyBackupsReason = response?.message ?? 'the control plane did not answer';
+        }
+        this.forceUpdate();
+      }
       return;
     }
     /* A configuration screen names the file it edits. Read that file from the target so
@@ -1184,6 +4551,313 @@ It is shown once. The phone needs it to register.`);
         this.seeded.add(screen);
       }
       this.forceUpdate();
+    }
+
+    /* The Security screen's TLS and STIR/SHAKEN-key fields read two files besides
+     * acl.conf: pjsip.conf (a transport's own [section]) and stir_shaken.conf (the
+     * [attestation]/[verification] objects). Neither is this screen's declared `file`,
+     * so the generic per-screen block above never touches them -- they get their own
+     * reads here, independent of the acl.conf read and of each other, and are merged
+     * into `values` exactly once each becomes available. pjsip.conf is cached under
+     * the same `configs.endpoints` key `pjsipValue()` already reads, so visiting
+     * Security also warms it for Endpoints and vice versa; stir_shaken.conf gets its
+     * own key since nothing else in the console reads that file yet. */
+    if (screen === 'security') {
+      if ((!this.configs.endpoints || this.configs.endpoints.state === 'unavailable')
+          && !this.extraConfigPending.has('pjsip.conf') && mayStartRead('config:security-pjsip')) {
+        this.extraConfigPending.add('pjsip.conf');
+        const resource = resourceForFile('pjsip.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('pjsip.conf');
+        this.configs.endpoints = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if ((!this.configs.stirShaken || this.configs.stirShaken.state === 'unavailable')
+          && !this.extraConfigPending.has('stir_shaken.conf') && mayStartRead('config:security-stir')) {
+        this.extraConfigPending.add('stir_shaken.conf');
+        const resource = resourceForFile('stir_shaken.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('stir_shaken.conf');
+        this.configs.stirShaken = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      /* stir_shaken.conf's four policy switches (s_stir/s_level/s_verifyin/
+       * s_failaction) have carried a `file: 'stir_shaken.conf'` binding since the
+       * access-control-rules lane, with nothing ever supplying that file to read
+       * them from -- seeded once here, the moment it becomes available, the same way
+       * the primary block above seeds acl.conf's own bindings. The five key-material
+       * fields this lane adds share the same file and are seeded by the same call.
+       * The PJSIP-transport fields are NOT seeded here: they read through
+       * `sectionFrom: 's_transport'`, and nothing has been typed into that control on
+       * first load, so seeding now would find no section to read and do nothing
+       * anyway -- they seed on demand from the "Load from target" action instead. */
+      if (this.configs.stirShaken?.state === 'read' && !this.seeded.has('security-stir')) {
+        const state = this.state as { values: Record<string, unknown> };
+        const bound = readControlValues('security', [], { 'stir_shaken.conf': this.configs.stirShaken.value ?? [] });
+        if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
+        this.seeded.add('security-stir');
+      }
+    }
+
+    /* The CDR/CEL screen's own declared `file` is cdr.conf, read by the generic block
+     * above. Its CEL controls live in three OTHER files -- cel.conf, cel_odbc.conf and
+     * cel_pgsql.conf -- read here the same way pjsip.conf and stir_shaken.conf are read
+     * for the Security screen just above: independently of the cdr.conf read and of
+     * each other, cached under their own `this.configs` keys, and seeded into `values`
+     * exactly once each becomes available. `l_oconn`/`l_otable` are NOT seeded here:
+     * like the Security screen's PJSIP-transport TLS fields, they read through
+     * `sectionFrom: 'l_octx'`, and nothing has been typed into that control on first
+     * load, so seeding now would find no section to read -- they seed on demand from
+     * the "Load from target" action instead. */
+    if (screen === 'cdr') {
+      if ((!this.configs.cel || this.configs.cel.state === 'unavailable')
+          && !this.extraConfigPending.has('cel.conf') && mayStartRead('config:cdr-cel')) {
+        this.extraConfigPending.add('cel.conf');
+        const resource = resourceForFile('cel.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('cel.conf');
+        this.configs.cel = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if ((!this.configs.celOdbc || this.configs.celOdbc.state === 'unavailable')
+          && !this.extraConfigPending.has('cel_odbc.conf') && mayStartRead('config:cdr-cel-odbc')) {
+        this.extraConfigPending.add('cel_odbc.conf');
+        const resource = resourceForFile('cel_odbc.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('cel_odbc.conf');
+        this.configs.celOdbc = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if ((!this.configs.celPgsql || this.configs.celPgsql.state === 'unavailable')
+          && !this.extraConfigPending.has('cel_pgsql.conf') && mayStartRead('config:cdr-cel-pgsql')) {
+        this.extraConfigPending.add('cel_pgsql.conf');
+        const resource = resourceForFile('cel_pgsql.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('cel_pgsql.conf');
+        this.configs.celPgsql = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if (this.configs.cel?.state === 'read' && !this.seeded.has('cdr-cel')) {
+        const state = this.state as { values: Record<string, unknown> };
+        const bound = readControlValues('cdr', [], { 'cel.conf': this.configs.cel.value ?? [] });
+        if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
+        this.seeded.add('cdr-cel');
+      }
+      if (this.configs.celOdbc?.state === 'read' && !this.seeded.has('cdr-cel-odbc')) {
+        const state = this.state as { values: Record<string, unknown> };
+        const bound = readControlValues('cdr', [], { 'cel_odbc.conf': this.configs.celOdbc.value ?? [] });
+        if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
+        this.seeded.add('cdr-cel-odbc');
+      }
+      if (this.configs.celPgsql?.state === 'read' && !this.seeded.has('cdr-cel-pgsql')) {
+        const state = this.state as { values: Record<string, unknown> };
+        const bound = readControlValues('cdr', [], { 'cel_pgsql.conf': this.configs.celPgsql.value ?? [] });
+        if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
+        this.seeded.add('cdr-cel-pgsql');
+      }
+    }
+
+    /* The Monitoring screen's own declared `file` is res_snmp.conf, read by the generic
+     * block above. Its Prometheus fields live in prometheus.conf, a wholly separate
+     * file, read here the same way cel.conf is read for the CDR screen above:
+     * independently of the res_snmp.conf read, cached under its own `this.configs.prometheus`
+     * key, and seeded into `values` exactly once it becomes available. pm_authpassword is
+     * NOT seeded, ever -- like db_pgpassword, it carries no binding at all, so a read of
+     * this file can never populate it. */
+    if (screen === 'monitoring') {
+      if ((!this.configs.prometheus || this.configs.prometheus.state === 'unavailable')
+          && !this.extraConfigPending.has('prometheus.conf') && mayStartRead('config:monitoring-prometheus')) {
+        this.extraConfigPending.add('prometheus.conf');
+        const resource = resourceForFile('prometheus.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('prometheus.conf');
+        this.configs.prometheus = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if (this.configs.prometheus?.state === 'read' && !this.seeded.has('monitoring-prometheus')) {
+        const state = this.state as { values: Record<string, unknown> };
+        const bound = readControlValues('monitoring', [], { 'prometheus.conf': this.configs.prometheus.value ?? [] });
+        if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
+        this.seeded.add('monitoring-prometheus');
+      }
+    }
+
+    /* The Database backends screen's own declared `file` (res_pgsql.conf) is read and
+     * seeded automatically by the generic block below -- res_pgsql.conf's [general]
+     * section is fixed, so its db_pg* fields bind and seed exactly the way http.conf's
+     * do. res_odbc.conf, extconfig.conf and sorcery.conf are three MORE fixed files
+     * this same screen reaches into, exactly the way the Security screen reaches into
+     * pjsip.conf and stir_shaken.conf above -- fetched here, once each, independent of
+     * one another and of the primary read. None of the three is seeded into `values`
+     * eagerly: res_odbc.conf's fields read through `sectionFrom: 'db_odbcname'`, and
+     * extconfig.conf/sorcery.conf are not in CONTROL_BINDINGS at all (see the comment
+     * above CONTROL_BINDINGS.dbrealtime) -- all three only do anything once a name has
+     * been typed and "Load from target" pressed, exactly like the Security screen's
+     * PJSIP-transport TLS fields. */
+    if (screen === 'dbrealtime') {
+      if ((!this.configs.odbc || this.configs.odbc.state === 'unavailable')
+          && !this.extraConfigPending.has('res_odbc.conf') && mayStartRead('config:dbrealtime-odbc')) {
+        this.extraConfigPending.add('res_odbc.conf');
+        const resource = resourceForFile('res_odbc.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('res_odbc.conf');
+        this.configs.odbc = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if ((!this.configs.extconfig || this.configs.extconfig.state === 'unavailable')
+          && !this.extraConfigPending.has('extconfig.conf') && mayStartRead('config:dbrealtime-extconfig')) {
+        this.extraConfigPending.add('extconfig.conf');
+        const resource = resourceForFile('extconfig.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('extconfig.conf');
+        this.configs.extconfig = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if ((!this.configs.sorcery || this.configs.sorcery.state === 'unavailable')
+          && !this.extraConfigPending.has('sorcery.conf') && mayStartRead('config:dbrealtime-sorcery')) {
+        this.extraConfigPending.add('sorcery.conf');
+        const resource = resourceForFile('sorcery.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('sorcery.conf');
+        this.configs.sorcery = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+    }
+
+    /* The Fax screen's six fx_udptl* fields live in udptl.conf -- the transport T.38
+     * rides on -- not in res_fax.conf, which is this screen's own declared `file` and
+     * already covered by the generic per-screen block above. Same shape as security's
+     * stir_shaken.conf read just above: its own fetch, its own seeded-once guard, merged
+     * into `values` through readControlValues's `elsewhere` map once it lands. */
+    if (screen === 'fax') {
+      if ((!this.configs.udptl || this.configs.udptl.state === 'unavailable')
+          && !this.extraConfigPending.has('udptl.conf') && mayStartRead('config:fax-udptl')) {
+        this.extraConfigPending.add('udptl.conf');
+        const resource = resourceForFile('udptl.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('udptl.conf');
+        this.configs.udptl = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if (this.configs.udptl?.state === 'read' && !this.seeded.has('fax-udptl')) {
+        const state = this.state as { values: Record<string, unknown> };
+        const bound = readControlValues('fax', [], { 'udptl.conf': this.configs.udptl.value ?? [] });
+        if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
+        this.seeded.add('fax-udptl');
+      }
+    }
+
+    /* The Feature codes screen's two parking-lot groups (fc_park* / fc_comeback*) live in
+     * res_parking.conf's [default] lot, not features.conf -- this screen's own declared
+     * `file` and already covered by the generic per-screen block above. Same shape as the
+     * Fax screen's udptl.conf read just above. */
+    if (screen === 'fcodes') {
+      if ((!this.configs.parking || this.configs.parking.state === 'unavailable')
+          && !this.extraConfigPending.has('res_parking.conf') && mayStartRead('config:fcodes-parking')) {
+        this.extraConfigPending.add('res_parking.conf');
+        const resource = resourceForFile('res_parking.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('res_parking.conf');
+        this.configs.parking = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if (this.configs.parking?.state === 'read' && !this.seeded.has('fcodes-parking')) {
+        const state = this.state as { values: Record<string, unknown> };
+        const bound = readControlValues('fcodes', [], { 'res_parking.conf': this.configs.parking.value ?? [] });
+        if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
+        this.seeded.add('fcodes-parking');
+      }
+    }
+
+    /* The Logger screen's own declared `file` is logger.conf, read by the generic block
+     * above. Its verbosity control (g_verbose) lives in asterisk.conf instead -- there is
+     * no logger.conf key for it at all -- and the Codecs screen's transcoding switch
+     * (k_transcode) is the same story, so both screens read this one shared file the same
+     * way security reads pjsip.conf for two different screens above. One fetch, cached
+     * under `this.configs.asterisk`, seeded into whichever screen is actually showing. */
+    if (screen === 'logger' || screen === 'codecs') {
+      if ((!this.configs.asterisk || this.configs.asterisk.state === 'unavailable')
+          && !this.extraConfigPending.has('asterisk.conf') && mayStartRead('config:asterisk-general')) {
+        this.extraConfigPending.add('asterisk.conf');
+        const resource = resourceForFile('asterisk.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('asterisk.conf');
+        this.configs.asterisk = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if (this.configs.asterisk?.state === 'read' && !this.seeded.has(`${screen}-asterisk`)) {
+        const state = this.state as { values: Record<string, unknown> };
+        const bound = readControlValues(screen, [], { 'asterisk.conf': this.configs.asterisk.value ?? [] });
+        if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
+        this.seeded.add(`${screen}-asterisk`);
+      }
+    }
+
+    /* The AMI & REST screen's own declared `file` is manager.conf, read by the generic
+     * block above. Its HTTP server group (a_http/a_port/a_tls/a_tlsport) lives in
+     * http.conf and its allowed-origins field lives in ari.conf -- neither is this
+     * screen's declared file, so both get their own reads here, the same shape
+     * pjsip.conf/stir_shaken.conf get for the Security screen above. This is also what
+     * makes the screen actually readable at all for the first time: its `file` used to
+     * be the compound label 'manager.conf · ari.conf · http.conf', which
+     * `resourceForFile` refuses, so the generic block above never ran and this screen
+     * had never read a single setting from a real target. */
+    if (screen === 'ami') {
+      if ((!this.configs.amiHttp || this.configs.amiHttp.state === 'unavailable')
+          && !this.extraConfigPending.has('http.conf') && mayStartRead('config:ami-http')) {
+        this.extraConfigPending.add('http.conf');
+        const resource = resourceForFile('http.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('http.conf');
+        this.configs.amiHttp = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if ((!this.configs.amiAri || this.configs.amiAri.state === 'unavailable')
+          && !this.extraConfigPending.has('ari.conf') && mayStartRead('config:ami-ari')) {
+        this.extraConfigPending.add('ari.conf');
+        const resource = resourceForFile('ari.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('ari.conf');
+        this.configs.amiAri = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if (this.configs.amiHttp?.state === 'read' && this.configs.amiAri?.state === 'read' && !this.seeded.has('ami-http')) {
+        const state = this.state as { values: Record<string, unknown> };
+        const bound = readControlValues('ami', [], {
+          'http.conf': this.configs.amiHttp.value ?? [],
+          'ari.conf': this.configs.amiAri.value ?? [],
+        });
+        if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
+        this.seeded.add('ami-http');
+      }
     }
 
     if (!isReadable(screen)) return;
@@ -1223,40 +4897,2401 @@ It is shown once. The phone needs it to register.`);
       }
       /* The servers table is the one screen whose rows are not a reading from a PBX:
        * they are the console's own configured servers, which exist whether or not
-       * anything is reachable. Feeding it from `readings` left it permanently empty. */
-      table.rows = id === 'servers' ? serverRows(this.servers.servers) : rowsFor(screen, this.readings[screen]);
+       * anything is reachable. Feeding it from `readings` left it permanently empty.
+       *
+       * Security's rows are not a `pbx.read` reading either -- there is no read-only CLI
+       * command that prints one line per `permit=`/`deny=` rule inside a chosen named ACL,
+       * only `acl show`'s bare list of ACL names (see `parseAclRules`). The real rules
+       * live in `acl.conf` itself, read through the same structured `pbx.config` transport
+       * every configuration screen already uses (`this.configs.security`, populated by
+       * `refresh()` below from `resourceForFile(SCREENS.security.file)`).
+       *
+       * Operations & releases is a third of the same kind and the only one on the agent
+       * rail with a real source at all: its rows are this build's own bundled release
+       * history (`agent-rail.ts` `releaseRows`), which is a build-time constant and exists
+       * whether or not any target was ever discovered. Feeding it from `readings` -- which
+       * is what it did -- left it permanently empty on a rail that never reads a target. */
+      table.rows = id === 'servers'
+        ? serverRows(this.servers.servers)
+        : id === 'security'
+          ? aclRuleRows(this.aclConfigValue())
+          : id === 'sounds'
+            ? promptRows(this.promptFiles)
+            : id === 'ops'
+              ? this.releaseRows()
+              : id === 'hub'
+                ? this.hubRows()
+                : id === 'notifications'
+                  ? this.notificationRows()
+                  : id === 'confighistory'
+                    ? historyRows(this.historyBackups)
+                    : id === 'restbrowser'
+                      ? restBrowserRows(this.readings.restbrowser)
+                      : id === 'agiscripts'
+                        ? agiScriptRows(this.readings.agiscripts?.references, this.readings.agiscripts?.files)
+                        : rowsFor(screen, this.readings[screen]);
     }
   }
 
+  /** The target's real `acl.conf`, or `undefined` when it has not been read yet. */
+  private aclConfigValue(): ConfigValue | undefined {
+    return this.configs.security?.state === 'read' ? this.configs.security.value : undefined;
+  }
+
+  /** The row a security-screen click loaded into the "Add a rule" fields below, so
+   *  pressing the add button again edits that rule in place instead of appending a
+   *  duplicate. Cleared once the edit is written (or a fresh add starts from empty). */
+  private aclEditingRowKey: string | undefined;
+
+  /** One write path for every ACL mutation, so none of them can skip the plan/apply
+   *  transaction `ConfigTransaction` already runs end to end (backup, stage, validate,
+   *  apply, post-read, compare, rollback on mismatch) -- the same shape `writePjsip`
+   *  above uses for pjsip.conf. */
+  private async writeAcl(nextModel: AclModel, summary: string, done: string): Promise<boolean> {
+    const resource = this.configs.security?.resource ?? resourceForFile((SCREENS as Record<string, { file?: unknown }>).security?.file);
+    if (!resource) { this.fire('Not written', 'acl.conf has no resolvable resource for this screen yet.'); return false; }
+    const payload = { documents: [{ resource, value: toConfigValue(nextModel) }] };
+    const planned = await this.request('pbx.plan', { serverId: this.target.id, payload });
+    if (!planned?.ok) { this.fire('Not written', planned?.message ?? 'The control plane did not answer.'); return false; }
+    const applied = await this.request('pbx.apply', { serverId: this.target.id, payload });
+    if (!applied?.ok) { this.fire('Not written', applied?.message ?? 'The change was planned but not applied.'); return false; }
+    const result = (applied.data as { result?: { status?: string; message?: string } } | undefined)?.result;
+    if (result && result.status !== 'applied') {
+      this.fire('Not written', result.message ?? `The transaction ended with ${result.status}.`);
+      return false;
+    }
+    /* The reading is now stale -- refetched on the next `refresh()` pass, same as
+     * `writePjsip` invalidates `configs.endpoints` after a pjsip.conf write. */
+    delete this.configs.security;
+    this.seeded.delete('security');
+    this.fire(done, summary);
+    this.forceUpdate();
+    return true;
+  }
+
+  /**
+   * "Add rule" on the Security screen. Reads the same `'s_aclname'` / `'s_action'` /
+   * `'s_spec'` fields the design's own "Add a rule" group binds to `values`, exactly
+   * the way `onAddServer` above reads `sv_*` straight out of state rather than opening
+   * a separate wizard. `validateRule` is Asterisk's own `ast_append_ha` parse rules --
+   * see `control-plane/acl-model.ts` -- so a bad address is refused here, before it
+   * ever reaches the transport, with the exact reason named.
+   *
+   * When a row was picked into these fields first (`onPickRow` below sets
+   * `aclEditingRowKey`), this both removes the original rule and adds the edited one in
+   * ONE plan/apply, which is what turns "remove one, add another" into a real edit.
+   */
+  onAddAclRule = async (): Promise<void> => {
+    const value = this.aclConfigValue();
+    if (!value) { this.fire('Not added', 'acl.conf on this target has not been read yet.'); return; }
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const aclName = String(values.s_aclname ?? '').trim();
+    const action = String(values.s_action ?? 'permit').trim();
+    const spec = String(values.s_spec ?? '').trim();
+    if (!aclName) { this.fire('Not added', 'Name the ACL this rule belongs to.'); return; }
+    let rule;
+    try {
+      rule = validateAclRule(action, spec);
+    } catch (error) {
+      this.fire('Not added', error instanceof Error ? error.message : String(error));
+      return;
+    }
+    let model: AclModel;
+    try {
+      model = parseAcl(value);
+    } catch (error) {
+      this.fire('Not added', error instanceof Error ? error.message : String(error));
+      return;
+    }
+    const editing = this.aclEditingRowKey ? resolveAclRowKey(value, this.aclEditingRowKey) : undefined;
+    const base = editing ? removeAclRuleModel(model, editing.aclName, editing.ruleIndex) : model;
+    const next = addAclRule(base, aclName, rule);
+    const verb = editing ? 'edited' : 'added';
+    const ok = await this.writeAcl(
+      next,
+      `${aclName}: ${rule.action} ${rule.spec} (rule ${verb} in acl.conf, applied and verified).`,
+      `Rule ${verb}`,
+    );
+    if (ok) {
+      this.aclEditingRowKey = undefined;
+      const state = this.state as { values: Record<string, unknown> };
+      this.setState({ values: { ...state.values, s_aclname: '', s_action: 'permit', s_spec: '' } } as never);
+    }
+  };
+
+  /** The design has already run this past `areYouSure` before calling it, exactly like
+   *  `onRemoveServerRow` above. `rowKey` is the row's own first cell, resolved back to
+   *  the rule it names by {@link resolveAclRowKey} against the CURRENT file rather than
+   *  a stale index kept from when the context menu opened. */
+  onRemoveAclRule = async (rowKey: string): Promise<void> => {
+    const value = this.aclConfigValue();
+    if (!value) { this.fire('Not removed', 'acl.conf on this target has not been read yet.'); return; }
+    const resolved = resolveAclRowKey(value, rowKey);
+    if (!resolved) { this.fire('Not removed', 'That rule is no longer in this target’s acl.conf.'); return; }
+    let model: AclModel;
+    try {
+      model = parseAcl(value);
+    } catch (error) {
+      this.fire('Not removed', error instanceof Error ? error.message : String(error));
+      return;
+    }
+    const next = removeAclRuleModel(model, resolved.aclName, resolved.ruleIndex);
+    if (this.aclEditingRowKey === rowKey) this.aclEditingRowKey = undefined;
+    await this.writeAcl(next, `Removed rule ${resolved.ruleIndex + 1} from "${resolved.aclName}", applied and verified.`, 'Rule removed');
+  };
+
+  /** "Move rule up" / "Move rule down" from the row context menu. Non-destructive --
+   *  reordering the same rules, never adding or removing one -- so this runs directly
+   *  the same way the design's own `order` control kind moves an item without a
+   *  confirmation ceremony. */
+  onMoveAclRule = async (rowKey: string, direction: 'up' | 'down'): Promise<void> => {
+    const value = this.aclConfigValue();
+    if (!value) { this.fire('Not moved', 'acl.conf on this target has not been read yet.'); return; }
+    const resolved = resolveAclRowKey(value, rowKey);
+    if (!resolved) { this.fire('Not moved', 'That rule is no longer in this target’s acl.conf.'); return; }
+    let model: AclModel;
+    try {
+      model = parseAcl(value);
+    } catch (error) {
+      this.fire('Not moved', error instanceof Error ? error.message : String(error));
+      return;
+    }
+    const next = moveAclRuleModel(model, resolved.aclName, resolved.ruleIndex, direction);
+    if (next === model) { this.fire('Not moved', `Rule ${resolved.ruleIndex + 1} in "${resolved.aclName}" is already at that end of the list.`); return; }
+    await this.writeAcl(
+      next,
+      `Moved rule ${resolved.ruleIndex + 1} in "${resolved.aclName}" ${direction} -- evaluation order changed, applied and verified.`,
+      'Rule reordered',
+    );
+  };
+
+  // ---------------------------------------------------------------- sound prompts
+
+  /** The Sound prompts table's own "Upload a prompt" button, wired the same way the
+   *  security screen's own add wired `openWizard` straight to `onAddAclRule` rather than
+   *  through the generic multi-step wizard: a media upload needs a real local file, which
+   *  a wizard step has no way to ask for, so this opens the platform's own file picker
+   *  directly. Nothing here builds the upload itself -- that is `uploadPromptFile` below,
+   *  the one path every upload on this screen goes through. */
+  onAddPromptRow = (): void => {
+    if (!this.target.connected) { this.fire('Not uploaded', 'Connect to a server before uploading a prompt.'); return; }
+    const doc = (globalThis as { document?: Document }).document;
+    if (!doc) { this.fire('Not uploaded', 'No file picker is available in this environment.'); return; }
+    const input = doc.createElement('input');
+    input.type = 'file';
+    input.accept = PROMPT_ACCEPT;
+    input.addEventListener('change', () => {
+      const file = input.files?.[0];
+      if (file) void this.uploadPromptFile(file);
+    });
+    input.click();
+  };
+
+  /** The one upload path this screen has. Refuses a name `MediaLibrary` would refuse
+   *  before a single byte is read off disk -- `usableName` is the exact same function
+   *  `media-library.ts`'s own `upload` runs, so a refusal here and a refusal at the
+   *  target always agree, and a user never waits on a round trip for a mistake this
+   *  process already knew about. */
+  private async uploadPromptFile(file: File): Promise<void> {
+    if (usableName(file.name) === undefined) {
+      this.fire(
+        'Not uploaded',
+        `"${file.name}" is not a name or format this library accepts. Allowed: wav, gsm, ulaw, alaw, g722, sln, sln16, ogg, opus.`,
+      );
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+      const comma = dataUrl.indexOf(',');
+      if (comma < 0) { this.fire('Not uploaded', `"${file.name}" could not be encoded for upload.`); return; }
+      const contentBase64 = dataUrl.slice(comma + 1);
+      void this.request('media.upload', { serverId: this.target.id, payload: { root: 'prompts', name: file.name, contentBase64 } })
+        .then((response) => {
+          if (!response?.ok) {
+            this.fire('Not uploaded', response?.message ?? 'The control plane did not answer.');
+            return;
+          }
+          const landed = response.data as MediaFile;
+          this.promptFiles = undefined;
+          this.promptState = 'unread';
+          this.fire('Prompt uploaded', `${landed.name} landed as ${landed.bytes} bytes and was confirmed by the target.`);
+          this.forceUpdate();
+        });
+    };
+    reader.onerror = () => this.fire('Not uploaded', `"${file.name}" could not be read from disk.`);
+    reader.readAsDataURL(file);
+  }
+
+  /** "Audition …" from the row's own context menu, and a plain row click -- see
+   *  `onPickRow` above. Refuses honestly, before any network round trip, for a format
+   *  `PLAYABLE_EXTENSIONS` already knows a browser cannot decode; see
+   *  `prompt-library.ts` for exactly why those five formats are excluded rather than
+   *  attempted and left to fail silently. */
+  onAuditionPromptRow = async (name: string): Promise<void> => {
+    if (!this.target.connected) { this.fire('Not auditioned', 'Connect to a server first.'); return; }
+    const file = resolvePromptRow(this.promptFiles, name);
+    if (!file) { this.fire('Not auditioned', `${name} is no longer in this target's prompt library. Refresh and try again.`); return; }
+    if (!PLAYABLE_EXTENSIONS.has(file.extension)) {
+      this.fire(
+        'Cannot audition this format',
+        `${name} is a .${file.extension} file. This library validates a real header only for wav, ogg and opus -- the ` +
+        'formats a browser can decode from a plain data URL. The raw telephony encodings (gsm, ulaw, alaw, g722, sln, ' +
+        'sln16) carry no header at all, so nothing here knows their sample rate or framing and no browser can play ' +
+        'them back this way. Download the file and audition it with a phone or a real media player instead.',
+      );
+      return;
+    }
+    this.toast(`Reading ${name} from the target…`);
+    const response = await this.request('media.read', { serverId: this.target.id, payload: { root: 'prompts', name } });
+    if (!response?.ok) { this.fire('Not auditioned', response?.message ?? 'The control plane did not answer.'); return; }
+    const read = response.data as { contentBase64?: string; extension?: string };
+    if (!read.contentBase64) { this.fire('Not auditioned', `${name} came back from the target with no content.`); return; }
+    const AudioCtor = (globalThis as { Audio?: new (src?: string) => HTMLAudioElement }).Audio;
+    if (!AudioCtor) { this.fire('Not auditioned', 'No audio playback is available in this environment.'); return; }
+    /* Stop whatever was already playing rather than layering a second prompt over it --
+     * the same reasoning the non-blocking-notification rules already apply to a fired
+     * message, applied here to sound instead of text. */
+    this.auditionAudio?.pause();
+    const mime = playbackMimeType(read.extension ?? file.extension);
+    const audio = new AudioCtor(`data:${mime};base64,${read.contentBase64}`);
+    this.auditionAudio = audio;
+    audio.play()
+      .then(() => this.toast(`Auditioning ${name}…`))
+      .catch((error: unknown) => {
+        this.fire('Playback refused', `The browser would not play ${name} back: ${error instanceof Error ? error.message : String(error)}.`);
+      });
+  };
+
+  /** "Delete …" from the row's own context menu, behind the same three-gate confirmation
+   *  every other destructive row action on this console already runs through. Irreversible
+   *  on the target -- `MediaLibrary#remove` runs `rm -f` with no undo -- so the confirming
+   *  dialog says exactly that rather than the generic "everything referencing it" wording
+   *  that fits an endpoint or a queue and nothing about a media file. */
+  onRemovePromptRow = async (name: string): Promise<void> => {
+    if (!this.target.connected) { this.fire('Not removed', 'Connect to a server first.'); return; }
+    const response = await this.request('media.remove', { serverId: this.target.id, payload: { root: 'prompts', name } });
+    if (!response?.ok) { this.fire('Prompt not removed', response?.message ?? 'The control plane did not answer.'); return; }
+    const result = response.data as { removed?: boolean; detail?: string };
+    if (!result.removed) { this.fire('Prompt not removed', result.detail ?? 'The target did not confirm removal.'); return; }
+    this.promptFiles = undefined;
+    this.promptState = 'unread';
+    this.fire('Prompt removed', result.detail ?? `${name} was removed.`);
+    this.forceUpdate();
+  }
+
+  // ---------------------------------------------------------------- Security screen: TLS
+
+  /** One write path shared by the two Security-screen TLS actions below, the same
+   *  plan/apply/refuse shape `writePjsip`/`writeAcl` above already use. It takes an
+   *  explicit `invalidate` callback rather than hard-coding which cache to drop,
+   *  because the two callers read into two different caches (`configs.endpoints` for
+   *  pjsip.conf, `configs.stirShaken` for stir_shaken.conf). */
+  private async writeConfigResource(
+    resource: string, value: ConfigValue, summary: string, done: string, invalidate: () => void,
+  ): Promise<boolean> {
+    const payload = { documents: [{ resource, value }] };
+    const planned = await this.request('pbx.plan', { serverId: this.target.id, payload });
+    if (!planned?.ok) { this.fire('Not written', planned?.message ?? 'The control plane did not answer.'); return false; }
+    const applied = await this.request('pbx.apply', { serverId: this.target.id, payload });
+    if (!applied?.ok) { this.fire('Not written', applied?.message ?? 'The change was planned but not applied.'); return false; }
+    invalidate();
+    this.fire(done, summary);
+    this.forceUpdate();
+    return true;
+  }
+
+  /** The pjsip.conf `[section]` the TLS group's fields are currently pointed at --
+   *  whatever is typed into `s_transport`, resolved against the target's own file
+   *  rather than trusted blind. `undefined` when the name is empty, pjsip.conf has not
+   *  been read yet, or nothing on the target is named that. */
+  private transportSection(): { name: string; section: ConfigSection } | undefined {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['s_transport'] ?? '').trim();
+    const value = this.pjsipValue();
+    if (!name || !value) return undefined;
+    const section = value.find((candidate) => candidate.name === name);
+    return section ? { name, section } : undefined;
+  }
+
+  /** Whether a resolved section is actually declared `type=transport` -- the same
+   *  case-insensitive comparison `control-keys.ts`'s own `sectionOfType` uses, so a
+   *  section that merely happens to share a name with a transport (an endpoint, an
+   *  AOR) is refused rather than silently read or written as one. */
+  private static isTransportSection(section: ConfigSection): boolean {
+    return section.entries.some((entry) => entry.key === 'type' && entry.value.trim().toLowerCase() === 'transport');
+  }
+
+  /** "Load from target" on the Security screen's TLS group: reads the named
+   *  transport's current TLS settings out of the pjsip.conf already fetched above and
+   *  puts them in the fields, the same one-shot reseed a row click gives the ACL
+   *  editor's "Add a rule" form. Refuses with a toast rather than clobbering the
+   *  fields with nothing when the typed name matches nothing, or matches something
+   *  that is not a transport. */
+  onLoadTransportTls = (): void => {
+    const found = this.transportSection();
+    if (!found) { this.toast('No section by that name in pjsip.conf yet -- check the spelling, or press Load again once pjsip.conf has finished reading.'); return; }
+    if (!App.isTransportSection(found.section)) { this.toast(`[${found.name}] exists in pjsip.conf but is not type=transport.`); return; }
+    const bound = readControlValues('security', [], { 'pjsip.conf': this.pjsipValue() ?? [] }, { s_transport: found.name });
+    const state = this.state as { values: Record<string, unknown> };
+    this.setState({ values: { ...state.values, ...bound } } as never);
+    this.toast(`Loaded [${found.name}] from pjsip.conf.`);
+  };
+
+  /** The bound control ids the TLS group's "Save" action writes -- every `sectionFrom:
+   *  's_transport'` binding in `CONTROL_BINDINGS.security`, named explicitly rather
+   *  than derived, so a change to that table cannot silently widen or narrow what this
+   *  one write touches. */
+  private static readonly TRANSPORT_TLS_CONTROLS = [
+    's_tprotocol', 's_tcert', 's_tprivkey', 's_tcalistfile', 's_tcalistpath',
+    's_tcipher', 's_tmethod', 's_tverifyclient', 's_tverifyserver', 's_treqclientcert',
+  ] as const;
+
+  /** "Save transport TLS settings": writes only the ten fields above into the transport
+   *  section named in `s_transport` -- refusing outright, before calling
+   *  `applyControlValues`, when that name does not resolve to an existing
+   *  `type=transport` section. `applyControlValues` would otherwise happily invent a
+   *  brand new `[section]` holding nothing but these TLS keys, which is not a usable
+   *  transport (no `bind=`, no `type=`) and not what this screen is for: configuring a
+   *  transport already declared on the target, not authoring topology from a form that
+   *  has no field for the rest of it. */
+  onSaveTransportTls = async (): Promise<void> => {
+    const found = this.transportSection();
+    if (!found) {
+      this.fire('Not written', 'No transport section by that name exists in pjsip.conf. This screen configures an existing TLS transport’s certificate settings; it does not create a new transport.');
+      return;
+    }
+    if (!App.isTransportSection(found.section)) {
+      this.fire('Not written', `[${found.name}] exists in pjsip.conf but is not type=transport.`);
+      return;
+    }
+    const value = this.pjsipValue();
+    if (!value) { this.fire('Not written', 'pjsip.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = { s_transport: found.name };
+    for (const id of App.TRANSPORT_TLS_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('security', value, changes);
+    await this.writeConfigResource(
+      this.configs.endpoints?.resource ?? (resourceForFile('pjsip.conf') as string),
+      next,
+      `[${found.name}] TLS settings updated in pjsip.conf.`,
+      `[${found.name}] saved`,
+      () => { delete this.configs.endpoints; this.seeded.delete('endpoints'); },
+    );
+  };
+
+  /** The bound control ids the STIR/SHAKEN group's "Save" action writes: the four
+   *  attestation/verification policy switches this table has bound since the
+   *  access-control-rules lane (never wired to a real read or write until this one
+   *  gave the screen a reachable stir_shaken.conf), plus the five key-material fields
+   *  this lane adds. Both objects live in the one file, so one write covers all nine. */
+  private static readonly STIR_SHAKEN_CONTROLS = [
+    's_stir', 's_level', 's_verifyin', 's_failaction',
+    's_privkey', 's_certurl', 's_loadsyscerts', 's_cafile', 's_capath',
+  ] as const;
+
+  onSaveStirShaken = async (): Promise<void> => {
+    const value = this.configs.stirShaken?.state === 'read' ? this.configs.stirShaken.value : undefined;
+    if (!value) { this.fire('Not written', 'stir_shaken.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.STIR_SHAKEN_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('security', value, changes);
+    await this.writeConfigResource(
+      this.configs.stirShaken?.resource ?? (resourceForFile('stir_shaken.conf') as string),
+      next,
+      'stir_shaken.conf updated on the target.',
+      'STIR/SHAKEN settings saved',
+      () => { delete this.configs.stirShaken; this.seeded.delete('security-stir'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Call attestation, Emergency location, Phone provisioning
+  //
+  // Three screens sharing one shape: a named section, picked by a text field the same
+  // way the Security screen's own `s_transport`/cel_odbc.conf's `l_octx` pick one, read
+  // with `readControlValues(screen, value, {}, { <picker>: name })` and written with
+  // `applyBoundControlValues(screen, value, changes)` -- but stir_shaken.conf's own
+  // [profile] objects and geolocation.conf's [location]/[profile] objects additionally
+  // *require* a `type=` key nothing on the design edits (the operator does not choose
+  // it; it is always the same literal word for that object), so their two writes run
+  // the result through `withRequiredType` below before sending it to the target. Every
+  // one of these three screens' own primary `file` is the config file itself, so
+  // `this.configs.stirshaken`/`.geolocation`/`.phoneprov` are populated by the generic
+  // per-screen read this class already runs for every other configuration screen --
+  // none of them need the Security screen's own extra-read wiring.
+
+  /** stir_shaken.conf/geolocation.conf both declare an object TYPE that is not a
+   *  choice made on either screen -- a profile is always `type=profile`, a location is
+   *  always `type=location` -- so it is written here directly rather than through a
+   *  design control with nothing to bind it to. Creates the section if `applyControlValues`
+   *  did not already (an entirely blank profile/location still needs its type declared),
+   *  and leaves every other entry in the file untouched. */
+  private static withRequiredType(value: ConfigValue, name: string, type: string): ConfigValue {
+    const sections = value.map((section) => ({ name: section.name, entries: [...section.entries] }));
+    let section = sections.find((candidate) => candidate.name === name);
+    if (!section) { section = { name, entries: [] }; sections.push(section); }
+    const idx = section.entries.findIndex((entry) => entry.key === 'type');
+    if (idx === -1) section.entries.unshift({ key: 'type', value: type });
+    else section.entries[idx] = { key: 'type', value: type };
+    return sections;
+  }
+
+  /** The stir_shaken.conf [section] the Call attestation screen's fields are currently
+   *  pointed at, resolved against the target's own already-read file. `undefined` when
+   *  the name is empty, the file has not been read yet, or nothing on the target is
+   *  named that -- which is not a refusal here, the same way it is not for cel_odbc.conf's
+   *  own named context above: a profile with nothing in it yet is still a valid, if
+   *  useless, profile, and Save is free to create one. */
+  private stirShakenProfileSection(): { name: string; section: ConfigSection } | undefined {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['cs_profile'] ?? '').trim();
+    const value = this.configs.stirshaken?.state === 'read' ? this.configs.stirshaken.value : undefined;
+    if (!name || !value) return undefined;
+    const section = value.find((candidate) => candidate.name === name);
+    return section ? { name, section } : undefined;
+  }
+
+  /** "Load from target" on the Call attestation screen: reads the named profile's
+   *  current settings out of the stir_shaken.conf already fetched into the fields. */
+  onLoadStirShakenProfile = (): void => {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['cs_profile'] ?? '').trim();
+    if (!name) { this.toast('Type a profile name first.'); return; }
+    const found = this.stirShakenProfileSection();
+    if (!found) {
+      this.toast(`No [${name}] section in stir_shaken.conf yet -- Save will create it as a profile object.`);
+      return;
+    }
+    const value = this.configs.stirshaken?.state === 'read' ? this.configs.stirshaken.value : undefined;
+    const bound = readControlValues('stirshaken', value, {}, { cs_profile: found.name });
+    this.setState({ values: { ...values, ...bound } } as never);
+    this.toast(`Loaded [${found.name}] from stir_shaken.conf.`);
+  };
+
+  /** The bound control ids the Call attestation screen's "Save profile" action writes --
+   *  every binding in `CONTROL_BINDINGS.stirshaken`, named explicitly the same way every
+   *  other named-section Save on this console lists its own controls, so a change to
+   *  that table cannot silently widen what one write touches. */
+  private static readonly STIRSHAKEN_PROFILE_CONTROLS = [
+    'cs_behavior', 'cs_failaction', 'cs_level', 'cs_privkey', 'cs_certurl', 'cs_x5uacl',
+  ] as const;
+
+  onSaveStirShakenProfile = async (): Promise<void> => {
+    const value = this.configs.stirshaken?.state === 'read' ? this.configs.stirshaken.value : undefined;
+    if (!value) { this.fire('Not written', 'stir_shaken.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['cs_profile'] ?? '').trim();
+    if (!name) { this.fire('Not written', 'Type a profile name before saving -- stir_shaken.conf records attestation behaviour per named profile, not a single global one.'); return; }
+    const changes: Record<string, unknown> = { cs_profile: name };
+    for (const id of App.STIRSHAKEN_PROFILE_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    let next = applyBoundControlValues('stirshaken', value, changes);
+    next = App.withRequiredType(next, name, 'profile');
+    await this.writeConfigResource(
+      this.configs.stirshaken?.resource ?? (resourceForFile('stir_shaken.conf') as string),
+      next,
+      `[${name}] attestation profile updated in stir_shaken.conf.`,
+      `[${name}] saved`,
+      () => { delete this.configs.stirshaken; },
+    );
+  };
+
+  /** geolocation.conf holds two independently-named object kinds on one screen, so this
+   *  and `geolocationProfileSection` below are each keyed off their own picker control
+   *  (`gl_location`/`gl_profile`) rather than sharing one. */
+  private geolocationLocationSection(): { name: string; section: ConfigSection } | undefined {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['gl_location'] ?? '').trim();
+    const value = this.configs.geolocation?.state === 'read' ? this.configs.geolocation.value : undefined;
+    if (!name || !value) return undefined;
+    const section = value.find((candidate) => candidate.name === name);
+    return section ? { name, section } : undefined;
+  }
+
+  private geolocationProfileSection(): { name: string; section: ConfigSection } | undefined {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['gl_profile'] ?? '').trim();
+    const value = this.configs.geolocation?.state === 'read' ? this.configs.geolocation.value : undefined;
+    if (!name || !value) return undefined;
+    const section = value.find((candidate) => candidate.name === name);
+    return section ? { name, section } : undefined;
+  }
+
+  onLoadGeolocationLocation = (): void => {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['gl_location'] ?? '').trim();
+    if (!name) { this.toast('Type a location name first.'); return; }
+    const found = this.geolocationLocationSection();
+    if (!found) {
+      this.toast(`No [${name}] section in geolocation.conf yet -- Save will create it as a location object.`);
+      return;
+    }
+    const value = this.configs.geolocation?.state === 'read' ? this.configs.geolocation.value : undefined;
+    const bound = readControlValues('geolocation', value, {}, { gl_location: found.name });
+    this.setState({ values: { ...values, ...bound } } as never);
+    this.toast(`Loaded [${found.name}] from geolocation.conf.`);
+  };
+
+  onLoadGeolocationProfile = (): void => {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['gl_profile'] ?? '').trim();
+    if (!name) { this.toast('Type a profile name first.'); return; }
+    const found = this.geolocationProfileSection();
+    if (!found) {
+      this.toast(`No [${name}] section in geolocation.conf yet -- Save will create it as a profile object.`);
+      return;
+    }
+    const value = this.configs.geolocation?.state === 'read' ? this.configs.geolocation.value : undefined;
+    const bound = readControlValues('geolocation', value, {}, { gl_profile: found.name });
+    this.setState({ values: { ...values, ...bound } } as never);
+    this.toast(`Loaded [${found.name}] from geolocation.conf.`);
+  };
+
+  private static readonly GEOLOCATION_LOCATION_CONTROLS = ['gl_format', 'gl_info', 'gl_method', 'gl_source'] as const;
+  private static readonly GEOLOCATION_PROFILE_CONTROLS = ['gl_precedence', 'gl_pidf', 'gl_reference', 'gl_routing'] as const;
+
+  onSaveGeolocationLocation = async (): Promise<void> => {
+    const value = this.configs.geolocation?.state === 'read' ? this.configs.geolocation.value : undefined;
+    if (!value) { this.fire('Not written', 'geolocation.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['gl_location'] ?? '').trim();
+    if (!name) { this.fire('Not written', 'Type a location name before saving -- geolocation.conf records a location per named object, not a single global one.'); return; }
+    const changes: Record<string, unknown> = { gl_location: name };
+    for (const id of App.GEOLOCATION_LOCATION_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    let next = applyBoundControlValues('geolocation', value, changes);
+    next = App.withRequiredType(next, name, 'location');
+    await this.writeConfigResource(
+      this.configs.geolocation?.resource ?? (resourceForFile('geolocation.conf') as string),
+      next,
+      `[${name}] location updated in geolocation.conf.`,
+      `[${name}] saved`,
+      () => { delete this.configs.geolocation; },
+    );
+  };
+
+  onSaveGeolocationProfile = async (): Promise<void> => {
+    const value = this.configs.geolocation?.state === 'read' ? this.configs.geolocation.value : undefined;
+    if (!value) { this.fire('Not written', 'geolocation.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['gl_profile'] ?? '').trim();
+    if (!name) { this.fire('Not written', 'Type a profile name before saving -- geolocation.conf records a profile per named object, not a single global one.'); return; }
+    const changes: Record<string, unknown> = { gl_profile: name };
+    for (const id of App.GEOLOCATION_PROFILE_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    let next = applyBoundControlValues('geolocation', value, changes);
+    next = App.withRequiredType(next, name, 'profile');
+    await this.writeConfigResource(
+      this.configs.geolocation?.resource ?? (resourceForFile('geolocation.conf') as string),
+      next,
+      `[${name}] profile updated in geolocation.conf.`,
+      `[${name}] saved`,
+      () => { delete this.configs.geolocation; },
+    );
+  };
+
+  /** phoneprov.conf's [general] section -- the deployment wizard's own "How many
+   *  phones?" answer has always had a `default_profile` waiting for it and nowhere
+   *  that wrote one; this does. Unlike the profile group below, [general] is a fixed
+   *  section every real phoneprov.conf already has, so there is no picker and no
+   *  Load button -- the generic per-screen read already seeds these four fields the
+   *  moment phoneprov.conf comes back from the target. */
+  private static readonly PHONEPROV_GENERAL_CONTROLS = ['pv_default', 'pv_addr', 'pv_iface', 'pv_port'] as const;
+
+  onSavePhoneprovGeneral = async (): Promise<void> => {
+    const current = this.configs.phoneprov?.state === 'read' ? this.configs.phoneprov.value : undefined;
+    if (!current) { this.fire('Not written', 'phoneprov.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.PHONEPROV_GENERAL_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('phoneprov', current, changes);
+    await this.writeConfigResource(
+      this.configs.phoneprov?.resource ?? (resourceForFile('phoneprov.conf') as string),
+      next,
+      'phoneprov.conf [general] updated on the target.',
+      'Phone provisioning settings saved',
+      () => { delete this.configs.phoneprov; },
+    );
+  };
+
+  /** phoneprov.conf's own named provisioning profile, e.g. [polycom] -- unlike
+   *  cel_odbc.conf's context or stir_shaken.conf's profile, this file's own profile
+   *  sections carry no `type=` key at all (see the sample's own [polycom] example),
+   *  so there is nothing for `withRequiredType` to do here. */
+  private phoneprovProfileSection(): { name: string; section: ConfigSection } | undefined {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['pv_profile'] ?? '').trim();
+    const value = this.configs.phoneprov?.state === 'read' ? this.configs.phoneprov.value : undefined;
+    if (!name || !value) return undefined;
+    const section = value.find((candidate) => candidate.name === name);
+    return section ? { name, section } : undefined;
+  }
+
+  onLoadPhoneprovProfile = (): void => {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['pv_profile'] ?? '').trim();
+    if (!name) { this.toast('Type a profile name first.'); return; }
+    const found = this.phoneprovProfileSection();
+    if (!found) {
+      this.toast(`No [${name}] section in phoneprov.conf yet -- Save will create it.`);
+      return;
+    }
+    const value = this.configs.phoneprov?.state === 'read' ? this.configs.phoneprov.value : undefined;
+    const bound = readControlValues('phoneprov', value, {}, { pv_profile: found.name });
+    this.setState({ values: { ...values, ...bound } } as never);
+    this.toast(`Loaded [${found.name}] from phoneprov.conf.`);
+  };
+
+  private static readonly PHONEPROV_PROFILE_CONTROLS = ['pv_staticdir', 'pv_mimetype'] as const;
+
+  onSavePhoneprovProfile = async (): Promise<void> => {
+    const value = this.configs.phoneprov?.state === 'read' ? this.configs.phoneprov.value : undefined;
+    if (!value) { this.fire('Not written', 'phoneprov.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['pv_profile'] ?? '').trim();
+    if (!name) { this.fire('Not written', 'Type a profile name before saving -- phoneprov.conf records provisioning content per named profile, not a single global one.'); return; }
+    const changes: Record<string, unknown> = { pv_profile: name };
+    for (const id of App.PHONEPROV_PROFILE_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('phoneprov', value, changes);
+    await this.writeConfigResource(
+      this.configs.phoneprov?.resource ?? (resourceForFile('phoneprov.conf') as string),
+      next,
+      `[${name}] provisioning profile updated in phoneprov.conf.`,
+      `[${name}] saved`,
+      () => { delete this.configs.phoneprov; },
+    );
+  };
+
+  // ---------------------------------------------------------------- Fax screen
+
+  /** The bound control ids the Fax engine group's own Save writes -- named explicitly,
+   *  the same reason the Security screen's TLS and STIR/SHAKEN lists are: unlike
+   *  `httpd`, `CONTROL_BINDINGS.fax` spans two files (res_fax.conf and udptl.conf), so
+   *  passing the whole `values` state to `applyControlValues` would happily write
+   *  udptl.conf's own keys into res_fax.conf's `[general]` section -- `applyControlValues`
+   *  has no notion of a binding's `file` at all, only `readControlValues` does. */
+  private static readonly FAX_CONTROLS = [
+    'fx_maxrate', 'fx_minrate', 'fx_statusevents', 'fx_modems', 'fx_ecm', 'fx_t38timeout',
+  ] as const;
+
+  private static readonly FAX_UDPTL_CONTROLS = [
+    'fx_udptlstart', 'fx_udptlend', 'fx_udptlchecksums', 'fx_udptlfecentries', 'fx_udptlfecspan', 'fx_udptleven',
+  ] as const;
+
+  onSaveFax = async (): Promise<void> => {
+    const current = this.configs.fax?.state === 'read' ? this.configs.fax.value : undefined;
+    if (!current) { this.fire('Not written', 'res_fax.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.FAX_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('fax', current, changes);
+    await this.writeConfigResource(
+      this.configs.fax?.resource ?? (resourceForFile('res_fax.conf') as string),
+      next,
+      'res_fax.conf updated on the target.',
+      'Fax engine settings saved',
+      () => { delete this.configs.fax; this.seeded.delete('fax'); },
+    );
+  };
+
+  onSaveFaxUdptl = async (): Promise<void> => {
+    const current = this.configs.udptl?.state === 'read' ? this.configs.udptl.value : undefined;
+    if (!current) { this.fire('Not written', 'udptl.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.FAX_UDPTL_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('fax', current, changes);
+    await this.writeConfigResource(
+      this.configs.udptl?.resource ?? (resourceForFile('udptl.conf') as string),
+      next,
+      'udptl.conf updated on the target.',
+      'T.38/UDPTL transport settings saved',
+      () => { delete this.configs.udptl; this.seeded.delete('fax-udptl'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Feature codes screen
+
+  /** The Feature codes screen's two parking-lot groups -- everything below this line lives
+   *  in res_parking.conf, not features.conf, and is written separately by
+   *  `onSaveFeatureCodesParking` below through the generic bound-control path, since
+   *  feature-codes.ts (used for the features.conf half above it) deliberately does not
+   *  reach into a different file. */
+  private static readonly FCODES_PARKING_CONTROLS = [
+    'fc_parkeddynamic', 'fc_parkext', 'fc_parkext_exclusive', 'fc_parkpos', 'fc_parkcontext',
+    'fc_parkingtime', 'fc_findslot', 'fc_parkedmusicclass', 'fc_courtesytone', 'fc_parkedplay',
+    'fc_parkedcalltransfers', 'fc_parkedcallreparking', 'fc_parkedcallhangup', 'fc_comebacktoorigin',
+    'fc_comebackdialtime', 'fc_comebackcontext',
+  ] as const;
+
+  /** "Save feature codes": the In-call feature map, Attended transfer and Pickup/timing
+   *  groups, written through feature-codes.ts rather than the generic bound-control table
+   *  -- `[featuremap]` is a list of `name => sequence` lines whose order and repeats the
+   *  parser preserves, which the generic table (built for ordinary key/value sections)
+   *  does not model; feature-codes.ts exists specifically to get that right. */
+  onSaveFeatureCodes = async (): Promise<void> => {
+    const current = this.configs.fcodes?.state === 'read' ? this.configs.fcodes.value : undefined;
+    if (!current) { this.fire('Not written', 'features.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const edit = applyFeatureCodeValues(current, state.values);
+    if (edit.summary.length === 0) { this.toast('Nothing changed, so nothing was written.'); return; }
+    const document = featuresDocument(edit, this.configs.fcodes?.resource ?? (resourceForFile('features.conf') as string));
+    await this.writeConfigResource(
+      document.resource,
+      document.value,
+      'features.conf updated on the target.',
+      'Feature codes saved',
+      () => { delete this.configs.fcodes; this.seeded.delete('fcodes'); },
+    );
+  };
+
+  /** "Save parking lot settings": the two groups below the Save above, a different file
+   *  (res_parking.conf) written through the same generic bound-control path every other
+   *  single-file screen already uses -- res_parking.conf holds ordinary key/value pairs,
+   *  so there is no list-preserving concern here the way there is for [featuremap]. */
+  onSaveFeatureCodesParking = async (): Promise<void> => {
+    const current = this.configs.parking?.state === 'read' ? this.configs.parking.value : undefined;
+    if (!current) { this.fire('Not written', 'res_parking.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.FCODES_PARKING_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('fcodes', current, changes);
+    await this.writeConfigResource(
+      this.configs.parking?.resource ?? (resourceForFile('res_parking.conf') as string),
+      next,
+      'res_parking.conf updated on the target.',
+      'Parking lot settings saved',
+      () => { delete this.configs.parking; this.seeded.delete('fcodes-parking'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- HTTP server screen
+
+  /** "Save http.conf settings": every `ht_*` field, including the TLS listener, is
+   *  already fully bound in `CONTROL_BINDINGS.httpd` -- composite `tlsbindaddr`
+   *  included -- so the generic single-key write path already used for the Security
+   *  screen's TLS group above covers it completely; passing the whole `values` state
+   *  is safe here specifically because every `httpd` binding shares one file, so
+   *  `applyControlValues` only ever touches the `ht_*` entries within it, unlike the
+   *  Security screen's writes above, which need an explicit id list to stay inside
+   *  one of several files. (`http-server.ts` implements http.conf's read/apply by
+   *  hand and is not used here: it predates the generic table's composite-binding
+   *  support, which is what let http.conf be bound there at all, and is fully
+   *  superseded by it now.) */
+  onSaveHttp = async (): Promise<void> => {
+    const current = this.configs.httpd?.state === 'read' ? this.configs.httpd.value : undefined;
+    if (!current) { this.fire('Not written', 'http.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const next = applyBoundControlValues('httpd', current, state.values);
+    await this.writeConfigResource(
+      this.configs.httpd?.resource ?? (resourceForFile('http.conf') as string),
+      next,
+      'http.conf updated on the target.',
+      'HTTP server settings saved',
+      () => { delete this.configs.httpd; this.seeded.delete('httpd'); },
+    );
+  };
+
+  /**
+   * Writes the controls back onto the IAX peer they were loaded from -- `onSaveEndpoint`'s
+   * counterpart for iax.conf. Unlike `onSaveHttp`'s single-section generic write, this
+   * targets one named peer/friend section by name (`applyIaxControlValues`, from
+   * `iax-peers.ts`), because iax.conf can hold several and the generic `CONTROL_BINDINGS`
+   * path used for `httpd` only ever reaches the first section of a given type.
+   *
+   * A generated secret is shown exactly once, here, and nowhere else -- never persisted
+   * by this console, never in an export, never in local history. `ix_secret_set` is reset
+   * to `false` afterward so a second, unrelated save on the same peer cannot regenerate a
+   * credential nobody asked to change again.
+   */
+  onSaveIaxPeer = async (): Promise<void> => {
+    const value = this.iaxValue();
+    if (!value || !this.editingIaxPeer) { this.fire('Nothing to save', 'Select an IAX peer first.'); return; }
+    const name = this.editingIaxPeer;
+    const state = this.state as { values: Record<string, unknown> };
+    const edit = applyIaxControlValues(value, name, state.values);
+    if ('error' in edit) { this.fire('Not saved', edit.error); return; }
+    /* Generating a secret always adds its own summary line (`iax-peers.ts`
+     * `applyControlValues`), so an empty summary genuinely means nothing changed. */
+    if (edit.summary.length === 0) { this.toast('Nothing changed, so nothing was written.'); return; }
+    const resource = this.configs.iaxpeers?.resource ?? (resourceForFile('iax.conf') as string);
+    const document = iaxDocument(edit, resource);
+    const applied = await this.writeConfigResource(
+      resource, document.value, edit.summary.join('\n'), `${name} updated`,
+      () => { delete this.configs.iaxpeers; this.seeded.delete('iaxpeers'); },
+    );
+    if (!applied) return;
+    const afterSave = this.state as { values: Record<string, unknown> };
+    this.setState({ values: { ...afterSave.values, [IAX_CONTROLS.setNewSecret]: false } } as never);
+    if (edit.generatedSecret) {
+      this.fire('Write this password down',
+        `${name}: ${edit.generatedSecret}
+
+It is shown once. The far end needs it to register.`);
+    }
+  };
+
+  /**
+   * Writes the trunks screen's currently-loaded registration and, when one was found
+   * at load time (`onPickTrunkRow`), its paired endpoint's outbound-identity and
+   * advanced fields -- that load, run in reverse.
+   *
+   * The registration write runs first because `applyRegistrationControlValues`
+   * (`trunk-registration.ts`) works directly on the raw pjsip.conf value. The
+   * endpoint write, when there is one, then re-parses THAT already-edited value
+   * through `applyTrunkControlValues` (`trunk-advanced.ts`, itself `parsePjsip` plus
+   * `toConfigValuePjsip`) -- `toConfigValuePjsip` only ever rewrites the endpoint/
+   * auth/aor trio it recognizes by name and passes every other section through
+   * untouched, so the registration section this just wrote survives the second pass
+   * exactly as it was left by the first.
+   */
+  onSaveTrunk = async (): Promise<void> => {
+    const value = this.trunksPjsipValue();
+    if (!value || !this.editingTrunkRegistration) { this.fire('Nothing to save', 'Select a trunk first.'); return; }
+    const name = this.editingTrunkRegistration;
+    const state = this.state as { values: Record<string, unknown> };
+    const resource = this.configs.trunks?.resource ?? (resourceForFile('pjsip.conf') as string);
+    const registrationEdit = applyRegistrationControlValues(value, name, state.values);
+    let next = registrationEdit.value;
+    let summary = [...registrationEdit.summary];
+    let warnings: string[] = [];
+    if (this.editingTrunkEndpoint) {
+      const endpointEdit = applyTrunkControlValues(next, this.editingTrunkEndpoint, state.values);
+      if ('error' in endpointEdit) { this.fire('Not saved', endpointEdit.error); return; }
+      if (endpointEdit.summary.length > 0) {
+        next = trunkDocument(endpointEdit, resource).value;
+        summary = [...summary, ...endpointEdit.summary];
+      }
+      warnings = endpointEdit.warnings;
+    }
+    if (summary.length === 0) { this.toast('Nothing changed, so nothing was written.'); return; }
+    const applied = await this.writeConfigResource(resource, next, summary.join('\n'), `${name} updated`, () => {
+      delete this.configs.trunks; this.seeded.delete('trunks');
+      delete this.configs.endpoints; this.seeded.delete('endpoints');
+    });
+    if (applied && warnings.length > 0) this.toast(warnings.join(' '));
+  };
+
+  // ---------------------------------------------------------------- Hardware trunks (DAHDI) screen
+
+  /** "Save these defaults": chan_dahdi.conf's [channels] section holds cumulative
+   *  settings that apply to every "channel =>" line below wherever they were last set --
+   *  see CONTROL_BINDINGS.dahdi's own header comment for why this table reads and writes
+   *  the FIRST occurrence of each key. */
+  private static readonly DAHDI_CONTROLS = [
+    'da_context', 'da_language', 'da_switchtype', 'da_signalling', 'da_usecallerid',
+    'da_busydetect', 'da_echocancel', 'da_echocancelbridged', 'da_immediate', 'da_rxgain',
+    'da_txgain', 'da_group',
+  ] as const;
+
+  onSaveDahdiGeneral = async (): Promise<void> => {
+    const current = this.configs.dahdi?.state === 'read' ? this.configs.dahdi.value : undefined;
+    if (!current) { this.fire('Not written', 'chan_dahdi.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.DAHDI_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('dahdi', current, changes);
+    await this.writeConfigResource(
+      this.configs.dahdi?.resource ?? (resourceForFile('chan_dahdi.conf') as string),
+      next,
+      'chan_dahdi.conf [channels] defaults updated on the target.',
+      'Hardware trunk defaults saved',
+      () => { delete this.configs.dahdi; this.seeded.delete('dahdi'); },
+    );
+  };
+
+  /** Read by the compiled `text`-kind control marked `action:'dahdi-spans-status'`: every
+   *  "channel =>" value currently declared in [channels], in file order. */
+  dahdiSpansStatus = (): string => {
+    const value = this.configs.dahdi?.state === 'read' ? this.configs.dahdi.value : undefined;
+    if (!value) return 'Read chan_dahdi.conf to check.';
+    const channels = value.find((section) => section.name === 'channels');
+    const spans = (channels?.entries ?? []).filter((entry) => entry.key === 'channel').map((entry) => entry.value);
+    return spans.length > 0 ? spans.join(', ') : 'No "channel =>" directives declared yet.';
+  };
+
+  /** "Add this span": appends a new "channel =>" directive to the end of [channels],
+   *  after whatever defaults are currently saved there -- exactly how
+   *  chan_dahdi.conf.sample's own examples read: settings first, then the channel(s)
+   *  they apply to (e.g. lines 1403-1419). Not expressible through CONTROL_BINDINGS at
+   *  all: the key "channel" repeats, with a different value on every line, rather than
+   *  carrying a list at one key the way `repeated: true` needs. */
+  onDahdiAddChannel = async (): Promise<void> => {
+    const current = this.configs.dahdi?.state === 'read' ? this.configs.dahdi.value : undefined;
+    if (!current) { this.fire('Not written', 'chan_dahdi.conf has not been read from the target yet.'); return; }
+    const spec = String((this.state as { values: Record<string, unknown> }).values['da_spec'] ?? '').trim();
+    if (!spec) { this.fire('Not written', 'Type a channel number or range first, e.g. "1-8".'); return; }
+    const sections = current.map((section) => ({ name: section.name, entries: [...section.entries] }));
+    let channels = sections.find((section) => section.name === 'channels');
+    if (!channels) { channels = { name: 'channels', entries: [] }; sections.push(channels); }
+    (channels.entries as { key: string; value: string }[]).push({ key: 'channel', value: spec });
+    await this.writeConfigResource(
+      this.configs.dahdi?.resource ?? (resourceForFile('chan_dahdi.conf') as string),
+      sections,
+      `chan_dahdi.conf: channel => ${spec} added.`,
+      `Channel ${spec} added`,
+      () => { delete this.configs.dahdi; this.seeded.delete('dahdi'); },
+    );
+  };
+
+  /** "Remove this span": deletes every "channel =>" entry in [channels] whose value
+   *  matches exactly, leaving every other directive and setting untouched. A spec that
+   *  matches nothing is reported rather than silently doing nothing. */
+  onDahdiRemoveChannel = async (): Promise<void> => {
+    const current = this.configs.dahdi?.state === 'read' ? this.configs.dahdi.value : undefined;
+    if (!current) { this.fire('Not removed', 'chan_dahdi.conf has not been read from the target yet.'); return; }
+    const spec = String((this.state as { values: Record<string, unknown> }).values['da_spec'] ?? '').trim();
+    if (!spec) { this.fire('Not removed', 'Type the exact channel number or range to remove first.'); return; }
+    const channels = current.find((section) => section.name === 'channels');
+    const matches = channels?.entries.filter((entry) => entry.key === 'channel' && entry.value === spec).length ?? 0;
+    if (matches === 0) { this.toast(`No "channel => ${spec}" directive in chan_dahdi.conf to remove.`); return; }
+    const next = current.map((section) => (
+      section.name === 'channels'
+        ? { name: section.name, entries: section.entries.filter((entry) => !(entry.key === 'channel' && entry.value === spec)) }
+        : section
+    ));
+    await this.writeConfigResource(
+      this.configs.dahdi?.resource ?? (resourceForFile('chan_dahdi.conf') as string),
+      next,
+      `chan_dahdi.conf: channel => ${spec} removed.`,
+      `Channel ${spec} removed`,
+      () => { delete this.configs.dahdi; this.seeded.delete('dahdi'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Shared line appearances (SLA) screen
+
+  private static readonly SLA_TRUNK_CONTROLS = [
+    'sl_trunktype', 'sl_trunkdevice', 'sl_trunkautocontext', 'sl_trunkringtimeout', 'sl_trunkbarge', 'sl_trunkhold',
+  ] as const;
+  private static readonly SLA_STATION_CONTROLS = [
+    'sl_stationtype', 'sl_stationdevice', 'sl_stationautocontext', 'sl_stationringtimeout',
+    'sl_stationringdelay', 'sl_stationhold',
+  ] as const;
+
+  /** "Load from target" on the Trunk group: reads the named [section]'s current trunk
+   *  fields out of sla.conf (already fetched by `refresh()` above) into the fields. A
+   *  name matching nothing is not a refusal -- sla.conf.sample documents an arbitrary
+   *  name per trunk, so a name typed for one that does not exist yet is simply a trunk
+   *  Save has not created. */
+  onLoadSlaTrunk = (): void => {
+    const value = this.configs.sla?.state === 'read' ? this.configs.sla.value : undefined;
+    if (!value) { this.toast('sla.conf has not finished reading yet -- press Load again in a moment.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['sl_trunkname'] ?? '').trim();
+    if (!name) { this.toast('Type a trunk name first.'); return; }
+    const found = value.find((section) => section.name === name);
+    if (!found) { this.toast(`No [${name}] section in sla.conf yet -- Save will create it.`); return; }
+    const bound = readControlValues('sla', value, {}, { sl_trunkname: name });
+    this.setState({ values: { ...state.values, ...bound } } as never);
+    this.toast(`Loaded [${name}] from sla.conf.`);
+  };
+
+  /** "Save this trunk": writes every trunk field into the named [section], creating it
+   *  (appended to the file) if it does not exist yet -- sla.conf.sample line 22-23
+   *  requires every trunk to be declared before any station, so this should run before
+   *  a station names it in its own "trunk=" list below. */
+  onSaveSlaTrunk = async (): Promise<void> => {
+    const current = this.configs.sla?.state === 'read' ? this.configs.sla.value : undefined;
+    if (!current) { this.fire('Not written', 'sla.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = usableMappingName(String(state.values['sl_trunkname'] ?? '').trim());
+    if (!name) { this.fire('Not written', 'Type a valid trunk name first -- letters, digits, underscore or hyphen only.'); return; }
+    const changes: Record<string, unknown> = { sl_trunkname: name };
+    for (const id of App.SLA_TRUNK_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('sla', current, changes);
+    await this.writeConfigResource(
+      this.configs.sla?.resource ?? (resourceForFile('sla.conf') as string),
+      next,
+      `sla.conf updated on the target: [${name}].`,
+      `Trunk [${name}] saved`,
+      () => { delete this.configs.sla; this.seeded.delete('sla'); },
+    );
+  };
+
+  /** "Load from target" on the Station group, the same shape as `onLoadSlaTrunk` above. */
+  onLoadSlaStation = (): void => {
+    const value = this.configs.sla?.state === 'read' ? this.configs.sla.value : undefined;
+    if (!value) { this.toast('sla.conf has not finished reading yet -- press Load again in a moment.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['sl_stationname'] ?? '').trim();
+    if (!name) { this.toast('Type a station name first.'); return; }
+    const found = value.find((section) => section.name === name);
+    if (!found) { this.toast(`No [${name}] section in sla.conf yet -- Save will create it.`); return; }
+    const bound = readControlValues('sla', value, {}, { sl_stationname: name });
+    this.setState({ values: { ...state.values, ...bound } } as never);
+    this.toast(`Loaded [${name}] from sla.conf.`);
+  };
+
+  /** "Save this station", the same shape as `onSaveSlaTrunk` above. The station's own
+   *  "trunk=" assignment list is saved separately below -- it is a repeated key, which
+   *  this screen's ordinary bound fields cannot carry. */
+  onSaveSlaStation = async (): Promise<void> => {
+    const current = this.configs.sla?.state === 'read' ? this.configs.sla.value : undefined;
+    if (!current) { this.fire('Not written', 'sla.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = usableMappingName(String(state.values['sl_stationname'] ?? '').trim());
+    if (!name) { this.fire('Not written', 'Type a valid station name first -- letters, digits, underscore or hyphen only.'); return; }
+    const changes: Record<string, unknown> = { sl_stationname: name };
+    for (const id of App.SLA_STATION_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('sla', current, changes);
+    await this.writeConfigResource(
+      this.configs.sla?.resource ?? (resourceForFile('sla.conf') as string),
+      next,
+      `sla.conf updated on the target: [${name}].`,
+      `Station [${name}] saved`,
+      () => { delete this.configs.sla; this.seeded.delete('sla'); },
+    );
+  };
+
+  /** Read by the compiled `text`-kind control marked `action:'sla-station-trunks-status'`:
+   *  every "trunk=" value currently declared in the station named by sl_stationname, in
+   *  file order. */
+  slaStationTrunksStatus = (): string => {
+    const value = this.configs.sla?.state === 'read' ? this.configs.sla.value : undefined;
+    const name = String((this.state as { values: Record<string, unknown> }).values['sl_stationname'] ?? '').trim();
+    if (!value) return 'Load a station to check.';
+    if (!name) return 'Type a station name first.';
+    const station = value.find((section) => section.name === name);
+    const trunks = (station?.entries ?? []).filter((entry) => entry.key === 'trunk').map((entry) => entry.value);
+    return trunks.length > 0 ? trunks.join(', ') : `[${name}] lists no trunks yet.`;
+  };
+
+  /** "Add to this station": appends a "trunk=" line to the station named by
+   *  sl_stationname, at the end of its existing trunk list -- sla.conf.sample lines
+   *  113-126 say the order is significant, matching phone button order. Not expressible
+   *  through CONTROL_BINDINGS: the key "trunk" repeats within one station's section. */
+  onSlaStationTrunkAdd = async (): Promise<void> => {
+    const current = this.configs.sla?.state === 'read' ? this.configs.sla.value : undefined;
+    if (!current) { this.fire('Not written', 'sla.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['sl_stationname'] ?? '').trim();
+    if (!name) { this.fire('Not written', 'Type a station name first.'); return; }
+    const line = String(state.values['sl_stationtrunkline'] ?? '').trim();
+    if (!line) { this.fire('Not written', 'Type a trunk assignment first, e.g. "line1" or "line3,ringdelay=5".'); return; }
+    const sections = current.map((section) => ({ name: section.name, entries: [...section.entries] }));
+    let station = sections.find((section) => section.name === name);
+    if (!station) { this.fire('Not written', `No [${name}] section in sla.conf yet -- save the station first.`); return; }
+    (station.entries as { key: string; value: string }[]).push({ key: 'trunk', value: line });
+    await this.writeConfigResource(
+      this.configs.sla?.resource ?? (resourceForFile('sla.conf') as string),
+      sections,
+      `sla.conf: [${name}] trunk=${line} added.`,
+      `Trunk assignment added to [${name}]`,
+      () => { delete this.configs.sla; this.seeded.delete('sla'); },
+    );
+  };
+
+  /** "Remove from this station": deletes every "trunk=" entry in the named station whose
+   *  value matches exactly. */
+  onSlaStationTrunkRemove = async (): Promise<void> => {
+    const current = this.configs.sla?.state === 'read' ? this.configs.sla.value : undefined;
+    if (!current) { this.fire('Not removed', 'sla.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['sl_stationname'] ?? '').trim();
+    if (!name) { this.fire('Not removed', 'Type a station name first.'); return; }
+    const line = String(state.values['sl_stationtrunkline'] ?? '').trim();
+    if (!line) { this.fire('Not removed', 'Type the exact trunk assignment to remove first.'); return; }
+    const station = current.find((section) => section.name === name);
+    const matches = station?.entries.filter((entry) => entry.key === 'trunk' && entry.value === line).length ?? 0;
+    if (matches === 0) { this.toast(`[${name}] has no "trunk=${line}" assignment to remove.`); return; }
+    const next = current.map((section) => (
+      section.name === name
+        ? { name: section.name, entries: section.entries.filter((entry) => !(entry.key === 'trunk' && entry.value === line)) }
+        : section
+    ));
+    await this.writeConfigResource(
+      this.configs.sla?.resource ?? (resourceForFile('sla.conf') as string),
+      next,
+      `sla.conf: [${name}] trunk=${line} removed.`,
+      `Trunk assignment removed from [${name}]`,
+      () => { delete this.configs.sla; this.seeded.delete('sla'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Distributed dialplan lookup (DUNDi) screen
+
+  private static readonly DUNDI_GENERAL_CONTROLS = [
+    'du_department', 'du_organization', 'du_locality', 'du_stateprov', 'du_country', 'du_email',
+    'du_phone', 'du_bindaddr', 'du_port', 'du_tos', 'du_entityid', 'du_cachetime', 'du_ttl',
+    'du_autokill', 'du_storehistory', 'du_outgoingsiptech', 'du_pjsipendpoint',
+  ] as const;
+  private static readonly DUNDI_PEER_CONTROLS = [
+    'du_peermodel', 'du_peerhost', 'du_peerport', 'du_peerinkey', 'du_peeroutkey', 'du_peerorder',
+    'du_peerinclude', 'du_peerpermit', 'du_peerdeny', 'du_peerqualify', 'du_peerregister', 'du_peerprecache',
+  ] as const;
+
+  onSaveDundiGeneral = async (): Promise<void> => {
+    const current = this.configs.dundi?.state === 'read' ? this.configs.dundi.value : undefined;
+    if (!current) { this.fire('Not written', 'dundi.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.DUNDI_GENERAL_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('dundi', current, changes);
+    await this.writeConfigResource(
+      this.configs.dundi?.resource ?? (resourceForFile('dundi.conf') as string),
+      next,
+      'dundi.conf [general] settings updated on the target.',
+      'DUNDi settings saved',
+      () => { delete this.configs.dundi; this.seeded.delete('dundi'); },
+    );
+  };
+
+  /** "Load from target" on the Mapping group: reads the named DUNDi context's current
+   *  raw mapping value out of dundi.conf's [mappings] section -- a single comma-joined
+   *  string ("local_context,weight,tech,dest[,options]"), read and written whole rather
+   *  than split into fields, the same way `findConfigEntry`/`writeConfigEntry` already do
+   *  for cel_odbc.conf's connection string above. A name matching nothing is not a
+   *  refusal: dundi.conf.sample's own examples (lines 139-159) show this is exactly how a
+   *  new mapping starts out. */
+  onLoadDundiMapping = (): void => {
+    const value = this.configs.dundi?.state === 'read' ? this.configs.dundi.value : undefined;
+    if (!value) { this.toast('dundi.conf has not finished reading yet -- press Load again in a moment.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['du_mapname'] ?? '').trim();
+    if (!name) { this.toast('Type a DUNDi context name first.'); return; }
+    const raw = findConfigEntry(value, 'mappings', name);
+    if (raw === undefined) { this.toast(`No "${name} =>" mapping in dundi.conf yet -- Save will create one.`); return; }
+    this.setState({ values: { ...state.values, du_mapvalue: raw } } as never);
+    this.toast(`Loaded "${name}" from dundi.conf.`);
+  };
+
+  /** "Save this mapping": writes `dundi_context => value` into dundi.conf's [mappings]
+   *  section, creating the section (and the entry) if either does not exist yet. */
+  onSaveDundiMapping = async (): Promise<void> => {
+    const current = this.configs.dundi?.state === 'read' ? this.configs.dundi.value : undefined;
+    if (!current) { this.fire('Not written', 'dundi.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = usableMappingName(String(state.values['du_mapname'] ?? '').trim());
+    if (!name) { this.fire('Not written', 'Type a valid DUNDi context name first -- letters, digits, underscore or hyphen only.'); return; }
+    const raw = String(state.values['du_mapvalue'] ?? '').trim();
+    if (!raw) { this.fire('Not written', 'Type the mapping value first: local_context,weight,tech,dest.'); return; }
+    const next = writeConfigEntry(current, 'mappings', name, raw);
+    await this.writeConfigResource(
+      this.configs.dundi?.resource ?? (resourceForFile('dundi.conf') as string),
+      next,
+      `dundi.conf: "${name}" mapped to ${raw}.`,
+      'DUNDi mapping saved',
+      () => { delete this.configs.dundi; this.seeded.delete('dundi'); },
+    );
+  };
+
+  /** "Remove this mapping": deletes the "dundi_context =>" line from [mappings]
+   *  entirely. */
+  onRemoveDundiMapping = async (): Promise<void> => {
+    const current = this.configs.dundi?.state === 'read' ? this.configs.dundi.value : undefined;
+    if (!current) { this.fire('Not removed', 'dundi.conf has not been read from the target yet.'); return; }
+    const name = String((this.state as { values: Record<string, unknown> }).values['du_mapname'] ?? '').trim();
+    if (!name) { this.fire('Not removed', 'Type the DUNDi context to remove first.'); return; }
+    const next = findConfigEntry(current, 'mappings', name) === undefined ? undefined : removeConfigEntry(current, 'mappings', name);
+    if (!next) { this.toast(`No "${name} =>" mapping in dundi.conf to remove.`); return; }
+    await this.writeConfigResource(
+      this.configs.dundi?.resource ?? (resourceForFile('dundi.conf') as string),
+      next,
+      `dundi.conf: "${name}" mapping removed.`,
+      'DUNDi mapping removed',
+      () => { delete this.configs.dundi; this.seeded.delete('dundi'); },
+    );
+  };
+
+  /** "Load from target" on the Peer group: reads the named entity's current peer fields
+   *  out of dundi.conf, the same shape `onLoadSlaTrunk` gives sla.conf's trunks above. */
+  onLoadDundiPeer = (): void => {
+    const value = this.configs.dundi?.state === 'read' ? this.configs.dundi.value : undefined;
+    if (!value) { this.toast('dundi.conf has not finished reading yet -- press Load again in a moment.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const eid = String(state.values['du_peereid'] ?? '').trim();
+    if (!eid) { this.toast('Type a peer entity id first.'); return; }
+    const found = value.find((section) => section.name === eid);
+    if (!found) { this.toast(`No [${eid}] section in dundi.conf yet -- Save will create it.`); return; }
+    const bound = readControlValues('dundi', value, {}, { du_peereid: eid });
+    this.setState({ values: { ...state.values, ...bound } } as never);
+    this.toast(`Loaded [${eid}] from dundi.conf.`);
+  };
+
+  /** "Save this peer": writes every peer field into the named [entityid] section,
+   *  creating it if it does not exist yet -- dundi.conf.sample's own examples (lines
+   *  238-286) show a peer as a complete section on its own, nothing else required. */
+  onSaveDundiPeer = async (): Promise<void> => {
+    const current = this.configs.dundi?.state === 'read' ? this.configs.dundi.value : undefined;
+    if (!current) { this.fire('Not written', 'dundi.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const eid = usableDundiPeerName(String(state.values['du_peereid'] ?? '').trim());
+    if (!eid) { this.fire('Not written', 'Type a valid peer entity id first -- a colon-separated MAC-style id, or "*".'); return; }
+    const changes: Record<string, unknown> = { du_peereid: eid };
+    for (const id of App.DUNDI_PEER_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('dundi', current, changes);
+    await this.writeConfigResource(
+      this.configs.dundi?.resource ?? (resourceForFile('dundi.conf') as string),
+      next,
+      `dundi.conf updated on the target: [${eid}].`,
+      `Peer [${eid}] saved`,
+      () => { delete this.configs.dundi; this.seeded.delete('dundi'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Calendars screen
+
+  private static readonly CALENDAR_CONTROLS = [
+    'ca_type', 'ca_url', 'ca_user', 'ca_refresh', 'ca_timeframe', 'ca_fetchagain', 'ca_autoreminder',
+    'ca_channel', 'ca_context', 'ca_extension', 'ca_app', 'ca_appdata', 'ca_waittime',
+  ] as const;
+
+  /** "Load from target" on the calendar group, the same shape as `onLoadSlaTrunk` above.
+   *  Never seeds ca_secret: calendar.conf.sample's own secret line is write-only here,
+   *  exactly like every other credential field in this console. */
+  onLoadCalendar = (): void => {
+    const value = this.configs.calendar?.state === 'read' ? this.configs.calendar.value : undefined;
+    if (!value) { this.toast('calendar.conf has not finished reading yet -- press Load again in a moment.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['ca_name'] ?? '').trim();
+    if (!name) { this.toast('Type a calendar name first.'); return; }
+    const found = value.find((section) => section.name === name);
+    if (!found) { this.toast(`No [${name}] section in calendar.conf yet -- Save will create it.`); return; }
+    const bound = readControlValues('calendar', value, {}, { ca_name: name });
+    this.setState({ values: { ...state.values, ...bound } } as never);
+    this.toast(`Loaded [${name}] from calendar.conf.`);
+  };
+
+  /** Read by the compiled `text`-kind control marked `action:'calendar-secret-status'`:
+   *  whether calendar.conf currently has a `secret` line for the calendar named by
+   *  ca_name -- never what it holds, the same shape `dbPgsqlPasswordStatusLine` gives
+   *  res_pgsql.conf's password above. */
+  calendarSecretStatusLine = (): string => {
+    const value = this.configs.calendar?.state === 'read' ? this.configs.calendar.value : undefined;
+    const name = String((this.state as { values: Record<string, unknown> }).values['ca_name'] ?? '').trim();
+    if (!value) return 'Load a calendar to check.';
+    if (!name) return 'Type a calendar name first.';
+    return findConfigEntry(value, name, 'secret') !== undefined
+      ? 'A password is set on the target.'
+      : 'No password is set on the target.';
+  };
+
+  /** "Save this calendar": writes every ordinary field into the named [section],
+   *  creating it if it does not exist yet, then -- only if a new password was typed --
+   *  splices `secret` in directly, outside CONTROL_BINDINGS, and blanks the field the
+   *  instant it has been read, exactly like `onSaveResPgsql`'s db_pgpassword above. */
+  onSaveCalendar = async (): Promise<void> => {
+    const current = this.configs.calendar?.state === 'read' ? this.configs.calendar.value : undefined;
+    if (!current) { this.fire('Not written', 'calendar.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = usableMappingName(String(state.values['ca_name'] ?? '').trim());
+    if (!name) { this.fire('Not written', 'Type a valid calendar name first -- letters, digits, underscore or hyphen only.'); return; }
+    const changes: Record<string, unknown> = { ca_name: name };
+    for (const id of App.CALENDAR_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    let next = applyBoundControlValues('calendar', current, changes);
+    const { secret, values: blanked } = consumeCredential(state.values, 'ca_secret');
+    if (secret !== undefined) {
+      next = writeConfigEntry(next, name, 'secret', secret);
+      this.setState({ values: blanked } as never);
+    }
+    await this.writeConfigResource(
+      this.configs.calendar?.resource ?? (resourceForFile('calendar.conf') as string),
+      next,
+      `calendar.conf updated on the target: [${name}].`,
+      `Calendar [${name}] saved`,
+      () => { delete this.configs.calendar; this.seeded.delete('calendar'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- CDR / CEL screen
+
+  /** "Save call records settings": cdr.conf's five fields, named explicitly rather
+   *  than passed as the whole `values` state, because `CONTROL_BINDINGS.cdr` spans
+   *  four files (cdr.conf itself, cel.conf, cel_odbc.conf, cel_pgsql.conf) and
+   *  `applyControlValues` has no notion of `binding.file` when deciding what to write
+   *  -- passing the unfiltered state here would write cel.conf's own l_* keys into
+   *  cdr.conf as well, the same reason the Security screen's TLS/STIR-SHAKEN saves
+   *  build an explicit list instead of forwarding `state.values` whole. */
+  private static readonly CDR_CONTROLS = ['d_enable', 'd_unanswered', 'd_congestion', 'd_batch', 'd_size'] as const;
+
+  onSaveCdr = async (): Promise<void> => {
+    const current = this.configs.cdr?.state === 'read' ? this.configs.cdr.value : undefined;
+    if (!current) { this.fire('Not written', 'cdr.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.CDR_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('cdr', current, changes);
+    await this.writeConfigResource(
+      this.configs.cdr?.resource ?? (resourceForFile('cdr.conf') as string),
+      next,
+      'cdr.conf updated on the target.',
+      'Call records settings saved',
+      () => { delete this.configs.cdr; this.seeded.delete('cdr'); },
+    );
+  };
+
+  /** "Save channel event logging settings": cel.conf's own four [general] fields. */
+  private static readonly CEL_CONTROLS = ['l_enable', 'l_events', 'l_apps', 'l_date'] as const;
+
+  onSaveCel = async (): Promise<void> => {
+    const current = this.configs.cel?.state === 'read' ? this.configs.cel.value : undefined;
+    if (!current) { this.fire('Not written', 'cel.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.CEL_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('cdr', current, changes);
+    await this.writeConfigResource(
+      this.configs.cel?.resource ?? (resourceForFile('cel.conf') as string),
+      next,
+      'cel.conf updated on the target.',
+      'Channel event logging settings saved',
+      () => { delete this.configs.cel; this.seeded.delete('cdr-cel'); },
+    );
+  };
+
+  /** The cel_odbc.conf `[section]` the ODBC group's context fields are currently
+   *  pointed at, resolved against the target's own already-read file -- the same shape
+   *  `transportSection()` above gives the Security screen's TLS group. `undefined`
+   *  when the name is empty, cel_odbc.conf has not been read yet, or nothing on the
+   *  target is named that (which is not a refusal here: Save is free to create it). */
+  private celOdbcSection(): { name: string; section: ConfigSection } | undefined {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['l_octx'] ?? '').trim();
+    const value = this.configs.celOdbc?.state === 'read' ? this.configs.celOdbc.value : undefined;
+    if (!name || !value) return undefined;
+    const section = value.find((candidate) => candidate.name === name);
+    return section ? { name, section } : undefined;
+  }
+
+  /** "Load from target" on the ODBC group: reads the named context's current
+   *  connection/table out of the cel_odbc.conf already fetched above into the fields
+   *  below. A name that does not resolve to an existing section is not a refusal --
+   *  unlike a PJSIP transport, a cel_odbc.conf context needs nothing but these two
+   *  keys to be usable, so Save is free to create one from a blank pair of fields. */
+  onLoadCelOdbc = (): void => {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['l_octx'] ?? '').trim();
+    if (!name) { this.toast('Type a context name first.'); return; }
+    const found = this.celOdbcSection();
+    if (!found) {
+      this.toast(`No [${name}] section in cel_odbc.conf yet -- Save will create it with whatever is typed below.`);
+      return;
+    }
+    const odbcValue = this.configs.celOdbc?.state === 'read' ? this.configs.celOdbc.value : undefined;
+    const bound = readControlValues('cdr', [], { 'cel_odbc.conf': odbcValue ?? [] }, { l_octx: found.name });
+    this.setState({ values: { ...values, ...bound } } as never);
+    this.toast(`Loaded [${found.name}] from cel_odbc.conf.`);
+  };
+
+  /** "Save ODBC context": writes the show-events switch (a fixed [general] key) and
+   *  the named context's connection/table (wherever `l_octx` currently names, created
+   *  fresh if it does not exist yet) in one cel_odbc.conf write. */
+  private static readonly CEL_ODBC_CONTROLS = ['l_oshow', 'l_octx', 'l_oconn', 'l_otable'] as const;
+
+  onSaveCelOdbc = async (): Promise<void> => {
+    const current = this.configs.celOdbc?.state === 'read' ? this.configs.celOdbc.value : undefined;
+    if (!current) { this.fire('Not written', 'cel_odbc.conf has not been read from the target yet.'); return; }
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['l_octx'] ?? '').trim();
+    if (!name) { this.fire('Not written', 'Type a context name before saving -- cel_odbc.conf records connections per named context, not a single global one.'); return; }
+    const changes: Record<string, unknown> = {};
+    for (const id of App.CEL_ODBC_CONTROLS) if (id in values) changes[id] = values[id];
+    const next = applyBoundControlValues('cdr', current, changes);
+    await this.writeConfigResource(
+      this.configs.celOdbc?.resource ?? (resourceForFile('cel_odbc.conf') as string),
+      next,
+      `cel_odbc.conf updated on the target: [${name}].`,
+      'ODBC context saved',
+      () => { delete this.configs.celOdbc; this.seeded.delete('cdr-cel-odbc'); },
+    );
+  };
+
+  /** "Save PostgreSQL settings": every l_p* field is fixed to cel_pgsql.conf's own
+   *  single [global] section, so all nine can be written together -- password is
+   *  never among them; see the unmapped-control note on `CONTROL_BINDINGS.cdr`. */
+  private static readonly CEL_PGSQL_CONTROLS = [
+    'l_pshow', 'l_pgmtime', 'l_phost', 'l_pport', 'l_pdb', 'l_puser', 'l_ptable', 'l_pschema', 'l_papp',
+  ] as const;
+
+  onSaveCelPgsql = async (): Promise<void> => {
+    const current = this.configs.celPgsql?.state === 'read' ? this.configs.celPgsql.value : undefined;
+    if (!current) { this.fire('Not written', 'cel_pgsql.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.CEL_PGSQL_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('cdr', current, changes);
+    await this.writeConfigResource(
+      this.configs.celPgsql?.resource ?? (resourceForFile('cel_pgsql.conf') as string),
+      next,
+      'cel_pgsql.conf updated on the target.',
+      'PostgreSQL settings saved',
+      () => { delete this.configs.celPgsql; this.seeded.delete('cdr-cel-pgsql'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Database backends screen
+
+  /** The bound db_pg* control ids the PostgreSQL group's "Save" action writes -- every
+   *  binding in CONTROL_BINDINGS.dbrealtime that has no `sectionFrom`, named explicitly
+   *  the same way the Security screen's TRANSPORT_TLS_CONTROLS/STIR_SHAKEN_CONTROLS lists
+   *  are, so a change to that table cannot silently widen what this one write touches --
+   *  which matters here specifically because CONTROL_BINDINGS.dbrealtime also carries the
+   *  db_odbc* bindings below, and `applyControlValues` does not filter by a binding's own
+   *  `file`. db_pgpassword is deliberately excluded: it carries no binding at all (see the
+   *  long comment above CONTROL_BINDINGS.dbrealtime) and is handled separately below. */
+  private static readonly PGSQL_CONTROLS = [
+    'db_pghost', 'db_pgport', 'db_pgdbname', 'db_pguser', 'db_pgsocket', 'db_pgappname',
+    'db_pgrequirements', 'db_pgorderby',
+  ] as const;
+
+  /** Read by the compiled `text`-kind control marked `action:'db-pgsql-password-status'`.
+   *  Reports only whether res_pgsql.conf's [general] section currently has a `password`
+   *  line -- never what it holds -- exactly what the task this screen exists for asked
+   *  for: "show that one is set, not what it is". */
+  private dbPgsqlPasswordStatusLine = (): string => {
+    const value = this.configs.dbrealtime?.state === 'read' ? this.configs.dbrealtime.value : undefined;
+    if (!value) return 'Read res_pgsql.conf to check.';
+    return findConfigEntry(value, 'general', 'password') !== undefined
+      ? 'A password is set on the target.'
+      : 'No password is set on the target.';
+  };
+
+  /** "Save res_pgsql.conf settings": writes every ordinary field through the same
+   *  single-key path `onSaveHttp` above uses, then -- only if a new password was typed --
+   *  splices `password` into [general] directly, outside CONTROL_BINDINGS, and blanks the
+   *  field the instant it has been read: the same take-then-blank shape
+   *  `credential-field.ts`'s `consumeCredential` already gives this console's own unlock
+   *  PIN. db_pgpassword can never be populated by a read in the first place, because no
+   *  binding for it exists anywhere in CONTROL_BINDINGS -- it is written, never displayed
+   *  back, exactly as the task this screen exists for requires. */
+  onSaveResPgsql = async (): Promise<void> => {
+    const current = this.configs.dbrealtime?.state === 'read' ? this.configs.dbrealtime.value : undefined;
+    if (!current) { this.fire('Not written', 'res_pgsql.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.PGSQL_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    let next = applyBoundControlValues('dbrealtime', current, changes);
+    const { secret, values: blanked } = consumeCredential(state.values, 'db_pgpassword');
+    if (secret !== undefined) {
+      next = writeConfigEntry(next, 'general', 'password', secret);
+      this.setState({ values: blanked } as never);
+    }
+    await this.writeConfigResource(
+      this.configs.dbrealtime?.resource ?? (resourceForFile('res_pgsql.conf') as string),
+      next,
+      'res_pgsql.conf updated on the target.',
+      'PostgreSQL settings saved',
+      () => { delete this.configs.dbrealtime; this.seeded.delete('dbrealtime'); },
+    );
+  };
+
+  /** The bound db_odbc* control ids the ODBC group's "Save" action writes -- every
+   *  `sectionFrom: 'db_odbcname'` binding in CONTROL_BINDINGS.dbrealtime, named
+   *  explicitly for the same reason PGSQL_CONTROLS above is. db_odbcpassword is
+   *  deliberately excluded, for the same reason db_pgpassword is above. */
+  private static readonly ODBC_CONTROLS = [
+    'db_odbcenabled', 'db_odbcdsn', 'db_odbcusername', 'db_odbcpreconnect', 'db_odbcmaxconn',
+    'db_odbcconntimeout', 'db_odbcnegcache', 'db_odbclogging', 'db_odbcslowquery',
+    'db_odbcbackslash', 'db_odbcisolation', 'db_odbccachetype',
+  ] as const;
+
+  /** Read by the compiled `text`-kind control marked `action:'db-odbc-password-status'`.
+   *  Whether res_odbc.conf currently has a `password` line for the CONNECTION currently
+   *  typed into db_odbcname -- never what it holds. */
+  private dbOdbcPasswordStatusLine = (): string => {
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['db_odbcname'] ?? '').trim();
+    const value = this.configs.odbc?.state === 'read' ? this.configs.odbc.value : undefined;
+    if (!name || !value) return 'Load a connection to check.';
+    return findConfigEntry(value, name, 'password') !== undefined
+      ? 'A password is set on the target.'
+      : 'No password is set on the target.';
+  };
+
+  /** "Load from target" on the ODBC group: reads the named connection's current
+   *  settings out of res_odbc.conf (already fetched by `refresh()` above) into the
+   *  fields, the same one-shot reseed the Security screen's "Load from target" gives its
+   *  TLS group. Unlike that one, a name matching nothing is not refused outright --
+   *  res_odbc.conf.sample documents every section besides [ENV] as "arbitrary names for
+   *  database connections", so a name typed for a connection that does not exist yet is
+   *  simply a new connection Save has not created yet, and the toast says so rather than
+   *  reporting a refusal for something that is not wrong. */
+  onLoadOdbcConnection = (): void => {
+    const value = this.configs.odbc?.state === 'read' ? this.configs.odbc.value : undefined;
+    if (!value) { this.toast('res_odbc.conf has not finished reading yet -- press Load again in a moment.'); return; }
+    const name = String((this.state as { values: Record<string, unknown> }).values['db_odbcname'] ?? '').trim();
+    if (!name) { this.toast('Type a connection name first.'); return; }
+    const found = value.find((candidate) => candidate.name === name);
+    if (!found) { this.toast(`No [${name}] section in res_odbc.conf yet -- Save will create one.`); return; }
+    const bound = readControlValues('dbrealtime', [], { 'res_odbc.conf': value }, { db_odbcname: name });
+    const state = this.state as { values: Record<string, unknown> };
+    this.setState({ values: { ...state.values, ...bound } } as never);
+    this.toast(`Loaded [${name}] from res_odbc.conf.`);
+  };
+
+  /** "Save ODBC connection": writes every ordinary field into the named [section],
+   *  creating it (appended to the file) if it does not already exist -- unlike the
+   *  Security screen's TLS transport save, which refuses to invent a section, a bare
+   *  `[name]` holding only res_odbc.conf keys IS a complete, usable connection on its
+   *  own, with nothing else required around it. The password is handled exactly the way
+   *  `onSaveResPgsql` handles its own: taken, written once with `writeConfigEntry`
+   *  (never through CONTROL_BINDINGS), and blanked immediately. */
+  onSaveOdbcConnection = async (): Promise<void> => {
+    const value = this.configs.odbc?.state === 'read' ? this.configs.odbc.value : undefined;
+    if (!value) { this.fire('Not written', 'res_odbc.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = usableMappingName(String(state.values['db_odbcname'] ?? '').trim());
+    if (!name) { this.fire('Not written', 'Type a valid connection name first -- letters, digits, underscore or hyphen only.'); return; }
+    const changes: Record<string, unknown> = { db_odbcname: name };
+    for (const id of App.ODBC_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    let next = applyBoundControlValues('dbrealtime', value, changes);
+    const { secret, values: blanked } = consumeCredential(state.values, 'db_odbcpassword');
+    if (secret !== undefined) {
+      next = writeConfigEntry(next, name, 'password', secret);
+      this.setState({ values: blanked } as never);
+    }
+    await this.writeConfigResource(
+      this.configs.odbc?.resource ?? (resourceForFile('res_odbc.conf') as string),
+      next,
+      `[${name}] settings updated in res_odbc.conf.`,
+      `[${name}] saved`,
+      () => { delete this.configs.odbc; },
+    );
+  };
+
+  /** "Load from target" on the Realtime mapping group: reads the named family's current
+   *  `driver,database[,table[,priority]]` mapping out of extconfig.conf's [settings]
+   *  section into the fields. A family matching nothing is not a refusal -- it is a
+   *  mapping Save has not created yet, exactly like `onLoadOdbcConnection` above. */
+  onLoadRealtimeMapping = (): void => {
+    const value = this.configs.extconfig?.state === 'read' ? this.configs.extconfig.value : undefined;
+    if (!value) { this.toast('extconfig.conf has not finished reading yet -- press Load again in a moment.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const family = String(state.values['db_family'] ?? '').trim();
+    if (!family) { this.toast('Type a realtime family first.'); return; }
+    const mapping = findRealtimeMapping(value, family);
+    if (!mapping) { this.toast(`No mapping for "${family}" in extconfig.conf yet -- Save will create one.`); return; }
+    this.setState({ values: {
+      ...state.values,
+      db_driver: mapping.driver,
+      db_database: mapping.database,
+      db_table: mapping.table ?? '',
+      db_priority: mapping.priority ?? 0,
+    } } as never);
+    this.toast(`Loaded "${family}" from extconfig.conf.`);
+  };
+
+  /** "Save realtime mapping": writes `family => driver,database[,table[,priority]]` into
+   *  extconfig.conf's [settings] section, creating the entry if it does not exist yet --
+   *  a bare `family => driver,database` is already a complete, meaningful mapping to
+   *  Asterisk, so there is nothing here to refuse the way the Security screen's TLS save
+   *  refuses an incomplete transport. Refuses only when driver or database -- the two
+   *  fields extconfig.conf.sample documents as always required -- are empty. */
+  onSaveRealtimeMapping = async (): Promise<void> => {
+    const value = this.configs.extconfig?.state === 'read' ? this.configs.extconfig.value : undefined;
+    if (!value) { this.fire('Not written', 'extconfig.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const family = usableMappingName(String(state.values['db_family'] ?? '').trim());
+    if (!family) { this.fire('Not written', 'Type a valid realtime family first -- letters, digits, underscore or hyphen only.'); return; }
+    const driver = String(state.values['db_driver'] ?? '').trim();
+    const database = String(state.values['db_database'] ?? '').trim();
+    if (!driver || !database) { this.fire('Not written', 'A realtime mapping needs at least a driver and a database name.'); return; }
+    const table = String(state.values['db_table'] ?? '').trim();
+    const priority = Number(state.values['db_priority'] ?? 0);
+    const mapping: { driver: string; database: string; table?: string; priority?: number } = { driver, database };
+    if (table) mapping.table = table;
+    if (priority > 0) mapping.priority = priority;
+    const next = writeRealtimeMapping(value, family, mapping);
+    await this.writeConfigResource(
+      this.configs.extconfig?.resource ?? (resourceForFile('extconfig.conf') as string),
+      next,
+      `"${family}" mapped to ${driver},${database} in extconfig.conf.`,
+      'Realtime mapping saved',
+      () => { delete this.configs.extconfig; },
+    );
+  };
+
+  /** "Remove this mapping": deletes the family line from extconfig.conf's [settings]
+   *  section entirely -- Asterisk then loads that file or family from disk exactly as it
+   *  would if the mapping had never existed. */
+  onRemoveRealtimeMapping = async (): Promise<void> => {
+    const value = this.configs.extconfig?.state === 'read' ? this.configs.extconfig.value : undefined;
+    if (!value) { this.fire('Not removed', 'extconfig.conf has not been read from the target yet.'); return; }
+    const family = String((this.state as { values: Record<string, unknown> }).values['db_family'] ?? '').trim();
+    if (!family) { this.fire('Not removed', 'Type the realtime family to remove first.'); return; }
+    const next = removeRealtimeMapping(value, family);
+    await this.writeConfigResource(
+      this.configs.extconfig?.resource ?? (resourceForFile('extconfig.conf') as string),
+      next,
+      `"${family}" removed from extconfig.conf.`,
+      'Realtime mapping removed',
+      () => { delete this.configs.extconfig; },
+    );
+  };
+
+  /** "Load from target" on the Sorcery wiring group: reads the named module's mapping
+   *  for the typed object type out of sorcery.conf. Nothing found is, again, not a
+   *  refusal -- it is a mapping Save has not created yet. */
+  onLoadSorceryMapping = (): void => {
+    const value = this.configs.sorcery?.state === 'read' ? this.configs.sorcery.value : undefined;
+    if (!value) { this.toast('sorcery.conf has not finished reading yet -- press Load again in a moment.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const sorceryModule = String(state.values['db_sorcerymodule'] ?? '').trim();
+    const objectType = String(state.values['db_sorceryobjtype'] ?? '').trim();
+    if (!sorceryModule || !objectType) { this.toast('Type a module and an object type first.'); return; }
+    const mapping = findSorceryMapping(value, sorceryModule, objectType);
+    if (!mapping) { this.toast(`No "${objectType}" mapping in [${sorceryModule}] yet -- Save will create one.`); return; }
+    this.setState({ values: { ...state.values, db_sorcerywizard: mapping.wizard, db_sorceryconfig: mapping.config ?? '' } } as never);
+    this.toast(`Loaded [${sorceryModule}] ${objectType} from sorcery.conf.`);
+  };
+
+  /** "Save sorcery mapping": writes `objecttype = wizard[,config]` into the named
+   *  module's section of sorcery.conf, creating the section if it does not exist yet.
+   *  Refuses only when the wizard name -- the one part every documented example in
+   *  sorcery.conf.sample carries -- is empty. */
+  onSaveSorceryMapping = async (): Promise<void> => {
+    const value = this.configs.sorcery?.state === 'read' ? this.configs.sorcery.value : undefined;
+    if (!value) { this.fire('Not written', 'sorcery.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const sorceryModule = usableMappingName(String(state.values['db_sorcerymodule'] ?? '').trim());
+    const objectType = usableMappingName(String(state.values['db_sorceryobjtype'] ?? '').trim());
+    if (!sorceryModule || !objectType) {
+      this.fire('Not written', 'Type a valid module and object type first -- letters, digits, underscore, hyphen or a single "/cache" suffix only.');
+      return;
+    }
+    const wizard = String(state.values['db_sorcerywizard'] ?? '').trim();
+    if (!wizard) { this.fire('Not written', 'A sorcery mapping needs a wizard name.'); return; }
+    const config = String(state.values['db_sorceryconfig'] ?? '').trim();
+    const mapping: { wizard: string; config?: string } = { wizard };
+    if (config) mapping.config = config;
+    const next = writeSorceryMapping(value, sorceryModule, objectType, mapping);
+    await this.writeConfigResource(
+      this.configs.sorcery?.resource ?? (resourceForFile('sorcery.conf') as string),
+      next,
+      `[${sorceryModule}] ${objectType} mapped to ${wizard} in sorcery.conf.`,
+      'Sorcery mapping saved',
+      () => { delete this.configs.sorcery; },
+    );
+  };
+
+  /** "Remove this mapping": deletes the object-type line from this module's section of
+   *  sorcery.conf entirely. */
+  onRemoveSorceryMapping = async (): Promise<void> => {
+    const value = this.configs.sorcery?.state === 'read' ? this.configs.sorcery.value : undefined;
+    if (!value) { this.fire('Not removed', 'sorcery.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const sorceryModule = String(state.values['db_sorcerymodule'] ?? '').trim();
+    const objectType = String(state.values['db_sorceryobjtype'] ?? '').trim();
+    if (!sorceryModule || !objectType) { this.fire('Not removed', 'Type the module and object type to remove first.'); return; }
+    const next = removeSorceryMapping(value, sorceryModule, objectType);
+    await this.writeConfigResource(
+      this.configs.sorcery?.resource ?? (resourceForFile('sorcery.conf') as string),
+      next,
+      `${objectType} removed from [${sorceryModule}] in sorcery.conf.`,
+      'Sorcery mapping removed',
+      () => { delete this.configs.sorcery; },
+    );
+  };
+
+  /**
+   * The Operations & releases table, parsed once from this build's own bundled tag
+   * history.
+   *
+   * Cached because the markdown cannot change while the console is running — it is a
+   * build-time constant — so re-parsing it on every render would be work with no possible
+   * different answer, and `note()` and `applyRows()` both want it on the same pass.
+   */
+  private cachedReleaseRows: string[][] | undefined;
+
+  private releaseRows(): string[][] {
+    this.cachedReleaseRows ??= releaseRows(CHANGELOG_MARKDOWN);
+    return this.cachedReleaseRows;
+  }
+
+  /**
+   * What an agent-rail screen says, from `agent-rail.ts`'s hand-written record.
+   *
+   * Three of the seven have a real local source and read it here rather than returning a
+   * fixed sentence: Operations reports the release history actually bundled into this
+   * build, Vocabulary reports whether a dictionary is genuinely loaded, and Status hub
+   * reports how many session reports this window has actually recorded. The other four
+   * return the exact store that does not exist.
+   */
+  private agentRailNote(screen: string): string {
+    if (screen === 'ops') return releaseNote(this.releaseRows());
+    if (screen === 'vocab') return vocabularyNote(vocabularyStatus(this.vocabStorage).replacementCount);
+    if (screen === 'hub') return hubNote(this.hubSessions.length);
+    return AGENT_RAIL_SOURCES[screen].reason;
+  }
+
+  // ---------------------------------------------------------------- Status hub screen
+
+  /** Session reports recorded this run, newest first -- see `onBuildHubSession` below.
+   *  Purely in-memory: this console has no local store for these and no network client
+   *  to an external hub, so nothing here survives a relaunch, and nothing claims it does. */
+  private hubSessions: Payload[] = [];
+
+  /**
+   * Builds a `status-hub-client.ts` session report from this window's own real state and,
+   * if it validates, lists it as a row on the Status hub screen.
+   *
+   * The lanes are one per config screen this run has actually tried to read: `passed` with
+   * the resource path as evidence when the read succeeded, `failed` with the target's own
+   * reported reason when it did not. A screen never opened this run is simply absent --
+   * `unrun` would be a real state to claim and nothing here has that evidence either way,
+   * so it is left out rather than guessed at, exactly as feature-codes.ts and extensions.ts
+   * leave an untouched control out of `values` rather than implying a setting nobody set.
+   */
+  onBuildHubSession = (): void => {
+    const lanes: SessionReport['lanes'] = Object.entries(this.configs)
+      .filter((entry): entry is [string, ConfigReading] => entry[1] !== undefined)
+      .slice(0, 40)
+      .map(([screen, reading]) => ({
+        id: screen,
+        label: screen.slice(0, 80),
+        state: reading.state === 'read' ? 'passed' : 'failed',
+        evidence: [reading.state === 'read'
+          ? { label: reading.resource }
+          : { label: reading.reason ?? 'the control plane did not answer' }],
+      }));
+    const report: SessionReport = {
+      title: this.target.connected ? `${this.target.label} — this session` : 'This session — no target connected',
+      summary: `${lanes.filter((l) => l.state === 'passed').length} of ${lanes.length} configuration reads `
+        + `succeeded this run.`,
+      lanes,
+    };
+    const problems = validateReport(report);
+    if (problems.length > 0) { this.fire('Not recorded', problems.map((p) => `${p.field}: ${p.message}`).join('\n')); return; }
+    this.hubSessions = [buildPayload(report), ...this.hubSessions];
+    this.applyRows('hub');
+    this.toast('Session recorded locally -- nothing was sent anywhere.');
+    this.forceUpdate();
+  };
+
+  /** The Status hub table's real rows, from `this.hubSessions` -- never the design's
+   *  invented sample sessions. `❓s` is always 0: nothing in this console asks an open
+   *  question of an external hub, so reporting anything else would be inventing one. */
+  private hubRows(): string[][] {
+    return this.hubSessions.map((payload, index) => {
+      const failed = payload.lanes.filter((lane) => lane.state === 'failed').length;
+      return [
+        `s-${this.hubSessions.length - index}`,
+        payload.title,
+        '0',
+        failed > 0 ? `Recorded (${failed} issue${failed === 1 ? '' : 's'})` : 'Recorded',
+      ];
+    });
+  }
+  // ---------------------------------------------------------------- Monitoring screen (SNMP / Prometheus)
+
+  /** "Save SNMP settings": res_snmp.conf's own two [general] fields. */
+  private static readonly MONITORING_SNMP_CONTROLS = ['mn_subagent', 'mn_enabled'] as const;
+
+  onSaveSnmp = async (): Promise<void> => {
+    const current = this.configs.monitoring?.state === 'read' ? this.configs.monitoring.value : undefined;
+    if (!current) { this.fire('Not written', 'res_snmp.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.MONITORING_SNMP_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('monitoring', current, changes);
+    await this.writeConfigResource(
+      this.configs.monitoring?.resource ?? (resourceForFile('res_snmp.conf') as string),
+      next,
+      'res_snmp.conf updated on the target.',
+      'SNMP settings saved',
+      () => { delete this.configs.monitoring; this.seeded.delete('monitoring'); },
+    );
+  };
+
+  /** Read by the compiled `text`-kind control marked
+   *  `action:'monitoring-prometheus-password-status'`. Reports only whether
+   *  prometheus.conf's [general] section currently has an `auth_password` line -- never
+   *  what it holds -- the same shape `dbPgsqlPasswordStatusLine` above gives res_pgsql.conf. */
+  private pmAuthPasswordStatusLine = (): string => {
+    const value = this.configs.prometheus?.state === 'read' ? this.configs.prometheus.value : undefined;
+    if (!value) return 'Read prometheus.conf to check.';
+    return findConfigEntry(value, 'general', 'auth_password') !== undefined
+      ? 'A Basic Auth password is set on the target.'
+      : 'No Basic Auth password is set on the target.';
+  };
+
+  /** "Save Prometheus settings": prometheus.conf's ordinary fields through the same
+   *  single-key path every other screen's Save uses, then -- only if a new password was
+   *  typed -- splices `auth_password` into [general] directly and blanks the field the
+   *  instant it has been read, the same take-then-blank shape `onSaveResPgsql` gives
+   *  res_pgsql.conf's own password. pm_authpassword can never be populated by a read in
+   *  the first place, because no binding for it exists anywhere in CONTROL_BINDINGS. */
+  private static readonly MONITORING_PROMETHEUS_CONTROLS = [
+    'pm_enabled', 'pm_core', 'pm_uri', 'pm_authuser', 'pm_authrealm',
+  ] as const;
+
+  onSavePrometheus = async (): Promise<void> => {
+    const current = this.configs.prometheus?.state === 'read' ? this.configs.prometheus.value : undefined;
+    if (!current) { this.fire('Not written', 'prometheus.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.MONITORING_PROMETHEUS_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    let next = applyBoundControlValues('monitoring', current, changes);
+    const { secret, values: blanked } = consumeCredential(state.values, 'pm_authpassword');
+    if (secret !== undefined) {
+      next = writeConfigEntry(next, 'general', 'auth_password', secret);
+      this.setState({ values: blanked } as never);
+    }
+    await this.writeConfigResource(
+      this.configs.prometheus?.resource ?? (resourceForFile('prometheus.conf') as string),
+      next,
+      'prometheus.conf updated on the target.',
+      'Prometheus settings saved',
+      () => { delete this.configs.prometheus; this.seeded.delete('monitoring-prometheus'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Directories & identity screen
+
+  /** "Save asterisk.conf settings": every as_* field, the [directories] stanza and the
+   *  [options] identity/capacity fields alike, all through the one Save button the
+   *  screen offers -- the same single-write shape http.conf's ht_save gives a screen
+   *  whose fields also span more than one group. */
+  private static readonly IDENTITY_CONTROLS = [
+    'as_dircache', 'as_diretc', 'as_dirmod', 'as_dirvarlib', 'as_dirdb', 'as_dirkey',
+    'as_dirdata', 'as_diragi', 'as_dirspool', 'as_dirrun', 'as_dirlog', 'as_dirsbin',
+    'as_systemname', 'as_autosystemname', 'as_entityid', 'as_runuser', 'as_rungroup',
+    'as_documentation_language', 'as_defaultlanguage',
+    'as_maxcalls', 'as_maxload', 'as_maxfiles', 'as_minmemfree',
+  ] as const;
+
+  onSaveIdentity = async (): Promise<void> => {
+    const current = this.configs.identity?.state === 'read' ? this.configs.identity.value : undefined;
+    if (!current) { this.fire('Not written', 'asterisk.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.IDENTITY_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('identity', current, changes);
+    await this.writeConfigResource(
+      this.configs.identity?.resource ?? (resourceForFile('asterisk.conf') as string),
+      next,
+      'asterisk.conf updated on the target.',
+      'Directories & identity settings saved',
+      () => { delete this.configs.identity; this.seeded.delete('identity'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- NAT discovery (STUN) screen
+
+  private static readonly STUN_CONTROLS = ['su_addr', 'su_refresh'] as const;
+
+  onSaveStun = async (): Promise<void> => {
+    const current = this.configs.stun?.state === 'read' ? this.configs.stun.value : undefined;
+    if (!current) { this.fire('Not written', 'res_stun_monitor.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.STUN_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('stun', current, changes);
+    await this.writeConfigResource(
+      this.configs.stun?.resource ?? (resourceForFile('res_stun_monitor.conf') as string),
+      next,
+      'res_stun_monitor.conf updated on the target.',
+      'NAT discovery settings saved',
+      () => { delete this.configs.stun; this.seeded.delete('stun'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Messaging (XMPP) screen
+
+  private static readonly XMPP_CONTROLS = [
+    'xm_debug', 'xm_autoprune', 'xm_autoregister', 'xm_collection_nodes',
+    'xm_pubsub_autocreate', 'xm_auth_policy',
+  ] as const;
+
+  onSaveXmpp = async (): Promise<void> => {
+    const current = this.configs.xmpp?.state === 'read' ? this.configs.xmpp.value : undefined;
+    if (!current) { this.fire('Not written', 'xmpp.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.XMPP_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('xmpp', current, changes);
+    await this.writeConfigResource(
+      this.configs.xmpp?.resource ?? (resourceForFile('xmpp.conf') as string),
+      next,
+      'xmpp.conf updated on the target.',
+      'Messaging settings saved',
+      () => { delete this.configs.xmpp; this.seeded.delete('xmpp'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Caller display (ADSI) screen
+
+  /** "Save alignment": adsi.conf's one bound field. ad_greeting is deliberately left out
+   *  -- see the long comment on CONTROL_BINDINGS.adsi -- so a Save here can never write
+   *  something the screen never actually read back. */
+  onSaveAdsi = async (): Promise<void> => {
+    const current = this.configs.adsi?.state === 'read' ? this.configs.adsi.value : undefined;
+    if (!current) { this.fire('Not written', 'adsi.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    if ('ad_alignment' in state.values) changes.ad_alignment = state.values.ad_alignment;
+    const next = applyBoundControlValues('adsi', current, changes);
+    await this.writeConfigResource(
+      this.configs.adsi?.resource ?? (resourceForFile('adsi.conf') as string),
+      next,
+      'adsi.conf updated on the target.',
+      'Caller display settings saved',
+      () => { delete this.configs.adsi; this.seeded.delete('adsi'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Voicemail screen
+
+  /** "Save mailbox defaults": the original ten Delivery/Caller-experience fields,
+   *  which had carried a real CONTROL_BINDINGS.voicemail entry each since this screen
+   *  was first given a live reader -- but no write action of any kind, on any group,
+   *  ever existed for it until this one. */
+  private static readonly VOICEMAIL_CONTROLS = [
+    'v_attach', 'v_delete', 'v_format', 'v_maxmsg', 'v_maxsecs', 'v_minsecs',
+    'v_review', 'v_operator', 'v_envelope', 'v_saycid',
+  ] as const;
+
+  onSaveVoicemail = async (): Promise<void> => {
+    const value = this.configs.voicemail?.state === 'read' ? this.configs.voicemail.value : undefined;
+    if (!value) { this.fire('Not written', 'voicemail.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.VOICEMAIL_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('voicemail', value, changes);
+    await this.writeConfigResource(
+      this.configs.voicemail?.resource ?? (resourceForFile('voicemail.conf') as string),
+      next,
+      'voicemail.conf [general] updated on the target.',
+      'Mailbox defaults saved',
+      () => { delete this.configs.voicemail; this.seeded.delete('voicemail'); },
+    );
+  };
+
+  /** "Save storage backend settings": the ODBC and IMAP storage fields, all still in
+   *  voicemail.conf's own [general] section -- a second Save button on the same file,
+   *  the same shape udptl.conf's own group gets on the Fax screen, chosen here because
+   *  the storage question is genuinely a different decision from the delivery/caller
+   *  policy the first Save button covers, not because the file is different. */
+  private static readonly VOICEMAIL_STORAGE_CONTROLS = [
+    'v_odbcstorage', 'v_odbctable', 'v_odbcaudiodisk',
+    'v_imapgreetings', 'v_greetingsfolder', 'v_imapserver', 'v_imapport',
+  ] as const;
+
+  onSaveVoicemailStorage = async (): Promise<void> => {
+    const value = this.configs.voicemail?.state === 'read' ? this.configs.voicemail.value : undefined;
+    if (!value) { this.fire('Not written', 'voicemail.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.VOICEMAIL_STORAGE_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('voicemail', value, changes);
+    await this.writeConfigResource(
+      this.configs.voicemail?.resource ?? (resourceForFile('voicemail.conf') as string),
+      next,
+      'voicemail.conf [general] storage settings updated on the target.',
+      'Storage backend settings saved',
+      () => { delete this.configs.voicemail; this.seeded.delete('voicemail'); },
+    );
+  };
+
+  /** "Save greeting settings": maxgreet plus the two greeting-policy switches, voicemail
+   *  .conf's own [general] section again -- the third and last Save button this screen
+   *  gained in the same pass, matching the roadmap's own "greeting management" gap. */
+  private static readonly VOICEMAIL_GREETING_CONTROLS = [
+    'v_maxgreet', 'v_forcegreetings', 'v_tempgreetwarn',
+  ] as const;
+
+  onSaveVoicemailGreeting = async (): Promise<void> => {
+    const value = this.configs.voicemail?.state === 'read' ? this.configs.voicemail.value : undefined;
+    if (!value) { this.fire('Not written', 'voicemail.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.VOICEMAIL_GREETING_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('voicemail', value, changes);
+    await this.writeConfigResource(
+      this.configs.voicemail?.resource ?? (resourceForFile('voicemail.conf') as string),
+      next,
+      'voicemail.conf [general] greeting settings updated on the target.',
+      'Greeting settings saved',
+      () => { delete this.configs.voicemail; this.seeded.delete('voicemail'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- AMI & REST screen
+
+  /** "Save HTTP server settings": http.conf's four fields, then ari.conf's one --
+   *  two files behind one button, because the design groups them as one decision
+   *  ("how ARI and the built-in web sockets are reached") even though the sample
+   *  splits them across two files. Written in sequence rather than in parallel so a
+   *  failure on the second write names exactly which file did not land, and never
+   *  claims the whole group saved when only half of it did. */
+  private static readonly AMI_HTTP_CONTROLS = ['a_http', 'a_port', 'a_tls', 'a_tlsport'] as const;
+
+  onSaveAmiHttp = async (): Promise<void> => {
+    const httpValue = this.configs.amiHttp?.state === 'read' ? this.configs.amiHttp.value : undefined;
+    if (!httpValue) { this.fire('Not written', 'http.conf has not been read from the target yet.'); return; }
+    const ariValue = this.configs.amiAri?.state === 'read' ? this.configs.amiAri.value : undefined;
+    if (!ariValue) { this.fire('Not written', 'ari.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const httpChanges: Record<string, unknown> = {};
+    for (const id of App.AMI_HTTP_CONTROLS) if (id in state.values) httpChanges[id] = state.values[id];
+    const nextHttp = applyBoundControlValues('ami', httpValue, httpChanges);
+    const httpOk = await this.writeConfigResource(
+      this.configs.amiHttp?.resource ?? (resourceForFile('http.conf') as string),
+      nextHttp,
+      'http.conf [general] updated on the target.',
+      'HTTP server settings saved',
+      () => { delete this.configs.amiHttp; this.seeded.delete('ami-http'); },
+    );
+    if (!httpOk) return;
+    const ariChanges: Record<string, unknown> = {};
+    if ('a_origin' in state.values) ariChanges.a_origin = state.values.a_origin;
+    const nextAri = applyBoundControlValues('ami', ariValue, ariChanges);
+    await this.writeConfigResource(
+      this.configs.amiAri?.resource ?? (resourceForFile('ari.conf') as string),
+      nextAri,
+      'ari.conf [general] allowed origins updated on the target.',
+      'Allowed origins saved',
+      () => { delete this.configs.amiAri; this.seeded.delete('ami-http'); },
+    );
+  };
+
+  /** "Save manager permissions": manager.conf's own four [general] fields -- the
+   *  defaults a new user inherits, read and written exactly like every other
+   *  single-file, single-section group on this console. */
+  private static readonly AMI_MANAGER_CONTROLS = ['a_read', 'a_write', 'a_deny', 'a_timeout'] as const;
+
+  onSaveAmiManager = async (): Promise<void> => {
+    const value = this.configs.ami?.state === 'read' ? this.configs.ami.value : undefined;
+    if (!value) { this.fire('Not written', 'manager.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.AMI_MANAGER_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('ami', value, changes);
+    await this.writeConfigResource(
+      this.configs.ami?.resource ?? (resourceForFile('manager.conf') as string),
+      next,
+      'manager.conf [general] updated on the target.',
+      'Manager permissions saved',
+      () => { delete this.configs.ami; this.seeded.delete('ami'); },
+    );
+  };
+
+  /** "New API user" above the table: reads the Add-an-API-user group's own fields
+   *  straight out of state, the same way `onAddAclRule`/`onAddServer` do for their own
+   *  screens, and creates a `[username]` section in whichever file the Interface picker
+   *  names. AMI gets `secret`; ARI gets `password` and, when ticked, `read_only`.
+   *  manager.conf is this screen's own declared `file`, cached at `this.configs.ami`;
+   *  ari.conf is the extra file the read block above caches at `this.configs.amiAri`. */
+  onAddApiUser = async (): Promise<void> => {
+    const state = this.state as { values: Record<string, unknown> };
+    const values = state.values;
+    const username = String(values['am_username'] ?? '').trim();
+    const secret = String(values['am_secret'] ?? '');
+    const isAri = String(values['am_interface'] ?? 'AMI') === 'ARI';
+    if (!username) { this.fire('Not added', 'Type a username first.'); return; }
+    if (isAri) {
+      const value = this.configs.amiAri?.state === 'read' ? this.configs.amiAri.value : undefined;
+      if (!value) { this.fire('Not added', 'ari.conf has not been read from the target yet.'); return; }
+      if (value.some((section) => section.name === username)) { this.fire('Not added', `[${username}] already exists in ari.conf.`); return; }
+      const readOnly = values['am_readonly'] === true;
+      const entries = [
+        { key: 'type', value: 'user' },
+        { key: 'read_only', value: readOnly ? 'yes' : 'no' },
+        ...(secret ? [{ key: 'password', value: secret }] : []),
+      ];
+      const next = [...value, { name: username, entries }];
+      const applied = await this.writeConfigResource(
+        this.configs.amiAri?.resource ?? (resourceForFile('ari.conf') as string),
+        next,
+        `[${username}] added to ari.conf.`,
+        'ARI user added',
+        () => { delete this.configs.amiAri; this.seeded.delete('ami-http'); },
+      );
+      if (applied) this.setState({ values: { ...state.values, am_username: '', am_secret: '', am_readonly: false } } as never);
+      return;
+    }
+    const value = this.configs.ami?.state === 'read' ? this.configs.ami.value : undefined;
+    if (!value) { this.fire('Not added', 'manager.conf has not been read from the target yet.'); return; }
+    if (value.some((section) => section.name === username)) { this.fire('Not added', `[${username}] already exists in manager.conf.`); return; }
+    const entries = secret ? [{ key: 'secret', value: secret }] : [];
+    const next = [...value, { name: username, entries }];
+    const applied = await this.writeConfigResource(
+      this.configs.ami?.resource ?? (resourceForFile('manager.conf') as string),
+      next,
+      `[${username}] added to manager.conf.`,
+      'AMI user added',
+      () => { delete this.configs.ami; this.seeded.delete('ami'); },
+    );
+    if (applied) this.setState({ values: { ...state.values, am_username: '', am_secret: '' } } as never);
+  };
+
+  /** The row context menu's "Delete …" for the AMI & REST table. `name` is the row's
+   *  own first cell (the username) with no interface tag attached, so this resolves it
+   *  by checking whichever already-fetched file actually has that section -- manager
+   *  .conf first, then ari.conf -- and refuses outright rather than guessing when
+   *  neither does (the file has not been read yet) or when the name simply is not
+   *  there any more. Never removes [general]: that name can never reach here because
+   *  it is not a row this table renders in the first place, but the check stays
+   *  explicit rather than relying on that alone. */
+  onRemoveApiUser = async (name: string): Promise<void> => {
+    if (name === 'general') { this.fire('Not removed', '[general] is not an API user.'); return; }
+    const managerValue = this.configs.ami?.state === 'read' ? this.configs.ami.value : undefined;
+    if (managerValue?.some((section) => section.name === name)) {
+      const next = managerValue.filter((section) => section.name !== name);
+      await this.writeConfigResource(
+        this.configs.ami?.resource ?? (resourceForFile('manager.conf') as string),
+        next,
+        `[${name}] removed from manager.conf.`,
+        'AMI user removed',
+        () => { delete this.configs.ami; this.seeded.delete('ami'); },
+      );
+      return;
+    }
+    const ariValue = this.configs.amiAri?.state === 'read' ? this.configs.amiAri.value : undefined;
+    if (ariValue?.some((section) => section.name === name)) {
+      const next = ariValue.filter((section) => section.name !== name);
+      await this.writeConfigResource(
+        this.configs.amiAri?.resource ?? (resourceForFile('ari.conf') as string),
+        next,
+        `[${name}] removed from ari.conf.`,
+        'ARI user removed',
+        () => { delete this.configs.amiAri; this.seeded.delete('ami-http'); },
+      );
+      return;
+    }
+    this.fire('Not removed', `[${name}] is not in manager.conf or ari.conf on this target -- or neither file has been read yet.`);
+  };
+
+  /** "Kick session": the AMI & REST screen's one genuinely live-connection action. The
+   *  configured-user table above (`amiRows`) is manager.conf/ari.conf, never a live
+   *  connection; the readout `a_connected` shows next to this button (`action:
+   *  'ami-connected-status'`, see `managerConnectionsStatus` in readings.ts) is the live
+   *  one, off `manager show connected`, and the file descriptor it prints for each row is
+   *  exactly what this field wants -- `main/manager.c` `handle_kickmanconn` takes an fd,
+   *  never a username. Runs through the same confirmation ceremony every other real
+   *  action on this console uses, with the exact CLI line `write-commands.ts` builds and
+   *  the dispatcher's own allowlist re-checks before it ever reaches a target. */
+  onKickManagerSession = (): void => {
+    const state = this.state as { values: Record<string, unknown> };
+    const fd = String(state.values['a_kickfd'] ?? '').trim();
+    if (!fd) { this.fire('Not run', 'Type the file descriptor to kick first -- it is the "fd" number in the connected-sessions list above, not a username.'); return; }
+    const command = buildManagerKickSessionCommand(fd);
+    if (!command) { this.fire('Not run', `"${fd}" is not a file descriptor -- it must be the plain positive number \`manager show connected\` printed for that session.`); return; }
+    this.ceremony(`Kick manager session ${fd}`, command);
+  };
+
   private note(screen: string): string {
-    if (screen === 'history') return NO_HISTORY;
-    if (screen === 'memory') return NO_MEMORY;
-    if (screen === 'trunkauth') return NO_AUTH_REQUESTS;
+    if (screen === 'history') {
+      if (this.historyReading === undefined) return NO_HISTORY;
+      return this.historyReading.entries.length > 0 ? '' : HISTORY_EMPTY;
+    }
+    /* Both of these come before the `target.connected` branch on purpose. Neither reads a
+     * PBX for the thing it is short of: the agent rail reads no target at all, and the
+     * trunk-authentication screen's empty inbox is a fact about this console rather than
+     * about any target, so answering either with "No target is connected" would name a
+     * cause that is not the cause. */
+    if (isAgentRailScreen(screen)) return this.agentRailNote(screen);
+    if (screen === 'trunkauth') return trunkAuthNote(this.readings.trunkauth, this.target.connected, this.target.detail);
     if (!this.target.connected) return `No target is connected — ${this.target.detail}.`;
+    if (screen === 'sounds') {
+      if (this.promptState === 'unavailable') {
+        return `The target's prompt library could not be read: ${this.promptReason ?? 'the control plane did not answer'}.`;
+      }
+      if (this.promptState !== 'read' || !this.promptFiles) return 'Reading /var/lib/asterisk/sounds…';
+      const count = this.promptFiles.length;
+      return count === 0
+        ? 'No prompts have been uploaded to /var/lib/asterisk/sounds on this target yet — press "Upload a prompt" above the table.'
+        : `${count} prompt${count === 1 ? '' : 's'} read from /var/lib/asterisk/sounds on this target.`;
+    }
+    /* Before the configuration branch below, and that ordering is the repair rather than a
+     * preference. The canvas declares `file: "extensions.conf"` in the design, so it fell
+     * into that branch and returned `configSummary(this.configs.canvas, …)` — but `read()`
+     * answers this screen through its own `pbx.read` view and never populates
+     * `this.configs.canvas`, so the summary was permanently "Reading…" and the canvas's own
+     * failure reason was unreachable code. The canvas is not a configuration screen in the
+     * sense that branch means: every control on it is read-only (see `canvasVals`), and
+     * what it has to report is what `dialplan show` said, not what a file holds. */
+    if (screen === 'canvas') {
+      if (!this.canvasReadings) return 'Reading…';
+      /* Two different facts, and both get said. `canvasReason` is why there is no graph;
+       * the divergence note is what the graph on screen actually describes. A canvas that
+       * read fine used to say nothing at all, which left `dialplan show`'s loaded state
+       * looking exactly like the file an operator is about to edit. */
+      return [canvasReason(this.canvasReadings), dialplanDivergenceNote(this.canvasReadings), this.dialplanDivergenceNote()]
+        .filter(Boolean)
+        .join(' ');
+    }
     /* A configuration screen reports the file it edits and what is really in it. This
      * says what was read; it does not claim the controls below are bound to it, because
      * they are not yet, and implying otherwise would be the same untruth the
-     * confirmation dialog used to tell. */
-    if (resourceForFile((SCREENS as Record<string, { file?: unknown }>)[screen]?.file)) {
-      const summary = configSummary(this.configs[screen], this.target.connected);
+     * confirmation dialog used to tell.
+     *
+     * `canvas` declares `file: 'extensions.conf'` too, but has no bound controls at all
+     * (`groups: []`) and `this.configs.canvas` is never populated -- routing it through
+     * here left this branch's `configSummary()` stuck reporting 'Reading…' forever
+     * and the dedicated canvas branch below unreachable. Excluded so that branch, and
+     * its divergence note, actually run. */
+    if (screen !== 'canvas' && resourceForFile((SCREENS as Record<string, { file?: unknown }>)[screen]?.file)) {
+      /* A screen that edits a file returns from inside this branch, so the reading
+       * failures reported at the bottom of this method never reach it. `endpoints` is one
+       * of those screens and also reads per-endpoint detail, so a failed detail read would
+       * otherwise leave two silently empty columns with nothing anywhere saying why. */
+      const summary = `${configSummary(this.configs[screen], this.target.connected)}${this.endpointDetailNote(screen)}${this.droppedRowsNote(screen)}${this.mediaCacheSentence(screen)}`;
       /* Say how many controls on this screen are genuinely bound to that file. A screen
        * that reads its file but leaves half its switches on design defaults must not let
        * a reader assume every control below is live — that is the same untruth as the
        * dialog that used to announce work it had not done, just quieter. */
-      const unmapped = unmappedControls(screen).length;
-      if (this.configs[screen]?.state === 'read' && unmapped > 0) {
-        return `${summary} ${unmapped} control(s) on this screen are not yet bound to a setting in it and still show shipped defaults.`;
+      const unmapped = unmappedControls(screen);
+      if (this.configs[screen]?.state === 'read') {
+        /* A screen nobody has inventoried is not a screen with nothing left to bind, and the
+         * two used to be indistinguishable here -- an empty list meant both, so three whole
+         * screens said nothing and read as more finished than the honest ones. */
+        if (isUninventoried(unmapped)) {
+          return `${summary} None of the controls on this screen are bound to it yet: they change what you see here and are not written to the file.`;
+        }
+        if (unmapped.length > 0) {
+          return `${summary} ${unmapped.length} control(s) on this screen are not yet bound to a setting in it and still show shipped defaults.`;
+        }
+        /* `analyse()` (control-plane/acl-model.ts) finds real problems in the rules
+         * themselves -- a rule a later one always overwrites, a bare "permit the whole
+         * internet", an ACL that ends on an open permit, an ACL with nothing in it --
+         * surfaced here rather than left for someone to notice the hard way. */
+        if (screen === 'security') {
+          const findings = aclFindings(this.configs.security?.value);
+          if (findings.length > 0) {
+            return `${summary} ${findings.length} finding(s) in these rules: ${findings.map((f) => f.message).join(' ')}`;
+          }
+        }
       }
       return summary;
-    }
-    if (screen === 'canvas') {
-      if (!this.canvasReadings) return 'Reading…';
-      return canvasReason(this.canvasReadings);
     }
     if (!isReadable(screen)) return NO_READER;
     const readings = this.readings[screen];
     if (!readings) return 'Reading…';
     return reasonFor(readings, ['channels', 'endpoints', 'contacts', 'registrations', 'queues', 'modules', 'uptime', 'voicemailUsers', 'rooms', 'mohClasses', 'managerUsers', 'ariApps']);
+  }
+
+  /**
+   * The sentence the endpoints screen adds when it could not read the per-endpoint
+   * parameter table, or when the read budget left some endpoints out.
+   *
+   * Empty for every other screen, and empty when every endpoint was read. Without it the
+   * only sign of either is an em dash in Transport and Codecs, which is the console's
+   * word for "not read" and says nothing about why.
+   */
+  /**
+   * What the Music on Hold screen says about the target's media cache.
+   *
+   * Empty for every other screen. This screen edits `musiconhold.conf`, so `note()` returns
+   * from its configuration branch and never reaches the reading report at the bottom of it
+   * -- the same shape that left the Voicemail and AMI screens silent about their own failed
+   * readings -- which is why the sentence is appended to the file summary here rather than
+   * left to `reasonFor`.
+   */
+  private mediaCacheSentence(screen: string): string {
+    if (screen !== 'moh') return '';
+    const note = mediaCacheNote(this.readings.moh?.mediaCacheItems);
+    return note ? ` ${note}` : '';
+  }
+
+  private endpointDetailNote(screen: string): string {
+    if (screen !== 'endpoints') return '';
+    const reading = this.readings.endpoints?.endpointDetails;
+    if (!reading) return '';
+    if (reading.result.state === 'unavailable') {
+      return ` Transport and Codecs are empty because the per-endpoint detail could not be read: ${reading.result.reason}`;
+    }
+    const notRead = reading.result.value?.notRead ?? [];
+    if (notRead.length === 0) return '';
+    return ` Transport and Codecs are empty for ${notRead.length} endpoint(s) this read did not reach: ${notRead.slice(0, 5).join(', ')}${notRead.length > 5 ? ', …' : ''}.`;
+  }
+
+  /**
+   * What a screen says when its table is short of the rows the target really has.
+   *
+   * Both readings behind these two tables hand back the target's own trailer count beside
+   * the list they parsed, and both screens rendered the list and threw the count away --
+   * so a Voicemail screen showing three of four mailboxes looked exactly like one showing
+   * all four. Measured on a live target: the trailer said `4 voicemail users configured`
+   * and the table had three rows.
+   *
+   * Empty for every other screen, and empty whenever the table is showing everything.
+   */
+  private droppedRowsNote(screen: string): string {
+    const sentences = this.readingShortfalls(screen);
+    return sentences.length === 0 ? '' : ` ${sentences.join(' ')}`;
+  }
+
+  /**
+   * Every reason this screen's table has fewer rows than its target does, one sentence
+   * each, in the order a reader wants them: a reading that never answered first, then a
+   * reading that answered short.
+   *
+   * They accumulate rather than compete. A table fed by two commands can lose one of them
+   * outright while the other comes back a row light, and each sentence is the only thing
+   * that names its own cause -- so returning whichever came first leaves a real cause
+   * unsaid on a screen that had already measured it.
+   *
+   * Both of these screens edit a configuration file, which is what makes this method
+   * necessary rather than convenient: `note()` returns from its configuration branch and
+   * never reaches the reading-failure report at the bottom, so without these lines a
+   * failed `voicemail show users` leaves an empty table whose only sentence is about
+   * voicemail.conf -- naming the wrong thing entirely. The AMI screen acquired that same
+   * shape the day it was given a real `manager.conf` to read.
+   */
+  private readingShortfalls(screen: string): string[] {
+    if (screen === 'voicemail') {
+      const readings = this.readings.voicemail;
+      if (!readings) return [];
+      const failed = reasonFor(readings, ['voicemailUsers']);
+      if (failed) return [`No mailboxes are listed because \`voicemail show users\` could not be read: ${failed}`];
+      const value = valueOf(readings.voicemailUsers);
+      if (!value) return [];
+      return [droppedRowNote({
+        command: 'voicemail show users',
+        unit: 'voicemail user',
+        parsed: value.users.length,
+        total: value.total,
+        dropped: value.dropped,
+        reason: 'prints fixed-width columns, and a context or mailbox that overruns its own field leaves nothing to say where the next column begins, so the row is left out rather than filed under the wrong context',
+      }).trim()].filter(Boolean);
+    }
+    if (screen === 'ami') {
+      const readings = this.readings.ami;
+      if (!readings) return [];
+      const sentences: string[] = [];
+      /* Both readings feed the one table (`amiRows`), so either failing costs it rows and
+       * neither failure reaches `reasonFor` from this screen any more. */
+      const failed = reasonFor(readings, ['managerUsers', 'ariApps']);
+      /* Deliberately not phrased "rows are missing from this table": that is the shortfall
+       * sentence's own wording, and two sentences about different causes reading the same
+       * way is how a reader, or a test needle, conflates them. */
+      if (failed) sentences.push(`This table is incomplete because a reading did not answer: ${failed}`);
+      const value = valueOf(readings.managerUsers);
+      if (value) {
+        sentences.push(droppedRowNote({
+          command: 'manager show users',
+          unit: 'manager user',
+          parsed: value.users.length,
+          total: value.total,
+          reason: 'prints one username per line, and this reading could not tell every line apart from the report\'s own header, separator and trailer',
+        }).trim());
+      }
+      return sentences.filter(Boolean);
+    }
+    return [];
+  }
+
+  /**
+   * The sentence the canvas screen adds when `dialplan show` -- the loaded dialplan --
+   * and `extensions.conf` -- the file on disk -- disagree. `dialplan show` reads what
+   * Asterisk currently has loaded, not what the file currently says; an edit that was
+   * never followed by a reload leaves the two disagreeing with nothing on either
+   * reading saying so. Verified against a live target: the file held three contexts the
+   * running dialplan had none of, because an earlier session had restored the file
+   * without reloading `pbx_config` -- see `contextsMissingFromLoadedDialplan`.
+   *
+   * Empty until both readings have landed, and empty when they agree.
+   */
+  private dialplanDivergenceNote(): string {
+    const graph = canvasValueOf(this.canvasReadings?.dialplan);
+    if (!graph) return '';
+    const fileReading = this.canvasExtensionsConf;
+    if (!fileReading || fileReading.state !== 'read') return '';
+    const missing = contextsMissingFromLoadedDialplan(graph, sectionNames(fileReading.value));
+    if (missing.length === 0) return '';
+    const shown = missing.slice(0, 5).join(', ');
+    const more = missing.length > 5 ? `, and ${missing.length - 5} more` : '';
+    return ` extensions.conf declares ${missing.length} context(s) this reading found no loaded extensions under -- ${shown}${more} -- which usually means the file has changed since Asterisk last reloaded it. This canvas shows what is loaded, not what the file currently says.`;
   }
 
   /** Real dialplan nodes/edges in the design's canvas shapes, with a bezier path per edge
@@ -1377,6 +7412,404 @@ It is shown once. The phone needs it to register.`);
       ].map((item) => ({ ...item, add: readOnlyCanvas })),
       canvasBgClick: () => this.set('nodeId', ''),
       ...(canvasContextItems ? { ctxItems: canvasContextItems } : {}),
+    };
+  }
+
+  // ---------------------------------------------------------------- Logger screen
+
+  /** "Save logger.conf settings": the screen's own four fields that actually live in
+   *  logger.conf -- console levels, file levels, rotation strategy and queue logging.
+   *  Verbosity (g_verbose) is deliberately excluded: it lives in asterisk.conf, a
+   *  different file, and gets its own Save button (`onSaveLoggerVerbosity`) below, the
+   *  same split the CDR/CEL screen's own onSaveCdr/onSaveCel already use for exactly
+   *  the same reason -- applyBoundControlValues has no notion of a binding's `file`
+   *  when deciding what to write, so passing every value on the screen through in one
+   *  call would write logger.conf's own keys into asterisk.conf too. */
+  private static readonly LOGGER_CONTROLS = ['g_console', 'g_file', 'g_rotate', 'g_queue'] as const;
+
+  onSaveLogger = async (): Promise<void> => {
+    const current = this.configs.logger?.state === 'read' ? this.configs.logger.value : undefined;
+    if (!current) { this.fire('Not written', 'logger.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.LOGGER_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('logger', current, changes);
+    await this.writeConfigResource(
+      this.configs.logger?.resource ?? (resourceForFile('logger.conf') as string),
+      next,
+      'logger.conf updated on the target.',
+      'Logger settings saved',
+      () => { delete this.configs.logger; this.seeded.delete('logger'); },
+    );
+  };
+
+  /** "Save verbosity": the one logger-screen field that is not a logger.conf key at all
+   *  (asterisk.conf.sample line 20, [options] verbose). Writes only that one field, to
+   *  asterisk.conf, leaving every other setting in that file untouched -- and clears the
+   *  cache the Codecs screen shares with this one (`this.configs.asterisk`), since a
+   *  screen that just wrote the file cannot trust a reading taken before the write. */
+  onSaveLoggerVerbosity = async (): Promise<void> => {
+    const current = this.configs.asterisk?.state === 'read' ? this.configs.asterisk.value : undefined;
+    if (!current) { this.fire('Not written', 'asterisk.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    if ('g_verbose' in state.values) changes.g_verbose = state.values.g_verbose;
+    const next = applyBoundControlValues('logger', current, changes);
+    await this.writeConfigResource(
+      this.configs.asterisk?.resource ?? (resourceForFile('asterisk.conf') as string),
+      next,
+      'asterisk.conf updated on the target.',
+      'Verbosity saved',
+      () => { delete this.configs.asterisk; this.seeded.delete('logger-asterisk'); this.seeded.delete('codecs-asterisk'); },
+    );
+  };
+
+  /** The logger.conf `[logfiles]` entry named by whatever is currently typed into
+   *  `g_chname` -- the same shape `celOdbcSection` above gives the CDR/CEL screen's
+   *  named ODBC context, except this one entry is a KEY inside one fixed section
+   *  rather than a whole named section, since console/messages.log/full.log/etc. are
+   *  all just lines in logger.conf's one `[logfiles]` block (logger.conf.sample lines
+   *  94-186). `undefined` when the name is empty, logger.conf has not been read yet, or
+   *  nothing on the target is named that -- which is not a refusal: Save is free to
+   *  create it, the same way `onSaveCelOdbc`'s named context is. */
+  private loggerChannelEntry(): { name: string; value: string } | undefined {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['g_chname'] ?? '').trim();
+    const value = this.configs.logger?.state === 'read' ? this.configs.logger.value : undefined;
+    if (!name || !value) return undefined;
+    const section = value.find((candidate) => candidate.name === 'logfiles');
+    const entry = section?.entries.find((candidate) => candidate.key === name);
+    return entry ? { name, value: entry.value } : undefined;
+  }
+
+  /** "Load from target": reads the named channel's current comma-separated level list
+   *  out of logger.conf already fetched above into `g_chlevels`. */
+  onLoadLoggerChannel = (): void => {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['g_chname'] ?? '').trim();
+    if (!name) { this.toast('Type a channel name first.'); return; }
+    const found = this.loggerChannelEntry();
+    if (!found) {
+      this.toast(`No "${name}" channel in logger.conf's [logfiles] section yet -- Save will create it with whatever is typed below.`);
+      return;
+    }
+    const levels = found.value.split(',').map((level) => level.trim()).filter((level) => level.length > 0);
+    this.setState({ values: { ...values, g_chlevels: levels } } as never);
+    this.toast(`Loaded "${name}" from logger.conf.`);
+  };
+
+  /** "Save channel": writes or creates the named channel's level list in logger.conf's
+   *  `[logfiles]` section, leaving `console`, `messages.log` and every other channel
+   *  untouched -- a hand-built edit rather than a CONTROL_BINDINGS entry, because the
+   *  key here is whatever the admin typed, not a fixed name the binding table can name
+   *  in advance (the same reason extconfig.conf's family mappings and sorcery.conf's
+   *  object-type mappings are hand-rolled too; see the long comment above
+   *  CONTROL_BINDINGS.dbrealtime). */
+  onSaveLoggerChannel = async (): Promise<void> => {
+    const current = this.configs.logger?.state === 'read' ? this.configs.logger.value : undefined;
+    if (!current) { this.fire('Not written', 'logger.conf has not been read from the target yet.'); return; }
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['g_chname'] ?? '').trim();
+    if (!name) { this.fire('Not written', 'Type a channel name before saving -- logger.conf records levels per named channel, not a single global list.'); return; }
+    const levels = values['g_chlevels'];
+    if (!Array.isArray(levels) || levels.length === 0) { this.fire('Not written', 'Pick at least one level before saving -- a channel with no levels logs nothing.'); return; }
+    const value = levels.map((level) => String(level).trim()).filter((level) => level.length > 0).join(',');
+    const sections = current.map((section) => ({ name: section.name, entries: [...section.entries] }));
+    let section = sections.find((candidate) => candidate.name === 'logfiles');
+    if (!section) { section = { name: 'logfiles', entries: [] }; sections.push(section); }
+    const entries = section.entries as { key: string; value: string }[];
+    const idx = entries.findIndex((entry) => entry.key === name);
+    if (idx === -1) entries.push({ key: name, value }); else entries[idx] = { key: name, value };
+    await this.writeConfigResource(
+      this.configs.logger?.resource ?? (resourceForFile('logger.conf') as string),
+      sections,
+      `logger.conf updated on the target: [${name}].`,
+      'Channel saved',
+      () => { delete this.configs.logger; this.seeded.delete('logger'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Modules screen
+
+  /** "Save modules.conf settings": autoload plus the four per-module lists (preload,
+   *  never-load, required, force-load), all bound `repeated: true` in
+   *  CONTROL_BINDINGS.modules -- see the long comment there for why a plain comma list
+   *  would have written a line Asterisk's own loader reads as one nonexistent module. */
+  private static readonly MODULES_CONTROLS = ['mo_auto', 'mo_preload', 'mo_noload', 'mo_require', 'mo_load'] as const;
+
+  onSaveModules = async (): Promise<void> => {
+    const current = this.configs.modules?.state === 'read' ? this.configs.modules.value : undefined;
+    if (!current) { this.fire('Not written', 'modules.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.MODULES_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('modules', current, changes);
+    await this.writeConfigResource(
+      this.configs.modules?.resource ?? (resourceForFile('modules.conf') as string),
+      next,
+      'modules.conf updated on the target.',
+      'Modules settings saved',
+      () => { delete this.configs.modules; this.seeded.delete('modules'); },
+    );
+  };
+
+  /** The Modules row menu's Load/Unload/Reload items. Every one of these is a real,
+   *  immediately-effective action against the running target (`main/cli.c` `handle_load`
+   *  / `handle_unload` / `handle_reload`) -- unloading a channel driver hangs up every
+   *  call it owns, which is exactly what the screen's own `sub` copy already warns
+   *  about. `buildModuleActionCommand` (`write-commands.ts`) is the one place the exact
+   *  command line is built and the one place a module name is validated, so the row menu
+   *  and the dispatcher's own re-check can never drift apart on what counts as safe. */
+  onModuleAction = (kind: ModuleActionKind, moduleName: string): void => {
+    const command = buildModuleActionCommand(kind, moduleName);
+    if (!command) { this.fire('Not run', `"${moduleName}" is not a loadable module name this console has read -- refresh the Modules screen first.`); return; }
+    const verb = kind === 'load' ? 'Load' : kind === 'unload' ? 'Unload' : 'Reload';
+    this.ceremony(`${verb} ${moduleName}`, command);
+  };
+
+  /**
+   * "Show declared policy for …" on a module row -- the closest this console can come to
+   * a dependency view. Asterisk's own CLI has no command that lists a module's runtime
+   * dependents or dependencies (`module show` prints only name/description/use
+   * count/status/support level, `main/cli.c` `MODLIST_FORMAT`); the only real, sourced
+   * relationship data this console has for a module is whatever modules.conf itself
+   * already says about it -- the four chip lists this same screen's "Load policy" group
+   * already edits (`mo_preload`/`mo_noload`/`mo_require`/`mo_load`). This reads those
+   * bound values back rather than inventing a dependency graph Asterisk does not expose.
+   */
+  moduleDeclaredPolicyLine = (moduleName: string): string => {
+    const state = this.state as { values: Record<string, unknown> };
+    const listed = (id: string): boolean => {
+      const value = state.values[id];
+      return Array.isArray(value) && value.includes(moduleName);
+    };
+    const roles: string[] = [];
+    if (listed('mo_preload')) roles.push('preloaded before autoload');
+    if (listed('mo_noload')) roles.push('never loaded (noload)');
+    if (listed('mo_require')) roles.push('required -- Asterisk exits if this fails to load');
+    if (listed('mo_load')) roles.push('force-loaded even with autoload off');
+    if (roles.length === 0) {
+      return `modules.conf names no policy for ${moduleName}: it loads or not by the autoload switch alone. Asterisk's own CLI has no command listing a module's runtime dependents or dependencies -- only "module show"'s use count, which the table already shows.`;
+    }
+    return `modules.conf declares ${moduleName} as: ${roles.join('; ')}.`;
+  };
+
+  // ---------------------------------------------------------------- Codecs & RTP screen
+
+  /** "Save transcoding setting": the one codecs-screen field that is not an rtp.conf
+   *  key -- asterisk.conf.sample line 77, [options] transcode_via_sln, since
+   *  codecs.conf itself has no global transcoding switch at all. Writes only that one
+   *  field, the same split logger's own verbosity Save uses for the same reason, and
+   *  clears the config cache the two screens share. */
+  onSaveCodecTranscode = async (): Promise<void> => {
+    const current = this.configs.asterisk?.state === 'read' ? this.configs.asterisk.value : undefined;
+    if (!current) { this.fire('Not written', 'asterisk.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    if ('k_transcode' in state.values) changes.k_transcode = state.values.k_transcode;
+    const next = applyBoundControlValues('codecs', current, changes);
+    await this.writeConfigResource(
+      this.configs.asterisk?.resource ?? (resourceForFile('asterisk.conf') as string),
+      next,
+      'asterisk.conf updated on the target.',
+      'Transcoding setting saved',
+      () => { delete this.configs.asterisk; this.seeded.delete('logger-asterisk'); this.seeded.delete('codecs-asterisk'); },
+    );
+  };
+
+  /** "Save RTP settings": the screen's own four rtp.conf fields -- port range, strict
+   *  RTP and ICE support. This is the screen's declared `file` now (it used to say
+   *  'codecs.conf · rtp.conf', a display label resourceForFile refuses -- see
+   *  resource-for-file.test.tsx -- so this screen had never read anything before). */
+  private static readonly RTP_CONTROLS = ['r_start', 'r_end', 'r_strict', 'r_ice'] as const;
+
+  onSaveRtp = async (): Promise<void> => {
+    const current = this.configs.codecs?.state === 'read' ? this.configs.codecs.value : undefined;
+    if (!current) { this.fire('Not written', 'rtp.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.RTP_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('codecs', current, changes);
+    await this.writeConfigResource(
+      this.configs.codecs?.resource ?? (resourceForFile('rtp.conf') as string),
+      next,
+      'rtp.conf updated on the target.',
+      'RTP settings saved',
+      () => { delete this.configs.codecs; this.seeded.delete('codecs'); },
+    );
+  };
+
+  /** The Codecs screen's own copy of `asterisk-readings.ts`'s `OBJECT_ID` check, kept
+   *  local rather than importing that control-plane module into the renderer -- the same
+   *  boundary `EndpointDetail` in readings.ts already keeps by holding its own copy of
+   *  the shape `parseEndpointDetail` produces rather than importing the parser itself.
+   *  `asterisk -rx` takes the whole command as one argv element with no shell, so a
+   *  rejected id is refused by name here rather than trimmed or substituted. */
+  private static readonly CODECS_ENDPOINT_ID = /^[A-Za-z0-9_.+@-]{1,128}$/;
+
+  /** Read by the `k_endpointresult` text control (`action:'codecs-endpoint-status'`). */
+  private endpointCodecLine = 'Type a pjsip.conf endpoint id above and press "Look up".';
+
+  /**
+   * "Look up" on the Codecs screen's per-endpoint negotiation group: the one thing the
+   * screen's own translation graph cannot show, because `core show translation`/`core
+   * show codecs` are both global -- neither names a single endpoint. `pjsip show
+   * endpoint <id>` (`res/res_pjsip/pjsip_configuration.c`) is the only CLI output that
+   * prints one endpoint's own configured `allow=` codec list and `transport=`; the
+   * Endpoints screen already reads it in bulk for its own table
+   * (`AsteriskReadings.endpointDetails`, bounded to `MAX_ENDPOINT_DETAILS` rows), but
+   * this screen has no endpoint table to bound a read against, so it looks up exactly
+   * the one endpoint asked for, on demand, through the same allowlisted `pbx.command`
+   * route the confirmation ceremony uses -- read-only, so it runs directly rather than
+   * behind that ceremony's confirmation gate, the same way `pbx.config`/`pbx.read`
+   * already do for every other plain read on this console. The raw CLI text is shown
+   * verbatim rather than re-parsed a second time in the renderer, so nothing here can
+   * silently disagree with what the Endpoints screen's own parser reads from the same
+   * output.
+   */
+  onLookupEndpointCodecs = async (): Promise<void> => {
+    const state = this.state as { values: Record<string, unknown> };
+    const id = String(state.values['k_endpoint'] ?? '').trim();
+    if (!id) { this.fire('Not looked up', 'Type a pjsip.conf endpoint id first.'); return; }
+    if (!App.CODECS_ENDPOINT_ID.test(id)) {
+      this.endpointCodecLine = `"${id}" is not a usable endpoint id.`;
+      this.fire('Not looked up', this.endpointCodecLine);
+      this.forceUpdate();
+      return;
+    }
+    if (!this.target.connected) {
+      this.endpointCodecLine = `No target is connected -- ${this.target.detail}.`;
+      this.fire('Not looked up', this.endpointCodecLine);
+      this.forceUpdate();
+      return;
+    }
+    this.toast(`Reading pjsip show endpoint ${id}…`);
+    const response = await this.request('pbx.command', { serverId: this.target.id, payload: { command: `pjsip show endpoint ${id}` } });
+    if (!response?.ok) {
+      this.endpointCodecLine = response?.message ?? `"${id}" could not be read from the target.`;
+      this.forceUpdate();
+      return;
+    }
+    const output = String((response.data as { output?: string } | undefined)?.output ?? '').trim();
+    this.endpointCodecLine = output.length > 0 ? output : `${id} returned no output -- it may not exist on this target.`;
+    this.forceUpdate();
+  };
+
+  // ---------------------------------------------------------------- History screen
+  //
+  // The History screen's real source is the console's own local, append-only git
+  // repository (`LocalHistory`, `control-plane/local-history.ts`) -- see the comment
+  // beside `historyReading` above. Nothing here invents a branch, a commit, a diff
+  // line, or an author: `local-history-view.ts` maps exactly what that store answers,
+  // and the screen stays honestly empty until something outside this reading path
+  // (none of it exists yet -- see ROADMAP.md) starts calling `local-history.record`.
+
+  /** Fetches the diff for one commit, dropping a stale answer for a commit the user
+   *  has since clicked away from. */
+  private loadHistoryDiff = async (id: string): Promise<void> => {
+    if (this.historyDiffPending) return;
+    this.historyDiffPending = true;
+    const response = await this.request('local-history.diff', { commitId: id });
+    this.historyDiffPending = false;
+    if (this.historySelectedId !== id) return;
+    this.historyDiff = response?.ok ? (response.data as HistoryDiff) : { files: [], lines: [] };
+    this.forceUpdate();
+  };
+
+  private selectHistoryCommit = (id: string): void => {
+    this.historySelectedId = id;
+    this.historyDiff = undefined;
+    this.forceUpdate();
+    void this.loadHistoryDiff(id);
+  };
+
+  /** Fetches which files differ between the two commits currently held for
+   *  comparison, dropping a stale answer if the pair has since changed. */
+  private loadHistoryCompare = async (fromId: string, toId: string): Promise<void> => {
+    if (this.historyComparePending) return;
+    this.historyComparePending = true;
+    const response = await this.request('local-history.compare', { fromId, toId });
+    this.historyComparePending = false;
+    if (this.historyCompareIds[0] !== fromId || this.historyCompareIds[1] !== toId) return;
+    this.historyCompareFiles = response?.ok ? (response.data as { files: string[] }).files : [];
+    this.forceUpdate();
+  };
+
+  private toggleHistoryCompareRow = (id: string): void => {
+    this.historyCompareIds = toggleHistoryCompareIds(this.historyCompareIds, id);
+    this.historyCompareFiles = undefined;
+    this.forceUpdate();
+    if (this.historyCompareIds.length === 2) void this.loadHistoryCompare(this.historyCompareIds[0], this.historyCompareIds[1]);
+  };
+
+  /** `LocalHistory.restore` never rewrites the commit it restores from -- it records a
+   *  brand-new one on top -- so this never needs a destructive-action gate; it only
+   *  needs to be truthful about what happened. */
+  private restoreHistoryCommit = async (id: string): Promise<void> => {
+    const response = await this.request('local-history.restore', { commitId: id });
+    if (response?.ok) {
+      this.toast('Restored that version as a new entry — nothing was overwritten.');
+      this.historyReading = undefined;
+      this.historySelectedId = '';
+      this.historyDiff = undefined;
+      this.forceUpdate();
+    } else {
+      this.fire('Restore failed', response?.message ?? 'The control plane did not answer.', true);
+    }
+  };
+
+  private copyHistoryCommitId = (id: string): void => {
+    const clipboard = (navigator as { clipboard?: { writeText?: (text: string) => Promise<void> } }).clipboard;
+    if (!clipboard?.writeText) { this.fire('Could not reach the clipboard', 'This browser context has no clipboard API available.', true); return; }
+    void clipboard.writeText(id).then(() => this.toast('Commit id copied to the clipboard'));
+  };
+
+  private setHistoryFilter = (action: string): void => {
+    this.historyFilterAction = action;
+    this.forceUpdate();
+  };
+
+  /** Forces a real refetch on the next `refresh()` pass -- `refresh` only reads
+   *  `local-history.list` again once `historyReading` is `undefined`. */
+  private refreshHistoryNow = (): void => {
+    this.historyReading = undefined;
+    this.forceUpdate();
+  };
+
+  private historyVals(): Record<string, unknown> {
+    const reading = this.historyReading;
+    const entries: HistoryCommit[] = (reading?.entries as ReadonlyArray<HistoryCommit> | undefined)?.slice() ?? [];
+    const visible = historyFilteredEntries(entries, this.historyFilterAction);
+    const rows = historyCommitRows(visible, this.historySelectedId, this.historyCompareIds).map((row) => ({
+      ...row,
+      bg: row.selected ? 'rgba(130,217,165,0.08)' : 'transparent',
+      cmpFg: row.comparing ? '#82D9A5' : '#9AA39B',
+      pick: () => this.selectHistoryCommit(row.id),
+      ctx: (e: MouseEvent) => { e.preventDefault(); this.selectHistoryCommit(row.id); },
+      compare: () => this.toggleHistoryCompareRow(row.id),
+      onKeyActivate: activateOnEnter,
+    }));
+    const selectedCommit = entries.find((entry) => entry.id === this.historySelectedId);
+    const diffActions = selectedCommit ? [
+      { icon: 'restore', label: 'Restore this version', bg: '#1B4D33', fg: '#9FF7C4', run: () => void this.restoreHistoryCommit(selectedCommit.id) },
+      { icon: 'content_copy', label: 'Copy commit id', bg: 'transparent', fg: '#C4CBC2', run: () => this.copyHistoryCommitId(selectedCommit.id) },
+    ] : [];
+    return {
+      branchName: reading?.branch || '(no branch read yet)',
+      // There is exactly one real branch: `LocalHistory` never creates another, so a
+      // chip strip implying a choice between branches would be decoration, not a
+      // control. `branchName` above already names the one that exists.
+      branches: [],
+      histActions: [{ icon: 'refresh', label: 'Refresh', run: this.refreshHistoryNow }],
+      commitCount: commitCountLabel(visible),
+      histFilters: historyFilterChips(reading?.counts ?? {}, this.historyFilterAction)
+        .map((chip) => ({ ...chip, off: !chip.on, pick: () => this.setHistoryFilter(chip.action) })),
+      commitRows: rows,
+      diffFile: diffFileLabel(this.historySelectedId, this.historyDiff, this.historyDiffPending),
+      diffLines: diffLineViews(this.historyDiff),
+      diffActions,
+      blameRows: historyBlameRows(entries, this.historySelectedId, this.historyDiff),
+      compareLabel: historyCompareLabel(entries, this.historyCompareIds, this.historyCompareFiles, this.historyComparePending),
     };
   }
 
@@ -1531,6 +7964,67 @@ It is shown once. The phone needs it to register.`);
   // that renders -- the compiled markup has no selector for an individual element or
   // tab to receive its own override, so those controls remain design-only.
 
+  /**
+   * Says which of this panel's controls actually reach the console.
+   *
+   * The panel offers a great many; six of them are applied to the real root element and
+   * persisted, and the rest move only its preview swatch because the compiled markup gives
+   * an individual element no selector to receive an override. That was recorded in a comment
+   * here and nowhere the person using it could see, which is the same defect as a button
+   * that announces work it did not do -- the code being honest with itself is not the same
+   * as the interface being honest with somebody.
+   *
+   * Counted from the applied list rather than written as a number, so the sentence cannot
+   * drift away from the code the way a hand-typed count would.
+   */
+  private appearanceScope(): string {
+    const applied = App.APPLIED_APPEARANCE.length;
+    const preview = App.PREVIEW_APPEARANCE.length;
+    const inert = App.INERT_APPEARANCE.length;
+    return `${applied} of these controls change the console itself and are kept when you `
+      + 'relaunch: the accent colour, the font family, its weight and its size. '
+      + `${preview} of them (those ${applied} included) move the preview above, live, so you can `
+      + 'see exactly what each one does -- but the interface gives an individual element no way '
+      + 'to receive its own override yet, so those choices are not saved and change nothing '
+      + 'outside this panel. '
+      + `The remaining ${inert} do nothing at all yet: the entrance animation and its timing, `
+      + 'and the two layout controls, which need a preview with more than one child before a '
+      + 'gap or an alignment can show.';
+  }
+
+  /** The appearance keys that genuinely reach the document and survive a relaunch. Named
+   *  once so the readout above, the persistence below and the restore path cannot disagree
+   *  about which those are. */
+  private static readonly APPLIED_APPEARANCE = ['ap_hue', 'ap_sat', 'ap_light', 'ap_family', 'ap_weight', 'ap_size'] as const
+
+  /** Every appearance control the live preview genuinely consumes, `APPLIED_APPEARANCE`
+   *  included. The readout above counts this list rather than asserting a number, and a
+   *  contract test compares it against the preview the design actually compiles to -- so a
+   *  control added to or dropped from the preview cannot leave the readout claiming
+   *  something that stopped being true. */
+  private static readonly PREVIEW_APPEARANCE = [
+    'ap_alpha', 'ap_blend', 'ap_blur', 'ap_bright', 'ap_bs', 'ap_bw', 'ap_case', 'ap_contrast',
+    'ap_deco', 'ap_family', 'ap_fill', 'ap_grey', 'ap_hrot', 'ap_hue', 'ap_lead', 'ap_light',
+    'ap_num', 'ap_pb', 'ap_pl', 'ap_pr', 'ap_pt', 'ap_r1', 'ap_r2', 'ap_r3', 'ap_r4',
+    'ap_rainbow', 'ap_rbdir', 'ap_rbease', 'ap_rblight', 'ap_rbrange', 'ap_rbsat', 'ap_rbspeed',
+    'ap_rot', 'ap_sat', 'ap_satf', 'ap_sb', 'ap_scale', 'ap_sin', 'ap_size', 'ap_skew', 'ap_sop',
+    'ap_ss', 'ap_sx', 'ap_sy', 'ap_track', 'ap_transition', 'ap_tx', 'ap_ty', 'ap_weight',
+  ] as const;
+
+  /** The appearance controls that still reach nothing whatsoever. Named rather than counted,
+   *  so the readout can say which they are and the same contract test can prove none of them
+   *  is quietly in the preview after all. */
+  private static readonly INERT_APPEARANCE = [
+    'ap_anim', 'ap_dur', 'ap_ease', 'ap_celebrate',
+    'ap_align', 'ap_gap',
+  ] as const;
+
+  static readonly APPEARANCE_INVENTORY = {
+    applied: App.APPLIED_APPEARANCE,
+    preview: App.PREVIEW_APPEARANCE,
+    inert: App.INERT_APPEARANCE,
+  };;
+
   /** The actual rendered root: the compiled design's outermost div, found via the
    *  window drag-region marker on its first child rather than a hard-coded ref,
    *  since the generated file assigns it no id or class of its own. */
@@ -1609,7 +8103,7 @@ It is shown once. The phone needs it to register.`);
       return;
     }
     const restored: Record<string, unknown> = {};
-    for (const key of ['ap_hue', 'ap_sat', 'ap_light', 'ap_family', 'ap_weight', 'ap_size']) {
+    for (const key of App.APPLIED_APPEARANCE) {
       if (key in parsed) restored[key] = parsed[key];
     }
     if (Object.keys(restored).length === 0) return;
@@ -1693,7 +8187,7 @@ It is shown once. The phone needs it to register.`);
     this.appearanceLastSerialised = '';
     this.setState((st: { values: Record<string, unknown> }) => {
       const next = { ...st.values };
-      for (const key of ['ap_hue', 'ap_sat', 'ap_light', 'ap_family', 'ap_weight', 'ap_size']) delete next[key];
+      for (const key of App.APPLIED_APPEARANCE) delete next[key];
       return { values: next };
     });
     this.applyAppearanceToDom(resetAll(this.buildAppearanceTheme(this.currentAppearanceValues())));
@@ -1728,10 +8222,21 @@ It is shown once. The phone needs it to register.`);
     const screen = (this.state as { screen: string }).screen;
     this.applyRows(screen);
     this.syncAppearance();
+    if (screen === 'servers') this.prepareServersScreen();
+    if (screen === LOCAL_HISTORY_SCREEN_ID) this.prepareLocalHistoryScreen();
     const values = super.renderVals() as Record<string, unknown>;
     const bridge = this.bridge();
     const readings = this.readings[screen];
     const note = this.note(screen);
+    /* The About screen says what this console calls itself in its body, not in its
+     * heading. The heading is a bound value, so it was cheap to write `About <app>` into
+     * it -- and that cost the parity harness the one thing it uses to prove a driver
+     * arrived at the right destination, because it settles on the heading matching the
+     * design's. About was the only destination of thirty-two with no built capture at all
+     * as a result. See aboutIdentityLine(). */
+    const sub = screen === 'about'
+      ? `${values.screenSub as string} ${aboutIdentityLine(this.durableStorage.storage)}`
+      : (values.screenSub as string);
 
     return {
       ...values,
@@ -1756,8 +8261,27 @@ It is shown once. The phone needs it to register.`);
        * happened.
        */
       executeCeremony: () => {
+        const title = String((this.state as { ceremonyTitle?: string }).ceremonyTitle ?? '');
         const command = String((this.state as { ceremonyCmd?: string }).ceremonyCmd ?? '');
         this.set('ceremonyOpen', false);
+
+        /*
+         * The bulk-actions "Delete" button opens this exact ceremony (`Delete ${n}
+         * objects` / `delete ${ids.join(' ')}`) and, once confirmed, used to send that
+         * command straight to the target -- "delete" is not a real Asterisk CLI command,
+         * so the target's own error is what came back. Route a confirmed bulk delete
+         * through bulk() instead, so it reaches the same real planBulk()/summarise()
+         * plan-and-report every other bulk verb goes through (see bulk() above). A
+         * single row's own "Delete <name>" ceremony, opened from its context menu
+         * through a different (`areYouSure`) gate, does not match this shape and keeps
+         * running through the target command below exactly as before.
+         */
+        const bulkDeleteIds = parseBulkDeleteCeremony(title, command);
+        if (bulkDeleteIds) {
+          this.bulk('Deleted', bulkDeleteIds);
+          return;
+        }
+
         void runCeremonyCommand({
           command,
           connected: this.target.connected,
@@ -1765,7 +8289,44 @@ It is shown once. The phone needs it to register.`);
           request: (action, extra) => this.request(action, extra) as Promise<CeremonyResponse | undefined>,
           toast: (message) => this.toast(message),
           fire: (title, body) => this.fire(title, body),
+        }).then((ok) => {
+          /* `module load|unload|reload <name>` and `manager kick session <fd>` are the
+           * only two non-read-only command lines this console will run at all (see
+           * `write-commands.ts`); either one, once it genuinely ran, makes the console's
+           * own cached reading of that screen stale -- a module's use count/state, or
+           * who is still connected. Dropping the cache is what makes the very next
+           * refresh cycle re-read the target instead of going on showing the state from
+           * before the action, the same "delete the cache key, let the normal read path
+           * repopulate it" shape `writeConfigResource`'s own callback uses everywhere
+           * else on this console. */
+          if (!ok) return;
+          if (/^module (load|unload|reload) /u.test(command)) delete this.readings.modules;
+          if (/^manager kick session /u.test(command)) delete this.readings.ami;
+          this.forceUpdate();
         });
+      },
+      /**
+       * The shared toast's "Undo" button used to close the toast and announce "Change
+       * reverted" no matter what had actually happened -- nothing was ever reverted.
+       *
+       * Every control on this console that changes a value goes through `setVal()`,
+       * which both records the change onto `state.commits` (newest first) and raises
+       * the toast this button lives on. The History screen already has a real, working
+       * undo for exactly that: "Revert just this option" writes the most recent
+       * commit's `from` value back through the same `setVal()`. This reuses that route
+       * rather than inventing a second one -- see `decideUndo` for why it only acts
+       * when the toast on screen is genuinely the one that commit produced, and refuses
+       * honestly (never faking a revert) for everything else a toast is raised for.
+       */
+      undoToast: () => {
+        const state = this.state as { toastText?: string; commits?: CommitEntry[] };
+        const decision = decideUndo(String(state.toastText ?? ''), state.commits ?? []);
+        this.set('toastOpen', false);
+        if (decision.kind === 'revert') {
+          this.setVal({ id: decision.commit.key, label: decision.commit.label }, decision.commit.from);
+          return;
+        }
+        this.fire('Nothing to undo', decision.reason);
       },
       /* The real file, for the screens that edit one. A screen showing the target's own
        * configuration is the difference between an administration tool and a picture of
@@ -1790,7 +8351,9 @@ It is shown once. The phone needs it to register.`);
           return;
         }
         this.toast('Creating the Asterisk runtime — this imports a root filesystem and takes a while.');
+        this.resetDeployProgress();
         void this.request('runtime.provision').then((response) => {
+          this.stopDeployTicker();
           if (!response) {
             this.fire('Not run', 'The desktop bridge is unavailable, so nothing was created.');
             return;
@@ -1841,7 +8404,7 @@ It is shown once. The phone needs it to register.`);
       connLabel: this.target.label,
       connUptime: this.target.detail,
       openConnection: () => this.showInfo('Connection', BOUNDARY, BOUNDARY_PLAIN, '38%', '70px'),
-      screenSub: note ? `${values.screenSub as string}\n\n${note}` : values.screenSub,
+      screenSub: note ? `${sub}\n\n${note}` : sub,
 
       // Dashboard tiles, live rows and health bars come only from observed readings.
       stats: dashboardStats(readings),
@@ -1854,6 +8417,13 @@ It is shown once. The phone needs it to register.`);
         kill: () => this.ceremony('Hang up a live call', `channel request hangup ${channel.name}`),
       })),
       health: healthBars(readings),
+      /* An empty panel with a heading and nothing under it reads as a rendering failure
+       * rather than as "there is nothing to show". Found by driving the built app with a
+       * system that has no endpoints and no queues, which is exactly a first run. */
+      noHealth: healthBars(readings).length === 0,
+      /* Same reason as noHealth: an empty list under a heading is indistinguishable from a
+       * panel that failed to render, and a PBX with no calls up is the ordinary case. */
+      noLiveCalls: (valueOf(readings?.channels) ?? []).length === 0,
 
       // The dialplan canvas draws only the real graph read from `dialplan show`; when
       // there is no reading it stays empty rather than falling back to design samples.
@@ -1872,13 +8442,13 @@ It is shown once. The phone needs it to register.`);
       // invented per-destination numbers.
       sections: this.badges(values.sections as Array<Record<string, unknown>>),
 
-      // History & git has no real source: nothing in this app stages, applies or commits
-      // a configuration change yet, so the screen never shows the design's invented commits.
-      ...(screen === 'history' ? {
-        commits: [], commitRows: [], diffLines: [], diffFile: 'no commit selected', blameRows: [],
-        branches: [], branchName: '', commitCount: '0 commits',
-        compareLabel: NO_HISTORY,
-      } : {}),
+      // History & git: real rows from the console's own local git repository
+      // (`LocalHistory`) once `refresh()` has read it -- see `historyVals` and the
+      // `historyReading` field above. Before that first read resolves (including in
+      // this component's own disconnected static render, which never mounts) every
+      // field below is the same honest empty shape the design's own defaults were
+      // replaced with, so nothing here can render an invented commit either way.
+      ...(screen === 'history' ? this.historyVals() : {}),
 
       // The agent rail has no local memory store wired in, so its rows and metrics stay empty.
       ...(screen === 'memory' ? {
@@ -2079,7 +8649,7 @@ It is shown once. The phone needs it to register.`);
     const spansFor = (spans: readonly { text: string; href?: string }[]) => spans.map((span) => {
       const targetId = span.href && article ? resolveLink(DOCS_BUNDLE, article, span.href) : undefined;
       return targetId
-        ? { isLink: true, text: span.text, onClick: () => this.set('docsSelectedId', targetId) }
+        ? { isLink: true, text: span.text, onClick: () => this.set('docsSelectedId', targetId), onKeyActivate: activateOnEnter }
         : { isPlain: true, text: span.text };
     });
     const blockToVals = (block: DocsBlock): Record<string, unknown> => {
@@ -2103,6 +8673,7 @@ It is shown once. The phone needs it to register.`);
           icon: s.relation === 'outgoing' ? 'arrow_forward' : 'arrow_back',
           title: s.title,
           select: () => this.set('docsSelectedId', s.id),
+          onKeyActivate: activateOnEnter,
         }))
       : [];
 
@@ -2114,6 +8685,7 @@ It is shown once. The phone needs it to register.`);
         excerpt: r.excerpt,
         bg: r.id === selectedId ? '#232A24' : 'transparent',
         select: () => this.set('docsSelectedId', r.id),
+        onKeyActivate: activateOnEnter,
       })),
       docsResultsLabel: query.trim().length === 0
         ? `${results.length} article${results.length === 1 ? '' : 's'}`
@@ -2253,8 +8825,20 @@ It is shown once. The phone needs it to register.`);
   }
 }
 
+/** The shape `editorCtls()` reads and mutates -- a subset of what `ctl(...)` in the
+ *  compiled design actually produces, kept narrow rather than importing the generated
+ *  file's own untyped shape. */
+interface EditorCtl {
+  id: string;
+  label: string;
+  kind: string;
+  value: unknown;
+  options?: string[];
+  info?: string;
+}
+
 interface DesktopBridge {
   platform: string;
-  window: { minimize: () => void; toggleMaximize: () => void; close: () => void };
+  window: { minimize: () => void; toggleMaximize: () => void; close: () => void; setTitle: (title: string) => void };
   controlPlane: { request: (request: Record<string, unknown>) => Promise<ControlPlaneResponse | undefined> };
 }

@@ -1,0 +1,101 @@
+{
+  "destinationId": "live",
+  "bar": "chrome-parity",
+  "verdict": "diff",
+  "reasons": [],
+  "dimensions": {
+    "reference": {
+      "width": 1440,
+      "height": 1000
+    },
+    "built": {
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  "totalPixels": 1440000,
+  "comparedPixels": 419192,
+  "comparedFraction": 0.29110555555555556,
+  "minimumComparedFraction": 0.25,
+  "diffPixelCount": 27092,
+  "diffPercentage": 6.462909597511403,
+  "boundingBox": {
+    "x0": 6,
+    "y0": 14,
+    "x1": 1436,
+    "y1": 986
+  },
+  "excluded": {
+    "rectangles": [
+      {
+        "x": 538,
+        "y": 0,
+        "width": 534,
+        "height": 40
+      },
+      {
+        "x": 356,
+        "y": 78,
+        "width": 1084,
+        "height": 922
+      }
+    ],
+    "pixels": 1020808,
+    "clippedAway": [],
+    "diffPixelCount": 759510,
+    "diffPercentage": 74.40282599666148
+  },
+  "areas": {
+    "brandCell": {
+      "comparedPixels": 6440,
+      "diffPixelCount": 846,
+      "diffPercentage": 13.136645962732917
+    },
+    "menuCell": {
+      "comparedPixels": 15360,
+      "diffPixelCount": 1888,
+      "diffPercentage": 12.291666666666666
+    },
+    "statusCell": {
+      "comparedPixels": 14720,
+      "diffPixelCount": 555,
+      "diffPercentage": 3.770380434782609
+    },
+    "tabStrip": {
+      "comparedPixels": 54720,
+      "diffPixelCount": 9749,
+      "diffPercentage": 17.816154970760234
+    },
+    "rail": {
+      "comparedPixels": 81136,
+      "diffPixelCount": 0,
+      "diffPercentage": 0
+    },
+    "sectionList": {
+      "comparedPixels": 247096,
+      "diffPixelCount": 14054,
+      "diffPercentage": 5.687667950917861
+    }
+  },
+  "paletteCheck": {
+    "blackFraction": 0,
+    "thresholdExceeded": false
+  },
+  "stalenessCheck": {
+    "checked": true,
+    "stale": false,
+    "builtCaptureMtimeMs": 1787701424417.6748,
+    "newestBuildSourceMtimeMs": 1787701108062.1504
+  },
+  "generatedBy": "console/scripts/design-parity-capture-run.mjs --side=chrome",
+  "tuple": {
+    "state": "default",
+    "theme": "dark",
+    "width": 1440,
+    "height": 1000,
+    "scale": 1
+  },
+  "regionLedger": "console/release/evidence/parity/live-regions.json",
+  "referenceCapture": "console/release/captures/parity/live-reference.png",
+  "builtCapture": "console/release/captures/parity/live-built.png"
+}

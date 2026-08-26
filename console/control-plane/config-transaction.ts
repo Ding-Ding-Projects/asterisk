@@ -98,7 +98,12 @@ export class ConfigTransaction {
         if (!equal(actual, diff.after)) throw new Error(`Post-read mismatch for ${diff.resource}`);
         completed.push(failedAction);
       }
-      return result(plan.id, "applied", startedAt, this.now(), completed, false, "Configuration applied and verified");
+      return {
+        ...result(plan.id, "applied", startedAt, this.now(), completed, false, "Configuration applied and verified"),
+        /* Handed back so a successful change can be undone deliberately, not only when it
+         * fails. Same handles the failure path above uses. */
+        backups: applied.map((entry) => ({ resource: entry.resource, handle: entry.backup })),
+      };
     } catch (error) {
       let rollbackSucceeded = true;
       for (const entry of [...applied].reverse()) {

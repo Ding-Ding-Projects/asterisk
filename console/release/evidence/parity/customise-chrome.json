@@ -1,0 +1,101 @@
+{
+  "destinationId": "customise",
+  "bar": "chrome-parity",
+  "verdict": "diff",
+  "reasons": [],
+  "dimensions": {
+    "reference": {
+      "width": 1440,
+      "height": 1000
+    },
+    "built": {
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  "totalPixels": 1440000,
+  "comparedPixels": 419192,
+  "comparedFraction": 0.29110555555555556,
+  "minimumComparedFraction": 0.25,
+  "diffPixelCount": 19879,
+  "diffPercentage": 4.742218362945858,
+  "boundingBox": {
+    "x0": 0,
+    "y0": 14,
+    "x1": 1314,
+    "y1": 986
+  },
+  "excluded": {
+    "rectangles": [
+      {
+        "x": 538,
+        "y": 0,
+        "width": 534,
+        "height": 40
+      },
+      {
+        "x": 356,
+        "y": 78,
+        "width": 1084,
+        "height": 922
+      }
+    ],
+    "pixels": 1020808,
+    "clippedAway": [],
+    "diffPixelCount": 833201,
+    "diffPercentage": 81.62171534705841
+  },
+  "areas": {
+    "brandCell": {
+      "comparedPixels": 6440,
+      "diffPixelCount": 846,
+      "diffPercentage": 13.136645962732917
+    },
+    "menuCell": {
+      "comparedPixels": 15360,
+      "diffPixelCount": 1888,
+      "diffPercentage": 12.291666666666666
+    },
+    "statusCell": {
+      "comparedPixels": 14720,
+      "diffPixelCount": 555,
+      "diffPercentage": 3.770380434782609
+    },
+    "tabStrip": {
+      "comparedPixels": 54720,
+      "diffPixelCount": 2155,
+      "diffPercentage": 3.938230994152047
+    },
+    "rail": {
+      "comparedPixels": 81136,
+      "diffPixelCount": 4291,
+      "diffPercentage": 5.288651153618615
+    },
+    "sectionList": {
+      "comparedPixels": 247096,
+      "diffPixelCount": 10144,
+      "diffPercentage": 4.105287013954091
+    }
+  },
+  "paletteCheck": {
+    "blackFraction": 0,
+    "thresholdExceeded": false
+  },
+  "stalenessCheck": {
+    "checked": true,
+    "stale": false,
+    "builtCaptureMtimeMs": 1787701427622.689,
+    "newestBuildSourceMtimeMs": 1787701108062.1504
+  },
+  "generatedBy": "console/scripts/design-parity-capture-run.mjs --side=chrome",
+  "tuple": {
+    "state": "default",
+    "theme": "dark",
+    "width": 1440,
+    "height": 1000,
+    "scale": 1
+  },
+  "regionLedger": "console/release/evidence/parity/customise-regions.json",
+  "referenceCapture": "console/release/captures/parity/customise-reference.png",
+  "builtCapture": "console/release/captures/parity/customise-built.png"
+}

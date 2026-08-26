@@ -1,0 +1,6 @@
+Class: default
+	Mode: files
+	Directory: moh
+Class: ding-live-probe-moh
+	Mode: files
+	Directory: moh

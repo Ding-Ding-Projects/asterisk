@@ -5,7 +5,7 @@ import {
   CONTROL_BINDINGS,
   applyControlValues,
   readControlValues,
-  unmappedControls,
+  isUninventoried, unmappedControls,
 } from '../../app/renderer/src/control-keys.ts';
 import type { ControlBinding } from '../../app/renderer/src/control-keys.ts';
 import type { ConfigValue } from '../../app/renderer/src/configuration.ts';
@@ -39,10 +39,171 @@ test('every bound screen exists in the generated SCREENS object', () => {
 test('total bound-screen and control counts are what this pass produced', () => {
   const screenCount = Object.keys(CONTROL_BINDINGS).length;
   const controlCount = allBindings().length;
-  assert.equal(screenCount, 13);
+  assert.equal(controlCount, 373);
+  // 18 once this rebase landed the Fax screen and the Database backends screen side by
+  // side: both independently brought the count from 16 to 17 on their own branch, and
+  // rebasing one onto the other's tip -- rather than starting from a shared commit --
+  // is exactly what makes them stack to 18 instead of collide at 17.
+  // 21 with the compliance lane: three new named-section screens joined the table --
+  // stirshaken (stir_shaken.conf's own [profile] objects, distinct from the Security
+  // screen's [attestation]/[verification] singletons), geolocation (geolocation.conf's
+  // [location] and [profile] objects) and phoneprov (phoneprov.conf's [general] section
+  // plus a named provisioning profile).
+  // And four more with the telephony deepening lane: chan_dahdi.conf, sla.conf,
+  // dundi.conf and calendar.conf each brought a brand new named screen.
+  // And five more with the ops lane's new screens: monitoring, identity, stun, xmpp
+  // and adsi.
+  assert.equal(screenCount, 30);
   // 82 from the first pass, plus a_origin (ami/allowed_origins) and s_failaction
-  // (security/failure_action) found on this second look.
-  assert.equal(controlCount, 84);
+  // (security/failure_action) found on the second look, plus 21 on 2026-08-24: the eight
+  // http.conf keys and the thirteen features.conf ones, which brought two whole screens
+  // into the table for the first time. Each was checked against the sample file in this
+  // checkout by hand -- key spelling and section both -- because a fan-out proposed
+  // thirty-three and six of those were controls that were already bound.
+  // Then eight more the same day, going through the remainder one control at a time: seven
+  // http.conf keys and the last feature code. That finished features.conf entirely and left
+  // http.conf with only the two halves of tlsbindaddr, which no single binding can carry.
+  // And 115 once composite bindings arrived, which let the two halves of tlsbindaddr be
+  // bound at last. http.conf is now completely bound, as is features.conf.
+  // And 126 once section-by-type arrived, which let the IAX peers screen be bound at all:
+  // iax.conf writes a peer as a named section with type=peer or type=friend inside, so a
+  // binding looking for a section called peer could never have matched one.
+  // And 127 with the manager TLS port, which is the same address:port shape as http.conf.
+  // The remainder is recorded in docs/platform/unbound-controls.md: most of them are not
+  // waiting for a key, they are shapes no single binding can carry.
+  // And 128 with deny-by-default, whose off state is the key being absent rather than a
+  // value: deny=no is a line Asterisk tries to read as a network.
+  // And 130 with the two whose keys live in asterisk.conf rather than the file their
+  // screen edits: logger verbosity and global transcoding.
+  // And 131 with the permitted-networks list, which needed two shapes at once: a key that
+  // repeats, and a section chosen by another control rather than named in the table.
+  // And 132 with the conference announce picker, which is one setting to a person and two
+  // booleans to Asterisk, written together so neither can contradict the other.
+  // 149 on 2026-08-24: seventeen more on the endpoints screen, each key read out of
+  // configs/samples/pjsip.conf.sample rather than recalled, and each bound to the object type
+  // that sample documents it under. That check is the whole value of the exercise -- it caught
+  // remove_existing, which reads like an endpoint setting and is an AOR key, and would have
+  // written a line Asterisk ignores while the screen reported it as set.
+  // And 148 once the access-control-rules editor arrived: `s_permit` is REMOVED rather than
+  // kept, because it was wrong, not merely incomplete. It bound only the `permit` key, so
+  // every `deny=` line already in a real acl.conf.sample-shaped file (the classic
+  // deny-then-permit allowlist idiom the sample itself documents) would have been silently
+  // dropped the moment anyone touched the list -- `repeated: true` replaces every occurrence
+  // of ONE key, and an ACL's meaning depends on permit and deny interleaved in order (see
+  // control-plane/acl-model.ts's module doc). `s_acl`, its section-picker, is removed with
+  // it: nothing else named it. The real editor -- add, edit, remove, reorder, every rule's
+  // action preserved -- is control-plane/acl-model.ts plus app/renderer/src/acl-editor.ts,
+  // wired through the same pbx.plan/pbx.apply transaction every other write in this console
+  // uses, not through this single-key binding table, which cannot express an ordered,
+  // mixed-action list at all.
+  // And 164 with sixteen more on the feature-codes screen: the parking-lot behaviour that
+  // Asterisk 12 carried out of features.conf into res_parking.conf, each key read out of
+  // configs/samples/res_parking.conf.sample rather than recalled. `fc_parkcall` (the DTMF
+  // trigger) stays where it always was, in features.conf's [featuremap] -- it is only the
+  // lot's own behaviour (extension range, timeout, retrieval rules) that moved. Each of the
+  // sixteen carries an explicit `file: 'res_parking.conf'` override, the same way the four
+  // stir_shaken.conf bindings on the security screen do, because the feature-codes screen's
+  // own primary resource stays features.conf.
+  // And 179 with the TLS and certificate-management lane: ten PJSIP-transport TLS
+  // fields (protocol, cert_file, priv_key_file, ca_list_file, ca_list_path, cipher,
+  // method, verify_client, verify_server, require_client_cert), each bound through
+  // `sectionFrom: 's_transport'` -- the mechanism `s_permit`'s own removal note left
+  // documented and unused, now genuinely load-bearing -- plus five STIR/SHAKEN key-
+  // material fields (private_key_file, public_cert_url, load_system_certs, ca_file,
+  // ca_path). Every one checked against configs/samples/pjsip.conf.sample and
+  // configs/samples/stir_shaken.conf.sample by line number, not recalled.
+  // Then two lanes moved it from 179 independently, both landing on 191 by coincidence
+  // of arithmetic (12 new bindings each) rather than by touching the same controls --
+  // the CDR/CEL screen's own broken read got fixed, with CEL getting two real database
+  // backends, and a brand new Fax screen arrived bound end to end. Both merge into 203
+  // (179 + 12 + 12), confirmed by running this test with a deliberately wrong number and
+  // reading back the real one it reported, rather than adding the two deltas by hand.
+  //
+  // The CDR/CEL twelve: cel_odbc.conf's show_user_defined plus its per-context
+  // connection/table (a sectionFrom pair, the same shape the security screen's
+  // PJSIP-transport TLS fields use) and cel_pgsql.conf's whole [global] section bar
+  // password, which stays deliberately unbound -- see the unmapped-control note on
+  // CONTROL_BINDINGS.cdr. l_enable/l_events/l_apps/l_date do not recount: they moved
+  // from a synthetic 'cel' section (a workaround for the screen's own `file` once being
+  // the non-existent combined resource "cdr.conf · cel.conf", which meant nothing on
+  // this screen had ever actually been read from a real target) to cel.conf's real
+  // [general] section, same four controls, same count.
+  //
+  // The Fax twelve: six from res_fax.conf.sample's [general] (the screen's own primary
+  // file, no override needed) and six from udptl.conf.sample's own [general] -- the
+  // transport T.38 rides on -- each carrying an explicit `file: 'udptl.conf'` override
+  // for the same reason the stir_shaken.conf and res_parking.conf ones above do: the
+  // screen's own generic read only ever supplies its declared `file`, so a key living
+  // anywhere else has to say so or it is read from the wrong document. A dedicated
+  // App.tsx fetch (mirroring `configs.stirShaken`) supplies udptl.conf's own ConfigValue
+  // through `readControlValues`'s `elsewhere` map.
+  // And 20 more with the Database backends screen, a whole new 18th screen and file:
+  // eight res_pgsql.conf [general] keys bound plainly (this screen's own declared
+  // `file`, no override needed) and twelve res_odbc.conf keys bound through
+  // `sectionFrom: 'db_odbcname'` -- the same mechanism the line above, since res_odbc.conf
+  // names an ODBC connection after an arbitrary [section] rather than a fixed one.
+  // db_pgpassword and db_odbcpassword carry NO binding at all, on purpose: a real database
+  // password must never travel through an ordinary binding into renderer state, from
+  // where an export, history entry or screenshot could reach it -- App.tsx takes each one,
+  // writes it once, and blanks the field in the same step, exactly like iax.conf's
+  // ix_secret_set before it. extconfig.conf's family mappings and sorcery.conf's
+  // object-type mappings are NOT in this table at all: both name their own KEY as an
+  // arbitrary string (a family, an object type) rather than a fixed one, which
+  // `sectionFrom` cannot express -- see the long comment above CONTROL_BINDINGS.dbrealtime
+  // and control-plane/realtime-mappings-model.ts, which reads and writes both the same
+  // hand-checked way control-plane/acl-model.ts already does for acl.conf's rule list.
+  // This screen was built on a branch that forked before the CDR/CEL fix and the Fax
+  // screen landed, so it counted its own 20 on top of a stale 179 and called the total
+  // 199. Rebasing onto the real tip puts it on top of 203 instead, landing on 223 --
+  // read back the same way the 203 above was, by trying a deliberately wrong number
+  // first and taking whatever this test actually reported.
+  // And 224 with mo_load (modules.conf.sample line 32: ;load = res_musiconhold.so),
+  // the one new binding the Logger/Modules/Codecs deepening pass added -- mo_preload,
+  // mo_noload and mo_require already existed and only gained `repeated: true` (a
+  // correctness fix, not a new control), and g_file's key changed from the wrong
+  // 'messages' to the sample's real 'messages.log' without adding or removing a
+  // binding. Read back the same way as above: a deliberately wrong number run first,
+  // then whatever this test actually reported.
+  // 243 with the compliance lane: +20 across the three new screens above (six on
+  // stirshaken, eight on geolocation, six on phoneprov), on top of 223.
+  // And 290 with four brand new screens and files: chan_dahdi.conf (12, [channels]'s own
+  // cumulative defaults -- see the long comment above CONTROL_BINDINGS.dahdi for why the
+  // repeated "channel =>" directives themselves are NOT in this table), sla.conf (13: one
+  // [general] key plus six sectionFrom fields each for a trunk and a station, picked by
+  // sl_trunkname/sl_stationname the same way db_odbcname already picks a res_odbc.conf
+  // connection), dundi.conf (29: seventeen [general] fields plus twelve sectionFrom peer
+  // fields picked by du_peereid -- the [mappings] section is not here at all, for the
+  // same reason extconfig.conf's family mappings are not, see the comment above
+  // CONTROL_BINDINGS.dundi) and calendar.conf (13: every field but the name picker and
+  // the write-only secret, sectionFrom-bound through ca_name). 12+13+29+13 = 67 new
+  // bindings, read back the same way every earlier total on this page was: trying a
+  // deliberately wrong number first and taking whatever this test actually reported.
+  // And 262 with the ops lane's 39 new bindings: 7 on the Monitoring screen
+  // (res_snmp.conf's two, plus five of prometheus.conf's -- auth_password is deliberately
+  // unbound, same reasoning as db_pgpassword above), 23 on Directories & identity
+  // (asterisk.conf's twelve [directories] paths plus eleven [options] fields), 2 on NAT
+  // discovery (res_stun_monitor.conf's whole [general] section), 6 on Messaging
+  // (xmpp.conf's [general] behaviour switches -- the credential-bearing [asterisk]
+  // connection section is left unbound entirely) and 1 on Caller display (adsi.conf's
+  // alignment; greeting is unbound, see the comment on CONTROL_BINDINGS.adsi).
+  // And a further jump with the Voicemail screen's storage-backend and
+  // greeting-management gap: ten new voicemail.conf [general] keys, all plainly bound
+  // (this screen's own declared `file`, no override needed) -- three ODBC storage keys,
+  // four IMAP storage keys, and three greeting-policy keys. The AMI & REST screen's own
+  // fix landed in the same pass (its `file` moved off the compound
+  // 'manager.conf · ari.conf · http.conf' label that had kept it from reading anything,
+  // and a_http/a_port/a_tls/a_tlsport moved from a wrong binding to the right one) but
+  // added no new table ROW: those five bindings already existed, and the screen's new
+  // Save buttons and Add-an-API-user fields are read directly by name or delivered by
+  // their own design-declared action, neither of which goes through this table.
+  // And 373 with the trunks screen's own thirteen `tk_*` entries -- send_connected_line,
+  // contact_user, from_domain, from_user, media_address, the four T.38 UDPTL keys,
+  // fax_detect, trust_id_outbound, send_rpid and send_diversion, all [endpoint]-typed,
+  // all on `trunk-advanced.ts`'s already-tested module, which had every one of these
+  // checked against pjsip.conf.sample already but had never been given anywhere on
+  // screen to write from until this pass added the design's own "Advanced" group. No
+  // new screen: `trunks` was already in this table for t_retry/t_forbidden/t_fatal/
+  // t_pai/t_100rel, so screenCount stays 30.
 });
 
 // ---------------------------------------------------------------- boolean parsing
@@ -66,15 +227,66 @@ test('an unrecognised boolean spelling is left unset rather than guessed', () =>
 });
 
 test('invert flips a *_disable style key so the control keeps its own sense', () => {
+  // s_stir lives in stir_shaken.conf, a different file from the security screen's own
+  // primary resource (acl.conf, once the access-control-rules editor made it read that),
+  // so it now carries an explicit `file` override -- read from `elsewhere`, per the
+  // "a control whose key lives in another file" tests further down this file.
   const enabled: ConfigValue = [{ name: 'attestation', entries: [{ key: 'global_disable', value: 'no' }] }];
-  assert.equal(readControlValues('security', enabled).s_stir, true);
+  assert.equal(readControlValues('security', [], { 'stir_shaken.conf': enabled }).s_stir, true);
   const disabled: ConfigValue = [{ name: 'attestation', entries: [{ key: 'global_disable', value: 'yes' }] }];
-  assert.equal(readControlValues('security', disabled).s_stir, false);
+  assert.equal(readControlValues('security', [], { 'stir_shaken.conf': disabled }).s_stir, false);
 
-  // and round-trips back through applyControlValues negated the same way
+  // applyControlValues has no notion of `file` -- it writes into whatever ConfigValue it is
+  // handed, unconditionally -- so the round trip is proven against a document shaped like
+  // stir_shaken.conf directly, exactly as a caller who actually reads that file would.
   const next = applyControlValues('security', enabled, { s_stir: false });
   const section = next.find((s) => s.name === 'attestation');
   assert.equal(section?.entries.find((e) => e.key === 'global_disable')?.value, 'yes');
+});
+
+test('the parking-lot controls read res_parking.conf, a different file from the feature-codes screen\'s own features.conf', () => {
+  // fc_parkcall stays bound to features.conf's own [featuremap] (unchanged, no `file`
+  // override) -- it is the DTMF trigger, and that never moved. The lot's own behaviour did:
+  // res_parking.conf.sample's [general] carries parkeddynamic, and its [default] section
+  // (the guaranteed lot, per the sample's own comment at lines 42-46) carries everything
+  // else. Both are read from `elsewhere`, exactly like the security screen's
+  // stir_shaken.conf group above -- fcodes's own primary resource stays features.conf.
+  const parking: ConfigValue = [
+    { name: 'general', entries: [{ key: 'parkeddynamic', value: 'yes' }] },
+    { name: 'default', entries: [
+      { key: 'parkext', value: '700' },
+      { key: 'parkpos', value: '701-720' },
+      { key: 'context', value: 'parkedcalls' },
+      { key: 'parkingtime', value: '45' },
+      { key: 'comebacktoorigin', value: 'no' },
+      { key: 'findslot', value: 'first' },
+    ] },
+  ];
+  const read = readControlValues('fcodes', [], { 'res_parking.conf': parking });
+  assert.equal(read.fc_parkeddynamic, true);
+  assert.equal(read.fc_parkext, '700');
+  assert.equal(read.fc_parkpos, '701-720');
+  assert.equal(read.fc_parkcontext, 'parkedcalls');
+  assert.equal(read.fc_parkingtime, 45);
+  assert.equal(read.fc_comebacktoorigin, false);
+  assert.equal(read.fc_findslot, 'first');
+  // fc_parkcall was NOT supplied elsewhere -- its own screen's primary value (unset here)
+  // stays absent rather than being read off the parking-lot document by accident, which is
+  // exactly the confusion a wrong file binding would produce silently.
+  assert.equal('fc_parkcall' in read, false);
+
+  // applyControlValues writes into whatever document it is handed, same as the stir_shaken
+  // case: proven here against a document shaped like res_parking.conf, not features.conf.
+  const written = applyControlValues('fcodes', parking, {
+    fc_parkext: '900', fc_comebacktoorigin: true, fc_parkedplay: 'both',
+  });
+  const defaultLot = written.find((s) => s.name === 'default');
+  assert.equal(defaultLot?.entries.find((e) => e.key === 'parkext')?.value, '900');
+  assert.equal(defaultLot?.entries.find((e) => e.key === 'comebacktoorigin')?.value, 'yes');
+  assert.equal(defaultLot?.entries.find((e) => e.key === 'parkedplay')?.value, 'both');
+  // The general-section key is untouched by a write aimed at [default] entries.
+  const general = written.find((s) => s.name === 'general');
+  assert.equal(general?.entries.find((e) => e.key === 'parkeddynamic')?.value, 'yes');
 });
 
 // ---------------------------------------------------------------- list parsing
@@ -152,7 +364,11 @@ test('readControlValues reads a realistic voicemail.conf onto the voicemail scre
 test('readControlValues reads a realistic logger.conf onto the logger screen', () => {
   const cfg: ConfigValue = [
     { name: 'general', entries: [{ key: 'rotatestrategy', value: 'timestamp' }, { key: 'queue_log', value: 'no' }] },
-    { name: 'logfiles', entries: [{ key: 'console', value: 'notice,warning,error' }, { key: 'messages', value: 'notice,warning' }] },
+    // logger.conf.sample line 176: the file-channel key is the literal name
+    // "messages.log", dot and all -- not "messages". A fixture using the wrong key
+    // used to pass here by matching a binding that was itself wrong the same way; both
+    // are fixed together.
+    { name: 'logfiles', entries: [{ key: 'console', value: 'notice,warning,error' }, { key: 'messages.log', value: 'notice,warning' }] },
   ];
   const values = readControlValues('logger', cfg);
   assert.equal(values.g_rotate, 'timestamp');
@@ -211,6 +427,74 @@ test('applyControlValues preserves repeated keys elsewhere in the file', () => {
   );
 });
 
+test('modules.conf writes one line per module, never a comma-joined value', () => {
+  // main/loader.c's loader_config_init reads 'noload'/'preload'/'require'/'load' one
+  // v->value at a time; a comma-joined line would be read as a single module named
+  // "chan_sip.so,chan_mobile.so", which does not exist. `repeated: true` is what makes
+  // this the shape actually written -- without it (see the "modules.conf writes
+  // exactly the wrong shape" negative test below), it would fail this same assertion.
+  const cfg: ConfigValue = [{ name: 'modules', entries: [{ key: 'autoload', value: 'yes' }] }];
+  const next = applyControlValues('modules', cfg, { mo_noload: ['chan_sip.so', 'chan_mobile.so'] });
+  const section = next.find((s) => s.name === 'modules');
+  const noloads = section?.entries.filter((e) => e.key === 'noload') ?? [];
+  assert.deepEqual(noloads.map((e) => e.value), ['chan_sip.so', 'chan_mobile.so']);
+  assert.ok(noloads.every((e) => !e.value.includes(',')), 'no noload= line should contain a comma');
+});
+
+test('modules.conf replaces every occurrence of a repeated key in place, not appended', () => {
+  const cfg: ConfigValue = [
+    {
+      name: 'modules',
+      entries: [
+        { key: 'noload', value: 'res_hep.so' },
+        { key: 'noload', value: 'res_hep_pjsip.so' },
+        { key: 'noload', value: 'res_hep_rtcp.so' },
+        { key: 'autoload', value: 'yes' },
+      ],
+    },
+  ];
+  const next = applyControlValues('modules', cfg, { mo_noload: ['app_meetme.so'] });
+  const section = next.find((s) => s.name === 'modules');
+  const entries = section?.entries ?? [];
+  assert.deepEqual(entries.map((e) => `${e.key}=${e.value}`), ['noload=app_meetme.so', 'autoload=yes']);
+});
+
+test('modules.conf: preload, require and force-load are also repeated, independently of each other', () => {
+  const cfg: ConfigValue = [{ name: 'modules', entries: [{ key: 'autoload', value: 'yes' }] }];
+  const next = applyControlValues('modules', cfg, {
+    mo_preload: ['res_odbc.so', 'res_curl.so'],
+    mo_require: ['chan_pjsip.so'],
+    mo_load: ['res_musiconhold.so'],
+  });
+  const section = next.find((s) => s.name === 'modules');
+  const of = (key: string) => (section?.entries ?? []).filter((e) => e.key === key).map((e) => e.value);
+  assert.deepEqual(of('preload'), ['res_odbc.so', 'res_curl.so']);
+  assert.deepEqual(of('require'), ['chan_pjsip.so']);
+  assert.deepEqual(of('load'), ['res_musiconhold.so']);
+});
+
+test('readControlValues reads a realistic modules.conf, one module per repeated line', () => {
+  const cfg: ConfigValue = [
+    {
+      name: 'modules',
+      entries: [
+        { key: 'autoload', value: 'yes' },
+        { key: 'preload', value: 'res_odbc.so' },
+        { key: 'noload', value: 'chan_sip.so' },
+        { key: 'noload', value: 'chan_mobile.so' },
+        { key: 'require', value: 'chan_pjsip.so' },
+        { key: 'load', value: 'res_musiconhold.so' },
+      ],
+    },
+  ];
+  const values = readControlValues('modules', cfg);
+  assert.equal(values.mo_auto, true);
+  assert.deepEqual(values.mo_preload, ['res_odbc.so']);
+  assert.deepEqual(values.mo_noload, ['chan_sip.so', 'chan_mobile.so']);
+  assert.deepEqual(values.mo_require, ['chan_pjsip.so']);
+  assert.deepEqual(values.mo_load, ['res_musiconhold.so']);
+});
+
 test('applyControlValues creates a missing key inside an existing section', () => {
   const cfg: ConfigValue = [{ name: 'general', entries: [{ key: 'strategy', value: 'ringall' }] }];
   const next = applyControlValues('queues', cfg, { q_timeout: 30 });
@@ -260,30 +544,51 @@ test('unmappedControls returns the real remainder for a bound screen', () => {
   const remainder = unmappedControls('queues');
   assert.deepEqual(remainder, []); // every queues control is bound
 
+  /* k_order and r_dtmf both left this screen on 2026-08-24: k_order is wired as the order a
+   * new endpoint starts from, and r_dtmf was removed because rtp.conf has no payload key at
+   * all -- dtmftimeout is a timeout, not a number. */
   const codecsRemainder = unmappedControls('codecs');
-  assert.ok(codecsRemainder.includes('k_order'));
-  assert.ok(codecsRemainder.includes('r_dtmf'));
-  assert.ok(!codecsRemainder.includes('r_start'));
+  assert.ok(!codecsRemainder.includes('r_start'), 'a bound control is being reported unbound');
 });
 
 test('unmappedControls returns everything for a screen with no bindings at all', () => {
+  /* extensions.conf still has no keyed IVR-behaviour settings of this shape -- an IVR is a
+   * dialplan shape made of exten lines, not key = value pairs -- so CONTROL_BINDINGS.ivr
+   * stays empty and every one of the screen's controls is "unmapped" by this table's own
+   * definition. That is a true statement about pjsip-style key binding, not about whether
+   * the controls do anything: telephony-coverage.test.tsx's `measure()` separately confirms
+   * every one of them is delivered by name or by its own design-declared action, through
+   * `App.tsx`'s `ivrDialplanText`/`onAddIvrKey`/`onAuditionIvrPrompt` and friends. */
   const remainder = unmappedControls('ivr');
-  assert.deepEqual(remainder, ['i_timeout', 'i_retries', 'i_invalid', 'i_direct', 'i_lang', 'i_barge']);
+  assert.deepEqual(remainder, [
+    'i_timeout', 'i_retries', 'i_invalid', 'i_direct', 'i_lang', 'i_barge', 'i_plan',
+    'i_prompt', 'i_audition', 'i_keydigit', 'i_keydest', 'i_keytarget', 'i_keyadd', 'i_keys', 'i_keyremove',
+  ]);
 });
 
-test('unmappedControls returns nothing for a screen this table has no knowledge of', () => {
-  assert.deepEqual(unmappedControls('does_not_exist'), []);
+test('a screen this table has no knowledge of says so, rather than answering nothing', () => {
+  /* This used to assert an empty list, which encoded the defect: the caller warns only when
+   * the list is non-empty, so "nobody has inventoried this screen" and "every control on it
+   * is bound" were the same answer. Three real screens took that path and read as more
+   * finished than the ones being honest about their gaps. */
+  const answer = unmappedControls('does_not_exist');
+  assert.equal(isUninventoried(answer), true);
+  assert.notDeepEqual(answer, []);
+  assert.equal(isUninventoried(unmappedControls('ivr')), false, 'a known screen must not answer this way');
 });
 
 // -------------------------------------------------- second-pass bindings: a_origin
 
 test('a_origin reads ari.conf.sample allowed_origins as a comma-separated list', () => {
   // configs/samples/ari.conf.sample [general] ~line 5: ";allowed_origins =  ; Comma
-  // separated list of allowed origins, for Cross-Origin Resource Sharing."
+  // separated list of allowed origins, for Cross-Origin Resource Sharing." The screen's
+  // own declared `file` is manager.conf, so a_origin carries an explicit `file:
+  // 'ari.conf'` override and is read out of `elsewhere['ari.conf']`, the same shape
+  // s_privkey/s_certurl already use for stir_shaken.conf on the Security screen.
   const cfg: ConfigValue = [
     { name: 'general', entries: [{ key: 'allowed_origins', value: 'https://console.local,https://ops.example' }] },
   ];
-  const values = readControlValues('ami', cfg);
+  const values = readControlValues('ami', [], { 'ari.conf': cfg });
   assert.deepEqual(values.a_origin, ['https://console.local', 'https://ops.example']);
 });
 
@@ -308,8 +613,10 @@ test('s_failaction value mapping reads every real failure_action spelling', () =
     ['reject_request', 'Reject'],
   ];
   for (const [raw, control] of cases) {
+    // s_failaction also carries the `file: 'stir_shaken.conf'` override -- see the invert
+    // test above for why the security screen's own resource is a different file now.
     const cfg: ConfigValue = [{ name: 'verification', entries: [{ key: 'failure_action', value: raw }] }];
-    assert.equal(readControlValues('security', cfg).s_failaction, control, `expected ${raw} to read as ${control}`);
+    assert.equal(readControlValues('security', [], { 'stir_shaken.conf': cfg }).s_failaction, control, `expected ${raw} to read as ${control}`);
   }
 });
 
@@ -346,16 +653,904 @@ test('an unrecognised s_failaction control value is refused on write rather than
 test('unmappedControls reflects the two controls bound on this second look', () => {
   assert.ok(!unmappedControls('ami').includes('a_origin'));
   assert.ok(!unmappedControls('security').includes('s_failaction'));
-  // and every deliberately-refused-on-a-second-look control is still refused
-  for (const stillUnbound of ['a_tlsport', 'a_deny']) {
-    assert.ok(unmappedControls('ami').includes(stillUnbound), `expected ${stillUnbound} to remain unmapped`);
-  }
-  for (const stillUnbound of [
-    's_acl', 's_permit', 's_failban', 's_bantime', 's_guest', 's_cert', 's_method', 's_verify', 's_ciphers',
-  ]) {
+  /* a_tlsport left this list on 2026-08-24: manager.conf writes tlsbindaddr as address:port,
+   * the same shape as http.conf, so a composite binding gives the port its own half. It was
+   * refused before because the model had no way to own half a value, which is a different
+   * thing from the setting being unbindable -- and worth separating, because one is a
+   * decision and the other is a gap. */
+  assert.ok(!unmappedControls('ami').includes('a_tlsport'));
+  /* a_deny left the list too, once a binding could mean the key is absent. Both it and
+   * a_tlsport were recorded as refused when what was really missing was a shape. */
+  assert.ok(!unmappedControls('ami').includes('a_deny'));
+  /* s_permit and s_acl are GONE from this screen entirely (see the count comment above):
+   * the ACL rule editor is control-plane/acl-model.ts + app/renderer/src/acl-editor.ts,
+   * not this single-key binding table. s_aclname/s_action/s_spec are the "Add a rule"
+   * form's own input fields -- read directly by App.tsx's onAddAclRule, exactly the way
+   * the servers screen's sv_host/sv_user are, and deliberately never a binding: writing
+   * a form field's current value into a key would put a control's typed input where a
+   * persisted setting belongs, not the setting itself. s_failban/s_bantime remain this
+   * console's own auto-ban preference, not an Asterisk key either. */
+  for (const stillUnbound of ['s_aclname', 's_action', 's_spec', 's_failban', 's_bantime']) {
     assert.ok(unmappedControls('security').includes(stillUnbound), `expected ${stillUnbound} to remain unmapped`);
   }
-  for (const stillUnbound of ['k_order', 'k_transcode', 'k_opusbr', 'k_ptime', 'r_dtmf', 'r_dtls']) {
-    assert.ok(unmappedControls('codecs').includes(stillUnbound), `expected ${stillUnbound} to remain unmapped`);
+  /* k_transcode left this list once a binding could name its own file: transcode_via_sln is
+   * in asterisk.conf, and this screen edits codecs.conf. k_order left it too, wired as the
+   * order a new endpoint starts from, which is the only thing a global codec order can
+   * honestly mean when pjsip keeps codec lists per endpoint. */
+  /* The rest of that list was removed rather than bound: none of those settings exists in
+   * the file its screen edits, and mapping one onto something else would have meant
+   * inventing behaviour. See docs/platform/unbound-controls.md. */
+});
+
+test('dbrealtime leaves exactly the pickers, the write-only passwords and the hand-rolled mapping editor unbound', () => {
+  /* db_odbcname is the sectionFrom picker itself -- binding it would let somebody change
+   * which connection is being edited through the very match that found it, the same
+   * reason s_transport stays unbound on the Security screen. db_odbcpassword and
+   * db_pgpassword are write-only (see the long comment above CONTROL_BINDINGS.dbrealtime):
+   * a real database password must never travel through an ordinary binding into renderer
+   * state. Both *passwordstatus controls are read-only computed text (action:'db-*-status'
+   * in the design), never a persisted setting either. Every Load/Save/Remove button is an
+   * action, carrying no key of its own -- ht_save and s_tsave stay unbound for the same
+   * reason. db_family/db_driver/db_database/db_table/db_priority and db_sorcerymodule/
+   * db_sorceryobjtype/db_sorcerywizard/db_sorceryconfig are read directly out of component
+   * state by App.tsx's onSaveRealtimeMapping/onSaveSorceryMapping, the same way the ACL
+   * editor's s_aclname/s_action/s_spec are -- writing a form field's current value into a
+   * key would put the control's typed input where the setting belongs, not the setting
+   * itself. */
+  const stillUnbound = [
+    'db_odbcname', 'db_odbcload', 'db_odbcpassword', 'db_odbcpasswordstatus', 'db_odbcsave',
+    'db_pgpassword', 'db_pgpasswordstatus', 'db_pgsave',
+    'db_family', 'db_mappingload', 'db_driver', 'db_database', 'db_table', 'db_priority',
+    'db_mappingsave', 'db_mappingremove',
+    'db_sorcerymodule', 'db_sorceryload', 'db_sorceryobjtype', 'db_sorcerywizard',
+    'db_sorceryconfig', 'db_sorcerysave', 'db_sorceryremove',
+  ];
+  for (const id of stillUnbound) {
+    assert.ok(unmappedControls('dbrealtime').includes(id), `expected ${id} to remain unmapped`);
   }
+  // And nothing else is: every db_pg* and db_odbc* control not in that list above is a
+  // real binding in CONTROL_BINDINGS.dbrealtime.
+  assert.equal(unmappedControls('dbrealtime').length, stillUnbound.length);
+});
+
+// ---------------------------------------------------------------- composite values
+
+test('two controls sharing one value each read their own half', () => {
+  /* Asterisk writes tlsbindaddr as address:port, and the interface offers an address field
+   * and a port stepper because that is how a person thinks about it. */
+  const cfg: ConfigValue = [{ name: 'general', entries: [{ key: 'tlsbindaddr', value: '10.0.0.5:8089' }] }];
+  const values = readControlValues('httpd', cfg);
+  assert.equal(values.ht_tlsaddr, '10.0.0.5');
+  assert.equal(values.ht_tlsport, 8089);
+});
+
+test('a bare address with no port is read as the address, never the port', () => {
+  /* Asterisk accepts tlsbindaddr with no port. Treating the whole value as the second half
+   * would silently move an address into a port field, which then writes back as nonsense. */
+  const cfg: ConfigValue = [{ name: 'general', entries: [{ key: 'tlsbindaddr', value: '0.0.0.0' }] }];
+  const values = readControlValues('httpd', cfg);
+  assert.equal(values.ht_tlsaddr, '0.0.0.0');
+  assert.equal(values.ht_tlsport, undefined, 'a missing half was invented rather than left absent');
+});
+
+test('changing one half leaves the other exactly as it was', () => {
+  /* The whole reason composite bindings exist. Writing only the changed half would erase the
+   * other control's work every time either one was touched. */
+  const cfg: ConfigValue = [{ name: 'general', entries: [{ key: 'tlsbindaddr', value: '10.0.0.5:8089' }] }];
+  const afterPort = applyControlValues('httpd', cfg, { ht_tlsport: 9443 });
+  assert.equal(afterPort[0].entries[0].value, '10.0.0.5:9443');
+  const afterAddr = applyControlValues('httpd', cfg, { ht_tlsaddr: '192.168.1.9' });
+  assert.equal(afterAddr[0].entries[0].value, '192.168.1.9:8089');
+});
+
+test('both halves changing at once produce one correct value', () => {
+  const cfg: ConfigValue = [{ name: 'general', entries: [{ key: 'tlsbindaddr', value: '10.0.0.5:8089' }] }];
+  const after = applyControlValues('httpd', cfg, { ht_tlsaddr: '0.0.0.0', ht_tlsport: 443 });
+  assert.equal(after[0].entries[0].value, '0.0.0.0:443');
+});
+
+test('setting a half when the key does not exist yet writes only that half', () => {
+  /* No dangling separator: `0.0.0.0:` is not a value Asterisk accepts, and a half-filled
+   * line is worse than a short one. */
+  const after = applyControlValues('httpd', [{ name: 'general', entries: [] }], { ht_tlsaddr: '0.0.0.0' });
+  assert.equal(after[0].entries[0].value, '0.0.0.0');
+});
+
+test('a malformed stored value does not stop the other half being edited', () => {
+  /* Somebody hand-edits the file and leaves something odd. Refusing to write would be a
+   * console that stops working because the file it edits is imperfect. */
+  const cfg: ConfigValue = [{ name: 'general', entries: [{ key: 'tlsbindaddr', value: '::::' }] }];
+  const after = applyControlValues('httpd', cfg, { ht_tlsport: 8443 });
+  assert.match(after[0].entries[0].value, /8443$/u);
+});
+
+// ---------------------------------------------------------------- sections found by type
+
+/** A pjsip.conf as Asterisk actually receives one: sections named after the object. */
+const realisticPjsip: ConfigValue = [
+  { name: 'transport-udp', entries: [{ key: 'type', value: 'transport' }, { key: 'protocol', value: 'udp' }] },
+  { name: '6001', entries: [
+    { key: 'type', value: 'endpoint' },
+    { key: 'transport', value: 'transport-udp' },
+    { key: 'context', value: 'from-internal' },
+  ] },
+  { name: '6001-aor', entries: [{ key: 'type', value: 'aor' }, { key: 'max_contacts', value: '3' }] },
+];
+
+test('a binding finds its section by what it is, not by what it is called', () => {
+  /* This is the defect these bindings shipped with. The headings that look like section
+   * names in pjsip.conf.sample -- [endpoint], [aor] -- are COMMENTED OUT: documentation, not
+   * sections. A real file names each section after the object and says what it is inside. So
+   * fourteen bindings looked for a section literally called "endpoint" and found nothing, on
+   * every real file, and no test looked because none existed for this screen. */
+  const values = readControlValues('endpoints', realisticPjsip);
+  assert.equal(values.e_transport, 'transport-udp');
+  assert.equal(values.e_context, 'from-internal');
+  assert.equal(values.e_maxcontacts, 3, 'the aor section was not found by its type either');
+});
+
+test('the fabricated section name no longer matches, which is the point', () => {
+  /* A section literally called [endpoint] is not an endpoint; it is an object somebody named
+   * "endpoint". Matching it was the bug. */
+  const fabricated: ConfigValue = [{ name: 'endpoint', entries: [{ key: 'transport', value: 'transport-udp' }] }];
+  assert.deepEqual(readControlValues('endpoints', fabricated), {});
+});
+
+test('writing goes into the object section, leaving its name and type alone', () => {
+  const after = applyControlValues('endpoints', realisticPjsip, { e_context: 'from-trunks' });
+  const edited = after.find((section) => section.name === '6001');
+  assert.equal(edited.entries.find((e) => e.key === 'context').value, 'from-trunks');
+  assert.equal(edited.entries.find((e) => e.key === 'type').value, 'endpoint', 'the type was disturbed');
+  assert.equal(after.length, realisticPjsip.length, 'a section was invented');
+});
+
+test('with no such object, nothing is written and no section is invented', () => {
+  /* Creating [endpoint] because no endpoint exists yet would write an object Asterisk reads
+   * as one literally called "endpoint". Making a real one is the endpoint editor's job, and
+   * it names it after the extension. */
+  const empty: ConfigValue = [{ name: 'general', entries: [] }];
+  const after = applyControlValues('endpoints', empty, { e_context: 'from-internal' });
+  assert.deepEqual(after, empty);
+});
+
+test('the first object of that type is the one used, consistently for read and write', () => {
+  const two: ConfigValue = [
+    { name: '6001', entries: [{ key: 'type', value: 'endpoint' }, { key: 'context', value: 'first' }] },
+    { name: '6002', entries: [{ key: 'type', value: 'endpoint' }, { key: 'context', value: 'second' }] },
+  ];
+  assert.equal(readControlValues('endpoints', two).e_context, 'first');
+  const after = applyControlValues('endpoints', two, { e_context: 'changed' });
+  assert.equal(after[0].entries.find((e) => e.key === 'context').value, 'changed');
+  assert.equal(after[1].entries.find((e) => e.key === 'context').value, 'second', 'it edited more than one object');
+});
+
+test('a type is matched however Asterisk spells its case and spacing', () => {
+  const odd: ConfigValue = [{ name: '6001', entries: [{ key: 'type', value: ' Endpoint ' }, { key: 'context', value: 'x' }] }];
+  assert.equal(readControlValues('endpoints', odd).e_context, 'x');
+});
+
+test('a fixed section like [general] still matches by name', () => {
+  /* Most files genuinely do have one, and nothing about them changed. */
+  const cfg: ConfigValue = [{ name: 'general', entries: [{ key: 'bindaddr', value: '127.0.0.1' }] }];
+  assert.equal(readControlValues('httpd', cfg).ht_bindaddr, '127.0.0.1');
+});
+
+// ---------------------------------------------------------------- IAX peers
+
+/** An iax.conf as Asterisk receives one: the peer is the section, its type is inside. */
+const realisticIax: ConfigValue = [
+  { name: 'general', entries: [{ key: 'bindport', value: '4569' }] },
+  { name: 'carrier-a', entries: [
+    { key: 'type', value: 'friend' },
+    { key: 'host', value: '198.51.100.7' },
+    { key: 'context', value: 'from-trunk' },
+    { key: 'trunk', value: 'yes' },
+  ] },
+];
+
+test('an IAX peer is found whether it is written peer or friend', () => {
+  /* An object that also receives calls is written type=friend, and the screen editing it
+   * does not care which it is. Matching only one would leave half of real files unreadable. */
+  const asFriend = readControlValues('iaxpeers', realisticIax);
+  assert.equal(asFriend.ix_host, '198.51.100.7');
+  assert.equal(asFriend.ix_trunk, true);
+  const asPeer: ConfigValue = [{ name: 'carrier-b', entries: [
+    { key: 'type', value: 'peer' }, { key: 'host', value: '203.0.113.9' },
+  ] }];
+  assert.equal(readControlValues('iaxpeers', asPeer).ix_host, '203.0.113.9');
+});
+
+test('a user-only IAX object is not treated as a peer', () => {
+  /* [guest] with type=user is the sample's own inbound-only object. Editing it from the
+   * peers screen would change something the person did not open. */
+  const guest: ConfigValue = [{ name: 'guest', entries: [
+    { key: 'type', value: 'user' }, { key: 'context', value: 'public' },
+  ] }];
+  assert.deepEqual(readControlValues('iaxpeers', guest), {});
+});
+
+test('writing goes into the peer section and leaves [general] alone', () => {
+  const after = applyControlValues('iaxpeers', realisticIax, { ix_context: 'from-carrier' });
+  assert.equal(after[1].entries.find((e) => e.key === 'context').value, 'from-carrier');
+  assert.deepEqual(after[0], realisticIax[0], 'the general section was disturbed');
+});
+
+test('the type and the secret stay out of the bindings, and the Save button carries no key of its own', () => {
+  /* ix_type IS the discriminator: binding it would let somebody change type through the very
+   * match that found the section, after which the screen edits something it can no longer
+   * see. ix_secret_set means "set a new secret" rather than carrying one, and a secret must
+   * never travel through an ordinary binding into renderer state. ix_save is the action
+   * button App.tsx's onSaveIaxPeer reads directly -- exactly like httpd's own ht_save -- so
+   * it is expected here too, not a binding this table forgot. */
+  const unbound = unmappedControls('iaxpeers');
+  assert.deepEqual([...unbound].sort(), ['ix_save', 'ix_secret_set', 'ix_type']);
+  const written = applyControlValues('iaxpeers', realisticIax, { ix_type: 'user', ix_secret_set: true });
+  assert.deepEqual(written, realisticIax, 'the type or a secret reached the file');
+});
+
+// ---------------------------------------------------------------- settings that are a presence
+
+test('a switch whose off state is the key not being there reads both ways', () => {
+  /* Denying by default is the deny LINE existing, not a yes or a no. A missing key is the
+   * off state, not an absence of information, so the switch shows false rather than nothing
+   * -- a switch that shows nothing until somebody touches it hides the state it exists for. */
+  const denied: ConfigValue = [{ name: 'general', entries: [{ key: 'deny', value: '0.0.0.0/0.0.0.0' }] }];
+  const open: ConfigValue = [{ name: 'general', entries: [{ key: 'port', value: '5038' }] }];
+  assert.equal(readControlValues('ami', denied).a_deny, true);
+  assert.equal(readControlValues('ami', open).a_deny, false);
+});
+
+test('turning it off removes the line rather than writing no', () => {
+  /* deny=no is not the off state. It is a line Asterisk tries to read as a network. */
+  const denied: ConfigValue = [{ name: 'general', entries: [
+    { key: 'deny', value: '0.0.0.0/0.0.0.0' }, { key: 'port', value: '5038' },
+  ] }];
+  const after = applyControlValues('ami', denied, { a_deny: false });
+  assert.deepEqual(after[0].entries, [{ key: 'port', value: '5038' }]);
+});
+
+test('turning it on writes the value the setting actually needs', () => {
+  const open: ConfigValue = [{ name: 'general', entries: [{ key: 'port', value: '5038' }] }];
+  const after = applyControlValues('ami', open, { a_deny: true });
+  assert.deepEqual(after[0].entries[1], { key: 'deny', value: '0.0.0.0/0.0.0.0' });
+});
+
+test('whatever the line carries, its presence means on', () => {
+  /* The value is the network being denied, so a different network is still a deny. */
+  const narrow: ConfigValue = [{ name: 'general', entries: [{ key: 'deny', value: '10.0.0.0/8' }] }];
+  assert.equal(readControlValues('ami', narrow).a_deny, true);
+});
+
+test('a section that does not exist reports nothing rather than false', () => {
+  /* False would claim the setting is off in a file that has no such section at all, which is
+   * a different thing from knowing it is off. */
+  assert.equal(readControlValues('ami', [{ name: 'other', entries: [] }]).a_deny, undefined);
+});
+
+// ---------------------------------------------------------------- keys in another file
+
+test('a control whose key lives in another file reads from that file', () => {
+  /* Logger verbosity is asterisk.conf's verbose, in [options]; the logger screen edits
+   * logger.conf. It was recorded as unbindable when what was true is that it sits on a
+   * screen reading a different file. */
+  const logger: ConfigValue = [{ name: 'general', entries: [{ key: 'queue_log', value: 'yes' }] }];
+  const asterisk: ConfigValue = [{ name: 'options', entries: [
+    { key: 'verbose', value: '5' }, { key: 'transcode_via_sln', value: 'no' },
+  ] }];
+  const values = readControlValues('logger', logger, { 'asterisk.conf': asterisk });
+  assert.equal(values.g_verbose, 5);
+  assert.equal(values.g_queue, true, 'the screen’s own file stopped being read');
+});
+
+test('without that file the control is absent, never read from the wrong one', () => {
+  /* Reading it from the screen's own file would report one setting's value under another
+   * setting's name, which is worse than reporting nothing. */
+  const logger: ConfigValue = [{ name: 'options', entries: [{ key: 'verbose', value: '9' }] }];
+  assert.equal(readControlValues('logger', logger).g_verbose, undefined);
+});
+
+test('global transcoding is the same story on a different screen', () => {
+  const asterisk: ConfigValue = [{ name: 'options', entries: [{ key: 'transcode_via_sln', value: 'yes' }] }];
+  assert.equal(readControlValues('codecs', [], { 'asterisk.conf': asterisk }).k_transcode, true);
+});
+
+// ---------------------------------------------------------------- a section somebody picks
+//
+// This block used to test s_permit -- a `repeated: true, sectionFrom: 's_acl'` binding on
+// the security screen -- against a synthetic acl.conf with a real permit/deny mix. It is
+// gone along with the binding: `repeated` replaces every occurrence of ONE key, and an
+// ACL's meaning is permit and deny INTERLEAVED in order (see control-plane/acl-model.ts's
+// module doc, and the count comment near the top of this file). A single-key binding can
+// never express that safely, which is a correctness bug, not a gap this file should keep
+// pinning as a feature. The real editor -- add, edit, remove, reorder, both actions, real
+// order preserved -- is covered directly in control-plane/acl-model.test.ts (the pure
+// addRule/removeRule/moveRule mutations) and app/renderer/src/acl-editor.test.ts (row
+// building and the row-key round trip), against the real ACL semantics rather than this
+// table's single-key model. `sectionFrom`/`repeated` remain documented, general-purpose
+// `ControlBinding` capabilities (see control-keys.ts) for a future binding that genuinely
+// fits their shape; none currently does.
+
+test('the IAX type picker chooses which objects the screen edits', () => {
+  /* It was unbound because binding it to the type key would let somebody change the type
+   * through the very match that found the section, after which the screen edits something it
+   * can no longer see. Driving the match instead is the honest version: picking user means
+   * editing user objects, which is what choosing it means. */
+  const iax: ConfigValue = [
+    { name: 'guest', entries: [{ key: 'type', value: 'user' }, { key: 'context', value: 'public' }] },
+    { name: 'carrier', entries: [{ key: 'type', value: 'peer' }, { key: 'context', value: 'from-trunk' }] },
+  ];
+  assert.equal(readControlValues('iaxpeers', iax, {}, { ix_type: 'user' }).ix_context, 'public');
+  assert.equal(readControlValues('iaxpeers', iax, {}, { ix_type: 'peer' }).ix_context, 'from-trunk');
+});
+
+test('with nothing picked it still edits a peer, which is what the screen is for', () => {
+  const iax: ConfigValue = [{ name: 'carrier', entries: [
+    { key: 'type', value: 'friend' }, { key: 'context', value: 'from-trunk' },
+  ] }];
+  assert.equal(readControlValues('iaxpeers', iax).ix_context, 'from-trunk');
+});
+
+test('the type key itself is still never written', () => {
+  /* Driving the match is not the same as writing the type. Changing what an object IS
+   * remains a different operation from changing its settings. */
+  const iax: ConfigValue = [{ name: 'carrier', entries: [
+    { key: 'type', value: 'peer' }, { key: 'context', value: 'from-trunk' },
+  ] }];
+  const after = applyControlValues('iaxpeers', iax, { ix_type: 'user', ix_context: 'changed' });
+  assert.equal(after[0].entries.find((e) => e.key === 'type').value, 'peer');
+});
+
+// ---------------------------------------------------------------- one control, several keys
+
+test('one setting to a person is written as both keys it means', () => {
+  /* Choosing "count" means announce the count AND do not announce names. Writing only the
+   * first would leave the second contradicting it. */
+  const cfg: ConfigValue = [{ name: 'default_user', entries: [
+    { key: 'announce_join_leave', value: 'yes' }, { key: 'announce_user_count', value: 'no' },
+  ] }];
+  assert.equal(readControlValues('confbridge', cfg).c_announce, 'name');
+  const after = applyControlValues('confbridge', cfg, { c_announce: 'count' });
+  assert.deepEqual(after[0].entries, [
+    { key: 'announce_join_leave', value: 'no' },
+    { key: 'announce_user_count', value: 'yes' },
+  ]);
+});
+
+test('every value the control offers has a reading', () => {
+  for (const [value, keys] of [
+    ['off', { announce_join_leave: 'no', announce_user_count: 'no' }],
+    ['name', { announce_join_leave: 'yes', announce_user_count: 'no' }],
+    ['count', { announce_join_leave: 'no', announce_user_count: 'yes' }],
+  ] as const) {
+    const cfg: ConfigValue = [{ name: 'default_user', entries: Object.entries(keys).map(([key, v]) => ({ key, value: v })) }];
+    assert.equal(readControlValues('confbridge', cfg).c_announce, value);
+  }
+});
+
+test('a combination the control cannot express reads as absent, not as the nearest one', () => {
+  /* Somebody has set both keys by hand to something this picker has no word for. Showing
+   * them the closest option would misreport what their bridge actually does. */
+  const both: ConfigValue = [{ name: 'default_user', entries: [
+    { key: 'announce_join_leave', value: 'yes' }, { key: 'announce_user_count', value: 'yes' },
+  ] }];
+  assert.equal(readControlValues('confbridge', both).c_announce, undefined);
+});
+
+test('a value the control does not offer writes nothing at all', () => {
+  /* Writing some of the keys would leave the file in a state neither the old value nor the
+   * new one describes. */
+  const cfg: ConfigValue = [{ name: 'default_user', entries: [{ key: 'announce_join_leave', value: 'yes' }] }];
+  assert.deepEqual(applyControlValues('confbridge', cfg, { c_announce: 'tone' }), cfg);
+});
+
+// ---------------------------------------------------------------- PJSIP transport TLS (security)
+
+test('the PJSIP transport TLS fields read from whichever section s_transport currently names', () => {
+  // configs/samples/pjsip.conf.sample line 154/156-159: a [transport-tls] section.
+  const pjsip: ConfigValue = [
+    { name: 'transport-udp', entries: [{ key: 'type', value: 'transport' }, { key: 'protocol', value: 'udp' }] },
+    { name: 'transport-tls', entries: [
+      { key: 'type', value: 'transport' }, { key: 'protocol', value: 'tls' },
+      { key: 'cert_file', value: '/path/mycert.crt' }, { key: 'priv_key_file', value: '/path/mykey.key' },
+      { key: 'cipher', value: 'ADH-AES256-SHA,ADH-AES128-SHA' }, { key: 'method', value: 'tlsv1' },
+      { key: 'verify_client', value: 'yes' }, { key: 'verify_server', value: 'no' },
+    ] },
+  ];
+  const values = readControlValues('security', [], { 'pjsip.conf': pjsip }, { s_transport: 'transport-tls' });
+  assert.equal(values.s_tprotocol, 'tls');
+  assert.equal(values.s_tcert, '/path/mycert.crt');
+  assert.equal(values.s_tprivkey, '/path/mykey.key');
+  assert.equal(values.s_tcipher, 'ADH-AES256-SHA,ADH-AES128-SHA');
+  assert.equal(values.s_tmethod, 'tlsv1');
+  assert.equal(values.s_tverifyclient, true);
+  assert.equal(values.s_tverifyserver, false);
+});
+
+test('picking a different transport name reads that section instead, never the first one found', () => {
+  const pjsip: ConfigValue = [
+    { name: 'transport-tls-a', entries: [{ key: 'type', value: 'transport' }, { key: 'cert_file', value: '/a.pem' }] },
+    { name: 'transport-tls-b', entries: [{ key: 'type', value: 'transport' }, { key: 'cert_file', value: '/b.pem' }] },
+  ];
+  assert.equal(readControlValues('security', [], { 'pjsip.conf': pjsip }, { s_transport: 'transport-tls-b' }).s_tcert, '/b.pem');
+  assert.equal(readControlValues('security', [], { 'pjsip.conf': pjsip }, { s_transport: 'transport-tls-a' }).s_tcert, '/a.pem');
+});
+
+test('with no transport name chosen yet, the transport TLS fields read as absent', () => {
+  const pjsip: ConfigValue = [{ name: 'transport-tls', entries: [{ key: 'type', value: 'transport' }, { key: 'cert_file', value: '/a.pem' }] }];
+  assert.equal(readControlValues('security', [], { 'pjsip.conf': pjsip }).s_tcert, undefined);
+});
+
+test('applyControlValues writes the transport TLS fields into exactly the section s_transport names', () => {
+  const pjsip: ConfigValue = [
+    { name: 'transport-udp', entries: [{ key: 'type', value: 'transport' }, { key: 'protocol', value: 'udp' }] },
+    { name: 'transport-tls', entries: [{ key: 'type', value: 'transport' }, { key: 'protocol', value: 'tls' }] },
+  ];
+  const next = applyControlValues('security', pjsip, {
+    s_transport: 'transport-tls', s_tcert: '/new/cert.pem', s_tprivkey: '/new/key.pem', s_tverifyclient: true,
+  });
+  const udp = next.find((s) => s.name === 'transport-udp');
+  const tls = next.find((s) => s.name === 'transport-tls');
+  assert.deepEqual(udp, pjsip[0], 'the untouched transport must be left exactly as it was');
+  assert.equal(tls?.entries.find((e) => e.key === 'cert_file')?.value, '/new/cert.pem');
+  assert.equal(tls?.entries.find((e) => e.key === 'priv_key_file')?.value, '/new/key.pem');
+  assert.equal(tls?.entries.find((e) => e.key === 'verify_client')?.value, 'yes');
+});
+
+// ---------------------------------------------------------------- STIR/SHAKEN key material (security)
+
+test('the STIR/SHAKEN key-material fields read from stir_shaken.conf, not from acl.conf', () => {
+  // configs/samples/stir_shaken.conf.sample lines 130-131 (attestation) and 438-439 (verification).
+  const stir: ConfigValue = [
+    { name: 'attestation', entries: [
+      { key: 'private_key_file', value: '/var/lib/asterisk/keys/stir_shaken/tns/multi-tns-key.pem' },
+      { key: 'public_cert_url', value: 'https://example.com/tncerts/multi-tns-cert.pem' },
+    ] },
+    { name: 'verification', entries: [
+      { key: 'load_system_certs', value: 'no' },
+      { key: 'ca_path', value: '/var/lib/asterisk/keys/stir_shaken/verification_ca' },
+    ] },
+  ];
+  const values = readControlValues('security', [], { 'stir_shaken.conf': stir });
+  assert.equal(values.s_privkey, '/var/lib/asterisk/keys/stir_shaken/tns/multi-tns-key.pem');
+  assert.equal(values.s_certurl, 'https://example.com/tncerts/multi-tns-cert.pem');
+  assert.equal(values.s_loadsyscerts, false);
+  assert.equal(values.s_capath, '/var/lib/asterisk/keys/stir_shaken/verification_ca');
+  // acl.conf itself never carries these; the acl.conf reading this screen also does must
+  // never be consulted for a stir_shaken.conf-bound control.
+  assert.equal(readControlValues('security', [{ name: 'attestation', entries: [{ key: 'private_key_file', value: '/wrong/file' }] }]).s_privkey, undefined);
+});
+
+test('applyControlValues writes the STIR/SHAKEN key fields into their own objects, leaving the policy switches alone', () => {
+  const stir: ConfigValue = [
+    { name: 'attestation', entries: [{ key: 'global_disable', value: 'no' }] },
+    { name: 'verification', entries: [{ key: 'global_disable', value: 'no' }] },
+  ];
+  const next = applyControlValues('security', stir, {
+    s_privkey: '/new/key.pem', s_certurl: 'https://example.com/new-cert.pem', s_cafile: '/new/ca.pem', s_loadsyscerts: true,
+  });
+  const attestation = next.find((s) => s.name === 'attestation');
+  const verification = next.find((s) => s.name === 'verification');
+  assert.equal(attestation?.entries.find((e) => e.key === 'global_disable')?.value, 'no', 'the untouched policy switch must survive the write');
+  assert.equal(attestation?.entries.find((e) => e.key === 'private_key_file')?.value, '/new/key.pem');
+  assert.equal(attestation?.entries.find((e) => e.key === 'public_cert_url')?.value, 'https://example.com/new-cert.pem');
+  assert.equal(verification?.entries.find((e) => e.key === 'global_disable')?.value, 'no');
+  assert.equal(verification?.entries.find((e) => e.key === 'ca_file')?.value, '/new/ca.pem');
+  assert.equal(verification?.entries.find((e) => e.key === 'load_system_certs')?.value, 'yes');
+});
+
+// ---------------------------------------------------------------- res_pgsql.conf (dbrealtime)
+
+test('res_pgsql.conf reads straight from [general], the same way http.conf does', () => {
+  // configs/samples/res_pgsql.conf.sample: [general] hostname/port/dbname/user/requirements.
+  const cfg: ConfigValue = [{ name: 'general', entries: [
+    { key: 'hostname', value: 'db.example.internal' },
+    { key: 'port', value: '5433' },
+    { key: 'dbname', value: 'asterisk_prod' },
+    { key: 'user', value: 'asterisk_ro' },
+    { key: 'requirements', value: 'createclose' },
+    { key: 'order_multi_row_results_by_initial_column', value: 'no' },
+  ] }];
+  const values = readControlValues('dbrealtime', cfg);
+  assert.equal(values.db_pghost, 'db.example.internal');
+  assert.equal(values.db_pgport, 5433);
+  assert.equal(values.db_pgdbname, 'asterisk_prod');
+  assert.equal(values.db_pguser, 'asterisk_ro');
+  assert.equal(values.db_pgrequirements, 'createclose');
+  assert.equal(values.db_pgorderby, false);
+  // db_pgpassword has no binding at all -- even a config carrying a password line must
+  // never populate it, because a "read" is exactly the moment a stored secret would
+  // otherwise leak into renderer state.
+  assert.equal('db_pgpassword' in values, false);
+  const withPassword = readControlValues('dbrealtime', [
+    { name: 'general', entries: [{ key: 'hostname', value: 'x' }, { key: 'password', value: 'super-secret' }] },
+  ]);
+  assert.equal('db_pgpassword' in withPassword, false);
+});
+
+test('applyControlValues writes res_pgsql.conf fields without ever being handed a password', () => {
+  const cfg: ConfigValue = [{ name: 'general', entries: [{ key: 'hostname', value: 'localhost' }] }];
+  const next = applyControlValues('dbrealtime', cfg, {
+    db_pghost: '10.0.0.9', db_pgport: 5432, db_pgdbname: 'asterisk', db_pgorderby: true,
+  });
+  const general = next.find((s) => s.name === 'general');
+  assert.equal(general?.entries.find((e) => e.key === 'hostname')?.value, '10.0.0.9');
+  assert.equal(general?.entries.find((e) => e.key === 'port')?.value, '5432');
+  assert.equal(general?.entries.find((e) => e.key === 'dbname')?.value, 'asterisk');
+  assert.equal(general?.entries.find((e) => e.key === 'order_multi_row_results_by_initial_column')?.value, 'yes');
+  // No binding means applyControlValues silently ignores db_pgpassword even if it somehow
+  // appeared in `changes` -- App.tsx never puts it there, but the table itself refuses it too.
+  const withPasswordInChanges = applyControlValues('dbrealtime', cfg, { db_pgpassword: 'hunter2' } as never);
+  assert.equal(withPasswordInChanges.find((s) => s.name === 'general')?.entries.some((e) => e.key === 'password'), false);
+});
+
+// ---------------------------------------------------------------- res_odbc.conf (dbrealtime)
+
+test('the ODBC connection fields read from whichever section db_odbcname currently names', () => {
+  // configs/samples/res_odbc.conf.sample: [asterisk] enabled/dsn/pre-connect uncommented;
+  // username/max_connections/isolation/cache_type commented defaults shown the same way.
+  const odbc: ConfigValue = [
+    { name: 'asterisk', entries: [
+      { key: 'enabled', value: 'no' }, { key: 'dsn', value: 'asterisk' },
+      { key: 'username', value: 'myuser' }, { key: 'pre-connect', value: 'yes' },
+      { key: 'max_connections', value: '20' }, { key: 'isolation', value: 'repeatable_read' },
+      { key: 'cache_type', value: 'roundrobin' },
+    ] },
+    { name: 'sqlserver', entries: [{ key: 'dsn', value: 'mickeysoft' }, { key: 'backslash_is_escape', value: 'no' }] },
+  ];
+  const values = readControlValues('dbrealtime', [], { 'res_odbc.conf': odbc }, { db_odbcname: 'asterisk' });
+  assert.equal(values.db_odbcenabled, false);
+  assert.equal(values.db_odbcdsn, 'asterisk');
+  assert.equal(values.db_odbcusername, 'myuser');
+  assert.equal(values.db_odbcpreconnect, true);
+  assert.equal(values.db_odbcmaxconn, 20);
+  assert.equal(values.db_odbcisolation, 'repeatable_read');
+  assert.equal(values.db_odbccachetype, 'roundrobin');
+  // Picking a different connection reads that section instead, never the first one found.
+  assert.equal(readControlValues('dbrealtime', [], { 'res_odbc.conf': odbc }, { db_odbcname: 'sqlserver' }).db_odbcdsn, 'mickeysoft');
+  assert.equal(readControlValues('dbrealtime', [], { 'res_odbc.conf': odbc }, { db_odbcname: 'sqlserver' }).db_odbcbackslash, false);
+  // res_pgsql.conf's own bindings never leak into a res_odbc.conf read, and vice versa --
+  // db_pghost has no `sectionFrom`, so with no `value` (this screen's primary file) supplied
+  // it must be absent, not read out of the res_odbc.conf passed in `elsewhere`.
+  assert.equal('db_pghost' in values, false);
+  assert.equal('db_odbcpassword' in values, false, 'the write-only password must never be seeded by a read');
+});
+
+test('with no connection name chosen yet, the ODBC fields read as absent', () => {
+  const odbc: ConfigValue = [{ name: 'asterisk', entries: [{ key: 'dsn', value: 'asterisk' }] }];
+  assert.equal(readControlValues('dbrealtime', [], { 'res_odbc.conf': odbc }).db_odbcdsn, undefined);
+});
+
+test('applyControlValues writes the ODBC fields into exactly the section db_odbcname names, and can create a new one', () => {
+  const odbc: ConfigValue = [{ name: 'asterisk', entries: [{ key: 'enabled', value: 'no' }] }];
+  const next = applyControlValues('dbrealtime', odbc, {
+    db_odbcname: 'asterisk', db_odbcenabled: true, db_odbcdsn: 'asterisk', db_odbcmaxconn: 30,
+  });
+  const asterisk = next.find((s) => s.name === 'asterisk');
+  assert.equal(asterisk?.entries.find((e) => e.key === 'enabled')?.value, 'yes');
+  assert.equal(asterisk?.entries.find((e) => e.key === 'dsn')?.value, 'asterisk');
+  assert.equal(asterisk?.entries.find((e) => e.key === 'max_connections')?.value, '30');
+
+  // A name with no existing section is not refused: res_odbc.conf.sample documents every
+  // section besides [ENV] as "arbitrary names for database connections", so this is simply
+  // a new, complete connection.
+  const created = applyControlValues('dbrealtime', odbc, {
+    db_odbcname: 'reporting', db_odbcdsn: 'reporting-db', db_odbcenabled: true,
+  });
+  const reporting = created.find((s) => s.name === 'reporting');
+  assert.ok(reporting, 'a brand new [reporting] section must be created');
+  assert.equal(reporting?.entries.find((e) => e.key === 'dsn')?.value, 'reporting-db');
+  const asteriskUntouched = created.find((s) => s.name === 'asterisk');
+  assert.deepEqual(asteriskUntouched, odbc[0], 'an unrelated existing connection must be left exactly as it was');
+});
+
+// ---------------------------------------------------------------- Call attestation (stir_shaken.conf profiles)
+
+test('the Call attestation fields read from whichever section cs_profile currently names, mapped values included', () => {
+  // configs/samples/stir_shaken.conf.sample [myprofile] example (~line 501): type=profile,
+  // endpoint_behavior=verify, failure_action=continue_return_reason, x5u_acl=myacllist.
+  const stir: ConfigValue = [
+    { name: 'myprofile', entries: [
+      { key: 'type', value: 'profile' }, { key: 'endpoint_behavior', value: 'verify' },
+      { key: 'failure_action', value: 'continue_return_reason' }, { key: 'x5u_acl', value: 'myacllist' },
+      { key: 'attest_level', value: 'B' },
+    ] },
+    { name: 'otherprofile', entries: [{ key: 'type', value: 'profile' }, { key: 'endpoint_behavior', value: 'attest' }] },
+  ];
+  const values = readControlValues('stirshaken', stir, {}, { cs_profile: 'myprofile' });
+  assert.equal(values.cs_behavior, 'Verify', 'endpoint_behavior=verify must map back to the design word Verify');
+  assert.equal(values.cs_failaction, 'Tag', 'continue_return_reason must map back to the design word Tag');
+  assert.equal(values.cs_x5uacl, 'myacllist');
+  assert.equal(values.cs_level, 'B');
+  // Picking a different profile reads that section instead, never the first one found.
+  assert.equal(readControlValues('stirshaken', stir, {}, { cs_profile: 'otherprofile' }).cs_behavior, 'Attest');
+  // With no profile name chosen yet, the fields read as absent rather than the first profile's.
+  assert.equal(readControlValues('stirshaken', stir).cs_behavior, undefined);
+});
+
+test('applyControlValues writes the Call attestation fields into exactly the section cs_profile names, mapped values included', () => {
+  const stir: ConfigValue = [{ name: 'myprofile', entries: [{ key: 'type', value: 'profile' }] }];
+  const next = applyControlValues('stirshaken', stir, {
+    cs_profile: 'myprofile', cs_behavior: 'On', cs_failaction: 'Reject', cs_level: 'A', cs_privkey: '/keys/a.pem',
+  });
+  const profile = next.find((s) => s.name === 'myprofile');
+  assert.equal(profile?.entries.find((e) => e.key === 'endpoint_behavior')?.value, 'on');
+  assert.equal(profile?.entries.find((e) => e.key === 'failure_action')?.value, 'reject_request');
+  assert.equal(profile?.entries.find((e) => e.key === 'attest_level')?.value, 'A');
+  assert.equal(profile?.entries.find((e) => e.key === 'private_key_file')?.value, '/keys/a.pem');
+  // A design value with no entry in the map (nothing this screen offers can produce one,
+  // but the write-side refusal is what stops a stray value being written verbatim) writes
+  // nothing at all -- the same refusal `toRaw`'s own valueMap branch already guarantees.
+  const refused = applyControlValues('stirshaken', stir, { cs_profile: 'myprofile', cs_behavior: 'Nonsense' });
+  assert.equal(refused.find((s) => s.name === 'myprofile')?.entries.find((e) => e.key === 'endpoint_behavior'), undefined);
+});
+
+// ---------------------------------------------------------------- Emergency-services location (geolocation.conf)
+
+test('the geolocation location and profile fields each read from whichever section their own picker names', () => {
+  // configs/samples/geolocation.conf.sample [mylocation] example (~line 151) and
+  // [myprofile] example (~line 322).
+  const geo: ConfigValue = [
+    { name: 'mylocation', entries: [
+      { key: 'type', value: 'location' }, { key: 'format', value: 'civicAddress' },
+      { key: 'location_info', value: 'country=US' }, { key: 'location_info', value: 'A1="New York"' },
+      { key: 'method', value: 'Manual' }, { key: 'location_source', value: 'sip1.myserver.net' },
+    ] },
+    { name: 'myprofile', entries: [
+      { key: 'type', value: 'profile' }, { key: 'location_reference', value: 'mylocation' },
+      { key: 'pidf_element', value: 'tuple' }, { key: 'allow_routing_use', value: 'yes' },
+    ] },
+  ];
+  const values = readControlValues('geolocation', geo, {}, { gl_location: 'mylocation', gl_profile: 'myprofile' });
+  assert.equal(values.gl_format, 'civicAddress');
+  // The FIRST location_info line only -- the second ("A1=...") is deliberately not surfaced
+  // by a plain (non-repeated) binding; see the long comment above CONTROL_BINDINGS.geolocation.
+  assert.equal(values.gl_info, 'country=US');
+  assert.equal(values.gl_method, 'Manual');
+  assert.equal(values.gl_source, 'sip1.myserver.net');
+  assert.equal(values.gl_reference, 'mylocation');
+  assert.equal(values.gl_pidf, 'tuple');
+  assert.equal(values.gl_routing, true);
+  // geolocation.conf's own bindings never leak across sections -- gl_format has no reading
+  // for the profile object, which carries no format key of its own.
+  assert.equal(readControlValues('geolocation', geo, {}, { gl_location: 'myprofile' }).gl_format, undefined);
+});
+
+test('applyControlValues writes location and profile fields into exactly the sections their own pickers name, and can create either', () => {
+  const geo: ConfigValue = [];
+  const withLocation = applyControlValues('geolocation', geo, {
+    gl_location: 'mylocation', gl_format: 'URI', gl_info: 'URI=https://example.com',
+  });
+  const location = withLocation.find((s) => s.name === 'mylocation');
+  assert.ok(location, 'a brand new [mylocation] section must be created');
+  assert.equal(location?.entries.find((e) => e.key === 'format')?.value, 'URI');
+  assert.equal(location?.entries.find((e) => e.key === 'location_info')?.value, 'URI=https://example.com');
+
+  const withProfile = applyControlValues('geolocation', withLocation, {
+    gl_profile: 'myprofile', gl_precedence: 'prefer_config', gl_routing: true,
+  });
+  const profile = withProfile.find((s) => s.name === 'myprofile');
+  assert.ok(profile, 'a brand new [myprofile] section must be created');
+  assert.equal(profile?.entries.find((e) => e.key === 'profile_precedence')?.value, 'prefer_config');
+  assert.equal(profile?.entries.find((e) => e.key === 'allow_routing_use')?.value, 'yes');
+  // Writing the profile must not have touched the location section created just above.
+  const locationUntouched = withProfile.find((s) => s.name === 'mylocation');
+  assert.deepEqual(locationUntouched, location, 'the location object must be left exactly as it was');
+});
+
+// ---------------------------------------------------------------- Handset auto-provisioning (phoneprov.conf)
+
+test('phoneprov general fields read straight from [general], and profile fields read from whichever section pv_profile names', () => {
+  // configs/samples/phoneprov.conf.sample [general] (~line 1) and [polycom] (~line 63).
+  const phoneprov: ConfigValue = [
+    { name: 'general', entries: [
+      { key: 'default_profile', value: 'polycom' }, { key: 'serveraddr', value: '192.168.1.1' },
+    ] },
+    { name: 'polycom', entries: [
+      { key: 'staticdir', value: 'configs/' }, { key: 'mime_type', value: 'text/xml' },
+    ] },
+  ];
+  const values = readControlValues('phoneprov', phoneprov, {}, { pv_profile: 'polycom' });
+  assert.equal(values.pv_default, 'polycom');
+  assert.equal(values.pv_addr, '192.168.1.1');
+  assert.equal(values.pv_staticdir, 'configs/');
+  assert.equal(values.pv_mimetype, 'text/xml');
+  // [general] itself is read even with no profile picked -- it is a fixed section, not
+  // one a picker names.
+  assert.equal(readControlValues('phoneprov', phoneprov).pv_default, 'polycom');
+});
+
+test('applyControlValues writes phoneprov [general] and a named profile independently, and can create the profile', () => {
+  const phoneprov: ConfigValue = [{ name: 'general', entries: [{ key: 'default_profile', value: 'polycom' }] }];
+  const withGeneral = applyControlValues('phoneprov', phoneprov, { pv_default: 'yealink', pv_port: 5061 });
+  const general = withGeneral.find((s) => s.name === 'general');
+  assert.equal(general?.entries.find((e) => e.key === 'default_profile')?.value, 'yealink');
+  assert.equal(general?.entries.find((e) => e.key === 'serverport')?.value, '5061');
+
+  const withProfile = applyControlValues('phoneprov', withGeneral, {
+    pv_profile: 'yealink', pv_staticdir: 'yealink-configs/', pv_mimetype: 'text/plain',
+  });
+  const profile = withProfile.find((s) => s.name === 'yealink');
+  assert.ok(profile, 'a brand new [yealink] section must be created');
+  assert.equal(profile?.entries.find((e) => e.key === 'staticdir')?.value, 'yealink-configs/');
+  assert.equal(profile?.entries.find((e) => e.key === 'mime_type')?.value, 'text/plain');
+  // [general] must not have been touched by the profile write.
+  const generalUntouched = withProfile.find((s) => s.name === 'general');
+  assert.deepEqual(generalUntouched, general, '[general] must be left exactly as it was');
+});
+
+// ---------------------------------------------------------------- chan_dahdi.conf ([channels] defaults)
+
+test('the chan_dahdi.conf [channels] defaults round-trip through CONTROL_BINDINGS.dahdi', () => {
+  // configs/samples/chan_dahdi.conf.sample: context=public (line 56), usecallerid=yes
+  // (line 576), echocancel=yes (line 873), echocancelwhenbridged=yes (line 888).
+  const dahdi: ConfigValue = [
+    { name: 'channels', entries: [
+      { key: 'context', value: 'public' }, { key: 'usecallerid', value: 'yes' },
+      { key: 'echocancel', value: 'yes' }, { key: 'echocancelwhenbridged', value: 'yes' },
+      { key: 'group', value: '1' }, { key: 'channel', value: '1' }, { key: 'channel', value: '2-8' },
+    ] },
+  ];
+  const values = readControlValues('dahdi', dahdi);
+  assert.equal(values.da_context, 'public');
+  assert.equal(values.da_usecallerid, true);
+  assert.equal(values.da_echocancel, 'yes');
+  assert.equal(values.da_echocancelbridged, true);
+  assert.equal(values.da_group, '1');
+  // "channel" is a repeated directive, not a single-key binding -- CONTROL_BINDINGS.dahdi
+  // must never claim it, or a save would silently collapse every span to one.
+  assert.equal('da_spec' in values, false);
+
+  const next = applyControlValues('dahdi', dahdi, {
+    da_context: 'from-pstn', da_switchtype: 'euroisdn', da_busydetect: true, da_rxgain: '2.0',
+  });
+  const channels = next.find((s) => s.name === 'channels');
+  assert.equal(channels?.entries.find((e) => e.key === 'context')?.value, 'from-pstn');
+  assert.equal(channels?.entries.find((e) => e.key === 'switchtype')?.value, 'euroisdn');
+  assert.equal(channels?.entries.find((e) => e.key === 'busydetect')?.value, 'yes');
+  assert.equal(channels?.entries.find((e) => e.key === 'rxgain')?.value, '2.0');
+  // Both "channel =>" directives -- and every entry between them -- must survive a
+  // defaults save untouched: this is the same "first match wins" preservation rule every
+  // other fixed-section binding in this table already gives an unrelated repeated key.
+  const spans = channels?.entries.filter((e) => e.key === 'channel').map((e) => e.value);
+  assert.deepEqual(spans, ['1', '2-8']);
+});
+
+// ---------------------------------------------------------------- sla.conf (trunks and stations)
+
+test('sla.conf trunk and station fields read from whichever section sl_trunkname/sl_stationname currently name', () => {
+  // configs/samples/sla.conf.sample: [general] attemptcallerid=no (line 10, commented
+  // default); [line1] type=trunk/device=DAHDI/3/autocontext=line1/barge default yes/
+  // hold=private (lines 31-60); [station1] type=station/device=SIP/station1/
+  // autocontext=sla_stations/ringtimeout=10/hold=open (lines 83-110), plus repeated
+  // "trunk=" assignment lines (113-126).
+  const sla: ConfigValue = [
+    { name: 'general', entries: [{ key: 'attemptcallerid', value: 'no' }] },
+    { name: 'line1', entries: [
+      { key: 'type', value: 'trunk' }, { key: 'device', value: 'DAHDI/3' },
+      { key: 'autocontext', value: 'line1' }, { key: 'hold', value: 'private' },
+    ] },
+    { name: 'station1', entries: [
+      { key: 'type', value: 'station' }, { key: 'device', value: 'SIP/station1' },
+      { key: 'autocontext', value: 'sla_stations' }, { key: 'ringtimeout', value: '10' },
+      { key: 'hold', value: 'open' }, { key: 'trunk', value: 'line1' }, { key: 'trunk', value: 'line2' },
+    ] },
+  ];
+  const general = readControlValues('sla', sla);
+  assert.equal(general.sl_attemptcid, false);
+
+  const trunk = readControlValues('sla', sla, {}, { sl_trunkname: 'line1' });
+  assert.equal(trunk.sl_trunktype, 'trunk');
+  assert.equal(trunk.sl_trunkdevice, 'DAHDI/3');
+  assert.equal(trunk.sl_trunkautocontext, 'line1');
+  assert.equal(trunk.sl_trunkhold, 'private');
+  // Picking a different section reads that one instead, never the first one found --
+  // station fields never leak from a trunk read, and vice versa.
+  const station = readControlValues('sla', sla, {}, { sl_stationname: 'station1' });
+  assert.equal(station.sl_stationtype, 'station');
+  assert.equal(station.sl_stationringtimeout, '10');
+  assert.equal(station.sl_stationhold, 'open');
+  assert.equal('sl_trunktype' in station, false);
+  // The station's "trunk=" assignment list is a repeated key, not a single-key binding --
+  // CONTROL_BINDINGS.sla must never claim it, or a station save would silently collapse
+  // every assignment to one.
+  assert.equal('sl_stationtrunkline' in station, false);
+});
+
+test('applyControlValues writes sla.conf trunk and station fields into exactly the section named, and can create a new one', () => {
+  const sla: ConfigValue = [{ name: 'line1', entries: [{ key: 'type', value: 'trunk' }] }];
+  const next = applyControlValues('sla', sla, {
+    sl_trunkname: 'line1', sl_trunkdevice: 'DAHDI/3', sl_trunkbarge: false,
+  });
+  const line1 = next.find((s) => s.name === 'line1');
+  assert.equal(line1?.entries.find((e) => e.key === 'device')?.value, 'DAHDI/3');
+  assert.equal(line1?.entries.find((e) => e.key === 'barge')?.value, 'no');
+
+  // A brand new station name is not refused -- sla.conf.sample documents an arbitrary
+  // name per station, so this is simply a station Save has not created yet.
+  const created = applyControlValues('sla', sla, {
+    sl_stationname: 'station9', sl_stationtype: 'station', sl_stationdevice: 'SIP/station9',
+  });
+  const station9 = created.find((s) => s.name === 'station9');
+  assert.ok(station9, 'a brand new [station9] section must be created');
+  assert.equal(station9?.entries.find((e) => e.key === 'device')?.value, 'SIP/station9');
+  const line1Untouched = created.find((s) => s.name === 'line1');
+  assert.deepEqual(line1Untouched, sla[0], 'an unrelated existing trunk must be left exactly as it was');
+});
+
+// ---------------------------------------------------------------- dundi.conf ([general] and peers)
+
+test('dundi.conf [general] and peer fields round-trip through CONTROL_BINDINGS.dundi', () => {
+  // configs/samples/dundi.conf.sample: ttl=32 (line 52, uncommented default),
+  // autokill=yes (line 62, uncommented default); a peer section named by its entityid
+  // (lines 239-246: model=symmetric, host, inkey, outkey, include, permit, qualify=yes).
+  const dundi: ConfigValue = [
+    { name: 'general', entries: [
+      { key: 'ttl', value: '32' }, { key: 'autokill', value: 'yes' }, { key: 'port', value: '4520' },
+    ] },
+    { name: '00:50:8B:F3:75:BB', entries: [
+      { key: 'model', value: 'symmetric' }, { key: 'host', value: '64.215.96.114' },
+      { key: 'inkey', value: 'digium' }, { key: 'outkey', value: 'misery' },
+      { key: 'include', value: 'e164' }, { key: 'permit', value: 'e164' }, { key: 'qualify', value: 'yes' },
+    ] },
+    { name: 'mappings', entries: [{ key: 'e164', value: 'dundi-e164-canonical,0,IAX2,dundi:${SECRET}@${IPADDR}/${NUMBER},nounsolicited' }] },
+  ];
+  const general = readControlValues('dundi', dundi);
+  assert.equal(general.du_ttl, 32);
+  assert.equal(general.du_autokill, 'yes');
+  assert.equal(general.du_port, 4520);
+  // [mappings] varies its KEY, not its section -- CONTROL_BINDINGS.dundi must never claim
+  // it, since App.tsx reads/writes it directly through findEntry/writeEntry instead.
+  assert.equal('du_mapname' in general, false);
+  assert.equal('du_mapvalue' in general, false);
+
+  const peer = readControlValues('dundi', dundi, {}, { du_peereid: '00:50:8B:F3:75:BB' });
+  assert.equal(peer.du_peermodel, 'symmetric');
+  assert.equal(peer.du_peerhost, '64.215.96.114');
+  assert.equal(peer.du_peerinkey, 'digium');
+  assert.equal(peer.du_peeroutkey, 'misery');
+  assert.equal(peer.du_peerqualify, 'yes');
+
+  const next = applyControlValues('dundi', dundi, {
+    du_department: 'Support', du_cachetime: 1800,
+    du_peereid: '00:50:8B:F3:75:BB', du_peerregister: true,
+  });
+  const generalSection = next.find((s) => s.name === 'general');
+  assert.equal(generalSection?.entries.find((e) => e.key === 'department')?.value, 'Support');
+  assert.equal(generalSection?.entries.find((e) => e.key === 'cachetime')?.value, '1800');
+  const peerSection = next.find((s) => s.name === '00:50:8B:F3:75:BB');
+  assert.equal(peerSection?.entries.find((e) => e.key === 'register')?.value, 'yes');
+  // [mappings] must survive a [general]/peer save exactly as it was.
+  assert.deepEqual(next.find((s) => s.name === 'mappings'), dundi[2]);
+});
+
+// ---------------------------------------------------------------- calendar.conf (named calendars)
+
+test('calendar.conf fields read from whichever section ca_name currently names, and the secret is never bound', () => {
+  // configs/samples/calendar.conf.sample: [calendar1] type=ical/url/user/refresh=15/
+  // timeframe=60/channel/context/extension (lines 1-29).
+  const calendar: ConfigValue = [
+    { name: 'calendar1', entries: [
+      { key: 'type', value: 'ical' }, { key: 'url', value: 'https://example.com/home/jdoe/Calendar/' },
+      { key: 'user', value: 'jdoe' }, { key: 'secret', value: 'supersecret' },
+      { key: 'refresh', value: '15' }, { key: 'timeframe', value: '60' },
+      { key: 'channel', value: 'SIP/60001' }, { key: 'context', value: 'default' },
+    ] },
+  ];
+  const values = readControlValues('calendar', calendar, {}, { ca_name: 'calendar1' });
+  assert.equal(values.ca_type, 'ical');
+  assert.equal(values.ca_url, 'https://example.com/home/jdoe/Calendar/');
+  assert.equal(values.ca_user, 'jdoe');
+  assert.equal(values.ca_refresh, '15');
+  assert.equal(values.ca_channel, 'SIP/60001');
+  // The account password must never be seeded by a read -- it is write-only, exactly like
+  // iax.conf's secret and every database password in this console.
+  assert.equal('ca_secret' in values, false);
+
+  const next = applyControlValues('calendar', calendar, { ca_name: 'calendar1', ca_context: 'inbound-calendar' });
+  const cal1 = next.find((s) => s.name === 'calendar1');
+  assert.equal(cal1?.entries.find((e) => e.key === 'context')?.value, 'inbound-calendar');
+  // A value for ca_secret must never be written through this table either -- App.tsx
+  // splices it in directly with writeConfigEntry, the same way db_pgpassword is.
+  const withSecretAttempt = applyControlValues('calendar', calendar, { ca_name: 'calendar1', ca_secret: 'newpass' });
+  assert.equal(withSecretAttempt.find((s) => s.name === 'calendar1')?.entries.find((e) => e.key === 'secret')?.value, 'supersecret');
 });

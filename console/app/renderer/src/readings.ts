@@ -1,5 +1,7 @@
 import type { Observation, PbxReadView } from '../../../shared/control-plane';
-import type { Codec, TranslationRow } from '../../../control-plane/asterisk-parsers.ts';
+import type { Codec, TranslationRow, Bridge, DialplanApplication, AriUser } from '../../../control-plane/asterisk-parsers.ts';
+import type { AgiScriptFile } from '../../../control-plane/agi-library.ts';
+import type { AgiReference, DialplanGraph } from '../../../control-plane/dialplan-graph.ts';
 
 /**
  * Turns control-plane readings into the row shapes the design's own screens consume.
@@ -12,9 +14,28 @@ export interface Channel {
   name: string; context: string; extension: string; state: string;
   application: string; callerNumber: string; durationSeconds: number;
 }
-export interface Endpoint { id: string; callerId?: string; state: string; channels: string }
+export interface Endpoint { id: string; callerId?: string; state: string; channels: string; transport?: string }
+/** One row of `pjsip show channelstats` — see `control-plane/asterisk-readings.ts`
+ *  `parseChannelStats` for the exact format string. This is the codec negotiated on a
+ *  live channel, which is a different reading from `EndpointDetail.codecs` below. */
+export interface ChannelCodecUsage { channelName: string; endpointId: string; codec?: string }
+/** One endpoint's configured transport and codecs, from `pjsip show endpoint <id>` —
+ *  see `control-plane/asterisk-readings.ts` `parseEndpointDetail`. */
+export interface EndpointDetail { transport?: string; codecs?: string[] }
+/** Every endpoint detail one view read, plus the ids it did not read and so cannot
+ *  report on — see `AsteriskReadings.endpointDetails` for the budget that bounds it. */
+export interface EndpointDetailSet { byEndpoint: Record<string, EndpointDetail>; notRead: string[] }
 export interface Contact { aor: string; uri: string; status: string; roundTripMs?: number }
 export interface Registration { id: string; serverUri: string; status: string }
+/** `pjsip show auths` -- see `control-plane/asterisk-readings.ts` `parsePjsipAuths` for the
+ *  exact format string, and for why the singular `pjsip show auth <id>`, which would print
+ *  this object's password in plain text, is never run by this console. */
+export interface PjsipAuth { id: string; username: string }
+/** `iax2 show peers` -- see `control-plane/asterisk-readings.ts` `parseIax2Peers` for the
+ *  exact format string and why `name` already has any CLI-appended `/<username>` split off. */
+export interface IaxPeer { name: string; host: string; dynamic: boolean; trunk: boolean; status: string }
+/** `iax2 show registry` -- see `control-plane/asterisk-readings.ts` `parseIax2Registry`. */
+export interface IaxRegistration { host: string; username: string; refresh: number; state: string }
 export interface QueueSummary {
   name: string; strategy: string; callers: number; members: number;
   holdtimeSeconds: number; serviceLevelPercent?: number;
@@ -24,30 +45,88 @@ export interface ModuleSummary { name: string; description: string; useCount: nu
 export interface VoicemailUser { context: string; mailbox: string; fullName: string; zone: string; newMessages?: number }
 export interface ConfbridgeConference { name: string; users: number; marked: number; locked: boolean; muted: boolean }
 export interface MohClass { name: string; mode?: string; directory?: string }
+/** One item of `media cache show all` -- see `control-plane/asterisk-parsers.ts`
+ *  `parseMediaCacheItems` for the exact format string. A cache item is media Asterisk
+ *  fetched from a URI itself, which is not the same thing as a music-on-hold directory. */
+export interface MediaCacheItem { uri: string; localFile?: string }
 export interface ManagerUser { username: string }
+/** One live AMI/HTTP session from `manager show connected` -- see
+ *  `control-plane/asterisk-parsers.ts` `parseManagerConnections` for the exact format
+ *  string. `fileDescriptor` is what `manager kick session` actually takes. */
+export interface ManagerConnection {
+  username: string;
+  ipAddress: string;
+  startEpochSeconds: number;
+  elapsedSeconds: number;
+  fileDescriptor: number;
+  httpCount: number;
+  readPerms: number;
+  writePerms: number;
+}
 export interface AriApp { name: string }
+/** `cdr show status` (`main/cdr.c` `handle_cli_status`) -- see
+ *  `control-plane/asterisk-parsers.ts` `parseCdrStatus`. `settings` is the plain
+ *  key/value block ("Logging", "Mode", ...); `backends` is the "* Registered Backends"
+ *  list, one entry per backend module the target's running Asterisk has actually
+ *  loaded and registered, with `suspended` set when the CLI printed "(suspended)"
+ *  after its name. This is the "loaded" half of the CDR/CEL backend status readout on
+ *  the `cdr` screen -- the "configured" half comes from cdr.conf/cel_odbc.conf/
+ *  cel_pgsql.conf's own sections, read the ordinary `pbx.config` way. */
+export interface CdrStatus { settings: Record<string, string>; backends: Array<{ name: string; suspended: boolean }> }
 
 interface Reading<T> { command: string; result: Observation<T> }
 
 export interface ViewReadings {
   channels?: Reading<Channel[]>;
   endpoints?: Reading<Endpoint[]>;
+  channelStats?: Reading<ChannelCodecUsage[]>;
+  endpointDetails?: Reading<EndpointDetailSet>;
   contacts?: Reading<Contact[]>;
   registrations?: Reading<Registration[]>;
+  /** `pjsip show auths`, read for the `trunkauth` view. */
+  auths?: Reading<PjsipAuth[]>;
+  iaxRegistrations?: Reading<IaxRegistration[]>;
+  iaxPeers?: Reading<IaxPeer[]>;
   queues?: Reading<QueueSummary[]>;
   modules?: Reading<ModuleSummary[]>;
   uptime?: Reading<number>;
-  voicemailUsers?: Reading<{ users: VoicemailUser[]; total?: number }>;
+  /** `total` and `dropped` are what `droppedRowNote` below turns into a sentence when the
+   *  table is short of rows -- see `parseVoicemailUsers` for why a row is ever dropped. */
+  voicemailUsers?: Reading<{ users: VoicemailUser[]; total?: number; dropped: string[] }>;
   voicemailZones?: Reading<unknown>;
   rooms?: Reading<ConfbridgeConference[]>;
   mohClasses?: Reading<MohClass[]>;
+  /** `media cache show all`, read for the `moh` view beside the classes -- see
+   *  `mediaCacheNote` below for why it becomes a sentence rather than rows in that table. */
+  mediaCacheItems?: Reading<{ items: MediaCacheItem[]; dropped: string[] }>;
+  /** `total` is the target's own trailer count; `parseManagerUsers` cannot name the line
+   *  it lost, so it has no `dropped` list and the count is the whole signal. */
   managerUsers?: Reading<{ users: ManagerUser[]; total?: number }>;
+  /** `manager show connected` -- the live counterpart to `managerUsers` above: which AMI
+   *  sockets are actually open right now, and the file descriptor a real "Kick session"
+   *  action needs (see `write-commands.ts` and `onKickManagerSession` in App.tsx). */
+  managerConnections?: Reading<{ connections: ManagerConnection[]; total?: number }>;
   ariApps?: Reading<AriApp[]>;
+  cdrStatus?: Reading<CdrStatus>;
   /** `core show codecs` / `core show translation` — the dispatcher already reads both
    *  for the `codecs` screen (see `control-plane/dispatch.ts`); these two fields are
    *  what let the codec translation graph (`codec-graph.ts`) actually reach them. */
   codecs?: Reading<Codec[]>;
   translations?: Reading<TranslationRow[]>;
+  /** The REST resource browser -- `channels` and `ariApps` above already carry two of
+   *  its five readings; these are the three that had no other screen to belong to. */
+  bridges?: Reading<Bridge[]>;
+  applications?: Reading<DialplanApplication[]>;
+  ariUsers?: Reading<AriUser[]>;
+  /** Dialplan scripting (AGI) visibility. `dialplan` is a real `Reading`, exactly like
+   *  the Dialplan canvas's own reading of the same `dialplan show`; `files` and
+   *  `references` are already-resolved values by the time they reach the renderer --
+   *  `AgiLibrary#list` and `agiReferences` both run inside the control-plane dispatcher
+   *  itself, not lazily on this side, so there is nothing left to wrap in a `Reading`. */
+  dialplan?: Reading<DialplanGraph>;
+  astagidir?: string;
+  files?: ReadonlyArray<AgiScriptFile>;
+  references?: ReadonlyArray<AgiReference>;
 }
 
 /**
@@ -74,17 +153,40 @@ export const TABLE_DESTINATION_READERS: Record<string, boolean> = {
   live: true,
   endpoints: true,
   trunks: true,
+  iaxpeers: true,
   queues: true,
   modules: true,
   voicemail: true,
   confbridge: true,
   moh: true,
   ami: true,
+  /* `security` is a genuine reader, just not THIS one. There is no read-only CLI command
+   * that prints one line per `permit=`/`deny=` rule inside a chosen named ACL -- `acl
+   * show` (parsed by `parseAclRules` above) only prints the bare list of ACL names, which
+   * is why `rowsFor` below has no `security` branch and never will. The rules themselves
+   * come from `acl.conf` through the structured `pbx.config` transport every
+   * configuration screen already uses, and `App.tsx`'s `applyRows` feeds the table from
+   * `aclRuleRows(this.aclConfigValue())` (`app/renderer/src/acl-editor.ts`) directly,
+   * bypassing `readings`/`rowsFor` entirely. `false` here is therefore accurate to what
+   * this specific inventory claims -- "can `rowsFor` put real rows on it" -- while the
+   * screen itself is fully wired through its own, more appropriate path. */
+  security: false,
+  /* Both of these are genuine readers, just not THIS one, for the same reason
+   * `security` above is `false`: their rows do not come from ONE reading `rowsFor`
+   * could hand back as-is. `restbrowser` combines five separate readings (channels,
+   * bridges, applications, ARI apps, ARI users) into one table -- `rest-browser.ts`
+   * `restBrowserRows`. `agiscripts` cross-references a dialplan reading against an
+   * already-resolved directory listing that is not itself a `Reading` at all --
+   * `agi-scripting.ts` `agiScriptRows`. `App.tsx`'s `applyRows` feeds both directly,
+   * bypassing `rowsFor` entirely, exactly the way `security`'s own rows already do. */
+  restbrowser: false,
+  agiscripts: false,
 };
 
 export const READABLE_VIEWS: PbxReadView[] = [
-  'dash', 'live', 'endpoints', 'trunks', 'queues', 'modules',
+  'dash', 'live', 'endpoints', 'trunks', 'iaxpeers', 'queues', 'modules',
   'voicemail', 'confbridge', 'moh', 'codecs', 'security', 'cdr', 'logger', 'ami', 'about', 'cli',
+  'trunkauth', 'restbrowser', 'agiscripts',
 ];
 
 export const isReadable = (screen: string): screen is PbxReadView =>
@@ -94,12 +196,144 @@ export function valueOf<T>(reading: Reading<T> | undefined): T | undefined {
   return reading?.result.state === 'available' ? reading.result.value : undefined;
 }
 
+/**
+ * One reading's shortfall: how many rows reached the table, how many the target said it
+ * had, and, where the parser can name them, the exact lines it could not read.
+ *
+ * `total` is the authority. It is the count the target printed in its own trailer, from
+ * the same traversal that printed the rows, so `total - parsed` is how many rows are
+ * genuinely absent. `dropped` is what the parser refused, which is a different quantity:
+ * a line that is not a row at all (a warning, say) can land there without any row going
+ * missing, and a note driven by `dropped` alone would report a missing row that is not.
+ */
+export interface RowShortfall {
+  /** The command whose output this is, named so a reader can go and run it. */
+  command: string;
+  /** What one row is, singular: 'voicemail user', 'manager user'. */
+  unit: string;
+  /** How many rows the table below is actually showing. */
+  parsed: number;
+  /** The count the target printed in its own trailer, when it printed one. */
+  total?: number;
+  /** The exact lines the parser declined, when it is able to name them. */
+  dropped?: string[];
+  /** Why a line goes unread, in the parser's own terms, read as a continuation of
+   *  `command`: "prints fixed-width columns, and …". Ends without a full stop. */
+  reason: string;
+}
+
+/** How many of the dropped lines a note quotes before it stops. */
+const QUOTED_DROPPED_LINES = 3;
+
+/**
+ * The sentence a screen adds when its table is short of rows, or an empty string when it
+ * is not.
+ *
+ * This exists because an incomplete table is indistinguishable from a complete one. A
+ * reading that drops a row it cannot parse is doing the right thing -- misassigning a
+ * fixed-width column would put a real mailbox under the wrong context, which is worse
+ * than omitting it -- but the screen then shows three mailboxes where the target has four
+ * and nothing anywhere says so. Measured on a live target: `voicemail show users` said
+ * `4 voicemail users configured`, the reading produced 3, and the Voicemail screen
+ * rendered exactly those 3.
+ *
+ * Silent when nothing is missing, so a screen that is showing everything says nothing.
+ */
+export function droppedRowNote(shortfall: RowShortfall): string {
+  const dropped = shortfall.dropped ?? [];
+  /* `total` wins wherever the target printed one: it counts what the target has, while
+   * `dropped` counts what this parser choked on, and those are only the same number when
+   * every declined line was a row. Falling back to `dropped.length` covers the reading
+   * that produced no trailer at all, which is the only case where it is the best estimate
+   * available rather than the second-best one. */
+  const missing = shortfall.total === undefined ? dropped.length : shortfall.total - shortfall.parsed;
+  if (missing <= 0) return '';
+
+  /* "1 of the 4 voicemail users" is plural after the count of the whole set, while a bare
+   * "1 voicemail user" is not, so the two branches genuinely disagree about the noun. */
+  const verb = missing === 1 ? 'is' : 'are';
+  const head = shortfall.total === undefined
+    ? `${missing} ${missing === 1 ? shortfall.unit : `${shortfall.unit}s`} on this target ${verb} missing from this table`
+    : `${missing} of the ${shortfall.total} ${shortfall.unit}s on this target ${verb} missing from this table`;
+
+  /* The command is named rather than only described, because the one thing a reader can
+   * do about a short table is go and run it themselves. */
+  return ` ${head}: \`${shortfall.command}\` ${shortfall.reason}.${quotedDroppedLines(dropped)}`;
+}
+
+/**
+ * The declined lines themselves, so a reader can go and find the object rather than only
+ * learn that one exists.
+ *
+ * Runs of spaces are collapsed. These are fixed-width rows, so a verbatim quote carries
+ * fifty columns of padding, and the surface this lands on collapses runs anyway -- quoting
+ * the raw bytes would claim a shape the reader will never actually see. Nothing else about
+ * the line is altered.
+ */
+function quotedDroppedLines(dropped: string[]): string {
+  if (dropped.length === 0) return '';
+  const shown = dropped
+    .slice(0, QUOTED_DROPPED_LINES)
+    .map((line) => `"${line.trim().replace(/\s+/gu, ' ')}"`)
+    .join('; ');
+  return ` The ${dropped.length === 1 ? 'line' : 'lines'} it could not read: ${shown}${dropped.length > QUOTED_DROPPED_LINES ? ', …' : ''}.`;
+}
+
+/** How many cache items a note names before it stops counting them out. */
+const QUOTED_CACHE_ITEMS = 5;
+
+/**
+ * What the Music on Hold screen says about the target's media cache.
+ *
+ * It is a sentence and not rows, deliberately. That screen's table is
+ * `musiconhold.conf`'s classes -- its columns are Class, Mode, Source and Tracks -- and a
+ * media cache item is none of those. Putting `http://…/hold.gsm` under a column headed
+ * Class would claim `musiconhold.conf` names it, which nothing has read and which is not
+ * true: a cache item is something Asterisk fetched at run time because a dialplan asked it
+ * to play a URI. Real-looking content under a label it does not belong to is the same
+ * defect as the sample rows this console removed.
+ *
+ * Never silent. An empty cache and an unread cache are different facts and the screen must
+ * not render them the same way, which is the whole reason the reading exists rather than
+ * the screen simply not mentioning it.
+ */
+export function mediaCacheNote(reading: ViewReadings['mediaCacheItems']): string {
+  if (!reading) return '';
+  if (reading.result.state === 'unavailable') {
+    return `This target's media cache could not be read: ${reading.result.reason}`;
+  }
+  const value = reading.result.value;
+  if (!value) return '';
+  const { items, dropped } = value;
+  /* `media cache show all` prints no trailer count, so unlike the voicemail and manager
+   * readings there is no total to measure a shortfall against -- `dropped` is the only
+   * signal available and it counts lines this parser refused, not rows the target has. */
+  const declined = dropped.length === 0
+    ? ''
+    : ` ${dropped.length} further line(s) of that listing could not be read: ${dropped.slice(0, QUOTED_CACHE_ITEMS).map((line) => `"${line.trim().replace(/\s+/gu, ' ')}"`).join('; ')}${dropped.length > QUOTED_CACHE_ITEMS ? ', …' : ''}.`;
+
+  if (items.length === 0) {
+    return `This target's media cache is empty: \`media cache show all\` lists media Asterisk fetched from a URI itself and stored locally, and it has fetched none. That is a separate thing from the music-on-hold classes below, which name directories on the target.${declined}`;
+  }
+  const named = items
+    .slice(0, QUOTED_CACHE_ITEMS)
+    .map((item) => `${item.uri} → ${item.localFile ?? NOT_READ}`)
+    .join('; ');
+  return `${items.length} item(s) in this target's media cache, from \`media cache show all\` — media Asterisk fetched from a URI itself, not the music-on-hold classes below: ${named}${items.length > QUOTED_CACHE_ITEMS ? ', …' : ''}.${declined}`;
+}
+
 /** The exact reason a screen has no rows, or an empty string when it does. */
 export function reasonFor(readings: ViewReadings | undefined, keys: Array<keyof ViewReadings>): string {
   if (!readings) return '';
   for (const key of keys) {
     const reading = readings[key];
-    if (reading && reading.result.state === 'unavailable') return reading.result.reason;
+    // Most `ViewReadings` fields are real `Reading<T>` wrappers, but the AGI scripting
+    // screen's `astagidir`/`files`/`references` are already-resolved plain values (see
+    // the field comments above), so this checks the shape before reading `.result`
+    // rather than assuming every key in the interface carries one.
+    if (reading && typeof reading === 'object' && 'result' in reading && reading.result.state === 'unavailable') {
+      return reading.result.reason;
+    }
   }
   return '';
 }
@@ -107,8 +341,16 @@ export function reasonFor(readings: ViewReadings | undefined, keys: Array<keyof 
 export function rowsFor(screen: string, readings: ViewReadings | undefined): string[][] {
   if (!readings) return [];
   if (screen === 'live') return channelRows(valueOf(readings.channels) ?? []);
-  if (screen === 'endpoints') return endpointRows(valueOf(readings.endpoints) ?? [], valueOf(readings.contacts) ?? []);
-  if (screen === 'trunks') return registrationRows(valueOf(readings.registrations) ?? []);
+  if (screen === 'endpoints') {
+    return endpointRows(
+      valueOf(readings.endpoints) ?? [],
+      valueOf(readings.contacts) ?? [],
+      valueOf(readings.channelStats) ?? [],
+      valueOf(readings.endpointDetails),
+    );
+  }
+  if (screen === 'trunks') return registrationRows(valueOf(readings.registrations) ?? [], valueOf(readings.iaxRegistrations) ?? []);
+  if (screen === 'iaxpeers') return iaxPeerRows(valueOf(readings.iaxPeers) ?? []);
   if (screen === 'queues') return queueRows(valueOf(readings.queues) ?? []);
   if (screen === 'modules') return moduleRows(valueOf(readings.modules) ?? []);
   if (screen === 'voicemail') return voicemailRows(valueOf(readings.voicemailUsers)?.users ?? []);
@@ -164,6 +406,26 @@ export function amiRows(managerUsers: ManagerUser[], ariApps: AriApp[]): string[
     ...managerUsers.map((user) => [user.username, 'AMI', NOT_READ, NOT_READ]),
     ...ariApps.map((app) => [app.name, 'ARI', NOT_READ, NOT_READ]),
   ];
+}
+
+/**
+ * Read by the AMI & REST screen's `a_connected` text control (`action:
+ * 'ami-connected-status'`). This is the operable half of that screen's real gap: which
+ * AMI sockets are actually open right now, and the file descriptor "Kick session" needs
+ * -- a genuine live-connection readout, distinct from the static configured-user table
+ * above, built from `manager show connected` rather than invented. A target with no
+ * live sessions is not an error and says so plainly rather than showing nothing.
+ */
+export function managerConnectionsStatus(reading: ViewReadings['managerConnections']): string {
+  if (!reading) return 'Read manager.conf to check.';
+  if (reading.result.state === 'unavailable') {
+    return `Connected sessions could not be read: ${reading.result.reason}`;
+  }
+  const value = reading.result.value;
+  if (!value || value.connections.length === 0) return 'No AMI or HTTP sessions are connected to this target right now.';
+  return value.connections
+    .map((c) => `${c.username} @ ${c.ipAddress} — fd ${c.fileDescriptor}, connected ${c.elapsedSeconds}s`)
+    .join('; ');
 }
 
 /**
@@ -239,25 +501,100 @@ export function channelRows(channels: Channel[]): string[][] {
   ]);
 }
 
-/** Transport and codecs need a per-endpoint read the console does not make yet. */
-export function endpointRows(endpoints: Endpoint[], contacts: Contact[]): string[][] {
+/**
+ * Both columns are fed from the endpoint's own parameter table (`pjsip show endpoint
+ * <id>` — see `parseEndpointDetail`), which is the only CLI output that carries either
+ * value for an endpoint that is merely configured rather than on a call.
+ *
+ * Transport falls back to the `Transport:` child line of `pjsip show endpoints` (see
+ * `parseEndpoints`) when no detail was read. The two agree whenever both exist; the
+ * detail additionally reports a `transport=` naming a transport the target does not
+ * have, which the child line omits entirely (`config_transport.c` `cli_iterate` returns
+ * -1 when the id does not resolve) — an endpoint pinned to a transport that is not there
+ * is exactly the one worth seeing.
+ *
+ * Codecs falls back to the codec negotiated on a live channel (`parseChannelStats`), and
+ * says so in the cell, because that is a different reading: one codec in use on one call
+ * rather than the list the endpoint offers. A reader must never have to guess which of
+ * the two a cell is showing.
+ *
+ * Anything genuinely unread stays `NOT_READ` rather than becoming a guess — an endpoint
+ * past `MAX_ENDPOINT_DETAILS` with no live channel has neither reading available.
+ */
+export function endpointRows(
+  endpoints: Endpoint[],
+  contacts: Contact[],
+  channelStats: ChannelCodecUsage[] = [],
+  details: EndpointDetailSet | undefined = undefined,
+): string[][] {
   const byAor = new Map(contacts.map((contact) => [contact.aor, contact]));
-  return endpoints.map((endpoint) => [
-    endpoint.id,
-    byAor.get(endpoint.id)?.uri ?? NOT_READ,
-    NOT_READ,
-    NOT_READ,
-    endpoint.state,
-  ]);
+  const codecByEndpoint = new Map<string, string>();
+  for (const stat of channelStats) {
+    if (stat.codec && !codecByEndpoint.has(stat.endpointId)) codecByEndpoint.set(stat.endpointId, stat.codec);
+  }
+  return endpoints.map((endpoint) => {
+    const detail = details?.byEndpoint[endpoint.id];
+    const inUse = codecByEndpoint.get(endpoint.id);
+    /* An empty `allow=` is a real reading — Asterisk printed `(nothing)` — but "this
+     * endpoint allows no codec" is not something an empty cell says, so it is spelled
+     * out rather than falling through to the live-channel branch below. */
+    const codecs = detail?.codecs
+      ? (detail.codecs.length > 0 ? detail.codecs.join(', ') : 'none allowed')
+      : inUse
+        ? `${inUse} (in use)`
+        : NOT_READ;
+    return [
+      endpoint.id,
+      byAor.get(endpoint.id)?.uri ?? NOT_READ,
+      detail?.transport ?? endpoint.transport ?? NOT_READ,
+      codecs,
+      endpoint.state,
+    ];
+  });
 }
 
-export function registrationRows(registrations: Registration[]): string[][] {
-  return registrations.map((registration) => [
-    registration.id,
-    registration.serverUri,
-    NOT_READ,
-    NOT_READ,
-    registration.status,
+/**
+ * `pjsip show registrations` rows, plus the IAX2 counterpart the trunks table used to
+ * have no reader for at all. An IAX2 registration (`iax2 show registry`, `iax.conf`'s
+ * own `register =>` lines -- see `configs/samples/iax.conf.sample` line 305) has no
+ * named object of its own the way a PJSIP `[registration]` section does, so the row it
+ * gets here is named the same way `register => user[:secret]@host` itself is: username
+ * and host, joined by `@`, or the bare host when the line sets no username. Auth and
+ * Outbound stay `NOT_READ` for an IAX2 row exactly as they already do for a PJSIP one:
+ * neither CLI command prints either, so guessing a value there would be no more honest
+ * for one protocol than the other.
+ */
+export function registrationRows(registrations: Registration[], iaxRegistrations: IaxRegistration[] = []): string[][] {
+  return [
+    ...registrations.map((registration) => [
+      registration.id,
+      registration.serverUri,
+      NOT_READ,
+      NOT_READ,
+      registration.status,
+    ]),
+    ...iaxRegistrations.map((registration) => [
+      registration.username ? `${registration.username}@${registration.host}` : registration.host,
+      registration.host,
+      NOT_READ,
+      NOT_READ,
+      registration.state,
+    ]),
+  ];
+}
+
+/** `iax2 show peers` rows for the IAX peers table -- the live counterpart to iax.conf's
+ *  own peer/friend sections, read alongside them the same way `endpointRows` reads
+ *  `pjsip show endpoints` alongside pjsip.conf. Selecting a row loads that exact peer's
+ *  real configuration into the editor below (see `iax-peers.ts`); nothing here is
+ *  invented, and a target with no configured peers renders an honestly empty table. */
+export function iaxPeerRows(peers: IaxPeer[]): string[][] {
+  return peers.map((peer) => [
+    peer.name,
+    peer.host,
+    peer.dynamic ? 'yes' : 'no',
+    peer.trunk ? 'yes' : 'no',
+    peer.status,
   ]);
 }
 
@@ -348,11 +685,19 @@ export function badgeFor(screen: string, readings: Partial<Record<string, ViewRe
   const channels = valueOf(readings.live?.channels) ?? valueOf(readings.dash?.channels);
   const endpoints = valueOf(readings.endpoints?.endpoints) ?? valueOf(readings.dash?.endpoints);
   const registrations = valueOf(readings.trunks?.registrations);
+  const iaxRegistrations = valueOf(readings.trunks?.iaxRegistrations);
+  const iaxPeers = valueOf(readings.iaxpeers?.iaxPeers);
   const queues = valueOf(readings.queues?.queues) ?? valueOf(readings.dash?.queues);
   const modules = valueOf(readings.modules?.modules);
   if (screen === 'live' && channels) return String(channels.length);
   if (screen === 'endpoints' && endpoints) return String(endpoints.length);
-  if (screen === 'trunks' && registrations) return String(registrations.length);
+  /* The badge counts every row the table actually shows, PJSIP and IAX2 alike -- not
+   * only PJSIP's, or the badge would silently under-report once IAX2 rows joined the
+   * table below. */
+  if (screen === 'trunks' && (registrations || iaxRegistrations)) {
+    return String((registrations?.length ?? 0) + (iaxRegistrations?.length ?? 0));
+  }
+  if (screen === 'iaxpeers' && iaxPeers) return String(iaxPeers.length);
   if (screen === 'queues' && queues) return String(queues.length);
   if (screen === 'modules' && modules) return String(modules.length);
   return '';

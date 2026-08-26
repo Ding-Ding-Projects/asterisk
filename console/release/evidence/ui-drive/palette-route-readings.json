@@ -1,0 +1,4188 @@
+{
+  "schemaVersion": 1,
+  "reading": "command-palette-routes",
+  "harnessCommit": "149907a83fcb4d13aa6ac05d8a6991bf81cb87fd",
+  "harnessUncommitted": true,
+  "artifact": "../asterisk-full-drive-panel-readings/console/dist/squirrel-windows/win-unpacked/Ding PBX Console.exe",
+  "artifactSha256": "32511fb65bed7c74b535be060ee244ea10367187cfb7989d5aebe110e8ee0582",
+  "artifactProvenance": {
+    "builtAtCommit": "f20a66f7388979d627203fd913c153d8f8d4a001",
+    "establishedBy": "byte-for-byte digest equality with an earlier committed reading of the same executable",
+    "reading": "console/release/evidence/ui-drive/command-palette-reading.json"
+  },
+  "verification": "inspected-real-packaged-artifact",
+  "launch": {
+    "method": "off-screen Win32 desktop via console/scripts/launch-on-hidden-desktop.ps1",
+    "isolatedProfile": "a task-scoped --user-data-dir created for this run only",
+    "driver": "loopback Chrome DevTools Protocol, exactly one page target verified before any evaluation"
+  },
+  "routesExcluded": [
+    {
+      "feature": "regex-builder",
+      "reason": "driven from the dashboard section-search row rather than through the command palette, and the only one of the twenty-six whose reading was not empty"
+    }
+  ],
+  "notReadHere": [
+    "no route activated the control it teleported to; each one was focused and left alone, so nothing here says what any of these settings do when operated",
+    "no windows-console record was rewritten and no inventory row moved to verified",
+    "the reading after activation is of whatever the destination is; where it reports no panel that is a fact about a page, not a verdict on the feature",
+    "a control list standing on the shared reader's cap carries controlListTruncated, and the controls past the cap were never read -- the count beside it is what the panel held",
+    "the artifact was not built from harnessCommit; artifactProvenance names the commit it was built from and how that was established, and appSourcesChangedSince names what moved between them"
+  ],
+  "appSourcesChangedSince": [
+    "console/app/renderer/src/generated/changelog-bundle.ts",
+    "console/app/renderer/src/generated/docs-bundle.ts"
+  ],
+  "summary": {
+    "routesDriven": 25,
+    "paletteOpened": 25,
+    "expectedTargetPresent": 22,
+    "expectedTargetAmbiguous": 1,
+    "routesWithFocusedControl": 22,
+    "noPanelAfterActivation": 25,
+    "readingsTruncatedAtControlCap": 2,
+    "totalControlsObserved": 266
+  },
+  "routes": [
+    {
+      "feature": "accessibility",
+      "query": "readability",
+      "expectedTarget": "Contrast of the current accent",
+      "recordedRoute": "App > tuneApp > Customise everything > palette search 'readability' > Readability section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Dashboard",
+        "elements": 443
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Location info Emergency location · Location object",
+          "Contrast of the current accent Customise everything · Readability"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Location info Emergency location · Location object",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Contrast of the current accent Customise everything · Readability",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 3,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "2 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 2,
+        "rows": [
+          {
+            "label": "Location info",
+            "context": "Emergency location · Location object"
+          },
+          {
+            "label": "Contrast of the current accent",
+            "context": "Customise everything · Readability"
+          }
+        ],
+        "elements": 454,
+        "updateBanner": "Downloading update (0.1.265)…"
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Customise everything · Readability"
+        ],
+        "activatedRowLabel": "Contrast of the current accent",
+        "activatedRowContext": "Customise everything · Readability",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Customise everything",
+        "elements": 1665,
+        "paletteStillUp": false,
+        "updateBanner": "Downloading update (0.1.265)…",
+        "focusedControlId": "ap_contrast_status",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/accessibility-palette.png",
+          "sha256": "68f04d1fcaaecf05238c57a07f74be2b0a770c5cf2766b7eba55e708b4d427d6",
+          "bytes": 248248
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/accessibility-after.png",
+          "sha256": "b4fb6497d541a0eceab24121242b58a3ae37b443006a7df31a3abf60256c9a4c",
+          "bytes": 298269
+        }
+      }
+    },
+    {
+      "feature": "app-display-name",
+      "query": "display name",
+      "expectedTarget": "Display name",
+      "recordedRoute": "App > tuneApp > Customise everything > palette search 'display name' > Identity section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Customise everything",
+        "elements": 1665
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Display name Endpoints · Identity",
+          "Display name Customise everything · Identity",
+          "Outbound caller ID number Endpoints · Identity",
+          "English voice Customise everything · Narration"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Display name Endpoints · Identity",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Display name Customise everything · Identity",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Outbound caller ID number Endpoints · Identity",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "English voice Customise everything · Narration",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 5,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "4 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 4,
+        "rows": [
+          {
+            "label": "Display name",
+            "context": "Endpoints · Identity"
+          },
+          {
+            "label": "Display name",
+            "context": "Customise everything · Identity"
+          },
+          {
+            "label": "Outbound caller ID number",
+            "context": "Endpoints · Identity"
+          },
+          {
+            "label": "English voice",
+            "context": "Customise everything · Narration"
+          }
+        ],
+        "elements": 1682,
+        "updateBanner": "Downloading update (0.1.265)…"
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 2,
+        "expectedTargetAmbiguous": true,
+        "expectedTargetContexts": [
+          "Endpoints · Identity",
+          "Customise everything · Identity"
+        ],
+        "activatedRowLabel": "Display name",
+        "activatedRowContext": "Endpoints · Identity",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "PJSIP endpoints",
+        "elements": 930,
+        "paletteStillUp": false,
+        "updateBanner": "Downloading update (0.1.265)…",
+        "focusedControlId": "e_displayname",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/app-display-name-palette.png",
+          "sha256": "1afb36e0a2f1af5a40bb7eec7dddfe751e607281d7904ea32af0f336d91599af",
+          "bytes": 279683
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/app-display-name-after.png",
+          "sha256": "d57dadf6a509c4ffd39791cbc359eea7e350db3c5d540cd34b881a3da00b94cd",
+          "bytes": 278245
+        }
+      }
+    },
+    {
+      "feature": "app-logo-customization",
+      "query": "picture",
+      "expectedTarget": "Your own picture",
+      "recordedRoute": "App > tuneApp > Customise everything > palette search 'picture' > Console mark section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "PJSIP endpoints",
+        "elements": 933
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Your own picture Customise everything · Console mark",
+          "What is in use Customise everything · Console mark"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Your own picture Customise everything · Console mark",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "What is in use Customise everything · Console mark",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 3,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "2 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 2,
+        "rows": [
+          {
+            "label": "Your own picture",
+            "context": "Customise everything · Console mark"
+          },
+          {
+            "label": "What is in use",
+            "context": "Customise everything · Console mark"
+          }
+        ],
+        "elements": 944,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Customise everything · Console mark"
+        ],
+        "activatedRowLabel": "Your own picture",
+        "activatedRowContext": "Customise everything · Console mark",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Customise everything",
+        "elements": 1668,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "logo_pick",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/app-logo-customization-palette.png",
+          "sha256": "43452406d0fe76ae3812f53135cd10fbbec96d9c01b69654b8976d102f4a10de",
+          "bytes": 272817
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/app-logo-customization-after.png",
+          "sha256": "6f1074272aca99c409d27ea09a9d015232e54e3bbfe1265ea60c07d5ac653666",
+          "bytes": 311288
+        }
+      }
+    },
+    {
+      "feature": "attention-modes",
+      "query": "attention",
+      "expectedTarget": "Focus",
+      "recordedRoute": "App > tuneApp > Customise everything > palette search 'attention' > Attention section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Customise everything",
+        "elements": 1668
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Focus Customise everything · Attention",
+          "Low stimulation Customise everything · Attention",
+          "Time awareness Customise everything · Attention",
+          "One thing at a time Customise everything · Attention",
+          "Momentum Customise everything · Attention",
+          "Full ceremony on every destructive action Appearance · Behaviour"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Focus Customise everything · Attention",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Low stimulation Customise everything · Attention",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Time awareness Customise everything · Attention",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "One thing at a time Customise everything · Attention",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Momentum Customise everything · Attention",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Full ceremony on every destructive action Appearance · Behaviour",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 7,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "6 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 6,
+        "rows": [
+          {
+            "label": "Focus",
+            "context": "Customise everything · Attention"
+          },
+          {
+            "label": "Low stimulation",
+            "context": "Customise everything · Attention"
+          },
+          {
+            "label": "Time awareness",
+            "context": "Customise everything · Attention"
+          },
+          {
+            "label": "One thing at a time",
+            "context": "Customise everything · Attention"
+          },
+          {
+            "label": "Momentum",
+            "context": "Customise everything · Attention"
+          },
+          {
+            "label": "Full ceremony on every destructive action",
+            "context": "Appearance · Behaviour"
+          }
+        ],
+        "elements": 1691,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Customise everything · Attention"
+        ],
+        "activatedRowLabel": "Focus",
+        "activatedRowContext": "Customise everything · Attention",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Customise everything",
+        "elements": 1668,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "att_focus",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/attention-modes-palette.png",
+          "sha256": "acd56ab8f54590d7f4db1d0fb56f034bc165668a0b4ce5ab5699ba03f9a0f4d1",
+          "bytes": 290220
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/attention-modes-after.png",
+          "sha256": "c213bead7c99110dcef005d0634c74f3fb590d500a1c9d5108b1eeac9f690749",
+          "bytes": 278446
+        }
+      }
+    },
+    {
+      "feature": "browser-style-tabs",
+      "query": "tab",
+      "expectedTarget": "Tab strip",
+      "recordedRoute": "App > tuneApp > Customise everything > palette search 'tab' > Layout section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Customise everything",
+        "elements": 1668
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Table CDR & CEL · CEL: ODBC backend",
+          "Table CDR & CEL · CEL: PostgreSQL backend",
+          "Table (optional) Database backends · Realtime mapping",
+          "Tab strip Customise everything · Layout",
+          "ODBC table Voicemail · Storage backend",
+          "Database name CDR & CEL · CEL: PostgreSQL backend",
+          "Database backends Database & realtime backends",
+          "Database Database backends · Realtime mapping",
+          "Database name Database backends · PostgreSQL realtime",
+          "Other editor executable Customise everything · External editor",
+          "Realtime & Database Backends Destination",
+          "Dashboard Destination",
+          "Trunks Trunks & registrations",
+          "IAX peers Destination",
+          "ODBC connection name Voicemail · Storage backend",
+          "Keep ODBC audio on disk Voicemail · Storage backend",
+          "Load from target CDR & CEL · CEL: ODBC backend",
+          "Schema CDR & CEL · CEL: PostgreSQL backend",
+          "Connection name Database backends · ODBC connection",
+          "Load from target Database backends · ODBC connection",
+          "Enabled Database backends · ODBC connection",
+          "DSN Database backends · ODBC connection",
+          "Username Database backends · ODBC connection",
+          "Password Database backends · ODBC connection",
+          "Password on target Database backends · ODBC connection",
+          "Connect at startup Database backends · ODBC connection",
+          "Max connections Database backends · ODBC connection",
+          "Connect timeout Database backends · ODBC connection",
+          "Negative connection cache Database backends · ODBC connection",
+          "Query logging Database backends · ODBC connection",
+          "Slow query limit Database backends · ODBC connection",
+          "Backslash is an escape character Database backends · ODBC connection",
+          "Isolation level Database backends · ODBC connection",
+          "Connection cache type Database backends · ODBC connection",
+          "Save ODBC connection Database backends · ODBC connection",
+          "Realtime family Database backends · Realtime mapping",
+          "Load from target Database backends · Realtime mapping",
+          "Driver Database backends · Realtime mapping",
+          "Priority (0 = none) Database backends · Realtime mapping",
+          "Save realtime mapping Database backends · Realtime mapping",
+          "Remove this mapping Database backends · Realtime mapping",
+          "Module Database backends · Sorcery wiring",
+          "Load from target Database backends · Sorcery wiring",
+          "Object type Database backends · Sorcery wiring",
+          "Wizard Database backends · Sorcery wiring",
+          "Wizard configuration Database backends · Sorcery wiring",
+          "Save sorcery mapping Database backends · Sorcery wiring",
+          "Remove this mapping Database backends · Sorcery wiring",
+          "Host Database backends · PostgreSQL realtime",
+          "Port Database backends · PostgreSQL realtime",
+          "User Database backends · PostgreSQL realtime",
+          "Password Database backends · PostgreSQL realtime",
+          "Password on target Database backends · PostgreSQL realtime",
+          "Application name Database backends · PostgreSQL realtime",
+          "Socket directory Database backends · PostgreSQL realtime",
+          "Column requirements Database backends · PostgreSQL realtime",
+          "Order multi-row results by the initial column Database backends · PostgreSQL rea",
+          "Save res_pgsql.conf settings Database backends · PostgreSQL realtime",
+          "Vocabulary & guard Vocabulary & emission guard"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Table CDR & CEL · CEL: ODBC backend",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Table CDR & CEL · CEL: PostgreSQL backend",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Table (optional) Database backends · Realtime mapping",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Tab strip Customise everything · Layout",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "ODBC table Voicemail · Storage backend",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Database name CDR & CEL · CEL: PostgreSQL backend",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Database backends Database & realtime backends",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Database Database backends · Realtime mapping",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Database name Database backends · PostgreSQL realtime",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Other editor executable Customise everything · External editor",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Realtime & Database Backends Destination",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Dashboard Destination",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Trunks Trunks & registrations",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "IAX peers Destination",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "ODBC connection name Voicemail · Storage backend",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Keep ODBC audio on disk Voicemail · Storage backend",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Load from target CDR & CEL · CEL: ODBC backend",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Schema CDR & CEL · CEL: PostgreSQL backend",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Connection name Database backends · ODBC connection",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Load from target Database backends · ODBC connection",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Enabled Database backends · ODBC connection",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "DSN Database backends · ODBC connection",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Username Database backends · ODBC connection",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Password Database backends · ODBC connection",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Password on target Database backends · ODBC connection",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Connect at startup Database backends · ODBC connection",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Max connections Database backends · ODBC connection",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Connect timeout Database backends · ODBC connection",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Negative connection cache Database backends · ODBC connection",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Query logging Database backends · ODBC connection",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Slow query limit Database backends · ODBC connection",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Backslash is an escape character Database backends · ODBC connection",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Isolation level Database backends · ODBC connection",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Connection cache type Database backends · ODBC connection",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Save ODBC connection Database backends · ODBC connection",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Realtime family Database backends · Realtime mapping",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Load from target Database backends · Realtime mapping",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Driver Database backends · Realtime mapping",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Priority (0 = none) Database backends · Realtime mapping",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Save realtime mapping Database backends · Realtime mapping",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Remove this mapping Database backends · Realtime mapping",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Module Database backends · Sorcery wiring",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Load from target Database backends · Sorcery wiring",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Object type Database backends · Sorcery wiring",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Wizard Database backends · Sorcery wiring",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Wizard configuration Database backends · Sorcery wiring",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Save sorcery mapping Database backends · Sorcery wiring",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Remove this mapping Database backends · Sorcery wiring",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Host Database backends · PostgreSQL realtime",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Port Database backends · PostgreSQL realtime",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "User Database backends · PostgreSQL realtime",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Password Database backends · PostgreSQL realtime",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Password on target Database backends · PostgreSQL realtime",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Application name Database backends · PostgreSQL realtime",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Socket directory Database backends · PostgreSQL realtime",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Column requirements Database backends · PostgreSQL realtime",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Order multi-row results by the initial column Database backends · PostgreSQL rea",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Save res_pgsql.conf settings Database backends · PostgreSQL realtime",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Vocabulary & guard Vocabulary & emission guard",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 63,
+        "controlListTruncated": true,
+        "candidatesConsidered": 1,
+        "hint": "62 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 62,
+        "rows": [
+          {
+            "label": "Table",
+            "context": "CDR & CEL · CEL: ODBC backend"
+          },
+          {
+            "label": "Table",
+            "context": "CDR & CEL · CEL: PostgreSQL backend"
+          },
+          {
+            "label": "Table (optional)",
+            "context": "Database backends · Realtime mapping"
+          },
+          {
+            "label": "Tab strip",
+            "context": "Customise everything · Layout"
+          },
+          {
+            "label": "ODBC table",
+            "context": "Voicemail · Storage backend"
+          },
+          {
+            "label": "Database name",
+            "context": "CDR & CEL · CEL: PostgreSQL backend"
+          },
+          {
+            "label": "Database backends",
+            "context": "Database & realtime backends"
+          },
+          {
+            "label": "Database",
+            "context": "Database backends · Realtime mapping"
+          },
+          {
+            "label": "Database name",
+            "context": "Database backends · PostgreSQL realtime"
+          },
+          {
+            "label": "Other editor executable",
+            "context": "Customise everything · External editor"
+          },
+          {
+            "label": "Realtime & Database Backends",
+            "context": "Destination"
+          },
+          {
+            "label": "Dashboard",
+            "context": "Destination"
+          }
+        ],
+        "elements": 1859,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Customise everything · Layout"
+        ],
+        "activatedRowLabel": "Tab strip",
+        "activatedRowContext": "Customise everything · Layout",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Customise everything",
+        "elements": 1668,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "ly_tabs",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/browser-style-tabs-palette.png",
+          "sha256": "3b14236f81ce59aab8b35b154688ea3cd28c5e8e1f23235a12c33314524e9e80",
+          "bytes": 297892
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/browser-style-tabs-after.png",
+          "sha256": "a08a2cb4f6e644c6e0672dff9363d23b6070e16d81cb7ea7965e2a90a62ca162",
+          "bytes": 263113
+        }
+      }
+    },
+    {
+      "feature": "changelog-viewer",
+      "query": "changelog",
+      "expectedTarget": "Changelog",
+      "recordedRoute": "App > tuneApp > Changelog (command palette search 'changelog' > Changelog)",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Customise everything",
+        "elements": 1668
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Changelog Destination"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Changelog Destination",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 2,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "1 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 1,
+        "rows": [
+          {
+            "label": "Changelog",
+            "context": "Destination"
+          }
+        ],
+        "elements": 1676,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Destination"
+        ],
+        "activatedRowLabel": "Changelog",
+        "activatedRowContext": "Destination",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Changelog",
+        "elements": 611,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": null,
+        "focusedTag": null,
+        "focusedName": "",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/changelog-viewer-palette.png",
+          "sha256": "0249212ededf14ef7b9071ed047f110781d34036b5fef5c8f908921b084758f0",
+          "bytes": 240654
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/changelog-viewer-after.png",
+          "sha256": "d1443a7c3cf7f6e885b7dfa9644685cc0e9dfb2b5b36376dbac26c5326aa4131",
+          "bytes": 309771
+        }
+      }
+    },
+    {
+      "feature": "dialog-emojis",
+      "query": "emoji",
+      "expectedTarget": "Show emojis in dialogs and message boxes",
+      "recordedRoute": "App > tuneApp > Customise everything > palette search 'emoji' > Dialogs section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Changelog",
+        "elements": 611
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Show emojis in dialogs and message boxes Customise everything · Dialogs"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Show emojis in dialogs and message boxes Customise everything · Dialogs",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 2,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "1 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 1,
+        "rows": [
+          {
+            "label": "Show emojis in dialogs and message boxes",
+            "context": "Customise everything · Dialogs"
+          }
+        ],
+        "elements": 619,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Customise everything · Dialogs"
+        ],
+        "activatedRowLabel": "Show emojis in dialogs and message boxes",
+        "activatedRowContext": "Customise everything · Dialogs",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Customise everything",
+        "elements": 1668,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "dlg_emoji",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/dialog-emojis-palette.png",
+          "sha256": "00d7c5c5b2ba4316975da3c83144ba68cd58beecc0a2fdf7006388aa9ff1537b",
+          "bytes": 296578
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/dialog-emojis-after.png",
+          "sha256": "179278ed5f19606d387eacb562b83778707a40fc089d85069b4f8ea96fee1f58",
+          "bytes": 258613
+        }
+      }
+    },
+    {
+      "feature": "dim-sum-surprise",
+      "query": "surprise",
+      "expectedTarget": "Allow hidden surprises",
+      "recordedRoute": "App > tuneApp > Customise everything > palette search 'surprise' > Fun section > Allow hidden surprises",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Customise everything",
+        "elements": 1668
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Allow hidden surprises Customise everything · Fun"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Allow hidden surprises Customise everything · Fun",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 2,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "1 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 1,
+        "rows": [
+          {
+            "label": "Allow hidden surprises",
+            "context": "Customise everything · Fun"
+          }
+        ],
+        "elements": 1676,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Customise everything · Fun"
+        ],
+        "activatedRowLabel": "Allow hidden surprises",
+        "activatedRowContext": "Customise everything · Fun",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Customise everything",
+        "elements": 1668,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "fun_easter",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/dim-sum-surprise-palette.png",
+          "sha256": "d56a3e0df001379b5e6247e99a59a69c2779794bcbf3d615d69b2159b3b1acbf",
+          "bytes": 240338
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/dim-sum-surprise-after.png",
+          "sha256": "159404270f852ed1616a15befaff8f0cf91a7cc8da585e24203e8161a4520910",
+          "bytes": 280706
+        }
+      }
+    },
+    {
+      "feature": "external-editor-handoff",
+      "query": "external editor",
+      "expectedTarget": "Other editor executable",
+      "recordedRoute": "App > tuneApp > Customise everything > palette search 'external editor' > External editor section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Customise everything",
+        "elements": 1668
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Editor Customise everything · External editor",
+          "Other editor name Customise everything · External editor",
+          "Other editor executable Customise everything · External editor",
+          "Forget the chosen editor Customise everything · External editor"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Editor Customise everything · External editor",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Other editor name Customise everything · External editor",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Other editor executable Customise everything · External editor",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Forget the chosen editor Customise everything · External editor",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 5,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "4 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 4,
+        "rows": [
+          {
+            "label": "Editor",
+            "context": "Customise everything · External editor"
+          },
+          {
+            "label": "Other editor name",
+            "context": "Customise everything · External editor"
+          },
+          {
+            "label": "Other editor executable",
+            "context": "Customise everything · External editor"
+          },
+          {
+            "label": "Forget the chosen editor",
+            "context": "Customise everything · External editor"
+          }
+        ],
+        "elements": 1685,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Customise everything · External editor"
+        ],
+        "activatedRowLabel": "Other editor executable",
+        "activatedRowContext": "Customise everything · External editor",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Customise everything",
+        "elements": 1668,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "ed_custom_path",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/external-editor-handoff-palette.png",
+          "sha256": "0a3beaf65a9b8a2d496ab46acc8e3fccb9412d756a690736d56806c7d2d27d44",
+          "bytes": 273635
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/external-editor-handoff-after.png",
+          "sha256": "6def8b74e9755761a22b1b1372d7620fc2873a12a1aeaaef8da932c2cab9b13b",
+          "bytes": 291293
+        }
+      }
+    },
+    {
+      "feature": "external-settings-sources",
+      "query": "Home Assistant",
+      "expectedTarget": "Home Assistant entity",
+      "recordedRoute": "App > tuneApp > Customise everything > palette search 'Home Assistant' > Settings sources section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Customise everything",
+        "elements": 1668
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Home Assistant entity Customise everything · Settings sources"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Home Assistant entity Customise everything · Settings sources",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 2,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "1 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 1,
+        "rows": [
+          {
+            "label": "Home Assistant entity",
+            "context": "Customise everything · Settings sources"
+          }
+        ],
+        "elements": 1676,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Customise everything · Settings sources"
+        ],
+        "activatedRowLabel": "Home Assistant entity",
+        "activatedRowContext": "Customise everything · Settings sources",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Customise everything",
+        "elements": 1668,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "src_entity",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/external-settings-sources-palette.png",
+          "sha256": "59712593c6dcef0838af4fd3a9ea0c985d018812bde2bac38565a7d18ae50e99",
+          "bytes": 273652
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/external-settings-sources-after.png",
+          "sha256": "319e686ed4d000ac85280514556652e937691082d23e0e1371d2225e27d51f01",
+          "bytes": 313006
+        }
+      }
+    },
+    {
+      "feature": "funny-levels",
+      "query": "level",
+      "expectedTarget": "Fun level (English)",
+      "recordedRoute": "App > tuneApp > Customise everything > palette search 'level' > Fun section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Customise everything",
+        "elements": 1668
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Levels Logger · Named log channels",
+          "servicelevel Queues & agents · Capacity & announcements",
+          "Console levels Logger · Console",
+          "File levels Logger · Files & rotation",
+          "Attestation level Security · STIR/SHAKEN",
+          "Isolation level Database backends · ODBC connection",
+          "Attestation level override Call attestation · Attestation profile",
+          "Fun level (English) Customise everything · Fun",
+          "Fun level (廣東話) Customise everything · Fun",
+          "immediate Hardware trunks · Levels & grouping",
+          "rxgain Hardware trunks · Levels & grouping",
+          "txgain Hardware trunks · Levels & grouping",
+          "group Hardware trunks · Levels & grouping",
+          "Queues & agents Destination",
+          "Save logger.conf settings Logger · Files & rotation",
+          "Load from target Logger · Named log channels",
+          "Contrast of the current accent Customise everything · Readability",
+          "Unlock School mode Customise everything · School mode",
+          "Vocabulary file Appearance · Personal vocabulary",
+          "Firewall Destination"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Levels Logger · Named log channels",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "servicelevel Queues & agents · Capacity & announcements",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Console levels Logger · Console",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "File levels Logger · Files & rotation",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Attestation level Security · STIR/SHAKEN",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Isolation level Database backends · ODBC connection",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Attestation level override Call attestation · Attestation profile",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Fun level (English) Customise everything · Fun",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Fun level (廣東話) Customise everything · Fun",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "immediate Hardware trunks · Levels & grouping",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "rxgain Hardware trunks · Levels & grouping",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "txgain Hardware trunks · Levels & grouping",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "group Hardware trunks · Levels & grouping",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Queues & agents Destination",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Save logger.conf settings Logger · Files & rotation",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Load from target Logger · Named log channels",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Contrast of the current accent Customise everything · Readability",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Unlock School mode Customise everything · School mode",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Vocabulary file Appearance · Personal vocabulary",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Firewall Destination",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 21,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "20 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 20,
+        "rows": [
+          {
+            "label": "Levels",
+            "context": "Logger · Named log channels"
+          },
+          {
+            "label": "servicelevel",
+            "context": "Queues & agents · Capacity & announcements"
+          },
+          {
+            "label": "Console levels",
+            "context": "Logger · Console"
+          },
+          {
+            "label": "File levels",
+            "context": "Logger · Files & rotation"
+          },
+          {
+            "label": "Attestation level",
+            "context": "Security · STIR/SHAKEN"
+          },
+          {
+            "label": "Isolation level",
+            "context": "Database backends · ODBC connection"
+          },
+          {
+            "label": "Attestation level override",
+            "context": "Call attestation · Attestation profile"
+          },
+          {
+            "label": "Fun level (English)",
+            "context": "Customise everything · Fun"
+          },
+          {
+            "label": "Fun level (廣東話)",
+            "context": "Customise everything · Fun"
+          },
+          {
+            "label": "immediate",
+            "context": "Hardware trunks · Levels & grouping"
+          },
+          {
+            "label": "rxgain",
+            "context": "Hardware trunks · Levels & grouping"
+          },
+          {
+            "label": "txgain",
+            "context": "Hardware trunks · Levels & grouping"
+          }
+        ],
+        "elements": 1733,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Customise everything · Fun"
+        ],
+        "activatedRowLabel": "Fun level (English)",
+        "activatedRowContext": "Customise everything · Fun",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Customise everything",
+        "elements": 1668,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "fun_level",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/funny-levels-palette.png",
+          "sha256": "776cee04552a762cfabc10d2e9e9a9f897e4d8d5f599bc89f4547722e64b0034",
+          "bytes": 302706
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/funny-levels-after.png",
+          "sha256": "c035f50190eaff65d07c115d1fb45c2cd8b0afdabcc130b647390ab0f3f0c8c5",
+          "bytes": 278459
+        }
+      }
+    },
+    {
+      "feature": "guided-forms",
+      "query": "wizard",
+      "expectedTarget": "Offer the wizard first on every screen",
+      "recordedRoute": "App > tuneApp > Customise everything > palette search 'wizard' > Behaviour section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Customise everything",
+        "elements": 1668
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Wizard Database backends · Sorcery wiring",
+          "Wizard configuration Database backends · Sorcery wiring",
+          "Offer the wizard first on every screen Customise everything · Behaviour",
+          "Object type Database backends · Sorcery wiring",
+          "Save sorcery mapping Database backends · Sorcery wiring",
+          "Phone provisioning Handset auto-provisioning"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Wizard Database backends · Sorcery wiring",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Wizard configuration Database backends · Sorcery wiring",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Offer the wizard first on every screen Customise everything · Behaviour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Object type Database backends · Sorcery wiring",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Save sorcery mapping Database backends · Sorcery wiring",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Phone provisioning Handset auto-provisioning",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 7,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "6 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 6,
+        "rows": [
+          {
+            "label": "Wizard",
+            "context": "Database backends · Sorcery wiring"
+          },
+          {
+            "label": "Wizard configuration",
+            "context": "Database backends · Sorcery wiring"
+          },
+          {
+            "label": "Offer the wizard first on every screen",
+            "context": "Customise everything · Behaviour"
+          },
+          {
+            "label": "Object type",
+            "context": "Database backends · Sorcery wiring"
+          },
+          {
+            "label": "Save sorcery mapping",
+            "context": "Database backends · Sorcery wiring"
+          },
+          {
+            "label": "Phone provisioning",
+            "context": "Handset auto-provisioning"
+          }
+        ],
+        "elements": 1691,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Customise everything · Behaviour"
+        ],
+        "activatedRowLabel": "Offer the wizard first on every screen",
+        "activatedRowContext": "Customise everything · Behaviour",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Customise everything",
+        "elements": 1668,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "bh_wizard",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/guided-forms-palette.png",
+          "sha256": "5d851604cea1b26994f93b85c6851098f123fdbf5f09b12982f084dec12ebad1",
+          "bytes": 273856
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/guided-forms-after.png",
+          "sha256": "311914cc321dca0c954e5550be700548c7398bfe9c9e5eea6c24515e06419f32",
+          "bytes": 286489
+        }
+      }
+    },
+    {
+      "feature": "language-modes",
+      "query": "language",
+      "expectedTarget": "Language section, Customise everything",
+      "recordedRoute": "App > tuneApp > Customise everything > command palette search 'language' > Language section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Customise everything",
+        "elements": 1668
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "language Hardware trunks · Signalling & routing",
+          "Language Customise everything · Language",
+          "Languages Destination",
+          "Prompt language IVR menus · Menu behaviour",
+          "documentation_language Directories & identity · System identity",
+          "defaultlanguage Directories & identity · System identity",
+          "Narrated language Customise everything · Narration",
+          "Sound Languages Destination",
+          "Directories & identity Destination",
+          "Unlock School mode Customise everything · School mode"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "language Hardware trunks · Signalling & routing",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Language Customise everything · Language",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Languages Destination",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Prompt language IVR menus · Menu behaviour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "documentation_language Directories & identity · System identity",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "defaultlanguage Directories & identity · System identity",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Narrated language Customise everything · Narration",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Sound Languages Destination",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Directories & identity Destination",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Unlock School mode Customise everything · School mode",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 11,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "10 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 10,
+        "rows": [
+          {
+            "label": "language",
+            "context": "Hardware trunks · Signalling & routing"
+          },
+          {
+            "label": "Language",
+            "context": "Customise everything · Language"
+          },
+          {
+            "label": "Languages",
+            "context": "Destination"
+          },
+          {
+            "label": "Prompt language",
+            "context": "IVR menus · Menu behaviour"
+          },
+          {
+            "label": "documentation_language",
+            "context": "Directories & identity · System identity"
+          },
+          {
+            "label": "defaultlanguage",
+            "context": "Directories & identity · System identity"
+          },
+          {
+            "label": "Narrated language",
+            "context": "Customise everything · Narration"
+          },
+          {
+            "label": "Sound Languages",
+            "context": "Destination"
+          },
+          {
+            "label": "Directories & identity",
+            "context": "Destination"
+          },
+          {
+            "label": "Unlock School mode",
+            "context": "Customise everything · School mode"
+          }
+        ],
+        "elements": 1703,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": false,
+        "expectedTargetRowsMatching": 0,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [],
+        "activatedRowLabel": "language",
+        "activatedRowContext": "Hardware trunks · Signalling & routing",
+        "choice": "the first matching row, because the record names its target in prose"
+      },
+      "afterActivation": {
+        "heading": "Hardware trunks (DAHDI)",
+        "elements": 644,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "da_language",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/language-modes-palette.png",
+          "sha256": "72a50af16bebb4d94f8756892b8573b050a8a613c0bd54e187f9a4a0c1e2b0dd",
+          "bytes": 278812
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/language-modes-after.png",
+          "sha256": "74d429ff46b33fc86b5890da671b81f399bfe4b979c6df55ffaebe4d606ebb6c",
+          "bytes": 326731
+        }
+      }
+    },
+    {
+      "feature": "local-version-history",
+      "query": "history",
+      "expectedTarget": "Commit on every change",
+      "recordedRoute": "App > tuneApp > Customise everything > palette search 'history' > History & git section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Hardware trunks (DAHDI)",
+        "elements": 644
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "History & git History",
+          "Keep the answer history forever Trunk authentication · Answering policy",
+          "storehistory Distributed lookup · Query behaviour",
+          "Keep history for Notifications · Delivery",
+          "Local history Destination",
+          "Operations Operations & releases",
+          "Commit on every change History & git · Commit behaviour",
+          "Commit message style History & git · Commit behaviour",
+          "Attribute commits to History & git · Commit behaviour",
+          "Sign commits History & git · Commit behaviour",
+          "Mirror to a remote History & git · Commit behaviour",
+          "Run asterisk config validation as a pre-commit hook History & git · Commit behav",
+          "Keep commits History & git · Retention & safety",
+          "Garbage collect monthly History & git · Retention & safety",
+          "Show a diff before restoring History & git · Retention & safety",
+          "Restore onto a new branch instead of main History & git · Retention & safety",
+          "Reload Asterisk after a restore History & git · Retention & safety",
+          "Set unlock credential Customise everything · School mode",
+          "Changelog Destination"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "History & git History",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Keep the answer history forever Trunk authentication · Answering policy",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "storehistory Distributed lookup · Query behaviour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Keep history for Notifications · Delivery",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Local history Destination",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Operations Operations & releases",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Commit on every change History & git · Commit behaviour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Commit message style History & git · Commit behaviour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Attribute commits to History & git · Commit behaviour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Sign commits History & git · Commit behaviour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Mirror to a remote History & git · Commit behaviour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Run asterisk config validation as a pre-commit hook History & git · Commit behav",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Keep commits History & git · Retention & safety",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Garbage collect monthly History & git · Retention & safety",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Show a diff before restoring History & git · Retention & safety",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Restore onto a new branch instead of main History & git · Retention & safety",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Reload Asterisk after a restore History & git · Retention & safety",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Set unlock credential Customise everything · School mode",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Changelog Destination",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 20,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "19 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 19,
+        "rows": [
+          {
+            "label": "History & git",
+            "context": "History"
+          },
+          {
+            "label": "Keep the answer history forever",
+            "context": "Trunk authentication · Answering policy"
+          },
+          {
+            "label": "storehistory",
+            "context": "Distributed lookup · Query behaviour"
+          },
+          {
+            "label": "Keep history for",
+            "context": "Notifications · Delivery"
+          },
+          {
+            "label": "Local history",
+            "context": "Destination"
+          },
+          {
+            "label": "Operations",
+            "context": "Operations & releases"
+          },
+          {
+            "label": "Commit on every change",
+            "context": "History & git · Commit behaviour"
+          },
+          {
+            "label": "Commit message style",
+            "context": "History & git · Commit behaviour"
+          },
+          {
+            "label": "Attribute commits to",
+            "context": "History & git · Commit behaviour"
+          },
+          {
+            "label": "Sign commits",
+            "context": "History & git · Commit behaviour"
+          },
+          {
+            "label": "Mirror to a remote",
+            "context": "History & git · Commit behaviour"
+          },
+          {
+            "label": "Run asterisk config validation as a pre-commit hook",
+            "context": "History & git · Commit behaviour"
+          }
+        ],
+        "elements": 706,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "History & git · Commit behaviour"
+        ],
+        "activatedRowLabel": "Commit on every change",
+        "activatedRowContext": "History & git · Commit behaviour",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "History",
+        "elements": 547,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "hi_commit",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/local-version-history-palette.png",
+          "sha256": "256b15a9e863c82709120c3ef7aec9e763b04ec65b1dca6d12a2e104516bcf21",
+          "bytes": 320160
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/local-version-history-after.png",
+          "sha256": "be8a25ac00d1eee4cc20da46800119e3c953760f5c525b36f60ea3e07c37e0c8",
+          "bytes": 274263
+        }
+      }
+    },
+    {
+      "feature": "long-operation-progress",
+      "query": "deploy progress",
+      "expectedTarget": "Latest deploy step",
+      "recordedRoute": "App > tuneApp > Customise everything > palette search 'deploy progress' > Deploy progress section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "History",
+        "elements": 547
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Latest deploy step Customise everything · Deploy progress"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Latest deploy step Customise everything · Deploy progress",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 2,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "1 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 1,
+        "rows": [
+          {
+            "label": "Latest deploy step",
+            "context": "Customise everything · Deploy progress"
+          }
+        ],
+        "elements": 555,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Customise everything · Deploy progress"
+        ],
+        "activatedRowLabel": "Latest deploy step",
+        "activatedRowContext": "Customise everything · Deploy progress",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Customise everything",
+        "elements": 1668,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "dp_progress",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/long-operation-progress-palette.png",
+          "sha256": "0e75d4d3d3a5945c2e9f19971ad905f27e7bf975faab6b9b6f0082d7e7907027",
+          "bytes": 255799
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/long-operation-progress-after.png",
+          "sha256": "b7b3920436def6368038c18f0c584379a755494e88fb60f3c4937e898e1121d0",
+          "bytes": 283511
+        }
+      }
+    },
+    {
+      "feature": "material-appearance",
+      "query": "appearance",
+      "expectedTarget": "Theme",
+      "recordedRoute": "App > tuneApp > Appearance > palette search 'appearance' > Theme section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Customise everything",
+        "elements": 1668
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Appearance Destination",
+          "Random appearance for every element Customise everything · Fun",
+          "Include appearance overrides in exports Customise everything · Profiles",
+          "Shared Line Appearances Destination",
+          "Shared lines Shared line appearances (SLA)",
+          "Row density Appearance · Layout",
+          "Theme Appearance · Layout",
+          "Interface scale Appearance · Layout",
+          "Reduced motion Appearance · Layout",
+          "Monospace numerics Appearance · Layout",
+          "Open on launch Appearance · Behaviour",
+          "Offer the tour on launch Appearance · Behaviour",
+          "Keep running in tray Appearance · Behaviour",
+          "Full ceremony on every destructive action Appearance · Behaviour",
+          "Vocabulary file Appearance · Personal vocabulary",
+          "Status Appearance · Personal vocabulary",
+          "Reset Appearance · Personal vocabulary",
+          "Applies right now Appearance · What this panel changes",
+          "Font family Appearance · Typography",
+          "Weight Appearance · Typography",
+          "Size Appearance · Typography",
+          "Letter spacing Appearance · Typography",
+          "Line height Appearance · Typography",
+          "Case Appearance · Typography",
+          "Numerals Appearance · Typography",
+          "Decoration Appearance · Typography",
+          "Hue Appearance · Fill",
+          "Saturation Appearance · Fill",
+          "Lightness Appearance · Fill",
+          "Opacity Appearance · Fill",
+          "Fill type Appearance · Fill",
+          "Blend mode Appearance · Fill",
+          "Rainbow fill Appearance · Rainbow & animated colour",
+          "Cycle speed Appearance · Rainbow & animated colour",
+          "Hue range Appearance · Rainbow & animated colour",
+          "Cycle easing Appearance · Rainbow & animated colour",
+          "Direction Appearance · Rainbow & animated colour",
+          "Rainbow saturation Appearance · Rainbow & animated colour",
+          "Rainbow lightness Appearance · Rainbow & animated colour",
+          "Property transition Appearance · Rainbow & animated colour",
+          "Border width Appearance · Border & shape",
+          "Border style Appearance · Border & shape",
+          "Radius top-left Appearance · Border & shape",
+          "Radius top-right Appearance · Border & shape",
+          "Radius bottom-right Appearance · Border & shape",
+          "Radius bottom-left Appearance · Border & shape",
+          "Offset X Appearance · Shadow",
+          "Offset Y Appearance · Shadow",
+          "Blur Appearance · Shadow",
+          "Spread Appearance · Shadow",
+          "Inset Appearance · Shadow",
+          "Shadow opacity Appearance · Shadow",
+          "Padding top Appearance · Spacing & layout",
+          "Padding right Appearance · Spacing & layout",
+          "Padding bottom Appearance · Spacing & layout",
+          "Padding left Appearance · Spacing & layout",
+          "Gap Appearance · Spacing & layout",
+          "Align Appearance · Spacing & layout",
+          "Blur Appearance · Effects"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Appearance Destination",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Random appearance for every element Customise everything · Fun",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Include appearance overrides in exports Customise everything · Profiles",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Shared Line Appearances Destination",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Shared lines Shared line appearances (SLA)",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Row density Appearance · Layout",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Theme Appearance · Layout",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Interface scale Appearance · Layout",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Reduced motion Appearance · Layout",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Monospace numerics Appearance · Layout",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Open on launch Appearance · Behaviour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Offer the tour on launch Appearance · Behaviour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Keep running in tray Appearance · Behaviour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Full ceremony on every destructive action Appearance · Behaviour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Vocabulary file Appearance · Personal vocabulary",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Status Appearance · Personal vocabulary",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Reset Appearance · Personal vocabulary",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Applies right now Appearance · What this panel changes",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Font family Appearance · Typography",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Weight Appearance · Typography",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Size Appearance · Typography",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Letter spacing Appearance · Typography",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Line height Appearance · Typography",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Case Appearance · Typography",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Numerals Appearance · Typography",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Decoration Appearance · Typography",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Hue Appearance · Fill",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Saturation Appearance · Fill",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Lightness Appearance · Fill",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Opacity Appearance · Fill",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Fill type Appearance · Fill",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Blend mode Appearance · Fill",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Rainbow fill Appearance · Rainbow & animated colour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Cycle speed Appearance · Rainbow & animated colour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Hue range Appearance · Rainbow & animated colour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Cycle easing Appearance · Rainbow & animated colour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Direction Appearance · Rainbow & animated colour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Rainbow saturation Appearance · Rainbow & animated colour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Rainbow lightness Appearance · Rainbow & animated colour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Property transition Appearance · Rainbow & animated colour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Border width Appearance · Border & shape",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Border style Appearance · Border & shape",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Radius top-left Appearance · Border & shape",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Radius top-right Appearance · Border & shape",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Radius bottom-right Appearance · Border & shape",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Radius bottom-left Appearance · Border & shape",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Offset X Appearance · Shadow",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Offset Y Appearance · Shadow",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Blur Appearance · Shadow",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Spread Appearance · Shadow",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Inset Appearance · Shadow",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Shadow opacity Appearance · Shadow",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Padding top Appearance · Spacing & layout",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Padding right Appearance · Spacing & layout",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Padding bottom Appearance · Spacing & layout",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Padding left Appearance · Spacing & layout",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Gap Appearance · Spacing & layout",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Align Appearance · Spacing & layout",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Blur Appearance · Effects",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 74,
+        "controlListTruncated": true,
+        "candidatesConsidered": 1,
+        "hint": "73 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 73,
+        "rows": [
+          {
+            "label": "Appearance",
+            "context": "Destination"
+          },
+          {
+            "label": "Random appearance for every element",
+            "context": "Customise everything · Fun"
+          },
+          {
+            "label": "Include appearance overrides in exports",
+            "context": "Customise everything · Profiles"
+          },
+          {
+            "label": "Shared Line Appearances",
+            "context": "Destination"
+          },
+          {
+            "label": "Shared lines",
+            "context": "Shared line appearances (SLA)"
+          },
+          {
+            "label": "Row density",
+            "context": "Appearance · Layout"
+          },
+          {
+            "label": "Theme",
+            "context": "Appearance · Layout"
+          },
+          {
+            "label": "Interface scale",
+            "context": "Appearance · Layout"
+          },
+          {
+            "label": "Reduced motion",
+            "context": "Appearance · Layout"
+          },
+          {
+            "label": "Monospace numerics",
+            "context": "Appearance · Layout"
+          },
+          {
+            "label": "Open on launch",
+            "context": "Appearance · Behaviour"
+          },
+          {
+            "label": "Offer the tour on launch",
+            "context": "Appearance · Behaviour"
+          }
+        ],
+        "elements": 1892,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Appearance · Layout"
+        ],
+        "activatedRowLabel": "Theme",
+        "activatedRowContext": "Appearance · Layout",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Appearance",
+        "elements": 574,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "p_theme",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/material-appearance-palette.png",
+          "sha256": "e9d175c630eb0f8c014b93bb83ef7b06a20810700e844aa6dfc8e4f8476e14dd",
+          "bytes": 290010
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/material-appearance-after.png",
+          "sha256": "2459e15b5b1b9085b26c674ca5289c945a5160736f0ef8912d8dbc6519e66141",
+          "bytes": 281492
+        }
+      }
+    },
+    {
+      "feature": "narration",
+      "query": "narrated language",
+      "expectedTarget": "Narration section, Customise everything",
+      "recordedRoute": "App > tuneApp > Customise everything > command palette search 'narrated language' > Narration section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Appearance",
+        "elements": 574
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Narrated language Customise everything · Narration"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Narrated language Customise everything · Narration",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 2,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "1 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 1,
+        "rows": [
+          {
+            "label": "Narrated language",
+            "context": "Customise everything · Narration"
+          }
+        ],
+        "elements": 582,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": false,
+        "expectedTargetRowsMatching": 0,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [],
+        "activatedRowLabel": "Narrated language",
+        "activatedRowContext": "Customise everything · Narration",
+        "choice": "the first matching row, because the record names its target in prose"
+      },
+      "afterActivation": {
+        "heading": "Customise everything",
+        "elements": 1668,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "nar_language",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/narration-palette.png",
+          "sha256": "b43c40d51ab3e4483fe13648a3e8f6357463c21448dc6198fe987f7ad71849c5",
+          "bytes": 272564
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/narration-after.png",
+          "sha256": "d8d4f7a8537dc2c6296a0bfefa2472bc67050c3c504bc8ab5752de127feee86d",
+          "bytes": 269548
+        }
+      }
+    },
+    {
+      "feature": "non-blocking-notifications",
+      "query": "notification",
+      "expectedTarget": "Show toasts",
+      "recordedRoute": "App > tuneApp > Customise everything > palette search 'notification' > Notifications section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Customise everything",
+        "elements": 1668
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Notifications Notification centre",
+          "Notifications Destination",
+          "Desktop notification on reply Status hub · Session policy",
+          "MissedCall Notification Destination",
+          "aggregate_mwi Endpoints · MWI",
+          "mwi_subscribe_replaces_unsolicited Endpoints · MWI",
+          "Show toasts Notifications · Delivery",
+          "Play a sound Notifications · Delivery",
+          "Notify on Notifications · Delivery",
+          "Quiet hours Notifications · Delivery",
+          "Keep history for Notifications · Delivery",
+          "Display name Customise everything · Identity",
+          "Low stimulation Customise everything · Attention"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Notifications Notification centre",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Notifications Destination",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Desktop notification on reply Status hub · Session policy",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "MissedCall Notification Destination",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "aggregate_mwi Endpoints · MWI",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "mwi_subscribe_replaces_unsolicited Endpoints · MWI",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Show toasts Notifications · Delivery",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Play a sound Notifications · Delivery",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Notify on Notifications · Delivery",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Quiet hours Notifications · Delivery",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Keep history for Notifications · Delivery",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Display name Customise everything · Identity",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Low stimulation Customise everything · Attention",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 14,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "13 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 13,
+        "rows": [
+          {
+            "label": "Notifications",
+            "context": "Notification centre"
+          },
+          {
+            "label": "Notifications",
+            "context": "Destination"
+          },
+          {
+            "label": "Desktop notification on reply",
+            "context": "Status hub · Session policy"
+          },
+          {
+            "label": "MissedCall Notification",
+            "context": "Destination"
+          },
+          {
+            "label": "aggregate_mwi",
+            "context": "Endpoints · MWI"
+          },
+          {
+            "label": "mwi_subscribe_replaces_unsolicited",
+            "context": "Endpoints · MWI"
+          },
+          {
+            "label": "Show toasts",
+            "context": "Notifications · Delivery"
+          },
+          {
+            "label": "Play a sound",
+            "context": "Notifications · Delivery"
+          },
+          {
+            "label": "Notify on",
+            "context": "Notifications · Delivery"
+          },
+          {
+            "label": "Quiet hours",
+            "context": "Notifications · Delivery"
+          },
+          {
+            "label": "Keep history for",
+            "context": "Notifications · Delivery"
+          },
+          {
+            "label": "Display name",
+            "context": "Customise everything · Identity"
+          }
+        ],
+        "elements": 1712,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Notifications · Delivery"
+        ],
+        "activatedRowLabel": "Show toasts",
+        "activatedRowContext": "Notifications · Delivery",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Notification centre",
+        "elements": 490,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "nt_toast",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/non-blocking-notifications-palette.png",
+          "sha256": "fa43edd7c41af30e294fb929640ab400feaf99cd9f23a2d7e053864ede5a4576",
+          "bytes": 274554
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/non-blocking-notifications-after.png",
+          "sha256": "997c19b753a71b32a522712497a4ca131821eca2e39b673e504cbbc3f5aab54c",
+          "bytes": 277803
+        }
+      }
+    },
+    {
+      "feature": "offline-documentation-browser",
+      "query": "documentation",
+      "expectedTarget": "Documentation",
+      "recordedRoute": "App > tuneApp > Documentation (command palette search 'documentation' > Documentation)",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Notification centre",
+        "elements": 490
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "documentation_language Directories & identity · System identity",
+          "Documentation Destination"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "documentation_language Directories & identity · System identity",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Documentation Destination",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 3,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "2 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 2,
+        "rows": [
+          {
+            "label": "documentation_language",
+            "context": "Directories & identity · System identity"
+          },
+          {
+            "label": "Documentation",
+            "context": "Destination"
+          }
+        ],
+        "elements": 501,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Destination"
+        ],
+        "activatedRowLabel": "Documentation",
+        "activatedRowContext": "Destination",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Documentation",
+        "elements": 937,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": null,
+        "focusedTag": null,
+        "focusedName": "",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/offline-documentation-browser-palette.png",
+          "sha256": "78d997a6bf72235cd948a928ac125a0d5d0b3faf478b83a01c8615f4f5a832e0",
+          "bytes": 258022
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/offline-documentation-browser-after.png",
+          "sha256": "26a3e6d54fedd49b356c872e8f3e171b7be95a33671a05c26e7e4056eb400a7b",
+          "bytes": 437059
+        }
+      }
+    },
+    {
+      "feature": "personal-vocabulary-upload",
+      "query": "vocabulary",
+      "expectedTarget": "Vocabulary file",
+      "recordedRoute": "App > tuneApp > Appearance > palette search 'vocabulary' > Personal vocabulary section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Documentation",
+        "elements": 937
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Vocabulary & guard Vocabulary & emission guard",
+          "Vocabulary lock Vocabulary & guard · Emission guard",
+          "Vocabulary file Appearance · Personal vocabulary",
+          "Guard enabled Vocabulary & guard · Emission guard",
+          "On violation Vocabulary & guard · Emission guard",
+          "Scan surfaces Vocabulary & guard · Emission guard",
+          "Report drift daily Vocabulary & guard · Emission guard",
+          "Status Appearance · Personal vocabulary",
+          "Reset Appearance · Personal vocabulary"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Vocabulary & guard Vocabulary & emission guard",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Vocabulary lock Vocabulary & guard · Emission guard",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Vocabulary file Appearance · Personal vocabulary",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Guard enabled Vocabulary & guard · Emission guard",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "On violation Vocabulary & guard · Emission guard",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Scan surfaces Vocabulary & guard · Emission guard",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Report drift daily Vocabulary & guard · Emission guard",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Status Appearance · Personal vocabulary",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Reset Appearance · Personal vocabulary",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 10,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "9 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 9,
+        "rows": [
+          {
+            "label": "Vocabulary & guard",
+            "context": "Vocabulary & emission guard"
+          },
+          {
+            "label": "Vocabulary lock",
+            "context": "Vocabulary & guard · Emission guard"
+          },
+          {
+            "label": "Vocabulary file",
+            "context": "Appearance · Personal vocabulary"
+          },
+          {
+            "label": "Guard enabled",
+            "context": "Vocabulary & guard · Emission guard"
+          },
+          {
+            "label": "On violation",
+            "context": "Vocabulary & guard · Emission guard"
+          },
+          {
+            "label": "Scan surfaces",
+            "context": "Vocabulary & guard · Emission guard"
+          },
+          {
+            "label": "Report drift daily",
+            "context": "Vocabulary & guard · Emission guard"
+          },
+          {
+            "label": "Status",
+            "context": "Appearance · Personal vocabulary"
+          },
+          {
+            "label": "Reset",
+            "context": "Appearance · Personal vocabulary"
+          }
+        ],
+        "elements": 969,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Appearance · Personal vocabulary"
+        ],
+        "activatedRowLabel": "Vocabulary file",
+        "activatedRowContext": "Appearance · Personal vocabulary",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Appearance",
+        "elements": 574,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "va_file",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/personal-vocabulary-upload-palette.png",
+          "sha256": "c1d3fc272392f2fd8a35c83e85a915b06cafa00a4d04f4a83f864729b00d0ff8",
+          "bytes": 392388
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/personal-vocabulary-upload-after.png",
+          "sha256": "00b90ce657be9596bf3443b6f6d472f6bc4cdf12fb2a6d03227c07edaefc8c57",
+          "bytes": 265732
+        }
+      }
+    },
+    {
+      "feature": "responsive-sizing",
+      "query": "row density",
+      "expectedTarget": "Row density",
+      "recordedRoute": "App > tuneApp > Appearance > palette search 'row density' > Layout section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Appearance",
+        "elements": 574
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Row density Appearance · Layout"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Row density Appearance · Layout",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 2,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "1 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 1,
+        "rows": [
+          {
+            "label": "Row density",
+            "context": "Appearance · Layout"
+          }
+        ],
+        "elements": 582,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Appearance · Layout"
+        ],
+        "activatedRowLabel": "Row density",
+        "activatedRowContext": "Appearance · Layout",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Appearance",
+        "elements": 574,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "p_density",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/responsive-sizing-palette.png",
+          "sha256": "5693a2c869d66307d205afb243f02a0b911ce4ce4a609fce86a85bfd4c7e4e88",
+          "bytes": 251811
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/responsive-sizing-after.png",
+          "sha256": "1f692e44043761daf6e0e44bfc065e9bc8cd3117ec7a804e9147164061225c7d",
+          "bytes": 281486
+        }
+      }
+    },
+    {
+      "feature": "scheduled-settings",
+      "query": "scheduled",
+      "expectedTarget": "What is in force now",
+      "recordedRoute": "App > tuneApp > Customise everything > palette search 'scheduled' > Scheduled settings section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Appearance",
+        "elements": 574
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "What is in force now Customise everything · Scheduled settings",
+          "Wake Up Calls Destination"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "What is in force now Customise everything · Scheduled settings",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Wake Up Calls Destination",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 3,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "2 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 2,
+        "rows": [
+          {
+            "label": "What is in force now",
+            "context": "Customise everything · Scheduled settings"
+          },
+          {
+            "label": "Wake Up Calls",
+            "context": "Destination"
+          }
+        ],
+        "elements": 585,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Customise everything · Scheduled settings"
+        ],
+        "activatedRowLabel": "What is in force now",
+        "activatedRowContext": "Customise everything · Scheduled settings",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Customise everything",
+        "elements": 1668,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "sch_status",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/scheduled-settings-palette.png",
+          "sha256": "f66aa0034bb1d3ce9c160409ac6d5363ab11d4ac3c9446983ea0d9ac8e1a3f83",
+          "bytes": 267339
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/scheduled-settings-after.png",
+          "sha256": "5ee2fb10655de45d2c15917e7bd3cd0e29dd4022a735c6f36d8687e800a2e5ce",
+          "bytes": 316572
+        }
+      }
+    },
+    {
+      "feature": "school-mode",
+      "query": "school",
+      "expectedTarget": "School mode",
+      "recordedRoute": "App > tuneApp > Customise everything > palette search 'school' > School mode section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Customise everything",
+        "elements": 1668
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "School mode Customise everything · School mode",
+          "School mode name Customise everything · School mode",
+          "School mode status Customise everything · School mode",
+          "Unlock School mode Customise everything · School mode",
+          "Unlock credential Customise everything · School mode",
+          "Credential kind Customise everything · School mode",
+          "Set unlock credential Customise everything · School mode"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "School mode Customise everything · School mode",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "School mode name Customise everything · School mode",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "School mode status Customise everything · School mode",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Unlock School mode Customise everything · School mode",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Unlock credential Customise everything · School mode",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Credential kind Customise everything · School mode",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Set unlock credential Customise everything · School mode",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 8,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "7 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 7,
+        "rows": [
+          {
+            "label": "School mode",
+            "context": "Customise everything · School mode"
+          },
+          {
+            "label": "School mode name",
+            "context": "Customise everything · School mode"
+          },
+          {
+            "label": "School mode status",
+            "context": "Customise everything · School mode"
+          },
+          {
+            "label": "Unlock School mode",
+            "context": "Customise everything · School mode"
+          },
+          {
+            "label": "Unlock credential",
+            "context": "Customise everything · School mode"
+          },
+          {
+            "label": "Credential kind",
+            "context": "Customise everything · School mode"
+          },
+          {
+            "label": "Set unlock credential",
+            "context": "Customise everything · School mode"
+          }
+        ],
+        "elements": 1694,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Customise everything · School mode"
+        ],
+        "activatedRowLabel": "School mode",
+        "activatedRowContext": "Customise everything · School mode",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Customise everything",
+        "elements": 1668,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "school_mode",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/school-mode-palette.png",
+          "sha256": "5f2650803e1e2f2796ea0c851cf4fa2dee60ce4269832b0ed5f4d163b63a7c40",
+          "bytes": 317025
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/school-mode-after.png",
+          "sha256": "e78c2dd0d397fd4acda239568cf88a01d47f30dd18bc2d52063a4916e2d78260",
+          "bytes": 270578
+        }
+      }
+    },
+    {
+      "feature": "status-hub",
+      "query": "status hub",
+      "expectedTarget": "Status hub sessions",
+      "recordedRoute": "App > tuneApp > Status hub sessions (command palette search 'status hub' > Status hub)",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Customise everything",
+        "elements": 1668
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Status hub Status hub sessions",
+          "Reply poll interval Status hub · Session policy",
+          "Desktop notification on reply Status hub · Session policy",
+          "Auto-close idle sessions Status hub · Session policy",
+          "Report worktree state each run Status hub · Session policy",
+          "Record this session Status hub · Session policy"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Status hub Status hub sessions",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Reply poll interval Status hub · Session policy",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Desktop notification on reply Status hub · Session policy",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Auto-close idle sessions Status hub · Session policy",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Report worktree state each run Status hub · Session policy",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Record this session Status hub · Session policy",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 7,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "6 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 6,
+        "rows": [
+          {
+            "label": "Status hub",
+            "context": "Status hub sessions"
+          },
+          {
+            "label": "Reply poll interval",
+            "context": "Status hub · Session policy"
+          },
+          {
+            "label": "Desktop notification on reply",
+            "context": "Status hub · Session policy"
+          },
+          {
+            "label": "Auto-close idle sessions",
+            "context": "Status hub · Session policy"
+          },
+          {
+            "label": "Report worktree state each run",
+            "context": "Status hub · Session policy"
+          },
+          {
+            "label": "Record this session",
+            "context": "Status hub · Session policy"
+          }
+        ],
+        "elements": 1691,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": false,
+        "expectedTargetRowsMatching": 0,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [],
+        "activatedRowLabel": "Status hub",
+        "activatedRowContext": "Status hub sessions",
+        "choice": "the first matching row, because the record names its target in prose"
+      },
+      "afterActivation": {
+        "heading": "Status hub sessions",
+        "elements": 487,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": null,
+        "focusedTag": null,
+        "focusedName": "",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/status-hub-palette.png",
+          "sha256": "c64a928b9e3b3dfdbbdffb677557f0fc5d65453ded5cc6218a1586e67ea705cd",
+          "bytes": 273007
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/status-hub-after.png",
+          "sha256": "777882fe7b12786eb92650ce92d240e8ad8543c6cd77b4274a31813d42c21006",
+          "bytes": 303262
+        }
+      }
+    },
+    {
+      "feature": "support-tickets",
+      "query": "support ticket",
+      "expectedTarget": "Category",
+      "recordedRoute": "App > tuneApp > Customise everything > palette search 'support ticket' > Support Tickets section",
+      "recordedControlCount": 0,
+      "startedOn": {
+        "heading": "Status hub sessions",
+        "elements": 487
+      },
+      "chord": {
+        "sentAs": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle",
+        "paletteOpened": true,
+        "fieldWasPrefilled": false
+      },
+      "paletteUp": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Category Customise everything · Support Tickets",
+          "Severity Customise everything · Support Tickets",
+          "What happened Customise everything · Support Tickets",
+          "Open a ticket Customise everything · Support Tickets"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Category Customise everything · Support Tickets",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Severity Customise everything · Support Tickets",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "What happened Customise everything · Support Tickets",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Open a ticket Customise everything · Support Tickets",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "operableControlsInPanel": 5,
+        "controlListTruncated": false,
+        "candidatesConsidered": 1,
+        "hint": "4 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 4,
+        "rows": [
+          {
+            "label": "Category",
+            "context": "Customise everything · Support Tickets"
+          },
+          {
+            "label": "Severity",
+            "context": "Customise everything · Support Tickets"
+          },
+          {
+            "label": "What happened",
+            "context": "Customise everything · Support Tickets"
+          },
+          {
+            "label": "Open a ticket",
+            "context": "Customise everything · Support Tickets"
+          }
+        ],
+        "elements": 504,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may "
+      },
+      "activation": {
+        "expectedTargetPresent": true,
+        "expectedTargetRowsMatching": 1,
+        "expectedTargetAmbiguous": false,
+        "expectedTargetContexts": [
+          "Customise everything · Support Tickets"
+        ],
+        "activatedRowLabel": "Category",
+        "activatedRowContext": "Customise everything · Support Tickets",
+        "choice": "the row the record names"
+      },
+      "afterActivation": {
+        "heading": "Customise everything",
+        "elements": 1668,
+        "paletteStillUp": false,
+        "updateBanner": "An update (0.1.265) is ready to install. This build is unsigned, so Windows may ",
+        "focusedControlId": "sup_category",
+        "focusedTag": "button",
+        "focusedName": "info",
+        "panel": {
+          "panelFound": false,
+          "observedPanelControls": [],
+          "panelControlReadings": [],
+          "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+          "candidatesConsidered": 0
+        }
+      },
+      "captures": {
+        "paletteFiltered": {
+          "path": "console/release/captures/ui-drive/palette-routes/support-tickets-palette.png",
+          "sha256": "6c3908b629cfbffc31ad4fafed8c37704711171cace6f07a8734993503531264",
+          "bytes": 268877
+        },
+        "afterActivation": {
+          "path": "console/release/captures/ui-drive/palette-routes/support-tickets-after.png",
+          "sha256": "9218418f9cc3e41b903b1cbcd7b6f4fe8d30087ac715dc003b8606bf45e484e9",
+          "bytes": 279558
+        }
+      }
+    }
+  ]
+}

@@ -11,6 +11,9 @@ import {
   parseManagerSettings,
   parseManagerUsers,
   parseAriApps,
+  parseAriUsers,
+  parseBridges,
+  parseApplications,
   parseCdrStatus,
   parseLoggerChannels,
   parseSysinfo,
@@ -35,7 +38,7 @@ test('parseVoicemailUsers reads a realistic sample', () => {
 });
 
 test('parseVoicemailUsers returns empty on empty input', () => {
-  assert.deepEqual(parseVoicemailUsers(''), { users: [], total: undefined });
+  assert.deepEqual(parseVoicemailUsers(''), { users: [], total: undefined, dropped: [] });
 });
 
 test('parseVoicemailUsers skips a malformed line rather than crashing', () => {
@@ -44,9 +47,46 @@ test('parseVoicemailUsers skips a malformed line rather than crashing', () => {
     'not a real row at all',
     'default    1234  Alice Example              america          3',
   ].join('\n');
-  const { users } = parseVoicemailUsers(sample);
+  const { users, dropped } = parseVoicemailUsers(sample);
   assert.equal(users.length, 1);
   assert.equal(users[0].mailbox, '1234');
+  // Skipping it is right; losing track of it is not. A caller cannot say a row is
+  // missing from a result that never mentions the row it dropped.
+  assert.deepEqual(dropped, ['not a real row at all']);
+});
+
+test('parseVoicemailUsers records a row whose mailbox overruns its fixed-width field', () => {
+  // The five-character Mbox field cannot hold `1234@devices`, so the separator positions
+  // stop landing on spaces and every column after it is unassignable.
+  const overrun = 'myaliases  1234@devices                                           0';
+  const sample = [
+    'Context    Mbox  User                      Zone       NewMsg',
+    'default    1234  Example Mailbox                           0',
+    overrun,
+    '2 voicemail users configured.',
+  ].join('\n');
+  const { users, total, dropped } = parseVoicemailUsers(sample);
+  assert.equal(users.length, 1);
+  assert.equal(total, 2);
+  assert.deepEqual(dropped, [overrun]);
+});
+
+test('parseVoicemailUsers records a row whose context column is blank', () => {
+  // Right column widths, no context: the row parses cleanly and is still not a mailbox
+  // anybody can act on, so it is dropped -- and, now, said so.
+  const blankContext = '           1234  Example Mailbox                           0';
+  const { users, dropped } = parseVoicemailUsers(blankContext);
+  assert.deepEqual(users, []);
+  assert.deepEqual(dropped, [blankContext]);
+});
+
+test('parseVoicemailUsers drops nothing when every row parses', () => {
+  const sample = [
+    'Context    Mbox  User                      Zone            NewMsg',
+    'default    1234  Alice Example              america          3',
+    '1 voicemail users configured.',
+  ].join('\n');
+  assert.deepEqual(parseVoicemailUsers(sample).dropped, []);
 });
 
 test('parseVoicemailUsers preserves report order', () => {
@@ -297,6 +337,66 @@ test('parseAriApps returns empty when applications cannot be retrieved', () => {
   assert.deepEqual(parseAriApps(sample), []);
 });
 
+// ---------------------------------------------------------------- ari show users
+// res/ari/cli.c ari_show_users: "r/o?  ACL?  Username\n" + "----  ----  --------\n" + rows
+
+test('parseAriUsers reads a realistic sample', () => {
+  const sample = ['r/o?  ACL?  Username', '----  ----  --------', 'No    Yes   admin', 'Yes   No    dashboard'].join('\n');
+  assert.deepEqual(parseAriUsers(sample), [
+    { readOnly: false, hasAcl: true, username: 'admin' },
+    { readOnly: true, hasAcl: false, username: 'dashboard' },
+  ]);
+});
+
+test('parseAriUsers returns empty on empty input', () => {
+  assert.deepEqual(parseAriUsers(''), []);
+});
+
+// ---------------------------------------------------------------- bridge show all
+// main/bridge.c handle_bridge_show_all: "%-36s %-36s %5s %-15s %-15s %s\n"
+
+test('parseBridges reads a realistic sample', () => {
+  const header = 'Bridge-ID'.padEnd(36) + ' ' + 'Name'.padEnd(36) + ' ' + 'Chans'.padStart(5) + ' ' + 'Type'.padEnd(15) + ' ' + 'Technology'.padEnd(15) + ' ' + 'Duration';
+  const row = 'a1b2c3d4-0000-0000-0000-000000000001'.padEnd(36) + ' ' + 'into-conf'.padEnd(36) + ' ' + '3'.padStart(5) + ' ' + 'basic'.padEnd(15) + ' ' + 'simple_bridge'.padEnd(15) + ' ' + '00:04:12';
+  const sample = [header, row].join('\n');
+  assert.deepEqual(parseBridges(sample), [
+    { id: 'a1b2c3d4-0000-0000-0000-000000000001', name: 'into-conf', channels: 3, bridgeType: 'basic', technology: 'simple_bridge', duration: '00:04:12' },
+  ]);
+});
+
+test('parseBridges reads the header alone as no bridges, not an error', () => {
+  const header = 'Bridge-ID'.padEnd(36) + ' ' + 'Name'.padEnd(36) + ' ' + 'Chans'.padStart(5) + ' ' + 'Type'.padEnd(15) + ' ' + 'Technology'.padEnd(15) + ' ' + 'Duration';
+  assert.deepEqual(parseBridges(header), []);
+});
+
+test('parseBridges returns empty on empty input', () => {
+  assert.deepEqual(parseBridges(''), []);
+});
+
+// ---------------------------------------------------------------- core show applications
+// main/pbx_app.c handle_show_applications: banner, "  %20s: %s\n" rows, trailing count
+
+test('parseApplications reads a realistic sample', () => {
+  const sample = [
+    '    -= Registered Asterisk Applications =-',
+    '                Dial: Attempt a call to a channel or channels',
+    '            Playback: Play a file',
+    '    -= 2 Applications Registered =-',
+  ].join('\n');
+  assert.deepEqual(parseApplications(sample), [
+    { name: 'Dial', synopsis: 'Attempt a call to a channel or channels' },
+    { name: 'Playback', synopsis: 'Play a file' },
+  ]);
+});
+
+test('parseApplications returns empty when nothing at all is registered', () => {
+  assert.deepEqual(parseApplications('There are no registered applications'), []);
+});
+
+test('parseApplications returns empty on empty input', () => {
+  assert.deepEqual(parseApplications(''), []);
+});
+
 // ---------------------------------------------------------------- cdr show status
 // main/cdr.c handle_cli_status: key/value pairs plus "* Registered Backends" section
 
@@ -426,7 +526,7 @@ test('parseVoicemailUsers reads the live target output', () => {
     'other      1234  Company2 User                             0',
     '3 voicemail users configured.',
   ].join('\n');
-  const { users, total } = parseVoicemailUsers(sample);
+  const { users, total, dropped } = parseVoicemailUsers(sample);
   assert.equal(total, 3);
   // The middle row has no full name or zone printed for an alias mailbox; the parser
   // must not misassign the trailing count into the wrong column, so it is dropped
@@ -439,6 +539,11 @@ test('parseVoicemailUsers reads the live target output', () => {
   assert.equal(users[0].fullName, 'Example Mailbox');
   assert.equal(users[0].zone, '');
   assert.equal(users[1].context, 'other');
+  // The whole point of the record: the target says three, this says two, and the third
+  // is nameable. Without it the Voicemail screen shows two mailboxes and reads as
+  // complete.
+  assert.deepEqual(dropped, ['myaliases  1234@devices                                           0']);
+  assert.equal(total - users.length, dropped.length);
 });
 
 test('parseConfbridgeList reads the live target output (no rooms configured)', () => {

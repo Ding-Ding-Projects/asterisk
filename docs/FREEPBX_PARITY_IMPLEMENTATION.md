@@ -1,6 +1,6 @@
 # FreePBX Parity Implementation
 
-This document tracks the expansion of Ding PBX Console toward FreePBX-style administration while preserving Ding's Electron architecture, compiled Material 3 design system, local-first safety boundary, and Asterisk-native configuration model.
+This document tracks the expansion of Material Asterisk toward FreePBX-style administration while preserving Ding's Electron architecture, compiled Material 3 design system, local-first safety boundary, and Asterisk-native configuration model.
 
 The implementation handoff for pull request #3 is `PBX_ADMIN_HANDOFF.md`.
 

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "commit": "d50822fbb689304fe4f52292c0457c51f9ef4f83",
+  "artifact": "console/dist/squirrel-windows/win-unpacked/Ding PBX Console.exe",
+  "artifactSha256": "bd9640b366240712a9953805be4589de71b0b7e5095dd81d1e0c834ec27a30ef",
+  "capture": "console/release/captures/windows-console/tab-groups-and-searches.png",
+  "captureSha256": "b72023245ba873ef374e51c3c136b4939ab91d1e7ae6b7ac743fcc18096bc1b3",
+  "captureBytes": 32135,
+  "viewport": {
+    "width": 1440,
+    "height": 922,
+    "dpi": 144,
+    "scale": 1.5
+  },
+  "launch": {
+    "method": "Lowlevel hidden Windows desktop",
+    "desktop": "DingPBXEvidence2",
+    "windowTitle": "Ding PBX Console",
+    "windowClass": "Chrome_WidgetWin_1",
+    "topLevelWindowsOnDesktop": 14,
+    "windowSelectedBy": "exact class Chrome_WidgetWin_1 with a non-empty title and non-zero size",
+    "isolatedProfile": "a task-scoped --user-data-dir created for this run only",
+    "driver": "loopback Chrome DevTools Protocol, exactly one page target verified before any evaluation"
+  },
+  "interaction": {
+    "route": "App > PBX > Endpoints tab, right-click the PJSIP endpoints tab, hover Close tabs",
+    "action": "hovered the Close tabs submenu item to reveal its contents",
+    "observedTarget": "the Close tabs submenu"
+  },
+  "contractPoints": [
+    "a Close tabs submenu exists with a real set of scoped bulk-close actions: Contact | To the left | To the right | All others | Containing… | Not containing… | By colour… | All uncoloured | All unpinned",
+    "Group tabs by area is a separate top-level command on the same menu, matching the requirement for tab grouping"
+  ],
+  "notInterrogatedHere": [
+    "whether Close tabs containing text / not containing text and their anchored regex builder are present -- this submenu was only captured, not exercised",
+    "the four required tab-discovery searches (current strip, inside a group, groups by name, master search across all tabs)",
+    "pinned-tab exclusion from a bulk close and its explicit-include preview"
+  ],
+  "privacy": "no user desktop, cursor, foreground application or personal data is present; the application ran on an off-screen desktop under a throwaway profile",
+  "verification": "inspected-real-packaged-artifact"
+}

@@ -1,0 +1,2 @@
+Name/Username    Host                                           Mask                                      Port           Status      Description                     
+0 iax2 peers [0 online, 0 offline, 0 unmonitored]

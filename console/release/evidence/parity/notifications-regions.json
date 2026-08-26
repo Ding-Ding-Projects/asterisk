@@ -1,0 +1,228 @@
+{
+  "destinationId": "notifications",
+  "bar": "chrome-parity",
+  "tuple": {
+    "state": "default",
+    "theme": "dark",
+    "width": 1440,
+    "height": 1000,
+    "scale": 1
+  },
+  "shell": {
+    "reference": {
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 1000
+    },
+    "built": {
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  "areas": {
+    "brandCell": {
+      "role": "chrome",
+      "why": "The top strip's first cell: the product mark and name. It renders the same thing on every destination and reads nothing from the target. Kept inside the compared region even though it is guaranteed to differ, on the same principle sectionList is: this product's name is one word longer than the design's, so the cell is 6.36px wider — measured, 'Ding PBX Console' at 106.63px against 'Asterisk Console' at 100.27px, same 13px/500 Roboto, same 12px padding, 20px glyph and 10px gap — which rounds the two rectangles to 161 and 154. That is a deliberate rename recorded in compile-design.mjs's BRAND table, not a layout defect, and a divergence worth reading in the result rather than hiding in a mask.",
+      "reference": {
+        "x": 0,
+        "y": 0,
+        "width": 154,
+        "height": 40
+      },
+      "built": {
+        "x": 0,
+        "y": 0,
+        "width": 161,
+        "height": 40
+      },
+      "union": {
+        "x": 0,
+        "y": 0,
+        "width": 161,
+        "height": 40
+      }
+    },
+    "menuCell": {
+      "role": "chrome",
+      "why": "The top strip's menu bar — a fixed set of menu titles, identical on every destination. Its 12.28% divergence, also identical on every destination, is not its own: it is the 7px the brand cell beside it takes, displacing every glyph in this cell by exactly that much. The figure read 12.00% while commandCell was still compared, on the same 1886 differing pixels; reclassifying commandCell as data clipped nine columns of matching pixels off this cell's compared strip, which raised the ratio without changing a single pixel of the artifact.",
+      "reference": {
+        "x": 154,
+        "y": 0,
+        "width": 384,
+        "height": 40
+      },
+      "built": {
+        "x": 161,
+        "y": 0,
+        "width": 386,
+        "height": 40
+      },
+      "union": {
+        "x": 154,
+        "y": 0,
+        "width": 393,
+        "height": 40
+      }
+    },
+    "commandCell": {
+      "role": "data",
+      "why": "The top strip's connection pill, and DECIDED: it is data. It renders connLabel and connUptime, which are this.target.label and this.target.detail — what the console's own discovery reports about the target it found: 'no target' / 'nothing discovered yet' with none configured, or the discovered distribution name and 'N local target(s), connection verified' once one answers. The design invents 'pbx-hq · AMI 5038' and 'up 14d 06:22' in the same two spans. That is this bar's founding sentence exactly — the design shows invented sample content where the application shows a real reading — so the cell is data in the same sense contentPane is, and the previous declaration's 'carries its own label, not a reading' was simply false. It is NOT the brandCell or sectionList case. Those two are also guaranteed to differ and are deliberately still compared, because they differ where this product renders different CHROME from the design's chrome: a product name one word longer, a per-row badge this application removed. Reporting that is what the bar is for. This cell differs because the design invented a reading, which is what the bar is for excluding. What the decision costs, measured rather than predicted: the compared fraction falls from exactly 29.5717% to exactly 28.0883% of the frame — 404472 pixels of 1440000, above the declared 25% floor — and the compared-region divergence falls from 6.34%-14.95% to 4.62%-13.68%. What it also hides, said plainly: the region probe measures cells and not text runs, so excluding this rectangle also excludes the pill's own border, radius, pulse dot and separator, which are chrome. 61.00% of the cell already matched, so most of what the mask now covers is pixels that agreed, and excluded.diffPercentage goes on reporting whatever it covers — 29.76% to 81.88% across the 32, against 29.56% to 82.79% before. Two measured results contradicted what was expected of this move and are recorded because they did. FIRST, removing the worst area did not leave one uniform worst area behind it: the worst compared area is now brandCell on 21 destinations, tabStrip on 7 and sectionList on 4, where before it was this cell on all 32. The single identical figure was hiding a spread. SECOND, menuCell's divergence ROSE, from 12.00% to 12.28%, without one new differing pixel — its differing count is 1886 before and after. Union rectangles overlap, so excluding this cell also clipped nine columns off menuCell's compared strip, and all 360 of those pixels matched. Excluding an area can raise a neighbour's reported percentage by removing agreement rather than by finding disagreement, and a reading of these numbers that misses that will attribute a rise to a regression.",
+      "reference": {
+        "x": 538,
+        "y": 0,
+        "width": 534,
+        "height": 40
+      },
+      "built": {
+        "x": 546,
+        "y": 0,
+        "width": 525,
+        "height": 40
+      },
+      "union": {
+        "x": 538,
+        "y": 0,
+        "width": 534,
+        "height": 40
+      }
+    },
+    "statusCell": {
+      "role": "chrome",
+      "why": "The top strip's last cell, and DECIDED: it is chrome. Its previous declaration read 'carries live status: what the console is connected to and how that connection is faring', and that sentence describes commandCell rather than this cell; a pass corrected the text and deliberately left the role alone so that this move could be measured on its own. The fourth top cell is the Beginner/Expert mode picker, the confirmation-credits pill, the command-palette button and the three window controls. The decisive evidence is not the description but the renderer: App.tsx overrides exactly two values in the whole top strip, connLabel and connUptime, and both of them land in commandCell. Nothing inside this cell is written by the product at all — both sides render the same modeOpts, the same credits count, the same search glyph and the same three window buttons out of the same compiled template — so there is no invented reading here for the bar to exclude, and excluding it was a narrowing nobody had argued for. What the decision costs, measured rather than predicted: the compared fraction RISES from exactly 28.0883% to exactly 29.1106% of the frame — 419192 pixels of 1440000, the 404472 that were compared before plus this cell's own 14720 — which is the first move of an area that widened the comparison rather than narrowing it. The compared-region divergence moves from 4.62%-13.68% to 4.80%-13.54%: the low end rises and the high end falls, because this cell diverges by more than the least-divergent destinations did and by less than the most-divergent ones. No neighbouring area's figure moved at all, unlike the commandCell move, because this cell's union rectangle is 1072-1440 and touches nothing else's. And what it revealed is the thing worth having done it for: see chromeParityRun.whatIncludingStatusCellMeasured.",
+      "reference": {
+        "x": 1072,
+        "y": 0,
+        "width": 368,
+        "height": 40
+      },
+      "built": {
+        "x": 1072,
+        "y": 0,
+        "width": 368,
+        "height": 40
+      },
+      "union": {
+        "x": 1072,
+        "y": 0,
+        "width": 368,
+        "height": 40
+      }
+    },
+    "tabStrip": {
+      "role": "chrome",
+      "why": "The open-tab strip. Tab titles come from the navigation catalogue, which is itself compiled from the design, so both sides are naming the same screens.",
+      "reference": {
+        "x": 0,
+        "y": 40,
+        "width": 1440,
+        "height": 38
+      },
+      "built": {
+        "x": 0,
+        "y": 40,
+        "width": 1440,
+        "height": 38
+      },
+      "union": {
+        "x": 0,
+        "y": 40,
+        "width": 1440,
+        "height": 38
+      }
+    },
+    "rail": {
+      "role": "chrome",
+      "why": "The navigation rail: six fixed rail icons and their labels, compiled from the design's own catalogue. Chrome deliberately — a divergence here is a real layout defect and the bar is supposed to report it rather than excuse it.",
+      "reference": {
+        "x": 0,
+        "y": 78,
+        "width": 88,
+        "height": 922
+      },
+      "built": {
+        "x": 0,
+        "y": 78,
+        "width": 88,
+        "height": 922
+      },
+      "union": {
+        "x": 0,
+        "y": 78,
+        "width": 88,
+        "height": 922
+      }
+    },
+    "sectionList": {
+      "role": "chrome",
+      "why": "The section list for the open rail. Kept inside the compared region on purpose even though this application removed the design's per-row badges: the labels are chrome, and a badge present on one side and absent on the other is a divergence worth reading in the result rather than one worth hiding in a mask.",
+      "reference": {
+        "x": 88,
+        "y": 78,
+        "width": 268,
+        "height": 922
+      },
+      "built": {
+        "x": 88,
+        "y": 78,
+        "width": 268,
+        "height": 922
+      },
+      "union": {
+        "x": 88,
+        "y": 78,
+        "width": 268,
+        "height": 922
+      }
+    },
+    "contentPane": {
+      "role": "data",
+      "why": "The destination's own screen. This is where the design's invented rows, dashboard tiles, health bars and history sit, and where the built application puts the target's real readings instead. It is the region this bar exists to exclude.",
+      "reference": {
+        "x": 356,
+        "y": 78,
+        "width": 1084,
+        "height": 922
+      },
+      "built": {
+        "x": 356,
+        "y": 78,
+        "width": 1084,
+        "height": 922
+      },
+      "union": {
+        "x": 356,
+        "y": 78,
+        "width": 1084,
+        "height": 922
+      }
+    }
+  },
+  "exclusions": [
+    {
+      "area": "commandCell",
+      "x": 538,
+      "y": 0,
+      "width": 534,
+      "height": 40
+    },
+    {
+      "area": "contentPane",
+      "x": 356,
+      "y": 78,
+      "width": 1084,
+      "height": 922
+    }
+  ],
+  "comparedAreas": [
+    "brandCell",
+    "menuCell",
+    "statusCell",
+    "tabStrip",
+    "rail",
+    "sectionList"
+  ],
+  "generatedBy": "console/scripts/design-parity-capture-run.mjs --side=chrome"
+}

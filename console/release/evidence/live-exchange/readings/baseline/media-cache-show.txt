@@ -1,0 +1,2 @@
+Usage: media cache show <uri>
+       Display all information about a particular item in the media cache.

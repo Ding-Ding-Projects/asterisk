@@ -1,0 +1,5 @@
+ding-live-probe-queue has 0 calls (max unlimited) in 'ringall' strategy (0s holdtime, 0s talktime), W:0, C:0, A:0, SL:0.0%, SL2:0.0% within 0s
+   Members: 
+      Local/1000@default (ringinuse enabled) (Not in use) has taken no calls yet (login was 4 secs ago)
+   No Callers
+

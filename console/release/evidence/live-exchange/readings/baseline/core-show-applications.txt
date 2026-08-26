@@ -1,0 +1,180 @@
+    -= Registered Asterisk Applications =-
+        AddQueueMember: Dynamically adds queue members. 
+              ADSIProg: Load Asterisk ADSI Scripts into phone 
+                AELSub: Launch subroutine built with AEL 
+            AgentLogin: Login an agent. 
+          AgentRequest: Request an agent to connect with the channel. 
+                   AGI: Executes an AGI compliant application. 
+         AlarmReceiver: Provide support for receiving alarm reports from a burglar or fire alarm panel. 
+                   AMD: Attempt to detect answering machines. 
+                Answer: Answer a channel if ringing. 
+      AttendedTransfer: Attended transfer to the extension provided and TRANSFER_CONTEXT 
+           AudioSocket: Transmit and receive PCM audio between a channel and a TCP socket server. 
+          Authenticate: Authenticate a user 
+            BackGround: Play an audio file while waiting for digits of an extension to go to. 
+      BackgroundDetect: Background a file with talk detect. 
+         BlindTransfer: Blind transfer channel(s) to the extension and context provided 
+                Bridge: Bridge two channels. 
+             BridgeAdd: Join a bridge that contains the specified channel. 
+            BridgeWait: Put a call into the holding bridge. 
+             Broadcast: Transmit or receive audio to or from multiple channels simultaneously 
+                  Busy: Indicate the Busy condition. 
+  CallCompletionCancel: Cancel call completion service 
+  CallCompletionRequest: Request call completion service for previous call 
+       CELGenUserEvent: Generates a CEL User Defined Event. 
+           ChanIsAvail: Check channel availability 
+       ChannelRedirect: Redirects given channel to a dialplan target 
+               ChanSpy: Listen to a channel, and optionally whisper into it. 
+             ClearHash: Clear the keys from a specified hashname. 
+            ConfBridge: Conference bridge application. 
+              ConfKick: Kicks channel(s) from the requested ConfBridge. 
+            Congestion: Indicate the Congestion condition. 
+         ContinueWhile: Restart a While loop. 
+       ControlPlayback: Play a file with fast forward and rewind. 
+             DAHDIScan: Scan DAHDI channels to monitor calls. 
+              DateTime: Says a specified time in a custom format. 
+             DBdeltree: Delete a family or keytree from the asterisk database. 
+                  Dial: Attempt to connect to another device or endpoint and bridge the call. 
+               Dictate: Virtual Dictation Machine. 
+             Directory: Provide directory of voicemail extensions. 
+                  DISA: Direct Inward System Access. 
+              DumpChan: Dump Info About The Calling Channel. 
+                  EAGI: Executes an EAGI compliant application. 
+                  Echo: Echo media, DTMF back to the calling party 
+                  Else: Define an optional else branch. 
+                ElseIf: Start an else if branch. 
+                 EndIf: End an if branch. 
+              EndWhile: End a while loop. 
+                  Exec: Executes dialplan application. 
+                ExecIf: Executes dialplan application, conditionally. 
+            ExecIfTime: Conditional application execution based on the current time. 
+                ExitIf: End an If branch. 
+             ExitWhile: End a While loop. 
+              ExtenSpy: Listen to a channel, and optionally whisper into it. 
+           ExternalIVR: Interfaces with an external IVR application. 
+              Festival: Say text to the user. 
+              FollowMe: Find-Me/Follow-Me application. 
+               ForkCDR: Forks the current Call Data Record for this channel. 
+              GetCPEID: Get ADSI CPE ID. 
+                 Gosub: Jump to label, saving return address. 
+               GosubIf: Conditionally jump to label, saving return address. 
+                  Goto: Jump to a particular priority, extension, or context. 
+                GotoIf: Conditional goto. 
+            GotoIfTime: Conditional Goto based on the current time. 
+                Hangup: Hang up the calling channel. 
+      HangupCauseClear: Clears hangup cause information from the channel that is available through HANGUPCAUSE. 
+         IAX2Provision: Provision a calling IAXy with a given template. 
+                    If: Start an if branch. 
+            Incomplete: Returns AST_PBX_INCOMPLETE value. 
+                   Log: Send arbitrary text to a selected log level. 
+           MessageSend: Send a text message. 
+             Milliwatt: Generates a 1004 Hz test tone at 0dbm (mu-law). 
+         MinivmAccMess: Record account specific messages. 
+          MinivmDelete: Delete Mini-Voicemail voicemail messages. 
+           MinivmGreet: Play Mini-Voicemail prompts. 
+             MinivmMWI: Send Message Waiting Notification to subscriber(s) of mailbox. 
+          MinivmNotify: Notify voicemail owner about new messages. 
+          MinivmRecord: Receive Mini-Voicemail and forward via e-mail. 
+            MixMonitor: Record a call and mix the audio during the recording.  Use of StopMixMonitor is required to guarantee the audio file is available for processing during dialplan execution. 
+             Morsecode: Plays morse code. 
+             MP3Player: Play an MP3 file or M3U playlist file or stream. 
+                  MSet: Set channel variable(s) or function value(s). 
+           MusicOnHold: Play Music On Hold indefinitely. 
+                  NoOp: Do Nothing (No Operation). 
+             Originate: Originate a call. 
+                  Page: Page series of phones 
+                  Park: Park yourself. 
+       ParkAndAnnounce: Park and Announce. 
+            ParkedCall: Retrieve a parked call. 
+      PauseQueueMember: Pauses a queue member. 
+                Pickup: Directed extension call pickup. 
+            PickupChan: Pickup a ringing channel. 
+           PJSIPHangup: Hangup an incoming PJSIP channel with a SIP response code 
+           PJSIPNotify: Send a NOTIFY to either an arbitrary URI, or inside a SIP dialog. 
+              Playback: Play a file. 
+             PlayTones: Play a tone list. 
+        PrivacyManager: Require phone number to be entered, if no CallerID sent 
+            Proceeding: Indicate proceeding. 
+              Progress: Indicate progress. 
+                 Queue: Queue a call for a call queue. 
+              QueueLog: Writes to the queue_log file. 
+           QueueUpdate: Writes to the queue_log file for outbound calls and updates Realtime Data. Is used at h extension to be able to have all the parameters. 
+        RaiseException: Handle an exceptional condition. 
+                  Read: Read a variable. 
+             ReadExten: Read an extension into a variable. 
+            ReceiveFAX: Receive a FAX and save as a TIFF/F file. 
+             ReceiveMF: Detects MF digits on a channel and saves them to a variable. 
+             ReceiveSF: Detects SF digits on a channel and saves them to a variable. 
+           ReceiveText: Receive a Text Message on a channel. 
+                Record: Record to a file. 
+                Reload: Reloads an Asterisk module, blocking the channel until the reload has completed. 
+     RemoveQueueMember: Dynamically removes queue members. 
+              ResetCDR: Resets the Call Data Record. 
+             RetryDial: Place a call, retrying on failure allowing an optional exit extension. 
+                Return: Return from gosub routine. 
+               Ringing: Indicate ringing tone. 
+              SayAlpha: Say Alpha. 
+          SayAlphaCase: Say Alpha. 
+             SayDigits: Say Digits. 
+              SayMoney: Say Money. 
+             SayNumber: Say Number. 
+            SayOrdinal: Say Ordinal Number. 
+           SayPhonetic: Say Phonetic. 
+           SayUnixTime: Says a specified time in a custom format. 
+              SendDTMF: Sends arbitrary DTMF digits 
+               SendFAX: Sends a specified TIFF/F file as a FAX. 
+                SendMF: Sends arbitrary MF digits on the current or specified channel. 
+                SendSF: Sends arbitrary SF digits on the current or specified channel. 
+              SendText: Send a Text Message on a channel. 
+                   Set: Set channel variable or function value. 
+                Signal: Sends a signal to any waiting channels. 
+            SLAStation: Shared Line Appearance Station. 
+              SLATrunk: Shared Line Appearance Trunk. 
+                   SMS: Communicates with SMS service centres and SMS capable analogue phones. 
+            SoftHangup: Hangs up the requested channel. 
+  SpeechActivateGrammar: Activate a grammar. 
+      SpeechBackground: Play a sound file and wait for speech to be recognized. 
+          SpeechCreate: Create a Speech Structure. 
+  SpeechDeactivateGrammar: Deactivate a grammar. 
+         SpeechDestroy: End speech recognition. 
+     SpeechLoadGrammar: Load a grammar. 
+  SpeechProcessingSound: Change background processing sound. 
+           SpeechStart: Start recognizing voice in the audio stream. 
+   SpeechUnloadGrammar: Unload a grammar. 
+              StackPop: Remove one address from gosub stack. 
+      StartMusicOnHold: Play Music On Hold. 
+                Stasis: Invoke an external Stasis application.
+       StasisBroadcast: Broadcast a channel to multiple ARI applications for claiming, then hand control to the winning application.
+        StopMixMonitor: Stop recording a call through MixMonitor, and free the recording's file handle. 
+       StopMusicOnHold: Stop playing Music On Hold. 
+         StopPlayTones: Stop playing a tone list. 
+             StoreDTMF: Stores DTMF digits transmitted or received on a channel. 
+            StreamEcho: Echo media, up to 'N' streams of a type, and DTMF back to the calling party 
+                System: Execute a system command. 
+            TestClient: Execute Interface Test Client. 
+            TestServer: Execute Interface Test Server. 
+              ToneScan: Wait for period of time while scanning for call progress tones 
+              Transfer: Transfer caller to remote extension. 
+               TryExec: Executes dialplan application, always returning. 
+             TrySystem: Try executing a system command. 
+    UnpauseQueueMember: Unpauses a queue member. 
+             UserEvent: Send an arbitrary user-defined event to parties interested in a channel (AMI users and relevant res_stasis applications). 
+               Verbose: Send arbitrary text to verbose output. 
+        VMAuthenticate: Authenticate with Voicemail passwords. 
+             VMSayName: Play the name of a voicemail user 
+             VoiceMail: Leave a Voicemail message. 
+         VoiceMailMain: Check Voicemail messages. 
+      VoiceMailPlayMsg: Play a single voice mail msg from a mailbox by msg id. 
+                  Wait: Waits for some time. 
+             WaitDigit: Waits for a digit to be entered. 
+             WaitExten: Waits for an extension to be entered. 
+      WaitForCondition: Wait (sleep) until the given condition is true. 
+          WaitForNoise: Waits for a specified amount of noise. 
+           WaitForRing: Wait for Ring Application. 
+         WaitForSignal: Waits for a named signal on a channel. 
+        WaitForSilence: Waits for a specified amount of silence. 
+           WaitForTone: Wait for tone 
+             WaitUntil: Wait (sleep) until the current time is the given epoch. 
+                 While: Start a while loop. 
+            Zapateller: Block telemarketers with SIT. 
+    -= 178 Applications Registered =-

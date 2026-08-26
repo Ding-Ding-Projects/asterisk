@@ -55,6 +55,27 @@ test('trunk authentication screen never renders the design\'s invented partner r
   }
 });
 
+test('trunks screen never renders the design\'s invented PJSIP registrations', () => {
+  // The design's own table.rows are development-preview data for the compile tool, never
+  // for a user: applyRows() (App.tsx) replaces this exact screen's rows with a real
+  // reading before it renders, same as every other `kind:'table'` destination.
+  const text = strip(renderApp('trunks'));
+  for (const invented of ['carrier-primary', 'carrier-backup', 'sip.carrier.example', 'sip2.carrier.example', 'userpass']) {
+    assert.ok(!text.includes(invented), `trunks: found invented value "${invented}"`);
+  }
+});
+
+test('IAX peers screen renders an honestly empty table with no target connected, never an invented peer', () => {
+  // No target is connected in this static render, so there is no `iax2 show peers`
+  // reading to show -- the table must render nothing rather than the design's own
+  // (now-empty) preview rows leaking through, and the credential group must never carry
+  // a value that looks like a real secret.
+  const text = strip(renderApp('iaxpeers'));
+  for (const invented of ['branch-office', 'branch-iax', 'markpasswd', 'asterisk123']) {
+    assert.ok(!text.includes(invented), `iaxpeers: found invented value "${invented}"`);
+  }
+});
+
 test('the nav rail never shows the design\'s invented per-destination badge counts', () => {
   class Pinned extends (App as unknown as new (props: unknown) => {
     state: Record<string, unknown>;

@@ -1,0 +1,44 @@
+{
+  "destinationId": "modules",
+  "verdict": "diff",
+  "reasons": [],
+  "dimensions": {
+    "reference": {
+      "width": 1440,
+      "height": 1000
+    },
+    "built": {
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  "diffPixelCount": 702579,
+  "totalPixels": 1440000,
+  "diffPercentage": 48.79020833333333,
+  "boundingBox": {
+    "x0": 6,
+    "y0": 6,
+    "x1": 1413,
+    "y1": 986
+  },
+  "paletteCheck": {
+    "blackFraction": 0,
+    "thresholdExceeded": false
+  },
+  "stalenessCheck": {
+    "checked": true,
+    "stale": false,
+    "builtCaptureMtimeMs": 1787701426157.87,
+    "newestBuildSourceMtimeMs": 1787701108062.1504
+  },
+  "generatedBy": "console/scripts/design-parity-capture-run.mjs --side=diff",
+  "tuple": {
+    "state": "default",
+    "theme": "dark",
+    "width": 1440,
+    "height": 1000,
+    "scale": 1
+  },
+  "referenceCapture": "console/release/captures/parity/modules-reference.png",
+  "builtCapture": "console/release/captures/parity/modules-built.png"
+}

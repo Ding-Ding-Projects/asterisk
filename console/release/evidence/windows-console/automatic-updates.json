@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "commit": "d50822fbb689304fe4f52292c0457c51f9ef4f83",
+  "artifact": "console/dist/squirrel-windows/win-unpacked/Ding PBX Console.exe",
+  "artifactSha256": "bd9640b366240712a9953805be4589de71b0b7e5095dd81d1e0c834ec27a30ef",
+  "capture": "console/release/captures/windows-console/automatic-updates.png",
+  "captureSha256": "d3ce67b89444f97cd26a62ef6dc4079bb662a85b4b6582b45ec292217640d19c",
+  "captureBytes": 310378,
+  "viewport": {"width": 2181, "height": 1393, "dpi": 144, "scale": 1.5},
+  "launch": {
+    "method": "Lowlevel hidden Windows desktop",
+    "desktop": "DingPBXEvidence",
+    "windowTitle": "Ding PBX Console",
+    "windowClass": "Chrome_WidgetWin_1",
+    "topLevelWindowsOnDesktop": 14,
+    "windowSelectedBy": "exact class Chrome_WidgetWin_1 with a non-empty title and non-zero size",
+    "isolatedProfile": "a task-scoped --user-data-dir created for this run only"
+  },
+  "interaction": {
+    "route": "application launch, before any navigation",
+    "action": "the update banner is raised by the updater's own startup check",
+    "observedOfferedVersion": "0.1.175",
+    "installedVersion": "0.1.0",
+    "bannerText": "An update (0.1.175) is ready to install. This build is unsigned, so Windows may show an unknown-publisher warning during install.",
+    "observedActions": ["Release notes", "Restart to install update", "Later"],
+    "unsignedDisclosureShown": true,
+    "restartRequiresUserAction": true
+  },
+  "contractPoints": [
+    "the banner is non-blocking: the onboarding wizard behind it is fully rendered and operable",
+    "it names the exact version offered rather than saying an update is available",
+    "it states the artifact is unsigned and warns about the unknown-publisher prompt, claiming integrity rather than authenticity",
+    "installation happens only on an explicit user action; Later is offered beside it"
+  ],
+  "notInterrogatedHere": [
+    "the download, digest verification and staging path that precedes this banner",
+    "the restart-and-install path itself, which mutates the installed application",
+    "offline, invalid-feed and corrupt-asset states"
+  ],
+  "privacy": "no user desktop, cursor, foreground application or personal data is present; the application ran on an off-screen desktop under a throwaway profile",
+  "verification": "inspected-real-packaged-artifact"
+}

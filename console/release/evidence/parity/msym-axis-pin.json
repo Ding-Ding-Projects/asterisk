@@ -1,0 +1,1051 @@
+{
+  "generatedAt": "2026-08-25T23:29:22.549Z",
+  "generatedBy": "console/scripts/design-parity-msym-axes.mjs",
+  "viewport": {
+    "width": 1440,
+    "height": 1000,
+    "scale": 1
+  },
+  "font": {
+    "file": "console/assets/fonts/material-symbols-outlined-100-700-0.woff2",
+    "axes": [
+      {
+        "tag": "FILL",
+        "minimum": 0,
+        "default": 0,
+        "maximum": 1
+      },
+      {
+        "tag": "GRAD",
+        "minimum": -50,
+        "default": 0,
+        "maximum": 200
+      },
+      {
+        "tag": "opsz",
+        "minimum": 20,
+        "default": 24,
+        "maximum": 48
+      },
+      {
+        "tag": "wght",
+        "minimum": 100,
+        "default": 400,
+        "maximum": 700
+      }
+    ],
+    "note": "Axes read from the shipped file's own fvar table, not from the stylesheet URL that requested them."
+  },
+  "rules": {
+    "design": [
+      "font-family:'Material Symbols Outlined'; font-weight:400; font-style:normal; line-height:1; letter-spacing:normal; text-transform:none; display:inline-block; white-space:nowrap; direction:ltr; -webkit-font-feature-settings:'liga'; -webkit-font-smoothing:antialiased;",
+      "min-width:0;"
+    ],
+    "shipped": [
+      "font-family:'Material Symbols Outlined'; font-weight:400; font-style:normal; line-height:1; letter-spacing:normal; text-transform:none; display:inline-block; white-space:nowrap; direction:ltr; -webkit-font-feature-settings:'liga'; -webkit-font-smoothing:antialiased;",
+      "min-width:0;",
+      "font-family:\"Material Symbols Outlined\"; font-weight:400; font-style:normal; font-size:24px; line-height:1; letter-spacing:normal; text-transform:none; display:inline-block; white-space:nowrap; direction:ltr; -webkit-font-feature-settings:\"liga\"; -webkit-font-smoothing:antialiased;"
+    ],
+    "addedByTheCompiler": [
+      {
+        "property": "font-size",
+        "value": "24px"
+      }
+    ],
+    "removedPinUnderTest": "font-variation-settings:\"FILL\" 0, \"wght\" 400, \"GRAD\" 0, \"opsz\" 24;"
+  },
+  "icons": {
+    "rendered": 98,
+    "withoutInlineFontSize": 0,
+    "templateBoundAndNotCovered": [
+      "{{ a.icon }}",
+      "{{ allIcon }}",
+      "{{ b.icon }}",
+      "{{ d.icon }}",
+      "{{ fsIcon }}",
+      "{{ funIcon }}",
+      "{{ g.chevron }}",
+      "{{ g.icon }}",
+      "{{ i.icon }}",
+      "{{ k.icon }}",
+      "{{ l.icon }}",
+      "{{ m.icon }}",
+      "{{ n.icon }}",
+      "{{ o.icon }}",
+      "{{ onboardIcon }}",
+      "{{ p.icon }}",
+      "{{ pinEyeIcon }}",
+      "{{ q.icon }}",
+      "{{ r.checkIcon }}",
+      "{{ r.icon }}",
+      "{{ s.icon }}",
+      "{{ sg.icon }}",
+      "{{ simVerdictIcon }}",
+      "{{ t.icon }}"
+    ],
+    "whatIsNotCovered": "A template-bound span picks its ligature when the design runtime evaluates the expression, so this probe cannot know which glyph it draws. The mechanism it would be drawn through is the same one measured here; the pixel counts below simply do not include those spans."
+  },
+  "resolvedForTheFirstIcon": {
+    "design": {
+      "fontSize": "14px",
+      "fontOpticalSizing": "auto",
+      "fontVariationSettings": "normal"
+    },
+    "shipped": {
+      "fontSize": "14px",
+      "fontOpticalSizing": "auto",
+      "fontVariationSettings": "normal"
+    },
+    "pinned": {
+      "fontSize": "14px",
+      "fontOpticalSizing": "auto",
+      "fontVariationSettings": "\"FILL\" 0, \"GRAD\" 0, \"opsz\" 24, \"wght\" 400"
+    },
+    "clamped": {
+      "fontSize": "14px",
+      "fontOpticalSizing": "auto",
+      "fontVariationSettings": "\"FILL\" 0, \"GRAD\" 0, \"opsz\" 20, \"wght\" 400"
+    },
+    "whichIcon": {
+      "fontSizePx": 14,
+      "glyph": "check"
+    }
+  },
+  "wholeFrame": {
+    "designVersusShipped": 0,
+    "designVersusPinned": 11252,
+    "designVersusClamped": 0
+  },
+  "bySize": [
+    {
+      "fontSizePx": 14,
+      "icons": 4,
+      "opticalSizeWhenAutomatic": 20,
+      "iconsDifferingFromThePin": 4,
+      "pixelsThePinChanged": 235,
+      "iconsStillDifferingWhenShipped": 0
+    },
+    {
+      "fontSizePx": 15,
+      "icons": 17,
+      "opticalSizeWhenAutomatic": 20,
+      "iconsDifferingFromThePin": 17,
+      "pixelsThePinChanged": 1068,
+      "iconsStillDifferingWhenShipped": 0
+    },
+    {
+      "fontSizePx": 16,
+      "icons": 12,
+      "opticalSizeWhenAutomatic": 20,
+      "iconsDifferingFromThePin": 12,
+      "pixelsThePinChanged": 946,
+      "iconsStillDifferingWhenShipped": 0
+    },
+    {
+      "fontSizePx": 17,
+      "icons": 13,
+      "opticalSizeWhenAutomatic": 20,
+      "iconsDifferingFromThePin": 13,
+      "pixelsThePinChanged": 1243,
+      "iconsStillDifferingWhenShipped": 0
+    },
+    {
+      "fontSizePx": 18,
+      "icons": 16,
+      "opticalSizeWhenAutomatic": 20,
+      "iconsDifferingFromThePin": 16,
+      "pixelsThePinChanged": 1834,
+      "iconsStillDifferingWhenShipped": 0
+    },
+    {
+      "fontSizePx": 19,
+      "icons": 7,
+      "opticalSizeWhenAutomatic": 20,
+      "iconsDifferingFromThePin": 7,
+      "pixelsThePinChanged": 838,
+      "iconsStillDifferingWhenShipped": 0
+    },
+    {
+      "fontSizePx": 20,
+      "icons": 7,
+      "opticalSizeWhenAutomatic": 20,
+      "iconsDifferingFromThePin": 7,
+      "pixelsThePinChanged": 891,
+      "iconsStillDifferingWhenShipped": 0
+    },
+    {
+      "fontSizePx": 21,
+      "icons": 1,
+      "opticalSizeWhenAutomatic": 21,
+      "iconsDifferingFromThePin": 1,
+      "pixelsThePinChanged": 105,
+      "iconsStillDifferingWhenShipped": 0
+    },
+    {
+      "fontSizePx": 22,
+      "icons": 3,
+      "opticalSizeWhenAutomatic": 22,
+      "iconsDifferingFromThePin": 3,
+      "pixelsThePinChanged": 484,
+      "iconsStillDifferingWhenShipped": 0
+    },
+    {
+      "fontSizePx": 24,
+      "icons": 3,
+      "opticalSizeWhenAutomatic": 24,
+      "iconsDifferingFromThePin": 0,
+      "pixelsThePinChanged": 0,
+      "iconsStillDifferingWhenShipped": 0
+    },
+    {
+      "fontSizePx": 26,
+      "icons": 5,
+      "opticalSizeWhenAutomatic": 26,
+      "iconsDifferingFromThePin": 5,
+      "pixelsThePinChanged": 266,
+      "iconsStillDifferingWhenShipped": 0
+    },
+    {
+      "fontSizePx": 30,
+      "icons": 1,
+      "opticalSizeWhenAutomatic": 30,
+      "iconsDifferingFromThePin": 1,
+      "pixelsThePinChanged": 161,
+      "iconsStillDifferingWhenShipped": 0
+    },
+    {
+      "fontSizePx": 32,
+      "icons": 2,
+      "opticalSizeWhenAutomatic": 32,
+      "iconsDifferingFromThePin": 2,
+      "pixelsThePinChanged": 246,
+      "iconsStillDifferingWhenShipped": 0
+    },
+    {
+      "fontSizePx": 34,
+      "icons": 3,
+      "opticalSizeWhenAutomatic": 34,
+      "iconsDifferingFromThePin": 3,
+      "pixelsThePinChanged": 388,
+      "iconsStillDifferingWhenShipped": 0
+    },
+    {
+      "fontSizePx": 46,
+      "icons": 1,
+      "opticalSizeWhenAutomatic": 46,
+      "iconsDifferingFromThePin": 1,
+      "pixelsThePinChanged": 271,
+      "iconsStillDifferingWhenShipped": 0
+    },
+    {
+      "fontSizePx": 56,
+      "icons": 1,
+      "opticalSizeWhenAutomatic": 48,
+      "iconsDifferingFromThePin": 1,
+      "pixelsThePinChanged": 684,
+      "iconsStillDifferingWhenShipped": 0
+    },
+    {
+      "fontSizePx": 60,
+      "icons": 1,
+      "opticalSizeWhenAutomatic": 48,
+      "iconsDifferingFromThePin": 1,
+      "pixelsThePinChanged": 570,
+      "iconsStillDifferingWhenShipped": 0
+    },
+    {
+      "fontSizePx": 74,
+      "icons": 1,
+      "opticalSizeWhenAutomatic": 48,
+      "iconsDifferingFromThePin": 1,
+      "pixelsThePinChanged": 1022,
+      "iconsStillDifferingWhenShipped": 0
+    }
+  ],
+  "perIcon": [
+    {
+      "fontSizePx": 14,
+      "glyph": "check",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 41,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 14,
+      "glyph": "close",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 44,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 14,
+      "glyph": "info",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 94,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 14,
+      "glyph": "push_pin",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 56,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 15,
+      "glyph": "arrow_forward",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 60,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 15,
+      "glyph": "check",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 42,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 15,
+      "glyph": "check_circle",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 121,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 15,
+      "glyph": "chevron_left",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 26,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 15,
+      "glyph": "chevron_right",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 32,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 15,
+      "glyph": "compare_arrows",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 55,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 15,
+      "glyph": "content_copy",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 103,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 15,
+      "glyph": "crop_square",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 8,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 15,
+      "glyph": "data_object",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 100,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 15,
+      "glyph": "delete",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 135,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 15,
+      "glyph": "download",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 72,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 15,
+      "glyph": "drag_indicator",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 69,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 15,
+      "glyph": "expand_less",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 28,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 15,
+      "glyph": "expand_more",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 29,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 15,
+      "glyph": "play_arrow",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 45,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 15,
+      "glyph": "regular_expression",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 91,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 15,
+      "glyph": "timeline",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 52,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 16,
+      "glyph": "add",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 12,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 16,
+      "glyph": "arrow_downward",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 52,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 16,
+      "glyph": "arrow_upward",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 52,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 16,
+      "glyph": "auto_fix_high",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 86,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 16,
+      "glyph": "call_end",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 58,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 16,
+      "glyph": "check",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 40,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 16,
+      "glyph": "confirmation_number",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 124,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 16,
+      "glyph": "data_object",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 100,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 16,
+      "glyph": "drag_indicator",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 80,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 16,
+      "glyph": "fiber_manual_record",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 76,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 16,
+      "glyph": "hearing",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 125,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 16,
+      "glyph": "terminal",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 141,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 17,
+      "glyph": "account_tree",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 117,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 17,
+      "glyph": "add",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 24,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 17,
+      "glyph": "close",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 60,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 17,
+      "glyph": "cloud_done",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 138,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 17,
+      "glyph": "colorize",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 83,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 17,
+      "glyph": "edit",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 97,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 17,
+      "glyph": "keyboard",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 158,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 17,
+      "glyph": "lock",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 125,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 17,
+      "glyph": "password",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 128,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 17,
+      "glyph": "phonelink_lock",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 120,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 17,
+      "glyph": "remove",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 12,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 17,
+      "glyph": "search",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 85,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 17,
+      "glyph": "send",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 96,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 18,
+      "glyph": "add",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 64,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 18,
+      "glyph": "auto_fix_high",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 116,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 18,
+      "glyph": "casino",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 172,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 18,
+      "glyph": "close",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 76,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 18,
+      "glyph": "drag_indicator",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 90,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 18,
+      "glyph": "help",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 144,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 18,
+      "glyph": "lightbulb",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 100,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 18,
+      "glyph": "play_arrow",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 60,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 18,
+      "glyph": "radio_button_checked",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 158,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 18,
+      "glyph": "radio_button_unchecked",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 124,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 18,
+      "glyph": "school",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 144,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 18,
+      "glyph": "science",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 92,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 18,
+      "glyph": "search",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 96,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 18,
+      "glyph": "thumb_down",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 140,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 18,
+      "glyph": "thumb_up",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 140,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 18,
+      "glyph": "warning",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 118,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 19,
+      "glyph": "checklist",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 83,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 19,
+      "glyph": "close",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 78,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 19,
+      "glyph": "device_hub",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 83,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 19,
+      "glyph": "hub",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 166,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 19,
+      "glyph": "rocket_launch",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 182,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 19,
+      "glyph": "search",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 100,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 19,
+      "glyph": "sports_esports",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 146,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 20,
+      "glyph": "close",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 56,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 20,
+      "glyph": "colorize",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 131,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 20,
+      "glyph": "confirmation_number",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 150,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 20,
+      "glyph": "data_object",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 136,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 20,
+      "glyph": "deployed_code",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 157,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 20,
+      "glyph": "lock",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 146,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 20,
+      "glyph": "progress_activity",
+      "opticalSizeWhenAutomatic": 20,
+      "designVersusShipped": 0,
+      "designVersusPinned": 115,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 21,
+      "glyph": "filter_alt",
+      "opticalSizeWhenAutomatic": 21,
+      "designVersusShipped": 0,
+      "designVersusPinned": 105,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 22,
+      "glyph": "lock",
+      "opticalSizeWhenAutomatic": 22,
+      "designVersusShipped": 0,
+      "designVersusPinned": 160,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 22,
+      "glyph": "rocket_launch",
+      "opticalSizeWhenAutomatic": 22,
+      "designVersusShipped": 0,
+      "designVersusPinned": 202,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 22,
+      "glyph": "search",
+      "opticalSizeWhenAutomatic": 22,
+      "designVersusShipped": 0,
+      "designVersusPinned": 122,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 24,
+      "glyph": "rocket_launch",
+      "opticalSizeWhenAutomatic": 24,
+      "designVersusShipped": 0,
+      "designVersusPinned": 0,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 24,
+      "glyph": "school",
+      "opticalSizeWhenAutomatic": 24,
+      "designVersusShipped": 0,
+      "designVersusPinned": 0,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 24,
+      "glyph": "touch_app",
+      "opticalSizeWhenAutomatic": 24,
+      "designVersusShipped": 0,
+      "designVersusPinned": 0,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 26,
+      "glyph": "arrow_forward",
+      "opticalSizeWhenAutomatic": 26,
+      "designVersusShipped": 0,
+      "designVersusPinned": 26,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 26,
+      "glyph": "gpp_maybe",
+      "opticalSizeWhenAutomatic": 26,
+      "designVersusShipped": 0,
+      "designVersusPinned": 41,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 26,
+      "glyph": "graphic_eq",
+      "opticalSizeWhenAutomatic": 26,
+      "designVersusShipped": 0,
+      "designVersusPinned": 68,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 26,
+      "glyph": "help_center",
+      "opticalSizeWhenAutomatic": 26,
+      "designVersusShipped": 0,
+      "designVersusPinned": 56,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 26,
+      "glyph": "touch_app",
+      "opticalSizeWhenAutomatic": 26,
+      "designVersusShipped": 0,
+      "designVersusPinned": 75,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 30,
+      "glyph": "confirmation_number",
+      "opticalSizeWhenAutomatic": 30,
+      "designVersusShipped": 0,
+      "designVersusPinned": 161,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 32,
+      "glyph": "bolt",
+      "opticalSizeWhenAutomatic": 32,
+      "designVersusShipped": 0,
+      "designVersusPinned": 73,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 32,
+      "glyph": "radio_button_checked",
+      "opticalSizeWhenAutomatic": 32,
+      "designVersusShipped": 0,
+      "designVersusPinned": 173,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 34,
+      "glyph": "bolt",
+      "opticalSizeWhenAutomatic": 34,
+      "designVersusShipped": 0,
+      "designVersusPinned": 82,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 34,
+      "glyph": "checklist",
+      "opticalSizeWhenAutomatic": 34,
+      "designVersusShipped": 0,
+      "designVersusPinned": 134,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 34,
+      "glyph": "lock_open",
+      "opticalSizeWhenAutomatic": 34,
+      "designVersusShipped": 0,
+      "designVersusPinned": 172,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 46,
+      "glyph": "call",
+      "opticalSizeWhenAutomatic": 46,
+      "designVersusShipped": 0,
+      "designVersusPinned": 271,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 56,
+      "glyph": "verified",
+      "opticalSizeWhenAutomatic": 48,
+      "designVersusShipped": 0,
+      "designVersusPinned": 684,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 60,
+      "glyph": "key_vertical",
+      "opticalSizeWhenAutomatic": 48,
+      "designVersusShipped": 0,
+      "designVersusPinned": 570,
+      "designVersusClamped": 0
+    },
+    {
+      "fontSizePx": 74,
+      "glyph": "celebration",
+      "opticalSizeWhenAutomatic": 48,
+      "designVersusShipped": 0,
+      "designVersusPinned": 1022,
+      "designVersusClamped": 0
+    }
+  ]
+}

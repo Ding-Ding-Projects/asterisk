@@ -12,26 +12,38 @@
     },
     "funny-levels": {
       "state": "partial",
-      "note": "site/app.js initSettings() wires english-funny and cantonese-funny sliders to state.englishFunny/state.cantoneseFunny (line 895) and applyCopy() (line 654) renders COPY table entries through copyText(key), which is the mechanism a funny level would style, but no inspection found actual per-level copy variants defined for englishFunny/cantoneseFunny beyond the language switch itself.",
+      "note": "site/app.js initSettings() wires english-funny and cantonese-funny selects to state.englishFunny/state.cantoneseFunny, and applyCopy() plus copyText()/copyLevel() genuinely restyle rendered text: the COPY table holds twelve keys (heroLede, displayNameDesc, dialogEmojisDesc, themeDesc, motionDesc, emptyDestinations, emptyNotifications, notifSettingSaved, notifSettingsReset, notifRegexApplied, searchModePlain, searchModeRegex), each with four real English and four real Cantonese variants indexed by the chosen level, and changing a select re-runs applyCopy() and visibly changes the rendered string. The real gap is coverage, not mechanism: only five elements carry a data-copy hook (heroLede, displayNameDesc, dialogEmojisDesc, themeDesc, motionDesc, across site/index.html and site/settings.html) and the other seven keys are notification and empty-state strings reached through copyText() call sites - twelve styled strings out of the whole site copy, with everything else fixed at one tone. The selects also only offer four levels (0-3, defaulting to 0/Plain) rather than the canonical five levels defaulting to 5/Maximum. Counts corrected on 2026-08-26: this note had said eight keys and three hooks, which was already two keys and no hooks out of date before the display-name card added the eleventh key and the fourth hook, and the dialog-emoji card later added the twelfth key and the fifth hook. Line numbers were removed rather than refreshed, because they are what went stale first and the symbol names locate the code without them.",
       "files": [
         "site/app.js",
         "site/settings.html"
       ]
     },
     "dialog-emojis": {
-      "state": "absent",
-      "note": "No show-emojis-in-dialogs toggle or emoji-decoration logic was found in site/app.js.",
-      "files": []
+      "state": "implemented",
+      "note": "Built on 2026-08-26. site/settings.html carries an APPEARANCE card holding a labelled 'Show emojis in dialogs and message boxes' checkbox (#dialog-emojis), a funny-level description (data-copy=\"dialogEmojisDesc\") and a live status line (#dialog-emojis-status). site/app.js holds state.dialogEmojis (DEFAULTS false, so nothing changes for anyone who never touches it), the DIALOG_EMOJI_DECORATIONS table naming the six decorated surfaces (command-palette, regex-dialog, notifications-dialog, history-dialog, reset-confirm-dialog and the inline notif-confirm alertdialog), MESSAGE_BOX_GLYPH for toasts, setDialogDecoration() as the single writer, and applyDialogEmojis() called from applyState(). The decoration is a separate span the code creates, prepended to the .dialog-heading rather than into the <h2> the dialog is labelled by, carrying aria-hidden=\"true\" so it cannot enter an accessible name and data-no-vocab so the personal-vocabulary walker never treats a glyph as copy. It never reaches a button, a control label, an option or any other control text: setDialogDecoration is the only function that writes the glyph and it writes only into an element it created. Toasts already on screen change with the switch as well as the next one to arrive.",
+      "files": [
+        "site/app.js",
+        "site/settings.html",
+        "site/styles.css"
+      ]
     },
     "school-mode": {
-      "state": "absent",
-      "note": "No School mode setting, rename, or shared unlock credential was found anywhere in site/app.js or the settings page.",
-      "files": []
+      "state": "implemented",
+      "note": "The canonical restricted presentation, shipped as \"School mode\" and renameable by whoever switches it on. While it is on the page presents itself in plain English at the plainest funny level, and four containers -- the language card with both funny selects, the personal-vocabulary card, the narrated-language choice and the Cantonese voice picker -- are removed from the document rather than disabled or hidden, each held in schoolRetained with a bare comment in its place so it returns as the same node with its handlers intact. Turning it off needs the value chosen when it was turned on; that value is never stored, only a random 16-byte salt and the SHA-256 digest of salt-and-value, and a browser that gives the page no cryptographic digest refuses to arm rather than falling back to storing it. The record lives in its own storage key, ding-pbx-pages-school-v1, so neither \"Reset settings\" nor restoring a local-history revision can open it, and clearing the site's storage is the stated recovery. There is no attempt lockout and no waiting period, so this page can never lock somebody out on a clock. Live copy renders the chosen name; persisted text -- history entries and stored notifications -- never names the mode at all, because history is append-only and a rename cannot rewrite it.",
+      "files": [
+        "site/app.js",
+        "site/settings.html",
+        "site/styles.css"
+      ]
     },
     "narration": {
-      "state": "absent",
-      "note": "No TTS narrator, voice picker, or spoken-event queue was found in site/app.js.",
-      "files": []
+      "state": "implemented",
+      "note": "Built on 2026-08-26. site/settings.html carries an ACCESSIBILITY card (#narration-enabled, #narration-language, #narration-voice-en, #narration-voice-zh, #narration-rate, #narration-pitch) with a funny-level description (data-copy=\"narrationDesc\") and one live status line per narrated language. site/app.js holds state.narration (DEFAULTS enabled:false, so it is silent for anyone who never switches it on), NARRATION_TRACKS, NARRATION_CATEGORIES with a per-category cooldown, narrationGate() as the single pure decision about whether a line is spoken, a serialized queue in pumpNarration() so two utterances never overlap and 'Both' means English then Cantonese, and applyNarration() called from applyState(). Voice pickers are populated from the voices this browser actually reports, default to 'Choose automatically' rather than a named voice, store the stable voiceURI rather than the display name, keep a chosen voice that is not installed here instead of resetting it, and are repopulated on the late 'voiceschanged' event. Narrated text never passes through applyVocabularyText: narrationTextFor() reads copyLevel(), the per-language copy before vocabulary substitution, because a voice whose localService is false synthesises on a remote service and would carry a private replacement off this computer -- the status line says so when the effective voice is network-backed. A rejected personal-vocabulary file is the one rejection whose reason is shown and never spoken, for the same reason. Low stimulation silences the narrator live, errors included; a browser cannot detect a running screen reader, and the card says so rather than implying it ducks under one.",
+      "files": [
+        "site/app.js",
+        "site/settings.html",
+        "site/styles.css"
+      ]
     },
     "scheduled-settings": {
       "state": "partial",
@@ -53,7 +65,7 @@
     },
     "regex-builder": {
       "state": "implemented",
-      "note": "site/app.js implements a real anchored regex builder: openRegex()/initRegex() (lines 808, 812) open a <dialog> attached to the triggering field (regex-target-label shows \"Attached to: <field>\"), support literal-insert buttons, i/m/u flags, and previewRegex() live matching, with applyRegex() writing the result back into the originating search field. Wired from every .regex-trigger button via initSearch() (line 807), including the settings search and documentation search.",
+      "note": "site/app.js implements a real anchored regex builder: openRegex()/initRegex() (lines 880, 884) open a <dialog> attached to the triggering field (regex-target-label shows \"Attached to: <field>\"), support literal-insert buttons, i/m/u flags, and previewRegex() live matching, with applyRegex() writing the result back into the originating search field and refreshing a persistent mode-status readout (renderModeStatus()/renderAllModeStatuses(), lines 885-886) that names plain-text or regex mode plus the live pattern next to every regex-enabled search field, matching the Blueprint design export's always-visible \"regex mode: /pattern/flags\" readout. Wired from every .regex-trigger button via initSearch() (line 879), including the settings search and documentation search.",
       "files": [
         "site/app.js"
       ]
@@ -67,8 +79,10 @@
     },
     "status-hub": {
       "state": "absent",
-      "note": "site/status.html exists as a page shell but no live status-hub project, session card, or question-card logic was found in site/app.js.",
-      "files": []
+      "note": "site/status.html carries a real, honest static status surface (status cards plus a factual timeline) and now explicitly says why it stops there: a GitHub Pages site has no backend to host session state, polling, or a question-card reply channel, so building a live authenticated hub here would mean faking a connection that does not exist (see #status-hub-boundary in status.html). No live status-hub project, session card, question-card logic, or fetch()/session token of any kind exists in site/app.js -- the honest state remains absent, now with its reason stated rather than left silent.",
+      "files": [
+        "site/status.html"
+      ]
     },
     "material-appearance": {
       "state": "partial",
@@ -108,28 +122,38 @@
     },
     "command-palette": {
       "state": "partial",
-      "note": "site/app.js implements openPalette() (line 816) opening a real <dialog id=\"command-palette\"> with a live-filtered palette-search field and renderPalette(), wired from a palette-open button and Ctrl+Shift+F was not confirmed as the activation key (only a button click and palette-search input were found) - the keyboard-shortcut activation contract is unverified.",
+      "note": "site/app.js implements openPalette() (line 816) opening a real <dialog id=\"command-palette\"> with a live-filtered palette-search field and renderPalette() (line 815), wired both from a palette-open button and from Ctrl+Shift+F: initNavigation() (line 777) attaches a document-level keydown listener that checks event.ctrlKey&&event.shiftKey&&event.key.toLowerCase()==='f', calls preventDefault, and invokes openPalette() directly - the chord is genuinely wired everywhere the listener is attached (every page). partial is still the correct label, for a different reason: renderPalette() (line 815) only indexes six static pages (Home/Product/Documentation/Downloads/Status/Settings) and the DESTINATIONS documentation catalogue - it never indexes settings controls, so a person cannot reach an individual setting through the palette the way the console app's palette reaches an individual control.",
       "files": [
         "site/app.js"
       ]
     },
     "destructive-action-confirmation": {
       "state": "partial",
-      "note": "site/app.js planBulk() and bulk actions carry a destructive flag (line 299, 309) that changes copy to state \"This cannot be undone,\" and settings-reset is styled as a danger-button, but no two-key-plus-slider super-confirmation gate (the documented contract's specific mechanism) was found - only a plain destructive-labelled action.",
+      "note": "settings-reset now opens #reset-confirm-dialog, a real two-key-plus-slider super-confirmation gate: two independently operated checkboxes (reset-key-1/reset-key-2) must both be checked before the full-range #reset-confirm-slider is even enabled (updateResetSliderState), and only sliding it to 100 while both keys hold actually runs performSettingsReset() -- named action, exact loss, always-available Cancel (button, x, and native Escape), and every close path resets the gate's own fields and returns focus to settings-reset (the dialog's close listener). That closes the urgent gap. It is still partial, not implemented, because the site's OTHER destructive action -- \"Dismiss selected\" notifications -- keeps its lighter plain confirm/cancel gate (notif-confirm), which is real protection but not the canonical two-key-plus-slider mechanism; the two destructive actions on this site are not yet held to one ceremony.",
       "files": [
         "site/app.js",
-        "site/settings.html"
+        "site/settings.html",
+        "site/styles.css"
       ]
     },
     "local-version-history": {
-      "state": "absent",
-      "note": "The documentation catalogue lists a \"History\" article (app/history, describing append-only local configuration revisions) as PRODUCT documentation content, but no actual history/versions panel, diff view, or restore action exists in the site itself - this is a described feature of the console product, not an implemented feature of the site.",
-      "files": []
+      "state": "implemented",
+      "note": "site/app.js now keeps a real, append-only local history for this page's own settings/appearance state, isolated in its own storage key (HISTORY_KEY, separate from STORAGE_KEY) so \"Reset settings\" never erases it. update()/updateAttention()/the reset gate/the attention-current-task handler each call recordHistory() with a real per-entry label of what changed. restoreHistoryEntry() applies an earlier snapshot and then calls recordHistory('restored', ...) again -- restoring is itself a new entry, never a rewrite, so a restore can be undone too. The #history-dialog panel (opened by #history-open) has its own regex-wired search field (history-search), an action filter genuinely derived from the recorded entries (historyActionOptions(), never hard-coded), and a from/to date-range filter, plus a Restore button per entry. The documentation catalogue's \"History\" article (app/history) still separately describes the CONSOLE PRODUCT's own history feature -- that entry is unchanged and unrelated to this one.",
+      "files": [
+        "site/app.js",
+        "site/settings.html",
+        "site/styles.css"
+      ]
     },
     "changelog-viewer": {
-      "state": "absent",
-      "note": "No changelog viewer, date filter, or commit-link rendering was found in site/app.js.",
-      "files": []
+      "state": "implemented",
+      "note": "Built on 2026-08-26. site/downloads.html carries a CHANGELOG section (#changelog, reachable from the page's own section tabs) holding a funny-level description (data-copy=\"changelogDesc\"), a collapsible search-and-date panel with its own anchored regular-expression builder (data-regex-for=\"changelog-search\") and mode-status line, a preset select plus two native date fields, an export-format select with Export and Copy actions, and a #changelog-entries list. site/app.js parses the release history with the same three regular-expression literals app/renderer/src/changelog.ts uses -- ported rather than reinvented, and pinned equal by the contract test, so the site and the desktop console cannot read one generated changelog two ways. The data is real or absent: console/scripts/bundle-changelog.mjs builds the Markdown from this repository's own tags, and site/build.mjs injects it into the two declarations app.js ships empty. Before it will inject a repository URL, that build hands every referenced commit to a single `git cat-file --batch-check`; a commit git reports missing fails the build, and a build where git cannot answer at all ships the history with no repository, so changelogCommitUrl renders each id as plain text instead of a link nobody checked. Entries are a factual external record rather than this site's own copy: the container carries data-no-vocab so a local vocabulary file cannot rewrite a commit summary, changelogEntryMarkup reaches neither copyText nor applyVocabularyText, and the funny sliders reach only the description around the list. A line that looks like the grammar and does not match is counted and reported rather than dropped. Export honours the active search and date range, offers every format the shared engine judges suitable for these rows, and states its own range on every row, because a single metadata row carrying different keys would make the whole set ragged and five of the formats would correctly report that as a real loss.",
+      "files": [
+        "site/app.js",
+        "site/build.mjs",
+        "site/downloads.html",
+        "site/styles.css"
+      ]
     },
     "external-editor-handoff": {
       "state": "absent",
@@ -152,16 +176,19 @@
     },
     "accessibility": {
       "state": "partial",
-      "note": "site/app.js implements a real WCAG contrast calculator (contrastRatio/contrastVerdict) used by the colour translator, and sr-only labels appear in settings.html, but no site-wide audit of focus order, ARIA roles, or reduced-motion coverage beyond the one reduceMotion() check in the counter animation (line 967) was verified.",
+      "note": "site/app.js implements a real WCAG contrast calculator (contrastRatio/contrastVerdict, lines 519-520) used by the colour translator, and sr-only labels appear in settings.html (4 occurrences), but no site-wide audit of focus order or ARIA roles was performed. reduceMotion() (line 930) itself is checked at five call sites, not one: initReveals() (line 780, scroll-triggered reveal animations), the number-counter animate() count-up (line 967), and initConnectionDiagram()'s start() gate plus its own guard immediately after (lines 996 and 999, the animated data-path indicator) - every animated surface on the site consults it, and it also composes the OS prefers-reduced-motion query with the site's own low-motion setting rather than only one of the two.",
       "files": [
         "site/app.js",
         "site/settings.html"
       ]
     },
     "responsive-sizing": {
-      "state": "absent",
-      "note": "site/styles.css was not inspected for a systematic responsive strategy in this pass; no JS-level narrow-width handling (comparable to the app's \"narrow\" screen flag) was found in site/app.js.",
-      "files": []
+      "state": "partial",
+      "note": "site/styles.css implements a real, systematic responsive strategy: body{min-width:320px} (line 98), 32 separate clamp() uses for fluid type and spacing, and 13 @media rules covering five breakpoints (1100px, 900px, 720px, 640px, 520px) that collapse the primary nav into a hamburger menu, reflow grids to single columns, and restack the settings/download/status layouts. site/app.js's initNavigation() (line 774) wires a real nav-toggle button that opens/closes the collapsed #site-nav menu and manages aria-expanded, matching the CSS breakpoint. Not marked implemented because no JS-level narrow-width state flag (comparable to the app's \"narrow\" screen flag) drives any layout decision, and the responsive behaviour has not been captured/verified at 100/125/150/200% display scale.",
+      "files": [
+        "site/app.js",
+        "site/styles.css"
+      ]
     },
     "personal-vocabulary-upload": {
       "state": "implemented",
@@ -206,21 +233,27 @@
     },
     "offline-documentation-browser": {
       "state": "partial",
-      "note": "site/documentation.html plus renderDestinations()/initDocumentationExport() in site/app.js present a searchable documentation catalogue with per-article export, but this is a static site consuming its own bundled catalogue over the network at page load, not an offline-bundled in-app documentation browser matching the console-app contract.",
+      "note": "site/documentation.html plus renderDestinations()/initDocumentationExport() in site/app.js present a searchable documentation catalogue with per-article export. The DESTINATIONS catalogue (site/app.js line 4) is a plain array literal embedded directly in app.js, not fetched separately at runtime - app.js contains zero fetch() calls, so there is no network request for the catalogue beyond the ordinary one-time load of the page's own script. The real gap is that each result links out to a separate static article page (docs/${item.article}.html) rather than rendering parsed article content in place the way the console app's docs-markdown.ts renders headings/paragraphs/links in-app; this site has no in-page markdown-to-block renderer.",
       "files": [
         "site/app.js",
         "site/documentation.html"
       ]
     },
     "app-display-name": {
-      "state": "absent",
-      "note": "No renameable display-name setting was found on the site.",
-      "files": []
+      "state": "implemented",
+      "note": "site/settings.html carries an IDENTITY card with a bounded text field (#display-name, maxlength 60), a Reset to shipped name button (#display-name-reset) and a live status line (#display-name-status). site/app.js applies it through applyDisplayName(), called from applyState() before applyVocabulary() so the vocabulary walker cannot revert a rename to the original it cached first: every .brand-name element (the brand line in each page header and footer, on all six pages) and document.title, recomposed each time from SHIPPED_TITLE so two renames do not compound. Typing applies live and persists on every keystroke; one history entry (display-name-changed) and one notification are written per committed rename rather than per keystroke. The boundary is the point of the feature and is tested behaviourally: applyDisplayName asks for exactly one selector (.brand-name) and exactly two element ids (its own status and field), and identity is untouched -- STORAGE_KEY, HISTORY_KEY, the vocabulary and logo cache keys and the ding-pbx-page-settings.json export filename are literal constants, and app.js never writes og: metadata, so downloads, exports and the link preview other people see all keep the shipped name Material Asterisk. The card description carries four English and four Cantonese funny levels, and every one of the eight names the shipped name so the boundary is stated at every level.",
+      "files": [
+        "site/app.js",
+        "site/settings.html"
+      ]
     },
     "guided-forms": {
-      "state": "absent",
-      "note": "No guided/picker-driven form beyond ordinary settings selects and file inputs was found; there is no enumerated-picker-over-freeform-text pattern comparable to the app's endpoint wizard.",
-      "files": []
+      "state": "partial",
+      "note": "One real instance of the pattern now exists as a side effect of local-version-history: the local-history panel's #history-action-filter select starts empty in markup and is populated at runtime by renderHistory()/historyActionOptions() from historyEntries -- this browser's own recorded local revisions, real per-visitor data rather than a fixed in-source list. Everything else is unchanged: the remaining five plain selects (theme, language, density, two funny-level pickers) are hard-coded, the two export-format selects are populated from the fixed in-source EXPORT_FORMATS/suitableFormats() list, there is still no <datalist>, and no disabled control names a missing real-data source. That is a narrow instance, not a general guided-picker pattern comparable to the app's endpoint wizard.",
+      "files": [
+        "site/app.js",
+        "site/settings.html"
+      ]
     },
     "bounded-overlays": {
       "state": "implemented",
@@ -245,9 +278,13 @@
       "files": []
     },
     "provider-markup-rendering": {
-      "state": "absent",
-      "note": "No renderer for remote/provider-authored Markdown or rich text was found; documentation content in renderDestinations() is inserted as plain escaped text/HTML built by the site itself, not rendered from provider-authored markup.",
-      "files": []
+      "state": "implemented",
+      "note": "site/app.js now has one shared, safe Markdown-to-block renderer (parseMarkdown/markdownInlineTokens/renderMarkdownBlock): every character is HTML-escaped before any markdown syntax is recognised, so raw HTML in untrusted input cannot reach the DOM as markup, and links are restricted to an http(s)/mailto scheme allowlist. It is wired to a real consumer: downloads.html's installer panel now has a #release-notes region, rendered via renderMarkdownBlock() from a RELEASE_NOTES_MARKDOWN constant (deliberately empty today, matching the honest \"no verified release manifest exists yet\" state the rest of that page already states) with a real, styled empty-state message rather than a blank region. renderDestinations() still inserts item.description as plain escaped text/HTML built by the site itself, unchanged -- that is the site's own content, not provider-authored, and correctly stays outside the parser.",
+      "files": [
+        "site/app.js",
+        "site/downloads.html",
+        "site/styles.css"
+      ]
     },
     "forge-publishing": {
       "state": "absent",
@@ -271,9 +308,14 @@
       ]
     },
     "automatic-updates": {
-      "state": "absent",
-      "note": "This is a static site with nothing to auto-update client-side; no update-check/ready-banner logic exists in site/app.js. (The console app's automatic-updates feature is a separate surface tracked on the windows-console row.)",
-      "files": []
+      "state": "implemented",
+      "note": "site/app.js carries a real deployed-version watch. site/build.mjs resolves one build identity (the commit from git plus the verified release label this site documents, or `unversioned` when there is none), bakes it into SITE_BUILD_VERSION/COMMIT/AT, and publishes the same three values as dist/version.json; a build that cannot name its own commit writes neither, so a source-served page reports itself unbuilt rather than asking for a manifest nobody published. checkForUpdate() polls that manifest on startup and every 30 minutes through versionManifestUrl(), which refuses any address that does not resolve to this origin, with cache no-store, credentials omitted, a 4096-byte bound and an 8-second deadline. parseVersionManifest() refuses a body it cannot vouch for; updateVerdict() compares the COMMIT, never the version label, and reports direction (newer/older/rebuilt/unknown) so a roll-back is not announced as an update. A persistent non-blocking banner carries the headline, what reloading costs, Reload to update, Later and a link to the changelog; Later is remembered against that exact commit and persisted, and a newly published build raises it again. Four canonical clauses have no equivalent on a page and are stated on the card rather than faked: no staged download, no signature, no restart, nothing to roll back. Reloading is the whole installation step.",
+      "files": [
+        "site/app.js",
+        "site/build.mjs",
+        "site/settings.html",
+        "site/styles.css"
+      ]
     }
   }
 }

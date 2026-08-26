@@ -1,0 +1,17 @@
+HTTP Server Status:
+Prefix: 
+Server: Asterisk
+Server Disabled
+
+Enabled URI's:
+/phoneprov/... => Asterisk HTTP Phone Provisioning Tool
+/metrics/... => Prometheus Metrics URI
+/media/... => Media over Websocket
+/ari/... => Asterisk RESTful API
+/ws => Asterisk HTTP WebSocket
+
+Enabled Redirects:
+  None.
+
+Path Restrictions:
+  None.

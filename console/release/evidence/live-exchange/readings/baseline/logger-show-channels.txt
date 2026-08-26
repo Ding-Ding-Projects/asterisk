@@ -1,0 +1,7 @@
+Logger queue limit: 1000
+
+Channel                             Type     Formatter  Status    Configuration
+-------                             ----     ---------  ------    -------------
+/var/log/asterisk/messages.log      File     default    Enabled    - NOTICE WARNING ERROR 
+                                    Console  default    Enabled    - NOTICE WARNING ERROR VERBOSE 
+

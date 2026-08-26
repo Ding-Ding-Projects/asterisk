@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "title": "First approved write plan exercised against a live Asterisk exchange",
+  "commit": "a4537d8f7",
+  "performedAt": "2026-08-25T13:49:00Z",
+  "exchange": {
+    "kind": "WSL2 distribution provisioned by the console's own runtime.provision path",
+    "distribution": "ding-pbx-console",
+    "provisionedFrom": "console/resources/asterisk-wsl-rootfs.tar",
+    "rootfsSha256": "4bc4bf47a991b721dab57ec57117bd49f4ca6307cfb2c7993cc4ba790038d99b",
+    "rootfsBytes": 315491328,
+    "rootfsSourceCommit": "d50822fbb689304fe4f52292c0457c51f9ef4f83",
+    "digestVerified": true,
+    "installDirectory": "%LOCALAPPDATA%/DingPBX/phase3-wsl",
+    "asteriskVersion": "Asterisk UNKNOWN__and_probably_unsupported built by root @ buildkitsandbox on a x86_64 running Linux on 2026-08-25 03:43:18 UTC",
+    "preExistingDistributionsUntouched": ["Ubuntu", "docker-desktop"]
+  },
+  "provisioning": {
+    "driver": "the production WslProvisioning class, loaded from source with jiti; no re-implementation",
+    "steps": [
+      { "name": "payload present", "ok": true },
+      { "name": "WSL available", "ok": true, "detail": "2 distribution(s) present" },
+      { "name": "distribution absent", "ok": true, "detail": "ding-pbx-console is not registered yet" },
+      { "name": "import runtime", "ok": true },
+      { "name": "verify Asterisk", "ok": true }
+    ]
+  },
+  "writePlan": {
+    "planner": "StructuredConfigPlanner",
+    "transaction": "ConfigTransaction",
+    "transport": "WslConfigTransport",
+    "resource": "/etc/asterisk/extensions.conf",
+    "summary": "Change 1 configuration resource(s)",
+    "destructive": false,
+    "completedActions": [
+      "backup:/etc/asterisk/extensions.conf",
+      "stage:/etc/asterisk/extensions.conf",
+      "validate:/etc/asterisk/extensions.conf",
+      "apply:/etc/asterisk/extensions.conf",
+      "post-read:/etc/asterisk/extensions.conf"
+    ],
+    "status": "applied",
+    "message": "Configuration applied and verified"
+  },
+  "independentVerification": {
+    "channel": "the Asterisk CLI over `asterisk -rx`, not the transport that performed the write",
+    "command": "dialplan show ding-pbx-write-proof",
+    "beforeApply": "There is no existence of 'ding-pbx-write-proof' context",
+    "afterApply": "[ Context 'ding-pbx-write-proof' created by 'pbx_config' ]  1. NoOp(ding pbx console write proof)  2. Hangup()  -= 1 extension (2 priorities) in 1 context. =-",
+    "afterRestore": "There is no existence of 'ding-pbx-write-proof' context"
+  },
+  "rollback": {
+    "mechanism": "WslConfigTransport.rollback with a caller-held backup handle",
+    "observed": "the file content reverted to its pre-apply state, confirmed through the CLI",
+    "exchangeRestored": true,
+    "restoredFrom": "/etc/asterisk/extensions.conf.backup-2026-08-25T13-48-40-335Z",
+    "postRestoreExtenLines": 61
+  },
+  "defectsFound": [
+    {
+      "id": "lossy-arrow-round-trip",
+      "severity": "high",
+      "summary": "Reading a configuration resource and writing the identical value back rewrites every `key =>` line as `key = >`, which Asterisk parses differently.",
+      "proof": "An unchanged read -> stage round trip of /etc/asterisk/extensions.conf took the file from 61 `exten =>` lines to 0, and all 161 dialplan and include lines differed.",
+      "blastRadius": "13 of the shipped sample configuration files use the arrow form, 419 lines in total; several are configurable resources.",
+      "whyItSurvivedValidation": "validate and post-read both compare the parsed structure, and the structure round-trips consistently, so neither can observe the textual corruption."
+    },
+    {
+      "id": "apply-result-hides-backup-handle",
+      "severity": "medium",
+      "summary": "ConfigTransaction takes a backup and completes the `backup:` action, but ApplyResult does not return the handle, so a caller cannot roll back a successful apply through the returned result.",
+      "proof": "ApplyResult keys were planId, status, startedAt, finishedAt, completedActions, rollbackAttempted, message. Rollback was only reachable by taking a second backup in the caller before applying.",
+      "consequence": "automatic rollback still works on a failed apply; a deliberate undo after a successful one has no supported route."
+    }
+  ]
+}

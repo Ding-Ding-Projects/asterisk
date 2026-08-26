@@ -13,7 +13,28 @@ import { verifyEvidenceOnDisk, verifyExemptions } from './evidence-on-disk.mjs';
 
 const root = resolve(import.meta.dirname, '..', '..');
 const source = JSON.parse(readFileSync(resolve(root, 'console/inventories/surface-completeness.json'), 'utf8'));
-const clone = () => structuredClone(source);
+/* Every fixture below plants exactly one lie and requires the resulting failure to be
+ * attributable to that lie. That only holds while nothing else in the inventory already
+ * claims `verified`, so the baseline strips real verifications first.
+ *
+ * Without this the proof breaks the moment the project succeeds at anything: the first
+ * genuinely verified row makes the honest-row fixture carry two verified rows, its stubbed
+ * reader can only name one of them, and the whole script throws before reaching its own
+ * conclusion. It also quietly weakens the `mustFail` cases, which would start going red for
+ * a row nobody planted — a deliberate break that "passes" for an unintended reason is not a
+ * proof of anything.
+ *
+ * Exempt rows are left exactly as they are: an exemption is a recorded decision, not a claim
+ * about evidence, and the exemption cases further down test it separately. */
+const clone = () => {
+  const copy = structuredClone(source);
+  for (const surface of copy.surfaces) {
+    for (const feature of surface.features) {
+      if (feature.status === 'verified') feature.status = 'unverified';
+    }
+  }
+  return copy;
+};
 
 function mustFail(name, mutate, options = {}) {
   const candidate = clone();
@@ -30,9 +51,15 @@ const anchoredPresent = { exists: () => true, read: () => 'contains language-mod
 
 verifyEvidenceOnDisk(source, { root });
 
+/* Absence is forced rather than assumed. This case used to rely on the first row
+ * happening to have no evidence on disk, which stopped being true the moment a lane
+ * supplied it -- so genuine progress turned a deliberate break green and failed the
+ * build. The check is about what the verifier does when an artifact is missing, not
+ * about which rows currently lack one. */
 mustFail(
   'claim verified while every evidence artifact is absent',
   (data) => { data.surfaces[0].features[0].status = 'verified'; },
+  { exists: () => false, read: () => String() },
 );
 
 mustFail(

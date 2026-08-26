@@ -1,0 +1,5 @@
+ARI Status:
+Enabled: Yes
+Output format: compact
+Auth realm: Asterisk REST Interface
+Allowed Origins: 

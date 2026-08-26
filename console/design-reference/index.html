@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>design-parity capture harness</title>
+<style>
+  /* Only lays out the capture surface at the requested viewport/scale. Everything the
+     capture itself must look like comes from design/*.dc.html unmodified, inside the
+     iframe below — this page contributes zero visual chrome to what gets photographed. */
+  html, body { margin: 0; padding: 0; background: #0B0F0C; overflow: hidden; }
+  #frame-wrap { position: absolute; top: 0; left: 0; transform-origin: top left; }
+  #design-frame { border: 0; display: block; }
+  #harness-status {
+    position: fixed; bottom: 0; left: 0; right: 0; font: 12px monospace; color: #9AA39B;
+    background: rgba(11,15,12,0.85); padding: 4px 8px; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="frame-wrap">
+  <iframe id="design-frame" title="design reference"></iframe>
+</div>
+<div id="harness-status" role="status" aria-live="polite">initializing…</div>
+<script type="module">
+  import { tupleFromLocation, designFrameSrc, driveToDestination, DEFAULT_TUPLE } from './route.mjs';
+
+  const statusEl = document.getElementById('harness-status');
+  const setStatus = (text) => { statusEl.textContent = text; };
+
+  /**
+   * The one entry point a headless driver calls: `await window.__runCapture()`.
+   * Resolves `true` once the requested destination is on screen and settled, or throws a
+   * specific, named error — never a silent hang, never a false "ready" — including the
+   * documented React/ReactDOM host gap (see route.mjs). This function is deliberately the
+   * ONLY thing a driver needs to await; everything else on this page is presentation.
+   */
+  window.__runCapture = async function runCapture() {
+    let tuple;
+    try {
+      tuple = tupleFromLocation(window.location.search);
+    } catch (error) {
+      setStatus(`FAILED: ${error.message}`);
+      throw error;
+    }
+    window.__captureTuple = tuple;
+    setStatus(`destination=${tuple.destination} theme=${tuple.theme} ${tuple.width}x${tuple.height}@${tuple.scale}x — loading…`);
+
+    const wrap = document.getElementById('frame-wrap');
+    const frame = document.getElementById('design-frame');
+    frame.style.width = `${tuple.width}px`;
+    frame.style.height = `${tuple.height}px`;
+    wrap.style.width = `${tuple.width}px`;
+    wrap.style.height = `${tuple.height}px`;
+    wrap.style.transform = `scale(${tuple.scale})`;
+
+    let manifestEntry = null;
+    try {
+      const manifest = await fetch('./capture-manifest.generated.json').then((response) => response.json());
+      manifestEntry = manifest.destinations.find((entry) => entry.id === tuple.destination);
+    } catch (error) {
+      throw new Error(`design-reference harness: could not load capture-manifest.generated.json (${error.message})`);
+    }
+    if (!manifestEntry) {
+      throw new Error(`design-reference harness: '${tuple.destination}' is not in capture-manifest.generated.json — is it one of the 32 audited destinations?`);
+    }
+
+    let railsFile;
+    try {
+      railsFile = await fetch('./destination-labels.generated.json').then((response) => response.json());
+    } catch (error) {
+      throw new Error(`design-reference harness: could not load destination-labels.generated.json (${error.message})`);
+    }
+
+    await new Promise((resolveLoad, rejectLoad) => {
+      frame.addEventListener('load', () => resolveLoad(), { once: true });
+      frame.addEventListener('error', () => rejectLoad(new Error('design-reference harness: the design iframe failed to load')), { once: true });
+      frame.src = designFrameSrc(tuple);
+    });
+    setStatus(`destination=${tuple.destination} — driving to '${manifestEntry.navigationPlan.settle.expectedHeading}'…`);
+
+    let drive;
+    try {
+      drive = await driveToDestination(frame.contentWindow, manifestEntry.navigationPlan, railsFile.rails);
+    } catch (error) {
+      setStatus(`FAILED: ${error.message}`);
+      throw error;
+    }
+
+    // Recorded rather than assumed: the design boots with its own first-run wizard covering
+    // every destination, exactly as a freshly installed build does, and both sides of a
+    // parity capture dismiss it. A driver copies this into its run ledger.
+    window.__captureDismissedFirstRun = drive.dismissedFirstRun;
+    // The status line is the harness's own chrome and this page promises to contribute none
+    // of it to what gets photographed. It stayed visible through the first real run and
+    // printed itself across the bottom of every reference capture — a caption baked into the
+    // evidence. Hide it on success; leave it up on failure, where it is the only diagnosis.
+    window.__captureStatus = `READY: ${tuple.destination} settled on '${manifestEntry.navigationPlan.settle.expectedHeading}'.`;
+    setStatus(window.__captureStatus);
+    statusEl.style.display = 'none';
+    window.__captureReady = true;
+    return true;
+  };
+
+  // Auto-run so an orchestrator can simply navigate here and poll `window.__captureReady`
+  // (or await `window.__runCapture()` directly via CDP Runtime.evaluate with awaitPromise).
+  // A failure sets `window.__captureError` rather than throwing into a void — a CDP caller
+  // reading window state after the fact needs somewhere to find it.
+  window.__runCapture().catch((error) => {
+    window.__captureError = error.message;
+    window.__captureReady = false;
+  });
+</script>
+</body>
+</html>

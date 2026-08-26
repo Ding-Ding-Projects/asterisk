@@ -1,0 +1,6 @@
+Zone            Timezone             Message Format                               
+european        Europe/Copenhagen    'vm-received' a d b 'digits/at' HM           
+military        Zulu                 'vm-received' q 'digits/at' H N 'hours' 'phonetic/z_p'
+central24       America/Chicago      'vm-received' q 'digits/at' H N 'hours'      
+central         America/Chicago      'vm-received' Q 'digits/at' IMp              
+eastern         America/New_York     'vm-received' Q 'digits/at' IMp              

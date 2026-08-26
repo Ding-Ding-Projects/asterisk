@@ -26,17 +26,48 @@ function renderDestination(id: string, overrides: Record<string, unknown> = {}):
 const strip = (markup: string) => markup.replace(/<[^>]*>/g, ' ').replace(/&#x27;/g, "'").replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/\s+/g, ' ');
 
 /* 37 rather than 34: Feature codes and IAX peers landed on the pbx rail (8 to 10),
- * and the HTTP server destination on the sys rail (4 to 5). The count is pinned deliberately: it is what noticed the addition. */
+ * and the HTTP server destination on the sys rail (4 to 5). The count is pinned deliberately: it is what noticed the addition.
+ * 38 rather than 37: the Sound prompts screen landed on the media rail (4 to 5) --
+ * `/var/lib/asterisk/sounds`, the one place every "custom" prompt picker on this console
+ * points at, finally has a screen that can put a real file there.
+ * 39 rather than 38: the Fax screen landed on the media rail (5 to 6) -- res_fax.conf's
+ * engine settings and udptl.conf's transport settings, the two files the roadmap's own
+ * "sending, receiving, T.38 gateway" line names, finally have a screen and real bindings.
+ * 40 rather than 39: the Database backends destination landed on the sys rail (5 to 6) --
+ * res_odbc.conf, extconfig.conf, sorcery.conf and res_pgsql.conf finally have a screen,
+ * where before none of the four had ever been read or written by this console. Both
+ * screens forked from the same 38-destination tip and each counted its own one-screen
+ * jump independently (each calling itself "39 rather than 38"); rebasing one onto the
+ * other's tip is what stacks the two arrivals to 40 instead of colliding at 39.
+ * 43 rather than 40: the compliance lane's three new screens -- Call attestation
+ * (stir_shaken.conf's own [profile] objects, sys rail: 6 to 7) and Phone provisioning
+ * (phoneprov.conf, sys rail: 7 to 8), plus Emergency-services location (geolocation.conf,
+ * pbx rail: 10 to 11).
+ * And a further jump once the telephony deepening lane's four brand new screens landed
+ * on the pbx rail (11 to 15) -- chan_dahdi.conf (analogue lines, T1/E1 and PRI), sla.conf
+ * (shared line appearances), dundi.conf (distributed dialplan lookup) and calendar.conf
+ * (calendars), the roadmap's own "Hardware trunks / Shared line appearances /
+ * Distributed dialplan lookup / Calendars" line, none of which had ever had a screen or
+ * a real binding before.
+ * And a further jump once the ops lane's five screens landed at once -- Caller display
+ * (ADSI) on the pbx rail, Monitoring on the data rail, and Directories & identity, NAT
+ * discovery and Messaging (XMPP) all on the sys rail. Read back the same way as every
+ * other count on this page: a deliberately wrong number run first, then whatever this
+ * test actually reported.
+ * 55 rather than 52: three roadmap gaps landed at once -- Dialplan scripting (AGI) on
+ * the pbx rail (16 to 17, next to the Dialplan canvas it cross-checks), the REST
+ * resource browser on the data rail (3 to 4, next to AMI & REST), and Configuration
+ * backups on the sys rail (11 to 12, next to Modules). */
 test('the design reference supplies every rail and destination', () => {
-  assert.equal(ORDER.length, 37);
-  assert.equal(destinations.length, 37);
+  assert.equal(ORDER.length, 55);
+  assert.equal(destinations.length, 55);
   assert.deepEqual(rails.map((rail) => rail.id), ['pbx', 'media', 'data', 'sys', 'agent', 'app']);
   assert.deepEqual(
     rails.map((rail) => destinations.filter((destination) => destination.rail === rail.id).length),
-    [10, 4, 2, 5, 7, 9],
+    [17, 6, 4, 12, 7, 9],
   );
   assert.equal(RAIL.length, 6);
-  assert.equal(Object.keys(SCREENS).length, 37);
+  assert.equal(Object.keys(SCREENS).length, 55);
 });
 
 test('the design audit baseline counts survive compilation', () => {

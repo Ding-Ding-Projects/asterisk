@@ -1,0 +1,19 @@
+
+Parking General Options
+-----------------------
+Dynamic Parking     :  no
+
+Parking Lot: default
+--------------------------------------------------------------------------
+Parking Extension   :  700
+Parking Context     :  parkedcalls
+Parking Spaces      :  701-720
+Parking Time        :  45 sec
+Comeback to Origin  :  yes
+Comeback Context    :  parkedcallstimeout (comebacktoorigin=yes, not used)
+Comeback Dial Time  :  30 sec
+MusicOnHold Class   :  
+Enabled             :  yes
+Dynamic             :  no
+
+

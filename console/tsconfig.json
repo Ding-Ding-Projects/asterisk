@@ -14,6 +14,14 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
+    /* The renderer imports one runtime value across the shared/ boundary (the editor
+     * catalog, shared verbatim with the privileged main process so both decide from the
+     * same list). Every other shared/ import here is `import type` and is erased, which is
+     * why an explicit .ts extension was never needed before. A value import needs the
+     * extension to resolve under Node, and needs this flag to be legal under tsc. Safe
+     * here precisely because this project emits nothing -- Vite owns the build. The
+     * electron sub-project already sets the same flag for the same reason. */
+    "allowImportingTsExtensions": true,
     "jsx": "react-jsx"
   },
   "include": ["app", "shared", "vite.config.ts"],

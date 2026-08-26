@@ -16,6 +16,7 @@ import {
   type PjsipEndpointView, type PjsipView,
 } from '../../../control-plane/subsystem-models';
 import type { ConfigValue } from './configuration';
+import { callerIdFor, parseCallerId } from './extensions';
 
 /** The screen's own control identifiers, from the compiled design's `pjsipCtls()`. */
 export const ENDPOINT_CONTROLS = {
@@ -50,6 +51,12 @@ export const ENDPOINT_CONTROLS = {
   mwiReplacesUnsolicited: 'e_mwi_replaces',
   outboundProxy: 'e_outbound_proxy',
   outboundAuth: 'e_outbound_auth',
+  /* The two halves of `callerid=` (extensions.ts's own concern -- pjsip.conf has no
+   * separate display-name/number keys, only one composite string). Composed and parsed
+   * through extensions.ts's parseCallerId/callerIdFor rather than by hand here, so this
+   * screen and the endpoint create wizard cannot silently disagree about the format. */
+  displayName: 'e_displayname',
+  callerIdNumber: 'e_calleridnum',
 } as const;
 
 /** Asterisk writes `yes` and `no`; the interface uses a switch. */
@@ -91,6 +98,13 @@ export function controlValuesFor(endpoint: PjsipEndpointView): Record<string, un
   put(ENDPOINT_CONTROLS.qualify, endpoint.aor.qualify_frequency !== undefined ? Number(endpoint.aor.qualify_frequency) : undefined);
   put(ENDPOINT_CONTROLS.mailboxes, endpoint.endpoint.mailboxes);
   put(ENDPOINT_CONTROLS.voicemailExtension, endpoint.endpoint.voicemail_extension);
+
+  /* callerid='My Name <8005551212>' split into its two halves for the two text fields;
+   * see extensions.ts's own CALLERID_PATTERN for why a bare value with no angle brackets
+   * reads as the name rather than the number. */
+  const callerIdParts = parseCallerId(endpoint.endpoint.callerid);
+  put(ENDPOINT_CONTROLS.displayName, callerIdParts.displayName);
+  put(ENDPOINT_CONTROLS.callerIdNumber, callerIdParts.number);
 
   /* Numeric keys reach steppers and sliders as numbers; a key the endpoint never set
    * stays out entirely, so the control keeps the design's default and the screen does
@@ -203,6 +217,15 @@ export function applyControlValues(
   set('mwi_subscribe_replaces_unsolicited', fromSwitch(values[ENDPOINT_CONTROLS.mwiReplacesUnsolicited]), 'mwi_subscribe_replaces_unsolicited');
   set('outbound_proxy', optionalText(ENDPOINT_CONTROLS.outboundProxy), 'outbound_proxy');
   set('outbound_auth', optionalText(ENDPOINT_CONTROLS.outboundAuth), 'outbound_auth');
+
+  /* Only recomposed when at least one half carries a real value -- an untouched pair of
+   * blank text controls must never overwrite an existing callerid= with nothing, exactly
+   * as every other optional text field on this screen leaves an untouched blank alone. */
+  const displayName = optionalText(ENDPOINT_CONTROLS.displayName);
+  const callerIdNumberIn = optionalText(ENDPOINT_CONTROLS.callerIdNumber);
+  if (displayName !== undefined || callerIdNumberIn !== undefined) {
+    set('callerid', callerIdFor({ extension: name, displayName, callerIdNumber: callerIdNumberIn }), 'caller ID');
+  }
 
   setAor('max_contacts', number(ENDPOINT_CONTROLS.maxContacts), 'max_contacts');
   setAor('remove_existing', fromSwitch(values[ENDPOINT_CONTROLS.removeExisting]), 'remove_existing');

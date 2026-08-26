@@ -5,7 +5,7 @@
 import { DCLogic, h, F, A, R, S, fn, sty } from '../dc-runtime';
 function Template(v: any) {
   return F(
-    h("div", { style: sty(`display:flex; flex-direction:column; gap:8px; min-width:0;`) },
+    h("div", { "data-ctl": v.ctl.rawKey, style: sty(`display:flex; flex-direction:column; gap:8px; min-width:0;`) },
       h("div", { style: sty(`display:flex; align-items:center; gap:7px;`) },
         h("span", { style: sty(`font-size:12.5px; font-weight:500; color:#C4CBC2;`) },
           S(v.ctl.label)
@@ -13,12 +13,12 @@ function Template(v: any) {
         (v.ctl.showKey ? h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394; background:#141A15; border-radius:5px; padding:2px 6px; flex:0 0 auto;`) },
             S(v.ctl.rawKey)
           ) : null),
-        h("button", { onClick: fn(v.ctl.onInfo), title: `Explain this setting`, style: sty(`width:20px; height:20px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "c-h0" },
+        h("button", { onClick: fn(v.ctl.onInfo), title: `Explain this setting`, style: sty(`width:24px; height:24px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "c-h0" },
           h("span", { style: sty(`font-size:14px;`), className: "msym" },
             "info"
           )
         ),
-        h("button", { onClick: fn(v.ctl.onWizard), title: `Walk me through this setting`, style: sty(`width:20px; height:20px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "c-h0" },
+        h("button", { onClick: fn(v.ctl.onWizard), title: `Walk me through this setting`, style: sty(`width:24px; height:24px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "c-h0" },
           h("span", { style: sty(`font-size:14px;`), className: "msym" },
             "auto_fix_high"
           )

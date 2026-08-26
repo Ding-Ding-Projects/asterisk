@@ -1,0 +1,28 @@
+{
+  "bar": "material-design-3",
+  "audited": 32,
+  "conforming": 0,
+  "nonConforming": 32,
+  "interactionRulesAudited": 68,
+  "stylesheetMotionDeclarationsAudited": 8,
+  "divergencesPerCheck": {
+    "typeScale": 2314,
+    "iconSize": 2677,
+    "shapeScale": 631,
+    "elevation": 33,
+    "stateLayer": 1120,
+    "touchTarget": 1432,
+    "motion": 988
+  },
+  "checksThatFoundNothingOnAnyDestination": [],
+  "source": {
+    "renderer": "console/app/renderer/src/App.tsx",
+    "stylesheets": [
+      "console/app/renderer/src/styles.css",
+      "console/app/renderer/src/generated/design-styles.css"
+    ],
+    "auditor": "console/scripts/design-parity-material.mjs",
+    "runner": "npx tsx console/scripts/audit-design-parity-material.mjs"
+  },
+  "whatThisRunDoesNotClaim": "A static audit reads declarations, not pixels. It cannot decide whether a control whose measurements are correct is a real Material Design 3 component or a custom lookalike, cannot see geometry that only exists after layout, cannot see a style injected at runtime, and cannot watch motion run. Each record repeats these limits in its own notMeasured field."
+}

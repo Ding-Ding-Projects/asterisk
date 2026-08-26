@@ -93,7 +93,7 @@
         },
         {
           "id": "regex-builder",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "non-blocking-notifications",
@@ -177,11 +177,11 @@
         },
         {
           "id": "unlock-ladder",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "built-in-authenticator",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "attention-modes",
@@ -233,7 +233,7 @@
         },
         {
           "id": "automatic-updates",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "freepbx-module-surface",

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0B0E13;color:#E6E9EF;font-family:'Archivo',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#E6E9EF;text-decoration:none}a:hover{color:#FFB224}
+::selection{background:#FFB224;color:#0B0E13}
+@keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+@keyframes dotpulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(255,178,36,.5)}50%{opacity:.6;box-shadow:0 0 0 6px rgba(255,178,36,0)}}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#0B0E13;background-image:linear-gradient(#141925 1px,transparent 1px),linear-gradient(90deg,#141925 1px,transparent 1px);background-size:48px 48px">
+  <header style="position:sticky;top:0;z-index:50;background:rgba(11,14,19,.94);backdrop-filter:blur(10px);border-bottom:2px solid #1C2230">
+    <div style="max-width:1240px;margin:0 auto;display:flex;align-items:center;gap:28px;height:68px;padding:0 32px">
+      <a href="Landing C - Blueprint.dc.html" style="display:flex;align-items:center;gap:12px;font-weight:800;font-size:16px;letter-spacing:-.01em">
+        <span style="width:30px;height:30px;border:2px solid #FFB224;color:#FFB224;display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600">◨</span>
+        DING PBX CONSOLE
+      </a>
+      <nav style="display:flex;gap:24px;margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:12px">
+        <a href="Landing C - Blueprint.dc.html" style="color:#7C8698" style-hover="color:#FFB224">/home</a>
+        <a href="#docs" style="color:#FFB224">/docs</a>
+      </nav>
+      <a href="#install" style="background:#FFB224;color:#0B0E13;font-weight:700;font-size:13px;padding:9px 18px" style-hover="background:#FFC85C;color:#0B0E13">DOWNLOAD</a>
+    </div>
+  </header>
+
+  <div id="docs" style="max-width:1240px;margin:0 auto;padding:56px 32px 96px;display:grid;grid-template-columns:240px 1fr;gap:56px;align-items:start">
+    <nav style="position:sticky;top:100px;font-family:'IBM Plex Mono',monospace;font-size:12px;display:grid;gap:2px;border:2px solid #1C2230;background:#0E1219;padding:10px 0">
+      <span style="padding:8px 18px;color:#5C6470;letter-spacing:.1em">INDEX</span>
+      <a href="#install" style="padding:8px 18px;color:#9AA4B4;border-left:2px solid transparent" style-hover="color:#FFB224;border-left:2px solid #FFB224">01 install &amp; verify</a>
+      <a href="#reach" style="padding:8px 18px;color:#9AA4B4;border-left:2px solid transparent" style-hover="color:#FFB224;border-left:2px solid #FFB224">02 reaching a pbx</a>
+      <a href="#safety" style="padding:8px 18px;color:#9AA4B4;border-left:2px solid transparent" style-hover="color:#FFB224;border-left:2px solid #FFB224">03 the control plane</a>
+      <a href="#map" style="padding:8px 18px;color:#9AA4B4;border-left:2px solid transparent" style-hover="color:#FFB224;border-left:2px solid #FFB224">04 destination map</a>
+      <a href="#runtime" style="padding:8px 18px;color:#9AA4B4;border-left:2px solid transparent" style-hover="color:#FFB224;border-left:2px solid #FFB224">05 bundled runtime</a>
+      <a href="#build" style="padding:8px 18px;color:#9AA4B4;border-left:2px solid transparent" style-hover="color:#FFB224;border-left:2px solid #FFB224">06 build scripts</a>
+      <a href="#testing" style="padding:8px 18px;color:#9AA4B4;border-left:2px solid transparent" style-hover="color:#FFB224;border-left:2px solid #FFB224">07 testing</a>
+      <a href="#roadmap" style="padding:8px 18px;color:#9AA4B4;border-left:2px solid transparent" style-hover="color:#FFB224;border-left:2px solid #FFB224">08 roadmap</a>
+      <a href="#security" style="padding:8px 18px;color:#9AA4B4;border-left:2px solid transparent" style-hover="color:#FFB224;border-left:2px solid #FFB224">09 security policy</a>
+      <a href="#contributing" style="padding:8px 18px;color:#9AA4B4;border-left:2px solid transparent" style-hover="color:#FFB224;border-left:2px solid #FFB224">10 contributing</a>
+      <a href="#license" style="padding:8px 18px;color:#9AA4B4;border-left:2px solid transparent" style-hover="color:#FFB224;border-left:2px solid #FFB224">11 license &amp; fork</a>
+    </nav>
+
+    <main style="display:grid;gap:64px;min-width:0">
+      <div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#FFB224;letter-spacing:.1em;animation:rise .6s both">/DOCUMENTATION</div>
+        <h1 style="margin:12px 0 0;font-size:clamp(36px,4.5vw,56px);font-weight:800;letter-spacing:-.03em;animation:rise .7s .08s both">Everything, written here.</h1>
+        <p style="margin:18px 0 0;color:#9AA4B4;font-size:16px;line-height:1.65;max-width:70ch;animation:rise .7s .16s both">The complete documentation for Material Asterisk lives on this site — the installed application additionally bundles all 82 feature articles offline, with search and link resolution, so nothing depends on a network. The only external link on this site is the installer download itself.</p>
+      </div>
+
+      <article id="install" style="animation:rise .8s both;animation-timeline:view();animation-range:entry 0% entry 45%">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#FFB224;letter-spacing:.1em">01</div>
+        <h2 style="margin:10px 0 0;font-size:28px;font-weight:800;letter-spacing:-.02em">Install &amp; verify</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px">
+          <div style="border:2px solid #FFB224;background:#0E1219;padding:26px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#FFB224;letter-spacing:.1em">STEP 1 — DOWNLOAD</div>
+            <p style="margin:12px 0 16px;font-size:14px;color:#9AA4B4;line-height:1.65">Get the latest unsigned Windows installer (Squirrel.Windows <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#E6E9EF">Setup.exe</span>) from the Releases page — the one place this site links out.</p>
+            <a href="https://github.com/Ding-Ding-Projects/asterisk/releases/latest" style="display:inline-flex;background:#FFB224;color:#0B0E13;font-weight:700;padding:12px 24px;font-size:14px" style-hover="background:#FFC85C;color:#0B0E13">Download installer ↗</a>
+          </div>
+          <div style="border:2px solid #1C2230;background:#0E1219;padding:26px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#FFB224;letter-spacing:.1em">STEP 2 — VERIFY, THEN RUN</div>
+            <p style="margin:12px 0 12px;font-size:14px;color:#9AA4B4;line-height:1.65">Windows shows an unknown-publisher (SmartScreen) warning: expected, not tampering — code signing is permanently out of scope by policy. Verify independently:</p>
+            <div style="border:1px solid #1C2230;background:#0B0E13;padding:14px 16px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#9AA4B4;line-height:1.8"><span style="color:#FFB224">$</span> Get-FileHash .\Setup.exe -Algorithm SHA256<br><span style="color:#5C6470"># compare against SHA256SUMS.txt on the same release</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article id="reach" style="animation:rise .8s both;animation-timeline:view();animation-range:entry 0% entry 45%">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#FFB224;letter-spacing:.1em">02</div>
+        <h2 style="margin:10px 0 0;font-size:28px;font-weight:800;letter-spacing:-.02em">Reaching a PBX</h2>
+        <p style="margin:14px 0 0;color:#9AA4B4;font-size:15px;line-height:1.65;max-width:74ch">The console discovers or connects to a target three ways. Every route goes through the same bounded control plane — there is no path that reaches a target through an unrestricted shell.</p>
+        <div style="display:grid;gap:2px;border:2px solid #1C2230;margin-top:20px">
+          <div style="display:grid;grid-template-columns:44px 1fr auto;gap:18px;align-items:center;padding:18px 22px;background:#0E1219"><span style="font-family:'IBM Plex Mono',monospace;color:#FFB224;font-size:13px">01</span><div><strong>WSL 2 Ubuntu on Windows</strong><div style="font-size:13px;color:#7C8698;margin-top:3px">Including the console's own bundled distribution — created, verified, stopped, and removed entirely through the app (App → Deploy &amp; servers)</div></div><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#FFB224;border:1px solid #FFB224;padding:4px 10px">DEFAULT</span></div>
+          <div style="display:grid;grid-template-columns:44px 1fr;gap:18px;align-items:center;padding:18px 22px;background:#0E1219"><span style="font-family:'IBM Plex Mono',monospace;color:#7C8698;font-size:13px">02</span><div><strong>Local Docker container</strong><div style="font-size:13px;color:#7C8698;margin-top:3px">Discovered by project label</div></div></div>
+          <div style="display:grid;grid-template-columns:44px 1fr;gap:18px;align-items:center;padding:18px 22px;background:#0E1219"><span style="font-family:'IBM Plex Mono',monospace;color:#7C8698;font-size:13px">03</span><div><strong>Remote Debian or Ubuntu over SSH</strong><div style="font-size:13px;color:#7C8698;margin-top:3px">Scoped trust-on-first-use host-key handling</div></div></div>
+        </div>
+      </article>
+
+      <article id="safety" style="animation:rise .8s both;animation-timeline:view();animation-range:entry 0% entry 45%">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#FFB224;letter-spacing:.1em">03</div>
+        <h2 style="margin:10px 0 0;font-size:28px;font-weight:800;letter-spacing:-.02em">The control plane's safety model</h2>
+        <p style="margin:14px 0 0;color:#9AA4B4;font-size:15px;line-height:1.65;max-width:74ch">Nothing the console does reaches a target through an open shell. Observation runs through an allowlist of <strong style="color:#E6E9EF">63 read-only CLI commands</strong>, each verified against Asterisk's own source rather than invented. Change runs through an allowlist of <strong style="color:#E6E9EF">41 writable configuration resources</strong>, reached only through ConfigTransaction / StructuredConfigPlanner:</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;font-family:'IBM Plex Mono',monospace;font-size:13px">
+          <span style="border:1px solid #33405A;padding:9px 16px;color:#FFB224">backup</span><span style="color:#5C6470;align-self:center">→</span>
+          <span style="border:1px solid #33405A;padding:9px 16px;color:#FFB224">stage</span><span style="color:#5C6470;align-self:center">→</span>
+          <span style="border:1px solid #33405A;padding:9px 16px;color:#FFB224">validate</span><span style="color:#5C6470;align-self:center">→</span>
+          <span style="border:1px solid #33405A;padding:9px 16px;color:#FFB224">apply</span><span style="color:#5C6470;align-self:center">→</span>
+          <span style="border:1px solid #33405A;padding:9px 16px;color:#FFB224">post-read</span><span style="color:#5C6470;align-self:center">→</span>
+          <span style="border:1px solid #33405A;padding:9px 16px;color:#FFB224">compare</span>
+        </div>
+        <p style="margin:18px 0 0;color:#9AA4B4;font-size:15px;line-height:1.65;max-width:74ch">Automatic rollback fires if the post-read doesn't match what was written. There is no free-text command execution and no way for the interface to construct an arbitrary shell invocation. Every destructive or write action passes one confirmation flow that calls the underlying action and reports its real outcome — including refusals — rather than announcing success unconditionally.</p>
+      </article>
+
+      <article id="map" style="animation:rise .8s both;animation-timeline:view();animation-range:entry 0% entry 45%">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#FFB224;letter-spacing:.1em">04</div>
+        <h2 style="margin:10px 0 0;font-size:28px;font-weight:800;letter-spacing:-.02em">The destination map — 6 rails, 32 destinations</h2>
+        <p style="margin:14px 0 0;color:#9AA4B4;font-size:15px;line-height:1.65;max-width:74ch">The interface is organized into six navigation rails. 16 of 32 destinations are backed by live data today; the rest render honestly empty screens with a stated reason, never sample content.</p>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px">
+          <div style="border:2px solid #1C2230;background:#0E1219;padding:22px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#FFB224;letter-spacing:.1em">PBX</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5C6470">8</span></div><div style="display:flex;flex-wrap:wrap;gap:6px;font-size:13px;color:#9AA4B4"><span style="border:1px solid #1C2230;padding:5px 10px">Dashboard</span><span style="border:1px solid #1C2230;padding:5px 10px">Live channels</span><span style="border:1px solid #1C2230;padding:5px 10px">Endpoints</span><span style="border:1px solid #1C2230;padding:5px 10px">Trunks</span><span style="border:1px solid #1C2230;padding:5px 10px">Trunk auth</span><span style="border:1px solid #1C2230;padding:5px 10px">Dialplan canvas</span><span style="border:1px solid #1C2230;padding:5px 10px">IVR</span><span style="border:1px solid #1C2230;padding:5px 10px">Queues</span></div></div>
+          <div style="border:2px solid #1C2230;background:#0E1219;padding:22px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#FFB224;letter-spacing:.1em">MEDIA</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5C6470">4</span></div><div style="display:flex;flex-wrap:wrap;gap:6px;font-size:13px;color:#9AA4B4"><span style="border:1px solid #1C2230;padding:5px 10px">Voicemail</span><span style="border:1px solid #1C2230;padding:5px 10px">Conference bridge</span><span style="border:1px solid #1C2230;padding:5px 10px">Music on hold</span><span style="border:1px solid #1C2230;padding:5px 10px">Codecs</span></div></div>
+          <div style="border:2px solid #1C2230;background:#0E1219;padding:22px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#FFB224;letter-spacing:.1em">DATA</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5C6470">2</span></div><div style="display:flex;flex-wrap:wrap;gap:6px;font-size:13px;color:#9AA4B4"><span style="border:1px solid #1C2230;padding:5px 10px">Call records (CDR)</span><span style="border:1px solid #1C2230;padding:5px 10px">AMI / REST</span></div></div>
+          <div style="border:2px solid #1C2230;background:#0E1219;padding:22px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#FFB224;letter-spacing:.1em">SYSTEM</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5C6470">4</span></div><div style="display:flex;flex-wrap:wrap;gap:6px;font-size:13px;color:#9AA4B4"><span style="border:1px solid #1C2230;padding:5px 10px">Modules</span><span style="border:1px solid #1C2230;padding:5px 10px">Logger</span><span style="border:1px solid #1C2230;padding:5px 10px">Security</span><span style="border:1px solid #1C2230;padding:5px 10px">CLI</span></div></div>
+          <div style="border:2px solid #1C2230;background:#0E1219;padding:22px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#FFB224;letter-spacing:.1em">AGENT</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5C6470">7</span></div><div style="display:flex;flex-wrap:wrap;gap:6px;font-size:13px;color:#9AA4B4"><span style="border:1px solid #1C2230;padding:5px 10px">Memory</span><span style="border:1px solid #1C2230;padding:5px 10px">Sync</span><span style="border:1px solid #1C2230;padding:5px 10px">Skills</span><span style="border:1px solid #1C2230;padding:5px 10px">Hub</span><span style="border:1px solid #1C2230;padding:5px 10px">Vocabulary</span><span style="border:1px solid #1C2230;padding:5px 10px">Ops</span><span style="border:1px solid #1C2230;padding:5px 10px">Secrets</span></div></div>
+          <div style="border:2px solid #1C2230;background:#0E1219;padding:22px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#FFB224;letter-spacing:.1em">APP</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5C6470">7</span></div><div style="display:flex;flex-wrap:wrap;gap:6px;font-size:13px;color:#9AA4B4"><span style="border:1px solid #1C2230;padding:5px 10px">Deploy &amp; servers</span><span style="border:1px solid #1C2230;padding:5px 10px">Arcade</span><span style="border:1px solid #1C2230;padding:5px 10px">Notifications</span><span style="border:1px solid #1C2230;padding:5px 10px">History</span><span style="border:1px solid #1C2230;padding:5px 10px">Customise</span><span style="border:1px solid #1C2230;padding:5px 10px">Appearance</span><span style="border:1px solid #1C2230;padding:5px 10px">About</span></div></div>
+        </div>
+      </article>
+
+      <article id="runtime" style="animation:rise .8s both;animation-timeline:view();animation-range:entry 0% entry 45%">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#FFB224;letter-spacing:.1em">05</div>
+        <h2 style="margin:10px 0 0;font-size:28px;font-weight:800;letter-spacing:-.02em">The bundled WSL runtime</h2>
+        <p style="margin:14px 0 0;color:#9AA4B4;font-size:15px;line-height:1.65;max-width:74ch">The installer carries a complete Ubuntu 24.04 root filesystem, built from this exact repository commit, with Asterisk and every runtime library it needs already compiled and installed — verified by checking the closure of dynamic-library dependencies, not just a successful compile.</p>
+        <p style="margin:14px 0 0;color:#9AA4B4;font-size:15px;line-height:1.65;max-width:74ch">The console can create, verify, stop, and remove its own distribution, verifying success by asking the distribution for its actual Asterisk version rather than trusting a process exit code. It refuses to import over an existing distribution and refuses to remove one it did not create — both refusals exercised against a real Windows/WSL machine, not a scripted stand-in.</p>
+      </article>
+
+      <article id="build" style="animation:rise .8s both;animation-timeline:view();animation-range:entry 0% entry 45%">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#FFB224;letter-spacing:.1em">06</div>
+        <h2 style="margin:10px 0 0;font-size:28px;font-weight:800;letter-spacing:-.02em">Build &amp; installer scripts</h2>
+        <p style="margin:14px 0 0;color:#9AA4B4;font-size:15px;line-height:1.65;max-width:74ch">Run from the repository root on Windows. Every script installs what it needs itself, reports honestly per phase, and never touches code signing.</p>
+        <div style="display:grid;gap:2px;border:2px solid #1C2230;margin-top:20px;font-size:14px">
+          <div style="display:grid;grid-template-columns:280px 1fr;gap:20px;padding:16px 22px;background:#0E1219"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#FFB224">download-dependencies.bat [/s]</span><span style="color:#9AA4B4;line-height:1.6">Fetches and digest-verifies every pinned dependency into a user-scoped, per-project cache. Idempotent — re-run is a no-op once warm.</span></div>
+          <div style="display:grid;grid-template-columns:280px 1fr;gap:20px;padding:16px 22px;background:#0E1219"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#FFB224">build.bat [/s]</span><span style="color:#9AA4B4;line-height:1.6">Dependency fetch, npm ci, and a runnable copy of the console out of the checkout. /s runs unattended for CI or another agent.</span></div>
+          <div style="display:grid;grid-template-columns:280px 1fr;gap:20px;padding:16px 22px;background:#0E1219"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#FFB224">build-installer.bat [/s]</span><span style="color:#9AA4B4;line-height:1.6">Builds the Windows installer through Squirrel.Windows — the same packaging path CI uses — and verifies Setup.exe, the RELEASES index, and the full .nupkg exist, are the right shape, and are unsigned as expected. Prints the SHA-256 of each output.</span></div>
+          <div style="display:grid;grid-template-columns:280px 1fr;gap:20px;padding:16px 22px;background:#0E1219"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#FFB224">build-wsl-throwaway.bat</span><span style="color:#9AA4B4;line-height:1.6">Builds the Ubuntu root filesystem image bundled into the installer, by compiling this repository's own Asterisk source inside a container.</span></div>
+        </div>
+      </article>
+
+      <article id="testing" style="animation:rise .8s both;animation-timeline:view();animation-range:entry 0% entry 45%">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#FFB224;letter-spacing:.1em">07</div>
+        <h2 style="margin:10px 0 0;font-size:28px;font-weight:800;letter-spacing:-.02em">Testing</h2>
+        <p style="margin:14px 0 0;color:#9AA4B4;font-size:15px;line-height:1.65;max-width:74ch"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#E6E9EF">npm test</span> from <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#E6E9EF">console/</span> runs the renderer, control-plane, and static-site suites, then the design-parity and completeness inventory validators together with their negative regressions — which deliberately break each guard, confirm it goes red, then confirm restoring it goes green.</p>
+        <div style="display:grid;grid-template-columns:1fr auto auto;border:2px solid #1C2230;margin-top:20px;font-size:14px;max-width:560px">
+          <div style="padding:13px 22px;background:#141925;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5C6470;letter-spacing:.1em">SUITE</div><div style="padding:13px 22px;background:#141925;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5C6470;letter-spacing:.1em">TESTS</div><div style="padding:13px 22px;background:#141925;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5C6470;letter-spacing:.1em">RESULT</div>
+          <div style="padding:13px 22px;background:#0E1219;border-top:1px solid #1C2230">Renderer</div><div style="padding:13px 22px;background:#0E1219;border-top:1px solid #1C2230;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#9AA4B4">424</div><div style="padding:13px 22px;background:#0E1219;border-top:1px solid #1C2230;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#7ED98F">424 pass</div>
+          <div style="padding:13px 22px;background:#0E1219;border-top:1px solid #1C2230">Control plane</div><div style="padding:13px 22px;background:#0E1219;border-top:1px solid #1C2230;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#9AA4B4">348</div><div style="padding:13px 22px;background:#0E1219;border-top:1px solid #1C2230;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#FFB224">345 pass · 3 fail</div>
+          <div style="padding:13px 22px;background:#0E1219;border-top:1px solid #1C2230">Inventory / drift</div><div style="padding:13px 22px;background:#0E1219;border-top:1px solid #1C2230;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#9AA4B4">12</div><div style="padding:13px 22px;background:#0E1219;border-top:1px solid #1C2230;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#7ED98F">12 pass</div>
+          <div style="padding:13px 22px;background:#0E1219;border-top:1px solid #1C2230">Static site</div><div style="padding:13px 22px;background:#0E1219;border-top:1px solid #1C2230;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#9AA4B4">10</div><div style="padding:13px 22px;background:#0E1219;border-top:1px solid #1C2230;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#7ED98F">10 pass</div>
+        </div>
+        <p style="margin:16px 0 0;color:#7C8698;font-size:13px;line-height:1.6;max-width:74ch">The three control-plane failures are all in the access-control-list (acl.conf) address-matching tests — expected, since ACL rule editing is one of the largest unimplemented gaps and its evaluator is still under construction. Both inventory negative regressions were confirmed red-then-green on this run.</p>
+      </article>
+
+      <article id="roadmap" style="animation:rise .8s both;animation-timeline:view();animation-range:entry 0% entry 45%">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#FFB224;letter-spacing:.1em">08</div>
+        <h2 style="margin:10px 0 0;font-size:28px;font-weight:800;letter-spacing:-.02em">Roadmap — stated plainly</h2>
+        <p style="margin:14px 0 0;color:#9AA4B4;font-size:15px;line-height:1.65;max-width:74ch">A survey against this checkout measured the console at roughly <strong style="color:#E6E9EF">12% of Asterisk's configurable surface</strong>. The control plane no longer limits this — writable resources went from 10 files to 41 and read-only commands from 23 to 63 — so each remaining gap needs only its screen and control bindings.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px">
+          <div style="border:2px solid #1C2230;background:#0E1219;padding:26px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#F0A8A0;letter-spacing:.1em;margin-bottom:14px">NO DESTINATION EXISTS YET</div>
+            <ul style="margin:0;padding:0;list-style:none;display:grid;gap:9px;font-size:14px;line-height:1.5;color:#9AA4B4">
+              <li><strong style="color:#E6E9EF">Access control rules</strong> (acl.conf) — the highest-value gap: SIP scanning is constant and toll fraud is the expensive failure</li>
+              <li><strong style="color:#E6E9EF">Sound prompt management</strong> — upload, audition, remove</li>
+              <li><strong style="color:#E6E9EF">TLS &amp; certificates</strong> — transports, STIR/SHAKEN keys</li>
+              <li><strong style="color:#E6E9EF">Hardware trunks</strong> — analogue, T1/E1, PRI</li>
+              <li><strong style="color:#E6E9EF">Database / realtime backends</strong>, <strong style="color:#E6E9EF">fax</strong>, <strong style="color:#E6E9EF">channel event logging</strong>, <strong style="color:#E6E9EF">call attestation</strong>, <strong style="color:#E6E9EF">emergency location</strong>, <strong style="color:#E6E9EF">phone provisioning</strong>, <strong style="color:#E6E9EF">feature codes &amp; parking</strong>, and more</li>
+            </ul>
+          </div>
+          <div style="border:2px solid #1C2230;background:#0E1219;padding:26px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#FFB224;letter-spacing:.1em;margin-bottom:14px">EXISTS BUT PARTIAL</div>
+            <ul style="margin:0;padding:0;list-style:none;display:grid;gap:9px;font-size:14px;line-height:1.5;color:#9AA4B4">
+              <li><strong style="color:#E6E9EF">Security</strong> — edits no access rule or attestation certificate yet</li>
+              <li><strong style="color:#E6E9EF">Trunks</strong> — PJSIP only; no IAX2 or hardware</li>
+              <li><strong style="color:#E6E9EF">IVR</strong> — no dialplan application depth</li>
+              <li><strong style="color:#E6E9EF">Logger</strong> — level chips only; no rotation or queue log</li>
+              <li><strong style="color:#E6E9EF">Modules, call records, manager/REST, voicemail, codecs</strong> — each covers a fraction of its subsystem</li>
+            </ul>
+            <p style="margin:16px 0 0;font-size:13px;color:#7C8698;line-height:1.6">One constraint governs all of it: nothing here has yet written to a live Asterisk beyond a disposable target. No mutation is called verified until an approved plan runs against a real exchange.</p>
+          </div>
+        </div>
+      </article>
+
+      <article id="security" style="animation:rise .8s both;animation-timeline:view();animation-range:entry 0% entry 45%">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#FFB224;letter-spacing:.1em">09</div>
+        <h2 style="margin:10px 0 0;font-size:28px;font-weight:800;letter-spacing:-.02em">Security policy</h2>
+        <p style="margin:14px 0 0;color:#9AA4B4;font-size:15px;line-height:1.65;max-width:74ch">Report vulnerabilities privately through the repository's Security tab — <strong style="color:#E6E9EF">never through regular public issues</strong>. One vulnerability per advisory: separate reports keep CVEs, CWE values, severities, and affected versions cleanly attached to their fixes. Don't use the temporary-private-fork feature — such forks can't run the validation workflows; once an advisory is accepted you'll get instructions for submitting a fix.</p>
+        <p style="margin:14px 0 0;color:#7C8698;font-size:13px;line-height:1.6;max-width:74ch">For vulnerabilities in Asterisk itself, consult the upstream project's supported-versions and security pages at docs.asterisk.org.</p>
+      </article>
+
+      <article id="contributing" style="animation:rise .8s both;animation-timeline:view();animation-range:entry 0% entry 45%">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#FFB224;letter-spacing:.1em">10</div>
+        <h2 style="margin:10px 0 0;font-size:28px;font-weight:800;letter-spacing:-.02em">Contributing</h2>
+        <div style="display:grid;gap:2px;border:2px solid #1C2230;margin-top:20px">
+          <div style="display:grid;grid-template-columns:44px 1fr;gap:18px;padding:16px 22px;background:#0E1219;align-items:baseline"><span style="font-family:'IBM Plex Mono',monospace;color:#FFB224;font-size:13px">01</span><span style="font-size:14px;color:#9AA4B4;line-height:1.6">Clone, then <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#E6E9EF">download-dependencies.bat /s</span> at the root — or <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#E6E9EF">npm ci</span> inside console/ for renderer-only work.</span></div>
+          <div style="display:grid;grid-template-columns:44px 1fr;gap:18px;padding:16px 22px;background:#0E1219;align-items:baseline"><span style="font-family:'IBM Plex Mono',monospace;color:#FFB224;font-size:13px">02</span><span style="font-size:14px;color:#9AA4B4;line-height:1.6"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#E6E9EF">npm test</span> in console/ runs the full local suite described above.</span></div>
+          <div style="display:grid;grid-template-columns:44px 1fr;gap:18px;padding:16px 22px;background:#0E1219;align-items:baseline"><span style="font-family:'IBM Plex Mono',monospace;color:#FFB224;font-size:13px">03</span><span style="font-size:14px;color:#9AA4B4;line-height:1.6">Never hand-edit <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#E6E9EF">console/app/renderer/src/generated/</span> — it's compiled from the checked-in design reference, and a drift test fails the build if the shipped renderer isn't byte-identical to a fresh compile. Change the design reference and recompile.</span></div>
+          <div style="display:grid;grid-template-columns:44px 1fr;gap:18px;padding:16px 22px;background:#0E1219;align-items:baseline"><span style="font-family:'IBM Plex Mono',monospace;color:#FFB224;font-size:13px">04</span><span style="font-size:14px;color:#9AA4B4;line-height:1.6">ROADMAP.md and HANDOFF.md are the honest source of what is and isn't done — read them before proposing a feature.</span></div>
+          <div style="display:grid;grid-template-columns:44px 1fr;gap:18px;padding:16px 22px;background:#0E1219;align-items:baseline"><span style="font-family:'IBM Plex Mono',monospace;color:#FFB224;font-size:13px">05</span><span style="font-size:14px;color:#9AA4B4;line-height:1.6">No sample or invented data may be reintroduced into the running application: an unread surface stays empty with a stated reason, and an unread cell renders as an em dash, never a placeholder value.</span></div>
+        </div>
+      </article>
+
+      <article id="license" style="animation:rise .8s both;animation-timeline:view();animation-range:entry 0% entry 45%">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#FFB224;letter-spacing:.1em">11</div>
+        <h2 style="margin:10px 0 0;font-size:28px;font-weight:800;letter-spacing:-.02em">License &amp; fork notice</h2>
+        <p style="margin:14px 0 0;color:#9AA4B4;font-size:15px;line-height:1.65;max-width:74ch">This repository is a fork of the <a href="https://www.asterisk.org/" style="color:#E6E9EF;text-decoration:underline">Asterisk</a> Open Source PBX project, licensed under the GNU General Public License version 2. Material Asterisk is additive software built on top of this checkout to administer Asterisk; it does not replace, relicense, or claim authorship of Asterisk itself. The full, unmodified upstream source tree and build system remain at the repository root exactly as in any Asterisk checkout — see the LICENSE, COPYING, and CREDITS files there. If you're looking for Asterisk the platform rather than this console, asterisk.org is the right place.</p>
+      </article>
+    </main>
+  </div>
+
+  <footer style="border-top:2px solid #1C2230;background:#0B0E13">
+    <div style="max-width:1240px;margin:0 auto;padding:32px;display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5C6470">
+      <span>DING PBX CONSOLE — DOCUMENTATION LIVES HERE, NOT BEHIND A LINK</span>
+      <a href="Landing C - Blueprint.dc.html" style="color:#7C8698" style-hover="color:#FFB224">/home</a>
+    </div>
+  </footer>
+
+  <div style="position:fixed;bottom:20px;right:20px;z-index:100;display:flex;border:1px solid #33405A;background:rgba(11,14,19,.9);backdrop-filter:blur(8px);font-family:'IBM Plex Mono',monospace;font-size:12px">
+    <a href="Landing A - Spec Sheet.dc.html" style="padding:9px 13px;color:#7C8698;min-height:0" style-hover="color:#FFB224">A</a>
+    <a href="Landing B - Editorial.dc.html" style="padding:9px 13px;color:#7C8698;border-left:1px solid #1C2230;min-height:0" style-hover="color:#FFB224">B</a>
+    <a href="Landing C - Blueprint.dc.html" style="padding:9px 13px;color:#0B0E13;background:#FFB224;border-left:1px solid #1C2230;font-weight:600;min-height:0">C</a>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

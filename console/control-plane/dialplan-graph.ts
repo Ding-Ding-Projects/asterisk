@@ -10,6 +10,7 @@
  */
 import type { CapabilityResult, TargetProfile } from "./contracts.js";
 import type { CommandResult, ProcessExecutor } from "./executor.js";
+import type { DialplanContextRecord } from "./dialplan-divergence.js";
 
 export interface DialplanStep {
   priority: number;
@@ -35,6 +36,22 @@ export interface DialplanGraph {
 export interface DialplanReading<T> {
   command: "dialplan show";
   result: CapabilityResult<T>;
+  /**
+   * The contexts that same run of `dialplan show` reported, with the registrar that
+   * created each — what `compareDialplanToFile` needs to say whether the running dialplan
+   * still matches `extensions.conf`.
+   *
+   * Carried beside the graph rather than fetched separately so both come from one run:
+   * running the command twice would draw the canvas from one moment and judge the file
+   * against another, and nothing in either output would say they were different moments.
+   *
+   * Absent exactly when `result.state` is not `available`, so a caller can never mistake
+   * "no contexts were reported" for "the dialplan holds no contexts".
+   */
+  contexts?: DialplanContextRecord[];
+  /** The context count `dialplan show` printed in its own trailer, when it printed one.
+   *  See `parseDialplanContextTotal`. */
+  contextsReported?: number;
 }
 
 /** Runs one allowlisted CLI command against a target — the same shape as AsteriskCliGateway. */
@@ -75,7 +92,13 @@ export class DialplanReadings {
     }
     try {
       const graph = parseDialplanGraph(result.stdout);
-      return { command: "dialplan show", result: { state: "available", observedAt, value: graph } };
+      const reportedTotal = parseDialplanContextTotal(result.stdout);
+      return {
+        command: "dialplan show",
+        result: { state: "available", observedAt, value: graph },
+        contexts: parseDialplanContexts(result.stdout),
+        ...(reportedTotal === undefined ? {} : { contextsReported: reportedTotal }),
+      };
     } catch (error) {
       return {
         command: "dialplan show",
@@ -258,6 +281,143 @@ function extractGotoTarget(app: string, data: string): string | undefined {
 
 export function parseDialplanGraph(stdout: string): DialplanGraph {
   return buildDialplanGraph(parseDialplanExtensions(stdout));
+}
+
+/**
+ * The contexts `dialplan show` reported, each with the registrar that created it and the
+ * files its extensions were registered from.
+ *
+ * Reads the same three lines `parseDialplanExtensions` above reads, through the same
+ * constants, and keeps the two things that parse throws away: the `created by '%s'` half
+ * of every context header, and the `[file:line]` column of every printed priority.
+ *
+ * The distinction between the two `[...]` forms is `show_dialplan_helper_extension_output()`
+ * in main/pbx.c: a line prints `[%s:%d]` when the extension carries a registrar *file*, and
+ * `[%s]` — the registrar *name* — when it does not. A file is therefore recorded only when
+ * a line number came with it; the bare form names a module, not a file, and treating it as
+ * one would attribute every `pbx_ael` extension to a file called `pbx_ael`.
+ */
+export function parseDialplanContexts(stdout: string): DialplanContextRecord[] {
+  const contexts: DialplanContextRecord[] = [];
+  /* `dialplan show` walks each context once, so a repeat is not expected. Merging rather
+   * than appending means the "Included context" form could never split one context's
+   * extensions across two records that then disagree about which files they came from. */
+  const byName = new Map<string, DialplanContextRecord>();
+  let current: DialplanContextRecord | undefined;
+
+  const addFile = (file: string) => {
+    if (current && !current.files.includes(file)) current.files.push(file);
+  };
+
+  for (const raw of stdout.split(/\r?\n/u)) {
+    const line = raw.replace(/\s+$/u, "");
+    if (!line) continue;
+
+    const header = CONTEXT_HEADER.exec(line);
+    if (header) {
+      const existing = byName.get(header[1]);
+      if (existing) {
+        current = existing;
+      } else {
+        current = { name: header[1], registrar: header[2], files: [] };
+        byName.set(current.name, current);
+        contexts.push(current);
+      }
+      continue;
+    }
+    if (!current) continue;
+
+    const first = FIRST_PRIORITY.exec(line);
+    if (first) {
+      if (first[6]) addFile(first[5]);
+      continue;
+    }
+    const next = NEXT_PRIORITY.exec(line);
+    if (next && next[5]) addFile(next[4]);
+  }
+
+  return contexts;
+}
+
+/**
+ * The context total `dialplan show` prints for itself.
+ *
+ * main/pbx.c line 4135: `"-= %d %s (%d %s) in %d %s. =-\n"`, the last pair being
+ * `counters.total_context`. It is the command's own count rather than this parser's, so
+ * the two disagreeing means a context line was not read — the same "say when a reading
+ * dropped a row" signal the voicemail and manager readings already carry.
+ */
+const DIALPLAN_TOTALS = /^-=\s*\d+\s+\S+\s*\(\d+\s+\S+\)\s+in\s+(\d+)\s+\S+\.\s*=-\s*$/u;
+
+export function parseDialplanContextTotal(stdout: string): number | undefined {
+  for (const raw of stdout.split(/\r?\n/u)) {
+    const match = DIALPLAN_TOTALS.exec(raw.trim());
+    if (match) return Number(match[1]);
+  }
+  return undefined;
+}
+
+// ---------------------------------------------------------------- AGI scripting visibility
+
+export interface AgiReference {
+  context: string;
+  extension: string;
+  priority: number;
+  app: string;
+  /** The script argument exactly as `AGI()`/`EAGI()`/`DeadAGI()` was called with -- the
+   *  whole first argument, before `kind` below decides what it names. */
+  script: string;
+  /** `local` is a bare filename this console can check against the target's own AGI
+   *  directory listing. `network` is a `res/res_agi.c` `agi://`/`hagi://` FastAGI URI
+   *  (line 2186 `agiurl + 6` strips `agi://`; line 2284 the `h` variant), and `async` is
+   *  the literal `agi:async` token (line 2341 `strncasecmp(script, "agi:async", ...)`)
+   *  that hands the channel to Async AGI over AMI instead of running a file at all --
+   *  neither of those names anything a directory listing could ever confirm or deny. */
+  kind: "local" | "network" | "async";
+}
+
+const AGI_APPLICATIONS = new Set(["agi", "eagi", "deadagi"]);
+
+/** The first comma-separated argument to an `AGI()`-family application call, the same
+ *  way Asterisk's own argument parser splits `data` -- trimmed, and with one layer of
+ *  surrounding quotes removed if the dialplan author quoted it (`AGI("my script.agi")`
+ *  is how a script name containing a comma or a space is written at all). */
+function firstArgument(data: string): string {
+  const raw = (data.split(",")[0] ?? "").trim();
+  const quoted = /^"(.*)"$/u.exec(raw);
+  return quoted ? quoted[1] : raw;
+}
+
+function classifyAgiScript(script: string): AgiReference["kind"] {
+  const lower = script.toLowerCase();
+  if (lower.startsWith("agi://") || lower.startsWith("hagi://")) return "network";
+  if (lower.startsWith("agi:async")) return "async";
+  return "local";
+}
+
+/** Every `AGI()`/`EAGI()`/`DeadAGI()` call in a parsed dialplan graph, in the order
+ *  `dialplan show` printed them. Used by the AGI scripting-visibility screen to compare
+ *  what the dialplan actually references against what the target's own AGI directory
+ *  actually holds -- two facts nothing in this console could previously put side by
+ *  side. */
+export function agiReferences(graph: DialplanGraph): AgiReference[] {
+  const found: AgiReference[] = [];
+  for (const node of graph.nodes) {
+    for (const step of node.steps) {
+      if (!AGI_APPLICATIONS.has(step.app.trim().toLowerCase())) continue;
+      const script = firstArgument(step.data);
+      if (!script) continue;
+      found.push({
+        context: node.context,
+        extension: node.extension,
+        priority: step.priority,
+        app: step.app,
+        script,
+        kind: classifyAgiScript(script),
+      });
+    }
+  }
+  return found;
 }
 
 // ---------------------------------------------------------------- helpers

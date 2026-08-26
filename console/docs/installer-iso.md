@@ -4,7 +4,7 @@
 
 A bootable, unattended-install ISO that turns a bare machine (or VM) into a working Ding PBX
 server, the same way a FreePBX distro ISO does. Boot it, walk away, and when it reboots itself
-there is a running Asterisk and a Ding PBX Console admin surface reachable from a browser on the
+there is a running Asterisk and a Material Asterisk admin surface reachable from a browser on the
 local network — with no default password of any kind.
 
 It is built by `build-iso.bat` at the repository root (`console/scripts/build-iso.ps1`), following
@@ -18,7 +18,7 @@ The build has three stages, each a separate Docker stage or image so a failure i
 isolate:
 
 1. **`iso-payload.Dockerfile`** compiles Asterisk from source (the same recipe as
-   `asterisk-wsl-runtime.Dockerfile`), builds the Ding PBX Console server (`npm ci && npm run
+   `asterisk-wsl-runtime.Dockerfile`), builds the Material Asterisk server (`npm ci && npm run
    build` against `console/`), and downloads a portable Linux Node.js runtime verified by SHA-256.
    These three pieces — Asterisk, the console server, and Node — are assembled into one payload
    directory with an `install-target.sh` script and systemd units.
@@ -40,7 +40,7 @@ disk, installs the base OS, then autoinstall's `late-commands` step runs `instal
 
 - installs the bundled Node.js runtime to `/usr/local/lib/ding-pbx-node`
 - installs the compiled Asterisk tree and enables `asterisk.service`
-- installs the Ding PBX Console server under `/opt/ding-pbx-console` (reusing
+- installs the Material Asterisk server under `/opt/ding-pbx-console` (reusing
   `console/server/deploy/install.sh` unmodified) and enables `ding-pbx-console.service`, bound to
   `0.0.0.0:8443` so it is reachable from the LAN rather than loopback-only
 - installs a first-boot banner unit that writes the machine's current LAN address into
@@ -53,7 +53,7 @@ autoinstall answer file is the locked sentinel `"!"`, which refuses interactive 
 that local Unix account entirely — it exists only so the installer has an account to run under,
 never as an administrative credential.
 
-The actual admin account is created by the Ding PBX Console server itself, the first time anyone
+The actual admin account is created by the Material Asterisk server itself, the first time anyone
 visits it: `console/server/auth.ts`'s `createAdminAccount` gates every other request behind the
 first-run setup screen until an account exists. Whoever reaches the printed LAN address first
 creates the admin account. Because the service binds to the LAN rather than loopback by default so
@@ -102,7 +102,7 @@ before writing it to a USB drive or booting it in a VM.
   exists — see **First-boot credential flow** above for the mitigation.
 - `late-commands`' package list (`packages:` in the autoinstall answer file) is installed from
   whatever apt sources the target machine reaches at install time; only the Asterisk, Node.js, and
-  Ding PBX Console payload itself is fully offline and reproducible from the ISO's own contents.
+  Material Asterisk payload itself is fully offline and reproducible from the ISO's own contents.
 - Building the ISO requires Docker with a working Linux engine; it cannot be produced on a bare
   Windows host.
 

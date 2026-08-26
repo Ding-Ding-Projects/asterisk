@@ -31,11 +31,29 @@ export interface ConfigReading {
 /** Absolute paths are what the control plane allowlists; screens name a bare file. */
 export const CONFIG_DIRECTORY = '/etc/asterisk';
 
+/**
+ * The shape of a real Asterisk configuration filename: letters, digits, underscore, dash
+ * and dots, ending in `.conf`. Nothing else.
+ *
+ * Ending in `.conf` and carrying no path separator used to be the whole test, and two
+ * screens slipped a *display label* through it: `cdr.conf · cel.conf`, two filenames joined
+ * for the reader's benefit. It ends in `.conf`, it has no separator, so it was accepted and
+ * turned into a path that no target could ever have. The screen then read nothing, forever,
+ * and reported no error -- which is precisely the "one status reading" that looked like a
+ * thin feature and was actually a broken one.
+ *
+ * A name is refused here rather than at the transport, because a refusal at the transport
+ * arrives as a failed read of a plausible-looking path, and a refusal here says the
+ * declaration itself is wrong.
+ */
+const CONF_FILENAME = /^[a-z0-9][a-z0-9_.-]*\.conf$/iu;
+
 export function resourceForFile(file: unknown): string | undefined {
-  if (typeof file !== 'string' || !file.endsWith('.conf')) return undefined;
-  /* A screen's declared file is a bare name by construction. Refusing anything with a
-   * separator keeps a malformed design entry from ever becoming a path. */
-  if (file.includes('/') || file.includes('\\') || file.includes('..')) return undefined;
+  if (typeof file !== 'string') return undefined;
+  /* Rejects a separator and a parent reference by construction: neither is in the set. It
+   * also rejects whitespace, which is what a compound display label always carries. */
+  if (!CONF_FILENAME.test(file)) return undefined;
+  if (file.includes('..')) return undefined;
   return `${CONFIG_DIRECTORY}/${file}`;
 }
 

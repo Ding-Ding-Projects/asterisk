@@ -20,6 +20,7 @@ The two surfaces referenced throughout are the desktop application (the installe
 - [Browser-style tabbed navigation](browser-style-tabs.md)
 - [Tab groups and tab search](tab-groups-and-searches.md)
 - [Command palette](command-palette.md)
+- [Destination deep links](destination-deep-links.md)
 - [Destructive-action super confirmation](destructive-action-confirmation.md)
 - [Local version history](local-version-history.md)
 - [In-app changelog viewer](changelog-viewer.md)

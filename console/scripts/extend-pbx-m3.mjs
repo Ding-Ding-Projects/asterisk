@@ -1,8 +1,13 @@
 import { readFile, writeFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { join } from 'node:path';
 
 const consoleRoot = new URL('../', import.meta.url);
-const generated = new URL('app/renderer/src/generated/m3-control.tsx', consoleRoot);
+/* Follows the compiler's own output directory, so the drift check can run both steps into
+ * a scratch directory instead of rewriting the shipped files while sibling tests read them. */
+const generated = process.env.DING_DESIGN_OUT_DIR
+  ? pathToFileURL(join(process.env.DING_DESIGN_OUT_DIR, 'm3-control.tsx'))
+  : new URL('app/renderer/src/generated/m3-control.tsx', consoleRoot);
 const path = fileURLToPath(generated);
 
 let source = await readFile(generated, 'utf8');

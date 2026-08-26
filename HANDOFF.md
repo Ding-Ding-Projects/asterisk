@@ -1,8 +1,51 @@
+# Handoff
+
+> [!IMPORTANT]
+> **Everything below the next rule was written on 2026-08-23 and much of it is now wrong.**
+> It is kept because a handoff that is quietly rewritten loses the record of what was
+> believed at the time, but nothing in it should be trusted without checking. The counts
+> it quotes -- 144 tests, then 6238 -- and the releases it names -- v0.0.5, v0.0.7,
+> v0.0.82, v0.0.84 -- have all been overtaken.
+
+## Current state, measured 2026-08-25
+
+| | |
+| --- | --- |
+| Suite | 3,195 passing, 0 failing, across 8 sub-suites, exit 0 |
+| Latest release | v0.0.212 |
+| Roadmap | 51 open / 59 done |
+| Evidence rows verified | 2 of 88 |
+| Evidence artifacts on disk | 38 capture-and-record pairs |
+| Interaction captures | 242, with a ledger recording every digest |
+| Branches | 35, of which 32 are already ancestors of master |
+
+Two branches are not ancestors of master, and neither should be merged as it stands:
+
+- `parity-bar` holds the loop's design-parity work in progress. Its own guard fails on its
+  own document, and its verdicts read "diff" rather than "match" -- which is a real
+  measurement, not a passing one. Committed and pushed so it cannot be lost.
+- `integration-runtime-proof` is fully superseded. Master carries every one of its
+  resolutions, and merging it would revert roughly thirteen thousand lines. It is retained
+  rather than deleted precisely because it is not an ancestor, so the ancestry proof that
+  authorises a deletion cannot be produced for it.
+
+### What is known to be unfinished
+
+- A global Undo on the shared notification reverts nothing, and the copy-tab-list control
+  writes the literal text `undefined` to the clipboard. Both are the same class as the
+  decorative controls fixed on 2026-08-25 and were deliberately left rather than guessed at.
+- Five platform features are recorded as unreachable rather than photographed from something
+  adjacent: the unlock ladder, the built-in authenticator, forge publishing,
+  browser-extension download surfaces, and in-context recovery.
+- The bundled runtime payload in `console/resources/` is built from commit `d50822fbb`. Any
+  release from a later commit rebuilds it, which needs a working local container engine.
+
+---
 # Ding PBX delivery handoff
 
 ## Scope
 
-This handoff covers the integrated Ding PBX Console desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.
+This handoff covers the integrated Material Asterisk desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.
 
 ## Implemented
 

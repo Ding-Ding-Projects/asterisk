@@ -51,6 +51,7 @@ compile_commands.json
 /console/dist/
 /console/dist-electron/
 /console/site/dist/
+/console/site/release-manifest.local.json
 /console/tsconfig.tsbuildinfo
 /console/resources/asterisk-wsl-rootfs.tar
 /console/resources/asterisk-wsl-rootfs.json
@@ -61,6 +62,10 @@ compile_commands.json
 console/control-plane/*.js
 console/control-plane/*.d.ts
 
-# Built installer images. Multi-gigabyte artifacts are never committed; the release
-# record carries their digest instead.
-console/release/
+# Built installer images live in console/dist/, which is already ignored above and
+# really does reach gigabytes. console/release/ is NOT build output: it is where the
+# completeness inventory's evidenceTemplates point every capture and interaction
+# record, so ignoring it made all 251 required evidence artifacts uncommittable while
+# protecting against installer images that are never written there. Verified after a
+# full build: console/dist/ held 1.9 GB and console/release/ held 192 KB of evidence.
+ralph/logs/

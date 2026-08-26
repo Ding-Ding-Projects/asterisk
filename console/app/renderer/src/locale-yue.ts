@@ -25,12 +25,18 @@ export const CANTONESE: Catalog = {
   'Conferences': '會議室',
   'Voicemail': '留言信箱',
   'Music on hold': '等候音樂',
+  'Sound prompts': '語音提示',
   'Codecs & RTP': '編碼同 RTP',
+  'Fax': '傳真',
   'CDR & CEL': '通話紀錄',
   'AMI & ARI': 'AMI 同 ARI',
   'Modules': '模組',
   'Logger': '日誌',
   'Security': '保安',
+  'Database backends': '資料庫後端',
+  'Call attestation': '來電認證',
+  'Emergency location': '緊急位置',
+  'Phone provisioning': '話機配置',
   'Deploy & servers': '部署同伺服器',
   'Documentation': '說明文件',
   'Notifications': '通知',
@@ -164,6 +170,10 @@ export const CANTONESE: Catalog = {
   'Randomise every element': '隨機每個元素',
   'Pick from screen': '喺畫面度撳色',
   'Fun level': '搞笑程度',
+  /* The legacy random-appearance-chaos dial, kept distinct from the copy-styling
+   * "Fun level (English/廣東話)" sliders above -- the two used to share one control id
+   * and this label is what keeps them reading as two different things on screen. */
+  'Chaos level': '亂噏程度',
   'Marquee': '跑馬燈',
   'Rotate at': '轉速',
   'Lock this element…': '🔒 呢個元素…',
@@ -204,6 +214,68 @@ export const CANTONESE: Catalog = {
   'CLI builder': '指令產生器',
   'Arcade': '遊戲機',
 
+  'Lock this group': '鎖住成組',
+
+  /* Hosting the console elsewhere. */
+  'Host the console here': '喺呢部機開埋個 console',
+  'What will happen': '跟住會做啲乜',
+  'Install the console on this machine': '喺呢部機裝呢個 console',
+
+  /* Narration. */
+  'Narration': '旁白',
+  'Narrated language': '旁白語言',
+  'Cantonese voice': '廣東話聲',
+
+  /* Command palette. */
+  'Find a screen or a setting': '搵螢幕或者設定',
+
+  /* Console mark. */
+  'Console mark': '主場標誌',
+  'Shipped mark': '內置標誌',
+  'Your own picture': '你自己張相',
+  'Back to the shipped mark': '轉返內置嗰個',
+  'What is in use': '而家用緊邊個',
+
+  /* Spoken narration. */
+  'English voice': '英文聲',
+  'Pitch': '音調',
+
+  /* Settings sources. */
+  'Settings sources': '設定來源',
+  'Source URL': '來源網址',
+  'Source kind': '來源種類',
+  'Home Assistant entity': 'Home Assistant 實體',
+  'Settings this source may set': '呢個來源可以改嘅設定',
+  'Credential vault key': '密碼庫鎖匙',
+  'Add this source': '加入呢個來源',
+  'Remove every source': '移除所有來源',
+  'Sources in effect': '生效緊嘅來源',
+
+  /* Funny levels. */
+  'Fun level (English)': '搞笑程度(英文)',
+  'Fun level (廣東話)': '搞笑程度(廣東話)',
+
+  /* Deploy progress. */
+  'Deploy progress': '部署進度',
+  'Latest deploy step': '最新嗰步',
+
+  /* Readability. */
+  'Readability': '可讀性',
+  'Contrast of the current accent': '而家個主色嘅對比度',
+
+  /* School mode. */
+  'School mode': '校園模式',
+  'School mode name': '校園模式名稱',
+  'Set unlock credential': '設定解鎖密碼',
+  'Unlock School mode': '解鎖校園模式',
+  'School mode status': '校園模式狀態',
+  'Unlock credential': '解鎖密碼',
+  'Credential kind': '密碼種類',
+
+  /* Scheduled settings. */
+  'Scheduled settings': '排程設定',
+  'What is in force now': '而家生效緊咩',
+
   /* External editor handoff. */
   'External editor': '外部編輯器',
   'Editor': '編輯器',
@@ -241,26 +313,51 @@ export const CANTONESE: Catalog = {
   'HTTP server': 'HTTP 伺服器',
   'IAX peers': 'IAX 對端',
   'PBX': '電話系統',
+
+  /* The four telephony screens for chan_dahdi.conf, sla.conf, dundi.conf and
+   * calendar.conf: hardware trunks, shared line appearances, distributed dialplan
+   * lookup, and calendars. Only the rail-nav labels are checked here; the screen
+   * titles and every field's own label ride the "every control left untouched
+   * writes nothing" plain-English convention the rest of this console already uses
+   * for configuration key names. */
+  'Hardware trunks': '硬件中繼線',
+  'Shared lines': '共享線路',
+  'Distributed lookup': '分散式查詢',
+  'Calendars': '行事曆',
   'Anchor both ends': '兩邊都固定',
   'Auto-collapse when inactive': '冇用嗰陣自動收埋',
   'By colour…': '按顏色…',
   'Clear queue stats': '清除隊列統計',
+  'About this console': '關於呢個主控台',
   'Close group and its tabs': '閂咗成組同埋佢啲分頁',
   'Copy tab list to clipboard': '複製分頁清單',
   'Delete ': '刪除 ',
+  'Dock tabs bottom': '將分頁泊落底',
+  'Dock tabs left': '將分頁泊左',
+  'Dock tabs right': '將分頁泊右',
+  'Dock tabs top': '將分頁泊上',
   'Dock this tab right': '將呢個分頁泊右',
   'Edit ': '編輯 ',
   'Edit together': '一齊改',
+  'Explain this screen…': '解釋呢個畫面…',
   'Export group as JSON': '將成組匯出做 JSON',
+  'Full-screen dialplan editor': '全螢幕撥號計劃編輯器',
   'Import a group…': '匯入一組…',
+  'Load ': '載入 ',
   'Lock every tab in group': '🔒 組入面每個分頁',
+  'Move rule down': '條規則搬落去',
+  'Move rule up': '條規則搬上去',
   'Password + PIN + one-time code': '密碼加 PIN 加一次性密碼',
   'Random appearance for every element': '每個元素隨機外觀',
+  'Reload ': '重新載入 ',
   'Reload every tab in group': '重新載入組入面每個分頁',
   'Reload just this': '淨係重新載入呢個',
   'Revert just this option': '淨係還原呢個選項',
   'Save as a workspace': '儲存做工作區',
+  'Show declared policy for ': '睇吓 modules.conf 點講呢個模組 -- ',
   'Tab colour…': '分頁顏色…',
+  'Unload ': '解除載入 ',
+  'Toggle command palette': '開關指令面板',
   'Version history for this': '呢個嘅版本紀錄',
   'FreePBX Module Catalog': 'FreePBX 模組目錄',
   'FreePBX detail': 'FreePBX 詳情',
@@ -308,4 +405,18 @@ export const CANTONESE: Catalog = {
   'The installed module version does not match the catalog requirement.': '已安裝模組版本唔符合目錄要求。',
   'The inverse action restored the prior state and readback verified it.': '反向動作恢復之前狀態，讀回亦已核實。',
   'A one-time target-bound backup receipt is required before mutation.': '改動前需要一次性綁定目標嘅備份收據。',
+  'What’s new': '最新消息',
+  /* The ops lane's five new destinations: monitoring integration, directory/identity
+   * settings, NAT discovery and messaging. */
+  'Caller display (ADSI)': '來電顯示 (ADSI)',
+  'Monitoring': '監察',
+  'Directories & identity': '目錄同身份',
+  'NAT discovery': 'NAT 探測',
+  'Messaging (XMPP)': '訊息 (XMPP)',
+
+  /* Three roadmap gaps closed at once: configuration backup/restore/diff, the REST
+   * resource browser, and dialplan scripting (AGI) visibility. */
+  'Backups & recovery': '備份同復原',
+  'REST resources': 'REST 資源',
+  'Dialplan scripting': '撥號計劃程式碼',
 };

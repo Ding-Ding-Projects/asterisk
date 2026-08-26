@@ -1,0 +1,1 @@
+No such command 'dahdi show status' (type 'core show help dahdi show' for other possible commands)

@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   canProvision,
   canRecoverRuntime,
+  canStopRuntime,
   runtimeHint,
   runtimeLabel,
   type ProvisionState,
@@ -104,4 +105,20 @@ test('a missing reason never renders as an empty gap', () => {
     assert.ok(hint.includes('no reason was reported'), `${state} rendered a blank where the reason belongs`);
     assert.equal(runtimeLabel(status(state)).includes('undefined'), false);
   }
+});
+
+test('stopping is offered for a registered distribution, whether or not it answers', () => {
+  /* `wsl.exe --terminate` needs no working daemon inside the instance, and a stuck
+   * (`unusable`) distribution is exactly the case someone most wants a stop button
+   * for -- gating this to `ready` alone would remove the one control that could get
+   * them out of that state without an irreversible `runtime.remove`. */
+  assert.equal(canStopRuntime(status('ready')), true);
+  assert.equal(canStopRuntime(status('unusable')), true);
+});
+
+test('stopping is refused when there is nothing registered to terminate', () => {
+  for (const state of ['notProvisioned', 'payloadMissing', 'wslUnavailable', 'failed'] as ProvisionState[]) {
+    assert.equal(canStopRuntime(status(state)), false, `stop was offered for ${state}, which has no registered distribution`);
+  }
+  assert.equal(canStopRuntime(undefined), false);
 });

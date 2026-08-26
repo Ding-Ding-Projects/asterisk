@@ -12,9 +12,44 @@ import {
   readCurrentIdentity, fetchReleases, fetchReleaseIdentity, fetchShaSumsText, downloadAsset,
   discardDownload, sweepStaleDownloads, launchInstaller, releaseIdentityDigest,
 } from './updater-runtime.js';
+import { MAX_DISPLAY_NAME_LENGTH } from '../renderer/src/display-name.js';
+import { detectInstalledEditors, openInEditor, readEditorSettingsSnapshot } from '../../control-plane/editor-launch.js';
+import { openFolderInFileManager } from '../../control-plane/local-folder.js';
+import { DESTINATION_ROUTE_SCHEME, firstDestinationRouteArgument } from '../../shared/destination-route.js';
+import { createDestinationRouteRouter } from './deep-link.js';
 
 let mainWindow: BrowserWindow | null = null;
-const dispatcher = createControlPlaneDispatcher({ userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false });
+/**
+ * The data directory is pinned to the name this application shipped under, not the name
+ * it now displays.
+ *
+ * Electron derives userData from the packaged product name, so renaming the product would
+ * silently move it -- and every stored profile, credential, setting and local history on
+ * every existing install would still be sitting in the old directory, invisible, with the
+ * application reporting itself freshly installed. Nothing would error. The user would
+ * simply open a version of their console that had forgotten them.
+ *
+ * So the display name is a label and this is identity, and they are deliberately allowed
+ * to disagree. The literal below must never be "corrected" to match the current product
+ * name: it is correct precisely because it does not.
+ */
+const SHIPPED_DATA_DIRECTORY = 'Ding PBX Console';
+app.setPath('userData', join(app.getPath('appData'), SHIPPED_DATA_DIRECTORY));
+
+const userDataPath = app.getPath('userData');
+const dispatcher = createControlPlaneDispatcher({
+  /* Straight onto the same channel the updater already uses: one send, no new
+   * privilege, and the renderer decides what to do with it. */
+  onProvisionStep: (step) => mainWindow?.webContents.send('provision:step', step), userDataPath: app.getPath('userData'), resourcesPath: process.resourcesPath, hosted: false,
+  /* `allowedSettingsSourceHosts` is deliberately left unset here rather than passed as
+   * an empty array: an unset value tells the dispatcher to load whatever is persisted
+   * under `console.settingsSourceAllowlist` in THIS installation's own settings.json --
+   * the exact file the settings-sources screen's allowlist controls write to through
+   * `settings.write` -- instead of hard-coding an empty, permanently-refuses-everything
+   * list at this call site the way this used to. See `createControlPlaneDispatcher`'s own
+   * comment beside its settings-source fetcher for the full account of why that used to
+   * be silently empty forever. */
+})
 const { controlPlaneRequest } = dispatcher;
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 let updateCheckInFlight: Promise<void> | undefined;
@@ -155,12 +190,41 @@ ipcMain.handle('updater:restart-to-install', async (): Promise<UpdaterRestartRes
   return result;
 });
 
+/**
+ * The destination deep link: `ding-pbx://destination/<id>?…`.
+ *
+ * This route has been recorded against all thirty-two audited destinations in the
+ * design-parity evidence since that evidence was written, and until now nothing in this
+ * process resolved it: no scheme was registered, no argument was read, and a link would
+ * have opened a second copy of the console on the dashboard, if it opened anything at all.
+ *
+ * `rendererLoaded` is tracked rather than inferred from `webContents.isLoading()` because a
+ * reload puts the page back to having no listener while the window itself is perfectly
+ * alive; a route delivered in that gap is a message into nothing, and nothing reports it.
+ */
+let rendererLoaded = false;
+const destinationRoutes = createDestinationRouteRouter((route) => {
+  if (!mainWindow || mainWindow.isDestroyed() || !rendererLoaded) return false;
+  mainWindow.webContents.send('deep-link:destination', route);
+  return true;
+});
+
+/** Brings the existing window forward, the way any protocol client is expected to. */
+function revealMainWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
-    width: 1440, height: 920, minWidth: 920, minHeight: 640, frame: false, backgroundColor: '#101510', show: false, title: 'Ding PBX Console',
+    width: 1440, height: 920, minWidth: 920, minHeight: 640, frame: false, backgroundColor: '#101510', show: false, title: 'Material Asterisk',
     webPreferences: { preload: join(import.meta.dirname, '../../../app/electron/preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   mainWindow.once('ready-to-show', () => mainWindow?.show());
+  mainWindow.webContents.on('did-start-loading', () => { rendererLoaded = false; });
+  mainWindow.webContents.on('did-finish-load', () => { rendererLoaded = true; destinationRoutes.flush(); });
   if (process.env.VITE_DEV_SERVER_URL) mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
   else mainWindow.loadFile(join(import.meta.dirname, '../../../dist/index.html'));
 }
@@ -168,12 +232,76 @@ function createWindow(): void {
 ipcMain.on('window:minimize', () => mainWindow?.minimize());
 ipcMain.on('window:toggle-maximize', () => mainWindow?.isMaximized() ? mainWindow.unmaximize() : mainWindow?.maximize());
 ipcMain.on('window:close', () => mainWindow?.close());
+/* The native OS window title (taskbar, Alt+Tab) is the one identity-adjacent surface a
+ * rename cannot reach by re-rendering the page, because it lives here rather than in
+ * anything the renderer draws. The renderer already validates the name against
+ * `validateDisplayName` before it is ever stored; this bound is a second, independent
+ * check on the value actually crossing the process boundary, not a trust of the first. */
+ipcMain.on('window:set-title', (_event, title: unknown) => {
+  if (typeof title !== 'string') return;
+  const trimmed = title.trim();
+  if (!trimmed || trimmed.length > MAX_DISPLAY_NAME_LENGTH) return;
+  mainWindow?.setTitle(trimmed);
+});
 ipcMain.handle('control-plane:request', async (_event, request: ControlPlaneRequest) => controlPlaneRequest(request));
+
+/* Forwarded so the renderer's narrator can duck under a real screen reader rather than
+ * talking over it. `isAccessibilitySupportEnabled()` and the change event are Chromium's
+ * own signal -- set because assistive tech (Narrator, NVDA, JAWS, VoiceOver…) is present
+ * and asked for it -- not a guess this app invented. */
+ipcMain.handle('accessibility:is-screen-reader-active', () => app.isAccessibilitySupportEnabled());
+app.on('accessibility-support-changed', (_event, accessibilitySupportEnabled) => {
+  mainWindow?.webContents.send('accessibility:changed', accessibilitySupportEnabled);
+});
+
+/* Real installed-editor detection and launch (see `control-plane/editor-launch.ts`).
+ * `editors:open` never trusts the renderer for which executable to run: it re-derives
+ * the choice from the console's own persisted settings snapshot and re-runs detection,
+ * so what it spawns can never be an arbitrary renderer-supplied path. */
+ipcMain.handle('editors:detect', async () => detectInstalledEditors().map((entry) => ({ id: entry.definition.id, resolved: entry.resolved })));
+ipcMain.handle('editors:open', async (_event, target: { kind: 'file' | 'folder'; path: string }) => {
+  const kind = target?.kind === 'folder' ? 'folder' : 'file';
+  const path = typeof target?.path === 'string' ? target.path : '';
+  return openInEditor(readEditorSettingsSnapshot(userDataPath), { kind, path });
+});
+
+/* The console's application-data folder: its real path, and opening it in the platform's
+ * file manager -- Support Tickets' one real action, and the folder the external-editor
+ * "open here" action hands to the chosen editor. Always `userDataPath`, computed here;
+ * the renderer never supplies it and nothing in either channel accepts one. */
+ipcMain.handle('local-data:path', async () => userDataPath);
+ipcMain.handle('local-data:open-folder', async () => openFolderInFileManager(userDataPath));
 
 if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
   app.quit();
+} else if (!app.requestSingleInstanceLock()) {
+  /* A protocol activation launches the registered client; without the lock that is a
+   * SECOND console, which cannot see the first one's window and so cannot navigate it.
+   * The lock is taken here rather than at the top of the file on purpose: the Squirrel
+   * install/update/uninstall events above run as their own short-lived processes and must
+   * never be refused for a running console holding the lock. */
+  app.quit();
 } else {
-  app.whenReady().then(createWindow).then(scheduleUpdateChecks);
+  app.on('second-instance', (_event, argv) => {
+    revealMainWindow();
+    const route = firstDestinationRouteArgument(argv);
+    if (route) destinationRoutes.offer(route);
+  });
+  /* macOS delivers a protocol activation as an event rather than on the command line.
+   * Kept even though Windows is the only shipped target, because the alternative is a
+   * platform where the scheme is registered and silently does nothing. */
+  app.on('open-url', (event, url) => { event.preventDefault(); revealMainWindow(); destinationRoutes.offer(url); });
+  /* Held before the window exists; `did-finish-load` flushes it. */
+  const launchRoute = firstDestinationRouteArgument(process.argv);
+  if (launchRoute) destinationRoutes.offer(launchRoute);
+  app.whenReady().then(() => {
+    /* Registers `ding-pbx://` for this user (HKCU on Windows). In development the running
+     * binary is Electron itself, so the console's own entry point has to be named or the
+     * association would point at a bare Electron with no application to load. */
+    const scheme = DESTINATION_ROUTE_SCHEME.replace(':', '');
+    if (app.isPackaged) app.setAsDefaultProtocolClient(scheme);
+    else app.setAsDefaultProtocolClient(scheme, process.execPath, [join(import.meta.dirname, '../../..')]);
+  }).then(createWindow).then(scheduleUpdateChecks);
   app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 }

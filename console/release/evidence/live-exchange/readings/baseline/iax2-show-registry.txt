@@ -1,0 +1,2 @@
+Host                                           dnsmgr  Username    Perceived                                      Refresh  State
+0 IAX2 registrations.
