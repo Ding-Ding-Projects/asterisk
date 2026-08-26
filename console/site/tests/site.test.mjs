@@ -175,6 +175,57 @@ test('exposes keyboard, tab, regex, and local settings interactions', () => {
   assert.ok((everyPage.match(/class="regex-trigger"/g) || []).length >= 8);
   for (const id of ['language-mode','english-funny','cantonese-funny','vocabulary-file','attention-settings','schedule-enabled','logo-file','notification-history']) assert.match(everyPage, new RegExp(`id="${id}"`));
 });
+test('regex-mode search filters even when the search field itself is empty', () => {
+  // matchText and changelogSearch are pure (no DOM), so extract their real source
+  // straight out of the shipped file and run it -- this proves the actual shipped
+  // behaviour rather than a description of it copied into the test.
+  const matchTextSrc = js.match(new RegExp('function matchText\\(text,query,target\\)\\{[^\\n]*\\}'));
+  assert.ok(matchTextSrc, 'matchText not found in app.js');
+  const changelogSearchSrc = js.match(new RegExp('function changelogSearch\\(entries,query\\)\\{[\\s\\S]*?\\n  \\}'));
+  assert.ok(changelogSearchSrc, 'changelogSearch not found in app.js');
+  const build = new Function('regexState', `
+    ${matchTextSrc[0]}
+    ${changelogSearchSrc[0]}
+    return { matchText, changelogSearch };
+  `);
+  const regexState = new Map();
+  const { matchText, changelogSearch } = build(regexState);
+
+  // Baseline, unchanged: with no regex active an empty query still matches everything,
+  // which is what every plain-text search field on the site relies on.
+  assert.equal(matchText('anything at all', '', 'feature-search'), true);
+
+  // The defect this guards against: a user opens the regex builder from an EMPTY
+  // search field, applies a valid pattern, and the mode status says "Regular
+  // expression search active" -- but the result list stayed completely unfiltered,
+  // because `if(!query)return true` fired before the regex was ever consulted. Once
+  // regex mode is enabled for a target, the field's literal text is irrelevant; only
+  // the stored pattern governs, empty field or not.
+  regexState.set('feature-search', { pattern: '^ivr', flags: 'iu', enabled: true });
+  assert.equal(matchText('IVR menus', '', 'feature-search'), true, 'regex must match against an empty query field');
+  assert.equal(matchText('Queues & agents', '', 'feature-search'), false, 'regex must still exclude a non-match with an empty query field');
+
+  // changelogSearch used to short-circuit with its own `if(!query)return entries`
+  // before ever calling matchText, which bypassed the fix above entirely for the
+  // downloads page. Prove the whole entry set is filtered once its own regex target
+  // is active, not returned untouched because the field itself is empty.
+  regexState.set('changelog-search', { pattern: 'nonexistentpatternxyz', flags: 'iu', enabled: true });
+  const entries = [{ version: '1.0.0', changes: [{ category: 'fix', summary: 'a real change' }] }];
+  assert.deepEqual(changelogSearch(entries, ''), [], 'changelogSearch must consult its active regex even with an empty query field');
+});
+test('exporting local settings confirms with a real notification, like every other export', () => {
+  // Every other export control on the site (destinations, notifications, changelog)
+  // pairs its download(...) call with a notify(...) call so the action is confirmed
+  // somewhere a screen reader or low-vision user can actually perceive it, not only
+  // as a silent browser download. settings-export used to call download() alone.
+  // Anchored to the exact onclick body so a rename or a commented-out call fails this,
+  // not just a loose substring match.
+  assert.match(
+    js,
+    new RegExp("\\$\\('settings-export'\\)\\.onclick=\\(\\)=>\\{download\\('ding-pbx-page-settings\\.json',[^;]+\\);notify\\('Settings exported'"),
+    'settings-export must download the file and then notify(...) that it happened'
+  );
+});
 test('has accessible names and reduced motion support', () => {
   assert.match(everyPage, /class="skip-link"/); assert.match(everyPage, /aria-live="polite"/); assert.match(everyPage, /aria-label="Open notification history"/);
   assert.match(css, /prefers-reduced-motion:reduce/); assert.match(css, /min-width:320px/); assert.match(css, /:focus-visible/);

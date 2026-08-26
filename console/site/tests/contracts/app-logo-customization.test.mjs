@@ -48,7 +48,13 @@ test('loadLogo genuinely bounds file size and allowlists MIME type before accept
 test('the accepted file is stored locally with an honest "no data transmitted" status, never uploaded', () => {
   assert.match(app, /localStorage\.setItem\('ding-pbx-logo-cache',dataUrl\);/u, 'the logo cache is no longer stored in localStorage');
   assert.match(app, /No data was transmitted\./u, 'the local-only disclosure copy no longer appears');
-  assert.doesNotMatch(app, /fetch\([^)]*logo|upload.*logo/iu, 'the logo now appears to be sent over the network -- re-check the local-only claim');
+  // Bounded to one statement (no crossing a `;`) rather than an unbounded `.*`: this
+  // file is minified enough that whole unrelated functions share one physical line,
+  // so an unbounded run here matches straight through neighbouring, unrelated code
+  // that happens to contain both words -- exactly what happened when the word
+  // "Uploaded" (in a settings-export confirmation, describing local-only vocabulary,
+  // not a network call) landed on the same line as the later logo-clear wiring.
+  assert.doesNotMatch(app, /fetch\([^)]*logo|upload[^;]*logo/iu, 'the logo now appears to be sent over the network -- re-check the local-only claim');
 });
 
 test('applyLogo genuinely swaps every .brand-mark image element, and clearing removes the cache', () => {
