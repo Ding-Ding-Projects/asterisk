@@ -84,7 +84,12 @@ test('a duplicate "from" key across two replacement entries is rejected, not sil
 
 test('a validated upload is stored only in localStorage, under the documented cache key', () => {
   const body = functionBody(/^\s*async function loadVocabulary\(event\)\{/);
-  assert.match(body, /localStorage\.setItem\('ding-pbx-vocabulary-cache',JSON\.stringify\(parsed\)\)/u,
+  /* A named constant since the ticket desk landed, whose recovery panel derives the list
+   * of keys this page writes from these declarations. Pin the value as well as the use:
+   * a constant renamed to point at some other key would satisfy the use on its own. */
+  assert.match(app, /^ {2}const VOCABULARY_CACHE_KEY = 'ding-pbx-vocabulary-cache';$/mu,
+    'VOCABULARY_CACHE_KEY no longer names the documented vocabulary cache key');
+  assert.match(body, /localStorage\.setItem\(VOCABULARY_CACHE_KEY,JSON\.stringify\(parsed\)\)/u,
     'loadVocabulary no longer caches the validated vocabulary in localStorage');
   assert.doesNotMatch(body, /fetch\(|XMLHttpRequest|navigator\.sendBeacon/u,
     'loadVocabulary now performs a network call -- the local-only claim is no longer true');
@@ -98,7 +103,7 @@ test('clearing the vocabulary removes the cache and restores the original-wordin
    * returning as a dead one. */
   const line = app.split('\n').find((l) => /\bel\('vocabulary-clear'\)\.onclick=/.test(l));
   assert.ok(line, 'the vocabulary-clear click handler was not found');
-  assert.match(line, /localStorage\.removeItem\('ding-pbx-vocabulary-cache'\)/u, 'clearing no longer removes the vocabulary cache');
+  assert.match(line, /localStorage\.removeItem\(VOCABULARY_CACHE_KEY\)/u, 'clearing no longer removes the vocabulary cache');
   assert.match(line, /original wording is active/u, 'clearing no longer restores the original-wording status text');
 });
 

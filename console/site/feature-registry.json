@@ -204,9 +204,14 @@
       "files": []
     },
     "support-tickets": {
-      "state": "absent",
-      "note": "No Support Tickets surface exists on the site.",
-      "files": []
+      "state": "implemented",
+      "note": "site/app.js implements a real local ticket desk in openSupportTicket()/advanceSupportTicket()/reopenSupportTicket()/renderSupport(), stored under its own SUPPORT_KEY and reached from three routes: the Support Tickets settings card, the School-mode 'Forgotten the value?' disclosure, and documentation.html linking settings.html#support-tickets, which supportRouteFromHash() answers. It is the recovery route for the one thing this page can genuinely lock somebody out of, the restricted presentation, so it is deliberately absent from SCHOOL_SUPPRESSED. supportResolution() DERIVES the origin and the six storage keys from the constants themselves rather than restating them, and nothing here deletes anything: the page names what to clear and says plainly that clearing it is the reader's own act. The desk makes no network request of any kind. SUPPORT_DISCLOSURE is a plain constant, not a COPY key and not vocabulary-substituted, so no funny level and no uploaded vocabulary file can rewrite the one sentence that has to be true. Ticket search, bulk selection, close and export reuse the same matchText/regex builder, bulkClick/bulkSelectAll/planBulk/summariseBulk and exportRows helpers as every other list on this site.",
+      "files": [
+        "site/app.js",
+        "site/settings.html",
+        "site/documentation.html",
+        "site/styles.css"
+      ]
     },
     "unlock-ladder": {
       "state": "absent",

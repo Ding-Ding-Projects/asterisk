@@ -593,6 +593,12 @@
   // against the shipped title rather than against the previous rename's output.
   const SHIPPED_TITLE = document.title;
   const STORAGE_KEY = 'ding-pbx-pages-v2';
+  // Named rather than written inline at each use, so the ticket desk's recovery
+  // panel can DERIVE the list of keys this page writes instead of restating it.
+  // A restated list is one that drifts the day a seventh key is added, and the
+  // panel it feeds is the one place a locked-out reader is told what to clear.
+  const VOCABULARY_CACHE_KEY = 'ding-pbx-vocabulary-cache';
+  const LOGO_CACHE_KEY = 'ding-pbx-logo-cache';
   // ---- Local version history: an append-only record, isolated in its own
   // storage key so "Reset settings" never touches it. Restoring an entry
   // writes a NEW entry rather than rewriting or deleting an earlier one, so
@@ -648,7 +654,7 @@
   const state=loadState();
   function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
   function update(key,value){state[key]=value;save();applyState();recordHistory('setting-changed',`${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`${key} now uses ${value}.`),{category:'setting',copyKey:'notifSettingSaved'})}
-  function applyState(){applySchoolMode();document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyDisplayName();applyVocabulary();applyDialogEmojis();applyNarration();updateSessionTimer();updateOneThingBanner();renderAllModeStatuses();renderUpdateState()}
+  function applyState(){applySchoolMode();document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyDisplayName();applyVocabulary();applyDialogEmojis();applyNarration();updateSessionTimer();updateOneThingBanner();renderAllModeStatuses();renderUpdateState();renderSupportCopy()}
   function updateAttention(key,value){state.attention={...state.attention,[key]:value};save();applyState();recordHistory('attention-changed',`attention.${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`attention.${key} now uses ${value}.`),{category:'setting',copyKey:'notifSettingSaved'})}
   function applyLanguage(){if(!$('language-preview'))return;document.documentElement.lang=state.language==='zh'?'zh-Hant':'en';$('language-preview').textContent=state.language==='en'?'English presentation active.':state.language==='zh'?'廣東話顯示已啟用。':'Bilingual presentation active. / 雙語顯示已啟用。'}
 
@@ -672,6 +678,34 @@
       '呢個設定會留意已發佈嘅網站有冇行前咗，有就話你知，但唔會打斷你 —— 比較嘅係呢版整出嚟嗰個 build commit，唔係旁邊嗰個版本標籤。冇嘢會安裝，亦冇嘢喺背景下載：重新載入就係攞新版嘅方法。個檢查淨係向呢個網站攞一個細版本檔案，唔會送任何嘢出去。',
       '佢會幫你望住已發佈嘅網站有冇跑咗喺你面前呢版前面，有就靜靜雞講一聲，唔會彈個對話框嚇你。佢比較嘅係 build commit，唔係嗰個好聽嘅版本標籤。冇嘢安裝，冇嘢喺背景偷偷落載，重新載入就係成個升級程序。個檢查淨係向呢個網站攞一個細版本檔案，唔會送任何嘢出去。',
       '已發佈嘅網站行咗前，佢就好有禮貌噉咳一聲。佢比較 build commit，因為兩個 build 可以掛住同一個版本標籤，然後理直氣壯噉呃你。冇嘢安裝，冇嘢喺背景偷偷落載，重新載入就係成個儀式 —— 唔使坐喺度等重啟。個檢查淨係向呢個網站攞一個細細嘅版本檔案，唔會送任何嘢去任何地方、畀任何人。'
+    ]},
+    /* The desk is a joke and the joke is allowed to move with the slider. Two
+     * facts never do, at any level and in either language: a ticket stays in
+     * this browser, and the only thing that actually clears the restricted
+     * presentation is clearing this site's storage yourself. The unmissable
+     * line saying so is SUPPORT_DISCLOSURE and is deliberately NOT a COPY key,
+     * because a disclosure a funny level can rewrite is a disclosure. */
+    supportDesc:{en:[
+      'A local ticket desk for the one thing this page can lock you out of. Nothing is sent anywhere: a ticket is written to this browser, given a number, and answered by this page. The resolution is always the same, and it is the only thing that works — clear this site’s storage yourself.',
+      'A local ticket desk for the one thing this page can lock you out of. Nothing is sent anywhere — a ticket is written to this browser, given a number, and answered by this page. The resolution is always the same, and it is the only thing that actually works: clear this site’s storage yourself.',
+      'File a ticket with a support desk that is entirely inside this page. It will take your category, note your severity, give you a number and answer within milliseconds, because it is a function. Nothing is sent anywhere. The resolution is always the same one, and it is the only thing that works: clear this site’s storage yourself.',
+      'A support desk with no staff, no queue, no inbox and remarkable response times, because it is a function in the page you are reading. It will take your ticket, assign it a number, escalate it as many times as you like, and arrive at the same resolution every time — which happens to be the only thing that actually works: clear this site’s storage yourself. Nothing is sent anywhere.'
+    ],zh:[
+      '呢個係本機嘅客服櫃檯，專門處理呢版唯一鎖得住你嘅嘢。冇任何嘢會送出去：張飛只係寫入呢個瀏覽器、俾個編號你，然後由呢版自己覆你。解決方法永遠都係同一個，亦都係唯一真係有用嗰個 —— 你自己清走呢個網站嘅儲存。',
+      '呢個係本機客服櫃檯，處理呢版唯一鎖得住你嘅嘢。冇嘢會送出去 —— 張飛寫入呢個瀏覽器、俾個編號你，然後由呢版自己覆。解決方法永遠一樣，亦都係唯一真係work嗰個：你自己清走呢個網站嘅儲存。',
+      '同一個完全喺呢版入面嘅客服櫃檯開飛。佢會收你嘅分類、記低你嘅嚴重程度、派個編號，然後幾毫秒內覆你，因為佢根本就係個函數。冇嘢會送出去。解決方法永遠都係嗰一個，亦都係唯一有用嗰個：你自己清走呢個網站嘅儲存。',
+      '一個冇員工、冇排隊、冇收件匣，但回覆速度驚人嘅客服櫃檯 —— 因為佢就係你而家睇緊呢版入面嘅一個函數。佢會收你張飛、派個編號、你想升級幾多次都得，最後每次都去到同一個結論 —— 啱啱好就係唯一真係有用嗰樣：你自己清走呢個網站嘅儲存。冇任何嘢會送出去。'
+    ]},
+    supportFirstResponse:{en:[
+      'Thank you for contacting support. Your ticket has been received and recorded in this browser. A resolution is available now: clear this site’s storage.',
+      'Thank you for contacting support. Your ticket has been received and recorded in this browser, which is as far as it goes. A resolution is available right now: clear this site’s storage.',
+      'Thank you for contacting support. Your ticket has been received, logged, numbered and filed — all of it in this browser, none of it anywhere else. Good news: a resolution is already available, and it is to clear this site’s storage.',
+      'Thank you for contacting support. Your ticket has been received and escalated to the highest tier available, which is this paragraph. Our records show a resolution is already available and has been since before you wrote in: clear this site’s storage.'
+    ],zh:[
+      '多謝你聯絡客服。你張飛已經收到，並記錄喺呢個瀏覽器入面。而家已經有解決方法：清走呢個網站嘅儲存。',
+      '多謝你聯絡客服。你張飛已經收到，記錄喺呢個瀏覽器入面 —— 去到呢度就係盡頭。而家已經有解決方法：清走呢個網站嘅儲存。',
+      '多謝你聯絡客服。你張飛已經收到、記錄、派好編號同歸檔 —— 全部喺呢個瀏覽器入面，其他地方一份都冇。好消息：解決方法已經有咗，就係清走呢個網站嘅儲存。',
+      '多謝你聯絡客服。你張飛已經收到，並且升級到本櫃檯最高層級 —— 即係你而家睇緊呢段字。根據我哋嘅紀錄，解決方法喺你寫信之前已經存在：清走呢個網站嘅儲存。'
     ]},
     heroLede:{en:[
       'Ding PBX Console is a planned desktop administration experience for Asterisk. This website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
@@ -886,7 +920,7 @@
 
   function vocabularyReplacements(){
     try{
-      const raw=localStorage.getItem('ding-pbx-vocabulary-cache');
+      const raw=localStorage.getItem(VOCABULARY_CACHE_KEY);
       if(!raw)return null;
       const parsed=JSON.parse(raw);
       return Array.isArray(parsed.replacements)?parsed.replacements:null;
@@ -1297,10 +1331,389 @@
     });
   }
 
+  // ============================================================================
+  // Support Tickets.
+  //
+  // The recovery route out of the one thing this page can genuinely lock somebody
+  // out of -- the restricted presentation above -- dressed as a service desk. The
+  // bit is the point, and so is the boundary around it:
+  //
+  //   - It never deletes anything. The desktop version opens the application-data
+  //     folder and stands back; a page cannot open a folder, so this one NAMES the
+  //     exact storage keys and origin, offers them to the clipboard, and says in
+  //     plain words that clearing them is the reader's own act. Nothing here calls
+  //     removeItem, and nothing here needs the destructive-action gate, because
+  //     nothing here destroys.
+  //   - SUPPORT_DISCLOSURE is a plain constant and never a COPY key. Every other
+  //     string on this surface moves with the funny sliders; a disclosure a funny
+  //     level could rewrite would be decoration rather than a disclosure, and this
+  //     is the one line standing between a joke and somebody waiting for a reply
+  //     that was never coming.
+  //   - The restricted presentation must NOT remove it. It is the way out, and a
+  //     mode that hid its own recovery route would be a lock rather than a speed
+  //     bump. It is absent from SCHOOL_SUPPRESSED on purpose; copyText() already
+  //     renders it in plain English while the mode is on, so it goes quiet without
+  //     going away.
+  // ============================================================================
+  const SUPPORT_KEY='ding-pbx-pages-support-v1';
+  const SUPPORT_LIMIT=200;
+  const SUPPORT_DESCRIPTION_MAX=2000;
+  /* One exact sentence, rendered verbatim wherever the desk appears. Not a COPY
+   * key, not vocabulary-substituted, not styled by any level. */
+  const SUPPORT_DISCLOSURE='Nothing here is sent anywhere. No ticket exists outside this browser, no network request is made, no data is collected, and nobody is reading it. This desk is part of the page you are already on, and no one is coming.';
+  const SUPPORT_CATEGORIES=[
+    {id:'restricted-presentation',label:'I cannot turn the restricted presentation off'},
+    {id:'setting',label:'A setting on this page is not doing what it says'},
+    {id:'appearance',label:'Something on this page is unreadable, clipped or the wrong size'},
+    {id:'other',label:'Something else'}
+  ];
+  const SUPPORT_SEVERITIES=[
+    {id:'low',label:'Low'},
+    {id:'normal',label:'Normal'},
+    {id:'high',label:'High'},
+    {id:'critical',label:'Critical — everything is on fire'}
+  ];
+  /* Said beside the control rather than left implied: a severity that quietly
+   * changed nothing would be the decorative-control defect these pages refuse
+   * everywhere else. */
+  const SUPPORT_SEVERITY_NOTE='Severity is recorded exactly as you set it and changes nothing whatsoever. There is no queue for it to move you up, because there is no queue.';
+  const SUPPORT_STATUSES=['received','triaged','escalated','resolved'];
+  const SUPPORT_STATUS_LABEL={
+    received:'Received',
+    triaged:'Triaged',
+    escalated:'Escalated to the resolution team',
+    resolved:'Resolved'
+  };
+  const SUPPORT_STATUS_NOTE={
+    received:'Recorded in this browser.',
+    triaged:'Reviewed by the same function that recorded it.',
+    escalated:'Escalated to the resolution team, which is this paragraph.',
+    resolved:'Resolved. The resolution is below, and it is the one that was available before you wrote in.'
+  };
+
+  /**
+   * Every storage key this page writes, derived from the constants themselves.
+   *
+   * The recovery panel is the one place a locked-out reader is told what to clear,
+   * so a hand-copied list here would be wrong the day a seventh key is added and
+   * nothing would say so. `tests/contracts/support-tickets.test.mjs` re-derives the
+   * set from every `localStorage.setItem` in this file and refuses a mismatch.
+   */
+  function supportStorageKeys(){
+    return [STORAGE_KEY,HISTORY_KEY,SCHOOL_KEY,SUPPORT_KEY,VOCABULARY_CACHE_KEY,LOGO_CACHE_KEY];
+  }
+  function supportOrigin(){
+    try{return String(location.origin||'')}catch{return ''}
+  }
+  function supportDefaultStore(){return{schemaVersion:1,sequence:0,tickets:[]}}
+  function loadSupport(){
+    try{
+      const raw=JSON.parse(localStorage.getItem(SUPPORT_KEY)||'null');
+      if(!raw||typeof raw!=='object'||!Array.isArray(raw.tickets))return supportDefaultStore();
+      const tickets=raw.tickets.filter(item=>item&&typeof item==='object'&&typeof item.id==='string'&&SUPPORT_STATUSES.includes(item.status)).slice(0,SUPPORT_LIMIT);
+      const sequence=Number.isInteger(raw.sequence)&&raw.sequence>=0?raw.sequence:tickets.length;
+      return{schemaVersion:1,sequence,tickets};
+    }catch{return supportDefaultStore()}
+  }
+  let supportStore=loadSupport();
+  let supportSelection={anchor:undefined,selected:new Set()};
+  let lastSupportOrder=[];
+  function saveSupport(){
+    localStorage.setItem(SUPPORT_KEY,JSON.stringify({...supportStore,tickets:supportStore.tickets.slice(0,SUPPORT_LIMIT)}));
+  }
+  /** `DING-20260826-0001`. Derived from the store's own counter, so it never repeats. */
+  function supportTicketNumber(sequence,now){
+    const when=new Date(now);
+    const stamp=Number.isFinite(when.getTime())
+      ?`${when.getUTCFullYear()}${String(when.getUTCMonth()+1).padStart(2,'0')}${String(when.getUTCDate()).padStart(2,'0')}`
+      :'00000000';
+    return `DING-${stamp}-${String(sequence).padStart(4,'0')}`;
+  }
+  function supportCategoryLabel(id){const found=SUPPORT_CATEGORIES.find(item=>item.id===id);return found?found.label:id}
+  function supportSeverityLabel(id){const found=SUPPORT_SEVERITIES.find(item=>item.id===id);return found?found.label:id}
+  /**
+   * What is wrong with this form, in words that say what to do next.
+   *
+   * A bare red border tells somebody that something is wrong and nothing about
+   * which thing or what would fix it, which is the guided-forms defect this page
+   * refuses everywhere else.
+   */
+  function supportFormVerdict(form){
+    const description=String((form&&form.description)||'').trim();
+    if(!SUPPORT_CATEGORIES.some(item=>item.id===(form&&form.category))){
+      return{ok:false,field:'support-category',reason:'Choose one of the categories in the list above. Nothing was recorded.'};
+    }
+    if(!SUPPORT_SEVERITIES.some(item=>item.id===(form&&form.severity))){
+      return{ok:false,field:'support-severity',reason:'Choose one of the four severities. Nothing was recorded.'};
+    }
+    if(description===''){
+      return{ok:false,field:'support-description',reason:'Say what happened, in as few or as many words as you like. This box cannot be empty, and nothing was recorded.'};
+    }
+    if(description.length>SUPPORT_DESCRIPTION_MAX){
+      return{ok:false,field:'support-description',reason:`That is ${description.length} characters and the limit is ${SUPPORT_DESCRIPTION_MAX}. Nothing was recorded — shorten it and try again.`};
+    }
+    return{ok:true,description};
+  }
+  function openSupportTicket(form,now=Date.now()){
+    const verdict=supportFormVerdict(form);
+    if(!verdict.ok)return verdict;
+    const sequence=supportStore.sequence+1;
+    const ticket={
+      id:`t${now}-${sequence}`,
+      number:supportTicketNumber(sequence,now),
+      category:form.category,
+      severity:form.severity,
+      description:verdict.description,
+      openedAt:now,
+      status:'received',
+      updates:[{status:'received',at:now,note:copyText('supportFirstResponse')}]
+    };
+    supportStore={schemaVersion:1,sequence,tickets:[ticket,...supportStore.tickets].slice(0,SUPPORT_LIMIT)};
+    saveSupport();
+    recordHistory('support-ticket-opened',`Support ticket ${ticket.number} was opened in this browser.`);
+    notify('Ticket opened',applyVocabularyText(`${ticket.number} was written to this browser and nowhere else.`),{
+      category:'setting',
+      en:`Ticket ${ticket.number} was written to this browser and nowhere else.`,
+      zh:`張飛 ${ticket.number} 淨係寫入咗呢個瀏覽器，冇送去任何地方。`
+    });
+    return{ok:true,ticket};
+  }
+  /** One step along SUPPORT_STATUSES. Never a timer -- a status only moves when asked. */
+  function advanceSupportTicket(id,now=Date.now()){
+    const ticket=supportStore.tickets.find(item=>item.id===id);
+    if(!ticket)return{ok:false,reason:'That ticket is not in this browser.'};
+    const index=SUPPORT_STATUSES.indexOf(ticket.status);
+    if(index===SUPPORT_STATUSES.length-1)return{ok:false,reason:'That ticket is already resolved.'};
+    const next=SUPPORT_STATUSES[index+1];
+    ticket.status=next;
+    ticket.updates=[...ticket.updates,{status:next,at:now,note:SUPPORT_STATUS_NOTE[next]}];
+    saveSupport();
+    recordHistory('support-ticket-advanced',`Support ticket ${ticket.number} moved to ${SUPPORT_STATUS_LABEL[next]}.`);
+    return{ok:true,ticket};
+  }
+  /**
+   * Back to the start, appending rather than rewriting.
+   *
+   * Closing a ticket is reversible precisely so that it is not a destructive
+   * action, which is why the bulk close below needs no two-key gate. The history
+   * of statuses is kept in full; nothing is ever removed from `updates`.
+   */
+  function reopenSupportTicket(id,now=Date.now()){
+    const ticket=supportStore.tickets.find(item=>item.id===id);
+    if(!ticket)return{ok:false,reason:'That ticket is not in this browser.'};
+    if(ticket.status==='received')return{ok:false,reason:'That ticket is already open.'};
+    ticket.status='received';
+    ticket.updates=[...ticket.updates,{status:'received',at:now,note:'Reopened. Nothing was deleted; every earlier update is still listed.'}];
+    saveSupport();
+    recordHistory('support-ticket-reopened',`Support ticket ${ticket.number} was reopened.`);
+    return{ok:true,ticket};
+  }
+  /**
+   * The resolution: what to clear, where, and the plain statement that this page
+   * will not do it for you.
+   */
+  function supportResolution(){
+    const origin=supportOrigin();
+    return{
+      deletesAnything:false,
+      origin:origin||'this page’s own origin, which this browser did not report',
+      keys:supportStorageKeys(),
+      steps:[
+        'Open your browser’s settings for site data, storage, or cookies.',
+        `Find the entry for ${origin||'this site'}.`,
+        'Clear its storage for this site.',
+        'Come back and reload this page.'
+      ],
+      note:'This page does not clear anything for you, and there is no button here that will. Clearing site storage removes every key listed above — including this ticket and every other one, which is either a design flaw or the funniest part of this desk, depending on where you have set the funny level.'
+    };
+  }
+  function supportTicketText(ticket){
+    return `${ticket.number} ${supportCategoryLabel(ticket.category)} ${supportSeverityLabel(ticket.severity)} ${SUPPORT_STATUS_LABEL[ticket.status]} ${ticket.description}`;
+  }
+  function supportMatches(query){
+    return supportStore.tickets.filter(ticket=>matchText(supportTicketText(ticket),query,'support-search'));
+  }
+  function supportExportRows(){
+    return supportStore.tickets.filter(ticket=>supportSelection.selected.has(ticket.id)).map(ticket=>({
+      number:ticket.number,
+      category:supportCategoryLabel(ticket.category),
+      severity:supportSeverityLabel(ticket.severity),
+      status:SUPPORT_STATUS_LABEL[ticket.status],
+      opened:new Date(ticket.openedAt).toISOString(),
+      updates:ticket.updates.length,
+      description:ticket.description
+    }));
+  }
+  function updateSupportSelectionUI(){
+    const status=$('support-selection-status');
+    if(status)status.textContent=`${supportSelection.selected.size} selected of ${lastSupportOrder.length} shown`;
+    all('#support-list .support-ticket').forEach(row=>{
+      const checkbox=row.querySelector('input[type="checkbox"]');
+      if(checkbox)checkbox.checked=supportSelection.selected.has(row.dataset.ticketId);
+    });
+  }
+  function updateSupportExportFormats(){
+    const select=$('support-export-format');
+    if(!select)return;
+    const rows=supportExportRows();
+    const formats=suitableFormats(rows.length?rows:[{number:'',category:'',severity:'',status:'',opened:'',updates:0,description:''}]);
+    const previous=select.value;
+    select.innerHTML=formats.map(format=>`<option value="${format}">${format.toUpperCase()}</option>`).join('');
+    if(formats.includes(previous))select.value=previous;
+    if($('support-export-loss')){
+      $('support-export-loss').textContent=rows.length
+        ?describeLoss(rows,select.value||formats[0]).join(' ')
+        :'Select one or more tickets to export.';
+    }
+  }
+  function supportUpdateMarkup(update){
+    return `<li><strong>${escapeHtml(SUPPORT_STATUS_LABEL[update.status]||update.status)}</strong> <small>${escapeHtml(new Date(update.at).toLocaleString())}</small><p>${escapeHtml(update.note)}</p></li>`;
+  }
+  function supportResolutionMarkup(){
+    const resolution=supportResolution();
+    return `<div class="support-resolution"><h4>Resolution</h4><p>Clear this site’s storage in your browser. That is the whole fix, and it is the only thing that turns the restricted presentation off without the value you chose.</p><ol>${resolution.steps.map(step=>`<li>${escapeHtml(step)}</li>`).join('')}</ol><p>Origin: <code>${escapeHtml(resolution.origin)}</code></p><p>Keys this page writes:</p><ul class="support-keys">${resolution.keys.map(key=>`<li><code>${escapeHtml(key)}</code></li>`).join('')}</ul><button type="button" class="text-button" data-support-copy-keys="1">Copy the origin and key list</button><p class="support-note">${escapeHtml(resolution.note)}</p></div>`;
+  }
+  function renderSupport(query=''){
+    const list=$('support-list');
+    if(!list)return;
+    const matches=supportMatches(query);
+    lastSupportOrder=matches.map(ticket=>ticket.id);
+    supportSelection={anchor:supportSelection.anchor,selected:new Set([...supportSelection.selected].filter(id=>lastSupportOrder.includes(id)))};
+    list.innerHTML=matches.length?matches.map(ticket=>`<article class="support-ticket" data-ticket-id="${escapeHtml(ticket.id)}"><input type="checkbox" aria-label="Select ticket ${escapeHtml(ticket.number)}" ${supportSelection.selected.has(ticket.id)?'checked':''}><div class="support-body"><h3>${escapeHtml(ticket.number)}</h3><p class="support-meta">${escapeHtml(supportCategoryLabel(ticket.category))} · severity ${escapeHtml(supportSeverityLabel(ticket.severity))} · <strong>${escapeHtml(SUPPORT_STATUS_LABEL[ticket.status])}</strong></p><p class="support-description">${escapeHtml(ticket.description)}</p><ol class="support-updates">${ticket.updates.map(supportUpdateMarkup).join('')}</ol>${ticket.status==='resolved'?supportResolutionMarkup():''}<div class="support-actions"><button type="button" class="text-button" data-support-advance="${escapeHtml(ticket.id)}"${ticket.status==='resolved'?' disabled title="This ticket is already resolved; reopen it to move it again."':''}>Chase it up</button><button type="button" class="text-button" data-support-reopen="${escapeHtml(ticket.id)}"${ticket.status==='received'?' disabled title="This ticket is already open."':''}>Reopen</button></div></div></article>`).join(''):'<p class="empty-state">No tickets in this browser yet. The form above writes one, and it goes no further than this page.</p>';
+    if($('support-count'))$('support-count').textContent=`${matches.length} ticket${matches.length===1?'':'s'} of ${supportStore.tickets.length} in this browser`;
+    applyVocabulary();
+    updateSupportSelectionUI();
+    updateSupportExportFormats();
+  }
+  /**
+   * The desk's own copy, refreshed with every state change so a funny-level move
+   * or the restricted presentation reaches it live rather than at the next load.
+   */
+  function renderSupportCopy(){
+    /* The description itself rides `data-copy="supportDesc"` through applyCopy(),
+     * like every other card on the settings page. Only the two strings that must
+     * NOT move with a level are written here. */
+    /* Verbatim, and deliberately not through applyVocabularyText: a personal
+     * vocabulary file could otherwise replace "nothing is sent anywhere" with
+     * anything at all, and this is the one sentence that has to be true. */
+    all('.support-disclosure').forEach(node=>{node.textContent=SUPPORT_DISCLOSURE});
+    if($('support-severity-note'))$('support-severity-note').textContent=SUPPORT_SEVERITY_NOTE;
+  }
+  function openSupportDesk(){
+    const dialog=$('support-dialog');
+    if(!dialog)return false;
+    renderSupportCopy();
+    renderSupport($('support-search')?.value||'');
+    dialog.showModal();
+    setTimeout(()=>$('support-category')?.focus(),0);
+    return true;
+  }
+  /** The Help route: documentation.html links here, and this is what answers it. */
+  function supportRouteFromHash(hash){return String(hash||'')==='#support-tickets'}
+  function submitSupportForm(){
+    const verdict=openSupportTicket({
+      category:$('support-category')?.value,
+      severity:$('support-severity')?.value,
+      description:$('support-description')?.value
+    });
+    const feedback=$('support-form-status');
+    if(!verdict.ok){
+      if(feedback)feedback.textContent=verdict.reason;
+      $(verdict.field)?.focus?.();
+      return verdict;
+    }
+    if(feedback)feedback.textContent=`${verdict.ticket.number} was recorded in this browser. It is listed below.`;
+    if($('support-description'))$('support-description').value='';
+    renderSupport($('support-search')?.value||'');
+    return verdict;
+  }
+  function initSupport(){
+    if(!$('support-dialog'))return;
+    renderSupportCopy();
+    const categorySelect=$('support-category');
+    if(categorySelect&&!categorySelect.options?.length){
+      categorySelect.innerHTML=SUPPORT_CATEGORIES.map(item=>`<option value="${item.id}">${escapeHtml(item.label)}</option>`).join('');
+    }
+    const severitySelect=$('support-severity');
+    if(severitySelect&&!severitySelect.options?.length){
+      severitySelect.innerHTML=SUPPORT_SEVERITIES.map(item=>`<option value="${item.id}">${escapeHtml(item.label)}</option>`).join('');
+      severitySelect.value='normal';
+    }
+    $('support-open-settings')?.addEventListener('click',openSupportDesk);
+    $('support-open-recovery')?.addEventListener('click',openSupportDesk);
+    $('support-submit')?.addEventListener('click',submitSupportForm);
+    $('support-search')?.addEventListener('input',event=>renderSupport(event.target.value));
+    $('support-list')?.addEventListener('click',event=>{
+      const advance=event.target.closest?.('[data-support-advance]');
+      if(advance&&!advance.disabled){advanceSupportTicket(advance.dataset.supportAdvance);renderSupport($('support-search')?.value||'');return}
+      const reopen=event.target.closest?.('[data-support-reopen]');
+      if(reopen&&!reopen.disabled){reopenSupportTicket(reopen.dataset.supportReopen);renderSupport($('support-search')?.value||'');return}
+      if(event.target.closest?.('[data-support-copy-keys]')){copySupportKeys();return}
+      const row=event.target.closest?.('.support-ticket[data-ticket-id]');
+      if(!row)return;
+      const isCheckbox=event.target.matches?.('input[type="checkbox"]');
+      supportSelection=bulkClick(supportSelection,row.dataset.ticketId,{shift:event.shiftKey,ctrl:event.ctrlKey||event.metaKey||isCheckbox},lastSupportOrder);
+      updateSupportSelectionUI();updateSupportExportFormats();
+    });
+    $('support-select-page')?.addEventListener('click',()=>{
+      const result=bulkSelectAll(supportSelection,'page',lastSupportOrder,lastSupportOrder);
+      supportSelection=result.state;updateSupportSelectionUI();updateSupportExportFormats();
+      if($('support-selection-status'))$('support-selection-status').textContent=`Selected ${result.count} on this page.`;
+    });
+    $('support-select-matches')?.addEventListener('click',()=>{
+      const result=bulkSelectAll(supportSelection,'matches',lastSupportOrder,lastSupportOrder);
+      supportSelection=result.state;updateSupportSelectionUI();updateSupportExportFormats();
+      if($('support-selection-status'))$('support-selection-status').textContent=`Selected ${result.count} matching tickets.`;
+    });
+    $('support-select-none')?.addEventListener('click',()=>{
+      supportSelection={anchor:supportSelection.anchor,selected:new Set()};
+      updateSupportSelectionUI();updateSupportExportFormats();
+    });
+    $('support-close-selected')?.addEventListener('click',()=>{
+      const plan=planBulk('Close',[...supportSelection.selected],id=>{
+        const ticket=supportStore.tickets.find(item=>item.id===id);
+        if(!ticket)return 'no longer in this browser';
+        return ticket.status==='resolved'?'already resolved':true;
+      },{destructive:false});
+      if($('support-bulk-status'))$('support-bulk-status').textContent=summariseBulk(plan);
+      if(!plan.affected.length)return;
+      const now=Date.now();
+      for(const id of plan.affected){
+        const ticket=supportStore.tickets.find(item=>item.id===id);
+        if(!ticket)continue;
+        ticket.status='resolved';
+        ticket.updates=[...ticket.updates,{status:'resolved',at:now,note:SUPPORT_STATUS_NOTE.resolved}];
+      }
+      saveSupport();
+      recordHistory('support-tickets-closed',`${plan.affected.length} support ticket${plan.affected.length===1?'':'s'} closed in this browser.`);
+      renderSupport($('support-search')?.value||'');
+    });
+    $('support-export-format')?.addEventListener('change',updateSupportExportFormats);
+    $('support-export-selected')?.addEventListener('click',()=>{
+      const rows=supportExportRows();
+      if(!rows.length)return;
+      const format=$('support-export-format').value||'json';
+      download(exportFilename('ding-pbx-support-tickets',format,`${rows.length}-selected`),exportRows({rows,format,table:'support_ticket'}),EXPORT_MIME[format]);
+      notify('Tickets exported',applyVocabularyText(`Exported ${rows.length} selected ticket${rows.length===1?'':'s'} as ${format.toUpperCase()}.`),{
+        category:'export',
+        en:`Exported ${rows.length} selected ticket${rows.length===1?'':'s'} as ${format.toUpperCase()}.`,
+        zh:`已經匯出 ${rows.length} 張揀咗嘅飛，格式係 ${format.toUpperCase()}。`
+      });
+    });
+    renderSupport();
+    if(supportRouteFromHash(typeof location==='undefined'?'':location.hash))openSupportDesk();
+  }
+  function copySupportKeys(){
+    const resolution=supportResolution();
+    const text=`${resolution.origin}\n${resolution.keys.join('\n')}`;
+    try{navigator.clipboard?.writeText?.(text)}catch{/* a refused clipboard is not a reason to hide the list, which is on screen anyway */}
+    if($('support-copy-status'))$('support-copy-status').textContent=`Copied the origin and ${resolution.keys.length} keys. They are listed above either way.`;
+  }
+
   const DEFAULT_FAVICON='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="8" fill="#82D9A5"/><text x="50%" y="58%" font-family="monospace" font-size="22" font-weight="800" text-anchor="middle" fill="#0B0F0C">D</text></svg>');
   function applyLogo(){
     let cached=null;
-    try{cached=localStorage.getItem('ding-pbx-logo-cache')}catch{cached=null}
+    try{cached=localStorage.getItem(LOGO_CACHE_KEY)}catch{cached=null}
     all('.brand-mark').forEach(el=>{
       const img=el.querySelector('img.brand-mark-image');
       if(cached){
@@ -2376,7 +2789,7 @@
     dialog.addEventListener('close',()=>{resetConfirmFields();$('settings-reset')?.focus()});
   }
 
-  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);el('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);el('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));el('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);if($('dialog-emojis'))$('dialog-emojis').onchange=event=>update('dialogEmojis',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState();recordHistory('attention-changed','attention.currentTask changed.')};$('settings-reset').onclick=()=>{const dialog=$('reset-confirm-dialog');if(!dialog)return;resetConfirmFields();dialog.showModal()};$('settings-export').onclick=()=>download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state,restrictedPresentation:schoolExportSummary()},null,2));el('vocabulary-file').onchange=loadVocabulary;el('vocabulary-clear').onclick=()=>{localStorage.removeItem('ding-pbx-vocabulary-cache');el('vocabulary-file').value='';el('vocabulary-status').textContent='No file loaded; original wording is active.';applyVocabulary();applyState()};initDisplayName();initNarration();initSchool();$('logo-file').onchange=loadLogo;$('logo-clear').onclick=()=>{localStorage.removeItem('ding-pbx-logo-cache');$('logo-file').value='';$('logo-status').textContent='No file loaded; default mark is active.';applyLogo()};if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));initResetConfirm();initHistory()}
+  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);el('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);el('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));el('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);if($('dialog-emojis'))$('dialog-emojis').onchange=event=>update('dialogEmojis',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState();recordHistory('attention-changed','attention.currentTask changed.')};$('settings-reset').onclick=()=>{const dialog=$('reset-confirm-dialog');if(!dialog)return;resetConfirmFields();dialog.showModal()};$('settings-export').onclick=()=>download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state,restrictedPresentation:schoolExportSummary()},null,2));el('vocabulary-file').onchange=loadVocabulary;el('vocabulary-clear').onclick=()=>{localStorage.removeItem(VOCABULARY_CACHE_KEY);el('vocabulary-file').value='';el('vocabulary-status').textContent='No file loaded; original wording is active.';applyVocabulary();applyState()};initDisplayName();initNarration();initSchool();$('logo-file').onchange=loadLogo;$('logo-clear').onclick=()=>{localStorage.removeItem(LOGO_CACHE_KEY);$('logo-file').value='';$('logo-status').textContent='No file loaded; default mark is active.';applyLogo()};if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));initResetConfirm();initHistory()}
   /* One writer for every vocabulary rejection, so the rule below holds for all of them
    * rather than for whichever branch somebody remembered.
    *
@@ -2426,8 +2839,8 @@
     if(parsed.replacements.length>256)throw new Error(`this file has ${parsed.replacements.length} replacements and the limit is 256. Remove ${parsed.replacements.length-256}.`);
     const badIndex=parsed.replacements.findIndex(item=>!item||typeof item.from!=='string'||typeof item.to!=='string'||item.from.length>128||item.to.length>256);
     if(badIndex>=0){const bad=parsed.replacements[badIndex];const why=!bad||typeof bad.from!=='string'?'"from" is missing or is not a string':typeof bad.to!=='string'?'"to" is missing or is not a string':bad.from.length>128?`"from" is ${bad.from.length} characters and the limit is 128`:`"to" is ${bad.to.length} characters and the limit is 256`;throw new Error(`replacement ${badIndex+1} is not valid: ${why}. Every replacement needs bounded from and to strings.`)}
-    const keys=parsed.replacements.map(item=>item.from);const seen=new Set();const duplicate=keys.find(key=>seen.size===seen.add(key).size);if(new Set(keys).size!==keys.length)throw new Error(`Duplicate keys are not accepted; each from value must appear once. ${JSON.stringify(duplicate)} appears more than once.`);localStorage.setItem('ding-pbx-vocabulary-cache',JSON.stringify(parsed));$('vocabulary-status').textContent=`Loaded ${parsed.replacements.length} local replacement${parsed.replacements.length===1?'':'s'}. No data was transmitted.`;applyVocabulary();applyState()}catch(error){rejectVocabulary(error.message)}}
-  async function loadLogo(event){const file=event.target.files[0];if(!file)return;if(file.size>131072){rejectLogo('file exceeds 128 KiB.');return}if(!/^image\/(png|jpeg|svg\+xml)$/.test(file.type)){rejectLogo('only PNG, JPEG, or SVG images are accepted.');return}try{const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('Could not read the file.'));reader.readAsDataURL(file)});localStorage.setItem('ding-pbx-logo-cache',dataUrl);$('logo-status').textContent=`Loaded local logo (${Math.round(file.size/1024)} KiB). No data was transmitted.`;applyLogo()}catch(error){rejectLogo(error.message)}}
+    const keys=parsed.replacements.map(item=>item.from);const seen=new Set();const duplicate=keys.find(key=>seen.size===seen.add(key).size);if(new Set(keys).size!==keys.length)throw new Error(`Duplicate keys are not accepted; each from value must appear once. ${JSON.stringify(duplicate)} appears more than once.`);localStorage.setItem(VOCABULARY_CACHE_KEY,JSON.stringify(parsed));$('vocabulary-status').textContent=`Loaded ${parsed.replacements.length} local replacement${parsed.replacements.length===1?'':'s'}. No data was transmitted.`;applyVocabulary();applyState()}catch(error){rejectVocabulary(error.message)}}
+  async function loadLogo(event){const file=event.target.files[0];if(!file)return;if(file.size>131072){rejectLogo('file exceeds 128 KiB.');return}if(!/^image\/(png|jpeg|svg\+xml)$/.test(file.type)){rejectLogo('only PNG, JPEG, or SVG images are accepted.');return}try{const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('Could not read the file.'));reader.readAsDataURL(file)});localStorage.setItem(LOGO_CACHE_KEY,dataUrl);$('logo-status').textContent=`Loaded local logo (${Math.round(file.size/1024)} KiB). No data was transmitted.`;applyLogo()}catch(error){rejectLogo(error.message)}}
   function download(name,text,mime='application/json'){const link=document.createElement('a'),url=URL.createObjectURL(new Blob([text],{type:mime}));link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
   const EXPORT_MIME={json:'application/json',jsonl:'application/x-ndjson',yaml:'application/yaml',toml:'application/toml',xml:'application/xml',csv:'text/csv',tsv:'text/tab-separated-values',markdown:'text/markdown',html:'text/html',sql:'application/sql'};
   function slugForFilename(text){const slug=String(text||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);return slug||'all'}
@@ -2830,6 +3243,6 @@
     sync();
   }
 
-  function init(){ensureAttentionUI();initSchoolWatch();applyState();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initUpdates();initTimeAwareness();initMomentum();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
+  function init(){ensureAttentionUI();initSchoolWatch();applyState();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initUpdates();initSupport();initTimeAwareness();initMomentum();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
   init();
 })();

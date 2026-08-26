@@ -46,14 +46,21 @@ test('loadLogo genuinely bounds file size and allowlists MIME type before accept
 });
 
 test('the accepted file is stored locally with an honest "no data transmitted" status, never uploaded', () => {
-  assert.match(app, /localStorage\.setItem\('ding-pbx-logo-cache',dataUrl\);/u, 'the logo cache is no longer stored in localStorage');
+  /* The key is a named constant since the ticket desk landed, because that desk's recovery
+   * panel derives the list of keys this page writes rather than restating it. Both halves
+   * are pinned here: that the constant still holds this exact value, and that the store
+   * still goes through it. Checking only the second would pass on a constant quietly
+   * renamed to point somewhere else entirely. */
+  assert.match(app, /^ {2}const LOGO_CACHE_KEY = 'ding-pbx-logo-cache';$/mu,
+    'LOGO_CACHE_KEY no longer names the documented logo cache key');
+  assert.match(app, /localStorage\.setItem\(LOGO_CACHE_KEY,dataUrl\);/u, 'the logo cache is no longer stored in localStorage');
   assert.match(app, /No data was transmitted\./u, 'the local-only disclosure copy no longer appears');
   assert.doesNotMatch(app, /fetch\([^)]*logo|upload.*logo/iu, 'the logo now appears to be sent over the network -- re-check the local-only claim');
 });
 
 test('applyLogo genuinely swaps every .brand-mark image element, and clearing removes the cache', () => {
   assert.match(app, /all\('\.brand-mark'\)\.forEach\(el=>\{/u, 'applyLogo no longer iterates every .brand-mark element');
-  assert.match(app, /\$\('logo-clear'\)\.onclick=\(\)=>\{localStorage\.removeItem\('ding-pbx-logo-cache'\);/u,
+  assert.match(app, /\$\('logo-clear'\)\.onclick=\(\)=>\{localStorage\.removeItem\(LOGO_CACHE_KEY\);/u,
     'the logo-clear handler no longer removes the cached logo');
 });
 

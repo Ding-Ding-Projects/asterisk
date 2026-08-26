@@ -97,8 +97,18 @@ test('every <select> on the site is either a fixed, hard-coded option list, or o
   assert.deepEqual(withStaticOptions.sort(),
     ['cantonese-funny', 'changelog-date-preset', 'density-mode', 'english-funny', 'language-mode',
       'narration-language', 'theme-mode']);
+  /* Three more joined the empty bucket on 2026-08-26 with the Support Tickets desk, and
+   * they are the same two shapes already listed above rather than a third: support-export-
+   * format is filled from suitableFormats() over whichever tickets are selected, exactly
+   * like the other three export selects, and support-category and support-severity are
+   * filled from the in-source SUPPORT_CATEGORIES and SUPPORT_SEVERITIES lists. Those two
+   * are fixed choices and could have shipped in the markup; they are built from the
+   * constants instead so that the validator refusing an unknown value and the list
+   * offering the values cannot come to disagree -- which is checked in that feature's own
+   * contract rather than here. */
   assert.deepEqual(empty.sort(), ['changelog-export-format', 'doc-export-format', 'history-action-filter',
-    'narration-voice-en', 'narration-voice-zh', 'notif-export-format']);
+    'narration-voice-en', 'narration-voice-zh', 'notif-export-format',
+    'support-category', 'support-export-format', 'support-severity']);
 });
 
 test('the three export-format selects are populated from the fixed export-format list, never from live/user data', () => {

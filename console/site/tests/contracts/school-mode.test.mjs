@@ -296,7 +296,13 @@ function loadSchool({
     { addEventListener: (name, listener) => { windowListeners.set(name, listener); } },
   );
 
-  const copyBody = `${functionSource(app, 'copyLevel')}\n${functionSource(app, 'copyText')}\n`
+  /* `vocabularyReplacements` reads the cache through VOCABULARY_CACHE_KEY since the ticket
+   * desk landed, so the constant's own declaration is lifted out of the file and prepended
+   * rather than a copy of its value being written here -- a copy would go on satisfying
+   * this harness after the real key moved. */
+  const cacheKeyLine = app.match(/^ {2}const VOCABULARY_CACHE_KEY = '[^']+';$/mu);
+  assert.ok(cacheKeyLine, 'VOCABULARY_CACHE_KEY is no longer declared in site/app.js');
+  const copyBody = `${cacheKeyLine[0]}\n${functionSource(app, 'copyLevel')}\n${functionSource(app, 'copyText')}\n`
     + `${functionSource(app, 'vocabularyReplacements')}\n${functionSource(app, 'applyVocabularyText')}\n`
     + 'return { copyLevel, copyText, applyVocabularyText };';
   // eslint-disable-line no-new-func -- the real copy layer, wired to this block's schoolActive

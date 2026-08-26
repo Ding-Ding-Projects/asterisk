@@ -116,9 +116,17 @@ test('summariseBulk reports "nothing selected" honestly rather than a misleading
   assert.equal(summariseBulk(plan), 'Dismiss: nothing selected.');
 });
 
-test('the bulk model is wired to exactly one real surface: the notification history panel', () => {
+test('the bulk model is wired to exactly two real surfaces: the notification history panel and the ticket desk', () => {
   const src = norm(read('site/app.js'));
-  for (const [name, expectedCalls] of [['bulkClick', 1], ['bulkSelectAll', 2], ['planBulk', 1], ['summariseBulk', 1]]) {
+  /* One surface until 2026-08-26, when the Support Tickets desk became the second. Every
+   * count here doubled, which is the point of pinning them exactly: a third surface, or a
+   * call added to one of these two without a control behind it, fails here and gets
+   * explained rather than quietly widening the note. The desk's bulk action is Close
+   * rather than Dismiss and is deliberately NOT destructive -- a closed ticket can be
+   * reopened and every earlier update stays in its list -- which is why it needs no
+   * two-key gate and why summariseBulk ends its sentence with a full stop rather than
+   * "This cannot be undone." */
+  for (const [name, expectedCalls] of [['bulkClick', 2], ['bulkSelectAll', 4], ['planBulk', 2], ['summariseBulk', 2]]) {
     const total = src.split(`${name}(`).length - 1;
     const def = src.split(`function ${name}(`).length - 1;
     assert.equal(def, 1, `expected exactly one definition of ${name}`);
@@ -135,6 +143,18 @@ test('the bulk model is wired to exactly one real surface: the notification hist
   const body = src.slice(initStart, i);
   for (const call of ['bulkClick(notifSelection', "bulkSelectAll(notifSelection,'page'", "bulkSelectAll(notifSelection,'matches'", "planBulk('Dismiss'"]) {
     assert.ok(body.includes(call), `initNotificationBulk() no longer calls ${call} -- the bulk model may be disconnected from the notification panel`);
+  }
+
+  const deskStart = src.indexOf('function initSupport(){');
+  assert.ok(deskStart !== -1, 'initSupport() not found');
+  let deskDepth = 0, j = src.indexOf('{', deskStart);
+  for (; j < src.length; j += 1) {
+    if (src[j] === '{') deskDepth += 1;
+    else if (src[j] === '}') { deskDepth -= 1; if (deskDepth === 0) { j += 1; break; } }
+  }
+  const deskBody = src.slice(deskStart, j);
+  for (const call of ['bulkClick(supportSelection', "bulkSelectAll(supportSelection,'page'", "bulkSelectAll(supportSelection,'matches'", "planBulk('Close'"]) {
+    assert.ok(deskBody.includes(call), `initSupport() no longer calls ${call} -- the bulk model may be disconnected from the ticket desk`);
   }
 });
 

@@ -664,7 +664,12 @@ test('resetting the settings clears the dismissal, so applyState has to re-rende
    * again -- and would sit invisible until the next poll, up to half an hour later, if
    * applyState did not re-render it. Wired at one end and consumed at neither is this
    * repository's oldest recurring defect. */
-  assert.match(app, /updateOneThingBanner\(\);renderAllModeStatuses\(\);renderUpdateState\(\)\}/u,
+  /* The trailing `[;}]` rather than `}` since the ticket desk landed: applyState grew a
+   * `renderSupportCopy()` call after this one, and pinning the closing brace would have
+   * made this assertion a check on what happens to be LAST in applyState rather than on
+   * the watch being re-rendered at all. The order up to and including renderUpdateState
+   * is still exact. */
+  assert.match(app, /updateOneThingBanner\(\);renderAllModeStatuses\(\);renderUpdateState\(\)[;}]/u,
     'applyState no longer re-renders the watch, so a settings reset would clear the dismissal and change nothing on screen');
 });
 

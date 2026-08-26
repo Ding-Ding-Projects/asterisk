@@ -57,8 +57,27 @@ test('the site holds exactly one credential record, and it is keyed by nothing -
    * needs a credential per element, which means a map or a key built from the element.
    * Every storage key here is a fixed literal, and every credential read goes through
    * the one record's own `.secret` rather than a lookup. */
-  const keys = [...app.matchAll(/localStorage\.(?:getItem|setItem|removeItem)\('([^']+)'\)/gu)].map((m) => m[1]);
-  assert.ok(keys.length > 0, 'no localStorage keys were found at all, so this would pass vacuously');
+  /* Widened on 2026-08-26 because it had gone VACUOUS, which is exactly what the tripwire
+   * on the next line was written to catch, and duly did. Two keys became named constants
+   * when the ticket desk landed -- its recovery panel derives the key list from these
+   * declarations rather than restating it -- and the old pattern recognised only a quoted
+   * literal at the call site, so it matched nothing at all. "Matched nothing" reads
+   * exactly like "found nothing wrong". Every argument is collected now, whatever its
+   * spelling, and each must be either a quoted literal or an ALL-CAPS constant declared
+   * in this same file with a fixed literal value. That is the property this test was
+   * always about: a key fixed at authoring time cannot have been derived from an element. */
+  const args = [...app.matchAll(/localStorage\.(?:getItem|setItem|removeItem)\(([^,)]+)/gu)].map((m) => m[1].trim());
+  assert.ok(args.length > 0, 'no localStorage calls were found at all, so this would pass vacuously');
+  const keys = [];
+  for (const arg of args) {
+    if (/^'[^']+'$/u.test(arg)) { keys.push(arg.slice(1, -1)); continue; }
+    assert.match(arg, /^[A-Z][A-Z0-9_]*$/u,
+      `a storage key is now the expression ${JSON.stringify(arg)} rather than a literal or a named constant -- a per-element keyed record may exist`);
+    const declared = app.match(new RegExp(`^ {2}const ${arg} ?= ?'([^']+)';$`, 'mu'));
+    assert.ok(declared, `${arg} is used as a storage key but is not declared in site/app.js with a fixed literal value`);
+    keys.push(declared[1]);
+  }
+  assert.ok(keys.length > 0, 'no storage keys were resolved at all, so this would pass vacuously');
   const built = [...app.matchAll(/localStorage\.(?:getItem|setItem|removeItem)\(`([^`]*)`\)/gu)];
   assert.deepEqual(built.map((m) => m[0]), [],
     'a storage key is now built from a template rather than being a fixed literal -- a per-element keyed record may exist');

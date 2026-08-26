@@ -254,7 +254,7 @@ const cases = [
   // A reset clears the dismissal and then nothing re-renders, so a banner somebody has
   // just been given back stays invisible until the next poll half an hour later.
   ['applyState stops re-rendering the watch, so a settings reset changes nothing on screen',
-    swap(APP, 'renderAllModeStatuses();renderUpdateState()}', 'renderAllModeStatuses()}')],
+    swap(APP, 'renderAllModeStatuses();renderUpdateState();renderSupportCopy()}', 'renderAllModeStatuses();renderSupportCopy()}')],
 
   ['the reset gate stops naming the dismissal it clears',
     swap(SETTINGS, ', and any published-version banner you set aside with Later', '')],
