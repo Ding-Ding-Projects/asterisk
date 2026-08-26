@@ -4,6 +4,10 @@
 
 Open sessions, their questions and reply state. The ingest token lives in the trusted process and is never shown in this window. It is backed by `status-hub`. The rail badge on this destination currently reads `3`. It lives on the Agent rail, under the Agent global memory group: Memory, sync, skills, hub sessions and the emission guard.
 
+## What this screen reads
+
+Nothing yet, and the reason is specific enough to be worth naming: the status-hub client module exists in this console and is covered by its own tests, and no surface a person can reach calls it. Until that changes there is no session, no question and no reply state to list here — so the table says that rather than blaming a missing phone system, which would have nothing to do with it.
+
 ## Configuration
 
 ### Session policy

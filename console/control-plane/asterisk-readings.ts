@@ -221,6 +221,24 @@ export interface Registration {
   status: string;
 }
 
+/**
+ * One PJSIP authentication object, from `pjsip show auths` -- see `parsePjsipAuths` for
+ * the exact format string and for why this console reads the plural form and never the
+ * singular one.
+ *
+ * This is the object an endpoint's `auth=` or `outbound_auth=` names, i.e. the thing a
+ * trunk actually authenticates with. It carries no credential and never will: the two
+ * fields below are the only two the command prints.
+ */
+export interface PjsipAuth {
+  /** The `[section]` name in pjsip.conf, which is what `auth=`/`outbound_auth=` refer to. */
+  id: string;
+  /** `auth->auth_user`, the `username=` this object presents. Empty string when the
+   *  object sets none -- Asterisk prints the trailing slash with nothing after it, and an
+   *  auth object with no username is a real (and broken) configuration worth seeing. */
+  username: string;
+}
+
 export interface QueueSummary {
   name: string;
   strategy: string;
@@ -407,6 +425,13 @@ export class AsteriskReadings {
 
   registrations(target: TargetProfile, signal?: AbortSignal): Promise<Reading<Registration[]>> {
     return this.#read(target, "pjsip show registrations", parseRegistrations, signal);
+  }
+
+  /** Every PJSIP authentication object configured on the target -- the objects an
+   *  endpoint's `auth=`/`outbound_auth=` names. See `parsePjsipAuths` for why the plural
+   *  command is the only one this console will run. */
+  auths(target: TargetProfile, signal?: AbortSignal): Promise<Reading<PjsipAuth[]>> {
+    return this.#read(target, "pjsip show auths", parsePjsipAuths, signal);
   }
 
   queues(target: TargetProfile, signal?: AbortSignal): Promise<Reading<QueueSummary[]>> {
@@ -655,6 +680,45 @@ export function parseRegistrations(stdout: string): Registration[] {
     const match = /^\s*(\S+)\/(\S+)\s{2,}\S+\s{2,}(\S.*?)\s*$/u.exec(line);
     if (!match) continue;
     rows.push({ id: match[1], serverUri: match[2], status: match[3] });
+  }
+  return rows;
+}
+
+/**
+ * `pjsip show auths` — one configured PJSIP authentication object per line.
+ *
+ * `res/res_pjsip/config_auth.c` `cli_print_body` (line 686) writes exactly:
+ *
+ *     ast_str_append(&context->output_buffer, 0, "%*s:  %s/%s\n",
+ *         CLI_INDENT_TO_SPACES(context->indent_level), title,
+ *         ast_sorcery_object_get_id(auth), auth->auth_user);
+ *
+ * with `title` built one line above as `"%sAuth"` from `context->auth_direction`. That
+ * direction is only ever set while recursing underneath an endpoint, so the container
+ * walk this command performs prints a bare `Auth:` on every line. The header
+ * (`cli_print_header`, line 668) is the only line carrying angle brackets and is skipped
+ * the same way `parseRegistrations` above skips its own.
+ *
+ * **Why the plural command and never `pjsip show auth <id>`.** `pjsip show auths` ends in
+ * "s", so `ast_sip_cli_traverse_objects` (`res/res_pjsip/pjsip_cli.c` line 147) treats it
+ * as a container and line 151 leaves `show_details_only_level_0` at 0 — the detail branch
+ * in `cli_print_body` never runs and `ast_sip_cli_print_sorcery_objectset` is never
+ * reached. The singular form *does* reach it, and `password`, `md5_cred`, `oauth_secret`
+ * and `refresh_token` are all registered sorcery fields on this object
+ * (`config_auth.c` lines 743-760), so the singular form prints real credentials in
+ * plain text. This console must never run it, and `READ_ONLY_OBJECT_COMMANDS` above
+ * deliberately does not carry it.
+ *
+ * The id is split off at the FIRST slash: the format puts the sorcery id before the
+ * username, and a username is far likelier to contain a slash than a `[section]` name is.
+ */
+export function parsePjsipAuths(stdout: string): PjsipAuth[] {
+  const rows: PjsipAuth[] = [];
+  for (const line of lines(stdout)) {
+    if (/[<>]/u.test(line)) continue;
+    const match = /^\s*Auth:\s{2,}([^/\s]+)\/(\S*)\s*$/u.exec(line);
+    if (!match) continue;
+    rows.push({ id: match[1], username: match[2] });
   }
   return rows;
 }

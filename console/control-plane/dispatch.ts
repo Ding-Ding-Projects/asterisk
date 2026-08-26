@@ -212,6 +212,16 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       return { registrations, iaxRegistrations };
     }
     if (view === 'iaxpeers') return { iaxPeers: await readings.iaxPeers(target) };
+    /* The trunk-authentication screen. Registrations are read alongside the auth objects
+     * so the screen can say which outbound registration exists at all on this target --
+     * the two together are what "this trunk authenticates as X" is made of. Neither
+     * command prints a credential; see `parsePjsipAuths` for the one that would. */
+    if (view === 'trunkauth') {
+      const [auths, registrations] = await Promise.all([
+        readings.auths(target), readings.registrations(target),
+      ]);
+      return { auths, registrations };
+    }
     if (view === 'queues') return { queues: await readings.queues(target) };
     if (view === 'canvas') return { dialplan: await dialplanReadings.graph(target) };
     if (view === 'modules') return { modules: await readings.modules(target) };

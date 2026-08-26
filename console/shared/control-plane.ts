@@ -57,7 +57,11 @@ export type PbxReadView =
   | 'about' | 'cli'
   /* IAX2 peers -- `iax2 show peers`, the live counterpart to iax.conf's own peer/friend
    * sections, exactly as `endpoints` reads `pjsip show endpoints` alongside pjsip.conf. */
-  | 'iaxpeers';
+  | 'iaxpeers'
+  /* Trunk authentication -- `pjsip show auths`, the objects a trunk's `auth=`/
+   * `outbound_auth=` actually names. Deliberately the plural command: the singular
+   * `pjsip show auth <id>` prints the credential itself. See `parsePjsipAuths`. */
+  | 'trunkauth';
 
 export interface ControlPlaneRequest {
   requestId: string;

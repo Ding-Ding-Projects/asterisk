@@ -25,6 +25,10 @@ export interface EndpointDetail { transport?: string; codecs?: string[] }
 export interface EndpointDetailSet { byEndpoint: Record<string, EndpointDetail>; notRead: string[] }
 export interface Contact { aor: string; uri: string; status: string; roundTripMs?: number }
 export interface Registration { id: string; serverUri: string; status: string }
+/** `pjsip show auths` -- see `control-plane/asterisk-readings.ts` `parsePjsipAuths` for the
+ *  exact format string, and for why the singular `pjsip show auth <id>`, which would print
+ *  this object's password in plain text, is never run by this console. */
+export interface PjsipAuth { id: string; username: string }
 /** `iax2 show peers` -- see `control-plane/asterisk-readings.ts` `parseIax2Peers` for the
  *  exact format string and why `name` already has any CLI-appended `/<username>` split off. */
 export interface IaxPeer { name: string; host: string; dynamic: boolean; trunk: boolean; status: string }
@@ -60,6 +64,8 @@ export interface ViewReadings {
   endpointDetails?: Reading<EndpointDetailSet>;
   contacts?: Reading<Contact[]>;
   registrations?: Reading<Registration[]>;
+  /** `pjsip show auths`, read for the `trunkauth` view. */
+  auths?: Reading<PjsipAuth[]>;
   iaxRegistrations?: Reading<IaxRegistration[]>;
   iaxPeers?: Reading<IaxPeer[]>;
   queues?: Reading<QueueSummary[]>;
@@ -126,6 +132,7 @@ export const TABLE_DESTINATION_READERS: Record<string, boolean> = {
 export const READABLE_VIEWS: PbxReadView[] = [
   'dash', 'live', 'endpoints', 'trunks', 'iaxpeers', 'queues', 'modules',
   'voicemail', 'confbridge', 'moh', 'codecs', 'security', 'cdr', 'logger', 'ami', 'about', 'cli',
+  'trunkauth',
 ];
 
 export const isReadable = (screen: string): screen is PbxReadView =>

@@ -5,6 +5,10 @@ import {
   badgeFor, dashboardStats, formatDuration, healthBars, isReadable, reasonFor, regexMatchLabel, rowsFor, serverRows, valueOf,
   type ViewReadings,
 } from './readings';
+import {
+  AGENT_RAIL_SOURCES, isAgentRailScreen, releaseNote, releaseRows, vocabularyNote,
+} from './agent-rail';
+import { trunkAuthNote } from './trunk-auth';
 import { canvasReason, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
 import {
   blameRows as historyBlameRows, commitCountLabel, commitRows as historyCommitRows, compareLabel as historyCompareLabel,
@@ -215,13 +219,12 @@ const HISTORY_EMPTY =
   'The console’s own local history repository was just read and is genuinely empty: nothing that changes ' +
   'an endpoint, a queue, or another record calls into this store yet, so there is nothing to show.';
 
-const NO_MEMORY =
-  'This console has no local agent-memory store wired in. There is no memory corpus to search, sync, or ' +
-  'attest, so this screen stays empty rather than showing invented records.';
-
-const NO_AUTH_REQUESTS =
-  'There is no partner-request channel wired into this console. No trunk partner can reach it to ask for a ' +
-  'change, so there is nothing pending or answered to show.';
+/* The agent rail's own seven reasons used to be one constant here (`NO_MEMORY`, covering
+ * the Memory console) with the other six falling through to the PBX branch below and
+ * reporting "No target is connected" — true, irrelevant, and read by anybody looking at
+ * the Skills registry as "discover a phone system and this will fill in". It will not.
+ * They now live in `agent-rail.ts`, one per destination, and the trunk-authentication
+ * screen's own reason lives in `trunk-auth.ts` beside the real reading that joins it. */
 
 /** Exactly the extensions `MediaLibrary#ALLOWED_EXTENSIONS` accepts, so the native file
  *  picker for the Sound prompts screen never offers a choice the target would refuse. */
@@ -3912,14 +3915,22 @@ It is shown once. The phone needs it to register.`);
        * only `acl show`'s bare list of ACL names (see `parseAclRules`). The real rules
        * live in `acl.conf` itself, read through the same structured `pbx.config` transport
        * every configuration screen already uses (`this.configs.security`, populated by
-       * `refresh()` below from `resourceForFile(SCREENS.security.file)`). */
+       * `refresh()` below from `resourceForFile(SCREENS.security.file)`).
+       *
+       * Operations & releases is a third of the same kind and the only one on the agent
+       * rail with a real source at all: its rows are this build's own bundled release
+       * history (`agent-rail.ts` `releaseRows`), which is a build-time constant and exists
+       * whether or not any target was ever discovered. Feeding it from `readings` -- which
+       * is what it did -- left it permanently empty on a rail that never reads a target. */
       table.rows = id === 'servers'
         ? serverRows(this.servers.servers)
         : id === 'security'
           ? aclRuleRows(this.aclConfigValue())
           : id === 'sounds'
             ? promptRows(this.promptFiles)
-            : rowsFor(screen, this.readings[screen]);
+            : id === 'ops'
+              ? this.releaseRows()
+              : rowsFor(screen, this.readings[screen]);
     }
   }
 
@@ -4800,13 +4811,47 @@ It is shown once. The far end needs it to register.`);
     );
   };
 
+  /**
+   * The Operations & releases table, parsed once from this build's own bundled tag
+   * history.
+   *
+   * Cached because the markdown cannot change while the console is running — it is a
+   * build-time constant — so re-parsing it on every render would be work with no possible
+   * different answer, and `note()` and `applyRows()` both want it on the same pass.
+   */
+  private cachedReleaseRows: string[][] | undefined;
+
+  private releaseRows(): string[][] {
+    this.cachedReleaseRows ??= releaseRows(CHANGELOG_MARKDOWN);
+    return this.cachedReleaseRows;
+  }
+
+  /**
+   * What an agent-rail screen says, from `agent-rail.ts`'s hand-written record.
+   *
+   * Two of the seven have a real local source and read it here rather than returning a
+   * fixed sentence: Operations reports the release history actually bundled into this
+   * build, and Vocabulary reports whether a dictionary is genuinely loaded. The other five
+   * return the exact store that does not exist.
+   */
+  private agentRailNote(screen: string): string {
+    if (screen === 'ops') return releaseNote(this.releaseRows());
+    if (screen === 'vocab') return vocabularyNote(vocabularyStatus(this.vocabStorage).replacementCount);
+    return AGENT_RAIL_SOURCES[screen].reason;
+  }
+
   private note(screen: string): string {
     if (screen === 'history') {
       if (this.historyReading === undefined) return NO_HISTORY;
       return this.historyReading.entries.length > 0 ? '' : HISTORY_EMPTY;
     }
-    if (screen === 'memory') return NO_MEMORY;
-    if (screen === 'trunkauth') return NO_AUTH_REQUESTS;
+    /* Both of these come before the `target.connected` branch on purpose. Neither reads a
+     * PBX for the thing it is short of: the agent rail reads no target at all, and the
+     * trunk-authentication screen's empty inbox is a fact about this console rather than
+     * about any target, so answering either with "No target is connected" would name a
+     * cause that is not the cause. */
+    if (isAgentRailScreen(screen)) return this.agentRailNote(screen);
+    if (screen === 'trunkauth') return trunkAuthNote(this.readings.trunkauth, this.target.connected, this.target.detail);
     if (!this.target.connected) return `No target is connected — ${this.target.detail}.`;
     if (screen === 'sounds') {
       if (this.promptState === 'unavailable') {
