@@ -329,12 +329,19 @@ export function checkLedger(ledger, readCapture) {
  * The one configuration fixture, and the reading each section exists to give rows to.
  *
  * Two shapes are deliberately avoided here, both for the same measured reason:
- * `renderConfigOver` keys the desired value by section name, so two sections sharing a name
- * collapse into the last one. The aor is therefore `<endpoint>-aor` rather than sharing the
- * endpoint's name -- the pattern nearly every real pjsip.conf uses -- and the `register =>`
+ * `renderConfigOver` used to key the desired value by section name, so two sections sharing a
+ * name collapsed into the last one. The aor is therefore `<endpoint>-aor` rather than sharing
+ * the endpoint's name -- the pattern nearly every real pjsip.conf uses -- and the `register =>`
  * line is merged into `iax.conf`'s existing `[general]` by `mergeFixture` below rather than
- * added as a second section called `general`. See the ledger's `findings` for what happens
- * when it is not routed around.
+ * added as a second section called `general`. See the ledger's `findings` for what happened
+ * when it was not routed around.
+ *
+ * That collapse is repaired: `renderConfigOver` now matches sections occurrence by occurrence
+ * and round-trips a repeated name byte for byte, held by the tests in
+ * `tests/control-plane/config-round-trip.test.ts`. The fixture is left as it was captured
+ * regardless, because the committed captures were taken under this shape and rewriting the
+ * fixture without re-running it against a live target would describe a run that never
+ * happened. Widening it belongs to the next capture pass.
  */
 export function fixtureSections() {
   const e = (key, value, separator) => (separator ? { key, value, separator } : { key, value });
@@ -391,19 +398,24 @@ export function fixtureSections() {
  *
  * A fixture section whose name the file already has is appended to that section's entries; a
  * name the file does not have becomes a new section at the end. Refuses outright rather than
- * writing when the file it is given already contains a duplicate name, because the write path
- * cannot represent one and the honest outcome there is to say so by name rather than to
- * discover it three steps later as `Post-read mismatch`.
+ * writing when the file it is given already contains a duplicate name.
+ *
+ * That refusal was originally there because the write path could not represent a repeated
+ * name at all. It can now, so the refusal is no longer a defect being routed around -- it is
+ * what keeps this fold unambiguous. With a name appearing twice, "append these entries to
+ * that section" has two answers and this function has no basis for choosing between them,
+ * and quietly picking one would put fixture rows somewhere the ledger does not describe.
+ * Saying so by name still beats discovering it three steps later as `Post-read mismatch`.
  */
 export function mergeFixture(existing, additions) {
   const names = existing.map((section) => section.name);
   const duplicated = names.filter((name, index) => names.indexOf(name) !== index);
   if (duplicated.length > 0) {
-    throw new Error(`This file already repeats the section name(s) ${[...new Set(duplicated)].join(', ')}, which the write path collapses. Nothing was written.`);
+    throw new Error(`This file already repeats the section name(s) ${[...new Set(duplicated)].join(', ')}, so which of them the fixture should be folded into is ambiguous. Nothing was written.`);
   }
   const fixtureNames = additions.map((section) => section.name);
   if (new Set(fixtureNames).size !== fixtureNames.length) {
-    throw new Error('The fixture itself repeats a section name, which the write path collapses.');
+    throw new Error('The fixture itself repeats a section name, so the section each addition belongs to is ambiguous.');
   }
   const merged = existing.map((section) => {
     const addition = additions.find((candidate) => candidate.name === section.name);

@@ -280,6 +280,26 @@ export function renderConfig(value: ConfigValue): string {
  * Repeated keys are matched by position within the key, not by name alone, because these
  * files legitimately repeat one -- several `allow=` lines, many `exten =>` lines -- and
  * matching by name alone would collapse them into the first.
+ *
+ * Repeated *section names* are matched the same way, occurrence by occurrence, for the same
+ * reason and against a worse failure. Keying the desired value by section name alone kept
+ * only the last section of each name, so the shape nearly every real `pjsip.conf` uses --
+ * `[6001] type=endpoint` followed by `[6001] type=aor` -- could not be written at all. An
+ * *unchanged* round trip of it rendered `type = endpoint` as `type = aor`, deleted `context`
+ * and `allow`, and moved `max_contacts` into the first section; parsed entry counts went
+ * from `[3, 2]` to `[2, 2]`. It failed safe, because the transaction's post-read found the
+ * result unequal to the desired value and rolled the write back -- so the cost was not a
+ * damaged file but a resource this console could never write, and an operator told
+ * `Post-read mismatch`, which names nothing about repeated sections. Measured against a live
+ * Asterisk; `docs/evidence/live-readings.md`.
+ *
+ * Occurrence matching is positional, and that is a real limitation rather than a complete
+ * answer: a section carries no identity beyond its name and where it sits, so deleting the
+ * *first* `[6001]` and keeping the second is indistinguishable from editing the first into
+ * the second. The surviving section is rendered over the first block's text, which keeps that
+ * block's comments rather than the second's. The configuration written is correct; which
+ * comments travel with it is decided by position, exactly as it already is for a repeated
+ * key.
  */
 export function renderConfigOver(desired: ConfigValue, originalText: string): string {
   /* Split on the newline alone, so a carriage return rides along inside the line and a
@@ -287,24 +307,40 @@ export function renderConfigOver(desired: ConfigValue, originalText: string): st
    * both and rejoining with one silently rewrites every line in a file it was asked not
    * to touch. */
   const originalLines = originalText.split(String.fromCharCode(10));
-  const wanted = new Map<string, ReadonlyArray<{ key: string; value: string; separator?: ConfigSeparator }>>();
-  for (const section of desired) wanted.set(section.name, section.entries);
+  type Entries = ReadonlyArray<{ key: string; value: string; separator?: ConfigSeparator }>;
+
+  /* One ordered list of entry-lists per name, so the nth `[name]` in the original lines up
+   * with the nth desired section of that name. A plain `Map<string, Entries>` here is what
+   * collapsed a repeated name into its last occurrence. */
+  const wanted = new Map<string, Entries[]>();
+  for (const section of desired) {
+    const occurrences = wanted.get(section.name);
+    if (occurrences) occurrences.push(section.entries);
+    else wanted.set(section.name, [section.entries]);
+  }
 
   /* How many of each key have been consumed in the section being walked, so a repeated key
    * lines up with the right one rather than always with the first. */
   const consumed = new Map<string, number>();
   const emitted: string[] = [];
-  const seenSections: string[] = [];
+  /* How many times each section name has been seen in the original so far. Counts a header
+   * whether or not its section is kept, because it is answering "did the original have an
+   * nth block of this name" rather than "was it written back". */
+  const seenOccurrences = new Map<string, number>();
   let sectionName: string | undefined;
+  let sectionEntries: Entries | undefined;
   let sectionKept = true;
+  /* An entry before the first header parses into a section named "", and there can only be
+   * one such region, so it claims that name's first occurrence -- lazily, so that a file
+   * which has no such region leaves the occurrence for a literal `[]` header to take. */
+  let leadingRegionClaimed = false;
 
-  const entryFor = (name: string, key: string) => {
-    const entries = wanted.get(name);
+  const entryFor = (key: string) => {
     const index = consumed.get(key) ?? 0;
     consumed.set(key, index + 1);
-    if (!entries) return undefined;
+    if (!sectionEntries) return undefined;
     let seen = 0;
-    for (const entry of entries) {
+    for (const entry of sectionEntries) {
       if (entry.key !== key) continue;
       if (seen === index) return entry;
       seen += 1;
@@ -312,8 +348,7 @@ export function renderConfigOver(desired: ConfigValue, originalText: string): st
     return undefined;
   };
 
-  const flushNewEntries = (name: string) => {
-    const entries = wanted.get(name);
+  const flushNewEntries = (entries: Entries | undefined) => {
     if (!entries) return;
     const used = new Map<string, number>();
     for (const entry of entries) {
@@ -328,10 +363,12 @@ export function renderConfigOver(desired: ConfigValue, originalText: string): st
     const line = rawLine.trim();
 
     if (line.startsWith("[") && line.endsWith("]")) {
-      if (sectionName !== undefined && sectionKept) flushNewEntries(sectionName);
+      if (sectionName !== undefined && sectionKept) flushNewEntries(sectionEntries);
       sectionName = line.slice(1, -1).trim();
-      seenSections.push(sectionName);
-      sectionKept = wanted.has(sectionName);
+      const occurrence = seenOccurrences.get(sectionName) ?? 0;
+      seenOccurrences.set(sectionName, occurrence + 1);
+      sectionEntries = wanted.get(sectionName)?.[occurrence];
+      sectionKept = sectionEntries !== undefined;
       consumed.clear();
       if (sectionKept) emitted.push(rawLine);
       continue;
@@ -345,11 +382,17 @@ export function renderConfigOver(desired: ConfigValue, originalText: string): st
       continue;
     }
 
+    if (sectionName === undefined && !leadingRegionClaimed) {
+      leadingRegionClaimed = true;
+      seenOccurrences.set("", 1);
+      sectionEntries = wanted.get("")?.[0];
+    }
+
     const arrow = line.charAt(equals + 1) === ">";
     const key = line.slice(0, equals).trim();
     const value = line.slice(equals + (arrow ? 2 : 1)).trim();
     const separator: ConfigSeparator = arrow ? "=>" : "=";
-    const match = entryFor(sectionName ?? "", key);
+    const match = entryFor(key);
 
     if (!match) continue;
     if (match.value === value && (match.separator ?? "=") === separator) {
@@ -359,11 +402,16 @@ export function renderConfigOver(desired: ConfigValue, originalText: string): st
     emitted.push(`${match.key} ${match.separator ?? separator} ${match.value}`);
   }
 
-  if (sectionName !== undefined && sectionKept) flushNewEntries(sectionName);
+  if (sectionName !== undefined && sectionKept) flushNewEntries(sectionEntries);
 
-  /* Sections the original never had. Rendered plainly; there is no prior text to keep. */
+  /* Occurrences the original never had: a name it does not use at all, and the extra
+   * occurrences of a name the desired value uses more times than the original does.
+   * Rendered plainly; there is no prior text to keep. */
+  const appended = new Map<string, number>();
   for (const section of desired) {
-    if (seenSections.includes(section.name)) continue;
+    const occurrence = appended.get(section.name) ?? 0;
+    appended.set(section.name, occurrence + 1);
+    if (occurrence < (seenOccurrences.get(section.name) ?? 0)) continue;
     emitted.push("");
     if (section.name.length > 0) emitted.push(`[${section.name}]`);
     for (const entry of section.entries) {
