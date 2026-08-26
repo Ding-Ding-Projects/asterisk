@@ -1,0 +1,2 @@
+Hostname                  Port  Period  Retries  Status  ExternAddr       ExternPort
+(null)                    0     30      3        INIT    0.0.0.0          0

@@ -1,0 +1,8 @@
+
+ <Registration/ServerURI..............................>  <Auth....................>  <Status.......>
+==========================================================================================
+
+ ding-live-probe-registration/sip:127.0.0.1:5099         ding-live-probe-auth        Unregistered      (exp. 4s)
+
+Objects found: 1
+

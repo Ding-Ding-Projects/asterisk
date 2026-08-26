@@ -62,3 +62,11 @@ console/release/captures/ui-drive/**/*.png   binary
 # nothing wrong with the file -- the same failure the generated parity data is pinned against,
 # except here the mismatch reads as a tampered dependency rather than a stale generator.
 console/design-reference/vendor/*   binary
+
+# Live Asterisk CLI captures. These are the exact bytes a Linux Asterisk printed, and
+# `live-readings.mjs --check` re-hashes every one of them and re-runs the production parser
+# over it. A checkout that translated them to CRLF would change every recorded hash and shift
+# every fixed-width column the voicemail and IAX2 parsers slice by, so the gate would go red
+# on a fresh Windows clone with nothing wrong with the evidence -- and a reader would have no
+# way to tell that from tampering. Pinned for the same reason the parity data above is.
+console/release/evidence/live-exchange/readings/**   text eol=lf

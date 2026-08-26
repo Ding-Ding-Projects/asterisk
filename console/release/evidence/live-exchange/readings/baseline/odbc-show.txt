@@ -1,0 +1,1 @@
+No such command 'odbc show' (type 'core show help odbc show' for other possible commands)

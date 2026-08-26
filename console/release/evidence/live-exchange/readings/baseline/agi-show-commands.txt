@@ -1,0 +1,48 @@
+ Dead                        Command   Description
+   No                         answer   Answer channel 
+  Yes                 asyncagi break   Interrupts Async AGI 
+   No                 channel status   Returns status of the connected channel. 
+  Yes                   database del   Removes database key/value 
+  Yes               database deltree   Removes database keytree/value 
+  Yes                   database get   Gets database value 
+  Yes                   database put   Adds/updates database value 
+  Yes                           exec   Executes a given Application 
+   No                       get data   Prompts for DTMF on a channel 
+  Yes              get full variable   Evaluates a channel expression 
+   No                     get option   Stream file, prompt for DTMF, with timeout. 
+  Yes                   get variable   Gets a channel variable. 
+   No                         hangup   Hangup a channel. 
+  Yes                           noop   Does nothing. 
+   No                   receive char   Receives one character from channels supporting it. 
+   No                   receive text   Receives text from channels supporting it. 
+   No                    record file   Records to a given file. 
+   No                      say alpha   Says a given character string. 
+   No                     say digits   Says a given digit string. 
+   No                     say number   Says a given number. 
+   No                   say phonetic   Says a given character string with phonetics. 
+   No                       say date   Says a given date. 
+   No                       say time   Says a given time. 
+   No                   say datetime   Says a given time as specified by the format given. 
+   No                     send image   Sends images to channels supporting it. 
+   No                      send text   Sends text to channels supporting it. 
+   No                 set autohangup   Autohangup channel in some time. 
+   No                   set callerid   Sets callerid for the current channel. 
+   No                    set context   Sets channel context. 
+   No                  set extension   Changes channel extension. 
+   No                      set music   Enable/Disable Music on hold generator 
+   No                   set priority   Set channel dialplan priority. 
+  Yes                   set variable   Sets a channel variable. 
+   No                    stream file   Sends audio file on channel. 
+   No            control stream file   Sends audio file on channel and allows the listener to control the stream. 
+   No                       tdd mode   Toggles TDD mode (for the deaf). 
+  Yes                        verbose   Logs a message to the asterisk verbose log. 
+   No                 wait for digit   Waits for a digit to be pressed. 
+   No                  speech create   Creates a speech object. 
+   No                     speech set   Sets a speech engine setting. 
+  Yes                 speech destroy   Destroys a speech object. 
+   No            speech load grammar   Loads a grammar. 
+  Yes          speech unload grammar   Unloads a grammar. 
+   No        speech activate grammar   Activates a grammar. 
+   No      speech deactivate grammar   Deactivates a grammar. 
+   No               speech recognize   Recognizes speech. 
+   No                          gosub   Cause the channel to execute the specified dialplan subroutine. 

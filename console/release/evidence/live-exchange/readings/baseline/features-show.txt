@@ -1,0 +1,16 @@
+Builtin Feature           Default Current
+---------------           ------- -------
+Pickup                    *8      *8     
+Blind Transfer            #       #      
+Attended Transfer                        
+Disconnect Call           *       *      
+Park Call                                
+One Touch MixMonitor                     
+
+Dynamic Feature           Default Current
+---------------           ------- -------
+(none)
+
+Feature Groups:
+---------------
+(none)

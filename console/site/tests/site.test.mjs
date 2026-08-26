@@ -233,7 +233,13 @@ test('build composes deterministic local output without fetches', async () => {
   // statusCell to a font weight the built application inherits and the design does not, and
   // records the two hypotheses that were falsified on the way to it.
   // One article in, one HTML page out.
-  assert.equal(manifest.outputFiles.length, 190);
+  // 191 from 2026-08-26, for a fourth evidence record:
+  // docs/evidence/live-readings.md, which records every one of the console's 27 readings run
+  // against a running Asterisk through the production read path, the fixture written through the
+  // production write path so twelve of them were verified against real rows rather than against
+  // an empty exchange, and the three defects that exercise turned up.
+  // One article in, one HTML page out.
+  assert.equal(manifest.outputFiles.length, 191);
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');

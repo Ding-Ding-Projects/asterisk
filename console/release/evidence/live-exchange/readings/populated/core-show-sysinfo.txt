@@ -1,0 +1,12 @@
+
+System Statistics
+-----------------
+  System Uptime:             13 hours
+  Total RAM:                 32761524 KiB
+  Free RAM:                  30445908 KiB
+  Buffer RAM:                51408 KiB
+  Total Swap Space:          8388608 KiB
+  Free Swap Space:           8388608 KiB
+
+  Number of Processes:       687 
+
