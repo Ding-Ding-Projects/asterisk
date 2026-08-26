@@ -499,6 +499,28 @@ export class WslConfigTransport implements ConfigTransport {
     }
   }
 
+  /**
+   * An allowlisted file's exact text, unparsed.
+   *
+   * `read()` above answers nearly every caller, and the two are not interchangeable:
+   * `parseConfig` keeps only `[section]` headers that end the line and `key = value`
+   * pairs, so it silently drops `#include` directives, template markers and a header with
+   * a trailing comment. A caller that has to reason about what Asterisk's own config
+   * parser would make of the file — `parseExtensionsConfSections` is the one — needs the
+   * bytes rather than that summary.
+   *
+   * This inherits `#readExact`'s deliberate non-redaction, so the text can carry a
+   * credential and must not be logged, returned across the control-plane boundary, or put
+   * on a screen. Every caller here derives facts from it and returns those instead.
+   *
+   * A file that is not there throws with the target's own reason rather than answering
+   * with an empty string, because "the file is empty" and "there is no file" are different
+   * facts and this console's whole discipline is not to conflate them.
+   */
+  async readText(resource: string): Promise<string> {
+    return this.#readExact(this.#path(assertConfigurable(resource)));
+  }
+
   async backup(resource: string): Promise<string> {
     const allowed = assertConfigurable(resource);
     const stamp = this.#now().toISOString().replaceAll(/[:.]/gu, "-");
