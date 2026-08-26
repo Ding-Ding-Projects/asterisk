@@ -67,14 +67,14 @@ to the control plane.
 - [x] **TLS and certificate management** (`http.conf` TLS, PJSIP transport certificates, STIR/SHAKEN keys) — every other screen assumes certificates that nothing can install or rotate Shipped as a TLS group that loads a named PJSIP transport and writes ten fields back, a STIR/SHAKEN key-material group, and the first write path http.conf ever had -- its bindings were complete and unreachable. Paths only, never key contents. Saving refuses outright when the typed transport does not resolve, so it cannot invent a half-built transport carrying TLS keys and no bind address.
 - [ ] **Hardware trunks** (`chan_dahdi.conf`) — analogue lines, T1/E1 and PRI.
 - [ ] **Database backends and realtime** (`res_odbc.conf`, `extconfig.conf`, `sorcery.conf`, `res_pgsql.conf`, `res_ldap.conf`) — required for hosted and multi-tenant deployments.
-- [ ] **Fax** (`res_fax.conf`, `udptl.conf`) — sending, receiving, T.38 gateway.
-- [ ] **Channel event logging** (`cel.conf`, `cel_odbc.conf`, `cel_pgsql.conf`) — the compliance counterpart to call records.
+- [x] **Fax** (`res_fax.conf`, `udptl.conf`) — sending, receiving, T.38 gateway. Landed: a Fax & T.38 destination writing res_fax.conf through the transaction.
+- [x] **Channel event logging** (`cel.conf`, `cel_odbc.conf`, `cel_pgsql.conf`) — the compliance counterpart to call records. Landed: a CEL panel on the CDR & CEL destination with its own save action writing cel.conf, plus cel_odbc.conf and cel_pgsql.conf handlers, every control bound to a line in the shipped sample. All three go through the backup/stage/validate/apply/post-read transaction.
 - [ ] **Call attestation** (`stir_shaken.conf`) — profiles, certificates, verification.
 - [ ] **Emergency-services location** (`geolocation.conf`) — a regulatory requirement in several jurisdictions.
 - [ ] **Handset auto-provisioning** (`phoneprov.conf`) — the deployment flow asks how many phones and has nowhere to template them.
 - [x] **Feature codes and parking** (`features.conf`) — transfer, park, pickup, recording keys Thirty controls bound in total: fourteen against `features.conf` for transfer, pickup and recording, and sixteen against `res_parking.conf`, which is where parking actually lives -- `features.conf.sample` says so in its own fifth line, and its `[featuremap]` carries only the park trigger. Every one cites its sample line.
 - [ ] **Shared line appearances** (`sla.conf`).
-- [ ] **IAX2 trunking** (`iax.conf`) — currently only illustrative rows, which is worse than absence because it reads as configurable.
+- [x] **IAX2 trunking** (`iax.conf`) — currently only illustrative rows, which is worse than absence because it reads as configurable. Landed: an IAX peers destination writing iax.conf through the transaction, replacing the illustrative rows.
 - [ ] **Configuration backup, restore and diff** across the whole tree — no safe whole-config recovery exists.
 - [ ] **A live REST resource browser** — channels, bridges, applications, events, beyond a static table.
 - [ ] **Dialplan scripting visibility** (AGI).
@@ -146,13 +146,13 @@ actions are implemented**. When this work began it was 7 and 3.
       Asterisk the console created for the purpose, which is still one it may safely destroy. A write to an
       exchange somebody depends on needs a target and an authorization only the repository owner can
       supply, so this is annotated rather than attempted.
-- [ ] **Stop corrupting `key =>` lines on every write.** Reading a resource and writing the identical value
+- [x] **Stop corrupting `key =>` lines on every write.** Reading a resource and writing the identical value Fixed: the transport now renders over the original text rather than re-emitting a parse, keeping comments, blank lines and the arrow separator verbatim; only changed entries are re-rendered. It also reads with base64 rather than cat, because the executor redacts stdout and a redacted read written back replaces a real credential with the word that hides it -- measured at 29 bytes lost on this project's own sample dialplan.
       back rewrites `exten => 8100` as `exten = > 8100`, which Asterisk parses as an extension literally
       named `>8100`. An unchanged round trip of `extensions.conf` took it from 61 `exten =>` lines to 0 and
       changed all 161 dialplan and include lines. Thirteen shipped sample files use the arrow form, 419
       lines in total. `validate` and `post-read` both compare the parsed structure, which round-trips
       consistently, so neither can see it -- the transaction reported "Configuration applied and verified".
-- [ ] **Return the backup handle from `ApplyResult`.** The transaction takes a backup and completes its
+- [x] **Return the backup handle from `ApplyResult`.** The transaction takes a backup and completes its Fixed: a successful apply hands back one backup handle per changed resource, so an undo needs no second backup and one edit leaves one copy on the target.
       `backup:` action, but the result exposes no handle, so a caller can only undo a *failed* apply. A
       deliberate undo after a successful one has no supported route.
 - [ ] Bind the remaining 48 controls, each from a key justified in the samples, or state on the screen exactly which setting it cannot write. None may be guessed.
