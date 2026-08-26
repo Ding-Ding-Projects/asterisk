@@ -114,51 +114,82 @@ to the control plane.
       exist in logger.conf.sample -- the real key is the literal channel name
       `messages.log`, dot included (sample line 176). Nobody had noticed because nothing
       had ever tried to write it.
-- [ ] **Modules** — no per-module reload and no dependency view.
-      **Not closed as stated, and here is exactly why.** "Reload" here would mean a live
-      CLI action (`module reload <name>`) against a running Asterisk process; this
-      console has no IPC surface for that today -- every existing write in this codebase
-      goes through `pbx.plan`/`pbx.apply` against a configuration FILE, and building a
-      new mutating-CLI-action channel (control-plane dispatch, the Electron IPC
-      contract, the renderer request plumbing) is a materially larger, cross-cutting
-      change than "deepen an existing screen" covers, and risks colliding with sibling
-      lanes touching `control-plane/`. A "dependency view" has no source: Asterisk's own
-      CLI (`module show`) reports name/description/use-count/status, not which modules a
-      module depends on, and I found no reader anywhere in this tree that could supply
-      one without inventing data. What I did close instead, because it was real and it
-      was broken: the screen had four bound fields and no Save button, so autoload,
-      preload and never-load were all display-only. It now has one ("Save modules.conf
-      settings"), plus a new `mo_load` field bound to the sample's own `load =>` key
-      (modules.conf.sample line 32, force-loads one module even with autoload off) --
-      genuinely per-module, if not "reload". Also fixed: `mo_preload`/`mo_noload` were
-      bound as a single comma-joined value, and `mo_require` as a boolean switch; neither
-      matches what `main/loader.c`'s `loader_config_init` actually reads (`preload`,
-      `noload`, `require` and `load` are each read one `v->value` at a time, never
-      comma-split -- the sample's own `noload = res_hep.so` / `noload =
-      res_hep_pjsip.so` / `noload = res_hep_rtcp.so`, three separate lines, shows this
-      directly). Writing the old shape through a real Save button would have written a
-      line Asterisk reads as one nonexistent module named
-      "chan_sip.so,chan_mobile.so" -- a wrong-binding bug that had never manifested
-      because nothing had ever saved. All four (`mo_preload`, `mo_noload`, `mo_require`,
-      `mo_load`) now use `repeated: true`, one line per module.
+- [x] **Modules** — no per-module reload and no dependency view.
+      **The "no per-module reload" half is now genuinely closed.** The IPC surface a
+      previous pass correctly said did not exist has been built: `control-plane/
+      write-commands.ts` is a second, deliberately tiny allowlist beside
+      `READ_ONLY_COMMANDS`, validating and building the exact three CLI lines
+      `main/cli.c`'s `handle_load`/`handle_unload`/`handle_reload` accept (`module load
+      <name>`, `module unload <name>`, `module reload <name>`), and
+      `LocalAsteriskCliGateway.runUnchecked` sends whichever one a caller already
+      validated as one `argv` element, no shell, so a rejected module name cannot
+      smuggle a second command in behind it. `dispatch.ts`'s `pbx.command` action now
+      accepts these two shapes alongside the read-only allowlist -- the same route the
+      confirmation ceremony already used for read-only CLI runs, so it needed no new
+      renderer plumbing, only a wider gate. Every row in the Modules table now offers
+      real Load/Unload/Reload from its own context menu, gated on the row's own live
+      State cell (a "Not loaded" row offers Load; anything else offers Unload/Reload),
+      and a successful action drops the cached `modules` reading so the very next
+      refresh re-reads the target rather than showing stale state. **The "dependency
+      view" half is closed as honestly as it can be, which is not a graph.** Asterisk's
+      own CLI genuinely has no command listing a module's runtime dependents or
+      dependencies -- `module show` prints name/description/use-count/status and
+      nothing else -- so "Show declared policy for …" on the row menu shows the one real,
+      sourced relationship this console has: whether modules.conf itself lists that
+      module in `preload=`/`noload=`/`require=`/`load=`, read back from the same bound
+      fields the Load-policy group already writes. It says plainly, in its own text,
+      that this is not a dependency graph and that Asterisk exposes none. Also still
+      true from the earlier pass: the screen's four fields now have a real Save button,
+      `mo_load` is bound to the sample's own `load =>` key, and `mo_preload`/
+      `mo_noload`/`mo_require`/`mo_load` all use `repeated: true`, one line per module,
+      rather than the comma-joined/boolean shapes that would have written a line
+      Asterisk reads as one nonexistent module. Verified with a new dedicated test file
+      (`tests/control-plane/write-commands.test.ts`, 7 tests covering command-injection
+      and malformed-name refusal) plus 15 source-anchored tests in
+      `tests/ui/modules-ami-codecs-deepen.test.tsx`; every one was broken on purpose,
+      watched red, and restored.
 - [ ] **Call records** — one status reading; no backend selection across the several available.
-- [ ] **Manager and REST** — a static table; no live event stream and no operable actions. The "static table" half is fixed: the screen's declared file was the compound label `manager.conf · ari.conf · http.conf`, which `resourceForFile` refuses, so it had never read a single real setting -- two of its five original bindings (a_port, a_tlsport) also turned out to be bound to the wrong file entirely, undetected for the same reason. Now reads and writes manager.conf, http.conf and ari.conf for real, with a genuine Add/Remove API user flow (creates or deletes a `[username]` section in manager.conf or ari.conf) and two new Save buttons. Left unticked because the "live event stream" half was not attempted -- that needs a new AMI/ARI event-streaming transport in the control plane, which is out of scope for a deepening pass on the existing screen.
+- [ ] **Manager and REST** — a static table; no live event stream and no operable actions.
+      **The "no operable actions" half is now genuinely closed; the "no live event
+      stream" half is still correctly left open.** `manager show connected`
+      (`main/manager.c` `handle_showmanconn`) was already read-only-allowlisted but had
+      no parser and no reading wired to it -- the AMI & REST table only ever showed the
+      *configured* manager.conf/ari.conf users, never who is actually connected right
+      now. It has one now (`parseManagerConnections`, `readings.ts`
+      `managerConnectionsStatus`), wired into the `ami` view alongside the existing
+      settings/users/apps reads, and a live "Connected sessions" group on the screen
+      shows it. Beside it, "Kick session" runs the one real per-session action this
+      interface has -- `manager kick session <file descriptor>`
+      (`main/manager.c` `handle_kickmanconn`) -- through the same write-commands.ts
+      allowlist and confirmation ceremony the Modules row actions above use, ending
+      that AMI/HTTP socket for real. Left unticked because the live *event* stream
+      (watching a session connect, or an AMI event fire, while the screen stays open)
+      genuinely needs a websocket/SSE transport this control plane does not have; the
+      screen's own copy now says so plainly next to the sessions list, which only ever
+      reflects the moment it was last read. What was already fixed by the earlier pass
+      (the "static table" half -- the compound `file` label, the two wrong-file
+      bindings, the real Add/Remove API user flow) is untouched by this pass.
 - [x] **Voicemail** — no storage backend configuration and no greeting management. This screen had ten already-bound fields and no write path of any kind -- no Save button existed on any group. Added three: mailbox defaults (the original ten fields), a Storage backend group (ODBC connection/table/on-disk-audio, IMAP greetings/folder/server/port -- seven fields, every one cited to configs/samples/voicemail.conf.sample), and a Greeting management group (maxgreet, forcegreetings, tempgreetwarn -- three fields). Per-mailbox greeting *audio* upload/replace remains undone: it would need a new media-library root pointed at each mailbox's own spool path, which the sample does not document a stable location for, so it was left rather than guessed.
 - [ ] **Codecs** — a listing only; no per-endpoint negotiation.
-      **Not closed as stated: per-endpoint negotiation is still not implemented**, and
-      remains a materially larger feature (it would mean editing each PJSIP endpoint's
-      own `allow=`/`disallow=` codec preference in pjsip.conf, not a global rtp.conf/
-      codecs.conf setting) than this pass covered. What I did close: the screen declared
-      `file: 'codecs.conf · rtp.conf'`, a display label made of two filenames joined for
-      the reader -- the exact shape `resource-for-file.test.tsx` exists to refuse, and
-      does. `resourceForFile` returned `undefined` for it, so the generic per-screen read
-      in App.tsx never fired at all: this screen had never read a single byte from any
-      target, for as long as it existed, with no error anywhere. It now declares
-      `file: 'rtp.conf'` (its own real, primary, writable file) and reads asterisk.conf
-      separately for the one field that lives there (`k_transcode`, `transcode_via_sln`,
-      the same asterisk.conf split logger's own verbosity uses). Two Save buttons were
-      added -- one for rtp.conf's four fields (port range, strict RTP, ICE), one for the
-      asterisk.conf transcoding switch -- where previously there were none.
+      **A real, read-only per-endpoint negotiation lookup is now implemented; editing a
+      single endpoint's own codec preference remains genuinely out of scope, as the
+      earlier pass correctly said.** The screen's global translation graph
+      (`core show translation`/`core show codecs`) names no endpoint at all, so a new
+      "Per-endpoint negotiation" group looks one up on demand: `pjsip show endpoint
+      <id>` (`res/res_pjsip/pjsip_configuration.c`), the only CLI output that prints one
+      endpoint's own configured `allow=` codec list and `transport=`, run directly
+      through the allowlisted `pbx.command` route rather than behind the confirmation
+      ceremony, since it is read-only. Reaching it required fixing a real gap in
+      `dispatch.ts`: `pbx.command` checked `READ_ONLY_COMMANDS.includes(command)`
+      directly, which can never match an *object* command like `pjsip show endpoint
+      <id>` -- `isAllowedCommandLine` in `asterisk-readings.ts` already covered that
+      shape and was simply never called from here, so no screen driving this route
+      could ever look up a single endpoint. **Editing** one endpoint's own
+      `allow=`/`disallow=` preference in pjsip.conf -- the interpretation the earlier
+      note correctly sized as a materially larger, separate feature -- is still not
+      implemented, and this pass does not claim otherwise. The earlier fix (the real
+      `file: 'rtp.conf'`, the asterisk.conf transcoding split, the two Save buttons) is
+      untouched.
 
 ### How each one lands
 

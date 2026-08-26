@@ -1698,10 +1698,19 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
   sounds: [],
   /* rtp.conf (the screen's own primary file) plus asterisk.conf's transcode_via_sln;
    * k_save/r_save are the two one-shot Save buttons this screen never had before -- pure
-   * actions with no key of their own, recognised the same way fx_save/fx_udptlsave are. */
+   * actions with no key of their own, recognised the same way fx_save/fx_udptlsave are.
+   * k_endpoint/k_endpointlookup/k_endpointresult are the "Per-endpoint negotiation"
+   * group: k_endpoint is read directly out of state.values by name in App.tsx's
+   * onLookupEndpointCodecs, the same shape am_username already uses; k_endpointlookup
+   * and k_endpointresult carry design actions ('codecs-endpoint-lookup'/'codecs-
+   * endpoint-status'), recognised via `deliveredByAction` the same way k_save/r_save
+   * already are. None of the three is a config-file key -- the group runs a live
+   * "pjsip show endpoint <id>" lookup, not a write -- so none belongs in
+   * CONTROL_BINDINGS. */
   codecs: [
     'k_order', 'k_transcode', 'k_save',
     'r_start', 'r_end', 'r_strict', 'r_ice', 'r_save',
+    'k_endpoint', 'k_endpointlookup', 'k_endpointresult',
   ],
   /* res_fax.conf's six fields plus udptl.conf's six, all bound (see CONTROL_BINDINGS.fax
    * above); fx_save and fx_udptlsave are the screen's two one-shot Save buttons -- pure
@@ -1728,10 +1737,18 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
    * the section, am_username/am_secret/am_readonly are its fields, read and written
    * directly in App.tsx rather than through CONTROL_BINDINGS. a_httpsave is http.conf's
    * own one-shot Save button, recognised via `deliveredByAction` the same way ht_save
-   * already is. */
+   * already is. a_connected/a_kickfd/a_kick are the "Connected sessions" group: a live
+   * `manager show connected` readout (action-delivered, `managerConnectionsStatus` in
+   * readings.ts) and a real "Kick session" action (`manager kick session <fd>`, built
+   * and validated in write-commands.ts, dispatched through the same confirmation
+   * ceremony every other real action on this console uses) -- neither is a config-file
+   * key, so neither belongs in CONTROL_BINDINGS; a_kickfd is read directly out of
+   * state.values by name in App.tsx's onKickManagerSession, the same shape
+   * am_username/am_secret already use. */
   ami: [
     'a_http', 'a_port', 'a_tls', 'a_tlsport', 'a_origin', 'a_httpsave',
     'a_read', 'a_write', 'a_deny', 'a_timeout', 'a_mgrsave',
+    'a_connected', 'a_kickfd', 'a_kick',
     'am_interface', 'am_username', 'am_secret', 'am_readonly',
   ],
   /* modules.conf, all bound as `repeated: true` lists (see CONTROL_BINDINGS.modules

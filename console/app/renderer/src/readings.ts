@@ -50,6 +50,19 @@ export interface MohClass { name: string; mode?: string; directory?: string }
  *  fetched from a URI itself, which is not the same thing as a music-on-hold directory. */
 export interface MediaCacheItem { uri: string; localFile?: string }
 export interface ManagerUser { username: string }
+/** One live AMI/HTTP session from `manager show connected` -- see
+ *  `control-plane/asterisk-parsers.ts` `parseManagerConnections` for the exact format
+ *  string. `fileDescriptor` is what `manager kick session` actually takes. */
+export interface ManagerConnection {
+  username: string;
+  ipAddress: string;
+  startEpochSeconds: number;
+  elapsedSeconds: number;
+  fileDescriptor: number;
+  httpCount: number;
+  readPerms: number;
+  writePerms: number;
+}
 export interface AriApp { name: string }
 /** `cdr show status` (`main/cdr.c` `handle_cli_status`) -- see
  *  `control-plane/asterisk-parsers.ts` `parseCdrStatus`. `settings` is the plain
@@ -89,6 +102,10 @@ export interface ViewReadings {
   /** `total` is the target's own trailer count; `parseManagerUsers` cannot name the line
    *  it lost, so it has no `dropped` list and the count is the whole signal. */
   managerUsers?: Reading<{ users: ManagerUser[]; total?: number }>;
+  /** `manager show connected` -- the live counterpart to `managerUsers` above: which AMI
+   *  sockets are actually open right now, and the file descriptor a real "Kick session"
+   *  action needs (see `write-commands.ts` and `onKickManagerSession` in App.tsx). */
+  managerConnections?: Reading<{ connections: ManagerConnection[]; total?: number }>;
   ariApps?: Reading<AriApp[]>;
   cdrStatus?: Reading<CdrStatus>;
   /** `core show codecs` / `core show translation` — the dispatcher already reads both
@@ -389,6 +406,26 @@ export function amiRows(managerUsers: ManagerUser[], ariApps: AriApp[]): string[
     ...managerUsers.map((user) => [user.username, 'AMI', NOT_READ, NOT_READ]),
     ...ariApps.map((app) => [app.name, 'ARI', NOT_READ, NOT_READ]),
   ];
+}
+
+/**
+ * Read by the AMI & REST screen's `a_connected` text control (`action:
+ * 'ami-connected-status'`). This is the operable half of that screen's real gap: which
+ * AMI sockets are actually open right now, and the file descriptor "Kick session" needs
+ * -- a genuine live-connection readout, distinct from the static configured-user table
+ * above, built from `manager show connected` rather than invented. A target with no
+ * live sessions is not an error and says so plainly rather than showing nothing.
+ */
+export function managerConnectionsStatus(reading: ViewReadings['managerConnections']): string {
+  if (!reading) return 'Read manager.conf to check.';
+  if (reading.result.state === 'unavailable') {
+    return `Connected sessions could not be read: ${reading.result.reason}`;
+  }
+  const value = reading.result.value;
+  if (!value || value.connections.length === 0) return 'No AMI or HTTP sessions are connected to this target right now.';
+  return value.connections
+    .map((c) => `${c.username} @ ${c.ipAddress} — fd ${c.fileDescriptor}, connected ${c.elapsedSeconds}s`)
+    .join('; ');
 }
 
 /**
