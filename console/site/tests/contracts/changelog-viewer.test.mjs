@@ -701,6 +701,60 @@ test('the source ships the two declarations empty and the build replaces exactly
     'site/build.mjs no longer injects the repository URL');
 });
 
+test('a "missing" report from a shallow clone is treated as unverifiable, never as a dead link', () => {
+  /* This is the assertion that would have stopped a real broken deploy, and it is here
+   * because nothing did. The first version of this build reasoned: git answered, git
+   * said missing, therefore the commit is gone, therefore fail. That is false in exactly
+   * the case CI runs in -- `actions/checkout` clones one commit deep, so `cat-file`
+   * correctly reported all 26 referenced commits as absent FROM THAT CHECKOUT, and the
+   * Pages build died on a repository that had every one of them.
+   *
+   * 45 planted breaks all went red and green beforehand and not one of them caught it,
+   * because every check was about the SHAPE of the resolver rather than about the
+   * judgement inside it. So the judgement is a pure function now, and this runs it. */
+  const verdict = new Function(`${functionSource(build, 'changelogVerificationVerdict')}\nreturn changelogVerificationVerdict;`)();
+
+  assert.equal(verdict(0, true), 'verified', 'nothing missing in a shallow clone is still nothing missing');
+  assert.equal(verdict(0, false), 'verified');
+  assert.equal(verdict(0, undefined), 'verified');
+
+  assert.equal(verdict(26, true), 'unverifiable',
+    'a shallow clone that lacks the objects was read as proof the repository lost them -- this is the exact defect that broke a deploy');
+  assert.equal(verdict(1, true), 'unverifiable');
+
+  assert.equal(verdict(26, undefined), 'unverifiable',
+    'an unknown clone depth was treated as a complete clone -- an unknown is not a proof');
+
+  assert.equal(verdict(1, false), 'dead',
+    'a complete clone reporting a commit missing no longer fails the build, so a genuinely dead link would ship');
+});
+
+test('the shallow answer is read from git and an unparseable answer is not read as "complete"', () => {
+  const src = functionSource(build, 'isShallowCheckout');
+  assert.ok(src.includes("'--is-shallow-repository'"),
+    'the build no longer asks git whether this checkout is shallow, so it cannot tell a missing object from a lost commit');
+  assert.ok(src.includes("if (answer === 'false') return false;"),
+    'only an explicit "false" should establish a complete clone');
+  assert.ok(/return undefined;\s*\n\s*\} catch \{\s*\n\s*return undefined;/u.test(src),
+    'an unrecognised answer or a git that will not run must both come back undefined, never false');
+  /* And it is genuinely CALLED. A pure function nobody calls is this repository's
+   * most-repeated defect, and here it would restore the exact broken deploy: the verdict
+   * would be handed a hard-coded answer instead of a real one. */
+  assert.ok(functionSource(build, 'resolveChangelog').includes('changelogVerificationVerdict(missing.length, isShallowCheckout())'),
+    'resolveChangelog no longer asks how deep this checkout is before deciding what a missing object means');
+});
+
+test('the Pages workflow fetches deep enough for the commits the changelog links to', () => {
+  /* Without this the build is correct and the published changelog silently loses every
+   * commit link, which is the quiet half of the same defect: nothing fails, the page
+   * renders, and the one part a reader can check for themselves is gone. */
+  const workflow = readFileSync(resolve(consoleRoot, '..', '.github', 'workflows', 'pages.yml'), 'utf8').replaceAll('\r\n', '\n');
+  const depth = workflow.match(/^\s*fetch-depth:\s*(\d+)\s*$/mu);
+  assert.ok(depth, 'the Pages checkout no longer sets a fetch-depth, so it clones one commit and can verify nothing');
+  assert.ok(Number(depth[1]) === 0 || Number(depth[1]) >= 100,
+    `fetch-depth is ${depth[1]}, which is not enough history to hold the commits between the last twenty release tags`);
+});
+
 test('the build refuses to emit a link it has not verified against real git objects', () => {
   assert.ok(build.includes("execFileSync('git', ['cat-file', '--batch-check']"),
     'site/build.mjs no longer verifies the referenced commits against this repository');

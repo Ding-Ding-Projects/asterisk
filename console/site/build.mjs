@@ -229,15 +229,16 @@ const downloadValues = downloadManifest ? (() => {
  * `git cat-file --batch-check` and must resolve to a real commit object in this
  * repository.
  *
- * When git cannot answer at all -- no git on the machine, a checkout too shallow to
- * hold the objects -- the changelog still ships and the REPOSITORY URL is dropped, so
- * every id renders as plain text with no link on it. That is deliberately not a thrown
- * error: the promise is "never a dead link", and emitting no link keeps it exactly,
- * while failing the build would take the whole Pages deploy down for a reason that has
- * nothing to do with the pages.
+ * Whenever it cannot establish that -- no git on the machine, or a clone that simply
+ * never fetched the objects -- the changelog still ships and the REPOSITORY URL is
+ * dropped, so every id renders as plain text with no link on it. That is deliberately
+ * not a thrown error: the promise is "never a dead link", and emitting no link keeps it
+ * exactly, while failing the build would take the whole Pages deploy down for a reason
+ * that has nothing to do with the pages.
  *
- * A commit that git DOES answer about and reports missing is different, and that throws:
- * git was able to tell us the link would be dead.
+ * `changelogVerificationVerdict` below is where the one genuinely subtle judgement
+ * lives -- what a "missing" report is and is not evidence of -- and it has its own tests
+ * because the first version of it got that wrong and broke a deploy.
  */
 function resolveChangelog() {
   const bundlePath = resolve(root, '..', 'app', 'renderer', 'src', 'generated', 'changelog-bundle.ts');
@@ -276,7 +277,14 @@ function resolveChangelog() {
     .map((line) => line.trim())
     .filter((line) => line !== '' && !/\bcommit\b/.test(line))
     .map((line) => line.split(' ')[0]);
-  if (missing.length > 0) {
+  const verdict = changelogVerificationVerdict(missing.length, isShallowCheckout());
+  if (verdict === 'unverifiable') {
+    console.log(`Changelog: ${missing.length} commit id(s) were not found in this checkout, and this checkout `
+      + 'is shallow (or its depth could not be established), so that proves nothing about the repository. '
+      + 'Shipping the history with no commit links rather than links nobody checked.');
+    return { markdown, repository: '' };
+  }
+  if (verdict === 'dead') {
     throw new Error(`Changelog: git reports ${missing.length} referenced commit(s) missing from this repository, `
       + `so their links would be dead: ${missing.slice(0, 5).join(', ')}`);
   }
@@ -287,6 +295,46 @@ function resolveChangelog() {
   }
   console.log(`Changelog: ${commits.length} commit id(s) verified against this repository; linking to ${repository}.`);
   return { markdown, repository };
+}
+
+/**
+ * What a "missing" report from `git cat-file` actually licenses us to conclude.
+ *
+ * This is a pure function with its own tests because getting it wrong shipped a broken
+ * Pages deploy. The first version reasoned: git answered, git said missing, therefore the
+ * commit is gone and the link would be dead, therefore throw. That is false in exactly the
+ * case CI runs in. `actions/checkout` clones one commit deep, so `cat-file` correctly
+ * reports every one of the twenty-six referenced commits as missing -- from THIS CHECKOUT.
+ * It says nothing whatever about the repository, which still has all of them.
+ *
+ * The distinction the check actually needs is between "the repository has lost this
+ * commit" and "this clone never fetched it", and `cat-file` alone cannot tell them apart.
+ * `git rev-parse --is-shallow-repository` can, so it is what decides:
+ *
+ *   - nothing missing            -> verified; emit the links
+ *   - missing, clone is shallow  -> unverifiable; emit the history with no links, say why
+ *   - missing, clone is complete -> dead; fail the build, because now it really is a claim
+ *                                   about the repository rather than about this directory
+ *   - missing, depth unknown     -> unverifiable, because an unknown is not a proof
+ */
+function changelogVerificationVerdict(missingCount, shallow) {
+  if (missingCount === 0) return 'verified';
+  return shallow === false ? 'dead' : 'unverifiable';
+}
+
+/** true, false, or undefined when git cannot say -- and undefined is never treated as false. */
+function isShallowCheckout() {
+  try {
+    const answer = execFileSync('git', ['rev-parse', '--is-shallow-repository'], {
+      cwd: resolve(root, '..', '..'),
+      encoding: 'utf8',
+    }).trim();
+    if (answer === 'true') return true;
+    if (answer === 'false') return false;
+    return undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /**

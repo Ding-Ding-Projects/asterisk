@@ -20,6 +20,21 @@ jobs:
     steps:
       - name: Check out the exact source commit
         uses: actions/checkout@v4
+        with:
+          # Deep enough to hold the commits the changelog links to.
+          #
+          # The default is one commit, and console/site/build.mjs verifies every commit
+          # the changelog references before it will emit a link to it. In a one-commit
+          # clone every one of them is absent, so the build correctly declines to link
+          # any of them and the published changelog loses its commit links entirely.
+          #
+          # The referenced commits are the ones between the last twenty release tags,
+          # which sit a few commits apart, so this is far more than enough. It is a
+          # bounded number rather than 0 because full history on this repository is
+          # large and this job does not otherwise need it. If it ever were not enough,
+          # build.mjs treats an unverifiable commit in a shallow clone as exactly that
+          # -- links dropped, reason printed -- rather than failing the deploy.
+          fetch-depth: 200
       - name: Bootstrap site build dependencies
         shell: cmd
         run: download-dependencies.bat /s
