@@ -526,6 +526,17 @@ export class App extends Base {
 
   private stopProvisionListener: (() => void) | undefined;
 
+  /** One generic focus-return mechanism for every anchored popover, menu, dialog and
+   *  the appearance editor, rather than a hand-written `xReturnFocus` field per
+   *  overlay (the palette above is the one that predates this and is left as-is).
+   *  Every such surface in the compiled design carries `role="dialog"` or
+   *  `role="menu"`; this watches the DOM for one appearing or disappearing and
+   *  saves/restores focus around it, which covers every current and future overlay
+   *  that carries the same role without touching each one's open/close handler. */
+  private overlayFocusObserver: MutationObserver | undefined;
+
+  private overlayFocusReturn = new WeakMap<Element, HTMLElement | null>();
+
   /** What the runner is holding between ticks: the base value of every key it has
    *  overridden, and what it last applied. */
   private scheduleState: RunnerState = EMPTY_RUNNER_STATE;
@@ -1085,6 +1096,7 @@ export class App extends Base {
     this.startVoiceEnumeration();
     this.listenForScreenReader();
     this.listenForPaletteChord();
+    this.listenForOverlayFocusReturn();
     /* The configured server list is not a reading from any PBX — it exists before
      * anything is reachable and must be on screen whether or not discovery finds a
      * target, so it is loaded independently of it. */
@@ -1106,6 +1118,8 @@ export class App extends Base {
 
   componentWillUnmount() {
     super.componentWillUnmount?.();
+    this.overlayFocusObserver?.disconnect();
+    this.overlayFocusObserver = undefined;
     if (this.refreshTimer) clearInterval(this.refreshTimer);
     this.refreshTimer = undefined;
     if (this.scheduleTimer) clearInterval(this.scheduleTimer);
@@ -2131,6 +2145,60 @@ What you can do: ${offered}.` : ''}`);
    * only when the chord actually matches, because taking every control-shift keystroke
    * would break whatever else the platform does with them.
    */
+  /** Watches for any `role="dialog"` or `role="menu"` element appearing or
+   *  disappearing anywhere in the document -- every anchored popover, context
+   *  menu, wizard, the appearance editor, and every confirmation dialog the
+   *  compiled design renders carries one of those two roles. React only removes
+   *  such a node from the DOM when its owning `sc-if` flips closed, so a mutation
+   *  here means a real open/close transition rather than an unrelated re-render
+   *  (React's reconciler leaves an unchanged subtree's nodes alone). On the way
+   *  in, the currently focused element is remembered and the overlay's first
+   *  focusable descendant is focused; on the way out, focus returns to whatever
+   *  opened it, if that element is still in the document. */
+  private listenForOverlayFocusReturn(): void {
+    /* Outside a real browser/Electron document -- the mount tests construct App
+     * directly against a bare `{ addEventListener() {} }` stand-in for `window` and
+     * no `document` or `MutationObserver` at all -- there is nothing to observe and
+     * nothing this method can safely touch. Feature-detect and skip, the same way
+     * speechSynthesis absence is treated elsewhere in this file, rather than let a
+     * ReferenceError abort the rest of componentDidMount for every test that mounts
+     * the real App. */
+    if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return;
+
+    const OVERLAY_SELECTOR = '[role="dialog"], [role="menu"]';
+    const FOCUSABLE_SELECTOR =
+      'button, [href], input, select, textarea, [role="tab"], [tabindex]:not([tabindex="-1"])';
+
+    const collect = (node: Node): Element[] => {
+      if (!(node instanceof Element)) return [];
+      const matches = node.matches(OVERLAY_SELECTOR) ? [node] : [];
+      return matches.concat(Array.from(node.querySelectorAll(OVERLAY_SELECTOR)));
+    };
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        mutation.addedNodes.forEach((node) => {
+          for (const overlay of collect(node)) {
+            if (this.overlayFocusReturn.has(overlay)) continue;
+            const active = document.activeElement;
+            this.overlayFocusReturn.set(overlay, active instanceof HTMLElement ? active : null);
+            const focusable = overlay.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+            focusable?.focus();
+          }
+        });
+        mutation.removedNodes.forEach((node) => {
+          for (const overlay of collect(node)) {
+            const target = this.overlayFocusReturn.get(overlay);
+            this.overlayFocusReturn.delete(overlay);
+            if (target && document.contains(target)) target.focus();
+          }
+        });
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    this.overlayFocusObserver = observer;
+  }
+
   private listenForPaletteChord(): void {
     const handler = (event: KeyboardEvent) => {
       if (isPaletteChord(event)) {

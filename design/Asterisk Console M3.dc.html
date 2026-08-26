@@ -69,7 +69,7 @@
 </helmet>
 <div style="height:100%; display:flex; flex-direction:column; background:#0B0F0C; color:#DFE4DC; font-family:Roboto,system-ui,sans-serif; font-size:14px; overflow:hidden; position:relative;">
 
-  <div style="height:40px; flex:0 0 40px; display:flex; align-items:stretch; background:#141A15; user-select:none; overflow:hidden; min-width:0;">
+  <div role="banner" style="height:40px; flex:0 0 40px; display:flex; align-items:stretch; background:#141A15; user-select:none; overflow:hidden; min-width:0;">
     <div style="display:flex; align-items:center; gap:10px; padding:0 12px; flex:0 0 auto; white-space:nowrap;">
       <span class="msym" style="font-size:20px; color:#82D9A5; flex:0 0 auto;">deployed_code</span>
       <span style="font-size:13px; font-weight:500; letter-spacing:.1px; white-space:nowrap; flex:0 0 auto;">Asterisk Console</span>
@@ -110,34 +110,36 @@
 
   <div style="height:38px; flex:0 0 38px; display:flex; align-items:flex-end; gap:2px; background:#0B0F0C; padding:0 6px; overflow-x:auto;">
     <sc-for list="{{ tabGroups }}" as="g" hint-placeholder-count="1">
-      <div onClick="{{ g.toggle }}" onContextMenu="{{ g.ctx }}" style="display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:{{ g.bg }}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid {{ g.colour }};">
+      <div role="button" tabindex="0" aria-expanded="{{ g.expanded }}" onClick="{{ g.toggle }}" onKeyDown="{{ g.onKeyActivate }}" onContextMenu="{{ g.ctx }}" style="display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:{{ g.bg }}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid {{ g.colour }};">
         <span style="width:9px; height:9px; border-radius:50%; background:{{ g.colour }};"></span>
         <span style="font-size:12px; font-weight:500; color:#DFE4DC; white-space:nowrap;">{{ g.name }}</span>
         <span style="font-family:'Roboto Mono',monospace; font-size:11px; color:#8FA394;">{{ g.count }}</span>
         <span class="msym" style="font-size:16px; color:#9AA39B;">{{ g.chevron }}</span>
       </div>
     </sc-for>
+    <div role="tablist" aria-label="Open tabs" onKeyDown="{{ tabsKeyDown }}" style="display:contents;">
     <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
       <sc-if value="{{ t.on }}" hint-placeholder-val="{{ true }}">
-        <div draggable="true" onDragStart="{{ t.onDragStart }}" onDragOver="{{ t.onDragOver }}" onDrop="{{ t.onDrop }}" onDragEnd="{{ t.onDragEnd }}" onClick="{{ t.go }}" onContextMenu="{{ t.ctx }}" style="display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid {{ t.edge }}; border-right:2px solid {{ t.edge }};">
+        <div role="tab" id="{{ t.id }}" aria-selected="true" aria-controls="tabpanel-content" tabindex="{{ t.tabIndex }}" draggable="true" onDragStart="{{ t.onDragStart }}" onDragOver="{{ t.onDragOver }}" onDrop="{{ t.onDrop }}" onDragEnd="{{ t.onDragEnd }}" onClick="{{ t.go }}" onContextMenu="{{ t.ctx }}" style="display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid {{ t.edge }}; border-right:2px solid {{ t.edge }};">
           <sc-if value="{{ t.inGroup }}" hint-placeholder-val="{{ true }}"><span style="width:3px; height:18px; border-radius:2px; background:{{ t.groupColour }}; flex:0 0 auto;"></span></sc-if>
           <span style="width:7px; height:7px; border-radius:50%; background:{{ t.colour }}; flex:0 0 auto;"></span>
           <span class="msym" style="font-size:16px; color:#82D9A5; flex:0 0 auto;">{{ t.icon }}</span>
           <span style="flex:1; font-size:12.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ t.label }}</span>
           <sc-if value="{{ t.pinned }}" hint-placeholder-val="{{ true }}"><span class="msym" style="font-size:14px; color:#8FA394;">push_pin</span></sc-if>
-          <button onClick="{{ t.close }}" style="width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#333B34; color:#FFB4AB;"><span class="msym" style="font-size:14px;">close</span></button>
+          <button onClick="{{ t.close }}" aria-label="{{ t.closeLabel }}" style="width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#333B34; color:#FFB4AB;"><span class="msym" style="font-size:14px;">close</span></button>
         </div>
       </sc-if>
       <sc-if value="{{ t.off }}">
-        <div draggable="true" onDragStart="{{ t.onDragStart }}" onDragOver="{{ t.onDragOver }}" onDrop="{{ t.onDrop }}" onDragEnd="{{ t.onDragEnd }}" onClick="{{ t.go }}" onContextMenu="{{ t.ctx }}" style="display:flex; align-items:center; gap:8px; background:#0F1510; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:200px; min-width:110px; border-top:2px solid transparent; border-left:2px solid {{ t.edge }}; border-right:2px solid {{ t.edge }};" style-hover="background:#141A15;">
+        <div role="tab" id="{{ t.id }}" aria-selected="false" aria-controls="tabpanel-content" tabindex="{{ t.tabIndex }}" draggable="true" onDragStart="{{ t.onDragStart }}" onDragOver="{{ t.onDragOver }}" onDrop="{{ t.onDrop }}" onDragEnd="{{ t.onDragEnd }}" onClick="{{ t.go }}" onContextMenu="{{ t.ctx }}" style="display:flex; align-items:center; gap:8px; background:#0F1510; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:200px; min-width:110px; border-top:2px solid transparent; border-left:2px solid {{ t.edge }}; border-right:2px solid {{ t.edge }};" style-hover="background:#141A15;">
           <sc-if value="{{ t.inGroup }}" hint-placeholder-val="{{ true }}"><span style="width:3px; height:18px; border-radius:2px; background:{{ t.groupColour }}; flex:0 0 auto;"></span></sc-if>
           <span class="msym" style="font-size:16px; color:#8FA394; flex:0 0 auto;">{{ t.icon }}</span>
           <span style="flex:1; font-size:12.5px; color:#9AA39B; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ t.label }}</span>
           <sc-if value="{{ t.pinned }}" hint-placeholder-val="{{ true }}"><span class="msym" style="font-size:14px; color:#778078;">push_pin</span></sc-if>
-          <button onClick="{{ t.close }}" style="width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#333B34; color:#FFB4AB;"><span class="msym" style="font-size:14px;">close</span></button>
+          <button onClick="{{ t.close }}" aria-label="{{ t.closeLabel }}" style="width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#333B34; color:#FFB4AB;"><span class="msym" style="font-size:14px;">close</span></button>
         </div>
       </sc-if>
     </sc-for>
+    </div>
     <button onClick="{{ newTab }}" title="New tab" style="width:30px; height:30px; margin-bottom:3px; border-radius:8px; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#1B211C; color:#82D9A5;"><span class="msym" style="font-size:18px;">add</span></button>
     <div style="flex:1;"></div>
     <div style="display:flex; align-items:center; gap:4px; padding-bottom:4px;">
@@ -155,7 +157,7 @@
 
   <div style="flex:1; display:flex; min-height:0; gap:0; flex-direction:{{ dockDirection }};">
 
-    <div style="width:88px; flex:0 0 88px; background:#0B0F0C; display:flex; flex-direction:column; align-items:center; padding:8px 0 12px; gap:4px; overflow-y:auto;">
+    <div role="navigation" aria-label="Primary sections" style="width:88px; flex:0 0 88px; background:#0B0F0C; display:flex; flex-direction:column; align-items:center; padding:8px 0 12px; gap:4px; overflow-y:auto;">
       <sc-for list="{{ rail }}" as="r" hint-placeholder-count="6">
         <button onClick="{{ r.pick }}" style="width:100%; background:transparent; border:0; cursor:pointer; padding:4px 0 2px; display:flex; flex-direction:column; align-items:center; gap:4px;">
           <sc-if value="{{ r.on }}" hint-placeholder-val="{{ true }}">
@@ -171,7 +173,7 @@
       <button onClick="{{ startOnboarding }}" title="Re-run setup" style="width:56px; height:56px; border-radius:18px; background:#1B4D33; border:0; color:#9FF7C4; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,.4);" style-hover="background:#22633f;"><span class="msym" style="font-size:24px;">rocket_launch</span></button>
     </div>
 
-    <div style="width:268px; flex:0 0 268px; background:#141A15; border-radius:16px 0 0 0; display:flex; flex-direction:column; min-height:0;">
+    <div role="navigation" aria-label="{{ groupLabel }}" style="width:268px; flex:0 0 268px; background:#141A15; border-radius:16px 0 0 0; display:flex; flex-direction:column; min-height:0;">
       <div style="padding:16px 18px 12px;">
         <div style="font-size:11px; letter-spacing:1.1px; text-transform:uppercase; color:#8FA394; font-weight:500;">{{ groupLabel }}</div>
         <div style="font-size:12.5px; color:#9AA39B; margin-top:5px; line-height:1.5;">{{ groupDesc }}</div>
@@ -207,7 +209,7 @@
       </div>
     </div>
 
-    <div style="flex:1; min-width:0; display:flex; flex-direction:column; background:#0F1510;">
+    <div role="main" aria-label="{{ screenTitle }}" style="flex:1; min-width:0; display:flex; flex-direction:column; background:#0F1510;">
       <div style="padding:20px 26px 16px; display:flex; align-items:flex-start; gap:16px;">
         <div style="flex:1; min-width:0;">
           <div style="display:flex; align-items:center; gap:10px;">
@@ -224,7 +226,7 @@
         </div>
       </div>
 
-      <div onContextMenu="{{ ctxScreen }}" key="{{ screenKey }}" style="flex:1; overflow-y:auto; padding:0 26px 80px; position:relative; animation:screenIn .3s cubic-bezier(.2,0,0,1);">
+      <div role="tabpanel" id="tabpanel-content" aria-labelledby="{{ activeTabId }}" tabindex="0" onContextMenu="{{ ctxScreen }}" key="{{ screenKey }}" style="flex:1; overflow-y:auto; padding:0 26px 80px; position:relative; animation:screenIn .3s cubic-bezier(.2,0,0,1);">
         <sc-if value="{{ beginner }}" hint-placeholder-val="{{ true }}">
           <div style="display:flex; align-items:center; gap:13px; background:#1B4D33; border-radius:16px; padding:14px 18px; margin-bottom:12px; animation:m3Slide .3s cubic-bezier(.2,0,0,1);">
             <span class="msym" style="font-size:24px; color:#9FF7C4; flex:0 0 auto;">school</span>
@@ -1156,7 +1158,7 @@
 
   <sc-if value="{{ infoOpen }}">
     <div onClick="{{ closeInfo }}" style="position:absolute; inset:0; background:rgba(0,0,0,.32); z-index:60;"></div>
-    <div style="position:absolute; {{ infoChrome }} max-height:calc(100vh - 132px); overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:61;">
+    <div role="dialog" aria-modal="true" style="position:absolute; {{ infoChrome }} max-height:calc(100vh - 132px); overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:61;">
       <div onMouseDown="{{ dragInfo }}" style="display:flex; align-items:center; gap:8px; margin:-18px -20px 10px; padding:14px 16px 8px; cursor:grab; min-width:0;">
         <span class="msym" style="font-size:16px; color:#778078; flex:0 0 auto;">drag_indicator</span>
         <span class="msym" style="font-size:18px; color:#82D9A5; flex:0 0 auto;">school</span>
@@ -1243,7 +1245,7 @@
   </sc-if>
 
   <sc-if value="{{ wizardOpen }}">
-    <div style="position:absolute; {{ wizardChrome }} max-height:100vh; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:55; display:flex; flex-direction:column;">
+    <div role="dialog" aria-modal="true" style="position:absolute; {{ wizardChrome }} max-height:100vh; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:55; display:flex; flex-direction:column;">
       <div onMouseDown="{{ dragWizard }}" style="padding:16px 20px 12px; display:flex; align-items:flex-start; gap:10px; cursor:grab;">
         <span class="msym" style="font-size:18px; color:#778078; margin-top:4px;">drag_indicator</span>
         <div style="flex:1; min-width:0;">
@@ -1317,7 +1319,7 @@
 
   <sc-if value="{{ paletteOpen }}">
     <div onClick="{{ togglePalette }}" style="position:absolute; inset:0; background:rgba(0,0,0,.5); z-index:70;"></div>
-    <div style="position:absolute; left:50%; top:88px; transform:translateX(-50%); width:620px; background:#252B25; border-radius:20px; box-shadow:0 12px 40px rgba(0,0,0,.6); z-index:71; overflow:hidden; animation:dlgPalette .22s cubic-bezier(.2,0,0,1);">
+    <div role="dialog" aria-modal="true" style="position:absolute; left:50%; top:88px; transform:translateX(-50%); width:620px; background:#252B25; border-radius:20px; box-shadow:0 12px 40px rgba(0,0,0,.6); z-index:71; overflow:hidden; animation:dlgPalette .22s cubic-bezier(.2,0,0,1);">
       <div style="display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid #333B34;">
         <span class="msym" style="font-size:22px; color:#82D9A5;">search</span>
         <span style="font-size:15px; color:#9AA39B;">Jump to any screen, setting, or command</span>
@@ -1338,7 +1340,7 @@
 
   <sc-if value="{{ ceremonyOpen }}">
     <div style="position:absolute; inset:0; background:rgba(0,0,0,.66); z-index:80; display:flex; align-items:center; justify-content:center;">
-      <div style="width:660px; max-height:88vh; overflow-y:auto; background:#252B25; border-radius:28px; padding:26px 28px; box-shadow:0 16px 48px rgba(0,0,0,.7); animation:dlgCeremony .3s cubic-bezier(.2,0,0,1);">
+      <div role="dialog" aria-modal="true" style="width:660px; max-height:88vh; overflow-y:auto; background:#252B25; border-radius:28px; padding:26px 28px; box-shadow:0 16px 48px rgba(0,0,0,.7); animation:dlgCeremony .3s cubic-bezier(.2,0,0,1);">
         <div style="display:flex; align-items:center; gap:12px;">
           <span class="msym" style="font-size:26px; color:#FFB4AB;">gpp_maybe</span>
           <div style="flex:1;">
@@ -1436,7 +1438,7 @@
   </sc-if>
 
   <sc-if value="{{ onboardOpen }}">
-    <div style="position:absolute; inset:0; background:#0B0F0C; z-index:90; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:28px 32px 40px; overflow-y:auto; animation:dlgOnboard .4s ease-out;">
+    <div role="dialog" aria-modal="true" style="position:absolute; inset:0; background:#0B0F0C; z-index:90; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:28px 32px 40px; overflow-y:auto; animation:dlgOnboard .4s ease-out;">
       <div style="width:760px; max-width:100%; margin:auto 0;">
         <div style="display:flex; gap:8px; margin-bottom:26px;">
           <sc-for list="{{ onboardSteps }}" as="s" hint-placeholder-count="5">
@@ -1503,7 +1505,7 @@
   </sc-if>
 
   <sc-if value="{{ tourOpen }}">
-    <div style="position:absolute; left:{{ tourX }}; top:{{ tourY }}; width:320px; background:#005230; border-radius:16px; padding:16px 18px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:75; animation:dlgSure .3s cubic-bezier(.2,1.2,.3,1);">
+    <div role="dialog" aria-modal="false" style="position:absolute; left:{{ tourX }}; top:{{ tourY }}; width:320px; background:#005230; border-radius:16px; padding:16px 18px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:75; animation:dlgSure .3s cubic-bezier(.2,1.2,.3,1);">
       <div style="font-family:'Roboto Mono',monospace; font-size:11px; color:#9FF7C4;">{{ tourCount }}</div>
       <div style="font-size:15px; font-weight:500; margin:6px 0 6px; color:#DFF3E5;">{{ tourTitle }}</div>
       <div style="font-size:13px; color:#C3EFD5; line-height:1.6;">{{ tourBody }}</div>
@@ -1517,7 +1519,7 @@
 
   <sc-if value="{{ regexOpen }}">
     <div onClick="{{ closeRegex }}" style="position:absolute; inset:0; background:rgba(0,0,0,.3); z-index:96;"></div>
-    <div style="position:absolute; {{ regexChrome }} max-height:86vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:97;">
+    <div role="dialog" aria-modal="true" style="position:absolute; {{ regexChrome }} max-height:86vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:97;">
       <div onMouseDown="{{ dragRegex }}" style="display:flex; align-items:center; gap:9px; margin:-18px -20px 4px; padding:16px 20px 10px; cursor:grab;">
         <span class="msym" style="font-size:18px; color:#778078;">drag_indicator</span>
         <span class="msym" style="font-size:20px; color:#82D9A5;">data_object</span>
@@ -1596,7 +1598,7 @@
 
   <sc-if value="{{ ctxOpen }}">
     <div onClick="{{ closeCtx }}" onContextMenu="{{ closeCtx }}" style="position:absolute; inset:0; z-index:78;"></div>
-    <div style="position:absolute; left:{{ ctxX }}; top:{{ ctxY }}; width:274px; background:#252B25; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:79; animation:dlgCtx .14s cubic-bezier(.2,1.3,.4,1);">
+    <div role="menu" style="position:absolute; left:{{ ctxX }}; top:{{ ctxY }}; width:274px; background:#252B25; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:79; animation:dlgCtx .14s cubic-bezier(.2,1.3,.4,1);">
       <div style="padding:8px 12px 6px; font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394; border-bottom:1px solid #333B34; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ ctxTarget }}</div>
       <sc-for list="{{ ctxItems }}" as="i" hint-placeholder-count="6">
         <button onClick="{{ i.act }}" onMouseEnter="{{ i.hover }}" style="width:100%; display:flex; align-items:center; gap:11px; background:{{ i.bg }}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;" style-hover="background:#333B34;">
@@ -1619,7 +1621,7 @@
   </sc-if>
 
   <sc-if value="{{ lockOpen }}">
-    <div style="position:absolute; {{ lockChrome }} max-height:88vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:82;">
+    <div role="dialog" aria-modal="true" style="position:absolute; {{ lockChrome }} max-height:88vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:82;">
       <div onMouseDown="{{ dragLock }}" style="display:flex; align-items:center; gap:9px; cursor:grab; margin:-18px -20px 0; padding:16px 20px 8px;">
         <span class="msym" style="font-size:18px; color:#778078;">drag_indicator</span>
         <span class="msym" style="font-size:20px; color:#82D9A5;">lock</span>
@@ -1732,7 +1734,7 @@
 
   <sc-if value="{{ unlockOpen }}">
     <div style="position:absolute; inset:0; background:rgba(0,0,0,.6); z-index:83; display:flex; align-items:center; justify-content:center;">
-      <div style="width:376px; background:#252B25; border-radius:24px; padding:24px; text-align:center; animation:dlgUnlock .3s cubic-bezier(.2,0,0,1);">
+      <div role="dialog" aria-modal="true" style="width:376px; background:#252B25; border-radius:24px; padding:24px; text-align:center; animation:dlgUnlock .3s cubic-bezier(.2,0,0,1);">
         <span class="msym" style="font-size:34px; color:#82D9A5;">lock_open</span>
         <div style="font-size:17px; font-weight:500; margin-top:10px;">Unlock {{ lockedTitle }}</div>
         <div style="font-size:12.5px; color:#9AA39B; margin-top:6px; line-height:1.6;">Enter this element's PIN. Forgot it? Delete <span style="font-family:'Roboto Mono',monospace; color:#9FF7C4;">%APPDATA%\AsteriskConsole\locks</span>.</div>
@@ -1772,7 +1774,7 @@
   </sc-if>
 
   <sc-if value="{{ appearOpen }}">
-    <div style="position:absolute; right:0; top:40px; bottom:0; width:468px; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:84; display:flex; flex-direction:column; animation:dlgAppear .28s cubic-bezier(.2,0,0,1);">
+    <div role="dialog" aria-modal="true" style="position:absolute; right:0; top:40px; bottom:0; width:468px; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:84; display:flex; flex-direction:column; animation:dlgAppear .28s cubic-bezier(.2,0,0,1);">
       <div style="padding:16px 20px 10px; display:flex; align-items:flex-start; gap:12px;">
         <div style="flex:1;">
           <div style="font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#8FA394;">Edit appearance</div>
@@ -1854,7 +1856,7 @@
 
   <sc-if value="{{ sureOpen }}">
     <div style="position:absolute; inset:0; background:rgba(0,0,0,.66); z-index:86; display:flex; align-items:center; justify-content:center;">
-      <div style="width:520px; background:#252B25; border-radius:28px; padding:22px 26px; animation:dlgSure .34s cubic-bezier(.2,1.2,.3,1);">
+      <div role="dialog" aria-modal="true" style="width:520px; background:#252B25; border-radius:28px; padding:22px 26px; animation:dlgSure .34s cubic-bezier(.2,1.2,.3,1);">
         <div style="display:flex; align-items:center; gap:12px;">
           <span class="msym" style="font-size:26px; color:#FFD68A;">help_center</span>
           <div style="flex:1;">
@@ -1898,7 +1900,7 @@
 
   <sc-if value="{{ tabFilterOpen }}">
     <div onClick="{{ closeTabFilter }}" style="position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;"></div>
-    <div style="position:absolute; left:50%; top:92px; transform:translateX(-50%); width:540px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgFilter .24s cubic-bezier(.2,0,0,1);">
+    <div role="dialog" aria-modal="true" style="position:absolute; left:50%; top:92px; transform:translateX(-50%); width:540px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgFilter .24s cubic-bezier(.2,0,0,1);">
       <div style="display:flex; align-items:center; gap:10px;">
         <span class="msym" style="font-size:21px; color:#82D9A5;">filter_alt</span>
         <div style="flex:1;">
@@ -1946,7 +1948,7 @@
 
   <sc-if value="{{ tabColourOpen }}">
     <div onClick="{{ closeTabColour }}" style="position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;"></div>
-    <div style="position:absolute; left:50%; top:110px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgColour .3s cubic-bezier(.2,1.3,.3,1);">
+    <div role="dialog" aria-modal="true" style="position:absolute; left:50%; top:110px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgColour .3s cubic-bezier(.2,1.3,.3,1);">
       <div style="display:flex; align-items:center; gap:10px;">
         <span class="msym" style="font-size:20px; color:#82D9A5;">colorize</span>
         <div style="flex:1;">
@@ -2001,7 +2003,7 @@
 
   <sc-if value="{{ renameOpen }}">
     <div onClick="{{ cancelRename }}" style="position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;"></div>
-    <div style="position:absolute; left:50%; top:120px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgRename .22s cubic-bezier(.2,0,0,1);">
+    <div role="dialog" aria-modal="true" style="position:absolute; left:50%; top:120px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgRename .22s cubic-bezier(.2,0,0,1);">
       <div style="font-size:16px; font-weight:500; margin-bottom:12px;">Rename tab</div>
       <div style="display:flex; align-items:center; gap:8px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:11px 12px;">
         <span class="msym" style="font-size:17px; color:#82D9A5;">edit</span>
@@ -4561,7 +4563,9 @@ class Component extends DCLogic {
       tabGroups:s.groups.map(g => ({
         name:g.name, colour:g.colour, count:g.tabs.length + '', bg:'#141A15',
         chevron:g.collapsed ? 'chevron_right' : 'expand_more',
+        expanded:!g.collapsed,
         toggle:() => this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, { collapsed:!x.collapsed }) : x) }),
+        onKeyActivate:(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } },
         ctx:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxSub:'', ctxGroupId:g.id, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'group · ' + g.name, ctxKind:'group' }); }
       })),
       renameOpen:s.renameOpen, renameValue:s.renameValue,
@@ -4693,11 +4697,36 @@ class Component extends DCLogic {
           this.fire('Grouped', dragged + ' and ' + target + ' are now one tab group.');
         },
         on:k === s.screen, off:k !== s.screen, pinned:s.pinned.indexOf(k) >= 0,
-        go:() => this.setState({ screen:k, railId:SCREENS[k] ? SCREENS[k].rail : s.railId }),
+        id:'tab-' + k, tabIndex:k === s.screen ? 0 : -1,
+        closeLabel:'Close ' + (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)),
+        go:() => this.setState({ screen:k, railId:SCREENS[k] ? SCREENS[k].rail : s.railId }, () => {
+          // The selected and unselected tab markup are two different sc-if branches, so
+          // React unmounts one DOM node and mounts another rather than patching one in
+          // place -- which drops keyboard focus on every activation, including the one
+          // arrow-key navigation just gave it. Put it back on the tab that is now current,
+          // once the DOM this setState produced actually exists.
+          const el = document.getElementById('tab-' + k);
+          if (el && document.activeElement !== el) el.focus();
+        }),
         close:(e) => { if (e && e.stopPropagation) e.stopPropagation(); const t = s.tabs.filter(x => x !== k); this.setState({ tabs:t.length ? t : ['dash'], screen:k === s.screen ? (t[0] || 'dash') : s.screen }); },
         ctx:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxTabKey:k, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'tab · ' + (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)), ctxKind:'tab' }); }
         };
       }),
+      activeTabId:'tab-' + s.screen,
+      tabsKeyDown:(e) => {
+        const key = e.key;
+        if (key !== 'ArrowRight' && key !== 'ArrowLeft' && key !== 'Home' && key !== 'End') return;
+        e.preventDefault();
+        const list = Array.prototype.slice.call(e.currentTarget.querySelectorAll('[role="tab"]'));
+        if (!list.length) return;
+        const current = list.indexOf(document.activeElement);
+        let next;
+        if (key === 'Home') next = 0;
+        else if (key === 'End') next = list.length - 1;
+        else { const delta = key === 'ArrowRight' ? 1 : -1; next = ((current >= 0 ? current : 0) + delta + list.length) % list.length; }
+        const target = list[next];
+        if (target) { target.focus(); target.click(); }
+      },
       newTab:() => { const next = ORDER.find(k => s.tabs.indexOf(k) < 0) || 'dash'; this.setState({ tabs:s.tabs.concat([next]), screen:next, railId:SCREENS[next].rail }); },
       dockOpts:[
         { label:'Rail on the left', icon:'dock_to_right', v:'left' },
