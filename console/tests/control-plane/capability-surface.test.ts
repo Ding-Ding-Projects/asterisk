@@ -241,3 +241,21 @@ test('no read-only command is one that writes', () => {
     }
   }
 });
+
+test('the bare, argument-free "media cache show" is not allowlisted', () => {
+  /* `main/media_cache.c` `media_cache_handle_show_item` registers the three-word path
+   * `media cache show` and requires `a->argc == 4` -- a URI this allowlist has no id to
+   * supply, since every entry here is a complete, argument-free command line. A bare
+   * invocation therefore only ever prints its own `Usage: media cache show <uri>` line
+   * (exit code 0, verified against a live target -- see docs/evidence/live-readings.md
+   * finding 3), which `AsteriskReadings` cannot tell apart from real data and the CLI
+   * screen renders as a successful reading. */
+  assert.ok(!(READ_ONLY_COMMANDS as readonly string[]).includes('media cache show'));
+  /* `media cache show all` (`media_cache_handle_show_all`) is the real no-argument
+   * command -- a genuinely different, four-word registered path -- and is deliberately
+   * not allowlisted in its place: that would be a new live-target reading nothing has
+   * actually run, which is exactly what `live-readings --check`'s coverage rule ("a
+   * command added to the allowlist after this ran is a command nothing has ever run
+   * against a target") exists to catch. */
+  assert.ok(!(READ_ONLY_COMMANDS as readonly string[]).includes('media cache show all'));
+});

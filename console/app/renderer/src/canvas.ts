@@ -26,6 +26,39 @@ export function canvasReason(readings: CanvasReadings | undefined): string {
   return reading && reading.result.state === 'unavailable' ? reading.result.reason : '';
 }
 
+/**
+ * `dialplan show` reads the dialplan Asterisk currently has *loaded*, which is not
+ * necessarily what `/etc/asterisk/extensions.conf` says on disk right now -- an edit
+ * that was never followed by a reload leaves the two disagreeing with nothing on
+ * either reading saying so. Verified against a live target: the file held three
+ * contexts (`dundi-e164`, `iax2-trunk`, `trunkint`) that the running dialplan had none
+ * of, because an earlier session had restored the file without reloading `pbx_config`.
+ *
+ * This compares only the direction a reading can prove without guessing: a context the
+ * file declares that the loaded graph shows zero extensions under. It cannot rule out
+ * a context that is genuinely empty by design (nothing but an `include =>` line, say),
+ * so the caller reports this as a fact about what was found rather than a diagnosis.
+ * `general` and `globals` are not contexts at all (`pbx/pbx_config.c` `pbx_load_config`:
+ * "All categories but 'general' or 'globals' are considered contexts") and are excluded
+ * so neither is ever reported as one.
+ */
+export function contextsMissingFromLoadedDialplan(
+  graph: DialplanGraph | undefined,
+  fileContextNames: ReadonlyArray<string>,
+): string[] {
+  if (!graph) return [];
+  const loaded = new Set(graph.nodes.map((node) => node.context));
+  const seen = new Set<string>();
+  const missing: string[] = [];
+  for (const raw of fileContextNames) {
+    const name = raw.trim();
+    if (!name || /^(general|globals)$/iu.test(name) || seen.has(name)) continue;
+    seen.add(name);
+    if (!loaded.has(name)) missing.push(name);
+  }
+  return missing;
+}
+
 export interface CanvasNode { id: string; x: number; y: number; icon: string; title: string; detail: string }
 
 const COLUMN_W = 228;

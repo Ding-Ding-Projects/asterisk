@@ -139,15 +139,43 @@ This is also why the fixture's voicemail context is `dingvm` and not `ding-live-
 eighteen-character context would have added a mailbox the reading could not see, and the fixture
 would have proved nothing about parsing a new row.
 
+> **Repaired since this run, in a change of its own.** The Voicemail screen now reads that
+> `total` and compares it against how many rows actually made it into `users`; when they
+> disagree it says exactly how many mailbox rows the target reported that this reading could not
+> safely place into columns, rather than rendering a short table with no sign anything is
+> missing. `parseVoicemailUsers` itself is untouched — `total` was already part of its return
+> value, this pass only started reading it — so the change needed no fresh live capture: it does
+> not move what `--check` re-derives from the committed bytes above, and `dropped` was
+> deliberately **not** added as a new field on the parser for the same reason. Held by
+> `tests/ui/voicemail-dropped-wired.test.tsx`, rendering the real screen against a reading whose
+> `total` and row count disagree.
+>
+> The finding above is left as it was written, because it is what this run measured and the run
+> is not being re-taken.
+
 **3. `media cache show` is allowlisted without the argument it needs — medium.** The live target
 answered `Usage: media cache show <uri>` with exit code 0. `AsteriskReadings` diverts only on
 `No such command` and `Unable to connect to remote asterisk`, so a usage line reaches the CLI
 screen as a successful reading. No parser consumes this command today, so nothing is currently
 mis-parsed; what is wrong is that the allowlist carries a line that can never produce one.
 
-All three are recorded on the roadmap. None is repaired here: this pass verifies readings, and
-closing a write-path or screen defect inside it would be a change nobody reviewing this item
-would be looking for.
+> **Repaired since this run, in a change of its own.** `media cache show` is removed from
+> `READ_ONLY_COMMANDS`. The real no-argument command is a different, four-word one --
+> `media cache show all` (`main/media_cache.c` `media_cache_handle_show_all`) -- and it is
+> deliberately **not** added in its place: doing that would be a new allowlisted reading this
+> pass has not actually run against a live target, and the `--check` coverage rule two sections
+> up ("a command added to the allowlist after this ran is a command nothing has ever run against
+> a target") exists precisely to catch that. Nothing consumed `media cache show` -- this pass's
+> own capture ledger records it, and confirmed no parser or reading referenced it -- so removing
+> it costs no screen anything it had.
+>
+> The finding above is left as it was written, because it is what this run measured and the run
+> is not being re-taken.
+
+All three findings were repaired in a change of its own, after this run. That change did not
+re-take the live pass -- it kept every currently-verified reading's parsed shape exactly as this
+run captured it, which is what let it repair the voicemail and media-cache findings without a
+fresh capture.
 
 ## One thing worth knowing about `dialplan show`
 
@@ -162,6 +190,31 @@ That is a fact about readings in general and not about this run: **`dialplan sho
 loaded, not what is on disk**, and the console cannot presently tell an operator when the two have
 diverged. The baseline capture is a genuine reading of a dialplan that no configuration file on
 that target described.
+
+> **Repaired since this run, in a change of its own.** The canvas screen now compares the two:
+> `contextsMissingFromLoadedDialplan` (`app/renderer/src/canvas.ts`) checks every context name
+> `extensions.conf` declares against the contexts the loaded dialplan graph actually has
+> extensions under, and names the ones that are only in the file. Exactly the shape this run
+> measured: `[dundi-e164]`, `[iax2-trunk]` and `[trunkint]` would each have been reported, had
+> the file and the loaded dialplan still disagreed by the time an operator looked. It compares
+> only the direction a reading can prove without guessing -- a context declared but with no
+> loaded extension, never the reverse -- and says so in its own comment rather than overclaiming
+> what the comparison can rule out. `parseDialplanGraph`'s own return shape is untouched, so this
+> also needed no fresh live capture and does not move what `--check` re-derives above.
+>
+> Fixed alongside it: the canvas screen's status note was separately stuck reporting "Reading…"
+> forever, regardless of what `dialplan show` actually answered. `canvas` declares
+> `file: 'extensions.conf'` like a configuration-editing screen, which routed it into the note
+> logic that reports what `this.configs[screen]` holds -- but canvas has no bound controls
+> (`groups: []`) and that field is never populated for it, so the branch always returned its own
+> "Reading…" fallback and the canvas-specific reason below it was unreachable. Without that fix
+> the divergence sentence above, and every dialplan-read failure reason, would have been silently
+> discarded before reaching the screen.
+>
+> Held by `tests/ui/canvas.test.tsx` (the comparison itself, including the exact three contexts
+> above) and `tests/ui/canvas-divergence-wired.test.tsx` (rendering the real screen, including the
+> "Reading…" regression). The finding above is left as it was written, because it is what this
+> run measured and the run is not being re-taken.
 
 ## Capture records
 

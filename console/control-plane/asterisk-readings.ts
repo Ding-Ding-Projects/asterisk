@@ -74,8 +74,17 @@ export const READ_ONLY_COMMANDS = [
   "pjsip show aors", "pjsip show identifies", "pjsip show channelstats",
   // Calendars
   "calendar show calendars", "calendar show types",
-  // Media and codecs
-  "core show translation", "core show file formats", "media cache show",
+  // Media and codecs. `media cache show <uri>` used to be listed bare, with no URI --
+  // `main/media_cache.c` `media_cache_handle_show_item` requires `a->argc == 4` for that
+  // three-word registered path, so the bare form could only ever print its own
+  // `Usage: media cache show <uri>` line (exit code 0, verified against a live target)
+  // and the console read that usage text back as a successful reading. This allowlist
+  // carries only complete, argument-free command lines, so there is no id here to fill
+  // that fourth token with; `media cache show all` (a different, real, no-argument
+  // command that lists the whole cache) is not added in its place because that would be
+  // a new reading claiming live-target verification this pass has not actually taken --
+  // see docs/evidence/live-readings.md finding 3.
+  "core show translation", "core show file formats",
   // Voicemail
   "voicemail show zones",
   // Runtime health
