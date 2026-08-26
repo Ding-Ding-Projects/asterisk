@@ -18,6 +18,7 @@ import { AsteriskService } from './asterisk-service.js';
 import {
   parseVoicemailUsers, parseVoicemailZones, parseConfbridgeList, parseMohClasses, parseCodecs,
   parseTranslations, parseAclRules, parseManagerSettings, parseManagerUsers, parseAriApps,
+  parseAriUsers, parseBridges, parseApplications,
   parseCdrStatus, parseLoggerChannels, parseSysinfo, parseUptime, parseMediaCacheItems,
 } from './asterisk-parsers.js';
 import { planDeployment, runDeployment, type DeployTarget } from './console-deploy.js';
@@ -26,7 +27,8 @@ import { ServerInventory, SettingsRegistry, parseSettingsSnapshot } from './inde
 import type { ServerInventoryStore, ServerRecord, SettingsSnapshotStore } from './index.js';
 import { atomicWriteFileSync } from './atomic-file.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
-import type { ReadOnlyCommand, TargetProfile } from './index.js';
+import { AgiLibrary, DEFAULT_AGI_DIRECTORY, agiReferences } from './index.js';
+import type { ReadOnlyCommand, TargetProfile, ConfigValue } from './index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
 
 /**
@@ -192,6 +194,16 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       : { id: distribution, displayName: distribution, connectionKind: 'wsl', wslDistribution: distribution };
   }
 
+  /* Shared by `readView`'s `restbrowser` case and every branch of `parsedView` below:
+   * run one allowlisted read-only CLI command and parse its output, carrying the
+   * command's own unavailable reason through untouched when the read itself failed. */
+  const read = async <T>(target: TargetProfile, command: ReadOnlyCommand, parse: (text: string) => T) => {
+    const reading = await readings.raw(target, command);
+    return reading.result.state === 'available'
+      ? { command, result: { ...reading.result, value: parse(String(reading.result.value ?? '')) } }
+      : { command, result: reading.result };
+  };
+
   async function readView(target: TargetProfile, view: PbxReadView) {
     if (view === 'dash') {
       const [channels, endpoints, queues, uptime] = await Promise.all([
@@ -225,6 +237,49 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     if (view === 'queues') return { queues: await readings.queues(target) };
     if (view === 'canvas') return { dialplan: await dialplanReadings.graph(target) };
     if (view === 'modules') return { modules: await readings.modules(target) };
+    /* The REST resource browser. Channels, bridges and registered dialplan
+     * applications are read the same way `dash`/`live` already read channels above --
+     * live off the target through the Asterisk CLI, not through a raw HTTP call to
+     * ARI, which is what "REST" names here rather than the wire protocol: `ari show
+     * apps`/`ari show users` are themselves introspection of the REST interface's own
+     * registered applications and configured users, the two things that actually
+     * gate what an external REST client may do against this target. A genuine live
+     * *event* stream (a call starting, a bridge forming, while this screen is open)
+     * needs a websocket/SSE transport this control plane does not have -- the same gap
+     * the Manager and REST screen already states plainly rather than pretending to
+     * close; this screen states it too, on the About group below. */
+    if (view === 'restbrowser') {
+      const bridgeCommand: ReadOnlyCommand = 'bridge show all';
+      const applicationsCommand: ReadOnlyCommand = 'core show applications';
+      const [channels, bridgesReading, applicationsReading, ariApps, ariUsers] = await Promise.all([
+        readings.channels(target),
+        read(target, bridgeCommand, parseBridges),
+        read(target, applicationsCommand, parseApplications),
+        read(target, 'ari show apps', parseAriApps),
+        read(target, 'ari show users', parseAriUsers),
+      ]);
+      return { channels, bridges: bridgesReading, applications: applicationsReading, ariApps, ariUsers };
+    }
+    /* Dialplan scripting visibility. `extensions.conf`'s AGI-family calls, cross-checked
+     * against what the target's own AGI directory (`asterisk.conf`'s `astagidir`,
+     * falling back to Asterisk's shipped default when that field is empty or unread)
+     * actually holds -- two facts this console could previously only look at
+     * separately, on two different screens, and never side by side. */
+    if (view === 'agiscripts') {
+      const transport = new WslConfigTransport({ executor: processExecutor, distribution: target.wslDistribution! });
+      const [dialplan, asteriskConf] = await Promise.all([
+        dialplanReadings.graph(target),
+        transport.read('/etc/asterisk/asterisk.conf').catch((): ConfigValue => []),
+      ]);
+      const directories = asteriskConf.find((section) => section.name === 'directories');
+      const astagidir = directories?.entries.find((entry) => entry.key === 'astagidir')?.value?.trim() || DEFAULT_AGI_DIRECTORY;
+      const agiLibrary = new AgiLibrary({ executor: processExecutor, distribution: target.wslDistribution! });
+      const files = await agiLibrary.list(astagidir);
+      const references = dialplan.result.state === 'available' && dialplan.result.value
+        ? agiReferences(dialplan.result.value)
+        : [];
+      return { dialplan, astagidir, files, references };
+    }
 
     const parsed = await parsedView(target, view);
     if (parsed) return parsed;
@@ -232,21 +287,16 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
   }
 
   async function parsedView(target: TargetProfile, view: PbxReadView) {
-    const read = async <T>(command: ReadOnlyCommand, parse: (text: string) => T) => {
-      const reading = await readings.raw(target, command);
-      return reading.result.state === 'available'
-        ? { command, result: { ...reading.result, value: parse(String(reading.result.value ?? '')) } }
-        : { command, result: reading.result };
-    };
+    const readHere = <T>(command: ReadOnlyCommand, parse: (text: string) => T) => read(target, command, parse);
 
     if (view === 'voicemail') {
       const [users, zones] = await Promise.all([
-        read('voicemail show users', parseVoicemailUsers),
-        read('voicemail show zones', parseVoicemailZones),
+        readHere('voicemail show users', parseVoicemailUsers),
+        readHere('voicemail show zones', parseVoicemailZones),
       ]);
       return { voicemailUsers: users, voicemailZones: zones };
     }
-    if (view === 'confbridge') return { rooms: await read('confbridge list', parseConfbridgeList) };
+    if (view === 'confbridge') return { rooms: await readHere('confbridge list', parseConfbridgeList) };
     if (view === 'moh') {
       /* The Music on Hold destination is this console's one media surface -- its feature
        * record (`app/renderer/src/pbx-admin-model.ts`, `moh-settings`) declares
@@ -256,19 +306,19 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
        * Asterisk fetched from a URI at run time and stored itself. Either reading can fail
        * without costing the other, so they are read together and reported apart. */
       const [mohClasses, mediaCacheItems] = await Promise.all([
-        read('moh show classes', parseMohClasses),
-        read('media cache show all', parseMediaCacheItems),
+        readHere('moh show classes', parseMohClasses),
+        readHere('media cache show all', parseMediaCacheItems),
       ]);
       return { mohClasses, mediaCacheItems };
     }
     if (view === 'codecs') {
       const [codecs, translations] = await Promise.all([
-        read('core show codecs', parseCodecs),
-        read('core show translation', parseTranslations),
+        readHere('core show codecs', parseCodecs),
+        readHere('core show translation', parseTranslations),
       ]);
       return { codecs, translations };
     }
-    if (view === 'security') return { aclRules: await read('acl show', parseAclRules) };
+    if (view === 'security') return { aclRules: await readHere('acl show', parseAclRules) };
     if (view === 'cdr') {
       // `modules` is fetched here too (the same `readings.modules()` the `modules` view
       // above uses) so the CDR/CEL screen's own backend-status readouts can say whether
@@ -276,24 +326,24 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       // cdr show status's own "Registered Backends" list (which only ever lists CDR,
       // never CEL, backends) happens to mention it.
       const [cdrStatus, modules] = await Promise.all([
-        read('cdr show status', parseCdrStatus),
+        readHere('cdr show status', parseCdrStatus),
         readings.modules(target),
       ]);
       return { cdrStatus, modules };
     }
-    if (view === 'logger') return { loggerChannels: await read('logger show channels', parseLoggerChannels) };
+    if (view === 'logger') return { loggerChannels: await readHere('logger show channels', parseLoggerChannels) };
     if (view === 'ami') {
       const [settings, users, apps] = await Promise.all([
-        read('manager show settings', parseManagerSettings),
-        read('manager show users', parseManagerUsers),
-        read('ari show apps', parseAriApps),
+        readHere('manager show settings', parseManagerSettings),
+        readHere('manager show users', parseManagerUsers),
+        readHere('ari show apps', parseAriApps),
       ]);
       return { managerSettings: settings, managerUsers: users, ariApps: apps };
     }
     if (view === 'about' || view === 'cli') {
       const [sysinfo, uptime] = await Promise.all([
-        read('core show sysinfo', parseSysinfo),
-        read('core show uptime seconds', parseUptime),
+        readHere('core show sysinfo', parseSysinfo),
+        readHere('core show uptime seconds', parseUptime),
       ]);
       return { sysinfo, uptime };
     }
@@ -663,15 +713,37 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           data: outcome,
         } as ControlPlaneResponse;
       }
-      if (request.action === 'history.list' || request.action === 'history.restore') {
+      if (
+        request.action === 'history.list' || request.action === 'history.restore'
+        || request.action === 'history.diff' || request.action === 'history.prune'
+      ) {
         const target = await resolveTarget(request.serverId);
         const history = new ConfigHistory({ executor: processExecutor, distribution: target.wslDistribution! });
         if (request.action === 'history.list') {
           const resource = typeof request.payload?.resource === 'string' ? request.payload.resource : undefined;
           return { ok: true, requestId: request.requestId, data: { entries: await history.list(resource), observedAt: new Date().toISOString() } };
         }
+        if (request.action === 'history.prune') {
+          const resource = typeof request.payload?.resource === 'string' ? request.payload.resource : '';
+          const keep = typeof request.payload?.keep === 'number' ? request.payload.keep : NaN;
+          if (!resource) return { ok: false, requestId: request.requestId, code: 'RESOURCE_REQUIRED', message: 'No resource was named to prune.' };
+          try {
+            const pruned = await history.prune(resource, keep);
+            return { ok: true, requestId: request.requestId, data: pruned };
+          } catch (error) {
+            return { ok: false, requestId: request.requestId, code: 'HISTORY_PRUNE_FAILED', message: error instanceof Error ? error.message : 'That prune was refused.' };
+          }
+        }
         const handle = typeof request.payload?.handle === 'string' ? request.payload.handle : '';
         if (!handle) return { ok: false, requestId: request.requestId, code: 'HANDLE_REQUIRED', message: 'No recovery point was named.' };
+        if (request.action === 'history.diff') {
+          try {
+            const diff = await history.diff(handle);
+            return { ok: true, requestId: request.requestId, data: diff };
+          } catch (error) {
+            return { ok: false, requestId: request.requestId, code: 'HISTORY_DIFF_FAILED', message: error instanceof Error ? error.message : 'That comparison was refused.' };
+          }
+        }
         const restored = await history.restore(handle);
         return {
           ok: restored.ok,

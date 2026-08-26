@@ -38,7 +38,7 @@ only driving the reader tells the two apart.
 
 ## Result
 
-**27 of 27 readings parse the live target's real output. 23 of 27 return rows once populated.**
+**30 of 30 readings parse the live target's real output. 24 of 30 return rows once populated.**
 
 | Reading | Command | Parser | Baseline | Populated | Rows are |
 | --- | --- | --- | --- | --- | --- |
@@ -69,15 +69,26 @@ only driving the reader tells the two apart.
 | `ariApps` | `ari show apps` | parseAriApps | 0 | 0 | connected REST applications |
 | `sysinfo` | `core show sysinfo` | parseSysinfo | 7 | 7 | system values |
 | `uptime` | `core show uptime seconds` | parseUptime | 2 | 2 | uptime values |
+| `bridges` | `bridge show all` | parseBridges | 0 | 0 | live bridges |
+| `applications` | `core show applications` | parseApplications | 178 | 178 | registered dialplan applications |
+| `ariUsers` | `ari show users` | parseAriUsers | 0 | 0 | ARI users |
 
-The four that stayed empty are exactly the four this harness declares it cannot populate, and the
+The `applications` reading is the REST resource browser's own proof that `core show applications`
+parses real output rather than an invented shape: 178 real Asterisk applications, starting with
+`AddQueueMember`, off the live build this repository's sources produced.
+
+The six that stayed empty are exactly the six this harness declares it cannot populate, and the
 reason is recorded against each rather than left as an unexplained zero: a channel and a channel
 statistic exist only while a call is up; `confbridge list` prints conferences that are *running*,
-not rooms that are configured; and an ARI application appears when a client connects, not when a
-file says so. `--check` refuses any *other* reading landing in that list, so a reading that
+not rooms that are configured; an ARI application appears when a client connects, not when a file
+says so; a bridge exists only while two or more channels are actually being mixed together; and
+`ari.conf.sample` ships every `[username]` section commented out, so a freshly provisioned
+exchange has no ARI user for `ari show users` to print -- the fixture this harness writes creates
+a PJSIP endpoint, not an ARI user, and adding a second unrelated fixture for one reading was not
+worth the coupling. `--check` refuses any *other* reading landing in that list, so a reading that
 quietly stopped returning rows cannot pass as a documented limitation.
 
-**11 of the 63 commands are not built into this target** and the console handles all eleven
+**11 of the 65 commands are not built into this target** and the console handles all eleven
 correctly: `AsteriskReadings` diverts on `No such command` and reports the subsystem as
 unavailable rather than parsing the refusal into an empty table. Those eleven are the three
 `dahdi show`, `odbc show`, both `dundi show`, all three `stir_shaken show`, and both `geoloc`.
