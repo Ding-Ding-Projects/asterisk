@@ -75,15 +75,26 @@ test('picking a trunk row seeds the tk_* advanced controls alongside the e_* end
   });
 });
 
-test('all thirteen trunk-advanced controls and the Save button are declared in the design', () => {
+test('all thirteen trunk-advanced controls are declared in the design, under one consolidated trunk Save', () => {
+  /* tk_save ('Save advanced trunk settings' / action:'trunk-advanced-save') is gone on
+   * purpose: the w2-deepen lane gave the Trunks screen a real registration+endpoint pairing
+   * (trunk-registration.ts) and consolidated the Failover, Outbound identity and Advanced
+   * groups behind one 'Save' button, t_save (action:'trunk-save', App.tsx's onSaveTrunk),
+   * so a click writes the retry policy and the paired endpoint's advanced fields together
+   * instead of two separate saves that could disagree about which row was loaded. The old
+   * onSaveTrunkAdvanced/trunk-advanced-save handler above still exists in App.tsx -- nothing
+   * in this pass removed it -- but nothing in the design dispatches to it any more, so this
+   * guard only pins the thirteen tk_* fields, not a button the screen no longer shows. */
   return source(designUrl).then((src) => {
     for (const id of [
       'tk_connectedline', 'tk_contactuser', 'tk_fromdomain', 'tk_fromuser', 'tk_mediaaddr',
       'tk_t38', 'tk_t38ec', 'tk_t38nat', 'tk_t38mtu', 'tk_faxdetect',
-      'tk_trustout', 'tk_sendrpid', 'tk_senddiversion', 'tk_save',
+      'tk_trustout', 'tk_sendrpid', 'tk_senddiversion',
     ]) {
       assert.match(src, new RegExp(`ctl\\('${id}',`, 'u'), `${id} is missing from the design`);
     }
+    assert.match(src, /ctl\('t_save','Save this trunk','segmented','Save',\{ options:\['Save'\], action:'trunk-save' \}\)/u,
+      'the consolidated trunk Save control is missing from the design');
   });
 });
 

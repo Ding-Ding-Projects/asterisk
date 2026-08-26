@@ -1,5 +1,7 @@
 import type { Observation, PbxReadView } from '../../../shared/control-plane';
-import type { Codec, TranslationRow } from '../../../control-plane/asterisk-parsers.ts';
+import type { Codec, TranslationRow, Bridge, DialplanApplication, AriUser } from '../../../control-plane/asterisk-parsers.ts';
+import type { AgiScriptFile } from '../../../control-plane/agi-library.ts';
+import type { AgiReference, DialplanGraph } from '../../../control-plane/dialplan-graph.ts';
 
 /**
  * Turns control-plane readings into the row shapes the design's own screens consume.
@@ -94,6 +96,20 @@ export interface ViewReadings {
    *  what let the codec translation graph (`codec-graph.ts`) actually reach them. */
   codecs?: Reading<Codec[]>;
   translations?: Reading<TranslationRow[]>;
+  /** The REST resource browser -- `channels` and `ariApps` above already carry two of
+   *  its five readings; these are the three that had no other screen to belong to. */
+  bridges?: Reading<Bridge[]>;
+  applications?: Reading<DialplanApplication[]>;
+  ariUsers?: Reading<AriUser[]>;
+  /** Dialplan scripting (AGI) visibility. `dialplan` is a real `Reading`, exactly like
+   *  the Dialplan canvas's own reading of the same `dialplan show`; `files` and
+   *  `references` are already-resolved values by the time they reach the renderer --
+   *  `AgiLibrary#list` and `agiReferences` both run inside the control-plane dispatcher
+   *  itself, not lazily on this side, so there is nothing left to wrap in a `Reading`. */
+  dialplan?: Reading<DialplanGraph>;
+  astagidir?: string;
+  files?: ReadonlyArray<AgiScriptFile>;
+  references?: ReadonlyArray<AgiReference>;
 }
 
 /**
@@ -138,12 +154,22 @@ export const TABLE_DESTINATION_READERS: Record<string, boolean> = {
    * this specific inventory claims -- "can `rowsFor` put real rows on it" -- while the
    * screen itself is fully wired through its own, more appropriate path. */
   security: false,
+  /* Both of these are genuine readers, just not THIS one, for the same reason
+   * `security` above is `false`: their rows do not come from ONE reading `rowsFor`
+   * could hand back as-is. `restbrowser` combines five separate readings (channels,
+   * bridges, applications, ARI apps, ARI users) into one table -- `rest-browser.ts`
+   * `restBrowserRows`. `agiscripts` cross-references a dialplan reading against an
+   * already-resolved directory listing that is not itself a `Reading` at all --
+   * `agi-scripting.ts` `agiScriptRows`. `App.tsx`'s `applyRows` feeds both directly,
+   * bypassing `rowsFor` entirely, exactly the way `security`'s own rows already do. */
+  restbrowser: false,
+  agiscripts: false,
 };
 
 export const READABLE_VIEWS: PbxReadView[] = [
   'dash', 'live', 'endpoints', 'trunks', 'iaxpeers', 'queues', 'modules',
   'voicemail', 'confbridge', 'moh', 'codecs', 'security', 'cdr', 'logger', 'ami', 'about', 'cli',
-  'trunkauth',
+  'trunkauth', 'restbrowser', 'agiscripts',
 ];
 
 export const isReadable = (screen: string): screen is PbxReadView =>
@@ -284,7 +310,13 @@ export function reasonFor(readings: ViewReadings | undefined, keys: Array<keyof 
   if (!readings) return '';
   for (const key of keys) {
     const reading = readings[key];
-    if (reading && reading.result.state === 'unavailable') return reading.result.reason;
+    // Most `ViewReadings` fields are real `Reading<T>` wrappers, but the AGI scripting
+    // screen's `astagidir`/`files`/`references` are already-resolved plain values (see
+    // the field comments above), so this checks the shape before reading `.result`
+    // rather than assuming every key in the interface carries one.
+    if (reading && typeof reading === 'object' && 'result' in reading && reading.result.state === 'unavailable') {
+      return reading.result.reason;
+    }
   }
   return '';
 }

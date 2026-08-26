@@ -149,8 +149,8 @@ const BREAKS = [
   {
     name: 'trunkauth stops being a readable view, so the renderer never asks for it',
     file: 'app/renderer/src/readings.ts',
-    find: "  'trunkauth',\n];",
-    replace: '];',
+    find: "  'trunkauth', 'restbrowser', 'agiscripts',\n];",
+    replace: "  'restbrowser', 'agiscripts',\n];",
     tests: [AUTHS],
   },
   {

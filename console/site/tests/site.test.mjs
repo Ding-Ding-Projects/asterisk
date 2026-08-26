@@ -125,11 +125,14 @@ test('contains exactly 32 destination definitions in six declared groups', () =>
     'arcade','notifications','history','customise','appearance','about',
   ]);
 });
-test('provides 77 complete feature articles plus checked evidence records', async () => {
+test('provides 78 complete feature articles plus checked evidence records', async () => {
   const docsRoot=resolve(root,'..','docs'), categories=['pbx','media','data','system','agent','app','platform'];
   const articles=[];
   for(const category of categories)for(const name of await readdir(join(docsRoot,category)))if(name.endsWith('.md')&&name!=='README.md')articles.push(join(docsRoot,category,name));
-  assert.equal(articles.length,77); // 32 destination articles (pbx/media/data/system/agent/app) plus 45 platform articles
+  // 32 destination articles (pbx/media/data/system/agent/app) plus 45 platform articles,
+  // plus one more: docs/pbx/iaxpeers.md, the IAX peers screen's own previously missing
+  // documentation article, added alongside the Trunks/IVR deepening pass.
+  assert.equal(articles.length,78);
   // An evidence record is a different genre from a feature article: it says what was
   // captured, from which commit, and by what method, and forcing "## Behavior" onto it
   // would distort a document that is doing its job. So it lives in its own category --
@@ -261,7 +264,9 @@ test('build composes deterministic local output without fetches', async () => {
   // holds 266 controls; 22 setting activations each reached the exact control the compiled palette
   // names, and 3 destination activations correctly focused nothing.
   // One article in, one HTML page out.
-  assert.equal(manifest.outputFiles.length, 194);
+  // Then from the w2-deepen stacking lane, for docs/pbx/iaxpeers.md, the IAX peers screen's own
+  // previously missing documentation article. One article in, one HTML page out.
+  assert.equal(manifest.outputFiles.length, 195);
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');

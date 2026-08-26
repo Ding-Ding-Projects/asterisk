@@ -241,3 +241,24 @@ test('no read-only command is one that writes', () => {
     }
   }
 });
+
+test('the bare, argument-free "media cache show" is not allowlisted', () => {
+  /* `main/media_cache.c` `media_cache_handle_show_item` registers the three-word path
+   * `media cache show` and requires `a->argc == 4` -- a URI this allowlist has no id to
+   * supply, since every entry here is a complete, argument-free command line. A bare
+   * invocation therefore only ever prints its own `Usage: media cache show <uri>` line
+   * (exit code 0, verified against a live target -- see docs/evidence/live-readings.md
+   * finding 3), which `AsteriskReadings` cannot tell apart from real data and the CLI
+   * screen renders as a successful reading. */
+  assert.ok(!(READ_ONLY_COMMANDS as readonly string[]).includes('media cache show'));
+  /* `media cache show all` (`media_cache_handle_show_all`) IS allowlisted, and correctly
+   * so: it is a real no-argument command -- a genuinely different, four-word registered
+   * path -- and by the time this lane's own finding 3 fix landed on the branch it was
+   * stacked on, a separate already-integrated pass had already added it here with its own
+   * live-target verification (`parseMediaCacheItems`, read for the Music on Hold screen's
+   * media-cache note -- see docs/evidence/live-readings.md finding 3 and
+   * control-plane/dispatch.ts). This test only pins that the *bare* three-word form stays
+   * out; the four-word container listing belongs in the allowlist and has its own
+   * coverage in tests/live/live-readings.test.mjs. */
+  assert.ok((READ_ONLY_COMMANDS as readonly string[]).includes('media cache show all'));
+});

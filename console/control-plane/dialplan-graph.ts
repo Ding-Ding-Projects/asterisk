@@ -357,6 +357,69 @@ export function parseDialplanContextTotal(stdout: string): number | undefined {
   return undefined;
 }
 
+// ---------------------------------------------------------------- AGI scripting visibility
+
+export interface AgiReference {
+  context: string;
+  extension: string;
+  priority: number;
+  app: string;
+  /** The script argument exactly as `AGI()`/`EAGI()`/`DeadAGI()` was called with -- the
+   *  whole first argument, before `kind` below decides what it names. */
+  script: string;
+  /** `local` is a bare filename this console can check against the target's own AGI
+   *  directory listing. `network` is a `res/res_agi.c` `agi://`/`hagi://` FastAGI URI
+   *  (line 2186 `agiurl + 6` strips `agi://`; line 2284 the `h` variant), and `async` is
+   *  the literal `agi:async` token (line 2341 `strncasecmp(script, "agi:async", ...)`)
+   *  that hands the channel to Async AGI over AMI instead of running a file at all --
+   *  neither of those names anything a directory listing could ever confirm or deny. */
+  kind: "local" | "network" | "async";
+}
+
+const AGI_APPLICATIONS = new Set(["agi", "eagi", "deadagi"]);
+
+/** The first comma-separated argument to an `AGI()`-family application call, the same
+ *  way Asterisk's own argument parser splits `data` -- trimmed, and with one layer of
+ *  surrounding quotes removed if the dialplan author quoted it (`AGI("my script.agi")`
+ *  is how a script name containing a comma or a space is written at all). */
+function firstArgument(data: string): string {
+  const raw = (data.split(",")[0] ?? "").trim();
+  const quoted = /^"(.*)"$/u.exec(raw);
+  return quoted ? quoted[1] : raw;
+}
+
+function classifyAgiScript(script: string): AgiReference["kind"] {
+  const lower = script.toLowerCase();
+  if (lower.startsWith("agi://") || lower.startsWith("hagi://")) return "network";
+  if (lower.startsWith("agi:async")) return "async";
+  return "local";
+}
+
+/** Every `AGI()`/`EAGI()`/`DeadAGI()` call in a parsed dialplan graph, in the order
+ *  `dialplan show` printed them. Used by the AGI scripting-visibility screen to compare
+ *  what the dialplan actually references against what the target's own AGI directory
+ *  actually holds -- two facts nothing in this console could previously put side by
+ *  side. */
+export function agiReferences(graph: DialplanGraph): AgiReference[] {
+  const found: AgiReference[] = [];
+  for (const node of graph.nodes) {
+    for (const step of node.steps) {
+      if (!AGI_APPLICATIONS.has(step.app.trim().toLowerCase())) continue;
+      const script = firstArgument(step.data);
+      if (!script) continue;
+      found.push({
+        context: node.context,
+        extension: node.extension,
+        priority: step.priority,
+        app: step.app,
+        script,
+        kind: classifyAgiScript(script),
+      });
+    }
+  }
+  return found;
+}
+
 // ---------------------------------------------------------------- helpers
 
 function firstLine(text: string): string {

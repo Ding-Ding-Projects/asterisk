@@ -34,7 +34,11 @@ export type ControlPlaneAction =
    */
   | 'settings.source.fetch'
   | 'pbx.read' | 'pbx.command' | 'pbx.config' | 'pbx.plan'
-  | 'history.list' | 'history.restore'
+  /* `.diff` and `.prune` back the Configuration backups screen: `.diff` compares a
+   * listed recovery point against whatever is on the target right now
+   * (`ConfigHistory#diff`), `.prune` deletes everything for one resource beyond a kept
+   * count (`ConfigHistory#prune`, which existed with no caller until this screen). */
+  | 'history.list' | 'history.restore' | 'history.diff' | 'history.prune'
   /* Prompts and music-on-hold media on the target, so a "custom" choice can be given a file.
    * `media.read` is the one addition on top of the original three: it fetches a file own
    * bytes back out, base64-encoded, which is what the Sound prompts screen audition action
@@ -63,7 +67,14 @@ export type PbxReadView =
   /* Trunk authentication -- `pjsip show auths`, the objects a trunk's `auth=`/
    * `outbound_auth=` actually names. Deliberately the plural command: the singular
    * `pjsip show auth <id>` prints the credential itself. See `parsePjsipAuths`. */
-  | 'trunkauth';
+  | 'trunkauth'
+  /* The REST resource browser -- channels, bridges, registered dialplan applications
+   * and the ARI apps/users the REST interface itself exposes, all read live off the
+   * target the same way every other view above already is. */
+  | 'restbrowser'
+  /* Dialplan scripting visibility -- which AGI scripts extensions.conf actually
+   * references, cross-checked against what astagidir holds on the target. */
+  | 'agiscripts';
 
 export interface ControlPlaneRequest {
   requestId: string;

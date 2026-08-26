@@ -87,7 +87,10 @@ import {
 } from '../control-plane/asterisk-readings.js';
 import {
   parseAclRules,
+  parseApplications,
   parseAriApps,
+  parseAriUsers,
+  parseBridges,
   parseCdrStatus,
   parseCodecs,
   parseConfbridgeList,
@@ -244,6 +247,10 @@ export const READINGS = [
   { id: 'ariApps', command: 'ari show apps', parser: parseAriApps, count: (v) => v.length, unit: 'connected REST applications', entry: "dispatch parsedView 'ami'", screens: ['ami'] },
   { id: 'sysinfo', command: 'core show sysinfo', parser: parseSysinfo, count: (v) => Object.keys(v.values).length, unit: 'system values', entry: "dispatch parsedView 'about'", screens: ['about', 'cli'] },
   { id: 'uptime', command: 'core show uptime seconds', parser: parseUptime, count: (v) => (v.uptimeSeconds === undefined ? 0 : 1) + (v.lastReloadSeconds === undefined ? 0 : 1), unit: 'uptime values', entry: "dispatch parsedView 'about'", screens: ['about', 'cli'] },
+  /* The REST resource browser and Dialplan scripting screens. */
+  { id: 'bridges', command: 'bridge show all', parser: parseBridges, count: (v) => v.length, unit: 'live bridges', entry: "dispatch readView 'restbrowser'", screens: ['restbrowser'] },
+  { id: 'applications', command: 'core show applications', parser: parseApplications, count: (v) => v.length, unit: 'registered dialplan applications', entry: "dispatch readView 'restbrowser'", screens: ['restbrowser'] },
+  { id: 'ariUsers', command: 'ari show users', parser: parseAriUsers, count: (v) => v.length, unit: 'ARI users', entry: "dispatch readView 'restbrowser'", screens: ['restbrowser'] },
 ];
 
 /**
@@ -258,6 +265,8 @@ export const NOT_POPULATABLE = {
   channelStats: 'Same: the command prints one row per live PJSIP channel, so an exchange with no call in progress has none.',
   confbridgeRooms: '`confbridge list` prints conferences that are running, not the rooms configured in confbridge.conf. A room with nobody in it is not listed.',
   ariApps: 'An ARI application appears once a client connects and subscribes over the REST interface. It is not a configuration object.',
+  bridges: 'A bridge exists only while two or more channels are actually being mixed together. Nothing in a configuration file creates one, and this harness places no calls.',
+  ariUsers: 'ari.conf.sample ships every `[username]` section commented out, so a freshly provisioned exchange has none. The fixture this harness writes creates a PJSIP endpoint, not an ARI user; adding one would be a second, unrelated fixture for a single reading.',
 };
 
 /**

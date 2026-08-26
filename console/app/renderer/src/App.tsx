@@ -15,7 +15,7 @@ import {
 } from './status-hub-client';
 import { trunkAuthNote } from './trunk-auth';
 import { resolveDestinationRoute, type DestinationRoute } from '../../../shared/destination-route';
-import { canvasReason, dialplanDivergenceNote, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
+import { canvasReason, contextsMissingFromLoadedDialplan, dialplanDivergenceNote, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
 import {
   blameRows as historyBlameRows, commitCountLabel, commitRows as historyCommitRows, compareLabel as historyCompareLabel,
   diffFileLabel, diffLineViews, filterChips as historyFilterChips, filteredEntries as historyFilteredEntries,
@@ -25,7 +25,7 @@ import {
 import { buildCodecGraph, layoutCodecs, unreachable as unreachableCodecs } from './codec-graph';
 import { buildEndpointGraph, brokenLinks as brokenEndpointLinks, layoutTopology, summarise as summariseEndpointGraph } from './endpoint-graph';
 import { runCeremonyCommand, type CeremonyResponse } from './ceremony';
-import { configSummary, renderForDisplay, resourceForFile, type ConfigReading, type ConfigSection, type ConfigValue } from './configuration';
+import { configSummary, renderForDisplay, resourceForFile, sectionNames, type ConfigReading, type ConfigSection, type ConfigValue } from './configuration';
 import {
   readControlValues, isUninventoried, unmappedControls,
   applyControlValues as applyBoundControlValues,
@@ -43,6 +43,10 @@ import {
 } from '../../../control-plane/realtime-mappings-model';
 import { PLAYABLE_EXTENSIONS, playbackMimeType, promptRows, resolvePromptRow } from './prompt-library';
 import { usableName, type MediaFile } from '../../../control-plane/media-library';
+import { formatTakenAt, historyRows, resolveHistoryRow } from './history-backups';
+import type { HistoryEntry, ConfigDiff } from '../../../control-plane/config-history';
+import { restBrowserRows } from './rest-browser';
+import { agiScriptRows } from './agi-scripting';
 import { canProvision, canRecoverRuntime, canStopRuntime, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
 import {
   buildLocalHistoryGroups, formatLocalHistoryEntry, LOCAL_HISTORY_FILTER_ALL, LOCAL_HISTORY_SCREEN_ID,
@@ -60,12 +64,16 @@ import {
 } from './feature-codes';
 import {
   applyControlValues as applyTrunkAdvancedValues, controlValuesFor as trunkAdvancedControlValuesFor,
+  applyControlValues as applyTrunkControlValues, controlValuesFor as trunkControlValuesFor,
   trunkDocument,
 } from './trunk-advanced';
 import {
   applyControlValues as applyIaxControlValues, controlValuesFor as iaxControlValuesFor,
   findPeer as findIaxPeer, IAX_CONTROLS, iaxDocument,
 } from './iax-peers';
+import {
+  applyRegistrationControlValues, controlValuesForRegistration, findRegistration, registeredEndpointName,
+} from './trunk-registration';
 import {
   clearVocabulary, loadVocabularyFile, vocabularyStatus, type VocabularyStorage,
 } from './personal-vocabulary';
@@ -117,7 +125,10 @@ import {
   type PaletteEntry, type PaletteMatch,
 } from './command-palette';
 import { runHostAction, type HostActionKind, type HostActionRequest } from './host-actions';
-import { generateIvr, renderDialplan, type InvalidAction, type IvrDefinition } from './ivr-dialplan';
+import {
+  generateIvr, isUsableRouteTarget, renderDialplan,
+  type InvalidAction, type IvrDefinition, type IvrKeyRoute, type KeyDestination,
+} from './ivr-dialplan';
 import { applyResponse, isRejected, MIN_REFRESH_MS } from './external-settings-sources';
 import {
   buildSource, loadSources, saveSources, sourcesStatusLine,
@@ -346,6 +357,19 @@ interface Shell {
 /** The shape the compiled shell hands every control callback. */
 interface ControlRef { id?: string; label?: string; kind?: string }
 
+/** Enter or Space on a keyboard-reachable row acts exactly like a click, mirroring what
+ *  a real `<button>` already does for free. Needed wherever a list row or inline link is
+ *  rendered as a `div`/`span` carrying `role="button"` -- the version-history commit
+ *  list, the in-app documentation results and suggested-article rows, and the inline
+ *  links inside a documentation article body -- because none of those get keyboard
+ *  activation from the browser on their own. Reused rather than redefined at each call
+ *  site, so the four places that need it cannot quietly drift out of sync. */
+const activateOnEnter = (event: { key?: string; preventDefault?: () => void; currentTarget?: EventTarget | null }): void => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault?.();
+  (event.currentTarget as HTMLElement | null)?.click?.();
+};
+
 const Base = ConsoleShell as unknown as new (props: Record<string, never>) => Component<Record<string, never>> & Shell;
 
 export class App extends Base {
@@ -360,6 +384,13 @@ export class App extends Base {
   private pending = '';
   private canvasReadings: CanvasReadings | undefined;
   private canvasPending = false;
+  /** `extensions.conf` read alongside the dialplan graph on the canvas screen, purely
+   *  so the note below can say when the loaded dialplan and the file on disk have
+   *  diverged -- see `contextsMissingFromLoadedDialplan` in `canvas.ts`. Kept separate
+   *  from `this.configs.canvas` (never otherwise populated: the canvas screen has no
+   *  bound controls for this reading to seed) so this stays purely diagnostic. */
+  private canvasExtensionsConf: ConfigReading | undefined;
+  private canvasExtensionsPending = false;
   /**
    * The History screen's real source: the console's own local, append-only git
    * repository (`LocalHistory`, `control-plane/local-history.ts`) -- not a PBX
@@ -394,6 +425,19 @@ export class App extends Base {
   private promptState: 'unread' | 'reading' | 'read' | 'unavailable' = 'unread';
   private promptReason: string | undefined;
   private promptPending = false;
+  /** The target's real recovery-point list, from `history.list` (`ConfigHistory#list`)
+   *  across every configurable resource at once -- there is no `pbx.config` resource
+   *  behind a directory of backups either, so this does not live in `configs` above,
+   *  the same reasoning `promptFiles` already gives for the Sound prompts screen. */
+  private historyBackups: ReadonlyArray<HistoryEntry> | undefined;
+  private historyBackupsState: 'unread' | 'reading' | 'read' | 'unavailable' = 'unread';
+  private historyBackupsReason: string | undefined;
+  private historyBackupsPending = false;
+  /** The result of the last "Compare with what is on the target now" on the
+   *  Configuration backups screen -- kept outside `state.values` because a `ConfigDiff`
+   *  is a reading, not a bound control's own value. */
+  private historyBackupDiff: ConfigDiff | undefined;
+  private historyBackupDiffPending = false;
   /** The one prompt currently playing, so a second audition stops the first rather
    *  than layering two prompts on top of each other. */
   private auditionAudio: HTMLAudioElement | undefined;
@@ -547,6 +591,17 @@ export class App extends Base {
 
   private stopProvisionListener: (() => void) | undefined;
 
+  /** One generic focus-return mechanism for every anchored popover, menu, dialog and
+   *  the appearance editor, rather than a hand-written `xReturnFocus` field per
+   *  overlay (the palette above is the one that predates this and is left as-is).
+   *  Every such surface in the compiled design carries `role="dialog"` or
+   *  `role="menu"`; this watches the DOM for one appearing or disappearing and
+   *  saves/restores focus around it, which covers every current and future overlay
+   *  that carries the same role without touching each one's open/close handler. */
+  private overlayFocusObserver: MutationObserver | undefined;
+
+  private overlayFocusReturn = new WeakMap<Element, HTMLElement | null>();
+
   /** What the runner is holding between ticks: the base value of every key it has
    *  overridden, and what it last applied. */
   private scheduleState: RunnerState = EMPTY_RUNNER_STATE;
@@ -593,9 +648,12 @@ export class App extends Base {
    *
    * They looked like configuration and were counted as unbound for it, but there is no key
    * in pjsip.conf for "auto-approve a low-risk partner request" -- that is this console's
-   * workflow, and the screen's file field says so: "pjsip.conf · partner requests", where the
-   * second half is not a file. Quoted for the same reason as the attention ids above: the
-   * wiring contract greps for each id as a literal.
+   * workflow, and the screen's file field says so: "trunk partner requests", which does not
+   * end in ".conf" and is refused by resourceForFile the same way the Dashboard's "live" and
+   * Live channels' "core show channels" already are (it used to read "pjsip.conf · partner
+   * requests", a real filename with a second half glued on, which resourceForFile also
+   * refused, but for the wrong reason -- see resource-for-file.test.tsx). Quoted for the same
+   * reason as the attention ids above: the wiring contract greps for each id as a literal.
    */
   /**
    * Settings that belong to this console rather than to Asterisk, grouped by subject.
@@ -1144,6 +1202,7 @@ export class App extends Base {
     this.listenForScreenReader();
     this.listenForDestinationRoutes();
     this.listenForPaletteChord();
+    this.listenForOverlayFocusReturn();
     /* The configured server list is not a reading from any PBX — it exists before
      * anything is reachable and must be on screen whether or not discovery finds a
      * target, so it is loaded independently of it. */
@@ -1165,6 +1224,8 @@ export class App extends Base {
 
   componentWillUnmount() {
     super.componentWillUnmount?.();
+    this.overlayFocusObserver?.disconnect();
+    this.overlayFocusObserver = undefined;
     if (this.refreshTimer) clearInterval(this.refreshTimer);
     this.refreshTimer = undefined;
     if (this.scheduleTimer) clearInterval(this.scheduleTimer);
@@ -1285,6 +1346,7 @@ export class App extends Base {
     void this.ensureDaemon();
     this.readings = {};
     this.canvasReadings = undefined;
+    this.canvasExtensionsConf = undefined;
     this.forceUpdate();
     } finally {
       this.discoveryPending = false;
@@ -1326,6 +1388,7 @@ export class App extends Base {
      * is discarded rather than left on screen as though it were current. */
     this.readings = {};
     this.canvasReadings = undefined;
+    this.canvasExtensionsConf = undefined;
     void this.refreshDaemonStatus();
     this.forceUpdate();
   };
@@ -1393,6 +1456,7 @@ export class App extends Base {
     /* Anything read before this point may no longer reflect what Asterisk is doing. */
     this.readings = {};
     this.canvasReadings = undefined;
+    this.canvasExtensionsConf = undefined;
     await this.refreshDaemonStatus();
     this.fire(`Phone system ${verb === 'start' ? 'started' : verb === 'stop' ? 'stopped' : 'restarted'}`, `Asterisk on ${this.target.label} answered after the ${verb}.`);
   };
@@ -2192,6 +2256,60 @@ What you can do: ${offered}.` : ''}`);
    * only when the chord actually matches, because taking every control-shift keystroke
    * would break whatever else the platform does with them.
    */
+  /** Watches for any `role="dialog"` or `role="menu"` element appearing or
+   *  disappearing anywhere in the document -- every anchored popover, context
+   *  menu, wizard, the appearance editor, and every confirmation dialog the
+   *  compiled design renders carries one of those two roles. React only removes
+   *  such a node from the DOM when its owning `sc-if` flips closed, so a mutation
+   *  here means a real open/close transition rather than an unrelated re-render
+   *  (React's reconciler leaves an unchanged subtree's nodes alone). On the way
+   *  in, the currently focused element is remembered and the overlay's first
+   *  focusable descendant is focused; on the way out, focus returns to whatever
+   *  opened it, if that element is still in the document. */
+  private listenForOverlayFocusReturn(): void {
+    /* Outside a real browser/Electron document -- the mount tests construct App
+     * directly against a bare `{ addEventListener() {} }` stand-in for `window` and
+     * no `document` or `MutationObserver` at all -- there is nothing to observe and
+     * nothing this method can safely touch. Feature-detect and skip, the same way
+     * speechSynthesis absence is treated elsewhere in this file, rather than let a
+     * ReferenceError abort the rest of componentDidMount for every test that mounts
+     * the real App. */
+    if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return;
+
+    const OVERLAY_SELECTOR = '[role="dialog"], [role="menu"]';
+    const FOCUSABLE_SELECTOR =
+      'button, [href], input, select, textarea, [role="tab"], [tabindex]:not([tabindex="-1"])';
+
+    const collect = (node: Node): Element[] => {
+      if (!(node instanceof Element)) return [];
+      const matches = node.matches(OVERLAY_SELECTOR) ? [node] : [];
+      return matches.concat(Array.from(node.querySelectorAll(OVERLAY_SELECTOR)));
+    };
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        mutation.addedNodes.forEach((node) => {
+          for (const overlay of collect(node)) {
+            if (this.overlayFocusReturn.has(overlay)) continue;
+            const active = document.activeElement;
+            this.overlayFocusReturn.set(overlay, active instanceof HTMLElement ? active : null);
+            const focusable = overlay.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+            focusable?.focus();
+          }
+        });
+        mutation.removedNodes.forEach((node) => {
+          for (const overlay of collect(node)) {
+            const target = this.overlayFocusReturn.get(overlay);
+            this.overlayFocusReturn.delete(overlay);
+            if (target && document.contains(target)) target.focus();
+          }
+        });
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    this.overlayFocusObserver = observer;
+  }
+
   private listenForPaletteChord(): void {
     const handler = (event: KeyboardEvent) => {
       if (isPaletteChord(event)) {
@@ -2429,12 +2547,84 @@ What you can do: ${offered}.` : ''}`);
       allowDirectDial: values['i_direct'] !== false,
       language: typeof values['i_lang'] === 'string' ? values['i_lang'] : 'en',
       allowBargeIn: values['i_barge'] !== false,
+      /* Quoted for the same reason as i_invalid above. */
+      promptFile: typeof values['i_prompt'] === 'string' ? values['i_prompt'] : '',
+      keys: this.ivrKeys,
     };
     const generated = generateIvr(definition);
     if ('problems' in generated) {
       return `This cannot be generated yet: ${generated.problems.map((p) => p.message).join(' ')}`;
     }
     return renderDialplan(definition.name, generated);
+  }
+
+  /**
+   * The key map the IVR form currently describes -- not bound to any pjsip.conf-style
+   * key, the same reasoning every other control on this screen already carries, and
+   * held here rather than in `state.values` because it is a genuine ordered list, not
+   * a single scalar `readControlValues` shape can carry.
+   */
+  private ivrKeys: IvrKeyRoute[] = [];
+
+  /** Whether this destination needs somewhere to send the caller -- the same three
+   *  `generateIvr` itself requires a target for. Kept beside it rather than imported,
+   *  since a form field disabling itself before Save is the useful moment for this,
+   *  and `generateIvr`'s own check exists to catch what slips past it. */
+  private static readonly IVR_KEY_TARGETS: ReadonlySet<KeyDestination> = new Set(['Extension', 'Queue', 'Voicemail']);
+
+  /** Read by the compiled `text`-kind control marked `action:'ivr-keys-status'`. */
+  private ivrKeysStatus(): string {
+    if (this.ivrKeys.length === 0) return 'No keys mapped yet.';
+    return this.ivrKeys
+      .map((route) => `${route.digit} → ${route.destination}${route.target ? ` (${route.target})` : ''}`)
+      .join(', ');
+  }
+
+  /** "Add this key": reads i_keydigit/i_keydest/i_keytarget, validates the same way
+   *  `generateIvr` itself would refuse an unusable one, and either appends a new
+   *  mapping or replaces the existing one for that digit -- so pressing Add again for
+   *  a digit already mapped is how a key's destination is changed, not a second,
+   *  silently-ignored route for the same keypress. */
+  private onAddIvrKey(): void {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const digit = String(values['i_keydigit'] ?? '');
+    const destination = String(values['i_keydest'] ?? '') as KeyDestination;
+    const target = String(values['i_keytarget'] ?? '').trim();
+    if (App.IVR_KEY_TARGETS.has(destination) && !isUsableRouteTarget(target)) {
+      this.fire('Not added', `${destination} needs a target -- letters, digits, dashes and underscores only.`);
+      return;
+    }
+    const route: IvrKeyRoute = App.IVR_KEY_TARGETS.has(destination) ? { digit, destination, target } : { digit, destination };
+    const next = this.ivrKeys.filter((existing) => existing.digit !== digit);
+    next.push(route);
+    this.ivrKeys = next;
+    this.toast(`Key ${digit} now sends the caller to ${destination}${route.target ? ` (${route.target})` : ''}.`);
+    this.forceUpdate();
+  }
+
+  /** "Remove the digit above": takes whatever i_keydigit currently names out of the
+   *  key map, if it is mapped at all. */
+  private onRemoveIvrKey(): void {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const digit = String(values['i_keydigit'] ?? '');
+    if (!this.ivrKeys.some((route) => route.digit === digit)) {
+      this.toast(`Key ${digit} is not mapped, so there is nothing to remove.`);
+      return;
+    }
+    this.ivrKeys = this.ivrKeys.filter((route) => route.digit !== digit);
+    this.toast(`Key ${digit} no longer routes anywhere -- a caller who presses it falls through to "On invalid entry".`);
+    this.forceUpdate();
+  }
+
+  /** "Audition this prompt": plays i_prompt's exact filename off the connected
+   *  target, through the same read-and-play path the Sounds screen's own rows use
+   *  (`onAuditionPromptRow`) -- so this menu's prompt can be verified before it is
+   *  ever written into a dialplan, instead of being a name typed and hoped for. */
+  private async onAuditionIvrPrompt(): Promise<void> {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['i_prompt'] ?? '').trim();
+    if (!name) { this.fire('Not auditioned', 'Type a prompt filename first, e.g. welcome-greeting.wav.'); return; }
+    await this.onAuditionPromptRow(name);
   }
 
   /**
@@ -3206,6 +3396,7 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'logo-status') return this.logoStatusLine;
     if (action === 'deploy-status') return this.deployStatusLine();
     if (action === 'ivr-dialplan') return this.ivrDialplanText();
+    if (action === 'ivr-keys-status') return this.ivrKeysStatus();
     if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
     if (action === 'cdr-status') return this.cdrBackendStatus();
     if (action === 'cel-status') return this.celBackendStatus();
@@ -3323,6 +3514,10 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'fcodes-save') { void this.onSaveFeatureCodes(); return; }
     if (action === 'fcodes-parking-save') { void this.onSaveFeatureCodesParking(); return; }
     if (action === 'iaxpeers-save') { void this.onSaveIaxPeer(); return; }
+    if (action === 'trunk-save') { void this.onSaveTrunk(); return; }
+    if (action === 'ivr-key-add') { this.onAddIvrKey(); return; }
+    if (action === 'ivr-key-remove') { this.onRemoveIvrKey(); return; }
+    if (action === 'ivr-audition') { void this.onAuditionIvrPrompt(); return; }
     if (action === 'dahdi-save-general') { void this.onSaveDahdiGeneral(); return; }
     if (action === 'dahdi-add-channel') { void this.onDahdiAddChannel(); return; }
     if (action === 'dahdi-remove-channel') { void this.onDahdiRemoveChannel(); return; }
@@ -3383,6 +3578,9 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'voicemail-greeting-save') { void this.onSaveVoicemailGreeting(); return; }
     if (action === 'ami-http-save') { void this.onSaveAmiHttp(); return; }
     if (action === 'ami-manager-save') { void this.onSaveAmiManager(); return; }
+    if (action === 'history-restore') { void this.onRestoreHistoryEntry(); return; }
+    if (action === 'history-diff') { void this.onDiffHistoryEntry(); return; }
+    if (action === 'history-prune') { void this.onPruneHistoryEntries(); return; }
   };
 
   // ---------------------------------------------------------------- server add / remove
@@ -3570,6 +3768,18 @@ What you can do: ${offered}.` : ''}`);
    *  the same role `editingEndpoint` plays for pjsip.conf, above. */
   private editingIaxPeer = '';
 
+  /** The [registration] section the trunks screen's retry-policy controls are
+   *  currently showing -- the trunks table's own row name, per `onPickTrunkRow`. */
+  private editingTrunkRegistration = '';
+
+  /** The endpoint paired with `editingTrunkRegistration`, when one was found --
+   *  `registeredEndpointName`'s result, resolved once at load time so Save writes
+   *  the outbound-identity and advanced fields back onto the same endpoint they
+   *  were read from even if the registration's own `endpoint=` line changes before
+   *  Save runs. Empty when the row's registration named no reachable endpoint at
+   *  all -- see `onPickTrunkRow`. */
+  private editingTrunkEndpoint = '';
+
   /** The target's real pjsip.conf, or undefined when it has not been read. */
   private pjsipValue(): ConfigValue | undefined {
     return this.configs.endpoints?.state === 'read' ? this.configs.endpoints.value : undefined;
@@ -3581,6 +3791,15 @@ What you can do: ${offered}.` : ''}`);
    *  is open -- nothing extra to wire up here. */
   private iaxValue(): ConfigValue | undefined {
     return this.configs.iaxpeers?.state === 'read' ? this.configs.iaxpeers.value : undefined;
+  }
+
+  /** The target's real pjsip.conf as read for the trunks screen specifically.
+   *  `endpoints` and `trunks` both declare `file: 'pjsip.conf'` in the design, and the
+   *  generic per-screen read in `refresh()` keys its cache by screen name rather than
+   *  by resource -- so a target visited only through Trunks never populates
+   *  `this.configs.endpoints`, and `pjsipValue()` above would silently see nothing. */
+  private trunksPjsipValue(): ConfigValue | undefined {
+    return this.configs.trunks?.state === 'read' ? this.configs.trunks.value : undefined;
   }
 
   /**
@@ -3600,6 +3819,20 @@ What you can do: ${offered}.` : ''}`);
      * carry a CLI-appended "/<username>" the peers reader already strips, so this is a
      * real iax.conf section name -- see `onPickIaxPeerRow`. */
     if ((this.state as { screen: string }).screen === 'iaxpeers') { this.onPickIaxPeerRow(name); return; }
+    /* The trunks table's rows are `pjsip show registrations` merged with `iax2 show
+     * registry` (readings.ts registrationRows), so a row is either a PJSIP
+     * registration or an IAX2 one -- this screen's controls only reach the former. */
+    if ((this.state as { screen: string }).screen === 'trunks') { this.onPickTrunkRow(name); return; }
+    /* The Configuration backups table's rows carry the exact backup handle after a
+     * marker (`history-backups.ts` `label`/`resolveHistoryRow`) -- loading one puts it
+     * into the fields Restore/Diff/Prune below act on. */
+    if ((this.state as { screen: string }).screen === 'confighistory') { this.onPickHistoryRow(name); return; }
+    /* Neither the REST resource browser nor the Dialplan scripting screen has anything
+     * below their table for a row to populate -- both are read-only visibility, not an
+     * editor -- so a click just says what the row already shows, the same as the ivr
+     * screen's info wizard does for a row nothing here writes through. */
+    if ((this.state as { screen: string }).screen === 'restbrowser') { this.toast(`${name} -- this table is read-only; see the row for its current state.`); return; }
+    if ((this.state as { screen: string }).screen === 'agiscripts') { this.toast(`${name} -- this table is read-only; edit what a call runs from the Dialplan canvas.`); return; }
     const value = this.pjsipValue();
     if (!value) { this.fire('Not loaded', 'The pjsip.conf on this target has not been read yet.'); return; }
     const endpoint = findEndpoint(value, name);
@@ -3637,6 +3870,170 @@ What you can do: ${offered}.` : ''}`);
     } as never);
     this.toast(`${name} loaded into the editor below.`);
   }
+
+  /**
+   * The trunks table's own row-pick: loads a named PJSIP registration's retry policy
+   * (t_retry/t_forbidden/t_fatal, `trunk-registration.ts`) and, when a paired endpoint
+   * can be found, that endpoint's outbound-identity and advanced fields too
+   * (`trunk-advanced.ts`) -- the same combined load `onSaveTrunk` below writes back.
+   *
+   * An IAX2 row in this live table has no PJSIP registration by that name at all;
+   * that is reported plainly rather than as though the row's own read had failed.
+   */
+  private onPickTrunkRow(name: string): void {
+    const value = this.trunksPjsipValue();
+    if (!value) { this.fire('Not loaded', 'The pjsip.conf on this target has not been read yet.'); return; }
+    const registration = findRegistration(value, name);
+    if (!registration) {
+      this.fire('Not loaded', `${name} is not a PJSIP registration in this target's pjsip.conf -- IAX2 trunks have their own editor on the IAX peers screen.`);
+      return;
+    }
+    this.editingTrunkRegistration = name;
+    const state = this.state as { values: Record<string, unknown> };
+    let values: Record<string, unknown> = { ...state.values, ...controlValuesForRegistration(registration) };
+    const endpointName = registeredEndpointName(registration);
+    const endpoint = findEndpoint(value, endpointName);
+    this.editingTrunkEndpoint = endpoint ? endpointName : '';
+    if (endpoint) values = { ...values, ...trunkControlValuesFor(endpoint) };
+    this.setState({ values } as never);
+    this.toast(endpoint
+      ? `${name} loaded into the editor below, with its ${endpointName} endpoint.`
+      : `${name} loaded into the editor below. No paired endpoint was found, so outbound identity and advanced fields are unchanged.`);
+  }
+
+  // ---------------------------------------------------------------- Configuration backups screen
+
+  /**
+   * The five plain fields on the Configuration backups screen, read and written
+   * directly out of `state.values` by name rather than through `CONTROL_BINDINGS` --
+   * the same shape `'s_aclname'`/`'s_action'`/`'s_spec'` already use for the Security
+   * screen's "Add a rule" form, because a recovery point has no Asterisk config key of
+   * its own to bind to. `'bk_resource'`, `'bk_takenat'` and `'bk_handle'` are loaded by
+   * `onPickHistoryRow` below; `'bk_diffsummary'` is written by `onDiffHistoryEntry`;
+   * `'bk_keep'` is read by `onPruneHistoryEntries`.
+   *
+   * Loads one recovery point's resource, timestamp and exact handle into the fields
+   * Restore/Diff/Prune below act on -- see `history-backups.ts` `resolveHistoryRow`
+   * for how the row's own key resolves back to the real {@link HistoryEntry}. Also
+   * drops the last diff result: it was a comparison for whichever recovery point was
+   * previously selected, and showing it beside a newly-picked one would be a stale
+   * answer to a question nobody asked about this row.
+   */
+  private onPickHistoryRow(rowKey: string): void {
+    const entry = resolveHistoryRow(this.historyBackups, rowKey);
+    if (!entry) { this.fire('Not loaded', 'That recovery point is no longer in this target’s backup directory.'); return; }
+    this.historyBackupDiff = undefined;
+    const state = this.state as { values: Record<string, unknown> };
+    this.setState({
+      values: {
+        ...state.values,
+        bk_resource: entry.resource,
+        bk_takenat: formatTakenAt(entry.takenAt),
+        bk_handle: entry.handle,
+      },
+    } as never);
+    this.toast(`${entry.resource} @ ${formatTakenAt(entry.takenAt)} loaded below.`);
+  }
+
+  /** Forces the Configuration backups table to re-read on next render -- the "Refresh"
+   *  button's own action, and the same shape a restore/prune below leaves the screen in
+   *  once it has changed what is actually on the target. */
+  onRefreshHistoryTable = (): void => {
+    this.historyBackups = undefined;
+    this.historyBackupsState = 'unread';
+    this.forceUpdate();
+  };
+
+  /** "Restore selected recovery point": copies `bk_handle` back over the file it was
+   *  taken from through `ConfigHistory#restore`, which reads the target back afterward
+   *  and reports a byte mismatch as a failure rather than a success. */
+  onRestoreHistoryEntry = async (): Promise<void> => {
+    if (!this.target.connected) { this.fire('Not restored', 'Connect to a server first.'); return; }
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const handle = String(values.bk_handle ?? '').trim();
+    if (!handle) { this.fire('Not restored', 'Pick a recovery point from the table above first.'); return; }
+    const response = await this.request('history.restore', { serverId: this.target.id, payload: { handle } });
+    if (!response?.ok) { this.fire('Not restored', response?.message ?? 'The control plane did not answer.'); return; }
+    const result = response.data as { ok?: boolean; resource?: string; detail?: string };
+    if (!result.ok) { this.fire('Not restored', result.detail ?? 'The target did not confirm the restore.'); return; }
+    /* Every other write path in this console invalidates the one cache it just made
+     * stale (`writeConfigResource`'s own `invalidate` callback). A restore is a write
+     * too, just one this screen drives instead of a Save button, so the resource's own
+     * config cache -- whichever screen actually edits it -- is dropped the same way, on
+     * top of the backup list itself now having one fewer thing to restore onto. */
+    const restoredScreen = Object.keys(this.configs).find((id) => this.configs[id]?.resource === result.resource);
+    if (restoredScreen) { delete this.configs[restoredScreen]; this.seeded.delete(restoredScreen); }
+    this.historyBackupDiff = undefined;
+    this.fire('Restored', result.detail ?? `${result.resource} was restored.`);
+    this.forceUpdate();
+  };
+
+  /** "Compare with what is on the target now": `ConfigHistory#diff` against `bk_handle`,
+   *  shown as a one-line summary in `bk_diffsummary` -- the full aligned diff is not a
+   *  control this screen has a place to render, so the summary states the count and the
+   *  full text is copyable through the browser's own selection on the summary field. */
+  onDiffHistoryEntry = async (): Promise<void> => {
+    if (!this.target.connected) { this.fire('Not compared', 'Connect to a server first.'); return; }
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const handle = String(values.bk_handle ?? '').trim();
+    if (!handle) { this.fire('Not compared', 'Pick a recovery point from the table above first.'); return; }
+    if (this.historyBackupDiffPending) return;
+    this.historyBackupDiffPending = true;
+    const response = await this.request('history.diff', { serverId: this.target.id, payload: { handle } });
+    this.historyBackupDiffPending = false;
+    if (!response?.ok) {
+      const state = this.state as { values: Record<string, unknown> };
+      this.setState({ values: { ...state.values, bk_diffsummary: response?.message ?? 'The control plane did not answer.' } } as never);
+      this.fire('Not compared', response?.message ?? 'The control plane did not answer.');
+      return;
+    }
+    const diff = response.data as ConfigDiff;
+    this.historyBackupDiff = diff;
+    const summary = !diff.currentExists
+      ? `${diff.resource} does not exist on the target right now; restoring would create it with ${diff.removed} line(s).`
+      : diff.identical
+        ? `Identical to what is on the target right now.`
+        : diff.truncated
+          ? `+${diff.added} / -${diff.removed} line(s) (too large to show line by line; counted as whole-line differences).`
+          : `+${diff.added} / -${diff.removed} line(s) differ from what is on the target right now.`;
+    const state = this.state as { values: Record<string, unknown> };
+    this.setState({ values: { ...state.values, bk_diffsummary: summary } } as never);
+    this.toast(summary);
+  };
+
+  /** "Prune old recovery points for the selected resource": deletes every backup for
+   *  `bk_resource` beyond `bk_keep` newest, through `ConfigHistory#prune`. Refuses
+   *  outright without a selected resource rather than guessing which file the operator
+   *  meant -- pruning is destructive and per-file, never a global sweep. */
+  onPruneHistoryEntries = async (): Promise<void> => {
+    if (!this.target.connected) { this.fire('Not pruned', 'Connect to a server first.'); return; }
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const resource = String(values.bk_resource ?? '').trim();
+    if (!resource) { this.fire('Not pruned', 'Pick a recovery point from the table above first, so its resource is known.'); return; }
+    const keep = Number(values.bk_keep ?? 20);
+    const response = await this.request('history.prune', { serverId: this.target.id, payload: { resource, keep } });
+    if (!response?.ok) { this.fire('Not pruned', response?.message ?? 'The control plane did not answer.'); return; }
+    const result = response.data as { removed?: number; kept?: number };
+    this.onRefreshHistoryTable();
+    this.fire('Pruned', `${resource}: removed ${result.removed ?? 0}, kept ${result.kept ?? 0} newest.`);
+  };
+
+  // ---------------------------------------------------------------- REST resource browser / AGI screens
+
+  /** "Refresh" on the REST resource browser: drops the cached reading so the generic
+   *  `pbx.read` path (`restbrowser` is a real `PbxReadView`) re-reads on next render,
+   *  the same way every other live table screen's stale-reading re-read already works. */
+  onRefreshRestBrowser = (): void => {
+    delete this.readings.restbrowser;
+    this.forceUpdate();
+  };
+
+  /** "Refresh" on the Dialplan scripting (AGI) screen -- same shape as
+   *  `onRefreshRestBrowser` just above. */
+  onRefreshAgiScripts = (): void => {
+    delete this.readings.agiscripts;
+    this.forceUpdate();
+  };
 
   /** Loads one ACL rule's action and network into the "Add a rule" fields, so changing
    *  it and pressing "Add rule" again edits it in place -- see `onAddAclRule` above,
@@ -4012,6 +4409,25 @@ It is shown once. The phone needs it to register.`);
       this.readStartedAt.set(key, now);
       return true;
     };
+    /**
+     * `extensions.conf` read purely so the canvas screen's note can say when the loaded
+     * dialplan (`dialplan show`, read by the canvas block below) and the file on disk
+     * have diverged -- see `contextsMissingFromLoadedDialplan` in `canvas.ts`. Independent
+     * of the dialplan graph read: whichever of the two finishes first, the divergence
+     * check in `note()` runs once both are in.
+     */
+    const readCanvasExtensionsConf = async () => {
+      if ((this.canvasExtensionsConf && this.canvasExtensionsConf.state !== 'unavailable')
+          || this.canvasExtensionsPending || !mayStartRead('canvas-extensions-conf')) return;
+      this.canvasExtensionsPending = true;
+      const resource = resourceForFile('extensions.conf') as string;
+      const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+      this.canvasExtensionsPending = false;
+      this.canvasExtensionsConf = response?.ok
+        ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+        : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+      this.forceUpdate();
+    };
     /*
      * The History screen's own local git repository is not a PBX reading -- it lives
      * beside this application's data and answers the same way whether or not a target
@@ -4030,13 +4446,20 @@ It is shown once. The phone needs it to register.`);
     if (!this.target.connected) return;
     if (screen === 'canvas') {
       const canvasAvailable = this.canvasReadings?.dialplan?.result.state === 'available';
-      if (canvasAvailable || this.canvasPending || !mayStartRead('canvas')) return;
+      if (canvasAvailable || this.canvasPending || !mayStartRead('canvas')) {
+        /* The dialplan graph itself is either already read or already in flight; the
+         * `extensions.conf` side-read below still runs on its own independent guard so
+         * the divergence note has something to compare against once both land. */
+        void readCanvasExtensionsConf();
+        return;
+      }
       this.canvasPending = true;
       const response = await this.request('pbx.read', { serverId: this.target.id, view: 'canvas' as PbxReadView });
       this.canvasPending = false;
       this.canvasReadings = response?.ok
         ? (response.data as CanvasReadings)
         : { dialplan: { command: 'pbx.read', result: { state: 'unavailable', observedAt: new Date().toISOString(), reason: response?.message ?? 'the control plane did not answer' } } };
+      void readCanvasExtensionsConf();
       this.forceUpdate();
       return;
     }
@@ -4061,6 +4484,32 @@ It is shown once. The phone needs it to register.`);
         } else {
           this.promptState = 'unavailable';
           this.promptReason = response?.message ?? 'the control plane did not answer';
+        }
+        this.forceUpdate();
+      }
+      return;
+    }
+    /* The Configuration backups screen. Same shape as `sounds` just above -- there is
+     * no `pbx.config` resource behind a directory of recovery points either -- reading
+     * through `history.list` instead, across every configurable resource at once
+     * (`resource` omitted from the payload). Re-reads whenever the last read failed or
+     * a restore/prune marked it stale (`this.historyBackups = undefined`), never on
+     * every render. */
+    if (screen === 'confighistory') {
+      const needsRead = this.historyBackups === undefined || this.historyBackupsState === 'unavailable';
+      if (needsRead && !this.historyBackupsPending && mayStartRead('confighistory')) {
+        this.historyBackupsPending = true;
+        this.historyBackupsState = 'reading';
+        this.forceUpdate();
+        const response = await this.request('history.list', { serverId: this.target.id });
+        this.historyBackupsPending = false;
+        if (response?.ok) {
+          this.historyBackups = ((response.data as { entries?: ReadonlyArray<HistoryEntry> }).entries ?? []).slice();
+          this.historyBackupsState = 'read';
+          this.historyBackupsReason = undefined;
+        } else {
+          this.historyBackupsState = 'unavailable';
+          this.historyBackupsReason = response?.message ?? 'the control plane did not answer';
         }
         this.forceUpdate();
       }
@@ -4467,7 +4916,13 @@ It is shown once. The phone needs it to register.`);
                 ? this.hubRows()
                 : id === 'notifications'
                   ? this.notificationRows()
-                  : rowsFor(screen, this.readings[screen]);
+                  : id === 'confighistory'
+                    ? historyRows(this.historyBackups)
+                    : id === 'restbrowser'
+                      ? restBrowserRows(this.readings.restbrowser)
+                      : id === 'agiscripts'
+                        ? agiScriptRows(this.readings.agiscripts?.references, this.readings.agiscripts?.files)
+                        : rowsFor(screen, this.readings[screen]);
     }
   }
 
@@ -5265,6 +5720,47 @@ It is shown once. The phone needs it to register.`);
 
 It is shown once. The far end needs it to register.`);
     }
+  };
+
+  /**
+   * Writes the trunks screen's currently-loaded registration and, when one was found
+   * at load time (`onPickTrunkRow`), its paired endpoint's outbound-identity and
+   * advanced fields -- that load, run in reverse.
+   *
+   * The registration write runs first because `applyRegistrationControlValues`
+   * (`trunk-registration.ts`) works directly on the raw pjsip.conf value. The
+   * endpoint write, when there is one, then re-parses THAT already-edited value
+   * through `applyTrunkControlValues` (`trunk-advanced.ts`, itself `parsePjsip` plus
+   * `toConfigValuePjsip`) -- `toConfigValuePjsip` only ever rewrites the endpoint/
+   * auth/aor trio it recognizes by name and passes every other section through
+   * untouched, so the registration section this just wrote survives the second pass
+   * exactly as it was left by the first.
+   */
+  onSaveTrunk = async (): Promise<void> => {
+    const value = this.trunksPjsipValue();
+    if (!value || !this.editingTrunkRegistration) { this.fire('Nothing to save', 'Select a trunk first.'); return; }
+    const name = this.editingTrunkRegistration;
+    const state = this.state as { values: Record<string, unknown> };
+    const resource = this.configs.trunks?.resource ?? (resourceForFile('pjsip.conf') as string);
+    const registrationEdit = applyRegistrationControlValues(value, name, state.values);
+    let next = registrationEdit.value;
+    let summary = [...registrationEdit.summary];
+    let warnings: string[] = [];
+    if (this.editingTrunkEndpoint) {
+      const endpointEdit = applyTrunkControlValues(next, this.editingTrunkEndpoint, state.values);
+      if ('error' in endpointEdit) { this.fire('Not saved', endpointEdit.error); return; }
+      if (endpointEdit.summary.length > 0) {
+        next = trunkDocument(endpointEdit, resource).value;
+        summary = [...summary, ...endpointEdit.summary];
+      }
+      warnings = endpointEdit.warnings;
+    }
+    if (summary.length === 0) { this.toast('Nothing changed, so nothing was written.'); return; }
+    const applied = await this.writeConfigResource(resource, next, summary.join('\n'), `${name} updated`, () => {
+      delete this.configs.trunks; this.seeded.delete('trunks');
+      delete this.configs.endpoints; this.seeded.delete('endpoints');
+    });
+    if (applied && warnings.length > 0) this.toast(warnings.join(' '));
   };
 
   // ---------------------------------------------------------------- Hardware trunks (DAHDI) screen
@@ -6585,15 +7081,21 @@ It is shown once. The far end needs it to register.`);
        * the divergence note is what the graph on screen actually describes. A canvas that
        * read fine used to say nothing at all, which left `dialplan show`'s loaded state
        * looking exactly like the file an operator is about to edit. */
-      return [canvasReason(this.canvasReadings), dialplanDivergenceNote(this.canvasReadings)]
+      return [canvasReason(this.canvasReadings), dialplanDivergenceNote(this.canvasReadings), this.dialplanDivergenceNote()]
         .filter(Boolean)
         .join(' ');
     }
     /* A configuration screen reports the file it edits and what is really in it. This
      * says what was read; it does not claim the controls below are bound to it, because
      * they are not yet, and implying otherwise would be the same untruth the
-     * confirmation dialog used to tell. */
-    if (resourceForFile((SCREENS as Record<string, { file?: unknown }>)[screen]?.file)) {
+     * confirmation dialog used to tell.
+     *
+     * `canvas` declares `file: 'extensions.conf'` too, but has no bound controls at all
+     * (`groups: []`) and `this.configs.canvas` is never populated -- routing it through
+     * here left this branch's `configSummary()` stuck reporting 'Reading…' forever
+     * and the dedicated canvas branch below unreachable. Excluded so that branch, and
+     * its divergence note, actually run. */
+    if (screen !== 'canvas' && resourceForFile((SCREENS as Record<string, { file?: unknown }>)[screen]?.file)) {
       /* A screen that edits a file returns from inside this branch, so the reading
        * failures reported at the bottom of this method never reach it. `endpoints` is one
        * of those screens and also reads per-endpoint detail, so a failed detail read would
@@ -6742,6 +7244,29 @@ It is shown once. The far end needs it to register.`);
       return sentences.filter(Boolean);
     }
     return [];
+  }
+
+  /**
+   * The sentence the canvas screen adds when `dialplan show` -- the loaded dialplan --
+   * and `extensions.conf` -- the file on disk -- disagree. `dialplan show` reads what
+   * Asterisk currently has loaded, not what the file currently says; an edit that was
+   * never followed by a reload leaves the two disagreeing with nothing on either
+   * reading saying so. Verified against a live target: the file held three contexts the
+   * running dialplan had none of, because an earlier session had restored the file
+   * without reloading `pbx_config` -- see `contextsMissingFromLoadedDialplan`.
+   *
+   * Empty until both readings have landed, and empty when they agree.
+   */
+  private dialplanDivergenceNote(): string {
+    const graph = canvasValueOf(this.canvasReadings?.dialplan);
+    if (!graph) return '';
+    const fileReading = this.canvasExtensionsConf;
+    if (!fileReading || fileReading.state !== 'read') return '';
+    const missing = contextsMissingFromLoadedDialplan(graph, sectionNames(fileReading.value));
+    if (missing.length === 0) return '';
+    const shown = missing.slice(0, 5).join(', ');
+    const more = missing.length > 5 ? `, and ${missing.length - 5} more` : '';
+    return ` extensions.conf declares ${missing.length} context(s) this reading found no loaded extensions under -- ${shown}${more} -- which usually means the file has changed since Asterisk last reloaded it. This canvas shows what is loaded, not what the file currently says.`;
   }
 
   /** Real dialplan nodes/edges in the design's canvas shapes, with a bezier path per edge
@@ -7140,6 +7665,7 @@ It is shown once. The far end needs it to register.`);
       pick: () => this.selectHistoryCommit(row.id),
       ctx: (e: MouseEvent) => { e.preventDefault(); this.selectHistoryCommit(row.id); },
       compare: () => this.toggleHistoryCompareRow(row.id),
+      onKeyActivate: activateOnEnter,
     }));
     const selectedCommit = entries.find((entry) => entry.id === this.historySelectedId);
     const diffActions = selectedCommit ? [
@@ -7987,7 +8513,7 @@ It is shown once. The far end needs it to register.`);
     const spansFor = (spans: readonly { text: string; href?: string }[]) => spans.map((span) => {
       const targetId = span.href && article ? resolveLink(DOCS_BUNDLE, article, span.href) : undefined;
       return targetId
-        ? { isLink: true, text: span.text, onClick: () => this.set('docsSelectedId', targetId) }
+        ? { isLink: true, text: span.text, onClick: () => this.set('docsSelectedId', targetId), onKeyActivate: activateOnEnter }
         : { isPlain: true, text: span.text };
     });
     const blockToVals = (block: DocsBlock): Record<string, unknown> => {
@@ -8011,6 +8537,7 @@ It is shown once. The far end needs it to register.`);
           icon: s.relation === 'outgoing' ? 'arrow_forward' : 'arrow_back',
           title: s.title,
           select: () => this.set('docsSelectedId', s.id),
+          onKeyActivate: activateOnEnter,
         }))
       : [];
 
@@ -8022,6 +8549,7 @@ It is shown once. The far end needs it to register.`);
         excerpt: r.excerpt,
         bg: r.id === selectedId ? '#232A24' : 'transparent',
         select: () => this.set('docsSelectedId', r.id),
+        onKeyActivate: activateOnEnter,
       })),
       docsResultsLabel: query.trim().length === 0
         ? `${results.length} article${results.length === 1 ? '' : 's'}`

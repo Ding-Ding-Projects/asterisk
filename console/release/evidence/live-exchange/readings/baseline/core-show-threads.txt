@@ -1,4 +1,4 @@
-0x7c9ab9f5b6c0 141797 netconsole           started at [ 1588] asterisk.c listener()
+0x7c9ab9f5b6c0 146761 netconsole           started at [ 1588] asterisk.c listener()
 0x7c9aba0556c0 94 default_tps_processing_function started at [  256] taskprocessor.c default_listener_start()
 0x7c9aba0d26c0 93 default_tps_processing_function started at [  256] taskprocessor.c default_listener_start()
 0x7c9aba14f6c0 92 default_tps_processing_function started at [  256] taskprocessor.c default_listener_start()

@@ -7,7 +7,7 @@ import M3Control from './m3-control';
 function Template(v: any) {
   return F(
     h("div", { style: sty(`height:100%; display:flex; flex-direction:column; background:#0B0F0C; color:#DFE4DC; font-family:Roboto,system-ui,sans-serif; font-size:14px; overflow:hidden; position:relative;`) },
-      h("div", { style: sty(`height:40px; flex:0 0 40px; display:flex; align-items:stretch; background:#141A15; user-select:none; overflow:hidden; min-width:0;`), "data-window-drag": `` },
+      h("div", { role: `banner`, style: sty(`height:40px; flex:0 0 40px; display:flex; align-items:stretch; background:#141A15; user-select:none; overflow:hidden; min-width:0;`), "data-window-drag": `` },
         h("div", { style: sty(`display:flex; align-items:center; gap:10px; padding:0 12px; flex:0 0 auto; white-space:nowrap;`) },
           h("span", { style: sty(`font-size:20px; color:#82D9A5; flex:0 0 auto;`), className: "msym" },
             "deployed_code"
@@ -80,7 +80,7 @@ function Template(v: any) {
         )
       ),
       h("div", { style: sty(`height:38px; flex:0 0 38px; display:flex; align-items:flex-end; gap:2px; background:#0B0F0C; padding:0 6px; overflow-x:auto;`) },
-        A(v.tabGroups).map(($g, $g$i) => R($g$i, h("div", { onClick: fn($g.toggle), onContextMenu: fn($g.ctx), style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
+        A(v.tabGroups).map(($g, $g$i) => R($g$i, h("div", { role: `button`, tabIndex: `0`, "aria-expanded": $g.expanded, onClick: fn($g.toggle), onKeyDown: $g.onKeyActivate, onContextMenu: fn($g.ctx), style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
             h("span", { style: sty(`width:9px; height:9px; border-radius:50%; background:${S($g.colour)};`) }),
             h("span", { style: sty(`font-size:12px; font-weight:500; color:#DFE4DC; white-space:nowrap;`) },
               S($g.name)
@@ -92,43 +92,45 @@ function Template(v: any) {
               S($g.chevron)
             )
           ))),
-        A(v.tabs).map(($t, $t$i) => R($t$i, F(
-          ($t.on ? h("div", { draggable: `true`, onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`) },
-              ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
-              h("span", { style: sty(`width:7px; height:7px; border-radius:50%; background:${S($t.colour)}; flex:0 0 auto;`) }),
-              h("span", { style: sty(`font-size:16px; color:#82D9A5; flex:0 0 auto;`), className: "msym" },
-                S($t.icon)
-              ),
-              h("span", { style: sty(`flex:1; font-size:12.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
-                S($t.label)
-              ),
-              ($t.pinned ? h("span", { style: sty(`font-size:14px; color:#8FA394;`), className: "msym" },
-                  "push_pin"
-                ) : null),
-              h("button", { onClick: fn($t.close), style: sty(`width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h6" },
-                h("span", { style: sty(`font-size:14px;`), className: "msym" },
-                  "close"
+        h("div", { role: `tablist`, "aria-label": `Open tabs`, onKeyDown: v.tabsKeyDown, style: sty(`display:contents;`) },
+          A(v.tabs).map(($t, $t$i) => R($t$i, F(
+            ($t.on ? h("div", { role: `tab`, id: $t.id, "aria-selected": `true`, "aria-controls": `tabpanel-content`, tabIndex: $t.tabIndex, draggable: `true`, onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`) },
+                ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
+                h("span", { style: sty(`width:7px; height:7px; border-radius:50%; background:${S($t.colour)}; flex:0 0 auto;`) }),
+                h("span", { style: sty(`font-size:16px; color:#82D9A5; flex:0 0 auto;`), className: "msym" },
+                  S($t.icon)
+                ),
+                h("span", { style: sty(`flex:1; font-size:12.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
+                  S($t.label)
+                ),
+                ($t.pinned ? h("span", { style: sty(`font-size:14px; color:#8FA394;`), className: "msym" },
+                    "push_pin"
+                  ) : null),
+                h("button", { onClick: fn($t.close), "aria-label": $t.closeLabel, style: sty(`width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h6" },
+                  h("span", { style: sty(`font-size:14px;`), className: "msym" },
+                    "close"
+                  )
                 )
-              )
-            ) : null),
-          ($t.off ? h("div", { draggable: `true`, onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#0F1510; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:200px; min-width:110px; border-top:2px solid transparent; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), className: "k-h7" },
-              ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
-              h("span", { style: sty(`font-size:16px; color:#8FA394; flex:0 0 auto;`), className: "msym" },
-                S($t.icon)
-              ),
-              h("span", { style: sty(`flex:1; font-size:12.5px; color:#9AA39B; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
-                S($t.label)
-              ),
-              ($t.pinned ? h("span", { style: sty(`font-size:14px; color:#778078;`), className: "msym" },
-                  "push_pin"
-                ) : null),
-              h("button", { onClick: fn($t.close), style: sty(`width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h6" },
-                h("span", { style: sty(`font-size:14px;`), className: "msym" },
-                  "close"
+              ) : null),
+            ($t.off ? h("div", { role: `tab`, id: $t.id, "aria-selected": `false`, "aria-controls": `tabpanel-content`, tabIndex: $t.tabIndex, draggable: `true`, onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#0F1510; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:200px; min-width:110px; border-top:2px solid transparent; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`), className: "k-h7" },
+                ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
+                h("span", { style: sty(`font-size:16px; color:#8FA394; flex:0 0 auto;`), className: "msym" },
+                  S($t.icon)
+                ),
+                h("span", { style: sty(`flex:1; font-size:12.5px; color:#9AA39B; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
+                  S($t.label)
+                ),
+                ($t.pinned ? h("span", { style: sty(`font-size:14px; color:#778078;`), className: "msym" },
+                    "push_pin"
+                  ) : null),
+                h("button", { onClick: fn($t.close), "aria-label": $t.closeLabel, style: sty(`width:24px; height:24px; border-radius:50%; background:transparent; border:0; color:#778078; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h6" },
+                  h("span", { style: sty(`font-size:14px;`), className: "msym" },
+                    "close"
+                  )
                 )
-              )
-            ) : null)
-        ))),
+              ) : null)
+          )))
+        ),
         h("button", { onClick: fn(v.newTab), title: `New tab`, style: sty(`width:30px; height:30px; margin-bottom:3px; border-radius:8px; background:transparent; border:0; color:#9AA39B; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;`), className: "k-h8" },
           h("span", { style: sty(`font-size:18px;`), className: "msym" },
             "add"
@@ -154,7 +156,7 @@ function Template(v: any) {
         )
       ),
       h("div", { style: sty(`flex:1; display:flex; min-height:0; gap:0; flex-direction:${S(v.dockDirection)};`) },
-        h("div", { style: sty(`width:88px; flex:0 0 88px; background:#0B0F0C; display:flex; flex-direction:column; align-items:center; padding:8px 0 12px; gap:4px; overflow-y:auto;`) },
+        h("div", { role: `navigation`, "aria-label": `Primary sections`, style: sty(`width:88px; flex:0 0 88px; background:#0B0F0C; display:flex; flex-direction:column; align-items:center; padding:8px 0 12px; gap:4px; overflow-y:auto;`) },
           A(v.rail).map(($r, $r$i) => R($r$i, h("button", { onClick: fn($r.pick), style: sty(`width:100%; background:transparent; border:0; cursor:pointer; padding:4px 0 2px; display:flex; flex-direction:column; align-items:center; gap:4px;`) },
               ($r.on ? h("span", { style: sty(`width:56px; height:32px; border-radius:16px; background:#005230; display:flex; align-items:center; justify-content:center; animation:m3Ripple .5s ease-out;`) },
                   h("span", { style: sty(`font-size:22px; color:#9FF7C4;`), className: "msym" },
@@ -177,7 +179,7 @@ function Template(v: any) {
             )
           )
         ),
-        h("div", { style: sty(`width:268px; flex:0 0 268px; background:#141A15; border-radius:16px 0 0 0; display:flex; flex-direction:column; min-height:0;`) },
+        h("div", { role: `navigation`, "aria-label": v.groupLabel, style: sty(`width:268px; flex:0 0 268px; background:#141A15; border-radius:16px 0 0 0; display:flex; flex-direction:column; min-height:0;`) },
           h("div", { style: sty(`padding:16px 18px 12px;`) },
             h("div", { style: sty(`font-size:11px; letter-spacing:1.1px; text-transform:uppercase; color:#8FA394; font-weight:500;`) },
               S(v.groupLabel)
@@ -236,7 +238,7 @@ function Template(v: any) {
             )
           )
         ),
-        h("div", { style: sty(`flex:1; min-width:0; display:flex; flex-direction:column; background:#0F1510;`) },
+        h("div", { role: `main`, "aria-label": v.screenTitle, style: sty(`flex:1; min-width:0; display:flex; flex-direction:column; background:#0F1510;`) },
           h("div", { style: sty(`padding:20px 26px 16px; display:flex; align-items:flex-start; gap:16px;`) },
             h("div", { style: sty(`flex:1; min-width:0;`) },
               h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },
@@ -266,7 +268,7 @@ function Template(v: any) {
               )
             )
           ),
-          h("div", { onContextMenu: fn(v.ctxScreen), key: v.screenKey, style: sty(`flex:1; overflow-y:auto; padding:0 26px 80px; position:relative; animation:screenIn .3s cubic-bezier(.2,0,0,1);`) },
+          h("div", { role: `tabpanel`, id: `tabpanel-content`, "aria-labelledby": v.activeTabId, tabIndex: `0`, onContextMenu: fn(v.ctxScreen), key: v.screenKey, style: sty(`flex:1; overflow-y:auto; padding:0 26px 80px; position:relative; animation:screenIn .3s cubic-bezier(.2,0,0,1);`) },
             (v.beginner ? h("div", { style: sty(`display:flex; align-items:center; gap:13px; background:#1B4D33; border-radius:16px; padding:14px 18px; margin-bottom:12px; animation:m3Slide .3s cubic-bezier(.2,0,0,1);`) },
                 h("span", { style: sty(`font-size:24px; color:#9FF7C4; flex:0 0 auto;`), className: "msym" },
                   "school"
@@ -535,7 +537,7 @@ function Template(v: any) {
                     )))
                   ),
                   h("div", { style: sty(`max-height:460px; overflow-y:auto;`) },
-                    A(v.commitRows).map(($c, $c$i) => R($c$i, h("div", { onClick: fn($c.pick), onContextMenu: fn($c.ctx), style: sty(`display:flex; align-items:flex-start; gap:12px; padding:11px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($c.bg)}; animation:m3Slide .28s cubic-bezier(.2,0,0,1) both;`), className: "k-h16" },
+                    A(v.commitRows).map(($c, $c$i) => R($c$i, h("div", { role: `button`, tabIndex: `0`, onClick: fn($c.pick), onKeyDown: $c.onKeyActivate, onContextMenu: fn($c.ctx), style: sty(`display:flex; align-items:flex-start; gap:12px; padding:11px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($c.bg)}; animation:m3Slide .28s cubic-bezier(.2,0,0,1) both;`), className: "k-h16" },
                         h("div", { style: sty(`display:flex; flex-direction:column; align-items:center; padding-top:3px; flex:0 0 auto;`) },
                           h("span", { style: sty(`width:11px; height:11px; border-radius:50%; background:${S($c.dot)}; border:2px solid #0F1510;`) }),
                           h("span", { style: sty(`width:2px; flex:1; min-height:22px; background:#333B34;`) })
@@ -1373,7 +1375,7 @@ function Template(v: any) {
                       S(v.docsResultsLabel)
                     ),
                     h("div", { style: sty(`overflow-y:auto; flex:1;`) },
-                      A(v.docsResults).map(($r, $r$i) => R($r$i, h("div", { onClick: fn($r.select), style: sty(`padding:10px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($r.bg)};`), className: "k-h16" },
+                      A(v.docsResults).map(($r, $r$i) => R($r$i, h("div", { role: `button`, tabIndex: `0`, onClick: fn($r.select), onKeyDown: $r.onKeyActivate, style: sty(`padding:10px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($r.bg)};`), className: "k-h16" },
                           h("div", { style: sty(`display:flex; align-items:center; gap:8px;`) },
                             h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; color:#82D9A5; text-transform:uppercase;`) },
                               S($r.category)
@@ -1418,7 +1420,7 @@ function Template(v: any) {
                           ),
                           h("span", null,
                             A($b.spans).map(($sp, $sp$i) => R($sp$i, F(
-                              ($sp.isLink ? h("span", { onClick: fn($sp.onClick), style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
+                              ($sp.isLink ? h("span", { role: `button`, tabIndex: `0`, onClick: fn($sp.onClick), onKeyDown: $sp.onKeyActivate, style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
                                   S($sp.text)
                                 ) : null),
                               ($sp.isPlain ? h("span", null,
@@ -1429,7 +1431,7 @@ function Template(v: any) {
                         ) : null),
                       ($b.isParagraph ? h("div", { style: sty(`margin:8px 0;`) },
                           A($b.spans).map(($sp, $sp$i) => R($sp$i, F(
-                            ($sp.isLink ? h("span", { onClick: fn($sp.onClick), style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
+                            ($sp.isLink ? h("span", { role: `button`, tabIndex: `0`, onClick: fn($sp.onClick), onKeyDown: $sp.onKeyActivate, style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
                                 S($sp.text)
                               ) : null),
                             ($sp.isPlain ? h("span", null,
@@ -1443,7 +1445,7 @@ function Template(v: any) {
                       h("div", { style: sty(`font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394; margin-bottom:8px;`) },
                         "Suggested articles"
                       ),
-                      A(v.docsSuggested).map(($sg, $sg$i) => R($sg$i, h("div", { onClick: fn($sg.select), style: sty(`display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:#9FF7C4; font-size:12.5px;`), className: "k-h29" },
+                      A(v.docsSuggested).map(($sg, $sg$i) => R($sg$i, h("div", { role: `button`, tabIndex: `0`, onClick: fn($sg.select), onKeyDown: $sg.onKeyActivate, style: sty(`display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:#9FF7C4; font-size:12.5px;`), className: "k-h29" },
                           h("span", { style: sty(`font-size:15px;`), className: "msym" },
                             S($sg.icon)
                           ),
@@ -1621,7 +1623,7 @@ function Template(v: any) {
       ),
       (v.infoOpen ? F(
         h("div", { onClick: fn(v.closeInfo), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.32); z-index:60;`) }),
-        h("div", { style: sty(`position:absolute; ${S(v.infoChrome)} max-height:calc(100vh - 132px); overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:61;`) },
+        h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; ${S(v.infoChrome)} max-height:calc(100vh - 132px); overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:61;`) },
           h("div", { onMouseDown: fn(v.dragInfo), style: sty(`display:flex; align-items:center; gap:8px; margin:-18px -20px 10px; padding:14px 16px 8px; cursor:grab; min-width:0;`) },
             h("span", { style: sty(`font-size:16px; color:#778078; flex:0 0 auto;`), className: "msym" },
               "drag_indicator"
@@ -1761,7 +1763,7 @@ function Template(v: any) {
           )
         )
       ) : null),
-      (v.wizardOpen ? h("div", { style: sty(`position:absolute; ${S(v.wizardChrome)} max-height:100vh; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:55; display:flex; flex-direction:column;`) },
+      (v.wizardOpen ? h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; ${S(v.wizardChrome)} max-height:100vh; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:55; display:flex; flex-direction:column;`) },
           h("div", { onMouseDown: fn(v.dragWizard), style: sty(`padding:16px 20px 12px; display:flex; align-items:flex-start; gap:10px; cursor:grab;`) },
             h("span", { style: sty(`font-size:18px; color:#778078; margin-top:4px;`), className: "msym" },
               "drag_indicator"
@@ -1874,7 +1876,7 @@ function Template(v: any) {
         ) : null),
       (v.paletteOpen ? F(
         h("div", { onClick: fn(v.togglePalette), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.5); z-index:70;`) }),
-        h("div", { style: sty(`position:absolute; left:50%; top:88px; transform:translateX(-50%); width:620px; background:#252B25; border-radius:20px; box-shadow:0 12px 40px rgba(0,0,0,.6); z-index:71; overflow:hidden; animation:dlgPalette .22s cubic-bezier(.2,0,0,1);`) },
+        h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; left:50%; top:88px; transform:translateX(-50%); width:620px; background:#252B25; border-radius:20px; box-shadow:0 12px 40px rgba(0,0,0,.6); z-index:71; overflow:hidden; animation:dlgPalette .22s cubic-bezier(.2,0,0,1);`) },
           h("div", { style: sty(`display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid #333B34;`) },
             h("span", { style: sty(`font-size:22px; color:#82D9A5;`), className: "msym" },
               "search"
@@ -1903,7 +1905,7 @@ function Template(v: any) {
         )
       ) : null),
       (v.ceremonyOpen ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.66); z-index:80; display:flex; align-items:center; justify-content:center;`) },
-          h("div", { style: sty(`width:660px; max-height:88vh; overflow-y:auto; background:#252B25; border-radius:28px; padding:26px 28px; box-shadow:0 16px 48px rgba(0,0,0,.7); animation:dlgCeremony .3s cubic-bezier(.2,0,0,1);`) },
+          h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`width:660px; max-height:88vh; overflow-y:auto; background:#252B25; border-radius:28px; padding:26px 28px; box-shadow:0 16px 48px rgba(0,0,0,.7); animation:dlgCeremony .3s cubic-bezier(.2,0,0,1);`) },
             h("div", { style: sty(`display:flex; align-items:center; gap:12px;`) },
               h("span", { style: sty(`font-size:26px; color:#FFB4AB;`), className: "msym" },
                 "gpp_maybe"
@@ -2037,7 +2039,7 @@ function Template(v: any) {
               ) : null)
           )
         ) : null),
-      (v.onboardOpen ? h("div", { style: sty(`position:absolute; inset:0; background:#0B0F0C; z-index:90; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:28px 32px 40px; overflow-y:auto; animation:dlgOnboard .4s ease-out;`) },
+      (v.onboardOpen ? h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; inset:0; background:#0B0F0C; z-index:90; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:28px 32px 40px; overflow-y:auto; animation:dlgOnboard .4s ease-out;`) },
           h("div", { style: sty(`width:760px; max-width:100%; margin:auto 0;`) },
             h("div", { style: sty(`display:flex; gap:8px; margin-bottom:26px;`) },
               A(v.onboardSteps).map(($s, $s$i) => R($s$i, h("div", { style: sty(`flex:1; display:flex; flex-direction:column; gap:7px;`) },
@@ -2129,7 +2131,7 @@ function Template(v: any) {
             )
           )
         ) : null),
-      (v.tourOpen ? h("div", { style: sty(`position:absolute; left:${S(v.tourX)}; top:${S(v.tourY)}; width:320px; background:#005230; border-radius:16px; padding:16px 18px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:75; animation:dlgSure .3s cubic-bezier(.2,1.2,.3,1);`) },
+      (v.tourOpen ? h("div", { role: `dialog`, "aria-modal": `false`, style: sty(`position:absolute; left:${S(v.tourX)}; top:${S(v.tourY)}; width:320px; background:#005230; border-radius:16px; padding:16px 18px; box-shadow:0 8px 28px rgba(0,0,0,.6); z-index:75; animation:dlgSure .3s cubic-bezier(.2,1.2,.3,1);`) },
           h("div", { style: sty(`font-family:'Roboto Mono',monospace; font-size:11px; color:#9FF7C4;`) },
             S(v.tourCount)
           ),
@@ -2151,7 +2153,7 @@ function Template(v: any) {
         ) : null),
       (v.regexOpen ? F(
         h("div", { onClick: fn(v.closeRegex), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.3); z-index:96;`) }),
-        h("div", { style: sty(`position:absolute; ${S(v.regexChrome)} max-height:86vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:97;`) },
+        h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; ${S(v.regexChrome)} max-height:86vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:97;`) },
           h("div", { onMouseDown: fn(v.dragRegex), style: sty(`display:flex; align-items:center; gap:9px; margin:-18px -20px 4px; padding:16px 20px 10px; cursor:grab;`) },
             h("span", { style: sty(`font-size:18px; color:#778078;`), className: "msym" },
               "drag_indicator"
@@ -2186,7 +2188,7 @@ function Template(v: any) {
             h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:15px; color:#8FA394;`) },
               "/"
             ),
-            h("input", { type: `text`, value: v.rxText, onChange: fn(v.onRxText), onInput: fn(v.onRxText), placeholder: `type a pattern, or tap the pieces below`, spellCheck: `false`, style: sty(`flex:1; background:transparent; border:0; outline:none; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:15px;`) }),
+            h("input", { type: `text`, value: v.rxText, onChange: fn(v.onRxText), onInput: fn(v.onRxText), placeholder: `type a pattern, or tap the pieces below`, spellCheck: `false`, style: sty(`flex:1; background:transparent; border:0; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:15px;`) }),
             h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:15px; color:#8FA394;`) },
               `/${S(v.regexFlagStr)}`
             ),
@@ -2277,11 +2279,11 @@ function Template(v: any) {
       ) : null),
       (v.ctxOpen ? F(
         h("div", { onClick: fn(v.closeCtx), onContextMenu: fn(v.closeCtx), style: sty(`position:absolute; inset:0; z-index:78;`) }),
-        h("div", { style: sty(`position:absolute; left:${S(v.ctxX)}; top:${S(v.ctxY)}; width:274px; background:#252B25; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:79; animation:dlgCtx .14s cubic-bezier(.2,1.3,.4,1);`) },
+        h("div", { role: `menu`, style: sty(`position:absolute; left:${S(v.ctxX)}; top:${S(v.ctxY)}; width:274px; background:#252B25; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:79; animation:dlgCtx .14s cubic-bezier(.2,1.3,.4,1);`) },
           h("div", { style: sty(`padding:8px 12px 6px; font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394; border-bottom:1px solid #333B34; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;`) },
             S(v.ctxTarget)
           ),
-          A(v.ctxItems).map(($i, $i$i) => R($i$i, h("button", { onClick: fn($i.act), onMouseEnter: fn($i.hover), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:${S($i.bg)}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
+          A(v.ctxItems).map(($i, $i$i) => R($i$i, h("button", { role: `menuitem`, onClick: fn($i.act), onMouseEnter: fn($i.hover), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:${S($i.bg)}; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
               h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                 S($i.icon)
               ),
@@ -2293,8 +2295,8 @@ function Template(v: any) {
               )
             )))
         ),
-        (v.subOpen ? h("div", { style: sty(`position:absolute; left:${S(v.subX)}; top:${S(v.subY)}; width:230px; background:#252B25; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:80; animation:dlgCtx .13s cubic-bezier(.2,1.3,.4,1);`) },
-            A(v.subItems).map(($i, $i$i) => R($i$i, h("button", { onClick: fn($i.run), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
+        (v.subOpen ? h("div", { role: `menu`, style: sty(`position:absolute; left:${S(v.subX)}; top:${S(v.subY)}; width:230px; background:#252B25; border-radius:14px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:80; animation:dlgCtx .13s cubic-bezier(.2,1.3,.4,1);`) },
+            A(v.subItems).map(($i, $i$i) => R($i$i, h("button", { role: `menuitem`, onClick: fn($i.run), style: sty(`width:100%; display:flex; align-items:center; gap:11px; background:transparent; border:0; border-radius:9px; padding:9px 12px; color:#DFE4DC; font:inherit; font-size:13px; cursor:pointer; text-align:left;`), className: "k-h32" },
                 h("span", { style: sty(`font-size:18px; color:#82D9A5;`), className: "msym" },
                   S($i.icon)
                 ),
@@ -2304,7 +2306,7 @@ function Template(v: any) {
               )))
           ) : null)
       ) : null),
-      (v.lockOpen ? h("div", { style: sty(`position:absolute; ${S(v.lockChrome)} max-height:88vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:82;`) },
+      (v.lockOpen ? h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; ${S(v.lockChrome)} max-height:88vh; overflow-y:auto; background:#252B25; padding:18px 20px; box-shadow:0 10px 32px rgba(0,0,0,.6); z-index:82;`) },
           h("div", { onMouseDown: fn(v.dragLock), style: sty(`display:flex; align-items:center; gap:9px; cursor:grab; margin:-18px -20px 0; padding:16px 20px 8px;`) },
             h("span", { style: sty(`font-size:18px; color:#778078;`), className: "msym" },
               "drag_indicator"
@@ -2396,7 +2398,7 @@ function Template(v: any) {
                   h("span", { style: sty(`font-size:17px; color:#82D9A5;`), className: "msym" },
                     "keyboard"
                   ),
-                  h("input", { type: v.pwInputType, value: v.pinValue, onChange: fn(v.onPinInput), onInput: fn(v.onPinInput), inputMode: `numeric`, maxLength: `6`, placeholder: `000000`, style: sty(`flex:1; background:transparent; border:0; outline:none; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px; letter-spacing:4px;`) }),
+                  h("input", { type: v.pwInputType, value: v.pinValue, onChange: fn(v.onPinInput), onInput: fn(v.onPinInput), inputMode: `numeric`, maxLength: `6`, placeholder: `000000`, style: sty(`flex:1; background:transparent; border:0; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px; letter-spacing:4px;`) }),
                   h("button", { onClick: fn(v.pinReveal), style: sty(`width:28px; height:28px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h4" },
                     h("span", { style: sty(`font-size:17px;`), className: "msym" },
                       S(v.pinEyeIcon)
@@ -2416,7 +2418,7 @@ function Template(v: any) {
                 h("span", { style: sty(`font-size:17px; color:#82D9A5;`), className: "msym" },
                   "password"
                 ),
-                h("input", { type: v.pwInputType, value: v.pwValue, onChange: fn(v.onPwInput), onInput: fn(v.onPwInput), placeholder: `Type a passphrase`, style: sty(`flex:1; background:transparent; border:0; outline:none; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;`) }),
+                h("input", { type: v.pwInputType, value: v.pwValue, onChange: fn(v.onPwInput), onInput: fn(v.onPwInput), placeholder: `Type a passphrase`, style: sty(`flex:1; background:transparent; border:0; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;`) }),
                 h("button", { onClick: fn(v.pinReveal), style: sty(`width:28px; height:28px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;`), className: "k-h4" },
                   h("span", { style: sty(`font-size:17px;`), className: "msym" },
                     S(v.pinEyeIcon)
@@ -2472,7 +2474,7 @@ function Template(v: any) {
           )
         ) : null),
       (v.unlockOpen ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.6); z-index:83; display:flex; align-items:center; justify-content:center;`) },
-          h("div", { style: sty(`width:376px; background:#252B25; border-radius:24px; padding:24px; text-align:center; animation:dlgUnlock .3s cubic-bezier(.2,0,0,1);`) },
+          h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`width:376px; background:#252B25; border-radius:24px; padding:24px; text-align:center; animation:dlgUnlock .3s cubic-bezier(.2,0,0,1);`) },
             h("span", { style: sty(`font-size:34px; color:#82D9A5;`), className: "msym" },
               "lock_open"
             ),
@@ -2493,7 +2495,7 @@ function Template(v: any) {
                 h("span", { style: sty(`font-size:17px; color:#82D9A5;`), className: "msym" },
                   "password"
                 ),
-                h("input", { type: `password`, value: v.unlockPwValue, onChange: fn(v.onUnlockPw), onInput: fn(v.onUnlockPw), placeholder: `Passphrase`, style: sty(`flex:1; background:transparent; border:0; outline:none; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;`) })
+                h("input", { type: `password`, value: v.unlockPwValue, onChange: fn(v.onUnlockPw), onInput: fn(v.onUnlockPw), placeholder: `Passphrase`, style: sty(`flex:1; background:transparent; border:0; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;`) })
               ) : null),
             (v.unlockNeedsTotp ? h("div", { style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:11px 12px; margin-top:8px;`) },
                 h("span", { style: sty(`font-size:17px; color:#82D9A5;`), className: "msym" },
@@ -2525,7 +2527,7 @@ function Template(v: any) {
             )
           )
         ) : null),
-      (v.appearOpen ? h("div", { style: sty(`position:absolute; right:0; top:40px; bottom:0; width:468px; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:84; display:flex; flex-direction:column; animation:dlgAppear .28s cubic-bezier(.2,0,0,1);`) },
+      (v.appearOpen ? h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; right:0; top:40px; bottom:0; width:468px; background:#141A15; box-shadow:-8px 0 32px rgba(0,0,0,.5); z-index:84; display:flex; flex-direction:column; animation:dlgAppear .28s cubic-bezier(.2,0,0,1);`) },
           h("div", { style: sty(`padding:16px 20px 10px; display:flex; align-items:flex-start; gap:12px;`) },
             h("div", { style: sty(`flex:1;`) },
               h("div", { style: sty(`font-size:11px; letter-spacing:1px; text-transform:uppercase; color:#8FA394;`) },
@@ -2622,7 +2624,7 @@ function Template(v: any) {
           )
         ) : null),
       (v.sureOpen ? h("div", { style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.66); z-index:86; display:flex; align-items:center; justify-content:center;`) },
-          h("div", { style: sty(`width:520px; background:#252B25; border-radius:28px; padding:22px 26px; animation:dlgSure .34s cubic-bezier(.2,1.2,.3,1);`) },
+          h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`width:520px; background:#252B25; border-radius:28px; padding:22px 26px; animation:dlgSure .34s cubic-bezier(.2,1.2,.3,1);`) },
             h("div", { style: sty(`display:flex; align-items:center; gap:12px;`) },
               h("span", { style: sty(`font-size:26px; color:#FFD68A;`), className: "msym" },
                 "help_center"
@@ -2687,7 +2689,7 @@ function Template(v: any) {
         ) : null),
       (v.tabFilterOpen ? F(
         h("div", { onClick: fn(v.closeTabFilter), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`) }),
-        h("div", { style: sty(`position:absolute; left:50%; top:92px; transform:translateX(-50%); width:540px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgFilter .24s cubic-bezier(.2,0,0,1);`) },
+        h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; left:50%; top:92px; transform:translateX(-50%); width:540px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgFilter .24s cubic-bezier(.2,0,0,1);`) },
           h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },
             h("span", { style: sty(`font-size:21px; color:#82D9A5;`), className: "msym" },
               "filter_alt"
@@ -2726,7 +2728,7 @@ function Template(v: any) {
               h("span", { style: sty(`font-size:17px; color:#82D9A5;`), className: "msym" },
                 "keyboard"
               ),
-              h("input", { type: `text`, value: v.tabFilterText, onChange: fn(v.onTabFilterText), onInput: fn(v.onTabFilterText), placeholder: `Text to match, e.g. queue`, style: sty(`flex:1; background:transparent; border:0; outline:none; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;`) }),
+              h("input", { type: `text`, value: v.tabFilterText, onChange: fn(v.onTabFilterText), onInput: fn(v.onTabFilterText), placeholder: `Text to match, e.g. queue`, style: sty(`flex:1; background:transparent; border:0; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:14px;`) }),
               h("button", { onClick: fn(v.openTabRegex), title: `Build a pattern instead`, style: sty(`display:flex; align-items:center; gap:6px; background:#262B26; border:0; border-radius:8px; padding:6px 11px; color:#9FF7C4; font:inherit; font-size:11.5px; cursor:pointer;`), className: "k-h11" },
                 h("span", { style: sty(`font-size:15px;`), className: "msym" },
                   "data_object"
@@ -2760,7 +2762,7 @@ function Template(v: any) {
       ) : null),
       (v.tabColourOpen ? F(
         h("div", { onClick: fn(v.closeTabColour), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`) }),
-        h("div", { style: sty(`position:absolute; left:50%; top:110px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgColour .3s cubic-bezier(.2,1.3,.3,1);`) },
+        h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; left:50%; top:110px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgColour .3s cubic-bezier(.2,1.3,.3,1);`) },
           h("div", { style: sty(`display:flex; align-items:center; gap:10px;`) },
             h("span", { style: sty(`font-size:20px; color:#82D9A5;`), className: "msym" },
               "colorize"
@@ -2818,7 +2820,7 @@ function Template(v: any) {
       ) : null),
       (v.renameOpen ? F(
         h("div", { onClick: fn(v.cancelRename), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`) }),
-        h("div", { style: sty(`position:absolute; left:50%; top:120px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgRename .22s cubic-bezier(.2,0,0,1);`) },
+        h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; left:50%; top:120px; transform:translateX(-50%); width:400px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgRename .22s cubic-bezier(.2,0,0,1);`) },
           h("div", { style: sty(`font-size:16px; font-weight:500; margin-bottom:12px;`) },
             "Rename tab"
           ),
@@ -2826,7 +2828,7 @@ function Template(v: any) {
             h("span", { style: sty(`font-size:17px; color:#82D9A5;`), className: "msym" },
               "edit"
             ),
-            h("input", { type: `text`, value: v.renameValue, onChange: fn(v.onRename), onInput: fn(v.onRename), style: sty(`flex:1; background:transparent; border:0; outline:none; color:#DFE4DC; font-size:14px;`) })
+            h("input", { type: `text`, value: v.renameValue, onChange: fn(v.onRename), onInput: fn(v.onRename), style: sty(`flex:1; background:transparent; border:0; color:#DFE4DC; font-size:14px;`) })
           ),
           h("div", { style: sty(`display:flex; gap:8px; margin-top:16px;`) },
             h("button", { onClick: fn(v.cancelRename), style: sty(`flex:1; background:transparent; border:1px solid #414942; border-radius:999px; padding:10px 0; color:#C4CBC2; font:inherit; font-size:13px; cursor:pointer;`) },
@@ -2953,36 +2955,35 @@ const SCREENS = {
       rows:[['1001','10.20.4.31:5060','transport-tls','opus, g722','Reachable'],['1002','10.20.4.32:5060','transport-tls','opus, ulaw','Reachable'],['1003','10.20.4.44:5060','transport-udp','ulaw','Unreachable'],['1004','10.20.4.51:5060','transport-tls','opus, g722','Reachable'],['softphone-ada','198.51.100.9:39412','transport-wss','opus','Reachable'],['reception','10.20.4.12:5060','transport-udp','g722, ulaw','Reachable']] },
     groups:pjsipCtls() },
   trunks:{ rail:'pbx', icon:'swap_horiz', label:'Trunks', badge:'3', title:'Trunks & registrations', file:'pjsip.conf', kind:'table',
-    sub:'Outbound carriers and inbound identifies, PJSIP and IAX2 alike -- iax2 show registry reads the same table `pjsip show registrations` already fed it. Registration state is polled live; credentials live in the secret intake, never on this screen.',
+    sub:'Outbound carriers and inbound identifies, PJSIP and IAX2 alike -- iax2 show registry reads the same table `pjsip show registrations` already fed it. Registration state is polled live; credentials live in the secret intake, never on this screen. Click a PJSIP row to load that exact registration -- and, when one is paired with it, that endpoint -- into the groups below; an IAX2 row has its own editor on the IAX peers screen instead.',
     table:{ add:'New trunk', grid:'1fr 1.4fr 1fr 1fr 120px', cols:['Trunk','Registrar','Auth','Outbound','State'],
       rows:[['carrier-primary','sip.carrier.example','userpass','yes','Registered'],['carrier-backup','sip2.carrier.example','userpass','yes','Registered']] },
-    groups:[{ title:'Failover', desc:'What happens when the primary carrier stops answering.', ctls:[
-      ctl('t_retry','Retry interval','slider',60,{ min:10, max:600, step:10, unit:'s' }),
-      ctl('t_forbidden','Forbidden retry','slider',300,{ min:30, max:1800, step:30, unit:'s' }),
-      ctl('t_fatal','Fatal retry attempts','stepper',5,{ min:0, max:50 })
-    ]},{ title:'Outbound identity', desc:'How your calls appear to the carrier.', ctls:[
-      ctl('t_pai','Send P-Asserted-Identity','switch',true),
-      ctl('t_100rel','100rel','segmented','yes',{ options:['no','required','yes'] })
-    ]},{ title:'Advanced', desc:'pjsip.conf.sample\'s [endpoint] section options, written onto this trunk\'s own endpoint -- a PJSIP trunk is not a separate object type, it is an endpoint pointed at a provider. Two settings the same reference block sometimes asks for are deliberately absent here: user=phone and Support Path have no key in this Asterisk\'s sample, and writing one the build ignores looks like a working setting that does nothing.', ctls:[
-      ctl('tk_connectedline','send_connected_line','switch',true,{ info:'pjsip.conf.sample line 669: send_connected_line=yes -- Send Connected Line updates to this endpoint.' }),  // line 669
-      ctl('tk_contactuser','contact_user','text','',{ placeholder:'1234567890', info:'pjsip.conf.sample line 855: on outgoing requests, forces the user portion of the Contact header to this value.' }),  // line 855
-      ctl('tk_fromdomain','from_domain','text','',{ placeholder:'sip.carrier.example', info:'pjsip.conf.sample line 816: domain to use in the From header for requests to this endpoint.' }),  // line 816
-      ctl('tk_fromuser','from_user','text','',{ info:'pjsip.conf.sample line 812: username to use in the From header for requests to this endpoint.' }),  // line 812
-      ctl('tk_mediaaddr','media_address','text','',{ info:'pjsip.conf.sample line 687: IP address used in SDP for media handling.' })  // line 687
-    ]},{ title:'T.38 fax', desc:'res_pjsip_t38.conf keys on this same endpoint. t38_udptl_ec takes none, fec or redundancy -- three values, not a switch -- and each is read only while T.38 itself is on.', ctls:[
-      ctl('tk_t38','t38_udptl','switch',false,{ info:'pjsip.conf.sample line 772: whether T.38 UDPTL support is enabled.' }),  // line 772
-      ctl('tk_t38ec','t38_udptl_ec','segmented','none',{ options:['none','fec','redundancy'], info:'pjsip.conf.sample line 773: T.38 UDPTL error correction method.' }),  // line 773
-      ctl('tk_t38nat','t38_udptl_nat','switch',false,{ info:'pjsip.conf.sample line 781: whether NAT support is enabled on UDPTL sessions.' }),  // line 781
-      ctl('tk_t38mtu','t38_udptl_maxdatagram','stepper',0,{ min:0, max:4000, info:'pjsip.conf.sample line 774: T.38 UDPTL maximum datagram size.' }),  // line 774
-      ctl('tk_faxdetect','fax_detect','switch',false,{ info:'pjsip.conf.sample line 776: whether CNG tone detection is enabled.' })  // line 776
-    ]},{ title:'Identity trust & routing', desc:'Who this trunk believes, and what it forwards. Sending Remote-Party-ID while not trusting outbound identity is how a withheld caller number leaks to the carrier -- saving warns when both are set that way.', ctls:[
-      ctl('tk_trustout','trust_id_outbound','switch',false,{ info:'pjsip.conf.sample line 745: send private identification details to the endpoint.' }),  // line 745
-      ctl('tk_sendrpid','send_rpid','switch',false,{ info:'pjsip.conf.sample line 730: send the Remote-Party-ID header.' }),  // line 730
-      ctl('tk_senddiversion','send_diversion','switch',true,{ info:'pjsip.conf.sample line 727: send the Diversion header conveying the diversion.' }),  // line 727
-      ctl('tk_save','Save advanced trunk settings','segmented','Save',{ options:['Save'], action:'trunk-advanced-save', info:'Writes every field across these three groups onto the selected trunk\'s pjsip.conf endpoint. Select a trunk row first -- nothing here has anywhere to write until one is loaded.' })
+    groups:[{ title:'Failover', desc:'What happens when the primary carrier stops answering. pjsip.conf.sample lines 1519-1552 (the [registration] template).', ctls:[
+      ctl('t_retry','Retry interval','slider',60,{ min:10, max:600, step:10, unit:'s', info:'pjsip.conf.sample line 1542: retry_interval, seconds between retries after an unsuccessful outbound registration.' }),
+      ctl('t_forbidden','Forbidden retry','slider',300,{ min:30, max:1800, step:30, unit:'s', info:'pjsip.conf.sample line 1544: forbidden_retry_interval, used instead of the interval above when the registrar answers with a 403 Forbidden.' }),
+      ctl('t_fatal','Fatal retry attempts','stepper',5,{ min:0, max:50, info:'pjsip.conf.sample line 1532: max_retries, the maximum number of registration attempts before Asterisk gives up on this registration entirely.' })
+    ]},{ title:'Outbound identity', desc:'How your calls appear to the carrier. pjsip.conf.sample\'s [endpoint] template, paired to the loaded registration by its own endpoint= line (pjsip.conf.sample lines 1561-1564) or, lacking one, by sharing the registration\'s own bracket name.', ctls:[
+      ctl('t_pai','Send P-Asserted-Identity','switch',true,{ info:'pjsip.conf.sample line 855 region, send_pai (default no): sends the P-Asserted-Identity header carrying the caller\'s real identity to this trunk.' }),
+      ctl('t_100rel','100rel','segmented','yes',{ options:['no','required','yes'], info:'pjsip.conf.sample line 650: 100rel, RFC3262 provisional-response acknowledgement -- no, required or yes.' })
+    ]},{ title:'Advanced', desc:'Further pjsip.conf endpoint settings on the same paired endpoint above -- T.38 fax relay, identity headers, and how this trunk\'s own address is presented.', ctls:[
+      ctl('tk_connectedline','Send Connected Line updates','switch',true,{ info:'pjsip.conf.sample line 669: send_connected_line (default yes).' }),
+      ctl('tk_contactuser','Contact user','text','',{ placeholder:'', info:'pjsip.conf.sample line 855 region: contact_user, forces the Contact header\'s user portion on outgoing requests (default empty).' }),
+      ctl('tk_fromdomain','From domain','text','',{ placeholder:'sip.example.net', info:'pjsip.conf.sample line 816: from_domain, the domain used in the From header for requests to this trunk (default empty).' }),
+      ctl('tk_fromuser','From user','text','',{ placeholder:'', info:'pjsip.conf.sample line 812: from_user, the username used in the From header for requests to this trunk (default empty).' }),
+      ctl('tk_mediaaddr','Media address','text','',{ placeholder:'', info:'pjsip.conf.sample line 687: media_address, the IP address used in SDP for media handling (default empty, meaning let Asterisk decide).' }),
+      ctl('tk_t38','T.38 UDPTL','switch',false,{ info:'pjsip.conf.sample line 772: t38_udptl (default no). Enables T.38 fax relay for this trunk.' }),
+      ctl('tk_t38ec','T.38 error correction','segmented','none',{ options:['none','fec','redundancy'], info:'pjsip.conf.sample line 773: t38_udptl_ec (default none). Only read while T.38 UDPTL above is on.' }),
+      ctl('tk_t38nat','T.38 NAT support','switch',false,{ info:'pjsip.conf.sample line 781: t38_udptl_nat (default no). Only read while T.38 UDPTL above is on.' }),
+      ctl('tk_t38mtu','T.38 max datagram','stepper',0,{ min:0, max:65535, info:'pjsip.conf.sample line 774: t38_udptl_maxdatagram, in bytes (default 0). Only read while T.38 UDPTL above is on.' }),
+      ctl('tk_faxdetect','CNG fax tone detection','switch',false,{ info:'pjsip.conf.sample line 776: fax_detect (default no).' }),
+      ctl('tk_trustout','Trust ID outbound','switch',false,{ info:'pjsip.conf.sample line 745: trust_id_outbound (default no). Sends private identification details to this trunk.' }),
+      ctl('tk_sendrpid','Send Remote-Party-ID','switch',false,{ info:'pjsip.conf.sample line 730: send_rpid (default no).' }),
+      ctl('tk_senddiversion','Send Diversion header','switch',true,{ info:'pjsip.conf.sample line 727: send_diversion (default yes). Conveys call-diversion information to this trunk.' })
+    ]},{ title:'Save', desc:'Click a row above first -- this writes only the loaded registration\'s retry policy, and its paired endpoint\'s outbound identity and advanced fields, backed up first and applied through the same plan/apply transaction every other write in this console uses.', ctls:[
+      ctl('t_save','Save this trunk','segmented','Save',{ options:['Save'], action:'trunk-save' })
     ]}] },
-  trunkauth:{ rail:'pbx', icon:'handshake', label:'Trunk authentication', badge:'2', title:'Trunk authentication', file:'pjsip.conf · partner requests', kind:'trunkauth',
-    sub:'When a trunk partner asks to change something on the shared link — a new source address, a codec, a higher call cap — the request lands here and you answer yes or no. Nothing takes effect until you do.',
+  trunkauth:{ rail:'pbx', icon:'handshake', label:'Trunk authentication', badge:'2', title:'Trunk authentication', file:'trunk partner requests', kind:'trunkauth',
+    sub:'When a trunk partner asks to change something on the shared link — a new source address, a codec, a higher call cap — the request lands here and you answer yes or no. Nothing takes effect until you do. The six controls below are this console\'s own answering policy, not an Asterisk key -- there is no pjsip.conf setting for how quickly a request expires or whether to auto-approve one, so they persist as a Ding PBX Console preference the same way the appearance and notification groups do, restored on relaunch rather than read off any target.',
     groups:[{ title:'Answering policy', desc:'How requests arrive and what may be answered without you.', ctls:[
       ctl('ta_auto','Auto-approve low-risk requests','switch',false,{ info:'Low risk means a codec addition or a health-check interval. Address changes and call caps are never auto-approved.' }),
       ctl('ta_expire','Requests expire after','slider',48,{ min:1, max:168, unit:' h' }),
@@ -2993,6 +2994,10 @@ const SCREENS = {
     ]}] },
   canvas:{ rail:'pbx', icon:'account_tree', label:'Dialplan canvas', badge:'∞', title:'Dialplan canvas', file:'extensions.conf', kind:'canvas',
     sub:'One infinite canvas for dialplan, IVR and queue routing. Drop a step, wire it to the next, and the console writes the priorities for you. The inspector on the right edits whichever step is selected.', groups:[] },
+  agiscripts:{ rail:'pbx', icon:'terminal', label:'Dialplan scripting', badge:'', title:'Dialplan scripting (AGI)', file:'extensions.conf · astagidir', kind:'table',
+    sub:'Every AGI(), EAGI() and DeadAGI() call the dialplan actually makes, read straight off dialplan show, next to every file this target\'s own AGI directory (asterisk.conf\'s astagidir) really has -- so a script the dialplan calls and the directory does not have, and a script sitting in the directory nothing ever calls, both show up rather than staying invisible until a call fails. A FastAGI URL (agi://…) or agi:async is not a local file and is shown as neither missing nor stray -- there is nothing on this filesystem for either to be checked against. This is read-only visibility, not an editor: change what a call runs from the Dialplan canvas.',
+    table:{ add:'Refresh', grid:'1.6fr 1.2fr 90px 130px', cols:['Script','Called from','On disk','Kind'], rows:[] },
+    groups:[] },
   ivr:{ rail:'pbx', icon:'dialpad', label:'IVR menus', badge:'5', title:'IVR menus', file:'extensions.conf', kind:'table',
     sub:'Each menu is a canvas subgraph with a prompt and a key map. Editing a key here moves the matching node on the canvas.',
     table:{ add:'New menu', grid:'1fr 1.4fr 90px 110px 120px', cols:['Menu','Prompt','Keys','Timeout','Invalid'],
@@ -3000,10 +3005,21 @@ const SCREENS = {
     groups:[{ title:'Menu behaviour', desc:'Applies to the selected menu.', ctls:[
       ctl('i_timeout','Digit timeout','slider',7,{ min:1, max:30, unit:'s' }),
       ctl('i_retries','Retries before fallback','stepper',3,{ min:1, max:9 }),
-      ctl('i_invalid','On invalid entry','segmented','Repeat',{ options:['Repeat','Operator','Voicemail','Hangup'] }),
+      ctl('i_invalid','On invalid entry','segmented','Repeat',{ options:['Repeat','Operator','Voicemail','Hang up'] }),
       ctl('i_direct','Allow direct extension dial','switch',true),
       ctl('i_lang','Prompt language','select','en',{ options:['en','es','fr','de','zh'] }),
-      ctl('i_barge','Allow barge-in over prompt','switch',true),
+      ctl('i_barge','Allow barge-in over prompt','switch',true)
+    ]},{ title:'Prompt', desc:'The real greeting this menu plays -- a file from the same prompt library the Sounds screen manages, not a name typed and hoped for.', ctls:[
+      ctl('i_prompt','Prompt file','text','',{ placeholder:'welcome-greeting.wav', info:'A bare filename from the target\'s /var/lib/asterisk/sounds -- the same library the Sounds screen uploads to and lists. Background()/Playback() take the base name with no extension; that is stripped automatically. Left empty, the generated dialplan falls back to a placeholder name nothing has actually uploaded.' }),
+      ctl('i_audition','Audition this prompt','segmented','Audition',{ options:['Audition'], action:'ivr-audition', info:'Plays the exact file named above, read live off the connected target -- the same audition path the Sounds screen\'s own rows use. Refused honestly for a raw telephony encoding (gsm, ulaw, alaw, g722, sln, sln16) that a browser cannot decode from a plain file.' })
+    ]},{ title:'Key map', desc:'What each keypress does. A caller who presses a digit with no route mapped here falls through to "On invalid entry" above, exactly as an unmapped key always has.', ctls:[
+      ctl('i_keydigit','Digit','select','1',{ options:['1','2','3','4','5','6','7','8','9','0','*','#'] }),
+      ctl('i_keydest','Sends the caller to','select','Extension',{ options:['Extension','Queue','Voicemail','Operator','Hang up','Repeat menu'], info:'Extension, Queue and Voicemail need a target below. Operator, Hang up and Repeat menu route on their own -- the exact same four shapes "On invalid entry" already offers a caller who runs out of retries, made per digit instead of on exhaustion.' }),
+      ctl('i_keytarget','Target','text','',{ placeholder:'6001, support, or a mailbox', info:'An extension number for Extension, a queue name for Queue, a mailbox for Voicemail. Ignored for Operator, Hang up and Repeat menu.' }),
+      ctl('i_keyadd','Add this key','segmented','Add',{ options:['Add'], action:'ivr-key-add' }),
+      ctl('i_keys','Keys mapped so far','text','No keys mapped yet.',{ action:'ivr-keys-status', info:'Every digit currently routed, and where it goes. Type a mapped digit above and press Remove to take it back out.' }),
+      ctl('i_keyremove','Remove the digit above','segmented','Remove',{ options:['Remove'], action:'ivr-key-remove' })
+    ]},{ title:'Dialplan preview', desc:'Exactly what Save would write, read first.', ctls:[
       ctl('i_plan','The dialplan this makes','text','',{ action:'ivr-dialplan', info:'These controls do not map onto settings, because extensions.conf has no key called retries -- they describe an IVR, and an IVR is a shape made out of exten lines. This is exactly what would be written, so it can be read first: a form that silently writes call routing is a form nobody should trust.' })
     ]}] },
   queues:{ rail:'pbx', icon:'groups', label:'Queues & agents', badge:'4', title:'Queues & agents', file:'queues.conf', kind:'table',
@@ -3474,6 +3490,10 @@ const SCREENS = {
       ctl('am_secret','Secret / password','text','',{ placeholder:'Type a new secret', info:'AMI: configs/samples/manager.conf.sample line 96: ;secret = mysecret. ARI: configs/samples/ari.conf.sample line 29: ;password =. Write-only either way -- sent once on Add, never read back or shown again.' }),
       ctl('am_readonly','Read-only user','switch',false,{ showWhen:{ control:'am_interface', is:'ARI' }, info:'configs/samples/ari.conf.sample line 26: ;read_only = no -- when yes, this user is only authorized for read-only requests. ARI only; manager.conf has no equivalent single switch.' })
     ]}] },
+  restbrowser:{ rail:'data', icon:'hub', label:'REST resources', badge:'', title:'REST resource browser', file:'live channels · bridges · applications', kind:'table',
+    sub:'Every channel, bridge and registered dialplan application on the target right now, plus what ARI itself -- the REST interface -- reports as its own registered Stasis applications and configured users. All of it live off the target the same way Live channels already is, not a static illustration. What this cannot show yet is a live event stream: watching a channel or a bridge form while this screen stays open needs a websocket/SSE transport this console does not have, the same gap AMI & ARI already states for itself -- add a user on that screen and its permissions here still will not update until the table is re-read.',
+    table:{ add:'Refresh', grid:'110px 1.3fr 1.7fr 130px', cols:['Kind','Name','Detail','State'], rows:[] },
+    groups:[] },
   monitoring:{ rail:'data', icon:'monitoring', label:'Monitoring', badge:'', title:'Monitoring', file:'res_snmp.conf', kind:'generic',
     sub:'SNMP and Prometheus both let something else on the network learn about this system. res_snmp.conf turns on the SNMP subagent; prometheus.conf turns on the /metrics route res_prometheus serves over Asterisk\'s own HTTP server. Read what each does before switching it on -- widening either widens who can poll this machine.',
     groups:[{ title:'SNMP', desc:'res_snmp.conf\'s [general] section. The subagent model needs snmpd\'s own agentx already enabled; the standalone model needs Asterisk running as root to bind port 161.', ctls:[
@@ -3501,6 +3521,22 @@ const SCREENS = {
       ctl('mo_require','Required modules','chips',[],{ options:['chan_pjsip.so','res_pjsip.so','chan_iax2.so','res_odbc.so'], info:'configs/samples/modules.conf.sample line 27: ;require = chan_pjsip.so -- Asterisk exits with status 2 if a required module fails to load. One require= line per module, not a global on/off switch.' }),
       ctl('mo_load','Force-load these modules','chips',[],{ options:['res_musiconhold.so','res_pjsip.so','chan_iax2.so'], info:'configs/samples/modules.conf.sample line 32: ;load = res_musiconhold.so -- forces a specific module to load even with autoload off.' }),
       ctl('mo_save','Save modules.conf settings','segmented','Save',{ options:['Save'], action:'modules-save', info:'Writes autoload, preload, never-load, required and force-load above to modules.conf on the target -- backed up first, applied through the same plan/apply transaction every other write in this console uses.' })
+    ]}] },
+  confighistory:{ rail:'sys', icon:'restore', label:'Backups & recovery', badge:'', title:'Configuration backups', file:'configuration backups', kind:'table',
+    sub:'Every write this console has ever made to the target takes a timestamped backup first, across every configurable file at once -- this is that recovery-point list, read straight off the target\'s own backup directory. Click a row to select it below. Restore copies that exact backup back over the file it was taken from and reads the result back to confirm the bytes match. Diff compares it against whatever is on the file right now and reports how many lines changed. Neither one touches a second copy on the target; there is nothing here this console invented on top of what plan/apply already writes.',
+    table:{ add:'Refresh', grid:'1.5fr 1fr 90px 130px', cols:['Resource','Taken at','Size','Recovery point'], rows:[] },
+    groups:[{ title:'Selected recovery point', desc:'What Restore and Diff below act on. Click a row in the table above to load it here.', ctls:[
+      ctl('bk_resource','Resource','text','',{ info:'Which configuration file this recovery point was taken from.' }),
+      ctl('bk_takenat','Taken at','text','',{ info:'When this backup was written, in the target\'s own clock.' }),
+      ctl('bk_handle','Recovery point path','text','',{ info:'The exact backup file on the target that Restore and Diff below act on.' })
+    ]},{ title:'Restore', desc:'Copies the selected recovery point back over the file it was taken from, then reads the target back to confirm the bytes match exactly. This replaces whatever is on the target right now -- if that also might be worth keeping, it already has its own backup from whichever write put it there.', ctls:[
+      ctl('bk_restore','Restore selected recovery point','segmented','Restore',{ options:['Restore'], action:'history-restore' })
+    ]},{ title:'Diff', desc:'Compares the selected recovery point against the file currently on the target, line by line -- never against another backup, since the only question this answers is what restoring would actually change.', ctls:[
+      ctl('bk_diff','Compare with what is on the target now','segmented','Diff',{ options:['Diff'], action:'history-diff' }),
+      ctl('bk_diffsummary','Result','text','No comparison run yet.',{ info:'How many lines differ between the selected recovery point and the file on the target right now.' })
+    ]},{ title:'Retention', desc:'How many recovery points to keep per file. Pruning removes only the oldest beyond this count, for the resource currently selected above -- it never touches another file\'s backups.', ctls:[
+      ctl('bk_keep','Keep newest per file','stepper',20,{ min:1, max:200 }),
+      ctl('bk_prune','Prune old recovery points for the selected resource','segmented','Prune',{ options:['Prune'], action:'history-prune' })
     ]}] },
   logger:{ rail:'sys', icon:'article', label:'Logger', badge:'', title:'Logging', file:'logger.conf', kind:'generic',
     sub:'Severity per destination as a matrix of switches. Rotation is a picker, retention is a slider. Verbosity lives in asterisk.conf, not logger.conf, so it gets its own Save; any other named log channel below console and messages.log is added, edited and saved on its own.',
@@ -4032,9 +4068,9 @@ const DOCS = {
   chaos_level:{ what:'How playful the console is allowed to be, from 0 to 4.', why:'One dial that scales celebrations, copy tone, motion and randomness together.', values:'0 Bank, 1 Polite, 2 Balanced, 3 Playful, 4 Unhinged.', gotcha:'Level 4 celebrates trivial changes. It is delightful for a week and then you will want level 2.' }
 };
 
-const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','mo_load','g_queue','s_ciphers','s_verify','t_100rel','t_privacy','t_from','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
+const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','mo_load','g_queue','s_ciphers','s_verify','t_100rel','tk_connectedline','tk_contactuser','tk_fromdomain','tk_fromuser','tk_mediaaddr','tk_t38','tk_t38ec','tk_t38nat','tk_t38mtu','tk_faxdetect','tk_trustout','tk_sendrpid','tk_senddiversion','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
 
-const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','dahdi','sla','dundi','calendar','canvas','ivr','queues','adsi','voicemail','confbridge','moh','sounds','codecs','fax','cdr','ami','monitoring','modules','logger','httpd','security','dbrealtime','stirshaken','geolocation','phoneprov','cli','identity','stun','xmpp','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
+const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','dahdi','sla','dundi','calendar','canvas','agiscripts','ivr','queues','adsi','voicemail','confbridge','moh','sounds','codecs','fax','cdr','ami','restbrowser','monitoring','modules','confighistory','logger','httpd','security','dbrealtime','stirshaken','geolocation','phoneprov','cli','identity','stun','xmpp','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
 
 const GAMES = [
   { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },
@@ -5108,7 +5144,10 @@ class ConsoleShell extends DCLogic {
         : (s.screen === 'sounds' && this.onAddPromptRow ? this.onAddPromptRow()
         : (s.screen === 'ami' && this.onAddApiUser ? this.onAddApiUser()
         : (s.screen === 'notifications' && this.onMarkAllNotificationsRead ? this.onMarkAllNotificationsRead()
-        : this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null })))))),
+        : (s.screen === 'confighistory' && this.onRefreshHistoryTable ? this.onRefreshHistoryTable()
+        : (s.screen === 'restbrowser' && this.onRefreshRestBrowser ? this.onRefreshRestBrowser()
+        : (s.screen === 'agiscripts' && this.onRefreshAgiScripts ? this.onRefreshAgiScripts()
+        : this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null }))))))))),
 
       isDashboard:sc.kind === 'dashboard', isCanvas:sc.kind === 'canvas', isTable:sc.kind === 'table', isCli:sc.kind === 'cli', isMemory:sc.kind === 'memory', isDocs:sc.kind === 'docs', isChangelog:sc.kind === 'changelog',
       // Additive, not kind-exclusive: codecs (kind:'generic') and endpoints (kind:'table')
@@ -5410,7 +5449,9 @@ class ConsoleShell extends DCLogic {
       tabGroups:s.groups.map(g => ({
         name:g.name, colour:g.colour, count:g.tabs.length + '', bg:'#141A15',
         chevron:g.collapsed ? 'chevron_right' : 'expand_more',
+        expanded:!g.collapsed,
         toggle:() => this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, { collapsed:!x.collapsed }) : x) }),
+        onKeyActivate:(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } },
         ctx:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxSub:'', ctxGroupId:g.id, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'group · ' + g.name, ctxKind:'group' }); }
       })),
       renameOpen:s.renameOpen, renameValue:s.renameValue,
@@ -5542,11 +5583,36 @@ class ConsoleShell extends DCLogic {
           this.fire('Grouped', dragged + ' and ' + target + ' are now one tab group.');
         },
         on:k === s.screen, off:k !== s.screen, pinned:s.pinned.indexOf(k) >= 0,
-        go:() => this.setState({ screen:k, railId:SCREENS[k] ? SCREENS[k].rail : s.railId }),
+        id:'tab-' + k, tabIndex:k === s.screen ? 0 : -1,
+        closeLabel:'Close ' + (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)),
+        go:() => this.setState({ screen:k, railId:SCREENS[k] ? SCREENS[k].rail : s.railId }, () => {
+          // The selected and unselected tab markup are two different sc-if branches, so
+          // React unmounts one DOM node and mounts another rather than patching one in
+          // place -- which drops keyboard focus on every activation, including the one
+          // arrow-key navigation just gave it. Put it back on the tab that is now current,
+          // once the DOM this setState produced actually exists.
+          const el = document.getElementById('tab-' + k);
+          if (el && document.activeElement !== el) el.focus();
+        }),
         close:(e) => { if (e && e.stopPropagation) e.stopPropagation(); const t = s.tabs.filter(x => x !== k); this.setState({ tabs:t.length ? t : ['dash'], screen:k === s.screen ? (t[0] || 'dash') : s.screen }); },
         ctx:(e) => { e.preventDefault(); this.setState({ ctxOpen:true, ctxTabKey:k, ctxX:e.clientX + 'px', ctxY:e.clientY + 'px', ctxTarget:'tab · ' + (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)), ctxKind:'tab' }); }
         };
       }),
+      activeTabId:'tab-' + s.screen,
+      tabsKeyDown:(e) => {
+        const key = e.key;
+        if (key !== 'ArrowRight' && key !== 'ArrowLeft' && key !== 'Home' && key !== 'End') return;
+        e.preventDefault();
+        const list = Array.prototype.slice.call(e.currentTarget.querySelectorAll('[role="tab"]'));
+        if (!list.length) return;
+        const current = list.indexOf(document.activeElement);
+        let next;
+        if (key === 'Home') next = 0;
+        else if (key === 'End') next = list.length - 1;
+        else { const delta = key === 'ArrowRight' ? 1 : -1; next = ((current >= 0 ? current : 0) + delta + list.length) % list.length; }
+        const target = list[next];
+        if (target) { target.focus(); target.click(); }
+      },
       newTab:() => { const next = ORDER.find(k => s.tabs.indexOf(k) < 0) || 'dash'; this.setState({ tabs:s.tabs.concat([next]), screen:next, railId:SCREENS[next].rail }); },
       dockOpts:[
         { label:'Rail on the left', icon:'dock_to_right', v:'left' },
