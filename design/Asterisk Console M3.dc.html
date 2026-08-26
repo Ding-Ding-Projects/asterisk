@@ -2195,7 +2195,22 @@ const SCREENS = {
       ctl('v_review','Let caller review','switch',true),
       ctl('v_operator','Zero escapes to operator','switch',true),
       ctl('v_envelope','Play date envelope','switch',true),
-      ctl('v_saycid','Announce caller ID','switch',false)
+      ctl('v_saycid','Announce caller ID','switch',false),
+      ctl('v_save','Save mailbox defaults','segmented','Save',{ options:['Save'], action:'voicemail-save', info:'Writes the ten fields above (Delivery and Caller experience) to voicemail.conf [general] on the target -- backed up first, applied through the same plan/apply transaction every other write in this console uses.' })
+    ]},{ title:'Storage backend', desc:'Where messages and greetings actually live -- on disk by default, or in a database, or delivered straight into an IMAP mailbox instead of stored here at all.', ctls:[
+      ctl('v_odbcstorage','ODBC connection name','text','',{ placeholder:'voicemail', info:'configs/samples/voicemail.conf.sample line 155: ;odbcstorage = voicemail -- the res_odbc.conf connection this mailbox database uses. Historically defaults to “asterisk” for compatibility; leave blank to use that default.' }),
+      ctl('v_odbctable','ODBC table','text','',{ placeholder:'voicemail_messages', info:'configs/samples/voicemail.conf.sample line 166: ;odbctable = voicemail_messages -- the table messages are stored in.' }),
+      ctl('v_odbcaudiodisk','Keep ODBC audio on disk','switch',false,{ info:'configs/samples/voicemail.conf.sample line 219: ; odbc_audio_on_disk = no -- audio stays on disk and only metadata lives in the database. Switching this after messages exist migrates old and new files at different times; back up both before changing it.' }),
+      ctl('v_imapgreetings','Store greetings via IMAP','switch',false,{ info:'configs/samples/voicemail.conf.sample line 288: ;imapgreetings=no -- only meaningful when the target was compiled with IMAP support.' }),
+      ctl('v_greetingsfolder','Greetings folder','text','',{ placeholder:'INBOX', info:'configs/samples/voicemail.conf.sample line 291: ;greetingsfolder=INBOX -- which IMAP folder greetings are stored in when the switch above is on.' }),
+      ctl('v_imapserver','IMAP server','text','',{ placeholder:'localhost', info:'configs/samples/voicemail.conf.sample line 299: ;imapserver=localhost.' }),
+      ctl('v_imapport','IMAP port','stepper',143,{ min:1, max:65535, info:'configs/samples/voicemail.conf.sample line 300: ;imapport=143.' }),
+      ctl('v_storagesave','Save storage backend settings','segmented','Save',{ options:['Save'], action:'voicemail-storage-save', info:'Writes the seven fields above to voicemail.conf [general] on the target.' })
+    ]},{ title:'Greeting management', desc:'Policy around the greeting itself -- how long one may run, and whether a caller is reminded a temporary one is standing in for it.', ctls:[
+      ctl('v_maxgreet','Maximum greeting length','slider',60,{ min:5, max:300, unit:'s', info:'configs/samples/voicemail.conf.sample line 58: ;maxgreet=60.' }),
+      ctl('v_forcegreetings','Require a recorded greeting','switch',false,{ info:'configs/samples/voicemail.conf.sample line 396: ; forcegreetings=no -- the same requirement forcename applies to a name, applied to the greeting instead. Default no.' }),
+      ctl('v_tempgreetwarn','Warn that a temporary greeting is set','switch',true,{ info:'configs/samples/voicemail.conf.sample line 400: ; tempgreetwarn=yes -- reminds the mailbox owner their temporary greeting is standing in for the permanent one. Default yes.' }),
+      ctl('v_greetsave','Save greeting settings','segmented','Save',{ options:['Save'], action:'voicemail-greeting-save', info:'Writes the three fields above to voicemail.conf [general] on the target.' })
     ]}] },
   confbridge:{ rail:'media', icon:'groups_3', label:'Conferences', badge:'6', title:'ConfBridge rooms', file:'confbridge.conf', kind:'table',
     sub:'Bridge profiles, user profiles and menus. Every mixing option is a control; the DTMF menu is edited on the canvas.',
@@ -2428,21 +2443,28 @@ const SCREENS = {
       ctl('l_papp','Application name','text','',{ placeholder:'asterisk', info:'Optional PostgreSQL application_name. No whitespace allowed.' }),
       ctl('l_psave','Save PostgreSQL settings','segmented','Save',{ options:['Save'], action:'cel-pgsql-save' })
     ]}] },
-  ami:{ rail:'data', icon:'api', label:'AMI & ARI', badge:'2', title:'Manager & REST interfaces', file:'manager.conf · ari.conf · http.conf', kind:'table',
-    sub:'Machine access to the PBX. Permissions are checkbox matrices, never a comma string you have to remember.',
+  ami:{ rail:'data', icon:'api', label:'AMI & ARI', badge:'2', title:'Manager & REST interfaces', file:'manager.conf', kind:'table',
+    sub:'Machine access to the PBX. Permissions are checkbox matrices, never a comma string you have to remember. This screen also reaches http.conf (the HTTP server ARI rides on) and ari.conf (allowed origins) -- both are read and written alongside manager.conf, the same way the Security screen also reaches pjsip.conf and stir_shaken.conf.',
     table:{ add:'New API user', grid:'1fr 1fr 1.6fr 110px', cols:['User','Interface','Permissions','State'],
       rows:[['monitor','AMI','system, call, log','Connected'],['dialer','AMI','originate, call','Connected'],['stasis-app','ARI','applications, channels','Connected']] },
-    groups:[{ title:'HTTP server', desc:'ARI and the built-in web sockets ride on this.', ctls:[
-      ctl('a_http','HTTP enabled','switch',true),
-      ctl('a_port','Bind port','stepper',8088,{ min:1, max:65535 }),
-      ctl('a_tls','TLS enabled','switch',true),
-      ctl('a_tlsport','TLS port','stepper',8089,{ min:1, max:65535 }),
-      ctl('a_origin','Allowed origins','chips',['https://console.local'],{ options:['https://console.local','https://ops.example','*'] })
-    ]},{ title:'Manager permissions', desc:'Tick the classes this user may read or write.', ctls:[
-      ctl('a_read','Read classes','chips',['system','call','log'],{ options:['system','call','log','verbose','command','agent','user','config','dtmf','reporting','cdr','dialplan','originate','message'] }),
-      ctl('a_write','Write classes','chips',['call'],{ options:['system','call','log','verbose','command','agent','user','config','originate','message'] }),
-      ctl('a_deny','Deny by default','switch',true),
-      ctl('a_timeout','Idle timeout','slider',300,{ min:30, max:3600, step:30, unit:'s' })
+    groups:[{ title:'HTTP server', desc:'ARI and the built-in web sockets ride on this. http.conf and ari.conf, not manager.conf.', ctls:[
+      ctl('a_http','HTTP enabled','switch',true,{ info:'configs/samples/http.conf.sample line 29: ;enabled=yes.' }),
+      ctl('a_port','Bind port','stepper',8088,{ min:1, max:65535, info:'configs/samples/http.conf.sample line 39: ;bindport=8088.' }),
+      ctl('a_tls','TLS enabled','switch',true,{ info:'configs/samples/http.conf.sample line 87: ;tlsenable=yes.' }),
+      ctl('a_tlsport','TLS port','stepper',8089,{ min:1, max:65535, info:'configs/samples/http.conf.sample line 88: ;tlsbindaddr=0.0.0.0:8089 -- address and port in one value, so the port owns its half of the composite key and leaves the address untouched.' }),
+      ctl('a_origin','Allowed origins','chips',['https://console.local'],{ options:['https://console.local','https://ops.example','*'], info:'configs/samples/ari.conf.sample line 5: ;allowed_origins =  ; Comma separated list of allowed origins, for Cross-Origin Resource Sharing.' }),
+      ctl('a_httpsave','Save HTTP server settings','segmented','Save',{ options:['Save'], action:'ami-http-save', info:'Writes the four fields above to http.conf, then allowed origins to ari.conf -- two files, one button, applied through the same plan/apply transaction every other write in this console uses. If the second write fails after the first succeeds, the failure names exactly which file did not land.' })
+    ]},{ title:'Manager permissions', desc:'Tick the classes this user may read or write. manager.conf [general] -- the defaults a new user inherits, not any one user’s own grant.', ctls:[
+      ctl('a_read','Read classes','chips',['system','call','log'],{ options:['system','call','log','verbose','command','agent','user','config','dtmf','reporting','cdr','dialplan','originate','message'], info:'configs/samples/manager.conf.sample line 330: ;read = system,call,log,verbose,agent,user,config,dtmf,reporting,cdr,dialplan.' }),
+      ctl('a_write','Write classes','chips',['call'],{ options:['system','call','log','verbose','command','agent','user','config','originate','message'], info:'configs/samples/manager.conf.sample line 331: ;write = system,call,agent,user,config,command,reporting,originate,message.' }),
+      ctl('a_deny','Deny by default','switch',true,{ info:'configs/samples/manager.conf.sample line 97: ;deny=0.0.0.0/0.0.0.0 -- denying by default is the LINE existing, not a yes or a no, so the off state removes it.' }),
+      ctl('a_timeout','Idle timeout','slider',300,{ min:30, max:3600, step:30, unit:'s', info:'configs/samples/manager.conf.sample line 76: ;httptimeout = 60.' }),
+      ctl('a_mgrsave','Save manager permissions','segmented','Save',{ options:['Save'], action:'ami-manager-save', info:'Writes the four fields above to manager.conf [general] on the target.' })
+    ]},{ title:'Add an API user', desc:'Creates one manager.conf or ari.conf user -- pick which. The New API user button above the table submits whatever is filled in here.', ctls:[
+      ctl('am_interface','Interface','segmented','AMI',{ options:['AMI','ARI'] }),
+      ctl('am_username','Username','text','',{ placeholder:'mark', info:'The section name -- configs/samples/manager.conf.sample line 95: ;[mark], or configs/samples/ari.conf.sample line 24: ;[username]. Both files name a user by its own [section].' }),
+      ctl('am_secret','Secret / password','text','',{ placeholder:'Type a new secret', info:'AMI: configs/samples/manager.conf.sample line 96: ;secret = mysecret. ARI: configs/samples/ari.conf.sample line 29: ;password =. Write-only either way -- sent once on Add, never read back or shown again.' }),
+      ctl('am_readonly','Read-only user','switch',false,{ showWhen:{ control:'am_interface', is:'ARI' }, info:'configs/samples/ari.conf.sample line 26: ;read_only = no -- when yes, this user is only authorized for read-only requests. ARI only; manager.conf has no equivalent single switch.' })
     ]}] },
   modules:{ rail:'sys', icon:'extension', label:'Modules', badge:'214', title:'Modules', file:'modules.conf', kind:'table',
     sub:'Every loadable module with its live state. Loading and unloading are real actions and run the full confirmation ceremony.',
@@ -3952,7 +3974,8 @@ class Component extends DCLogic {
       openWizard:() => (sc.kind === 'servers' && this.onAddServer ? this.onAddServer()
         : (s.screen === 'security' && this.onAddAclRule ? this.onAddAclRule()
         : (s.screen === 'sounds' && this.onAddPromptRow ? this.onAddPromptRow()
-        : this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null })))),
+        : (s.screen === 'ami' && this.onAddApiUser ? this.onAddApiUser()
+        : this.setState({ wizardOpen:true, wizardStep:0, wizardCtl:null }))))),
 
       isDashboard:sc.kind === 'dashboard', isCanvas:sc.kind === 'canvas', isTable:sc.kind === 'table', isCli:sc.kind === 'cli', isMemory:sc.kind === 'memory', isDocs:sc.kind === 'docs', isChangelog:sc.kind === 'changelog',
       // Additive, not kind-exclusive: codecs (kind:'generic') and endpoints (kind:'table')
@@ -4799,6 +4822,13 @@ class Component extends DCLogic {
           // set the pattern for rather than the generic (and here entirely fictional)
           // "delete <object> and everything referencing it" ceremony.
           const isPromptRow = s.screen === 'sounds';
+          // An API user row names a real [section] in manager.conf or ari.conf -- which
+          // one is not on the row itself (the table's own first cell is the username
+          // alone, the same shape every other row context menu already reads), so
+          // `onRemoveApiUser` below resolves it by searching both already-fetched files,
+          // the same "read straight off the target, refuse rather than guess" shape
+          // `onRemoveAclRule` already uses for a rule name that might not resolve.
+          const isApiUserRow = s.screen === 'ami';
           return decorate([
             { icon:isPromptRow ? 'play_arrow' : 'edit', label:(isPromptRow ? 'Audition ' : 'Edit ') + name + '…', hint:'↵', run:() => { close(); ((isAclRow || isPromptRow) && this.onPickRow) ? this.onPickRow(name) : this.setState({ wizardOpen:true, wizardStep:0 }); } },
             { icon:'check_box', label:'Select this row', hint:'', run:() => { close(); this.set('selected', sel.indexOf(name) >= 0 ? sel : sel.concat([name])); } },
@@ -4810,7 +4840,7 @@ class Component extends DCLogic {
               { icon:'arrow_upward', label:'Move rule up', hint:'', run:() => { close(); this.onMoveAclRule(name, 'up'); } },
               { icon:'arrow_downward', label:'Move rule down', hint:'', run:() => { close(); this.onMoveAclRule(name, 'down'); } }
             ] : []),
-            { icon:'delete', label:'Delete ' + name, hint:'⌦', run:() => { close(); this.areYouSure('Delete ' + name, sc.kind === 'servers' ? 'This connection profile is removed from the console. It does not touch or reconfigure the target machine.' : (isAclRow ? 'This rule is removed from acl.conf on the target -- backed up first, and rolled back automatically if the write cannot be verified.' : (isPromptRow ? 'This file is removed from /var/lib/asterisk/sounds on the target -- irreversible, and the control plane confirms the removal before this dialog reports success.' : 'This object and everything referencing it are removed. The four gates still apply after the minigame.')), 3, () => (sc.kind === 'servers' && this.onRemoveServerRow ? this.onRemoveServerRow(name) : (isAclRow && this.onRemoveAclRule ? this.onRemoveAclRule(name) : (isPromptRow && this.onRemovePromptRow ? this.onRemovePromptRow(name) : this.ceremony('Delete ' + name, 'delete ' + name))))); } },
+            { icon:'delete', label:'Delete ' + name, hint:'⌦', run:() => { close(); this.areYouSure('Delete ' + name, sc.kind === 'servers' ? 'This connection profile is removed from the console. It does not touch or reconfigure the target machine.' : (isAclRow ? 'This rule is removed from acl.conf on the target -- backed up first, and rolled back automatically if the write cannot be verified.' : (isPromptRow ? 'This file is removed from /var/lib/asterisk/sounds on the target -- irreversible, and the control plane confirms the removal before this dialog reports success.' : (isApiUserRow ? 'This [' + name + '] section is removed from manager.conf or ari.conf on the target, whichever one actually has it -- backed up first, and rolled back automatically if the write cannot be verified.' : 'This object and everything referencing it are removed. The four gates still apply after the minigame.'))), 3, () => (sc.kind === 'servers' && this.onRemoveServerRow ? this.onRemoveServerRow(name) : (isAclRow && this.onRemoveAclRule ? this.onRemoveAclRule(name) : (isPromptRow && this.onRemovePromptRow ? this.onRemovePromptRow(name) : (isApiUserRow && this.onRemoveApiUser ? this.onRemoveApiUser(name) : this.ceremony('Delete ' + name, 'delete ' + name)))))); } },
             common[0], common[1]
           ]);
         }

@@ -2991,6 +2991,11 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'db-sorcery-load') { this.onLoadSorceryMapping(); return; }
     if (action === 'db-sorcery-save') { void this.onSaveSorceryMapping(); return; }
     if (action === 'db-sorcery-remove') { void this.onRemoveSorceryMapping(); return; }
+    if (action === 'voicemail-save') { void this.onSaveVoicemail(); return; }
+    if (action === 'voicemail-storage-save') { void this.onSaveVoicemailStorage(); return; }
+    if (action === 'voicemail-greeting-save') { void this.onSaveVoicemailGreeting(); return; }
+    if (action === 'ami-http-save') { void this.onSaveAmiHttp(); return; }
+    if (action === 'ami-manager-save') { void this.onSaveAmiManager(); return; }
   };
 
   // ---------------------------------------------------------------- server add / remove
@@ -3865,6 +3870,49 @@ It is shown once. The phone needs it to register.`);
         const bound = readControlValues('fax', [], { 'udptl.conf': this.configs.udptl.value ?? [] });
         if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
         this.seeded.add('fax-udptl');
+      }
+    }
+
+    /* The AMI & REST screen's own declared `file` is manager.conf, read by the generic
+     * block above. Its HTTP server group (a_http/a_port/a_tls/a_tlsport) lives in
+     * http.conf and its allowed-origins field lives in ari.conf -- neither is this
+     * screen's declared file, so both get their own reads here, the same shape
+     * pjsip.conf/stir_shaken.conf get for the Security screen above. This is also what
+     * makes the screen actually readable at all for the first time: its `file` used to
+     * be the compound label 'manager.conf · ari.conf · http.conf', which
+     * `resourceForFile` refuses, so the generic block above never ran and this screen
+     * had never read a single setting from a real target. */
+    if (screen === 'ami') {
+      if ((!this.configs.amiHttp || this.configs.amiHttp.state === 'unavailable')
+          && !this.extraConfigPending.has('http.conf') && mayStartRead('config:ami-http')) {
+        this.extraConfigPending.add('http.conf');
+        const resource = resourceForFile('http.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('http.conf');
+        this.configs.amiHttp = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if ((!this.configs.amiAri || this.configs.amiAri.state === 'unavailable')
+          && !this.extraConfigPending.has('ari.conf') && mayStartRead('config:ami-ari')) {
+        this.extraConfigPending.add('ari.conf');
+        const resource = resourceForFile('ari.conf') as string;
+        const response = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+        this.extraConfigPending.delete('ari.conf');
+        this.configs.amiAri = response?.ok
+          ? { resource, state: 'read', value: (response.data as { value?: ConfigValue }).value, observedAt: new Date().toISOString() }
+          : { resource, state: 'unavailable', reason: response?.message ?? 'the control plane did not answer', observedAt: new Date().toISOString() };
+        this.forceUpdate();
+      }
+      if (this.configs.amiHttp?.state === 'read' && this.configs.amiAri?.state === 'read' && !this.seeded.has('ami-http')) {
+        const state = this.state as { values: Record<string, unknown> };
+        const bound = readControlValues('ami', [], {
+          'http.conf': this.configs.amiHttp.value ?? [],
+          'ari.conf': this.configs.amiAri.value ?? [],
+        });
+        if (Object.keys(bound).length > 0) this.setState({ values: { ...state.values, ...bound } } as never);
+        this.seeded.add('ami-http');
       }
     }
 
@@ -4798,6 +4846,228 @@ It is shown once. The far end needs it to register.`);
       'Sorcery mapping removed',
       () => { delete this.configs.sorcery; },
     );
+  };
+
+  // ---------------------------------------------------------------- Voicemail screen
+
+  /** "Save mailbox defaults": the original ten Delivery/Caller-experience fields,
+   *  which had carried a real CONTROL_BINDINGS.voicemail entry each since this screen
+   *  was first given a live reader -- but no write action of any kind, on any group,
+   *  ever existed for it until this one. */
+  private static readonly VOICEMAIL_CONTROLS = [
+    'v_attach', 'v_delete', 'v_format', 'v_maxmsg', 'v_maxsecs', 'v_minsecs',
+    'v_review', 'v_operator', 'v_envelope', 'v_saycid',
+  ] as const;
+
+  onSaveVoicemail = async (): Promise<void> => {
+    const value = this.configs.voicemail?.state === 'read' ? this.configs.voicemail.value : undefined;
+    if (!value) { this.fire('Not written', 'voicemail.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.VOICEMAIL_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('voicemail', value, changes);
+    await this.writeConfigResource(
+      this.configs.voicemail?.resource ?? (resourceForFile('voicemail.conf') as string),
+      next,
+      'voicemail.conf [general] updated on the target.',
+      'Mailbox defaults saved',
+      () => { delete this.configs.voicemail; this.seeded.delete('voicemail'); },
+    );
+  };
+
+  /** "Save storage backend settings": the ODBC and IMAP storage fields, all still in
+   *  voicemail.conf's own [general] section -- a second Save button on the same file,
+   *  the same shape udptl.conf's own group gets on the Fax screen, chosen here because
+   *  the storage question is genuinely a different decision from the delivery/caller
+   *  policy the first Save button covers, not because the file is different. */
+  private static readonly VOICEMAIL_STORAGE_CONTROLS = [
+    'v_odbcstorage', 'v_odbctable', 'v_odbcaudiodisk',
+    'v_imapgreetings', 'v_greetingsfolder', 'v_imapserver', 'v_imapport',
+  ] as const;
+
+  onSaveVoicemailStorage = async (): Promise<void> => {
+    const value = this.configs.voicemail?.state === 'read' ? this.configs.voicemail.value : undefined;
+    if (!value) { this.fire('Not written', 'voicemail.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.VOICEMAIL_STORAGE_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('voicemail', value, changes);
+    await this.writeConfigResource(
+      this.configs.voicemail?.resource ?? (resourceForFile('voicemail.conf') as string),
+      next,
+      'voicemail.conf [general] storage settings updated on the target.',
+      'Storage backend settings saved',
+      () => { delete this.configs.voicemail; this.seeded.delete('voicemail'); },
+    );
+  };
+
+  /** "Save greeting settings": maxgreet plus the two greeting-policy switches, voicemail
+   *  .conf's own [general] section again -- the third and last Save button this screen
+   *  gained in the same pass, matching the roadmap's own "greeting management" gap. */
+  private static readonly VOICEMAIL_GREETING_CONTROLS = [
+    'v_maxgreet', 'v_forcegreetings', 'v_tempgreetwarn',
+  ] as const;
+
+  onSaveVoicemailGreeting = async (): Promise<void> => {
+    const value = this.configs.voicemail?.state === 'read' ? this.configs.voicemail.value : undefined;
+    if (!value) { this.fire('Not written', 'voicemail.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.VOICEMAIL_GREETING_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('voicemail', value, changes);
+    await this.writeConfigResource(
+      this.configs.voicemail?.resource ?? (resourceForFile('voicemail.conf') as string),
+      next,
+      'voicemail.conf [general] greeting settings updated on the target.',
+      'Greeting settings saved',
+      () => { delete this.configs.voicemail; this.seeded.delete('voicemail'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- AMI & REST screen
+
+  /** "Save HTTP server settings": http.conf's four fields, then ari.conf's one --
+   *  two files behind one button, because the design groups them as one decision
+   *  ("how ARI and the built-in web sockets are reached") even though the sample
+   *  splits them across two files. Written in sequence rather than in parallel so a
+   *  failure on the second write names exactly which file did not land, and never
+   *  claims the whole group saved when only half of it did. */
+  private static readonly AMI_HTTP_CONTROLS = ['a_http', 'a_port', 'a_tls', 'a_tlsport'] as const;
+
+  onSaveAmiHttp = async (): Promise<void> => {
+    const httpValue = this.configs.amiHttp?.state === 'read' ? this.configs.amiHttp.value : undefined;
+    if (!httpValue) { this.fire('Not written', 'http.conf has not been read from the target yet.'); return; }
+    const ariValue = this.configs.amiAri?.state === 'read' ? this.configs.amiAri.value : undefined;
+    if (!ariValue) { this.fire('Not written', 'ari.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const httpChanges: Record<string, unknown> = {};
+    for (const id of App.AMI_HTTP_CONTROLS) if (id in state.values) httpChanges[id] = state.values[id];
+    const nextHttp = applyBoundControlValues('ami', httpValue, httpChanges);
+    const httpOk = await this.writeConfigResource(
+      this.configs.amiHttp?.resource ?? (resourceForFile('http.conf') as string),
+      nextHttp,
+      'http.conf [general] updated on the target.',
+      'HTTP server settings saved',
+      () => { delete this.configs.amiHttp; this.seeded.delete('ami-http'); },
+    );
+    if (!httpOk) return;
+    const ariChanges: Record<string, unknown> = {};
+    if ('a_origin' in state.values) ariChanges.a_origin = state.values.a_origin;
+    const nextAri = applyBoundControlValues('ami', ariValue, ariChanges);
+    await this.writeConfigResource(
+      this.configs.amiAri?.resource ?? (resourceForFile('ari.conf') as string),
+      nextAri,
+      'ari.conf [general] allowed origins updated on the target.',
+      'Allowed origins saved',
+      () => { delete this.configs.amiAri; this.seeded.delete('ami-http'); },
+    );
+  };
+
+  /** "Save manager permissions": manager.conf's own four [general] fields -- the
+   *  defaults a new user inherits, read and written exactly like every other
+   *  single-file, single-section group on this console. */
+  private static readonly AMI_MANAGER_CONTROLS = ['a_read', 'a_write', 'a_deny', 'a_timeout'] as const;
+
+  onSaveAmiManager = async (): Promise<void> => {
+    const value = this.configs.ami?.state === 'read' ? this.configs.ami.value : undefined;
+    if (!value) { this.fire('Not written', 'manager.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.AMI_MANAGER_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('ami', value, changes);
+    await this.writeConfigResource(
+      this.configs.ami?.resource ?? (resourceForFile('manager.conf') as string),
+      next,
+      'manager.conf [general] updated on the target.',
+      'Manager permissions saved',
+      () => { delete this.configs.ami; this.seeded.delete('ami'); },
+    );
+  };
+
+  /** "New API user" above the table: reads the Add-an-API-user group's own fields
+   *  straight out of state, the same way `onAddAclRule`/`onAddServer` do for their own
+   *  screens, and creates a `[username]` section in whichever file the Interface picker
+   *  names. AMI gets `secret`; ARI gets `password` and, when ticked, `read_only`.
+   *  manager.conf is this screen's own declared `file`, cached at `this.configs.ami`;
+   *  ari.conf is the extra file the read block above caches at `this.configs.amiAri`. */
+  onAddApiUser = async (): Promise<void> => {
+    const state = this.state as { values: Record<string, unknown> };
+    const values = state.values;
+    const username = String(values['am_username'] ?? '').trim();
+    const secret = String(values['am_secret'] ?? '');
+    const isAri = String(values['am_interface'] ?? 'AMI') === 'ARI';
+    if (!username) { this.fire('Not added', 'Type a username first.'); return; }
+    if (isAri) {
+      const value = this.configs.amiAri?.state === 'read' ? this.configs.amiAri.value : undefined;
+      if (!value) { this.fire('Not added', 'ari.conf has not been read from the target yet.'); return; }
+      if (value.some((section) => section.name === username)) { this.fire('Not added', `[${username}] already exists in ari.conf.`); return; }
+      const readOnly = values['am_readonly'] === true;
+      const entries = [
+        { key: 'type', value: 'user' },
+        { key: 'read_only', value: readOnly ? 'yes' : 'no' },
+        ...(secret ? [{ key: 'password', value: secret }] : []),
+      ];
+      const next = [...value, { name: username, entries }];
+      const applied = await this.writeConfigResource(
+        this.configs.amiAri?.resource ?? (resourceForFile('ari.conf') as string),
+        next,
+        `[${username}] added to ari.conf.`,
+        'ARI user added',
+        () => { delete this.configs.amiAri; this.seeded.delete('ami-http'); },
+      );
+      if (applied) this.setState({ values: { ...state.values, am_username: '', am_secret: '', am_readonly: false } } as never);
+      return;
+    }
+    const value = this.configs.ami?.state === 'read' ? this.configs.ami.value : undefined;
+    if (!value) { this.fire('Not added', 'manager.conf has not been read from the target yet.'); return; }
+    if (value.some((section) => section.name === username)) { this.fire('Not added', `[${username}] already exists in manager.conf.`); return; }
+    const entries = secret ? [{ key: 'secret', value: secret }] : [];
+    const next = [...value, { name: username, entries }];
+    const applied = await this.writeConfigResource(
+      this.configs.ami?.resource ?? (resourceForFile('manager.conf') as string),
+      next,
+      `[${username}] added to manager.conf.`,
+      'AMI user added',
+      () => { delete this.configs.ami; this.seeded.delete('ami'); },
+    );
+    if (applied) this.setState({ values: { ...state.values, am_username: '', am_secret: '' } } as never);
+  };
+
+  /** The row context menu's "Delete …" for the AMI & REST table. `name` is the row's
+   *  own first cell (the username) with no interface tag attached, so this resolves it
+   *  by checking whichever already-fetched file actually has that section -- manager
+   *  .conf first, then ari.conf -- and refuses outright rather than guessing when
+   *  neither does (the file has not been read yet) or when the name simply is not
+   *  there any more. Never removes [general]: that name can never reach here because
+   *  it is not a row this table renders in the first place, but the check stays
+   *  explicit rather than relying on that alone. */
+  onRemoveApiUser = async (name: string): Promise<void> => {
+    if (name === 'general') { this.fire('Not removed', '[general] is not an API user.'); return; }
+    const managerValue = this.configs.ami?.state === 'read' ? this.configs.ami.value : undefined;
+    if (managerValue?.some((section) => section.name === name)) {
+      const next = managerValue.filter((section) => section.name !== name);
+      await this.writeConfigResource(
+        this.configs.ami?.resource ?? (resourceForFile('manager.conf') as string),
+        next,
+        `[${name}] removed from manager.conf.`,
+        'AMI user removed',
+        () => { delete this.configs.ami; this.seeded.delete('ami'); },
+      );
+      return;
+    }
+    const ariValue = this.configs.amiAri?.state === 'read' ? this.configs.amiAri.value : undefined;
+    if (ariValue?.some((section) => section.name === name)) {
+      const next = ariValue.filter((section) => section.name !== name);
+      await this.writeConfigResource(
+        this.configs.amiAri?.resource ?? (resourceForFile('ari.conf') as string),
+        next,
+        `[${name}] removed from ari.conf.`,
+        'ARI user removed',
+        () => { delete this.configs.amiAri; this.seeded.delete('ami-http'); },
+      );
+      return;
+    }
+    this.fire('Not removed', `[${name}] is not in manager.conf or ari.conf on this target -- or neither file has been read yet.`);
   };
 
   private note(screen: string): string {

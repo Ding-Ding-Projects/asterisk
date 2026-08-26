@@ -46,17 +46,23 @@ test('anything that is not a string, or not a .conf, is refused', () => {
   }
 });
 
-test('the screens that declare a label instead of a filename are exactly these three', () => {
-  /* A pin, not an aspiration. Four screens declare a display label made of several names
+test('the screens that declare a label instead of a filename are exactly these two', () => {
+  /* A pin, not an aspiration. Four screens declared a display label made of several names
    * joined for the reader -- and each ends in .conf, so the old check accepted it and turned
-   * it into a path no target could have. Those screens have never read the files they name.
+   * it into a path no target could have. Those screens had never read the files they name.
    *
    * They are listed rather than fixed here because the design reference is being edited by
    * another lane as this lands, and a screen definition is not something to change underneath
    * somebody. This goes red when one is fixed, which is the point: the list is the work
    * remaining, and shrinking it should require saying so.
    *
-   * It also goes red if a fifth appears, which is the other half of its job. */
+   * Was three. The AMI & REST screen was fixed by the lane that gave it its first real
+   * Save actions: `manager.conf · ari.conf · http.conf` became a real `file: 'manager.conf'`
+   * (the file its own Manager permissions group already edited), with http.conf and
+   * ari.conf read the same extra-file way pjsip.conf and stir_shaken.conf already are for
+   * the Security screen. Two left.
+   *
+   * It also goes red if a third appears, which is the other half of its job. */
   const screens = SCREENS as unknown as Record<string, { file?: unknown }>;
   const declared = Object.entries(screens)
     .map(([id, screen]) => [id, screen.file] as const)
@@ -64,12 +70,14 @@ test('the screens that declare a label instead of a filename are exactly these t
   assert.ok(declared.length > 5, 'too few screens declare a file for this check to mean anything');
 
   const refused = declared.filter(([, file]) => resourceForFile(file) === undefined).map(([id]) => id).sort();
-  /* Was four. The call records screen was fixed by the lane that discovered why it had
-   * never read anything, so it names cdr.conf now and reads it. Three left. */
-  assert.deepEqual(refused, ['ami', 'codecs', 'trunkauth'],
+  /* Was four, then three. The call records screen was fixed by the lane that discovered
+   * why it had never read anything, so it names cdr.conf now and reads it. The AMI &
+   * REST screen was fixed the same way in a later lane -- see the comment above. Two
+   * left. */
+  assert.deepEqual(refused, ['codecs', 'trunkauth'],
     'the set of screens naming a label rather than a file has changed; update this pin and say which way');
 
   /* Every other declaration must resolve, or the rule is refusing something legitimate. */
   const accepted = declared.filter(([, file]) => resourceForFile(file) !== undefined);
-  assert.ok(accepted.length >= declared.length - 3, 'the rule refused more than the three known labels');
+  assert.ok(accepted.length >= declared.length - 2, 'the rule refused more than the two known labels');
 });
