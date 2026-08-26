@@ -138,9 +138,14 @@
       ]
     },
     "changelog-viewer": {
-      "state": "absent",
-      "note": "No changelog viewer, date filter, or commit-link rendering was found in site/app.js.",
-      "files": []
+      "state": "implemented",
+      "note": "Built on 2026-08-26. site/downloads.html carries a CHANGELOG section (#changelog, reachable from the page's own section tabs) holding a funny-level description (data-copy=\"changelogDesc\"), a collapsible search-and-date panel with its own anchored regular-expression builder (data-regex-for=\"changelog-search\") and mode-status line, a preset select plus two native date fields, an export-format select with Export and Copy actions, and a #changelog-entries list. site/app.js parses the release history with the same three regular-expression literals app/renderer/src/changelog.ts uses -- ported rather than reinvented, and pinned equal by the contract test, so the site and the desktop console cannot read one generated changelog two ways. The data is real or absent: console/scripts/bundle-changelog.mjs builds the Markdown from this repository's own tags, and site/build.mjs injects it into the two declarations app.js ships empty. Before it will inject a repository URL, that build hands every referenced commit to a single `git cat-file --batch-check`; a commit git reports missing fails the build, and a build where git cannot answer at all ships the history with no repository, so changelogCommitUrl renders each id as plain text instead of a link nobody checked. Entries are a factual external record rather than this site's own copy: the container carries data-no-vocab so a local vocabulary file cannot rewrite a commit summary, changelogEntryMarkup reaches neither copyText nor applyVocabularyText, and the funny sliders reach only the description around the list. A line that looks like the grammar and does not match is counted and reported rather than dropped. Export honours the active search and date range, offers every format the shared engine judges suitable for these rows, and states its own range on every row, because a single metadata row carrying different keys would make the whole set ragged and five of the formats would correctly report that as a real loss.",
+      "files": [
+        "site/app.js",
+        "site/build.mjs",
+        "site/downloads.html",
+        "site/styles.css"
+      ]
     },
     "external-editor-handoff": {
       "state": "absent",

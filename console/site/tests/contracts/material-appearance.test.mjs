@@ -71,7 +71,27 @@ test('there is no per-element "Edit appearance..." editor anywhere in the publis
 });
 
 test('there is no named-preset save/load/export mechanism beyond the one general settings export', () => {
-  assert.doesNotMatch(app, /preset/iu, 'app.js now mentions "preset" -- if a named-preset system landed, the "partial" state needs re-checking');
+  /* This used to be a bare word ban on "preset" anywhere in app.js. On 2026-08-26 the
+   * changelog viewer landed with named DATE-RANGE presets ("Last 30 days"), which is a
+   * different thing entirely -- it saves and loads nothing, and touches no appearance
+   * value. Rather than widen the check into something that would pass on a real
+   * appearance-preset system, every line mentioning the word is collected and each one
+   * must belong to that one known, named exception. A mention anywhere else still
+   * fails, which a narrowed needle would not have caught. */
+  const exceptionStart = app.indexOf('  /** Writes the two date fields from a named preset.');
+  const exceptionEnd = app.indexOf('  function changelogVisibleEntries(');
+  assert.ok(exceptionStart !== -1 && exceptionEnd > exceptionStart,
+    'the changelog date-range preset block was not found where this exception expects it -- re-derive this contract by hand');
+  const outside = app.slice(0, exceptionStart) + app.slice(exceptionEnd);
+  assert.ok(outside.length < app.length, 'nothing was excluded, so the scan below would be checking the exception itself');
+  const mentions = outside.split('\n').filter((line) => /preset/iu.test(line));
+  assert.ok(mentions.length > 0, 'no line outside the exception mentions "preset" at all, so this list would pass vacuously');
+  for (const line of mentions) {
+    assert.match(line, /CHANGELOG_PRESETS|changelogPresetRange|changelog-date-preset/u,
+      `app.js mentions "preset" outside the changelog date-range controls -- if a named appearance-preset system landed, the "partial" state needs re-checking: ${line.trim().slice(0, 90)}`);
+  }
+  assert.doesNotMatch(app, /appearancePreset|savePreset|loadPreset|presetName/iu,
+    'app.js now carries a named appearance-preset mechanism -- the "partial" state needs re-checking');
   /* The one export path that does exist is the general settings-export button, and it
    * exports the whole flat settings object rather than a named, reusable preset. */
   assert.match(app, /\$\('settings-export'\)\.onclick=\(\)=>download\('ding-pbx-page-settings\.json'/u,

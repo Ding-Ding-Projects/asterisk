@@ -649,8 +649,28 @@ body.attn-focus .topbar:hover,body.attn-focus .topbar:focus-within,body.attn-foc
 .release-notes pre{padding:10px 12px;border-radius:var(--radius-sm);background:var(--surface-2);overflow:auto}
 .release-notes p{margin:8px 0;color:var(--muted)}
 
+/* Changelog. The section spans the whole page rather than sitting in the download
+ * grid's narrow right column: a change summary is a sentence, and a sentence in a
+ * 300px column wraps four times. */
+.changelog-stage{margin-top:var(--gap);scroll-margin-top:150px;display:grid;gap:14px}
+.changelog-head h2{margin:4px 0 6px}
+.changelog-head p{margin:0;max-width:74ch;color:var(--muted)}
+.changelog-entries{display:grid;gap:12px}
+.changelog-entry{padding:14px 16px;border:1px solid var(--outline-variant);border-radius:var(--radius);background:var(--surface-1)}
+.changelog-entry header{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;justify-content:space-between}
+.changelog-entry h3{margin:0;font-size:1.05rem}
+.changelog-entry time{color:var(--muted);font-size:.85rem}
+.changelog-entry h4{margin:12px 0 4px;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.changelog-entry ul{margin:0;padding-left:20px;display:grid;gap:6px}
+.changelog-entry li{line-height:1.5}
+/* The commit id stays legible rather than decorative: it is the one part of an entry a
+ * reader can check for themselves. */
+.changelog-commit{font-size:.8rem;color:var(--muted);white-space:nowrap}
+a.changelog-commit:hover,a.changelog-commit:focus-visible{color:var(--primary)}
+
 @media(max-width:640px){
   .notif-bulk-row .filter-status{margin-left:0}
+  .changelog-entry header{flex-direction:column;gap:2px}
 }
 
 /* Product screenshots.

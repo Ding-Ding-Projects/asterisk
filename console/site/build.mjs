@@ -1,4 +1,6 @@
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { copyFile, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -212,6 +214,117 @@ const downloadValues = downloadManifest ? (() => {
   statusTimelineItem: '<li data-state="waiting"><strong>Installer release pending</strong><p>Awaiting a non-draft release with a verified immutable asset and digest.</p></li>',
 };
 
+/*
+ * The changelog the published site ships.
+ *
+ * The single source is `console/scripts/bundle-changelog.mjs`, which builds Markdown
+ * from this repository's own tags: every version is a real tag, every change line is a
+ * real commit reachable from that tag and not from the one before it, and every id is
+ * the real 40-character SHA. This build reads the file that generator produced rather
+ * than talking to git a second time, so the site and the desktop console cannot come to
+ * carry two different changelogs from two different moments.
+ *
+ * Then it does the one thing the canonical contract asks for beyond shipping the text:
+ * it refuses to emit a dead commit link. Every referenced id is handed to a single
+ * `git cat-file --batch-check` and must resolve to a real commit object in this
+ * repository.
+ *
+ * When git cannot answer at all -- no git on the machine, a checkout too shallow to
+ * hold the objects -- the changelog still ships and the REPOSITORY URL is dropped, so
+ * every id renders as plain text with no link on it. That is deliberately not a thrown
+ * error: the promise is "never a dead link", and emitting no link keeps it exactly,
+ * while failing the build would take the whole Pages deploy down for a reason that has
+ * nothing to do with the pages.
+ *
+ * A commit that git DOES answer about and reports missing is different, and that throws:
+ * git was able to tell us the link would be dead.
+ */
+function resolveChangelog() {
+  const bundlePath = resolve(root, '..', 'app', 'renderer', 'src', 'generated', 'changelog-bundle.ts');
+  let bundle;
+  try {
+    bundle = readFileSync(bundlePath, 'utf8');
+  } catch {
+    console.log('Changelog: no generated bundle found; the site will say it has no release history.');
+    return { markdown: '', repository: '' };
+  }
+  const markdown = readGeneratedString(bundle, 'CHANGELOG_MARKDOWN');
+  const repository = readGeneratedString(bundle, 'CHANGELOG_REPOSITORY_URL');
+  if (!markdown) {
+    console.log('Changelog: the generated bundle carries no release history; the site will say so.');
+    return { markdown: '', repository: '' };
+  }
+
+  const commits = [...markdown.matchAll(/\(([0-9a-f]{40})\)/gi)].map((match) => match[1]);
+  if (commits.length === 0) {
+    console.log('Changelog: no commit ids in the release history; ids cannot be linked.');
+    return { markdown, repository: '' };
+  }
+  let report;
+  try {
+    report = execFileSync('git', ['cat-file', '--batch-check'], {
+      cwd: resolve(root, '..', '..'),
+      input: `${commits.join('\n')}\n`,
+      encoding: 'utf8',
+    });
+  } catch (error) {
+    console.log(`Changelog: git could not verify ${commits.length} commit id(s) (${error.message.split('\n')[0]}); `
+      + 'shipping the history with no commit links rather than links nobody checked.');
+    return { markdown, repository: '' };
+  }
+  const missing = report.trim().split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line !== '' && !/\bcommit\b/.test(line))
+    .map((line) => line.split(' ')[0]);
+  if (missing.length > 0) {
+    throw new Error(`Changelog: git reports ${missing.length} referenced commit(s) missing from this repository, `
+      + `so their links would be dead: ${missing.slice(0, 5).join(', ')}`);
+  }
+  if (!/^https:\/\/\S+$/.test(repository)) {
+    console.log(`Changelog: the recorded repository URL ${JSON.stringify(repository)} is not an https URL; `
+      + 'shipping the history with no commit links.');
+    return { markdown, repository: '' };
+  }
+  console.log(`Changelog: ${commits.length} commit id(s) verified against this repository; linking to ${repository}.`);
+  return { markdown, repository };
+}
+
+/**
+ * The value of one `export const NAME: string = <literal>;` out of the generated bundle.
+ *
+ * Both quote styles occur in that file: the Markdown is emitted double-quoted through
+ * `JSON.stringify`, and the repository URL single-quoted. A double-quoted literal is
+ * JSON and is parsed as JSON. A single-quoted one is accepted only when it carries no
+ * backslash at all, because unescaping single-quoted JavaScript by hand is exactly the
+ * kind of near-miss that silently corrupts a string, and an empty result here is a
+ * visible "no changelog" rather than a quietly mangled one.
+ */
+function readGeneratedString(source, name) {
+  const marker = `export const ${name}: string = `;
+  const start = source.indexOf(marker);
+  if (start === -1) return '';
+  /* Bounded by the end of that line rather than by the next ";\n": parts of this
+   * checkout are CRLF, and a needle carrying a bare newline would run past a CRLF line
+   * ending and swallow whatever declaration came next. */
+  const from = start + marker.length;
+  const lineEnd = source.slice(from).search(/[\r\n]/);
+  const line = lineEnd === -1 ? source.slice(from) : source.slice(from, from + lineEnd);
+  const literal = line.trim().replace(/;$/, '').trim();
+  if (literal.startsWith('"')) {
+    try {
+      return JSON.parse(literal);
+    } catch {
+      return '';
+    }
+  }
+  if (literal.startsWith("'") && literal.endsWith("'") && !literal.includes(String.fromCharCode(92))) {
+    return literal.slice(1, -1);
+  }
+  return '';
+}
+
+const changelogValues = resolveChangelog();
+
 for (const asset of assets) {
   let content = await readFile(join(root, asset));
   let text = content.toString('utf8').replaceAll('../assets/fonts/', 'assets/fonts/').replaceAll('../assets/site-fonts/', 'assets/site-fonts/');
@@ -248,6 +361,8 @@ for (const asset of assets) {
   }
   if (asset === 'app.js') {
     text = replaceOnce(text, "const RELEASE_NOTES_MARKDOWN = '';", `const RELEASE_NOTES_MARKDOWN = ${JSON.stringify(downloadValues.releaseNotesMarkdown)};`, asset);
+    text = replaceOnce(text, "const CHANGELOG_MARKDOWN = '';", `const CHANGELOG_MARKDOWN = ${JSON.stringify(changelogValues.markdown)};`, asset);
+    text = replaceOnce(text, "const CHANGELOG_REPOSITORY_URL = '';", `const CHANGELOG_REPOSITORY_URL = ${JSON.stringify(changelogValues.repository)};`, asset);
     // The hero lede's runtime-rendered text (COPY.heroLede, applied over the static
     // HTML above by app.js's own applyCopy()) must agree with it in every funny-level
     // variant and both languages, or a JS-enabled visitor sees the honest static text

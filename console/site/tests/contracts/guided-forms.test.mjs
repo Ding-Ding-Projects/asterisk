@@ -77,19 +77,26 @@ test('every <select> on the site is either a fixed, hard-coded option list, or o
    * their fixed choices directly in the markup. doc-export-format and notif-export-
    * format start empty and are filled in by JS -- but from the fixed, in-source
    * EXPORT_FORMATS/suitableFormats() list (see complete-exports.test.mjs), never from
-   * any external or user-specific data. history-action-filter also starts empty and is
-   * filled in by JS, but from this browser's own recorded local-history actions
-   * (historyEntries) -- real per-visitor data, checked in the next test. All three
+   * any external or user-specific data. changelog-export-format joined those two on
+   * 2026-08-26 and is filled the same way, from suitableFormats() over whichever
+   * changelog rows are currently on screen. history-action-filter also starts empty and
+   * is filled in by JS, but from this browser's own recorded local-history actions
+   * (historyEntries) -- real per-visitor data, checked in the next test.
+   * changelog-date-preset joined the static bucket on the same day: its five named
+   * ranges are fixed choices in the markup, and the changelog contract pins that list
+   * equal to the set of presets the code can actually compute, so an option that would
+   * do nothing when chosen fails there rather than here. All four
    * empty-in-markup selects are named here explicitly so a
    * newly added select falls into neither bucket by accident. */
-  assert.deepEqual(withStaticOptions.sort(), ['cantonese-funny', 'density-mode', 'english-funny', 'language-mode', 'theme-mode']);
-  assert.deepEqual(empty.sort(), ['doc-export-format', 'history-action-filter', 'notif-export-format']);
+  assert.deepEqual(withStaticOptions.sort(),
+    ['cantonese-funny', 'changelog-date-preset', 'density-mode', 'english-funny', 'language-mode', 'theme-mode']);
+  assert.deepEqual(empty.sort(), ['changelog-export-format', 'doc-export-format', 'history-action-filter', 'notif-export-format']);
 });
 
-test('the two export-format selects are populated from the fixed export-format list, never from live/user data', () => {
+test('the three export-format selects are populated from the fixed export-format list, never from live/user data', () => {
   const src = norm(read('site/app.js'));
-  for (const fn of ['updateDocumentationExport', 'updateNotificationExportFormats']) {
-    const start = src.indexOf(`function ${fn}(){`);
+  for (const fn of ['updateDocumentationExport', 'updateNotificationExportFormats', 'updateChangelogExport']) {
+    const start = src.indexOf(`function ${fn}(`);
     assert.ok(start !== -1, `${fn}() not found`);
     let depth = 0, i = src.indexOf('{', start);
     for (; i < src.length; i += 1) {
