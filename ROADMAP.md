@@ -359,6 +359,16 @@ this repository keeps repeating, because it produces no error and no failing tes
       and only theme import is dead.
 ## Controls that announce themselves instead of working
 
+- [ ] **Give the pinned list stable keys.** React warns, several hundred times in a single
+      suite run, that a list rendered by `Pinned` has children without unique `key` props.
+      Pre-existing rather than introduced by any recent lane -- measured at 327 occurrences in
+      one gate and 375 in the next, and the difference is only that more tests ran. It is not
+      cosmetic: without stable keys React reconciles by position, so removing or reordering a
+      pinned item can leave component state attached to the wrong row. That presents to a user
+      as the application occasionally losing or mixing up a pin, which is close to impossible
+      to reproduce on purpose and therefore close to impossible to report usefully. The fix is
+      a real identity for each pinned entry, not the array index.
+
 Found by the repository owner watching a drive of the built application and noticing that
 a click produced a message and nothing else. Every one below is styled as a live control,
 is reachable, and does nothing but raise a notification -- which the project already
