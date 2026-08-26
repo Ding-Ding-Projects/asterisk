@@ -1,11 +1,9 @@
 #!/usr/bin/env node
 /** Deliberate red then green mutation harness for the source manifest. */
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { validateManifest } from './verify-ui-smoke-manifest.mjs';
+import { loadUiSmokeManifest } from './ui-smoke-manifest-loader.mjs';
 
-const root = resolve(import.meta.dirname, '..', '..');
-const original = JSON.parse(readFileSync(resolve(root, 'console/inventories/ui-smoke/interaction-manifest.json'), 'utf8'));
+const original = loadUiSmokeManifest();
 const copy = () => JSON.parse(JSON.stringify(original));
 const failures = [];
 function mustFail(label, mutate) { const candidate = copy(); mutate(candidate); try { validateManifest(candidate); } catch { failures.push(label); return; } throw new Error(`negative mutation stayed green: ${label}`); }

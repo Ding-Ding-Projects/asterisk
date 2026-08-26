@@ -209,7 +209,7 @@ export function parseCensus() {
       priorScreenModelRuntimeIds: 335,
       exactParserScreenModelRuntimeIds: exactScreenModelRuntimeIds,
       exactParserDynamicRuntimeIds: dynamicRuntimeIds,
-      priorCensusNote: 'The prior 335-record file counted the screen model before mixed screen and dynamic bindings were classified. The exact parser classifies mixed duplicate ids as dynamic, yielding 323 screen-only ids plus 243 dynamic ids and zero exclusions.',
+      priorCensusNote: 'The prior 335-record file counted an earlier screen-model subset before the current design/runtime expansion and mixed screen/dynamic classification. The exact parser now yields 696 screen-only ids plus 244 dynamic ids and zero exclusions from the checked-in current sources.',
       relation: 'The audit count is a structural rendered-control count, while the parser counts unique ctl ids. The two counts must remain separate and are both retained with their source locations.',
       equation: `${runtimeUniqueControlIds} executable runtime ids + ${sourceOnlyControlIds} explicit source exclusions = ${sourceUniqueControlIds} unique design ctl ids`,
     },

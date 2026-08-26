@@ -11,9 +11,9 @@ import { createHash } from 'node:crypto';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { inflateSync } from 'node:zlib';
 import { RECEIPT_ALLOWED_KEYS, validatePrivacyValue } from './ui-smoke-privacy.mjs';
+import { loadUiSmokeManifest } from './ui-smoke-manifest-loader.mjs';
 
 const root = resolve(import.meta.dirname, '..', '..');
-const manifestPath = resolve(root, 'console/inventories/ui-smoke/interaction-manifest.json');
 const REQUIRED_RECEIPTS = ['interaction-receipt-v1.json', 'outcome-receipt-v1.json', 'privacy-receipt-v1.json', 'alt-text.json', 'pixel-review-receipt-v1.json', 'evidence-receipt-v1.json'];
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
@@ -104,8 +104,8 @@ function promote() {
   if (outputRoot !== canonicalBase) fail(`canonical output root is fixed at ${canonicalBase}`);
   const relativeRaw = relative(root, rawRoot);
   if (relativeRaw === '' || (!relativeRaw.startsWith('..') && !relativeRaw.startsWith(`..${sep}`))) fail('rawRunRootNotCommitted requires the raw root to be outside the repository');
-  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-  if (manifest.schemaVersion !== 2 || manifest.rows?.length !== 10551) fail('reviewed manifest must be schemaVersion 2 with 10551 rows');
+  const manifest = loadUiSmokeManifest();
+  if (manifest.schemaVersion !== 2 || manifest.rows?.length !== 17127) fail('reviewed manifest must be schemaVersion 2 with 17127 rows');
   const canonicalRoot = resolve(outputRoot, integratedCommit); const stageRoot = resolve(outputRoot, '.staging', `${integratedCommit}-${Date.now()}`);
   if (existsSync(canonicalRoot)) fail(`canonical output already exists at ${canonicalRoot}, refusing overwrite`);
   const prepared = []; const surfaces = new Map();

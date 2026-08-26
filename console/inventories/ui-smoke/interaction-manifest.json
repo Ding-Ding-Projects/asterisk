@@ -1,0 +1,1187 @@
+{
+  "schemaVersion": 3,
+  "generatedBy": "console/scripts/generate-ui-smoke-manifest.mjs",
+  "inventoryDigest": "31644183565630b592d6c5d3bfbf28c46b5beacafd89ab9f997a82788520beaf",
+  "totalRows": 17127,
+  "rowSequenceSha256": "76378a83c8fedee35b2344db3d9f83aad76b3e82ac4d2c9c0a7a93a90717c655",
+  "storage": {
+    "kind": "deterministic-shards",
+    "maxRowsPerShard": 250,
+    "maxShardBytes": 20971520
+  },
+  "shards": [
+    {
+      "ordinal": 0,
+      "path": "shards/interaction-0000.json",
+      "rowCount": 250,
+      "firstRowId": "control.ami.a_deny.en.inspect",
+      "lastRowId": "control.ami.am_interface.both.choose-last",
+      "byteSize": 1786033,
+      "sha256": "35d38ff2866780f3d01c1c711f5ff28225d6691b27a7cf218592dcd33c398e42"
+    },
+    {
+      "ordinal": 1,
+      "path": "shards/interaction-0001.json",
+      "rowCount": 250,
+      "firstRowId": "control.ami.am_interface.both.keyboard-choose",
+      "lastRowId": "control.appearance-editor.ap_contrast.both.set-min",
+      "byteSize": 1851229,
+      "sha256": "9c12db1c4ba73de29143f0315ea122d1fe9467a19533ca6589332b0c0f0b0f3b"
+    },
+    {
+      "ordinal": 2,
+      "path": "shards/interaction-0002.json",
+      "rowCount": 250,
+      "firstRowId": "control.appearance-editor.ap_contrast.both.set-mid",
+      "lastRowId": "control.appearance-editor.ap_pb.yue.reset",
+      "byteSize": 1874115,
+      "sha256": "732bb2ff847aacdeb4a0c4a741859348afa5c0350e7c81b5981cd9aa23ef6a93"
+    },
+    {
+      "ordinal": 3,
+      "path": "shards/interaction-0003.json",
+      "rowCount": 250,
+      "firstRowId": "control.appearance-editor.ap_pb.both.inspect",
+      "lastRowId": "control.appearance-editor.ap_rbspeed.both.inspect",
+      "byteSize": 1872702,
+      "sha256": "d8816b7df6f7576c8a534047891c368c01609c5986d696c1dd60210494d37625"
+    },
+    {
+      "ordinal": 4,
+      "path": "shards/interaction-0004.json",
+      "rowCount": 250,
+      "firstRowId": "control.appearance-editor.ap_rbspeed.both.set-min",
+      "lastRowId": "control.appearance-editor.ap_track.both.set-min",
+      "byteSize": 1857257,
+      "sha256": "9ccfe84435f93fb797ecc7bc04188a57b6f810e5d942329bb370616c9ecfe0f8"
+    },
+    {
+      "ordinal": 5,
+      "path": "shards/interaction-0005.json",
+      "rowCount": 250,
+      "firstRowId": "control.appearance-editor.ap_track.both.set-mid",
+      "lastRowId": "control.cli.as_dirmod.both.set-bounded-valid",
+      "byteSize": 1811733,
+      "sha256": "f492e408ab952c60a581a0ffa24992094042798ab49b4fd8216f7c265a00b61a"
+    },
+    {
+      "ordinal": 6,
+      "path": "shards/interaction-0006.json",
+      "rowCount": 250,
+      "firstRowId": "control.cli.as_dirmod.both.clear",
+      "lastRowId": "control.cli.as_systemname.both.inspect",
+      "byteSize": 1794472,
+      "sha256": "25892feb23ee8c42f8402d77c7ec7d720975814d606bbfaaeac8d1273c5e2503"
+    },
+    {
+      "ordinal": 7,
+      "path": "shards/interaction-0007.json",
+      "rowCount": 250,
+      "firstRowId": "control.cli.as_systemname.both.focus",
+      "lastRowId": "control.customise.bh_start.both.escape",
+      "byteSize": 1794754,
+      "sha256": "0cddcb1d448b3ce3682626a55490371a66d21d9cb1879c00f717f81ac97f0507"
+    },
+    {
+      "ordinal": 8,
+      "path": "shards/interaction-0008.json",
+      "rowCount": 250,
+      "firstRowId": "control.customise.bh_start.both.reset",
+      "lastRowId": "control.confbridge.c_announce.yue.reset",
+      "byteSize": 1821033,
+      "sha256": "4e05f9df5bd5aa01c8f88352b8f384efc8f076d6bf18cf3dd92e18204bf969d8"
+    },
+    {
+      "ordinal": 9,
+      "path": "shards/interaction-0009.json",
+      "rowCount": 250,
+      "firstRowId": "control.confbridge.c_announce.both.inspect",
+      "lastRowId": "control.iaxpeers.ca_extension.yue.inspect",
+      "byteSize": 1810755,
+      "sha256": "adcc7032d177ca45a9500698b3fba389ccecf213f9de03fadb1cb2edb99bb5b4"
+    },
+    {
+      "ordinal": 10,
+      "path": "shards/interaction-0010.json",
+      "rowCount": 250,
+      "firstRowId": "control.iaxpeers.ca_extension.yue.focus",
+      "lastRowId": "control.colour-picker.cp_ease.yue.open",
+      "byteSize": 1822829,
+      "sha256": "62773b562f777c5c49cee01e37ee1106b39dbdf8354429240ebd5e69d5d0bd30"
+    },
+    {
+      "ordinal": 11,
+      "path": "shards/interaction-0011.json",
+      "rowCount": 250,
+      "firstRowId": "control.colour-picker.cp_ease.yue.choose-first",
+      "lastRowId": "control.security.cs_level.both.choose-first",
+      "byteSize": 1825793,
+      "sha256": "e03366b797d9d95918902da6d285c35ca2f50083eb4490f6b1ac88ac62258992"
+    },
+    {
+      "ordinal": 12,
+      "path": "shards/interaction-0012.json",
+      "rowCount": 250,
+      "firstRowId": "control.security.cs_level.both.choose-last",
+      "lastRowId": "control.iaxpeers.da_addspan.yue.choose-last",
+      "byteSize": 1809354,
+      "sha256": "8ba08ed22b70fc5123234d6b07bd06df48f6019e30c6852616c9a3f193698f17"
+    },
+    {
+      "ordinal": 13,
+      "path": "shards/interaction-0013.json",
+      "rowCount": 250,
+      "firstRowId": "control.iaxpeers.da_addspan.yue.keyboard-choose",
+      "lastRowId": "control.iaxpeers.da_spec.both.invalid-boundary",
+      "byteSize": 1834916,
+      "sha256": "970fb1e25d26194f6454bbf1a504c060b80e591d2c54dcd2172768f27c07fa8f"
+    },
+    {
+      "ordinal": 14,
+      "path": "shards/interaction-0014.json",
+      "rowCount": 250,
+      "firstRowId": "control.iaxpeers.da_spec.both.reset",
+      "lastRowId": "control.security.db_odbccachetype.both.choose-first",
+      "byteSize": 1839853,
+      "sha256": "663da0e279d73d8135d26d44d088376776bc69905197865948238d12d0176767"
+    },
+    {
+      "ordinal": 15,
+      "path": "shards/interaction-0015.json",
+      "rowCount": 250,
+      "firstRowId": "control.security.db_odbccachetype.both.choose-last",
+      "lastRowId": "control.security.db_odbcusername.en.inspect",
+      "byteSize": 1846702,
+      "sha256": "8ce11f5bd4e3e496fafb6c9c07d08908ce0159a0530da948f0c58c1bc92536f0"
+    },
+    {
+      "ordinal": 16,
+      "path": "shards/interaction-0016.json",
+      "rowCount": 250,
+      "firstRowId": "control.security.db_odbcusername.en.focus",
+      "lastRowId": "control.security.db_sorceryconfig.both.invalid-boundary",
+      "byteSize": 1842993,
+      "sha256": "e95a5d97de8bdf627989c79cd3cfd48b9ee78a904bf1ce14c8dcf80928889f27"
+    },
+    {
+      "ordinal": 17,
+      "path": "shards/interaction-0017.json",
+      "rowCount": 250,
+      "firstRowId": "control.security.db_sorceryconfig.both.reset",
+      "lastRowId": "control.canvas.dp_from.en.set-mid",
+      "byteSize": 1818058,
+      "sha256": "06e5d8cdc73c206f9d40df5df087d3b5a7832b3ac8e62db911bf1d22ba7831f8"
+    },
+    {
+      "ordinal": 18,
+      "path": "shards/interaction-0018.json",
+      "rowCount": 250,
+      "firstRowId": "control.canvas.dp_from.en.set-max",
+      "lastRowId": "control.canvas.dp_to.en.inspect",
+      "byteSize": 1795766,
+      "sha256": "68c645269e65a9a0d3de1962b2e5c1026830efb864351494dd19c87ae167a217"
+    },
+    {
+      "ordinal": 19,
+      "path": "shards/interaction-0019.json",
+      "rowCount": 250,
+      "firstRowId": "control.canvas.dp_to.en.set-min",
+      "lastRowId": "control.iaxpeers.du_mapsave.both.keyboard-choose",
+      "byteSize": 1820668,
+      "sha256": "7510ddf275a76ff030c5a14850cc4955f2305c843757ab3205773f662e1861a0"
+    },
+    {
+      "ordinal": 20,
+      "path": "shards/interaction-0020.json",
+      "rowCount": 250,
+      "firstRowId": "control.iaxpeers.du_mapsave.both.reset",
+      "lastRowId": "control.iaxpeers.du_peerport.both.set-bounded-valid",
+      "byteSize": 1832776,
+      "sha256": "9d7cd45b8b686d8dbacc148a124d0d25702b038bb8b9ff2d7b37bd94a7a818db"
+    },
+    {
+      "ordinal": 21,
+      "path": "shards/interaction-0021.json",
+      "rowCount": 250,
+      "firstRowId": "control.iaxpeers.du_peerport.both.clear",
+      "lastRowId": "control.endpoints.e_calleridnum.en.clear",
+      "byteSize": 1819691,
+      "sha256": "ce1d30c567a9cf60a504cd67e0337d293c390077811100babb8abb01fa15fd65"
+    },
+    {
+      "ordinal": 22,
+      "path": "shards/interaction-0022.json",
+      "rowCount": 250,
+      "firstRowId": "control.endpoints.e_calleridnum.en.invalid-boundary",
+      "lastRowId": "control.endpoints.e_mwi_replaces.both.inspect",
+      "byteSize": 1827540,
+      "sha256": "8d228172f29749a6a9be6f4c54ad669a37862b090d3bb71c83839b20051af94a"
+    },
+    {
+      "ordinal": 23,
+      "path": "shards/interaction-0023.json",
+      "rowCount": 250,
+      "firstRowId": "control.endpoints.e_mwi_replaces.both.toggle-on",
+      "lastRowId": "control.endpoints.e_trust.yue.inspect",
+      "byteSize": 1827873,
+      "sha256": "7cad257e9949e130c41c35f4cdaae34897b83b445ddf13c83cf5ed41df7c4879"
+    },
+    {
+      "ordinal": 24,
+      "path": "shards/interaction-0024.json",
+      "rowCount": 250,
+      "firstRowId": "control.endpoints.e_trust.yue.toggle-on",
+      "lastRowId": "control.fcodes.fc_blindxfer.yue.clear",
+      "byteSize": 1836116,
+      "sha256": "a7cd05baa90b7950133a0281c2ae85c03120683204e93654cc0dbc33e1dea958"
+    },
+    {
+      "ordinal": 25,
+      "path": "shards/interaction-0025.json",
+      "rowCount": 250,
+      "firstRowId": "control.fcodes.fc_blindxfer.yue.invalid-boundary",
+      "lastRowId": "control.fcodes.fc_parkeddynamic.both.inspect",
+      "byteSize": 1845462,
+      "sha256": "43bdb5cfe0ab80bd18d6deed238b1d010c40a6ce90778be428eae8e63038f7ab"
+    },
+    {
+      "ordinal": 26,
+      "path": "shards/interaction-0026.json",
+      "rowCount": 250,
+      "firstRowId": "control.fcodes.fc_parkeddynamic.both.toggle-on",
+      "lastRowId": "control.customise.fun_level_yue.en.set-mid",
+      "byteSize": 1833415,
+      "sha256": "847b68df96a599f3702f078d5acab1ce5c4f45145e59b230d4c9f6a142e057ce"
+    },
+    {
+      "ordinal": 27,
+      "path": "shards/interaction-0027.json",
+      "rowCount": 250,
+      "firstRowId": "control.customise.fun_level_yue.en.set-max",
+      "lastRowId": "control.codecs.fx_udptlchecksums.en.inspect",
+      "byteSize": 1828485,
+      "sha256": "1cb5c49122e05d0aa943ed508faa2b4fbfcf7cd183a3a213685b8bc4d20e1d09"
+    },
+    {
+      "ordinal": 28,
+      "path": "shards/interaction-0028.json",
+      "rowCount": 250,
+      "firstRowId": "control.codecs.fx_udptlchecksums.en.toggle-on",
+      "lastRowId": "control.logger.g_rotate.both.keyboard-choose",
+      "byteSize": 1820393,
+      "sha256": "8a0b7a426cb7c656d55dcf9cf8377ef978b9421ba29a723497a2097daae87e44"
+    },
+    {
+      "ordinal": 29,
+      "path": "shards/interaction-0029.json",
+      "rowCount": 250,
+      "firstRowId": "control.logger.g_rotate.both.reset",
+      "lastRowId": "control.security.gl_routing.both.reset",
+      "byteSize": 1825882,
+      "sha256": "c5ea01e5634882f57d9f9a50e1618ea7d61eddbce49cc65b4f8cfee70cec3014"
+    },
+    {
+      "ordinal": 30,
+      "path": "shards/interaction-0030.json",
+      "rowCount": 250,
+      "firstRowId": "control.security.gl_savloc.en.inspect",
+      "lastRowId": "control.history.hi_keep.both.set-min",
+      "byteSize": 1806832,
+      "sha256": "6239c23624a3fcac619559577d72df520357dd4fefb0823de31a52f4d6bbeceb"
+    },
+    {
+      "ordinal": 31,
+      "path": "shards/interaction-0031.json",
+      "rowCount": 250,
+      "firstRowId": "control.history.hi_keep.both.set-max",
+      "lastRowId": "control.httpd.ht_sesslimit.both.set-max",
+      "byteSize": 1787486,
+      "sha256": "04b0a7782e885cbffb5d8f1b160072a7a3df0ef321a31128d68d4b1bfb367359"
+    },
+    {
+      "ordinal": 32,
+      "path": "shards/interaction-0032.json",
+      "rowCount": 250,
+      "firstRowId": "control.httpd.ht_sesslimit.both.reset",
+      "lastRowId": "control.ivr.i_keyremove.en.reset",
+      "byteSize": 1789089,
+      "sha256": "78e345cb047441ecaa90deff8f18ca0a3f2170a6278c05d44a37429ce8aa6397"
+    },
+    {
+      "ordinal": 33,
+      "path": "shards/interaction-0033.json",
+      "rowCount": 250,
+      "firstRowId": "control.ivr.i_keyremove.yue.inspect",
+      "lastRowId": "control.iaxpeers.ix_host.yue.inspect",
+      "byteSize": 1805501,
+      "sha256": "bea023a1e703b27b9c2fc2e28996e8ade649c269cc6f4314f8a258a7e5e0147b"
+    },
+    {
+      "ordinal": 34,
+      "path": "shards/interaction-0034.json",
+      "rowCount": 250,
+      "firstRowId": "control.iaxpeers.ix_host.yue.focus",
+      "lastRowId": "control.cdr.l_enable.en.toggle-on",
+      "byteSize": 1803530,
+      "sha256": "0b81629c56bb72d418b8ee31039fa71a1081be5e31c840ea0a7931f6da2845c7"
+    },
+    {
+      "ordinal": 35,
+      "path": "shards/interaction-0035.json",
+      "rowCount": 250,
+      "firstRowId": "control.cdr.l_enable.en.toggle-off",
+      "lastRowId": "control.cdr.l_pschema.yue.reset",
+      "byteSize": 1775556,
+      "sha256": "85c06c295643c192cb19e6aeedeeb9ea2f796fc5f21710edb27354c88f108e86"
+    },
+    {
+      "ordinal": 36,
+      "path": "shards/interaction-0036.json",
+      "rowCount": 250,
+      "firstRowId": "control.cdr.l_pschema.both.inspect",
+      "lastRowId": "control.customise.ly_gap.en.inspect",
+      "byteSize": 1814018,
+      "sha256": "4cc0d19641c6d36d23d2a15f12adbcb8f80a99b36786b965af5983b0c33f7b75"
+    },
+    {
+      "ordinal": 37,
+      "path": "shards/interaction-0037.json",
+      "rowCount": 250,
+      "firstRowId": "control.customise.ly_gap.en.set-min",
+      "lastRowId": "control.customise.mo_dialog.yue.reset",
+      "byteSize": 1794928,
+      "sha256": "0f3684186dfd1c0cbd76e8e9f759f8789911cbbb05fbf803c5319239e415a9fc"
+    },
+    {
+      "ordinal": 38,
+      "path": "shards/interaction-0038.json",
+      "rowCount": 250,
+      "firstRowId": "control.customise.mo_dialog.both.inspect",
+      "lastRowId": "control.customise.nar_en_voice.both.choose-first",
+      "byteSize": 1813920,
+      "sha256": "3def1ab1877bd0530cdfd033d5ce1fc7b053502546c7abed54bb32bcd7a4a266"
+    },
+    {
+      "ordinal": 39,
+      "path": "shards/interaction-0039.json",
+      "rowCount": 250,
+      "firstRowId": "control.customise.nar_en_voice.both.choose-last",
+      "lastRowId": "control.ops.o_restart.yue.reset",
+      "byteSize": 1821462,
+      "sha256": "72180604cd9963fcf9b8ace08b925e8e68e77c0587ca30e5ea6de877ae85a2f6"
+    },
+    {
+      "ordinal": 40,
+      "path": "shards/interaction-0040.json",
+      "rowCount": 250,
+      "firstRowId": "control.ops.o_restart.both.inspect",
+      "lastRowId": "control.appearance.p_mono.both.inspect",
+      "byteSize": 1817951,
+      "sha256": "3f57ac1eba720a9cfc589c3269a85b995c317fbf27888a3adde4877b4e8f34b2"
+    },
+    {
+      "ordinal": 41,
+      "path": "shards/interaction-0041.json",
+      "rowCount": 250,
+      "firstRowId": "control.appearance.p_mono.both.toggle-on",
+      "lastRowId": "control.customise.pr_active.en.escape",
+      "byteSize": 1801429,
+      "sha256": "68a17ef4eda08f912214fc270d3edcd7523a98f6d055899ce3ed2bce192dcccd"
+    },
+    {
+      "ordinal": 42,
+      "path": "shards/interaction-0042.json",
+      "rowCount": 250,
+      "firstRowId": "control.customise.pr_active.en.reset",
+      "lastRowId": "control.queues.q_autopause.yue.choose-last",
+      "byteSize": 1830260,
+      "sha256": "22909dcab44a8128e89e8a6ad1c800c5e812da7932db1fa95cd7c3330fc6d7df"
+    },
+    {
+      "ordinal": 43,
+      "path": "shards/interaction-0043.json",
+      "rowCount": 250,
+      "firstRowId": "control.queues.q_autopause.yue.keyboard-choose",
+      "lastRowId": "control.codecs.r_start.en.set-min",
+      "byteSize": 1799437,
+      "sha256": "67fdcce9fc48a1584332c3b89e6d39103b1e6008cccbb6e78e1c0c4fd7231119"
+    },
+    {
+      "ordinal": 44,
+      "path": "shards/interaction-0044.json",
+      "rowCount": 250,
+      "firstRowId": "control.codecs.r_start.en.set-mid",
+      "lastRowId": "control.security.s_stir.yue.inspect",
+      "byteSize": 1821390,
+      "sha256": "deb15c12362d42ba8644ebdbb17c8264a74ba349c461d8508cd123aab9c417b4"
+    },
+    {
+      "ordinal": 45,
+      "path": "shards/interaction-0045.json",
+      "rowCount": 250,
+      "firstRowId": "control.security.s_stir.yue.toggle-on",
+      "lastRowId": "control.security.s_tverifyserver.both.toggle-off",
+      "byteSize": 1826710,
+      "sha256": "92a23f8660711556f18f8d4f15232034e81bd77906a773dfb06cdf197849a7f1"
+    },
+    {
+      "ordinal": 46,
+      "path": "shards/interaction-0046.json",
+      "rowCount": 250,
+      "firstRowId": "control.security.s_tverifyserver.both.keyboard-toggle",
+      "lastRowId": "control.iaxpeers.sl_stationname.yue.invalid-boundary",
+      "byteSize": 1844145,
+      "sha256": "f43791a2f8c0100caf99502084eb46b5f31f5516083205d2ac4ab5ec419f6997"
+    },
+    {
+      "ordinal": 47,
+      "path": "shards/interaction-0047.json",
+      "rowCount": 250,
+      "firstRowId": "control.iaxpeers.sl_stationname.yue.reset",
+      "lastRowId": "control.iaxpeers.sl_trunkname.yue.reset",
+      "byteSize": 1857911,
+      "sha256": "30fd8efdfd4f492a159dfa6d2179ed347f6215f9f29d780d15fc79f9688f1c10"
+    },
+    {
+      "ordinal": 48,
+      "path": "shards/interaction-0048.json",
+      "rowCount": 250,
+      "firstRowId": "control.iaxpeers.sl_trunkname.both.inspect",
+      "lastRowId": "control.customise.src_url.en.clear",
+      "byteSize": 1850897,
+      "sha256": "4716c392d411168111d46f025c48fdd098fd86ef9e253418413621c21de3d634"
+    },
+    {
+      "ordinal": 49,
+      "path": "shards/interaction-0049.json",
+      "rowCount": 250,
+      "firstRowId": "control.customise.src_url.en.invalid-boundary",
+      "lastRowId": "control.servers.sv_container@design/Asterisk Console M3.dc.html:2997:7.yue.reset",
+      "byteSize": 1851419,
+      "sha256": "ec9251b36d442c5774249fdd14fb44062106e509a7497bb389ca4274a84854b3"
+    },
+    {
+      "ordinal": 50,
+      "path": "shards/interaction-0050.json",
+      "rowCount": 250,
+      "firstRowId": "control.servers.sv_container@design/Asterisk Console M3.dc.html:2997:7.both.inspect",
+      "lastRowId": "control.servers.sv_paths.yue.reset",
+      "byteSize": 1925890,
+      "sha256": "896c4114e1564f235db070f0c4c6ce48fc179e187b51e1405e17ae73a8857d5a"
+    },
+    {
+      "ordinal": 51,
+      "path": "shards/interaction-0051.json",
+      "rowCount": 250,
+      "firstRowId": "control.servers.sv_paths.both.inspect",
+      "lastRowId": "control.trunks.t_100rel.en.inspect",
+      "byteSize": 1886747,
+      "sha256": "4540138b40cfb45b74f97735d1215a0663c6ae5458284bc42218af4939935ce7"
+    },
+    {
+      "ordinal": 52,
+      "path": "shards/interaction-0052.json",
+      "rowCount": 250,
+      "firstRowId": "control.trunks.t_100rel.en.open",
+      "lastRowId": "control.customise.th_mode.both.keyboard-choose",
+      "byteSize": 1801644,
+      "sha256": "c8a3957186e9bfcb7aca6f83e482694ec5deac8c27a96ad3f979693e5e028b80"
+    },
+    {
+      "ordinal": 53,
+      "path": "shards/interaction-0053.json",
+      "rowCount": 250,
+      "firstRowId": "control.customise.th_mode.both.reset",
+      "lastRowId": "control.trunks.tk_t38mtu.both.increment",
+      "byteSize": 1807589,
+      "sha256": "b03f82f69ef0493cf2ace1fdb45a37de82da71c3e4252105ae5ade46e4eaa3a7"
+    },
+    {
+      "ordinal": 54,
+      "path": "shards/interaction-0054.json",
+      "rowCount": 250,
+      "firstRowId": "control.trunks.tk_t38mtu.both.set-min",
+      "lastRowId": "control.voicemail.v_imapport.en.set-min",
+      "byteSize": 1811996,
+      "sha256": "d5bf1df83550afe4ee762aeca9d0103ebda9917603358e99f1fbad893c2519de"
+    },
+    {
+      "ordinal": 55,
+      "path": "shards/interaction-0055.json",
+      "rowCount": 250,
+      "firstRowId": "control.voicemail.v_imapport.en.set-max",
+      "lastRowId": "control.voicemail.v_tempgreetwarn.both.keyboard-toggle",
+      "byteSize": 1831663,
+      "sha256": "bc130c56cb37ff0bb86f72815ea7c8f26b7205a0fb6eb87afcc6b9117b55487c"
+    },
+    {
+      "ordinal": 56,
+      "path": "shards/interaction-0056.json",
+      "rowCount": 250,
+      "firstRowId": "control.voicemail.v_tempgreetwarn.both.reset",
+      "lastRowId": "control.endpoints.w_ext.yue.keyboard-toggle",
+      "byteSize": 1833658,
+      "sha256": "66dd4b759ac9b64d95fa8490d544b78a89c0f19db392d4eb92e6652d2089a8a8"
+    },
+    {
+      "ordinal": 57,
+      "path": "shards/interaction-0057.json",
+      "rowCount": 250,
+      "firstRowId": "control.endpoints.w_ext.yue.reset",
+      "lastRowId": "control.lock-wizard.wc_area.yue.search-option",
+      "byteSize": 1828637,
+      "sha256": "e2b63364d082e90aa10ce5d7ab22e851744e43cc98dff55a0ccac172bc432947"
+    },
+    {
+      "ordinal": 58,
+      "path": "shards/interaction-0058.json",
+      "rowCount": 250,
+      "firstRowId": "control.lock-wizard.wc_area.yue.choose-first",
+      "lastRowId": "control.ivr.wi_0.both.escape",
+      "byteSize": 1849152,
+      "sha256": "c6e2cf0482c812f86255a7164469f1959e89e3634e313c173c9380166cd5c7d8"
+    },
+    {
+      "ordinal": 59,
+      "path": "shards/interaction-0059.json",
+      "rowCount": 250,
+      "firstRowId": "control.ivr.wi_0.both.reset",
+      "lastRowId": "control.ivr.wi_prompt.yue.reset",
+      "byteSize": 1781639,
+      "sha256": "c5a54be616fa76f34638ef2470b2536220b1f1b951cfe13818a889cf36b19844"
+    },
+    {
+      "ordinal": 60,
+      "path": "shards/interaction-0060.json",
+      "rowCount": 250,
+      "firstRowId": "control.ivr.wi_prompt.both.inspect",
+      "lastRowId": "control.queues.wq_members.yue.move-first",
+      "byteSize": 1800616,
+      "sha256": "27e8be973487981fa88ffe2be2152d7b8749b8723abd478333451bb3a69b1f99"
+    },
+    {
+      "ordinal": 61,
+      "path": "shards/interaction-0061.json",
+      "rowCount": 250,
+      "firstRowId": "control.queues.wq_members.yue.move-last",
+      "lastRowId": "control.security.ws_bantime.both.set-min",
+      "byteSize": 1809090,
+      "sha256": "2509756607a8acaac00fb3b4e2efb45387a1316b841c478faa55f8b9d9e3ae38"
+    },
+    {
+      "ordinal": 62,
+      "path": "shards/interaction-0062.json",
+      "rowCount": 250,
+      "firstRowId": "control.security.ws_bantime.both.set-mid",
+      "lastRowId": "control.security.ws_vin.both.toggle-on",
+      "byteSize": 1809213,
+      "sha256": "3c44050059836fe1be92662da6e50b5d3526d333b5546d13802b6a2f5f402358"
+    },
+    {
+      "ordinal": 63,
+      "path": "shards/interaction-0063.json",
+      "rowCount": 250,
+      "firstRowId": "control.security.ws_vin.both.toggle-off",
+      "lastRowId": "control.voicemail.wv_name.yue.reset",
+      "byteSize": 1810044,
+      "sha256": "7fd9775f7a92d272b14b00fe65fe73a6a76865d2815264b0165ffe3cd5fe2a66"
+    },
+    {
+      "ordinal": 64,
+      "path": "shards/interaction-0064.json",
+      "rowCount": 250,
+      "firstRowId": "control.voicemail.wv_name.both.inspect",
+      "lastRowId": "control.cli.xm_collection_nodes.en.toggle-on",
+      "byteSize": 1782025,
+      "sha256": "8ea25866cad3eab0d5a973a11427fbd771d63eb8641265f39444ef41e25ff1e0"
+    },
+    {
+      "ordinal": 65,
+      "path": "shards/interaction-0065.json",
+      "rowCount": 250,
+      "firstRowId": "control.cli.xm_collection_nodes.en.toggle-off",
+      "lastRowId": "surface.voicemail.route.one-target-privacy-proof",
+      "byteSize": 1687891,
+      "sha256": "e8d00d8a546f1ea8d082367ec7c446bd692a453084b559bf41f88ee7f73642e7"
+    },
+    {
+      "ordinal": 66,
+      "path": "shards/interaction-0066.json",
+      "rowCount": 250,
+      "firstRowId": "surface.voicemail.route.lifecycle-cleanup-proof",
+      "lastRowId": "surface.palette.route.one-target-privacy-proof",
+      "byteSize": 1334612,
+      "sha256": "0f6b32b4f1819ddee3e695250b02e6bede9c5cb3b0ea42aa47456b5d5939594b"
+    },
+    {
+      "ordinal": 67,
+      "path": "shards/interaction-0067.json",
+      "rowCount": 250,
+      "firstRowId": "surface.palette.route.lifecycle-cleanup-proof",
+      "lastRowId": "surface.site-context-menu.route.redaction-and-receipt-proof",
+      "byteSize": 1354196,
+      "sha256": "ff8c7f3efe8f5c666ad98b158157d2f5d738fe256438a34128950eef3ab7e781"
+    },
+    {
+      "ordinal": 68,
+      "path": "shards/interaction-0068.json",
+      "rowCount": 127,
+      "firstRowId": "surface.site-notification-centre.route.exact-route-open",
+      "lastRowId": "surface.layout-scale-200.route.state-transition-observable",
+      "byteSize": 723410,
+      "sha256": "8093c5a730f5482c30e434abd2b5ce0dc6a516ef5e52d104c58dc237cfe600b8"
+    }
+  ],
+  "manifest": {
+    "schemaVersion": 2,
+    "generatedBy": "console/scripts/generate-ui-smoke-manifest.mjs",
+    "sourceInventory": "console/inventories/ui-smoke-inventory.mjs",
+    "pendingContracts": [
+      {
+        "id": "migration",
+        "status": "pending-implementation",
+        "reason": "No implementation commit is present in this repository, so no executable control, route, receipt, or evidence row is claimed."
+      },
+      {
+        "id": "backup",
+        "status": "pending-implementation",
+        "reason": "No implementation commit is present in this repository, so backup evidence is intentionally absent rather than padded."
+      },
+      {
+        "id": "local-git-history",
+        "status": "pending-implementation",
+        "reason": "No user-facing local history implementation commit is present for this contract lane."
+      },
+      {
+        "id": "configurable-shared-instructions",
+        "status": "pending-implementation",
+        "reason": "No implementation commit is present for a user-configurable shared-instructions setting."
+      },
+      {
+        "id": "asterisk-admin-resource-wiring",
+        "status": "pending-implementation",
+        "reason": "Asterisk resource wiring is not integrated into this evidence lane, so no placeholder controls or rows are claimed."
+      },
+      {
+        "id": "freepbx-parity",
+        "status": "pending-implementation",
+        "reason": "FreePBX parity has no integrated implementation commit in this lane, so no synthetic surface or evidence is counted."
+      },
+      {
+        "id": "migration-successor",
+        "status": "pending-implementation",
+        "reason": "The migration successor identity has no integrated implementation commit, so its real ids and mappings remain absent."
+      }
+    ],
+    "sourceControlCensus": "console/inventories/ui-smoke/control-census.json",
+    "sourceSurfaceControlIndex": "console/inventories/ui-smoke/surface-control-index.json",
+    "visualDiffSchema": {
+      "schemaVersion": 1,
+      "required": [
+        "surfaceId",
+        "integratedCommit",
+        "status",
+        "comparedRowIds",
+        "coverage",
+        "referenceSha256",
+        "builtSha256",
+        "diffSha256",
+        "reviewedAt"
+      ],
+      "types": {
+        "surfaceId": "string",
+        "integratedCommit": "sha256",
+        "status": "enum",
+        "comparedRowIds": "array",
+        "coverage": "enum",
+        "referenceSha256": "sha256",
+        "builtSha256": "sha256",
+        "diffSha256": "sha256",
+        "reviewedAt": "iso-8601"
+      },
+      "enums": {
+        "status": [
+          "reviewed",
+          "failed"
+        ],
+        "coverage": [
+          "all-rows",
+          "partial"
+        ]
+      },
+      "relations": [
+        "comparedRowIds equals every manifest row for the surface",
+        "coverage equals all-rows",
+        "all hashes are lowercase 64-hex strings"
+      ]
+    },
+    "inventoryDigest": "31644183565630b592d6c5d3bfbf28c46b5beacafd89ab9f997a82788520beaf",
+    "rowFormula": {
+      "controlActionCaseCount": 5486,
+      "languageModeCount": 3,
+      "controlRows": 16458,
+      "routeProofRows": 669,
+      "totalRows": 17127
+    },
+    "sourceCounts": {
+      "featureCount": 44,
+      "surfaceCount": 143,
+      "rowCount": 17127,
+      "uniqueControlCount": 940,
+      "executableControlCount": 940,
+      "excludedControlCount": 0,
+      "priorScreenModelRuntimeIds": 335,
+      "exactParserScreenModelRuntimeIds": 696,
+      "dynamicRuntimeControlCount": 244,
+      "controlOccurrenceCount": 952,
+      "occurrenceSpecificDuplicateCount": 12,
+      "languageModeCount": 3
+    },
+    "designBindingCensus": {
+      "sourceArchiveSha256": "9A4284745A745C18A18B0A23D2A2F5851A79F9B6EFCBC5EE30EDCD69CEA2863F",
+      "sourceFiles": [
+        {
+          "path": "design/Asterisk Console M3.dc.html",
+          "sha256": "C485EDD647A3CD9EA41C8FAB1908AC245C9F0F8A4563E263F7A3BD0B5E78472B"
+        },
+        {
+          "path": "design/M3 Control.dc.html",
+          "sha256": "4B1AF8D412B5890ED149DC1B0DF088F11AE007319A894CCCF6B0A604F54DBBBE"
+        }
+      ],
+      "generatedArtifact": {
+        "path": "console/app/renderer/src/generated/console.tsx",
+        "sha256": "2C41015B1A60D0BAA415F6789C04CA941290E38D2FC6727005D76DB874AC4DBF"
+      },
+      "destinationCount": 32,
+      "controlCount": 479,
+      "distinctExpressionCount": 168,
+      "transientStateFamilyCount": 17,
+      "declarativeBindings": {
+        "total": 265,
+        "click": 212,
+        "change": 10,
+        "input": 10,
+        "contextmenu": 9,
+        "dragstart": 4,
+        "dragover": 4,
+        "drop": 4,
+        "dragend": 4,
+        "mousedown": 5,
+        "mouseenter": 1,
+        "mouseleave": 1,
+        "mouseup": 1
+      },
+      "transientStateFamilies": [
+        "appearOpen",
+        "ceremonyOpen",
+        "ctxOpen",
+        "infoOpen",
+        "lockOpen",
+        "onboardOpen",
+        "paletteOpen",
+        "regexOpen",
+        "renameOpen",
+        "subOpen",
+        "sureOpen",
+        "tabColourOpen",
+        "tabFilterOpen",
+        "toastOpen",
+        "tourOpen",
+        "unlockOpen",
+        "wizardOpen"
+      ]
+    },
+    "execution": {
+      "version": 2,
+      "route": "cheap-lowlevel-headless-cdp-and-lifecycle-only",
+      "forbiddenRoutes": [
+        "browser-plugin",
+        "chrome-plugin",
+        "computer-use",
+        "visible-desktop",
+        "visible-input"
+      ],
+      "pagesRoute": {
+        "launchKind": "edge-hidden-desktop",
+        "controlRoute": "cheap-lowlevel-headless-plus-loopback-cdp-only",
+        "exactTargetProof": "targets.length === 1 && targets[0].type === 'page' && targets[0].url === expectedUrl && targets[0].webSocketDebuggerUrl.startsWith('ws://127.0.0.1:')",
+        "noExtensionTargets": true,
+        "noRestoredTargets": true
+      },
+      "lifecycle": [
+        "preflight",
+        "launch-directly",
+        "resolve-title-and-class",
+        "prove-one-cdp-target",
+        "capture-before",
+        "resolve-control",
+        "perform-one-bounded-action",
+        "read-independent-observable",
+        "capture-after",
+        "validate-receipts",
+        "stage-canonical-evidence",
+        "hash-compare",
+        "atomic-publish-no-overwrite",
+        "disconnect-cdp",
+        "cleanup-owned-identities"
+      ],
+      "provenance": {
+        "commands": [
+          "git rev-parse --verify {sourceCommit}^{commit}",
+          "git rev-parse --verify {integratedCommit}^{commit}",
+          "git merge-base --is-ancestor {sourceCommit} {integratedCommit}",
+          "git diff --exit-code {sourceCommit}:console/inventories/ui-smoke-inventory.mjs {integratedCommit}:console/inventories/ui-smoke-inventory.mjs"
+        ],
+        "objectTypeRequired": "commit",
+        "ancestryRequired": true,
+        "canonicalInventoryDigestRequired": true
+      },
+      "failClosedOn": [
+        "missing-control",
+        "unreachable-control",
+        "inert-control",
+        "duplicate-stable-id",
+        "changed-count",
+        "stale-commit",
+        "missing-capture",
+        "missing-receipt",
+        "false-result",
+        "second-cdp-target",
+        "wrong-cdp-url",
+        "redaction-violation",
+        "hash-mismatch",
+        "overwrite-attempt"
+      ],
+      "runtimeIdentity": {
+        "required": [
+          "artifactPath",
+          "artifactSha256",
+          "profileId",
+          "profilePath",
+          "desktopName",
+          "processId",
+          "hwnd",
+          "cdpPort",
+          "targetId",
+          "cleanupState"
+        ],
+        "reResolveBefore": [
+          "processId",
+          "hwnd",
+          "cdpPort",
+          "targetId"
+        ],
+        "cleanupOnlyRecorded": true
+      },
+      "promotion": {
+        "rawRunRoot": "{taskOwnedLowlevelRunRoot}",
+        "rawRunRootNotCommitted": true,
+        "canonicalRoot": "console/docs/evidence/ui-smoke/{integratedCommit}/",
+        "stageRoot": "console/docs/evidence/ui-smoke/.staging/{integratedCommit}/{runId}/",
+        "bytePreserving": true,
+        "atomicPublish": true,
+        "overwriteExisting": false,
+        "requiredArtifactsPerAcceptedRow": [
+          "before.png",
+          "after.png",
+          "interaction-receipt-v1.json",
+          "outcome-receipt-v1.json",
+          "privacy-receipt-v1.json",
+          "alt-text.json",
+          "pixel-review-receipt-v1.json",
+          "evidence-receipt-v1.json"
+        ],
+        "mappings": {
+          "docs": "console/docs/evidence/ui-smoke/{integratedCommit}/index.html",
+          "wiki": "wiki/UI-smoke-evidence.md#{integratedCommit}",
+          "issue": "GitHub issue comment with an inline before and after pair per row",
+          "pages": "console/site/documentation.html#ui-smoke-evidence-{integratedCommit}"
+        }
+      }
+    },
+    "receiptSchemas": {
+      "interaction": {
+        "schemaVersion": 1,
+        "required": [
+          "planId",
+          "rowId",
+          "sourceCommit",
+          "integratedCommit",
+          "inventoryDigest",
+          "runtimeIdentity",
+          "routeTuple",
+          "target",
+          "action",
+          "before",
+          "after",
+          "outcome",
+          "observablePredicate",
+          "status",
+          "redactionStatus"
+        ],
+        "status": [
+          "accepted",
+          "failed",
+          "cancelled",
+          "stale"
+        ],
+        "types": {
+          "schemaVersion": "integer",
+          "planId": "string",
+          "rowId": "string",
+          "sourceCommit": "sha256",
+          "integratedCommit": "sha256",
+          "inventoryDigest": "sha256",
+          "runtimeIdentity": "object",
+          "routeTuple": "object",
+          "target": "object",
+          "action": "object",
+          "before": "object",
+          "after": "object",
+          "outcome": "object",
+          "observablePredicate": "string",
+          "status": "enum",
+          "redactionStatus": "enum"
+        },
+        "enums": {
+          "redactionStatus": [
+            "clean",
+            "red"
+          ]
+        },
+        "relations": [
+          "rowId equals plan.rowIds entry",
+          "sourceCommit equals ledger.sourceCommit",
+          "integratedCommit is ancestor-proven",
+          "before.sha256 and after.sha256 are lowercase 64-hex strings"
+        ],
+        "rule": "The receipt is accepted only when the independent observable predicate is true and before and after hashes are present."
+      },
+      "outcome": {
+        "schemaVersion": 1,
+        "required": [
+          "planId",
+          "rowId",
+          "actionType",
+          "predicate",
+          "observed",
+          "observedAt",
+          "beforeSha256",
+          "afterSha256",
+          "status"
+        ],
+        "types": {
+          "schemaVersion": "integer",
+          "planId": "string",
+          "rowId": "string",
+          "actionType": "string",
+          "predicate": "string",
+          "observed": "object",
+          "observedAt": "iso-8601",
+          "beforeSha256": "sha256",
+          "afterSha256": "sha256",
+          "status": "enum"
+        },
+        "enums": {
+          "status": [
+            "accepted",
+            "failed",
+            "cancelled",
+            "stale"
+          ]
+        },
+        "relations": [
+          "rowId equals interaction.rowId",
+          "beforeSha256 equals interaction.before.sha256",
+          "afterSha256 equals interaction.after.sha256"
+        ],
+        "rule": "Outcome values come from a separate observable read, not from the action command result."
+      },
+      "privacy": {
+        "schemaVersion": 1,
+        "required": [
+          "planId",
+          "rowId",
+          "sourceCommit",
+          "integratedCommit",
+          "runtimeIdentity",
+          "routeTuple",
+          "rawRunRootNotCommitted",
+          "networkRequests",
+          "targetIsolation",
+          "redactionStatus",
+          "redactedKeys"
+        ],
+        "rule": "Privacy receipt proves the raw root stayed outside the repository and the exact one-target proof held.",
+        "types": {
+          "schemaVersion": "integer",
+          "planId": "string",
+          "rowId": "string",
+          "sourceCommit": "sha256",
+          "integratedCommit": "sha256",
+          "runtimeIdentity": "object",
+          "routeTuple": "object",
+          "rawRunRootNotCommitted": "boolean",
+          "networkRequests": "integer",
+          "targetIsolation": "object",
+          "redactionStatus": "enum",
+          "redactedKeys": "array"
+        },
+        "enums": {
+          "redactionStatus": [
+            "clean",
+            "red"
+          ]
+        },
+        "relations": [
+          "networkRequests equals 0 for local-only actions",
+          "targetIsolation.targetCount equals 1",
+          "rawRunRootNotCommitted equals true"
+        ]
+      },
+      "altText": {
+        "schemaVersion": 1,
+        "required": [
+          "rowId",
+          "before",
+          "after",
+          "state",
+          "targetName"
+        ],
+        "rule": "Alt text names the exact surface, state, target, and visible receipt without relying on pixels alone.",
+        "types": {
+          "schemaVersion": "integer",
+          "rowId": "string",
+          "before": "string",
+          "after": "string",
+          "state": "string",
+          "targetName": "string"
+        },
+        "relations": [
+          "rowId equals interaction.rowId",
+          "before and after are non-empty accessible descriptions"
+        ]
+      },
+      "pixelReview": {
+        "schemaVersion": 1,
+        "required": [
+          "rowId",
+          "beforeWidth",
+          "beforeHeight",
+          "beforePixelSha256",
+          "afterWidth",
+          "afterHeight",
+          "afterPixelSha256",
+          "beforeMetadataTypes",
+          "afterMetadataTypes",
+          "pixelReviewStatus",
+          "reviewedAt"
+        ],
+        "rule": "Pixel review records PNG signature, dimensions, metadata absence, and a human or approved reviewer status without copying private pixels into the receipt.",
+        "types": {
+          "schemaVersion": "integer",
+          "rowId": "string",
+          "beforeWidth": "integer",
+          "beforeHeight": "integer",
+          "beforePixelSha256": "sha256",
+          "afterWidth": "integer",
+          "afterHeight": "integer",
+          "afterPixelSha256": "sha256",
+          "beforeMetadataTypes": "array",
+          "afterMetadataTypes": "array",
+          "pixelReviewStatus": "enum",
+          "reviewedAt": "iso-8601"
+        },
+        "enums": {
+          "pixelReviewStatus": [
+            "reviewed",
+            "failed"
+          ]
+        },
+        "relations": [
+          "PNG dimensions and pixel hashes equal the fully decoded files",
+          "metadata arrays are empty for accepted evidence"
+        ]
+      },
+      "evidence": {
+        "schemaVersion": 1,
+        "required": [
+          "rowId",
+          "integratedCommit",
+          "canonicalRoot",
+          "sourceSha256",
+          "destinationSha256",
+          "bytePreserving",
+          "comparisonPath",
+          "visualDiffPath"
+        ],
+        "rule": "Evidence is promoted only after the source and destination hashes match and the comparison and visual-diff records exist.",
+        "types": {
+          "schemaVersion": "integer",
+          "rowId": "string",
+          "integratedCommit": "sha256",
+          "canonicalRoot": "path",
+          "sourceSha256": "sha256",
+          "destinationSha256": "sha256",
+          "bytePreserving": "boolean",
+          "comparisonPath": "path",
+          "visualDiffPath": "path"
+        },
+        "relations": [
+          "sourceSha256 equals destinationSha256",
+          "canonicalRoot equals console/docs/evidence/ui-smoke/{integratedCommit}/",
+          "bytePreserving equals true"
+        ]
+      }
+    },
+    "redaction": {
+      "schemaVersion": 1,
+      "rawRunRootNotCommitted": true,
+      "neverPersist": [
+        "passwords",
+        "pins",
+        "totpSecrets",
+        "accessTokens",
+        "authorizationHeaders",
+        "privateKeys",
+        "cookies",
+        "clipboardContents",
+        "callContent",
+        "environmentValues",
+        "privatePaths",
+        "rawNetworkBodies"
+      ],
+      "recursiveAllowlist": {
+        "allowed": [
+          "rowId",
+          "surfaceId",
+          "featureId",
+          "routeTuple",
+          "target",
+          "action",
+          "before",
+          "after",
+          "outcome",
+          "observablePredicate",
+          "altText",
+          "sourceCommit",
+          "integratedCommit",
+          "artifactPath",
+          "artifactSha256",
+          "profileId",
+          "desktopName",
+          "processId",
+          "hwnd",
+          "cdpPort",
+          "targetId",
+          "cleanupState"
+        ],
+        "rejectUnknownKeys": true,
+        "rejectCredentialLikeKeys": true,
+        "rejectCredentialLikeValues": true
+      },
+      "failureMode": "fail-closed"
+    }
+  }
+}

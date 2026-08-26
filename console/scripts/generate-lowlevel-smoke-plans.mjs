@@ -4,16 +4,16 @@
  * This writes plans only. It never starts Electron, Edge, CDP, Lowlevel, or a
  * visible application, and it never creates runtime evidence.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { loadUiSmokeManifest } from './ui-smoke-manifest-loader.mjs';
 
 const root = resolve(import.meta.dirname, '..', '..');
-const manifestPath = resolve(root, 'console/inventories/ui-smoke/interaction-manifest.json');
 const outputDir = resolve(root, 'console/inventories/ui-smoke/lowlevel-plans');
 const BATCH_SIZE = 24;
-const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+const manifest = loadUiSmokeManifest();
 
-if (manifest.schemaVersion !== 2 || manifest.rows?.length !== 10330) throw new Error('the reviewed manifest must be schemaVersion 2 with 10330 rows');
+if (manifest.schemaVersion !== 2 || manifest.rows?.length !== 17127) throw new Error('the reviewed manifest must be schemaVersion 2 with 17127 rows');
 if (manifest.execution?.route !== 'cheap-lowlevel-headless-cdp-and-lifecycle-only') throw new Error('manifest route is not the sanctioned cheap Lowlevel route');
 if (manifest.execution?.promotion?.rawRunRootNotCommitted !== true) throw new Error('manifest does not enforce rawRunRootNotCommitted');
 

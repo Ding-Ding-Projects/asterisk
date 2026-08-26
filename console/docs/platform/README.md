@@ -52,7 +52,7 @@ The two surfaces referenced throughout are the desktop application (the installe
 
 ## UI-smoke recovery baseline
 
-The source-recovery baseline documents 566 reviewed controls and a 10,551-row interaction contract across an exact 29-path recovery inventory. Its permitted runtime route is cheap Lowlevel headless-only. Evidence promotion is byte-preserving and raw runtime material remains outside the repository. The recovered source and generated inventories are verified separately from runtime capture. No new runtime capture is verified by this record.
+The source-recovery baseline documents 940 reviewed executable controls and a 17,127-row interaction contract across an exact 29-path recovery inventory. The count is derived as 5,486 action cases × 3 language modes = 16,458 control rows, plus 669 route and equivalent proofs. Its permitted runtime route is cheap Lowlevel headless-only. Evidence promotion is byte-preserving and raw runtime material remains outside the repository. The recovered source and generated inventories are verified separately from runtime capture. No new runtime capture is verified by this record.
 
 Two further canonical features were considered for this product and deliberately excluded by the owner rather than left unbuilt by omission: an Ollama model-manager suite and a general local file converter. Neither shares a data path, a target, or a control surface with the rest of this console. The recorded reason for each exclusion lives in `console/inventories/exemptions.json`, not repeated here, so there is exactly one place that reason can drift out of date.
 

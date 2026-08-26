@@ -1,5 +1,7 @@
 # UI smoke evidence storage
 
+The current source-only contract contains 17,127 rows: 5,486 checked-in control action cases × three language modes = 16,458 control rows, plus 669 route and equivalent proofs. It reconciles 940 executable control ids. Runtime evidence remains unrun.
+
 Accepted per-click evidence is stored below one integrated commit directory:
 
 ```text

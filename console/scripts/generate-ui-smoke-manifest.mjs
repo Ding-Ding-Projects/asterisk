@@ -8,7 +8,7 @@
  * explicit language modes, plus explicit route and state proof cases.
  */
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, rmSync, renameSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import {
   DESIGN_BINDING_CENSUS,
@@ -354,10 +354,25 @@ const NEGATIVE_REGRESSIONS = [
 ];
 
 function writeJson(name, value) { const path = resolve(outputDir, name); mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, 'utf8'); }
+const SHARD_ROW_LIMIT = 250;
+const SHARD_BYTE_CAP = 20 * 1024 * 1024;
+function writeShardedManifest(manifest) {
+  const stage = resolve(outputDir, `.interaction-manifest-stage-${process.pid}`); const finalDir = resolve(outputDir, 'shards');
+  rmSync(stage, { recursive: true, force: true }); mkdirSync(stage, { recursive: true });
+  const shards = [];
+  for (let offset = 0, ordinal = 0; offset < manifest.rows.length; offset += SHARD_ROW_LIMIT, ordinal += 1) {
+    const rows = manifest.rows.slice(offset, offset + SHARD_ROW_LIMIT); const name = `interaction-${String(ordinal).padStart(4, '0')}.json`; const bytes = Buffer.from(`${JSON.stringify(rows)}\n`);
+    if (bytes.length > SHARD_BYTE_CAP) throw new Error(`shard ${name} exceeds ${SHARD_BYTE_CAP} bytes`);
+    writeFileSync(resolve(stage, name), bytes); shards.push({ ordinal, path: `shards/${name}`, rowCount: rows.length, firstRowId: rows[0].id, lastRowId: rows.at(-1).id, byteSize: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') });
+  }
+  const index = { schemaVersion: 3, generatedBy: manifest.generatedBy, inventoryDigest: manifest.inventoryDigest, totalRows: manifest.rows.length, rowSequenceSha256: createHash('sha256').update(Buffer.from(manifest.rows.map((row) => row.id).join('\n'))).digest('hex'), storage: { kind: 'deterministic-shards', maxRowsPerShard: SHARD_ROW_LIMIT, maxShardBytes: SHARD_BYTE_CAP }, shards, manifest: { ...manifest, rows: undefined } };
+  const indexStage = resolve(outputDir, `.interaction-manifest-index-${process.pid}.json`); writeFileSync(indexStage, `${JSON.stringify(index, null, 2)}\n`, 'utf8');
+  rmSync(finalDir, { recursive: true, force: true }); renameSync(stage, finalDir); renameSync(indexStage, resolve(outputDir, 'interaction-manifest.json'));
+}
 
 export function generate() {
   const manifest = buildManifest();
-  writeJson('interaction-manifest.json', manifest);
+  writeShardedManifest(manifest);
   writeJson('capture-index.json', CAPTURE_INDEX);
   writeJson('design-binding-census.json', DESIGN_BINDING_CENSUS);
   writeJson('execution-schema.json', { schemaVersion: 2, title: 'Resumeable UI smoke execution ledger', ledgerExecutor: 'console/scripts/run-ui-smoke-ledger.mjs', required: ['planId', 'sourceCommit', 'integratedCommit', 'inventoryDigest', 'batchNumber', 'rowIds', 'status', 'events', 'runtimeIdentity'], statuses: ['planned', 'running', 'paused', 'completed', 'failed', 'cancelled', 'stale'], eventSchema: { required: ['planId', 'rowId', 'sourceCommit', 'integratedCommit', 'inventoryDigest', 'actionType', 'phase', 'beforeSha256', 'afterSha256', 'status', 'redactionStatus'], hashType: 'sha256-or-null-before-capture', runtimeIdentityRequired: true }, legalTransitions: { planned: ['running', 'cancelled', 'stale'], running: ['running', 'paused', 'completed', 'failed', 'cancelled', 'stale'], paused: ['running', 'cancelled', 'stale'], failed: ['running', 'cancelled', 'stale'], cancelled: ['running', 'stale'], stale: ['planned'], completed: ['completed'] }, batchRules: { maxRowsPerBatch: 24, maxConcurrentApplications: 1, maxPollSeconds: 30, maxCaptureBytes: 33554432, cancellation: 'cooperative-and-visible', noOverlapAcrossBatches: true }, runtimeIdentity: EXECUTION_CONTRACT.runtimeIdentity, provenance: { commands: ['git rev-parse --verify {sourceCommit}^{commit}', 'git rev-parse --verify {integratedCommit}^{commit}', 'git merge-base --is-ancestor {sourceCommit} {integratedCommit}', 'git diff --exit-code {sourceCommit}:console/inventories/ui-smoke-inventory.mjs {integratedCommit}:console/inventories/ui-smoke-inventory.mjs'], requireObjectTypeCommit: true, requireAncestry: true }, redaction: REDACTION, receiptSchemas: RECEIPT_SCHEMAS });

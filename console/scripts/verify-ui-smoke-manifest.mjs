@@ -4,10 +4,11 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { DESIGN_BINDING_CENSUS, EXPECTED_FEATURE_COUNT, EXPECTED_ROW_COUNT, EXPECTED_SURFACE_COUNT, FEATURES, LANGUAGE_MODES, PENDING_CONTRACTS, SURFACES, assertSourceInventory } from '../inventories/ui-smoke-inventory.mjs';
+import { loadUiSmokeManifest } from './ui-smoke-manifest-loader.mjs';
 
 const root = resolve(import.meta.dirname, '..', '..');
 const inventoryRoot = resolve(root, 'console/inventories/ui-smoke');
-const manifest = JSON.parse(readFileSync(resolve(inventoryRoot, 'interaction-manifest.json'), 'utf8'));
+const manifest = loadUiSmokeManifest();
 const census = JSON.parse(readFileSync(resolve(inventoryRoot, 'control-census.json'), 'utf8'));
 const surfaceIndex = JSON.parse(readFileSync(resolve(inventoryRoot, 'surface-control-index.json'), 'utf8'));
 const sourceCache = new Map();
@@ -27,9 +28,9 @@ export function validateManifest(value = manifest) {
   const counts = assertSourceInventory();
   if (value.schemaVersion !== 2) fail('schemaVersion must be 2');
   if (!Array.isArray(value.pendingContracts) || value.pendingContracts.length !== 7 || value.pendingContracts.some((contract) => contract.status !== 'pending-implementation' || !contract.reason)) fail('pending implementation contracts drift');
-  if (census.schemaVersion !== 2 || census.uniqueControlCount !== 566 || census.executableControlCount !== 566 || census.excludedControlCount !== 0) fail('exact control census counts drift');
-  if (census.auditReconciliation?.designAuditControlDeclarations !== 479 || census.auditReconciliation?.designAuditControlIds !== 467 || census.auditReconciliation?.priorScreenModelRuntimeIds !== 335 || census.auditReconciliation?.exactParserScreenModelRuntimeIds !== 323 || census.auditReconciliation?.exactParserDynamicRuntimeIds !== 243) fail('design census reconciliation drift');
-  if (surfaceIndex.schemaVersion !== 2 || surfaceIndex.screenModelControlCount !== 323 || surfaceIndex.dynamicRuntimeControlCount !== 243 || surfaceIndex.excludedSourceControlCount !== 0 || !Array.isArray(surfaceIndex.dynamicRuntimeControls) || surfaceIndex.dynamicRuntimeControls.length !== 243) fail('surface control index dynamic reconciliation drift');
+  if (census.schemaVersion !== 2 || census.uniqueControlCount !== 940 || census.executableControlCount !== 940 || census.excludedControlCount !== 0) fail('exact control census counts drift');
+  if (census.auditReconciliation?.designAuditControlDeclarations !== 479 || census.auditReconciliation?.designAuditControlIds !== 467 || census.auditReconciliation?.priorScreenModelRuntimeIds !== 335 || census.auditReconciliation?.exactParserScreenModelRuntimeIds !== 696 || census.auditReconciliation?.exactParserDynamicRuntimeIds !== 244) fail('design census reconciliation drift');
+  if (surfaceIndex.schemaVersion !== 2 || surfaceIndex.screenModelControlCount !== 696 || surfaceIndex.dynamicRuntimeControlCount !== 244 || surfaceIndex.excludedSourceControlCount !== 0 || !Array.isArray(surfaceIndex.dynamicRuntimeControls) || surfaceIndex.dynamicRuntimeControls.length !== 244) fail('surface control index dynamic reconciliation drift');
   const expectedDynamicIds = census.records.filter((record) => record.runtimeUses.some((use) => !use.binding.screenId)).map((record) => record.designId).sort();
   const actualDynamicIds = surfaceIndex.dynamicRuntimeControls.map((record) => record.controlId).sort();
   if (JSON.stringify(expectedDynamicIds) !== JSON.stringify(actualDynamicIds)) fail('surface control index dynamic IDs drift');
@@ -44,11 +45,11 @@ export function validateManifest(value = manifest) {
     }
   }
   if (counts.featureCount !== EXPECTED_FEATURE_COUNT || counts.surfaceCount !== EXPECTED_SURFACE_COUNT) fail('source inventory counts drift');
-  if (value.sourceCounts?.rowCount !== EXPECTED_ROW_COUNT || value.rows?.length !== EXPECTED_ROW_COUNT) fail('row count must remain exactly 10551');
-  if (value.rowFormula?.controlActionCaseCount !== 3294 || value.rowFormula?.languageModeCount !== 3 || value.rowFormula?.controlRows !== 9882 || value.rowFormula?.routeProofRows !== 669 || value.rowFormula?.totalRows !== 10551) fail('row formula drift');
+  if (value.sourceCounts?.rowCount !== EXPECTED_ROW_COUNT || value.rows?.length !== EXPECTED_ROW_COUNT) fail('row count must remain exactly 17127');
+  if (value.rowFormula?.controlActionCaseCount !== 5486 || value.rowFormula?.languageModeCount !== 3 || value.rowFormula?.controlRows !== 16458 || value.rowFormula?.routeProofRows !== 669 || value.rowFormula?.totalRows !== 17127) fail('row formula drift');
   if (value.sourceCounts?.uniqueControlCount !== census.uniqueControlCount) fail('control census count drift');
   if (value.sourceCounts?.controlOccurrenceCount !== census.occurrenceCount || value.sourceCounts?.occurrenceSpecificDuplicateCount !== census.duplicateReconciliation.occurrenceSpecificIds.length) fail('control occurrence reconciliation drift');
-  if (value.sourceCounts?.dynamicRuntimeControlCount !== 243 || surfaceIndex.dynamicRuntimeControlCount !== 243 || surfaceIndex.dynamicRuntimeControls?.length !== 243) fail('dynamic runtime record count drift');
+  if (value.sourceCounts?.dynamicRuntimeControlCount !== 244 || surfaceIndex.dynamicRuntimeControlCount !== 244 || surfaceIndex.dynamicRuntimeControls?.length !== 244) fail('dynamic runtime record count drift');
   if (value.sourceCounts?.languageModeCount !== LANGUAGE_MODES.length) fail('language mode count drift');
   if (value.inventoryDigest !== digest()) fail('canonical inventory digest drift');
   if (value.designBindingCensus?.sourceArchiveSha256 !== DESIGN_BINDING_CENSUS.sourceArchiveSha256) fail('design archive hash drift');

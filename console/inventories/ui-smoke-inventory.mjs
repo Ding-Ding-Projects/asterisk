@@ -11,7 +11,9 @@
 export const INVENTORY_VERSION = 2;
 export const EXPECTED_FEATURE_COUNT = 44;
 export const EXPECTED_SURFACE_COUNT = 143;
-export const EXPECTED_ROW_COUNT = 10551;
+// Re-derived from the current checked-in design/runtime census: 5,486 real
+// action cases across three language modes, plus 669 route/equivalent proofs.
+export const EXPECTED_ROW_COUNT = 17127;
 export const LANGUAGE_MODES = ['en', 'yue', 'both'];
 export const PENDING_CONTRACTS = [
   { id: 'migration', status: 'pending-implementation', reason: 'No implementation commit is present in this repository, so no executable control, route, receipt, or evidence row is claimed.' },
