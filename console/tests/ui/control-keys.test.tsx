@@ -39,7 +39,7 @@ test('every bound screen exists in the generated SCREENS object', () => {
 test('total bound-screen and control counts are what this pass produced', () => {
   const screenCount = Object.keys(CONTROL_BINDINGS).length;
   const controlCount = allBindings().length;
-  assert.equal(controlCount, 311);
+  assert.equal(controlCount, 350);
   // 18 once this rebase landed the Fax screen and the Database backends screen side by
   // side: both independently brought the count from 16 to 17 on their own branch, and
   // rebasing one onto the other's tip -- rather than starting from a shared commit --
@@ -51,7 +51,9 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // plus a named provisioning profile).
   // And four more with the telephony deepening lane: chan_dahdi.conf, sla.conf,
   // dundi.conf and calendar.conf each brought a brand new named screen.
-  assert.equal(screenCount, 25);
+  // And five more with the ops lane's new screens: monitoring, identity, stun, xmpp
+  // and adsi.
+  assert.equal(screenCount, 30);
   // 82 from the first pass, plus a_origin (ami/allowed_origins) and s_failaction
   // (security/failure_action) found on the second look, plus 21 on 2026-08-24: the eight
   // http.conf keys and the thirteen features.conf ones, which brought two whole screens
@@ -176,6 +178,14 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // the write-only secret, sectionFrom-bound through ca_name). 12+13+29+13 = 67 new
   // bindings, read back the same way every earlier total on this page was: trying a
   // deliberately wrong number first and taking whatever this test actually reported.
+  // And 262 with the ops lane's 39 new bindings: 7 on the Monitoring screen
+  // (res_snmp.conf's two, plus five of prometheus.conf's -- auth_password is deliberately
+  // unbound, same reasoning as db_pgpassword above), 23 on Directories & identity
+  // (asterisk.conf's twelve [directories] paths plus eleven [options] fields), 2 on NAT
+  // discovery (res_stun_monitor.conf's whole [general] section), 6 on Messaging
+  // (xmpp.conf's [general] behaviour switches -- the credential-bearing [asterisk]
+  // connection section is left unbound entirely) and 1 on Caller display (adsi.conf's
+  // alignment; greeting is unbound, see the comment on CONTROL_BINDINGS.adsi).
 });
 
 // ---------------------------------------------------------------- boolean parsing

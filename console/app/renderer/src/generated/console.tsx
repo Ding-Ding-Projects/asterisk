@@ -3006,6 +3006,13 @@ const SCREENS = {
       ctl('q_periodic','Periodic announcement every','slider',60,{ min:0, max:600, step:15, unit:'s' }),
       ctl('q_position','Announce position in queue','switch',true)
     ]}] },
+  adsi:{ rail:'pbx', icon:'contact_phone', label:'Caller display (ADSI)', badge:'', title:'Caller display (ADSI)', file:'adsi.conf', kind:'generic',
+    sub:'adsi.conf\'s [intro] section -- the greeting an ADSI-capable analogue phone shows on its own little screen while it starts up. The shipped sample has nothing beyond that one section.',
+    groups:[{ title:'Intro screen', desc:'What an ADSI phone displays before anything else happens.', ctls:[
+      ctl('ad_alignment','alignment','text','',{ placeholder:'center', info:'Left as free text: the sample shows only one value (center) and nothing in this checkout enumerates the others, so a picker here would be a guess.' }),
+      ctl('ad_greeting','Greeting lines','text','',{ placeholder:'Not editable here', info:'adsi.conf repeats a bare "greeting =>" line once per line of the welcome message -- three of them in the sample. This console has no control for an ordered list of repeated lines, so this field is left unbound; edit the greeting => lines directly on the target.' }),
+      ctl('ad_save','Save alignment','segmented','Save',{ options:['Save'], action:'adsi-save', info:'Writes only the alignment field above -- the greeting lines are unbound, see above.' })
+    ]}] },
   voicemail:{ rail:'media', icon:'voicemail', label:'Voicemail', badge:'18', title:'Voicemail boxes', file:'voicemail.conf', kind:'table',
     sub:'Mailboxes, greetings and delivery. Attachment and storage options are switches; nothing about a mailbox needs typing except the owner name.',
     table:{ add:'New mailbox', grid:'90px 1fr 1fr 90px 110px', cols:['Box','Owner','Email','New','Storage'],
@@ -3424,6 +3431,22 @@ const SCREENS = {
       ctl('a_deny','Deny by default','switch',true),
       ctl('a_timeout','Idle timeout','slider',300,{ min:30, max:3600, step:30, unit:'s' })
     ]}] },
+  monitoring:{ rail:'data', icon:'monitoring', label:'Monitoring', badge:'', title:'Monitoring', file:'res_snmp.conf', kind:'generic',
+    sub:'SNMP and Prometheus both let something else on the network learn about this system. res_snmp.conf turns on the SNMP subagent; prometheus.conf turns on the /metrics route res_prometheus serves over Asterisk\'s own HTTP server. Read what each does before switching it on -- widening either widens who can poll this machine.',
+    groups:[{ title:'SNMP', desc:'res_snmp.conf\'s [general] section. The subagent model needs snmpd\'s own agentx already enabled; the standalone model needs Asterisk running as root to bind port 161.', ctls:[
+      ctl('mn_subagent','subagent','switch',true,{ info:'Run as an AgentX subagent under net-snmp\'s snmpd, rather than as a full standalone SNMP agent. Yes is the sample\'s own default.' }),
+      ctl('mn_enabled','enabled','switch',false,{ info:'SNMP stays off, whichever model is chosen above, until this is switched on.' }),
+      ctl('mn_save','Save SNMP settings','segmented','Save',{ options:['Save'], action:'monitoring-snmp-save', info:'Writes the two fields above to res_snmp.conf on the target.' })
+    ]},{ title:'Prometheus', desc:'prometheus.conf\'s [general] section. Scraping still needs Asterisk\'s own HTTP server enabled -- see the HTTP server screen.', ctls:[
+      ctl('pm_enabled','enabled','switch',false,{ info:'Off by default. Turning this on without Basic Auth below lets anything that can reach the HTTP server learn about this system.' }),
+      ctl('pm_core','core_metrics_enabled','switch',true,{ info:'Version, uptime, last reload time and scrape duration. Yes by default.' }),
+      ctl('pm_uri','uri','text','',{ placeholder:'metrics', info:'The HTTP route metrics are served on, under the server\'s own prefix. Defaults to "metrics".' }),
+      ctl('pm_authuser','auth_username','text','',{ placeholder:'Asterisk', info:'Basic Auth username. Providing only this or only the password below fails to load the module -- both or neither.' }),
+      ctl('pm_authpassword','Basic Auth password','text','',{ placeholder:'Type a new password', info:'Write-only: typed here, sent once on Save, and never read back or shown again. prometheus.conf.sample: "; auth_password ="' }),
+      ctl('pm_authpasswordstatus','Password on target','text','Read prometheus.conf to check.',{ action:'monitoring-prometheus-password-status', info:'Whether prometheus.conf currently has an auth_password line -- never what it holds.' }),
+      ctl('pm_authrealm','auth_realm','text','',{ placeholder:'Asterisk Prometheus Metrics', info:'Realm text sent in the Basic Auth challenge.' }),
+      ctl('pm_save','Save Prometheus settings','segmented','Save',{ options:['Save'], action:'monitoring-prometheus-save', info:'Writes every field above (including a typed password) to prometheus.conf on the target.' })
+    ]}] },
   modules:{ rail:'sys', icon:'extension', label:'Modules', badge:'214', title:'Modules', file:'modules.conf', kind:'table',
     sub:'Every loadable module with its live state. Loading and unloading are real actions and run the full confirmation ceremony.',
     table:{ add:'Load module', grid:'1.3fr 1fr 1fr 120px', cols:['Module','Type','Use count','State'],
@@ -3592,6 +3615,54 @@ const SCREENS = {
   },
   cli:{ rail:'sys', icon:'terminal', label:'CLI builder', badge:'', title:'CLI builder', file:'asterisk -rx', kind:'cli',
     sub:'Build a real Asterisk CLI command by choosing its parts. The raw console beside it is read-only output, shown only in expert mode.', groups:[] },
+  identity:{ rail:'sys', icon:'badge', label:'Directories & identity', badge:'', title:'Directories & identity', file:'asterisk.conf', kind:'generic',
+    sub:'asterisk.conf itself: the [directories] stanza most installs never touch, and the [options] settings that name this system, choose its language, and bound how much it will take on.',
+    groups:[{ title:'Directories', desc:'The [directories] stanza. It ships as a template ([directories](!)) that most installs leave alone -- the sample says so on its own first lines -- so this only matters once that has been activated on the target.', ctls:[
+      ctl('as_dircache','astcachedir','text','',{ placeholder:'/var/cache/asterisk' }),
+      ctl('as_diretc','astetcdir','text','',{ placeholder:'/etc/asterisk' }),
+      ctl('as_dirmod','astmoddir','text','',{ placeholder:'/usr/lib/asterisk/modules' }),
+      ctl('as_dirvarlib','astvarlibdir','text','',{ placeholder:'/var/lib/asterisk' }),
+      ctl('as_dirdb','astdbdir','text','',{ placeholder:'/var/lib/asterisk' }),
+      ctl('as_dirkey','astkeydir','text','',{ placeholder:'/var/lib/asterisk' }),
+      ctl('as_dirdata','astdatadir','text','',{ placeholder:'/var/lib/asterisk' }),
+      ctl('as_diragi','astagidir','text','',{ placeholder:'/var/lib/asterisk/agi-bin' }),
+      ctl('as_dirspool','astspooldir','text','',{ placeholder:'/var/spool/asterisk' }),
+      ctl('as_dirrun','astrundir','text','',{ placeholder:'/var/run/asterisk' }),
+      ctl('as_dirlog','astlogdir','text','',{ placeholder:'/var/log/asterisk' }),
+      ctl('as_dirsbin','astsbindir','text','',{ placeholder:'/usr/sbin' })
+    ]},{ title:'System identity', desc:'The [options] section: what this system calls itself, and which language its documentation, CLI and sounds default to.', ctls:[
+      ctl('as_systemname','systemname','text','',{ placeholder:'my_system_name', info:'Prefixes every uniqueid with this, for global uniqueness across more than one system.' }),
+      ctl('as_autosystemname','autosystemname','switch',false,{ info:'Sets systemname to this machine\'s hostname automatically (falling back to "localhost" on failure), or to the typed systemname above if that is also set.' }),
+      ctl('as_entityid','entityid','text','',{ placeholder:'00:11:22:33:44:55', info:'A MAC-address-shaped id, unique between servers, used by DUNDi and by device/mailbox state exchange over XMPP, Corosync and PJSIP.' }),
+      ctl('as_runuser','runuser','text','',{ placeholder:'asterisk' }),
+      ctl('as_rungroup','rungroup','text','',{ placeholder:'asterisk' }),
+      ctl('as_documentation_language','documentation_language','text','',{ placeholder:'en_US', info:'The language the CLI\'s own documentation is shown in. Value is a locale name, matching the sample\'s own live default.' }),
+      ctl('as_defaultlanguage','defaultlanguage','text','',{ placeholder:'en' })
+    ]},{ title:'Capacity', desc:'Also [options]. Limits Asterisk enforces on itself before it starts refusing new calls.', ctls:[
+      ctl('as_maxcalls','maxcalls','stepper',0,{ min:0, max:100000, info:'Zero (the console default) leaves the sample\'s own key untouched until this is raised -- there is no ceiling in the sample itself.' }),
+      ctl('as_maxload','maxload','slider',0,{ min:0, max:10, step:0.1, info:'Asterisk stops accepting new calls once the load average passes this. The sample shows 0.9.' }),
+      ctl('as_maxfiles','maxfiles','stepper',1000,{ min:0, max:1000000 }),
+      ctl('as_minmemfree','minmemfree','stepper',1,{ min:0, max:65536, unit:' MB', info:'Asterisk stops accepting new calls once free memory falls below this.' }),
+      ctl('as_save','Save asterisk.conf settings','segmented','Save',{ options:['Save'], action:'identity-save', info:'Writes every field on this screen to asterisk.conf on the target.' })
+    ]}] },
+  stun:{ rail:'sys', icon:'wifi_tethering', label:'NAT discovery', badge:'', title:'NAT discovery (STUN)', file:'res_stun_monitor.conf', kind:'generic',
+    sub:'res_stun_monitor.conf\'s [general] section: whether Asterisk periodically asks a STUN server for its own public address, and tells chan_iax and the rest of the system when that address changes.',
+    groups:[{ title:'STUN monitor', desc:'Setting an address enables the monitor; the sample\'s own default is disabled.', ctls:[
+      ctl('su_addr','stunaddr','text','',{ placeholder:'mystunserver.com', info:'A hostname or IP, optionally with :port -- the port defaults to 3478. Empty disables the monitor, which is the sample\'s own default.' }),
+      ctl('su_refresh','stunrefresh','stepper',30,{ min:1, max:3600, unit:'s', info:'How often Asterisk re-queries the STUN server. 30 is the sample\'s own default.' }),
+      ctl('su_save','Save STUN settings','segmented','Save',{ options:['Save'], action:'stun-save', info:'Writes the two fields above to res_stun_monitor.conf on the target.' })
+    ]}] },
+  xmpp:{ rail:'sys', icon:'forum', label:'Messaging (XMPP)', badge:'', title:'Messaging (XMPP)', file:'xmpp.conf', kind:'generic',
+    sub:'xmpp.conf\'s [general] section -- behaviour shared by every XMPP connection this system has. Each actual connection (a server, an account, its credentials) is its own named section further down the file, with no control here: a credential-bearing section is exactly what this console refuses to guess a binding for.',
+    groups:[{ title:'General behaviour', desc:'[general], applying to every XMPP connection this system opens.', ctls:[
+      ctl('xm_debug','debug','switch',false,{ info:'Disabled by default.' }),
+      ctl('xm_autoprune','autoprune','switch',false,{ info:'Auto-removes users from the buddy list. Can lose real contacts on a personal account used for testing -- off by default.' }),
+      ctl('xm_autoregister','autoregister','switch',false,{ info:'Auto-registers users found on the buddy list.' }),
+      ctl('xm_collection_nodes','collection_nodes','switch',false,{ info:'XEP-0248 support, used with distributed device state.' }),
+      ctl('xm_pubsub_autocreate','pubsub_autocreate','switch',false,{ info:'Whether this system must explicitly pre-create PubSub nodes before publishing to them, because the server it talks to does not auto-create them.' }),
+      ctl('xm_auth_policy','auth_policy','segmented','accept',{ options:['accept','deny'], info:'accept auto-accepts a user\'s subscription request (the sample\'s own default); deny auto-denies it.' }),
+      ctl('xm_save','Save XMPP settings','segmented','Save',{ options:['Save'], action:'xmpp-save', info:'Writes every field above to xmpp.conf\'s [general] section on the target.' })
+    ]}] },
   memory:{ rail:'agent', icon:'database', label:'Memory console', badge:'2.4k', title:'Memory console', file:'agent global memory', kind:'memory',
     sub:'Search the memory corpus with a visual regex builder, and watch the sync, attestation and emission guard state alongside it.', groups:[] },
   sync:{ rail:'agent', icon:'sync', label:'Sync & attestation', badge:'ok', title:'Sync & attestation', file:'agent-memory-sync', kind:'table',
@@ -3919,7 +3990,7 @@ const DOCS = {
 
 const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','mo_load','g_queue','s_ciphers','s_verify','t_100rel','t_privacy','t_from','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
 
-const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','dahdi','sla','dundi','calendar','canvas','ivr','queues','voicemail','confbridge','moh','sounds','codecs','fax','cdr','ami','modules','logger','httpd','security','dbrealtime','stirshaken','geolocation','phoneprov','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
+const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','dahdi','sla','dundi','calendar','canvas','ivr','queues','adsi','voicemail','confbridge','moh','sounds','codecs','fax','cdr','ami','monitoring','modules','logger','httpd','security','dbrealtime','stirshaken','geolocation','phoneprov','cli','identity','stun','xmpp','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
 
 const GAMES = [
   { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },

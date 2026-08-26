@@ -223,12 +223,25 @@ function measure() {
  * directly against the parsed ConfigValue by onDahdiAddChannel/onDahdiRemoveChannel and
  * onSlaStationTrunkAdd/onSlaStationTrunkRemove.
  *
- * It may rise freely and may not fall. Read back the same way every earlier total on
- * this page was: trying a deliberately wrong value first and taking whatever this test
- * actually reported. */
+ * It may rise freely and may not fall.
+ *
+ * Then a further jump once the ops lane's five screens landed: Monitoring
+ * (res_snmp.conf + prometheus.conf, 11 controls, all working -- the write-only
+ * pm_authpassword is recognised because its id appears quoted in App.tsx's
+ * consumeCredential(...) call, and the three action buttons/status readout via
+ * deliveredByAction), Directories & identity (asterisk.conf, 24 controls, all working),
+ * NAT discovery (res_stun_monitor.conf, 3, all working) and Messaging (xmpp.conf, 7, all
+ * working) are each fully wired. Caller display (adsi.conf, 3) is not: ad_greeting is
+ * deliberately left dead, because adsi.conf repeats a bare "greeting =>" line once per
+ * line of the welcome message and this console has no control for an ordered, unlimited,
+ * free-text list -- see the long comment on CONTROL_BINDINGS.adsi. That is the one control
+ * this pass leaves genuinely unwired, on purpose, which is why the floor and the total are
+ * no longer the same number. Read back the same way every earlier total on this page
+ * was: trying a deliberately wrong value first and taking whatever this test actually
+ * reported. */
 
-const WORKING_FLOOR = 425;
-const TELEPHONY_TOTAL = 425;
+const WORKING_FLOOR = 472;
+const TELEPHONY_TOTAL = 473;
 
 test('an action-delivered control is recognised even though its id never appears as a quoted literal', () => {
   for (const id of [
@@ -281,9 +294,13 @@ test('the number of telephony controls that work does not fall', () => {
 
 test('the floor is raised when the number rises, so it cannot go stale', () => {
   const { working } = measure();
-  /* Every telephony control now works, so the floor and the total are the same number. The
-   * check stays because it is what would notice the day a control is added without being
-   * wired -- the total would rise, the working count would not, and this would go red. */
-  assert.equal(working, TELEPHONY_TOTAL,
-    `${working} of ${TELEPHONY_TOTAL} work. A control was added without being wired, or one was unwired.`);
+  /* The floor and the total were the same number until Caller display (ADSI) landed --
+   * ad_greeting is the one deliberately unwired control on this whole console, left that
+   * way because adsi.conf repeats a bare "greeting =>" line once per line of the welcome
+   * message and nothing here can express an ordered, unlimited, free-text list. So the
+   * gap here is exactly WORKING_FLOOR to TELEPHONY_TOTAL (333 to 334), never more: a
+   * second gap would mean some OTHER control was added without being wired, or one that
+   * used to work stopped. */
+  assert.equal(working, WORKING_FLOOR,
+    `${working} of ${TELEPHONY_TOTAL} work, expected exactly ${WORKING_FLOOR} (only ad_greeting stays dead on purpose).`);
 });

@@ -48,18 +48,22 @@ const strip = (markup: string) => markup.replace(/<[^>]*>/g, ' ').replace(/&#x27
  * (shared line appearances), dundi.conf (distributed dialplan lookup) and calendar.conf
  * (calendars), the roadmap's own "Hardware trunks / Shared line appearances /
  * Distributed dialplan lookup / Calendars" line, none of which had ever had a screen or
- * a real binding before. Read back the same way as every other count on this page: a
- * deliberately wrong number run first, then whatever this test actually reported. */
+ * a real binding before.
+ * And a further jump once the ops lane's five screens landed at once -- Caller display
+ * (ADSI) on the pbx rail, Monitoring on the data rail, and Directories & identity, NAT
+ * discovery and Messaging (XMPP) all on the sys rail. Read back the same way as every
+ * other count on this page: a deliberately wrong number run first, then whatever this
+ * test actually reported. */
 test('the design reference supplies every rail and destination', () => {
-  assert.equal(ORDER.length, 47);
-  assert.equal(destinations.length, 47);
+  assert.equal(ORDER.length, 52);
+  assert.equal(destinations.length, 52);
   assert.deepEqual(rails.map((rail) => rail.id), ['pbx', 'media', 'data', 'sys', 'agent', 'app']);
   assert.deepEqual(
     rails.map((rail) => destinations.filter((destination) => destination.rail === rail.id).length),
-    [15, 6, 2, 8, 7, 9],
+    [16, 6, 3, 11, 7, 9],
   );
   assert.equal(RAIL.length, 6);
-  assert.equal(Object.keys(SCREENS).length, 47);
+  assert.equal(Object.keys(SCREENS).length, 52);
 });
 
 test('the design audit baseline counts survive compilation', () => {

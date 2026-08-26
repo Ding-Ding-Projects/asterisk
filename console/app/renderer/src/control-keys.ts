@@ -1196,6 +1196,77 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     sFrom('db_odbcisolation', 'db_odbcname', 'isolation', 'res_odbc.conf'),  // ;isolation => repeatable_read
     sFrom('db_odbccachetype', 'db_odbcname', 'cache_type', 'res_odbc.conf'),  // ;cache_type => roundrobin
   ],
+  // configs/samples/res_snmp.conf.sample (two keys total, both in [general]) plus
+  // configs/samples/prometheus.conf.sample (also [general], a different file entirely --
+  // every prometheus.conf binding below carries an explicit `file`, the same shape the CDR
+  // screen's cel.conf/cel_odbc.conf/cel_pgsql.conf bindings use for a screen that spans
+  // several files). pm_authpassword and pm_authpasswordstatus carry no binding at all: the
+  // password is write-only, handled the same way db_pgpassword is in App.tsx's
+  // onSaveResPgsql -- read via findConfigEntry/consumeCredential/writeConfigEntry rather
+  // than through this table, so it can never be populated by an ordinary read.
+  monitoring: [
+    b('mn_subagent', 'general', 'subagent'),  // line 16: ;subagent = yes
+    b('mn_enabled', 'general', 'enabled'),  // line 18: ;enabled = yes
+    b('pm_enabled', 'general', 'enabled', undefined, 'prometheus.conf'),  // line 20: enabled = no
+    b('pm_core', 'general', 'core_metrics_enabled', undefined, 'prometheus.conf'),  // line 41: core_metrics_enabled = yes
+    s('pm_uri', 'general', 'uri', 'prometheus.conf'),  // line 46: uri = metrics
+    s('pm_authuser', 'general', 'auth_username', 'prometheus.conf'),  // line 49: ; auth_username = Asterisk
+    s('pm_authrealm', 'general', 'auth_realm', 'prometheus.conf'),  // line 61: ; auth_realm =
+  ],
+  // configs/samples/asterisk.conf.sample. [directories] is a template in the shipped
+  // sample ([directories](!)) that most installs never activate -- see that file's own
+  // first lines -- but a real target that HAS activated it carries a plain [directories]
+  // section this table matches like any other. [options] is the rest.
+  identity: [
+    s('as_dircache', 'directories', 'astcachedir'),  // line 6: astcachedir => /var/cache/asterisk
+    s('as_diretc', 'directories', 'astetcdir'),  // line 7: astetcdir => /etc/asterisk
+    s('as_dirmod', 'directories', 'astmoddir'),  // line 8: astmoddir => /usr/lib/asterisk/modules
+    s('as_dirvarlib', 'directories', 'astvarlibdir'),  // line 9: astvarlibdir => /var/lib/asterisk
+    s('as_dirdb', 'directories', 'astdbdir'),  // line 10: astdbdir => /var/lib/asterisk
+    s('as_dirkey', 'directories', 'astkeydir'),  // line 11: astkeydir => /var/lib/asterisk
+    s('as_dirdata', 'directories', 'astdatadir'),  // line 12: astdatadir => /var/lib/asterisk
+    s('as_diragi', 'directories', 'astagidir'),  // line 13: astagidir => /var/lib/asterisk/agi-bin
+    s('as_dirspool', 'directories', 'astspooldir'),  // line 14: astspooldir => /var/spool/asterisk
+    s('as_dirrun', 'directories', 'astrundir'),  // line 15: astrundir => /var/run/asterisk
+    s('as_dirlog', 'directories', 'astlogdir'),  // line 16: astlogdir => /var/log/asterisk
+    s('as_dirsbin', 'directories', 'astsbindir'),  // line 17: astsbindir => /usr/sbin
+    s('as_systemname', 'options', 'systemname'),  // line 38: ;systemname = my_system_name
+    b('as_autosystemname', 'options', 'autosystemname'),  // line 40: ;autosystemname = yes
+    s('as_entityid', 'options', 'entityid'),  // line 108: ;entityid=00:11:22:33:44:55
+    s('as_runuser', 'options', 'runuser'),  // line 79: ;runuser = asterisk
+    s('as_rungroup', 'options', 'rungroup'),  // line 80: ;rungroup = asterisk
+    s('as_documentation_language', 'options', 'documentation_language'),  // line 87: documentation_language = en_US
+    s('as_defaultlanguage', 'options', 'defaultlanguage'),  // line 86: ;defaultlanguage = en
+    n('as_maxcalls', 'options', 'maxcalls'),  // line 46: ;maxcalls = 10
+    n('as_maxload', 'options', 'maxload'),  // line 47: ;maxload = 0.9
+    n('as_maxfiles', 'options', 'maxfiles'),  // line 49: ;maxfiles = 1000
+    n('as_minmemfree', 'options', 'minmemfree'),  // line 50: ;minmemfree = 1
+  ],
+  // configs/samples/res_stun_monitor.conf.sample -- both keys in [general].
+  stun: [
+    s('su_addr', 'general', 'stunaddr'),  // line 19: ;stunaddr = mystunserver.com
+    n('su_refresh', 'general', 'stunrefresh'),  // line 25: ;stunrefresh = 30
+  ],
+  // configs/samples/xmpp.conf.sample -- [general] only. The [asterisk] connection section
+  // further down the sample mixes address fields with real credentials (secret,
+  // refresh_token, oauth_secret) in one block, exactly the shape this table refuses to
+  // guess a binding for; it is left entirely unbound, same reasoning as ix_secret_set.
+  xmpp: [
+    b('xm_debug', 'general', 'debug'),  // line 2: ;debug=yes
+    b('xm_autoprune', 'general', 'autoprune'),  // line 3: ;autoprune=yes
+    b('xm_autoregister', 'general', 'autoregister'),  // line 6: ;autoregister=yes
+    b('xm_collection_nodes', 'general', 'collection_nodes'),  // line 7: ;collection_nodes=yes
+    b('xm_pubsub_autocreate', 'general', 'pubsub_autocreate'),  // line 9: ;pubsub_autocreate=yes
+    s('xm_auth_policy', 'general', 'auth_policy'),  // line 13: ;auth_policy=accept
+  ],
+  // configs/samples/adsi.conf.sample. Only [intro] exists in the shipped sample.
+  // ad_greeting stays unbound: adsi.conf repeats a bare "greeting =>" line once per line
+  // of the welcome message, and this table has no mechanism for an ordered, unlimited,
+  // untyped multi-line control -- `repeated` exists for one key with many values, not for
+  // free text, so guessing a shape for it would be exactly the guess this table refuses.
+  adsi: [
+    s('ad_alignment', 'intro', 'alignment'),  // line 5: alignment = center
+  ],
 };
 
 function bindingsFor(screen: string): ReadonlyArray<ControlBinding> {
@@ -1635,4 +1706,34 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     'db_sorcerymodule', 'db_sorceryload', 'db_sorceryobjtype', 'db_sorcerywizard',
     'db_sorceryconfig', 'db_sorcerysave', 'db_sorceryremove',
   ],
+  /* res_snmp.conf and prometheus.conf. Every control except pm_authpassword and
+   * pm_authpasswordstatus is bound in CONTROL_BINDINGS.monitoring above; those two carry
+   * no key of their own for the same reason db_pgpassword/db_pgpasswordstatus do not
+   * (see the comment there). mn_save/pm_save are the two Save actions. */
+  monitoring: [
+    'mn_subagent', 'mn_enabled', 'mn_save',
+    'pm_enabled', 'pm_core', 'pm_uri', 'pm_authuser', 'pm_authpassword', 'pm_authpasswordstatus',
+    'pm_authrealm', 'pm_save',
+  ],
+  /* asterisk.conf: [directories] and [options]. Every control is bound in
+   * CONTROL_BINDINGS.identity above; as_save is the one Save action for the whole screen. */
+  identity: [
+    'as_dircache', 'as_diretc', 'as_dirmod', 'as_dirvarlib', 'as_dirdb', 'as_dirkey',
+    'as_dirdata', 'as_diragi', 'as_dirspool', 'as_dirrun', 'as_dirlog', 'as_dirsbin',
+    'as_systemname', 'as_autosystemname', 'as_entityid', 'as_runuser', 'as_rungroup',
+    'as_documentation_language', 'as_defaultlanguage',
+    'as_maxcalls', 'as_maxload', 'as_maxfiles', 'as_minmemfree', 'as_save',
+  ],
+  /* res_stun_monitor.conf. Both fields are bound in CONTROL_BINDINGS.stun above;
+   * su_save is the Save action. */
+  stun: ['su_addr', 'su_refresh', 'su_save'],
+  /* xmpp.conf's [general] section. Every control is bound in CONTROL_BINDINGS.xmpp
+   * above; xm_save is the Save action. */
+  xmpp: [
+    'xm_debug', 'xm_autoprune', 'xm_autoregister', 'xm_collection_nodes',
+    'xm_pubsub_autocreate', 'xm_auth_policy', 'xm_save',
+  ],
+  /* adsi.conf's [intro] section. ad_alignment is bound in CONTROL_BINDINGS.adsi above;
+   * ad_greeting stays unbound (see the comment there) and ad_save is the Save action. */
+  adsi: ['ad_alignment', 'ad_greeting', 'ad_save'],
 };
