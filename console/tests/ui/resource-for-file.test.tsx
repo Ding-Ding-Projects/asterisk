@@ -46,7 +46,7 @@ test('anything that is not a string, or not a .conf, is refused', () => {
   }
 });
 
-test('the screens that declare a label instead of a filename are exactly this one', () => {
+test('no screen declares a compound label instead of a real filename any more', () => {
   /* A pin, not an aspiration. Four screens once declared a display label made of several
    * names joined for the reader -- and each ends in .conf, so the old check accepted it
    * and turned it into a path no target could have. Those screens had never read the
@@ -82,11 +82,24 @@ test('the screens that declare a label instead of a filename are exactly this on
    * either -- it names rtp.conf now (its own real, primary, writable file;
    * asterisk.conf's transcode_via_sln is read separately, the same way logger verbosity
    * is) and reads it. The AMI & REST screen was fixed the same way by a different lane --
-   * see the comment above. One left. */
-  assert.deepEqual(refused, ['trunkauth'],
+   * see the comment above. One left.
+   *
+   * Now zero. Trunk authentication was not a fourth compound label to split into a real
+   * filename, though: its own six controls (ta_auto/ta_expire/ta_notify/ta_mutual/
+   * ta_sign/ta_log) are already a `CONSOLE_SETTINGS` group in App.tsx -- a Ding PBX
+   * Console preference persisted through relaunch, the same shape as the appearance and
+   * notification groups, not an Asterisk key at all. There is no pjsip.conf setting for
+   * how long a partner's request stays pending. So the fix was not to invent a filename
+   * this screen could read -- it genuinely has none -- but to stop CLAIMING one: `file`
+   * is now 'trunk partner requests', which does not end in `.conf` and is refused by
+   * this same declared[] filter before `resourceForFile` is even asked, exactly the way
+   * the Dashboard screen's `file: 'live'` and the Live channels screen's
+   * `file: 'core show channels'` already are. */
+  assert.deepEqual(refused, [],
     'the set of screens naming a label rather than a file has changed; update this pin and say which way');
 
-  /* Every other declaration must resolve, or the rule is refusing something legitimate. */
+  /* Every declaration must resolve now that the last known label is gone, or the rule is
+   * refusing something legitimate. */
   const accepted = declared.filter(([, file]) => resourceForFile(file) !== undefined);
-  assert.ok(accepted.length >= declared.length - 2, 'the rule refused more than the two known labels');
+  assert.equal(accepted.length, declared.length, 'the rule refused a real filename');
 });

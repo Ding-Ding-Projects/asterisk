@@ -39,7 +39,7 @@ test('every bound screen exists in the generated SCREENS object', () => {
 test('total bound-screen and control counts are what this pass produced', () => {
   const screenCount = Object.keys(CONTROL_BINDINGS).length;
   const controlCount = allBindings().length;
-  assert.equal(controlCount, 360);
+  assert.equal(controlCount, 373);
   // 18 once this rebase landed the Fax screen and the Database backends screen side by
   // side: both independently brought the count from 16 to 17 on their own branch, and
   // rebasing one onto the other's tip -- rather than starting from a shared commit --
@@ -196,6 +196,14 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // added no new table ROW: those five bindings already existed, and the screen's new
   // Save buttons and Add-an-API-user fields are read directly by name or delivered by
   // their own design-declared action, neither of which goes through this table.
+  // And 373 with the trunks screen's own thirteen `tk_*` entries -- send_connected_line,
+  // contact_user, from_domain, from_user, media_address, the four T.38 UDPTL keys,
+  // fax_detect, trust_id_outbound, send_rpid and send_diversion, all [endpoint]-typed,
+  // all on `trunk-advanced.ts`'s already-tested module, which had every one of these
+  // checked against pjsip.conf.sample already but had never been given anywhere on
+  // screen to write from until this pass added the design's own "Advanced" group. No
+  // new screen: `trunks` was already in this table for t_retry/t_forbidden/t_fatal/
+  // t_pai/t_100rel, so screenCount stays 30.
 });
 
 // ---------------------------------------------------------------- boolean parsing
@@ -544,8 +552,18 @@ test('unmappedControls returns the real remainder for a bound screen', () => {
 });
 
 test('unmappedControls returns everything for a screen with no bindings at all', () => {
+  /* extensions.conf still has no keyed IVR-behaviour settings of this shape -- an IVR is a
+   * dialplan shape made of exten lines, not key = value pairs -- so CONTROL_BINDINGS.ivr
+   * stays empty and every one of the screen's controls is "unmapped" by this table's own
+   * definition. That is a true statement about pjsip-style key binding, not about whether
+   * the controls do anything: telephony-coverage.test.tsx's `measure()` separately confirms
+   * every one of them is delivered by name or by its own design-declared action, through
+   * `App.tsx`'s `ivrDialplanText`/`onAddIvrKey`/`onAuditionIvrPrompt` and friends. */
   const remainder = unmappedControls('ivr');
-  assert.deepEqual(remainder, ['i_timeout', 'i_retries', 'i_invalid', 'i_direct', 'i_lang', 'i_barge']);
+  assert.deepEqual(remainder, [
+    'i_timeout', 'i_retries', 'i_invalid', 'i_direct', 'i_lang', 'i_barge', 'i_plan',
+    'i_prompt', 'i_audition', 'i_keydigit', 'i_keydest', 'i_keytarget', 'i_keyadd', 'i_keys', 'i_keyremove',
+  ]);
 });
 
 test('a screen this table has no knowledge of says so, rather than answering nothing', () => {

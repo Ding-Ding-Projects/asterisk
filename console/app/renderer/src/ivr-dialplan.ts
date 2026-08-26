@@ -22,6 +22,23 @@
 
 export type InvalidAction = 'Repeat' | 'Operator' | 'Voicemail' | 'Hang up';
 
+/** What pressing a mapped digit does. The first four are the same four shapes
+ *  `InvalidAction` already offers a caller who runs out of retries -- a key map is
+ *  the same kind of routing decision, made per digit instead of on exhaustion. */
+export type KeyDestination = 'Extension' | 'Queue' | 'Voicemail' | 'Operator' | 'Hang up' | 'Repeat menu';
+
+/** One digit's route out of the menu. `target` names where 'Extension', 'Queue' and
+ *  'Voicemail' send the call -- an extension number, a queue name, or a mailbox --
+ *  and is ignored for the other three, which need nowhere to be told. */
+export interface IvrKeyRoute {
+  digit: string;
+  destination: KeyDestination;
+  target?: string;
+}
+
+/** The single characters `WaitExten()` can match a caller's keypress against. */
+export const IVR_DIGITS: ReadonlyArray<string> = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '*', '#'];
+
 export interface IvrDefinition {
   /** The context name. Also what the screen calls this IVR. */
   name: string;
@@ -36,6 +53,21 @@ export interface IvrDefinition {
   language: string;
   /** Whether a keypress interrupts the prompt. */
   allowBargeIn: boolean;
+  /**
+   * The real prompt file this menu plays, from the same prompt library the Sounds
+   * screen manages -- a bare filename such as `welcome-greeting.wav`. `Background`/
+   * `Playback` take a base name with no extension, since Asterisk resolves the real
+   * file for whichever language and format actually apply, so this is stripped
+   * before it reaches the dialplan. Left empty or omitted, the menu falls back to
+   * `<name>-menu`, the placeholder this generator used before any screen could name
+   * a real prompt at all.
+   */
+  promptFile?: string;
+  /** What each pressed digit does. A menu with none still generates -- direct dial and
+   *  the invalid-entry fallback do not depend on having any key mapped -- but a menu
+   *  whose table says it has keys and whose dialplan routes none of them is exactly
+   *  the gap this exists to close. */
+  keys?: ReadonlyArray<IvrKeyRoute>;
 }
 
 export interface DialplanLine {
@@ -47,6 +79,29 @@ export interface DialplanLine {
 /** A context name Asterisk will accept, and that cannot smuggle anything into the file. */
 export function isUsableContextName(name: string): boolean {
   return /^[A-Za-z0-9_-]{1,79}$/u.test(name);
+}
+
+/** An extension, queue name or mailbox a key route can send a caller to -- short
+ *  enough to be a real token, and made only of characters that cannot end a line
+ *  early or start a second one, the same reasoning `isUsableContextName` already
+ *  applies to the context itself. */
+export function isUsableRouteTarget(target: string): boolean {
+  return /^[A-Za-z0-9_-]{1,40}$/u.test(target);
+}
+
+/** A bare prompt filename -- letters, digits, dot, underscore, dash -- matching
+ *  `usableName` in `control-plane/media-library.ts`, the same validation the prompt
+ *  actually has to pass to exist on the target at all. */
+export function isUsablePromptFile(name: string): boolean {
+  return /^[A-Za-z0-9._-]{1,128}$/u.test(name);
+}
+
+/** `Background`/`Playback` take a base name with no extension; Asterisk resolves the
+ *  real file for whichever language and format apply. Strips exactly one trailing
+ *  `.<ext>`, so a name with none is returned unchanged rather than truncated. */
+function promptBaseName(fileName: string): string {
+  const dot = fileName.lastIndexOf('.');
+  return dot > 0 ? fileName.slice(0, dot) : fileName;
 }
 
 const BOUNDS = {
@@ -77,10 +132,31 @@ export function generateIvr(ivr: IvrDefinition): ReadonlyArray<DialplanLine> | {
   if (!/^[a-z]{2}$/u.test(ivr.language)) {
     problems.push({ message: 'The prompt language has to be a two-letter code.' });
   }
+  if (ivr.promptFile !== undefined && ivr.promptFile !== '' && !isUsablePromptFile(ivr.promptFile)) {
+    problems.push({ message: 'The prompt file may use letters, digits, dots, dashes and underscores only.' });
+  }
+  const keys = ivr.keys ?? [];
+  const seenDigits = new Set<string>();
+  for (const route of keys) {
+    if (!IVR_DIGITS.includes(route.digit)) {
+      problems.push({ message: `"${route.digit}" is not a digit a caller can press -- 0-9, * or #.` });
+      continue;
+    }
+    if (seenDigits.has(route.digit)) {
+      problems.push({ message: `Key ${route.digit} is mapped more than once. A caller who presses it can only go one place.` });
+      continue;
+    }
+    seenDigits.add(route.digit);
+    const needsTarget = route.destination === 'Extension' || route.destination === 'Queue' || route.destination === 'Voicemail';
+    if (needsTarget && (!route.target || !isUsableRouteTarget(route.target))) {
+      problems.push({ message: `Key ${route.digit} (${route.destination}) needs a target -- letters, digits, dashes and underscores only.` });
+    }
+  }
   if (problems.length > 0) return { problems };
 
   const lines: DialplanLine[] = [];
   const add = (value: string) => lines.push({ key: 'exten', value });
+  const promptName = ivr.promptFile ? promptBaseName(ivr.promptFile) : ivr.name + '-menu';
 
   /* The entry point. Answer, set the language so every prompt after it is spoken in the
    * right one, then play the menu. */
@@ -96,14 +172,51 @@ export function generateIvr(ivr: IvrDefinition): ReadonlyArray<DialplanLine> | {
    * does not listen, so an IVR that forbids interruption uses that instead -- the difference
    * is the whole setting, and approximating it with a shorter prompt would be a lie. */
   add(ivr.allowBargeIn
-    ? 's,n,Background(' + ivr.name + '-menu)'
-    : 's,n,Playback(' + ivr.name + '-menu)');
+    ? 's,n,Background(' + promptName + ')'
+    : 's,n,Playback(' + promptName + ')');
   add('s,n,WaitExten(' + String(ivr.digitTimeout) + ')');
 
   /* A caller who runs out of retries falls through to whatever the invalid action says. */
   add('i,1,GotoIf($[${TRIES} >= ' + String(ivr.retries) + ']?fallback,1)');
   add('i,n,Goto(s,menu)');
   add('t,1,Goto(i,1)');
+
+  /*
+   * Each mapped key is its own extension in this same context: `WaitExten()` above is
+   * what makes a plain digit like "1" match the caller's keypress against an `exten =>
+   * 1,...` here, the ordinary way a pattern-free extension is reached. One key, one
+   * destination, stated the same way the fallback below states one for running out of
+   * retries -- this is the depth the table's own "Keys" column always implied and the
+   * generator never had until now: previously the only route out of the menu besides
+   * the fallback was direct-dialling an arbitrary extension, and every digit the table
+   * claimed was mapped did nothing at all if pressed.
+   */
+  for (const route of keys) {
+    switch (route.destination) {
+      case 'Extension':
+        add(route.digit + ',1,Goto(from-internal,' + route.target + ',1)');
+        break;
+      case 'Queue':
+        add(route.digit + ',1,Queue(' + route.target + ')');
+        break;
+      case 'Voicemail':
+        add(route.digit + ',1,VoiceMail(' + route.target + ',u)');
+        add(route.digit + ',n,Hangup()');
+        break;
+      case 'Operator':
+        add(route.digit + ',1,Goto(operator,s,1)');
+        break;
+      case 'Hang up':
+        add(route.digit + ',1,Hangup()');
+        break;
+      case 'Repeat menu':
+        add(route.digit + ',1,Set(TRIES=0)');
+        add(route.digit + ',n,Goto(s,menu)');
+        break;
+      default:
+        break;
+    }
+  }
 
   switch (ivr.onInvalid) {
     case 'Repeat':

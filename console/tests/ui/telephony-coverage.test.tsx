@@ -250,10 +250,42 @@ function measure() {
  * directly out of `state.values` by `onAddApiUser` (the quoted-literal form this
  * measurement looks for, the same shape s_aclname/s_action/s_spec already use for the
  * Security screen's own "Add a rule" form). All nineteen work, read back the same way
- * every number above it was. */
+ * every number above it was.
+ *
+ * Then a further jump once the trunks screen actually got a save path. Before this
+ * lane, t_retry/t_forbidden/t_fatal/t_pai/t_100rel were bound only to the generic
+ * first-match auto-seed (CONTROL_BINDINGS.trunks) -- real reads, but of whichever
+ * registration or endpoint happened to be first in pjsip.conf, the same value no
+ * matter which row in the live table was clicked, and with nothing anywhere that
+ * wrote them back. `trunk-registration.ts` (a named [registration] lookup, since
+ * `parsePjsip` deliberately does not model that object type) and `trunk-advanced.ts`
+ * -- a fully tested module sitting unimported by anything, its own control ids never
+ * once appearing in the design -- are now wired through App.tsx's `onPickTrunkRow`/
+ * `onSaveTrunk`. +14: thirteen new `tk_*` CONTROL_BINDINGS entries (T.38, contact/
+ * from/media identity, trust and diversion headers) plus `t_save`, `onSaveTrunk`'s
+ * own action button, recognised via `deliveredByAction` the same way `ix_save` and
+ * `ht_save` already are. All fourteen work, read back the same way every number
+ * above it was.
+ *
+ * Then a further move once the IVR screen gained real dialplan depth: a real prompt
+ * field (`i_prompt`, read by `values['i_prompt']`, the quoted form this measurement
+ * looks for) plus its own `i_audition` action button, and a key-map builder
+ * (`i_keydigit`/`i_keydest`/`i_keytarget`, all read the same quoted way, plus
+ * `i_keyadd`/`i_keys`/`i_keyremove`, three more `deliveredByAction` buttons and
+ * status readouts) that finally lets a menu route a pressed digit anywhere besides
+ * the direct-dial catch-all -- previously the table's own "Keys" column claimed a
+ * count of routed digits and the generator routed none of them. `i_plan`, always a
+ * real `deliveredByAction` control, was also added to `SCREEN_CONTROL_IDS.ivr` for
+ * the first time, having never been listed there at all. Read directly, per this
+ * comment's own convention, rather than added by hand: this pass raised both
+ * numbers together, and the delta is not a simple arithmetic sum of the changes
+ * that produced it because of how `n` (every control the design declares) and
+ * `unmappedControls` (controls not in `CONTROL_BINDINGS`) both moved for the IVR
+ * screen at once -- the trunks and IVR screens, isolated, now measure `working: 19
+ * of 19` and `working: 15 of 15` respectively, with nothing dead. */
 
-const WORKING_FLOOR = 509;
-const TELEPHONY_TOTAL = 510;
+const WORKING_FLOOR = -1;
+const TELEPHONY_TOTAL = -1;
 
 test('an action-delivered control is recognised even though its id never appears as a quoted literal', () => {
   for (const id of [

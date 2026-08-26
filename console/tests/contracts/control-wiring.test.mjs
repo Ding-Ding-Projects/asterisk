@@ -172,8 +172,8 @@ test('the trunk-authentication settings are kept, since no file holds them', () 
   /* These looked like configuration and were counted as unbound for it. They are not
    * Asterisk settings at all -- there is no pjsip.conf key for "auto-approve a low-risk
    * partner request" -- so they belong where the console's other preferences live. The
-   * screen's own file field admits it: "pjsip.conf · partner requests", and the second half
-   * of that is not a file. */
+   * screen's own file field admits it: "trunk partner requests", which is not a filename
+   * at all -- see resource-for-file.test.tsx. */
   const app = readFileSync(new URL('../../app/renderer/src/App.tsx', import.meta.url), 'utf8');
   for (const id of ['ta_auto', 'ta_expire', 'ta_notify', 'ta_mutual', 'ta_sign', 'ta_log']) {
     assert.ok(app.includes(`'${id}'`), `${id} is not named in App, so nothing keeps it`);
@@ -210,4 +210,27 @@ test('every IVR control reaches the dialplan generator', () => {
   assert.match(app, /if \(action === 'ivr-dialplan'\)/, 'nothing answers the preview');
   const design = readFileSync(new URL('../../../design/Asterisk Console M3.dc.html', import.meta.url), 'utf8');
   assert.match(design, /action:'ivr-dialplan'/, 'the screen has no preview to read');
+});
+
+test('the IVR prompt field and key map reach real objects, not just the preview text', () => {
+  /* The table's own "Keys" column always claimed a count of routed digits, and until this
+   * pass the generator routed none of them -- the only way out of the menu besides the
+   * invalid-entry fallback was direct-dialling an arbitrary extension. And the prompt was a
+   * bare name in the table with no field anywhere that could set or verify it. */
+  const app = readFileSync(new URL('../../app/renderer/src/App.tsx', import.meta.url), 'utf8');
+  for (const id of ['i_prompt', 'i_keydigit', 'i_keydest', 'i_keytarget']) {
+    assert.ok(app.includes(`'${id}'`), `${id} does not reach the generator`);
+  }
+  assert.match(app, /keys: this\.ivrKeys/, 'the key map never reaches the generated definition');
+  assert.match(app, /promptFile: /, 'the prompt field never reaches the generated definition');
+  for (const action of ['ivr-key-add', 'ivr-key-remove', 'ivr-audition', 'ivr-keys-status']) {
+    assert.ok(app.includes(`'${action}'`), `onControlAction should handle '${action}'`);
+  }
+  /* Auditioning a prompt plays a real file off the target, the same path the Sounds
+   * screen's own rows already use -- never a second, parallel playback mechanism. */
+  assert.match(app, /await this\.onAuditionPromptRow\(name\)/, 'the IVR prompt is not auditioned through the real prompt library');
+  const design = readFileSync(new URL('../../../design/Asterisk Console M3.dc.html', import.meta.url), 'utf8');
+  for (const action of ['ivr-key-add', 'ivr-key-remove', 'ivr-audition']) {
+    assert.match(design, new RegExp(`action:'${action}'`), `the design never declares ${action}`);
+  }
 });

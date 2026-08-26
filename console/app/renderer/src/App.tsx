@@ -66,6 +66,13 @@ import {
   findPeer as findIaxPeer, IAX_CONTROLS, iaxDocument,
 } from './iax-peers';
 import {
+  applyControlValues as applyTrunkControlValues, controlValuesFor as trunkControlValuesFor,
+  trunkDocument,
+} from './trunk-advanced';
+import {
+  applyRegistrationControlValues, controlValuesForRegistration, findRegistration, registeredEndpointName,
+} from './trunk-registration';
+import {
   clearVocabulary, loadVocabularyFile, vocabularyStatus, type VocabularyStorage,
 } from './personal-vocabulary';
 import { createDurableStorage, type DurableStorageHandle } from './durable-storage';
@@ -116,7 +123,10 @@ import {
   type PaletteEntry, type PaletteMatch,
 } from './command-palette';
 import { runHostAction, type HostActionKind, type HostActionRequest } from './host-actions';
-import { generateIvr, renderDialplan, type InvalidAction, type IvrDefinition } from './ivr-dialplan';
+import {
+  generateIvr, isUsableRouteTarget, renderDialplan,
+  type InvalidAction, type IvrDefinition, type IvrKeyRoute, type KeyDestination,
+} from './ivr-dialplan';
 import { applyResponse, isRejected, MIN_REFRESH_MS } from './external-settings-sources';
 import {
   buildSource, loadSources, saveSources, sourcesStatusLine,
@@ -609,9 +619,12 @@ export class App extends Base {
    *
    * They looked like configuration and were counted as unbound for it, but there is no key
    * in pjsip.conf for "auto-approve a low-risk partner request" -- that is this console's
-   * workflow, and the screen's file field says so: "pjsip.conf · partner requests", where the
-   * second half is not a file. Quoted for the same reason as the attention ids above: the
-   * wiring contract greps for each id as a literal.
+   * workflow, and the screen's file field says so: "trunk partner requests", which does not
+   * end in ".conf" and is refused by resourceForFile the same way the Dashboard's "live" and
+   * Live channels' "core show channels" already are (it used to read "pjsip.conf · partner
+   * requests", a real filename with a second half glued on, which resourceForFile also
+   * refused, but for the wrong reason -- see resource-for-file.test.tsx). Quoted for the same
+   * reason as the attention ids above: the wiring contract greps for each id as a literal.
    */
   /**
    * Settings that belong to this console rather than to Asterisk, grouped by subject.
@@ -2499,12 +2512,84 @@ What you can do: ${offered}.` : ''}`);
       allowDirectDial: values['i_direct'] !== false,
       language: typeof values['i_lang'] === 'string' ? values['i_lang'] : 'en',
       allowBargeIn: values['i_barge'] !== false,
+      /* Quoted for the same reason as i_invalid above. */
+      promptFile: typeof values['i_prompt'] === 'string' ? values['i_prompt'] : '',
+      keys: this.ivrKeys,
     };
     const generated = generateIvr(definition);
     if ('problems' in generated) {
       return `This cannot be generated yet: ${generated.problems.map((p) => p.message).join(' ')}`;
     }
     return renderDialplan(definition.name, generated);
+  }
+
+  /**
+   * The key map the IVR form currently describes -- not bound to any pjsip.conf-style
+   * key, the same reasoning every other control on this screen already carries, and
+   * held here rather than in `state.values` because it is a genuine ordered list, not
+   * a single scalar `readControlValues` shape can carry.
+   */
+  private ivrKeys: IvrKeyRoute[] = [];
+
+  /** Whether this destination needs somewhere to send the caller -- the same three
+   *  `generateIvr` itself requires a target for. Kept beside it rather than imported,
+   *  since a form field disabling itself before Save is the useful moment for this,
+   *  and `generateIvr`'s own check exists to catch what slips past it. */
+  private static readonly IVR_KEY_TARGETS: ReadonlySet<KeyDestination> = new Set(['Extension', 'Queue', 'Voicemail']);
+
+  /** Read by the compiled `text`-kind control marked `action:'ivr-keys-status'`. */
+  private ivrKeysStatus(): string {
+    if (this.ivrKeys.length === 0) return 'No keys mapped yet.';
+    return this.ivrKeys
+      .map((route) => `${route.digit} → ${route.destination}${route.target ? ` (${route.target})` : ''}`)
+      .join(', ');
+  }
+
+  /** "Add this key": reads i_keydigit/i_keydest/i_keytarget, validates the same way
+   *  `generateIvr` itself would refuse an unusable one, and either appends a new
+   *  mapping or replaces the existing one for that digit -- so pressing Add again for
+   *  a digit already mapped is how a key's destination is changed, not a second,
+   *  silently-ignored route for the same keypress. */
+  private onAddIvrKey(): void {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const digit = String(values['i_keydigit'] ?? '');
+    const destination = String(values['i_keydest'] ?? '') as KeyDestination;
+    const target = String(values['i_keytarget'] ?? '').trim();
+    if (App.IVR_KEY_TARGETS.has(destination) && !isUsableRouteTarget(target)) {
+      this.fire('Not added', `${destination} needs a target -- letters, digits, dashes and underscores only.`);
+      return;
+    }
+    const route: IvrKeyRoute = App.IVR_KEY_TARGETS.has(destination) ? { digit, destination, target } : { digit, destination };
+    const next = this.ivrKeys.filter((existing) => existing.digit !== digit);
+    next.push(route);
+    this.ivrKeys = next;
+    this.toast(`Key ${digit} now sends the caller to ${destination}${route.target ? ` (${route.target})` : ''}.`);
+    this.forceUpdate();
+  }
+
+  /** "Remove the digit above": takes whatever i_keydigit currently names out of the
+   *  key map, if it is mapped at all. */
+  private onRemoveIvrKey(): void {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const digit = String(values['i_keydigit'] ?? '');
+    if (!this.ivrKeys.some((route) => route.digit === digit)) {
+      this.toast(`Key ${digit} is not mapped, so there is nothing to remove.`);
+      return;
+    }
+    this.ivrKeys = this.ivrKeys.filter((route) => route.digit !== digit);
+    this.toast(`Key ${digit} no longer routes anywhere -- a caller who presses it falls through to "On invalid entry".`);
+    this.forceUpdate();
+  }
+
+  /** "Audition this prompt": plays i_prompt's exact filename off the connected
+   *  target, through the same read-and-play path the Sounds screen's own rows use
+   *  (`onAuditionPromptRow`) -- so this menu's prompt can be verified before it is
+   *  ever written into a dialplan, instead of being a name typed and hoped for. */
+  private async onAuditionIvrPrompt(): Promise<void> {
+    const values = (this.state as { values: Record<string, unknown> }).values;
+    const name = String(values['i_prompt'] ?? '').trim();
+    if (!name) { this.fire('Not auditioned', 'Type a prompt filename first, e.g. welcome-greeting.wav.'); return; }
+    await this.onAuditionPromptRow(name);
   }
 
   /**
@@ -3244,6 +3329,7 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'logo-status') return this.logoStatusLine;
     if (action === 'deploy-status') return this.deployStatusLine();
     if (action === 'ivr-dialplan') return this.ivrDialplanText();
+    if (action === 'ivr-keys-status') return this.ivrKeysStatus();
     if (action === 'vocab-status') return vocabularyStatus(this.vocabStorage).status;
     if (action === 'cdr-status') return this.cdrBackendStatus();
     if (action === 'cel-status') return this.celBackendStatus();
@@ -3361,6 +3447,10 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'fcodes-save') { void this.onSaveFeatureCodes(); return; }
     if (action === 'fcodes-parking-save') { void this.onSaveFeatureCodesParking(); return; }
     if (action === 'iaxpeers-save') { void this.onSaveIaxPeer(); return; }
+    if (action === 'trunk-save') { void this.onSaveTrunk(); return; }
+    if (action === 'ivr-key-add') { this.onAddIvrKey(); return; }
+    if (action === 'ivr-key-remove') { this.onRemoveIvrKey(); return; }
+    if (action === 'ivr-audition') { void this.onAuditionIvrPrompt(); return; }
     if (action === 'dahdi-save-general') { void this.onSaveDahdiGeneral(); return; }
     if (action === 'dahdi-add-channel') { void this.onDahdiAddChannel(); return; }
     if (action === 'dahdi-remove-channel') { void this.onDahdiRemoveChannel(); return; }
@@ -3608,6 +3698,18 @@ What you can do: ${offered}.` : ''}`);
    *  the same role `editingEndpoint` plays for pjsip.conf, above. */
   private editingIaxPeer = '';
 
+  /** The [registration] section the trunks screen's retry-policy controls are
+   *  currently showing -- the trunks table's own row name, per `onPickTrunkRow`. */
+  private editingTrunkRegistration = '';
+
+  /** The endpoint paired with `editingTrunkRegistration`, when one was found --
+   *  `registeredEndpointName`'s result, resolved once at load time so Save writes
+   *  the outbound-identity and advanced fields back onto the same endpoint they
+   *  were read from even if the registration's own `endpoint=` line changes before
+   *  Save runs. Empty when the row's registration named no reachable endpoint at
+   *  all -- see `onPickTrunkRow`. */
+  private editingTrunkEndpoint = '';
+
   /** The target's real pjsip.conf, or undefined when it has not been read. */
   private pjsipValue(): ConfigValue | undefined {
     return this.configs.endpoints?.state === 'read' ? this.configs.endpoints.value : undefined;
@@ -3619,6 +3721,15 @@ What you can do: ${offered}.` : ''}`);
    *  is open -- nothing extra to wire up here. */
   private iaxValue(): ConfigValue | undefined {
     return this.configs.iaxpeers?.state === 'read' ? this.configs.iaxpeers.value : undefined;
+  }
+
+  /** The target's real pjsip.conf as read for the trunks screen specifically.
+   *  `endpoints` and `trunks` both declare `file: 'pjsip.conf'` in the design, and the
+   *  generic per-screen read in `refresh()` keys its cache by screen name rather than
+   *  by resource -- so a target visited only through Trunks never populates
+   *  `this.configs.endpoints`, and `pjsipValue()` above would silently see nothing. */
+  private trunksPjsipValue(): ConfigValue | undefined {
+    return this.configs.trunks?.state === 'read' ? this.configs.trunks.value : undefined;
   }
 
   /**
@@ -3638,6 +3749,10 @@ What you can do: ${offered}.` : ''}`);
      * carry a CLI-appended "/<username>" the peers reader already strips, so this is a
      * real iax.conf section name -- see `onPickIaxPeerRow`. */
     if ((this.state as { screen: string }).screen === 'iaxpeers') { this.onPickIaxPeerRow(name); return; }
+    /* The trunks table's rows are `pjsip show registrations` merged with `iax2 show
+     * registry` (readings.ts registrationRows), so a row is either a PJSIP
+     * registration or an IAX2 one -- this screen's controls only reach the former. */
+    if ((this.state as { screen: string }).screen === 'trunks') { this.onPickTrunkRow(name); return; }
     const value = this.pjsipValue();
     if (!value) { this.fire('Not loaded', 'The pjsip.conf on this target has not been read yet.'); return; }
     const endpoint = findEndpoint(value, name);
@@ -3674,6 +3789,36 @@ What you can do: ${offered}.` : ''}`);
       values: { ...state.values, ...iaxControlValuesFor(peer), [IAX_CONTROLS.setNewSecret]: false },
     } as never);
     this.toast(`${name} loaded into the editor below.`);
+  }
+
+  /**
+   * The trunks table's own row-pick: loads a named PJSIP registration's retry policy
+   * (t_retry/t_forbidden/t_fatal, `trunk-registration.ts`) and, when a paired endpoint
+   * can be found, that endpoint's outbound-identity and advanced fields too
+   * (`trunk-advanced.ts`) -- the same combined load `onSaveTrunk` below writes back.
+   *
+   * An IAX2 row in this live table has no PJSIP registration by that name at all;
+   * that is reported plainly rather than as though the row's own read had failed.
+   */
+  private onPickTrunkRow(name: string): void {
+    const value = this.trunksPjsipValue();
+    if (!value) { this.fire('Not loaded', 'The pjsip.conf on this target has not been read yet.'); return; }
+    const registration = findRegistration(value, name);
+    if (!registration) {
+      this.fire('Not loaded', `${name} is not a PJSIP registration in this target's pjsip.conf -- IAX2 trunks have their own editor on the IAX peers screen.`);
+      return;
+    }
+    this.editingTrunkRegistration = name;
+    const state = this.state as { values: Record<string, unknown> };
+    let values: Record<string, unknown> = { ...state.values, ...controlValuesForRegistration(registration) };
+    const endpointName = registeredEndpointName(registration);
+    const endpoint = findEndpoint(value, endpointName);
+    this.editingTrunkEndpoint = endpoint ? endpointName : '';
+    if (endpoint) values = { ...values, ...trunkControlValuesFor(endpoint) };
+    this.setState({ values } as never);
+    this.toast(endpoint
+      ? `${name} loaded into the editor below, with its ${endpointName} endpoint.`
+      : `${name} loaded into the editor below. No paired endpoint was found, so outbound identity and advanced fields are unchanged.`);
   }
 
   /** Loads one ACL rule's action and network into the "Add a rule" fields, so changing
@@ -5303,6 +5448,47 @@ It is shown once. The phone needs it to register.`);
 
 It is shown once. The far end needs it to register.`);
     }
+  };
+
+  /**
+   * Writes the trunks screen's currently-loaded registration and, when one was found
+   * at load time (`onPickTrunkRow`), its paired endpoint's outbound-identity and
+   * advanced fields -- that load, run in reverse.
+   *
+   * The registration write runs first because `applyRegistrationControlValues`
+   * (`trunk-registration.ts`) works directly on the raw pjsip.conf value. The
+   * endpoint write, when there is one, then re-parses THAT already-edited value
+   * through `applyTrunkControlValues` (`trunk-advanced.ts`, itself `parsePjsip` plus
+   * `toConfigValuePjsip`) -- `toConfigValuePjsip` only ever rewrites the endpoint/
+   * auth/aor trio it recognizes by name and passes every other section through
+   * untouched, so the registration section this just wrote survives the second pass
+   * exactly as it was left by the first.
+   */
+  onSaveTrunk = async (): Promise<void> => {
+    const value = this.trunksPjsipValue();
+    if (!value || !this.editingTrunkRegistration) { this.fire('Nothing to save', 'Select a trunk first.'); return; }
+    const name = this.editingTrunkRegistration;
+    const state = this.state as { values: Record<string, unknown> };
+    const resource = this.configs.trunks?.resource ?? (resourceForFile('pjsip.conf') as string);
+    const registrationEdit = applyRegistrationControlValues(value, name, state.values);
+    let next = registrationEdit.value;
+    let summary = [...registrationEdit.summary];
+    let warnings: string[] = [];
+    if (this.editingTrunkEndpoint) {
+      const endpointEdit = applyTrunkControlValues(next, this.editingTrunkEndpoint, state.values);
+      if ('error' in endpointEdit) { this.fire('Not saved', endpointEdit.error); return; }
+      if (endpointEdit.summary.length > 0) {
+        next = trunkDocument(endpointEdit, resource).value;
+        summary = [...summary, ...endpointEdit.summary];
+      }
+      warnings = endpointEdit.warnings;
+    }
+    if (summary.length === 0) { this.toast('Nothing changed, so nothing was written.'); return; }
+    const applied = await this.writeConfigResource(resource, next, summary.join('\n'), `${name} updated`, () => {
+      delete this.configs.trunks; this.seeded.delete('trunks');
+      delete this.configs.endpoints; this.seeded.delete('endpoints');
+    });
+    if (applied && warnings.length > 0) this.toast(warnings.join(' '));
   };
 
   // ---------------------------------------------------------------- Hardware trunks (DAHDI) screen
