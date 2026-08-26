@@ -451,8 +451,11 @@ test('every emoji in site/app.js is a declared decoration, so none is spliced in
  * ------------------------------------------------------------------ */
 
 test('a new message box is decorated as it is built, not only on the next applyState', () => {
-  const line = app.split('\n').find((l) => /^\s*function notify\(title,body\)\{/u.test(l));
-  assert.ok(line, 'notify(title,body) was not found as a single source line');
+  /* The signature gained a third argument on 2026-08-26, when the spoken narrator gave
+   * every notification explicit per-language words to read. The decoration this test is
+   * about is unchanged. */
+  const line = app.split('\n').find((l) => /^\s*function notify\(title,body,narration\)\{/u.test(l));
+  assert.ok(line, 'notify(title,body,narration) was not found as a single source line');
   assert.match(line, /setDialogDecoration\(toast,messageBoxGlyph\(\)\)/u,
     'notify no longer decorates the message box it just built');
   assert.match(line, /<div class="toast-text">/u,

@@ -35,15 +35,17 @@ test('every published page carries a live-region toast surface', () => {
 });
 
 test('notify() appends a toast to that region and auto-dismisses it -- it never blocks', () => {
-  const line = app.split('\n').find((l) => /^\s*function notify\(title,body\)\{/.test(l));
-  assert.ok(line, 'notify(title,body) was not found as a single source line');
+  /* The signature gained a third argument on 2026-08-26 -- the words the spoken
+   * narrator reads -- and the non-blocking behaviour below is unchanged. */
+  const line = app.split('\n').find((l) => /^\s*function notify\(title,body,narration\)\{/.test(l));
+  assert.ok(line, 'notify(title,body,narration) was not found as a single source line');
   assert.match(line, /region\.append\(toast\)/u, 'notify no longer appends into the toast region');
   assert.match(line, /setTimeout\(\(\)=>toast\.remove\(\),/u, 'notify no longer auto-dismisses the toast on a timer');
   assert.doesNotMatch(line, /confirm\(|alert\(/u, 'notify now uses a blocking browser dialog primitive');
 });
 
 test('extended-timeout users get a longer auto-dismiss window rather than the same fixed timer for everyone', () => {
-  const line = app.split('\n').find((l) => /^\s*function notify\(title,body\)\{/.test(l));
+  const line = app.split('\n').find((l) => /^\s*function notify\(title,body,narration\)\{/.test(l));
   assert.match(line, /state\.attention\.extendedTimeouts\?15000:5000/u,
     'notify no longer varies its dismiss timeout for the extended-timeouts accessibility setting');
 });

@@ -33,9 +33,13 @@
       "files": []
     },
     "narration": {
-      "state": "absent",
-      "note": "No TTS narrator, voice picker, or spoken-event queue was found in site/app.js.",
-      "files": []
+      "state": "implemented",
+      "note": "Built on 2026-08-26. site/settings.html carries an ACCESSIBILITY card (#narration-enabled, #narration-language, #narration-voice-en, #narration-voice-zh, #narration-rate, #narration-pitch) with a funny-level description (data-copy=\"narrationDesc\") and one live status line per narrated language. site/app.js holds state.narration (DEFAULTS enabled:false, so it is silent for anyone who never switches it on), NARRATION_TRACKS, NARRATION_CATEGORIES with a per-category cooldown, narrationGate() as the single pure decision about whether a line is spoken, a serialized queue in pumpNarration() so two utterances never overlap and 'Both' means English then Cantonese, and applyNarration() called from applyState(). Voice pickers are populated from the voices this browser actually reports, default to 'Choose automatically' rather than a named voice, store the stable voiceURI rather than the display name, keep a chosen voice that is not installed here instead of resetting it, and are repopulated on the late 'voiceschanged' event. Narrated text never passes through applyVocabularyText: narrationTextFor() reads copyLevel(), the per-language copy before vocabulary substitution, because a voice whose localService is false synthesises on a remote service and would carry a private replacement off this computer -- the status line says so when the effective voice is network-backed. A rejected personal-vocabulary file is the one rejection whose reason is shown and never spoken, for the same reason. Low stimulation silences the narrator live, errors included; a browser cannot detect a running screen reader, and the card says so rather than implying it ducks under one.",
+      "files": [
+        "site/app.js",
+        "site/settings.html",
+        "site/styles.css"
+      ]
     },
     "scheduled-settings": {
       "state": "partial",

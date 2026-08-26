@@ -76,13 +76,17 @@ const cases = [
 
   // The control is on the page and connected to nothing. This is the defect this
   // repository has shipped most often, and it is invisible from the markup.
+  /* The anchor gained a neighbour on 2026-08-26, when initNarration() was wired into
+   * initSettings beside this call. It moved because this script's own did-the-bytes-
+   * change check reported the break as a FAILED CASE rather than letting an edit that
+   * never landed read as a guard that held. */
   ['nothing calls initDisplayName(), so the field and the reset button are inert',
-    swap(APP, 'initDisplayName();$(\'logo-file\')', '$(\'logo-file\')')],
+    swap(APP, 'initDisplayName();initNarration();', 'initNarration();')],
 
   // Commented out rather than deleted, because that is how a wiring line usually dies --
   // and because a bare substring needle is satisfied by the comment.
   ['the initDisplayName() call is commented out rather than removed',
-    swap(APP, 'initDisplayName();$(\'logo-file\')', '/*initDisplayName();*/$(\'logo-file\')')],
+    swap(APP, 'initDisplayName();initNarration();', '/*initDisplayName();*/initNarration();')],
 
   // One brand line renamed and the other left alone: the header changes, the footer does
   // not, and a screenshot of the top of the page looks perfect.
@@ -155,8 +159,8 @@ const cases = [
   // Reset settings clears the chosen name without saying so, which is the "silently
   // skipping" defect applied to a destructive gate.
   ['the reset gate stops naming the display name among the things it clears',
-    swap(SETTINGS, 'text size, the display name you chose, the dialog emoji switch, uploaded logo',
-      'text size, the dialog emoji switch, uploaded logo')],
+    swap(SETTINGS, 'text size, the display name you chose, the dialog emoji switch, the spoken-narration switch',
+      'text size, the dialog emoji switch, the spoken-narration switch')],
 
   // The card stops being findable from the settings search.
   ['the card loses its settings-search terms',

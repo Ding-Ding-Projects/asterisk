@@ -617,6 +617,14 @@ body.attn-focus .topbar:hover,body.attn-focus .topbar:focus-within,body.attn-foc
 .notice-body{flex:1;min-width:0}
 
 .setting-card-stack{flex-direction:column;align-items:stretch;gap:14px}
+/* The narration card is a stack of labelled controls rather than one switch, so its
+   labels have to read as labels: without this they inherit the card's body colour and
+   sit indistinguishably against the status sentences between them. The range rows
+   keep their slider from collapsing when a label shares the row with it. */
+.setting-card-stack label[for^="narration-"]{color:var(--muted-2);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}
+.setting-card-stack .range-row label[for^="narration-"]{flex:0 0 auto}
+.setting-card-stack .range-row input[type="range"]{flex:1 1 auto;min-width:0}
+.setting-note{margin:0;color:var(--muted-2);font-size:.82rem}
 .colour-translate{display:flex;flex-direction:column;gap:10px}
 .colour-translate .search-composite{width:100%}
 .colour-translate-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
