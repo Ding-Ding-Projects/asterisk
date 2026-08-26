@@ -684,9 +684,15 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     b('q_position', 'general', 'announce-position'),
   ],
 
-  // configs/samples/voicemail.conf.sample — all ten controls are documented under
-  // [general] (some noted "per-mailbox only", still shown there as the general-level
-  // default in the sample).
+  // configs/samples/voicemail.conf.sample — all ten original controls are documented
+  // under [general] (some noted "per-mailbox only", still shown there as the
+  // general-level default in the sample). v_save is a pure action button with no key of
+  // its own, recognised by telephony-coverage.test.tsx's `deliveredByAction`, the same
+  // shape as d_save/l_save on the CDR/CEL screen.
+  //
+  // The storage-backend and greeting-management controls below were added in the same
+  // pass that gave this screen its first Save action at all -- ten bound fields with no
+  // write path, undetected because nothing on this screen had ever been saved before.
   voicemail: [
     b('v_attach', 'general', 'attach'),
     b('v_delete', 'general', 'delete'),
@@ -698,6 +704,26 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     b('v_operator', 'general', 'operator'),
     b('v_envelope', 'general', 'envelope'),
     b('v_saycid', 'general', 'saycid'),
+    // voicemail.conf.sample line 155: ;odbcstorage = voicemail.
+    s('v_odbcstorage', 'general', 'odbcstorage'),
+    // voicemail.conf.sample line 166: ;odbctable = voicemail_messages.
+    s('v_odbctable', 'general', 'odbctable'),
+    // voicemail.conf.sample line 219: ; odbc_audio_on_disk = no.
+    b('v_odbcaudiodisk', 'general', 'odbc_audio_on_disk'),
+    // voicemail.conf.sample line 288: ;imapgreetings=no.
+    b('v_imapgreetings', 'general', 'imapgreetings'),
+    // voicemail.conf.sample line 291: ;greetingsfolder=INBOX.
+    s('v_greetingsfolder', 'general', 'greetingsfolder'),
+    // voicemail.conf.sample line 299: ;imapserver=localhost.
+    s('v_imapserver', 'general', 'imapserver'),
+    // voicemail.conf.sample line 300: ;imapport=143.
+    n('v_imapport', 'general', 'imapport'),
+    // voicemail.conf.sample line 58: ;maxgreet=60.
+    n('v_maxgreet', 'general', 'maxgreet'),
+    // voicemail.conf.sample line 396: ; forcegreetings=no.
+    b('v_forcegreetings', 'general', 'forcegreetings'),
+    // voicemail.conf.sample line 400: ; tempgreetwarn=yes.
+    b('v_tempgreetwarn', 'general', 'tempgreetwarn'),
   ],
 
   // configs/samples/confbridge.conf.sample — [default_bridge] template (~line 181) and
@@ -826,37 +852,53 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     s('l_papp', 'global', 'appname', 'cel_pgsql.conf'),
   ],
 
-  // configs/samples/manager.conf.sample — [general] (the only section header the
-  // sample declares; the read/write example at ~line 330 sits textually under it).
-  // configs/samples/http.conf.sample — [general]. configs/samples/ari.conf.sample —
-  // [general] (~line 1), which shares this screen's synthetic 'general' section
-  // safely: none of its own keys collide by name with manager.conf's or http.conf's.
+  // This screen's declared `file` is manager.conf.sample — [general] (the only section
+  // header the sample declares; the read/write example at ~line 330 sits textually
+  // under it, and is exactly what a_read/a_write bind to below). The screen also reaches
+  // two more files, exactly the way the Security screen reaches pjsip.conf and
+  // stir_shaken.conf besides its own acl.conf: http.conf.sample — [general], which is
+  // where the HTTP server ARI and the built-in websockets actually ride on lives — and
+  // ari.conf.sample — [general] (~line 1), for cross-origin access.
+  //
+  // Two keys were bound to the WRONG file before this pass, undetected because this
+  // screen's `file` was the compound label 'manager.conf · ari.conf · http.conf' and so
+  // had never actually been read from a real target: a_port ('Bind port', default 8088)
+  // was bound to manager.conf, which has no `bindport` key at all (it uses a plain
+  // `port` for the AMI TCP socket, manager.conf.sample line 25 — a different setting
+  // entirely, not bound here since this screen's "Bind port" is documented and shown as
+  // the HTTP server's port). a_tlsport (default 8089) was bound to manager.conf's own
+  // `tlsbindaddr` (line 34, default port 5039) even though the design's own default
+  // value is http.conf's port, not manager.conf's. Both now point at http.conf, which is
+  // where their documented sample defaults actually come from.
   // a_origin ("Allowed origins", a chip list) binds to ari.conf.sample's
-  // `;allowed_origins=` (~line 5) — a second look found this; the first pass checked
-  // only http.conf.sample, which genuinely has no CORS key, and missed that ari.conf
-  // is one of this screen's declared files and does have one. a_tlsport (a discrete
-  // numeric port) stays unmapped: http.conf.sample's only TLS bind setting is
-  // `;tlsbindaddr=0.0.0.0:8089` (~line 89), a combined address:port string with no
-  // separate port key this table's kinds can address without guessing where the colon
-  // falls. a_deny is unmapped because the real `deny=` key takes a CIDR string, not a
-  // boolean.
+  // `;allowed_origins=` (line 5) — http.conf.sample genuinely has no CORS key.
   ami: [
     // manager.conf.sample line 97: ;deny=0.0.0.0/0.0.0.0 -- denying by default is the LINE
     // existing, not a yes or a no, so the off state removes it. Writing deny=no would be a
     // line Asterisk tries to read as a network.
     { control: 'a_deny', section: 'general', key: 'deny', kind: 'boolean',
       presence: { whenPresent: '0.0.0.0/0.0.0.0' } },
-    // manager.conf.sample line 34: ;tlsbindaddr=0.0.0.0:5039 -- address and port in one
-    // value, the same shape as http.conf, so the port owns its half and leaves the address.
+    // http.conf.sample line 88: ;tlsbindaddr=0.0.0.0:8089 -- address and port in one
+    // value; the port owns its half and leaves the address. Not manager.conf's own
+    // tlsbindaddr (line 34) -- see the long comment above for why.
     { control: 'a_tlsport', section: 'general', key: 'tlsbindaddr', kind: 'number',
-      composite: { separator: ':', part: 'after' } },
-    b('a_http', 'general', 'enabled'),
-    n('a_port', 'general', 'bindport'),
-    b('a_tls', 'general', 'tlsenable'),
+      composite: { separator: ':', part: 'after' }, file: 'http.conf' },
+    // http.conf.sample line 29: ;enabled=yes.
+    b('a_http', 'general', 'enabled', undefined, 'http.conf'),
+    // http.conf.sample line 39: ;bindport=8088.
+    n('a_port', 'general', 'bindport', 'http.conf'),
+    // http.conf.sample line 87: ;tlsenable=yes.
+    b('a_tls', 'general', 'tlsenable', undefined, 'http.conf'),
+    // manager.conf.sample line 330: ;read = system,call,log,verbose,agent,user,config,
+    // dtmf,reporting,cdr,dialplan.
     l('a_read', 'general', 'read'),
+    // manager.conf.sample line 331: ;write = system,call,agent,user,config,command,
+    // reporting,originate,message.
     l('a_write', 'general', 'write'),
+    // manager.conf.sample line 76: ;httptimeout = 60.
     n('a_timeout', 'general', 'httptimeout'),
-    l('a_origin', 'general', 'allowed_origins'),
+    // ari.conf.sample line 5: ;allowed_origins =.
+    l('a_origin', 'general', 'allowed_origins', 'ari.conf'),
   ],
 
   // configs/samples/modules.conf.sample. main/loader.c's own loader_config_init reads
@@ -1600,7 +1642,10 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
   ],
   voicemail: [
     'v_attach', 'v_delete', 'v_format', 'v_maxmsg', 'v_maxsecs', 'v_minsecs',
-    'v_review', 'v_operator', 'v_envelope', 'v_saycid',
+    'v_review', 'v_operator', 'v_envelope', 'v_saycid', 'v_save',
+    'v_odbcstorage', 'v_odbctable', 'v_odbcaudiodisk', 'v_imapgreetings',
+    'v_greetingsfolder', 'v_imapserver', 'v_imapport', 'v_storagesave',
+    'v_maxgreet', 'v_forcegreetings', 'v_tempgreetwarn', 'v_greetsave',
   ],
   confbridge: [
     'c_rate', 'c_mixing', 'c_video', 'c_denoise', 'c_jitter', 'c_talker',
@@ -1644,7 +1689,17 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     'l_oshow', 'l_octx', 'l_oload', 'l_oconn', 'l_otable', 'l_osave',
     'l_pshow', 'l_pgmtime', 'l_phost', 'l_pport', 'l_pdb', 'l_puser', 'l_ptable', 'l_pschema', 'l_papp', 'l_psave',
   ],
-  ami: ['a_http', 'a_port', 'a_tls', 'a_tlsport', 'a_origin', 'a_read', 'a_write', 'a_deny', 'a_timeout'],
+  /* manager.conf's own Manager users editor (a_mgrsave) adds a named-section CRUD group
+   * the same shape as IAX peers and the SLA trunk/station editors: am_interface names
+   * the section, am_username/am_secret/am_readonly are its fields, read and written
+   * directly in App.tsx rather than through CONTROL_BINDINGS. a_httpsave is http.conf's
+   * own one-shot Save button, recognised via `deliveredByAction` the same way ht_save
+   * already is. */
+  ami: [
+    'a_http', 'a_port', 'a_tls', 'a_tlsport', 'a_origin', 'a_httpsave',
+    'a_read', 'a_write', 'a_deny', 'a_timeout', 'a_mgrsave',
+    'am_interface', 'am_username', 'am_secret', 'am_readonly',
+  ],
   /* modules.conf, all bound as `repeated: true` lists (see CONTROL_BINDINGS.modules
    * above for why); mo_save is the screen's one Save button, a pure action with no key
    * of its own. */

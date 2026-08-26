@@ -238,10 +238,22 @@ function measure() {
  * this pass leaves genuinely unwired, on purpose, which is why the floor and the total are
  * no longer the same number. Read back the same way every earlier total on this page
  * was: trying a deliberately wrong value first and taking whatever this test actually
- * reported. */
+ * reported.
+ *
+ * Then a further jump with the Voicemail and AMI & REST deepening lane. Voicemail
+ * gained thirteen: ten new CONTROL_BINDINGS entries (the storage-backend and
+ * greeting-management fields) plus v_save/v_storagesave/v_greetsave, three one-shot
+ * Save buttons recognised via `deliveredByAction` -- this screen had ten already-bound
+ * fields and, before this lane, no write path of any kind. AMI & REST gained six:
+ * a_httpsave/a_mgrsave, two more `deliveredByAction` buttons, plus am_interface/
+ * am_username/am_secret/am_readonly, the Add-an-API-user form's own fields, read
+ * directly out of `state.values` by `onAddApiUser` (the quoted-literal form this
+ * measurement looks for, the same shape s_aclname/s_action/s_spec already use for the
+ * Security screen's own "Add a rule" form). All nineteen work, read back the same way
+ * every number above it was. */
 
-const WORKING_FLOOR = 472;
-const TELEPHONY_TOTAL = 473;
+const WORKING_FLOOR = 491;
+const TELEPHONY_TOTAL = 492;
 
 test('an action-delivered control is recognised even though its id never appears as a quoted literal', () => {
   for (const id of [

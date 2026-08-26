@@ -39,7 +39,7 @@ test('every bound screen exists in the generated SCREENS object', () => {
 test('total bound-screen and control counts are what this pass produced', () => {
   const screenCount = Object.keys(CONTROL_BINDINGS).length;
   const controlCount = allBindings().length;
-  assert.equal(controlCount, 350);
+  assert.equal(controlCount, 360);
   // 18 once this rebase landed the Fax screen and the Database backends screen side by
   // side: both independently brought the count from 16 to 17 on their own branch, and
   // rebasing one onto the other's tip -- rather than starting from a shared commit --
@@ -186,6 +186,16 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // (xmpp.conf's [general] behaviour switches -- the credential-bearing [asterisk]
   // connection section is left unbound entirely) and 1 on Caller display (adsi.conf's
   // alignment; greeting is unbound, see the comment on CONTROL_BINDINGS.adsi).
+  // And a further jump with the Voicemail screen's storage-backend and
+  // greeting-management gap: ten new voicemail.conf [general] keys, all plainly bound
+  // (this screen's own declared `file`, no override needed) -- three ODBC storage keys,
+  // four IMAP storage keys, and three greeting-policy keys. The AMI & REST screen's own
+  // fix landed in the same pass (its `file` moved off the compound
+  // 'manager.conf · ari.conf · http.conf' label that had kept it from reading anything,
+  // and a_http/a_port/a_tls/a_tlsport moved from a wrong binding to the right one) but
+  // added no new table ROW: those five bindings already existed, and the screen's new
+  // Save buttons and Add-an-API-user fields are read directly by name or delivered by
+  // their own design-declared action, neither of which goes through this table.
 });
 
 // ---------------------------------------------------------------- boolean parsing
@@ -553,11 +563,14 @@ test('a screen this table has no knowledge of says so, rather than answering not
 
 test('a_origin reads ari.conf.sample allowed_origins as a comma-separated list', () => {
   // configs/samples/ari.conf.sample [general] ~line 5: ";allowed_origins =  ; Comma
-  // separated list of allowed origins, for Cross-Origin Resource Sharing."
+  // separated list of allowed origins, for Cross-Origin Resource Sharing." The screen's
+  // own declared `file` is manager.conf, so a_origin carries an explicit `file:
+  // 'ari.conf'` override and is read out of `elsewhere['ari.conf']`, the same shape
+  // s_privkey/s_certurl already use for stir_shaken.conf on the Security screen.
   const cfg: ConfigValue = [
     { name: 'general', entries: [{ key: 'allowed_origins', value: 'https://console.local,https://ops.example' }] },
   ];
-  const values = readControlValues('ami', cfg);
+  const values = readControlValues('ami', [], { 'ari.conf': cfg });
   assert.deepEqual(values.a_origin, ['https://console.local', 'https://ops.example']);
 });
 
