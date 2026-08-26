@@ -9,11 +9,17 @@
  * it read through, and an overlay capped in height with hidden overflow
  * deletes content past the cap with no scrollbar to say so.
  *
- * NOTHING IMPORTS IT YET: no surface in the renderer opens a popover, menu, or
- * tooltip through this module -- confirmed by grepping App.tsx and finding no
- * import. It constrains nothing that ships today, and real consumption would
- * mean the compiled design's own menu/dropdown rendering calling it, which is
- * generated code out of scope for hand-editing.
+ * CONSUMED as of 2026-08-25. The compiled design's own context menu sets its
+ * position with raw `left:${ctxX}; top:${ctxY}` (`console.tsx`) and no bound
+ * against the window anywhere -- every click handler that opens it sets
+ * `ctxX`/`ctxY` together, as a plain `${clientX}px`/`${clientY}px` pair, in
+ * one `setState` call. App.tsx cannot hand-edit that generated file, so it
+ * reaches this module instead by overriding `setState` itself
+ * (`boundedOverlaySetState`) and clamping that one pair through
+ * `computeOverlayPlacement` before the compiled shell's real `setState` ever
+ * sees it. `lockX`/`lockY` and `regexX`/`regexY` copy `ctxX`/`ctxY` the moment
+ * they open, so they inherit the clamp for free; `showInfo`'s own
+ * click-anchored call site is clamped the same way at its existing wrapper.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -36,10 +42,19 @@ test('the registry row is internally honest: a defined state with a note explain
   assert.ok(typeof row.note === 'string' && row.note.length > 40, 'no note explaining what is and is not wired');
 });
 
-test('nothing in App.tsx imports bounded-overlays.ts -- it constrains nothing that ships today', () => {
+test('App.tsx imports bounded-overlays.ts and reaches computeOverlayPlacement from a real call site', () => {
   const app = read(APP);
-  assert.doesNotMatch(app, /from '\.\/bounded-overlays'/u,
-    'App.tsx now imports bounded-overlays.ts -- a real popover/menu/tooltip may now use it, which would flip this row');
+  assert.match(app, /from '\.\/bounded-overlays'/u, 'App.tsx no longer imports bounded-overlays.ts');
+  assert.match(app, /computeOverlayPlacement\(/u, 'App.tsx no longer calls computeOverlayPlacement');
+});
+
+test('setState is overridden so a click-opened context menu is clamped before the compiled shell ever sees it', () => {
+  const app = read(APP);
+  assert.match(app, /this\.setState = this\.boundedOverlaySetState/u,
+    'App.tsx no longer shadows setState with the clamping wrapper');
+  assert.match(app, /boundedOverlaySetState = \(update: Record<string, unknown>\): void => \{/u,
+    'boundedOverlaySetState no longer exists');
+  assert.match(app, /update\.ctxX/u, 'the override no longer looks at ctxX -- the one key every context-menu open sets');
 });
 
 test('computeOverlayPlacement returns position, constrained size, scroll need, and anchor side', () => {
