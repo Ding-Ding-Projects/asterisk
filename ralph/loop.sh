@@ -24,9 +24,15 @@ set -uo pipefail
 
 MAX=0
 DRY_RUN=0
+# Generous rather than tight. A real roadmap item can legitimately take half an hour --
+# lanes in this repository have run 20 to 35 minutes and been perfectly healthy -- so this
+# is a backstop against a stall, not a performance budget. Killing a working agent to
+# enforce a deadline would cost far more than the stall it prevents.
+AGENT_TIMEOUT="${RALPH_AGENT_TIMEOUT:-90m}"
 while [ $# -gt 0 ]; do
   case "$1" in
     --max)     MAX="${2:?--max needs a number}"; shift 2 ;;
+    --timeout) AGENT_TIMEOUT="${2:?--timeout needs a duration, e.g. 45m}"; shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
     -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
@@ -115,9 +121,33 @@ while :; do
   # tool surface stays bounded even though PROMPT.md's prohibitions are what actually
   # govern behaviour. Verified before shipping -- with the allowlist a probe agent wrote a
   # file; without it, nothing.
-  ( cd "$REPO_ROOT" && "$AGENT" -p --allowedTools "Bash,Read,Write,Edit,Glob,Grep,NotebookEdit" < "$PROMPT_FILE" ) 2>&1 | tee "$log"
-  agent_exit="${PIPESTATUS[0]}"
+  # Bounded, and NOT through a pipe. Both halves of that matter, and the second is the
+  # one that actually bit.
+  #
+  # Observed 2026-08-25: iteration 7 sat for 48 minutes having written zero bytes, while
+  # the loop looked perfectly healthy from outside -- a live shell, a live `tee`, a log
+  # file with a plausible name. The agent process itself was already gone. What was still
+  # alive was `tee`, holding the read end of a pipe whose write end an orphaned descendant
+  # of the agent had inherited and never closed, so EOF never arrived and the pipeline
+  # never completed. Killing `tee` did not release it either; the loop had to be killed.
+  #
+  # So the redirect goes straight to the file. There is no `tee` left to wait on an EOF
+  # that is never coming, and an orphan holding the descriptor keeps a file open rather
+  # than stalling the loop. The live-output convenience is not worth a silent stall: the
+  # loop prints its own per-iteration progress, and the log is on disk either way.
+  #
+  # `timeout` bounds the agent itself, with a follow-up signal for one that ignores the
+  # first. An uncapped loop calling an uncapped command can hang all night and the only
+  # visible symptom is a count that stops moving, which is exactly what happened.
+  ( cd "$REPO_ROOT" && timeout --kill-after=60s "$AGENT_TIMEOUT" \
+      "$AGENT" -p --allowedTools "Bash,Read,Write,Edit,Glob,Grep,NotebookEdit" < "$PROMPT_FILE" ) > "$log" 2>&1
+  agent_exit=$?
   echo "EXIT=$agent_exit" >> "$log"
+  # 124 is timeout's own "it did not finish in time". Say so plainly rather than letting
+  # it read as an ordinary agent failure, because the two need different responses.
+  if [ "$agent_exit" -eq 124 ] || [ "$agent_exit" -eq 137 ]; then
+    printf '    the agent hit the %s timeout and was stopped; see %s\n' "$AGENT_TIMEOUT" "$log"
+  fi
 
   after="$(open_count)"
   if [ "$after" -ge "$before" ]; then
