@@ -105,7 +105,19 @@ test('no screen declares a compound label instead of a real filename any more', 
    * and `sounds` already use for screens with no single `pbx.config` resource behind
    * them -- so this refusal is correct, not a gap: nothing here should ever try to read
    * '/etc/asterisk/extensions.conf · astagidir' as a literal path. */
-  assert.deepEqual(refused, ['PLACEHOLDER'],
+  /* And now one again, but a DIFFERENT one, which is the point of keeping this pin rather
+   * than retiring it. The trunk-authorisation screen was fixed -- it declared
+   * 'pjsip.conf . partner requests' and now declares no configuration file at all, which is
+   * honest, because it never had a single one to name. The list did not empty, though: the
+   * same wave that fixed it introduced a fresh instance, the AGI screen, declaring
+   * 'extensions.conf . astagidir'. Two files joined for a reader, ending in .conf, accepted
+   * by any check that only looks at the suffix -- exactly the shape this guard was written
+   * for, arriving new five months into the list shrinking.
+   *
+   * That is worth saying plainly: this defect is not a backlog being worked down, it is a
+   * shape people keep reaching for. Retiring the guard the moment the list hit zero would
+   * have let this one through on the very next merge. */
+  assert.deepEqual(refused, ['agiscripts'],
     'the set of screens naming a label rather than a file has changed; update this pin and say which way');
 
   /* Every declaration besides the pinned refusals above must resolve, or the rule is
