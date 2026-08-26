@@ -663,6 +663,23 @@ body.attn-focus .topbar:hover,body.attn-focus .topbar:focus-within,body.attn-foc
 .dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
 #reset-confirm-slider:disabled{opacity:.4;cursor:not-allowed}
 
+/* Long-operation progress. The bar is a real determinate <progress>, never an
+   indeterminate sweep: an animation that runs whatever is happening is the spinner
+   this surface exists to replace, and it is also motion nobody asked for. The
+   sentence under it carries the same counts in words, so the report survives both a
+   screen reader and a reduced-motion preference without losing anything. */
+.operation-progress{margin:14px 0}
+.operation-progress label{display:block;font-size:.82rem;color:var(--muted-2);margin-bottom:6px}
+.operation-progress progress{width:100%;height:10px;border-radius:999px;overflow:hidden}
+.operation-progress progress::-webkit-progress-bar{background:var(--surface-2);border-radius:999px}
+.operation-progress progress::-webkit-progress-value{background:var(--primary);border-radius:999px}
+.operation-progress progress::-moz-progress-bar{background:var(--primary)}
+#export-everything-progress-text{margin:8px 0 0;font-size:.82rem;color:var(--muted-2)}
+.operation-optional{margin:12px 0;display:flex;flex-direction:column;gap:6px}
+.operation-optional[hidden]{display:none}
+#export-everything-decline:empty{display:none}
+#export-everything-disabled-reason:empty,#export-everything-reentry:empty{display:none}
+
 /* Local history panel. */
 .history-list{max-height:50vh;overflow:auto;margin-top:14px}
 .history-entry{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px;border-bottom:1px solid var(--outline-variant)}

@@ -65,9 +65,10 @@ function copyTable() {
 
 test('the COPY table defines a genuine four-level voice for both languages, on every key', () => {
   const table = copyTable();
-  /* Last moved on 2026-08-26, 16 -> 18, when the right-click menu landed with a
-   * `contextMenuHint` footer and a `contextMenuNoMatch` empty state; the same day it had
-   * moved 15 -> 16 when the settings page gained its published-
+  /* Last moved on 2026-08-26, 18 -> 19, when the Export everything dialog landed with an
+   * `exportEverythingDesc` description; the same day it had moved 16 -> 18 for the
+   * right-click menu's `contextMenuHint` footer and `contextMenuNoMatch` empty state, and
+   * 15 -> 16 when the settings page gained its published-
    * version watch and with it an `updatesDesc` description; earlier the same day it had
    * moved 14 -> 15 for the restricted presentation's `schoolDesc`, 13 -> 14 for the
    * spoken narrator, and 10 -> 11, 11 -> 12 and 12 -> 13 for the display-name,
@@ -78,8 +79,8 @@ test('the COPY table defines a genuine four-level voice for both languages, on e
    * the feature they describe is switched on -- that mode forces English -- and they are
    * required all the same, because the card is read by somebody deciding whether to turn
    * it on, which is a state in which every language mode is still available. */
-  assert.equal(Object.keys(table).length, 18,
-    `expected exactly 18 COPY keys, found ${Object.keys(table).length} -- update this pin if a message was deliberately added or removed`);
+  assert.equal(Object.keys(table).length, 19,
+    `expected exactly 19 COPY keys, found ${Object.keys(table).length} -- update this pin if a message was deliberately added or removed`);
   for (const [key, counts] of Object.entries(table)) {
     assert.equal(counts.enCount, 4, `${key}: expected 4 English funny-level variants (Plain/Mild/Playful/Maximum), found ${counts.enCount}`);
     assert.equal(counts.zhCount, 4, `${key}: expected 4 Cantonese funny-level variants, found ${counts.zhCount}`);
@@ -149,11 +150,14 @@ test('the funny sliders reach only a small, explicitly wired subset of the six p
   /* This is the fact that makes "partial" the honest classification rather than
    * "implemented": the mechanism above is real, but only these six strings in the
    * whole site actually have a data-copy hook attached to them. The set last grew on
-   * 2026-08-26, twice in one day: the settings page's restricted-presentation card and
-   * then its published-version watch, each built with its description wired to the
-   * sliders from the start, as the narration, changelog, dialog-emoji and display-name
-   * cards had been earlier the same day. Nine of sixteen keys is still nowhere near the
-   * whole page, so the classification does not change.
+   * 2026-08-26, three times in one day: the settings page's restricted-presentation
+   * card, then its published-version watch, then the Export everything dialog, each
+   * built with its description wired to the sliders from the start, as the narration,
+   * changelog, dialog-emoji and display-name cards had been earlier the same day. Ten
+   * of nineteen keys is still nowhere near the whole page, so the classification does
+   * not change. The two the right-click menu added the same day are not markup hooks at
+   * all -- that menu is built at run time and reads its copy through copyText() -- which
+   * is why the key count moved by two and this list did not.
    *
    * Worth saying beside this list, because it is the one place the reach deliberately
    * STOPS rather than merely not having got there yet: the changelog entries the new
@@ -162,8 +166,8 @@ test('the funny sliders reach only a small, explicitly wired subset of the six p
   const html = pageText();
   const wiredKeys = new Set([...html.matchAll(/data-copy="(\w+)"/g)].map((m) => m[1]));
   assert.deepEqual([...wiredKeys].sort(),
-    ['changelogDesc', 'dialogEmojisDesc', 'displayNameDesc', 'heroLede', 'motionDesc', 'narrationDesc',
-      'schoolDesc', 'themeDesc', 'updatesDesc'],
+    ['changelogDesc', 'dialogEmojisDesc', 'displayNameDesc', 'exportEverythingDesc', 'heroLede',
+      'motionDesc', 'narrationDesc', 'schoolDesc', 'themeDesc', 'updatesDesc'],
     'the set of markup-wired funny-level strings changed -- if it grew, the "partial" classification may need revisiting');
   const totalKeys = Object.keys(copyTable()).length;
   assert.ok(wiredKeys.size < totalKeys,

@@ -49,6 +49,11 @@ const DECORATED_IDS = [
   'notifications-dialog',
   'history-dialog',
   'reset-confirm-dialog',
+  /* Joined on 2026-08-26 with the Export everything dialog. A new dialog that did
+   * not join this list would be the one surface on the site the switch quietly does
+   * not reach, which is exactly the silent gap the "every dialog" wording exists to
+   * refuse -- so the arrival of a dialog is meant to move this list. */
+  'export-everything-dialog',
   'notif-confirm',
 ];
 

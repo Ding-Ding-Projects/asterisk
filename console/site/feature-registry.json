@@ -271,9 +271,13 @@
       ]
     },
     "long-operation-progress": {
-      "state": "absent",
-      "note": "The only progress-shaped code found is a decorative counter-animation easing function (line 967), not a real operation-progress report inside a start dialog.",
-      "files": []
+      "state": "implemented",
+      "note": "The Export everything dialog runs a real multi-unit operation and reports it. A unit is one record set (local settings, the destination catalogue, notification history, local settings history, and the changelog); planExportEverything decides the whole run before it starts, so the plan shown and the work done cannot disagree. Progress is a determinate <progress> whose max is the units this run will actually write, plus a sentence carrying the same counts in words, the unit currently being written and, on a run stopped early, the files already written. The Start control is disabled for the whole run AND runExportEverything refuses re-entry and counts the refusals, because a keyboard submit walks straight past a disabled button. The changelog is the expensive optional phase: it is the only unbounded record set here, its checkbox is shown only when it actually has rows, and its decline sentence says what leaving it out costs. Cancelling lands between units and never inside one, so a cancelled run names the files it already wrote rather than claiming nothing happened. Everything is local: exportRows produces text and download() writes it, and no request is made.",
+      "files": [
+        "site/app.js",
+        "site/settings.html",
+        "site/styles.css"
+      ]
     },
     "in-context-recovery": {
       "state": "absent",
