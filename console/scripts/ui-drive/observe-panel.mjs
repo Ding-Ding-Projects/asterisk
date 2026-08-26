@@ -17,15 +17,27 @@
  * `tests/scripts/panel-observation.test.mjs` reads them off the compiled shell:
  *
  *   1. The compiled shell -- 6,277 lines and effectively the whole console interface --
- *      declares ZERO `role` attributes and ZERO `aria-*` attributes. Across the entire
- *      renderer there are exactly four roles, two `alert` and two `status`, and NO
- *      `role="dialog"` anywhere at all. So a selector for `role=dialog` matches nothing in
- *      this application under any state, and `getAttribute('aria-label')` is null on every
- *      control the shell renders. `drive.mjs` counted dialogs that way and read
- *      `aria-label || textContent` as its control name: the first was structurally always
- *      zero and the second always fell through to `textContent`. Six `aria-label`s do exist
- *      in the hand-written components outside the shell, which is why the reader below
- *      still prefers one where it is there.
+ *      declares ZERO `role` attributes and ZERO `aria-*` attributes, so
+ *      `getAttribute('aria-label')` is null on every control the shell renders and
+ *      `drive.mjs`'s `aria-label || textContent` name always fell through to `textContent`.
+ *      Six `aria-label`s do exist in the hand-written components outside the shell, which is
+ *      why the reader below still prefers one where it is there.
+ *
+ *      CORRECTED, 2026-08-26. This paragraph used to continue "and NO `role="dialog"`
+ *      anywhere at all, so a selector for `role=dialog` matches nothing in this application
+ *      under any state". That was false, and false about the surface it mattered most for.
+ *      The command palette's card carries `role: 'dialog'` (`App.tsx`, on `.palette-card`),
+ *      and every one of the twenty-five empty records was driven THROUGH the palette. The
+ *      test guarding the claim could not see it: its needle was the JSX spelling
+ *      `role="dialog"` while this renderer is hyperscript and writes `role: 'dialog'`, so it
+ *      reported absence and had never once looked. Measured against the packaged build in
+ *      `release/evidence/ui-drive/command-palette-reading.json`: the dialog-role count is 0
+ *      before the chord, 1 while the palette is up, and 0 again after a result is activated.
+ *      The z-index scan below stays, for a reason that is now stated rather than assumed --
+ *      one element in one state is not a reader, and a driver that reached for the role would
+ *      be blind on every other screen. `.palette-card` is neither positioned nor z-indexed,
+ *      so the scan finds the `.palette-scrim` that WRAPS it: honest, and coarse, because the
+ *      controls found are the card's while the rectangle reported is the whole viewport.
  *
  *   2. The shell renders 175 `<span class="msym">` Material Symbols ligature spans, and
  *      an icon-bearing control puts its icon span BEFORE its label. So `textContent` on
@@ -92,11 +104,28 @@ export function stripLigaturePrefix(text) {
  * in the regex builder's header. The very last resort is the icon's own ligature name, and
  * it is reported as such rather than passed off as a label, so a record carrying
  * `source: "icon"` says plainly that the control had no readable name at all.
+ *
+ * `segments` exists because the first real reading taken with this harness came back with a
+ * command-palette row named `"languageHardware trunks - Signalling & routing"`. `textContent`
+ * concatenates adjacent element children with nothing between them, and a palette row is two
+ * top-level spans -- its label and the context it sits in -- with no whitespace in the markup
+ * to separate them. That is the ligature hazard again in a second shape: the reading is not
+ * missing, it is two different fields glued into one word, which reads as a broken label and
+ * can never match a name a person wrote down. So the browser hands back the top-level runs and
+ * the joining happens here, where it is a pure function with a test rather than a `textContent`
+ * whose behaviour has to be remembered. Top-level only: descending further would start putting
+ * spaces inside words that a component split across spans for styling.
  */
 export function readControlLabel(reading) {
   const pick = (value) => (typeof value === 'string' ? value.trim() : '');
   const ariaLabel = pick(reading?.ariaLabel);
   if (ariaLabel) return { label: ariaLabel, source: 'aria-label' };
+  const segments = Array.isArray(reading?.segments)
+    ? reading.segments.map(pick).filter((segment) => segment.length > 0)
+    : [];
+  /* Capped at the same 80 characters the browser side caps `textWithoutIcons` at, so the two
+   * paths cannot produce labels of different lengths for the same control. */
+  if (segments.length > 0) return { label: segments.join(' ').slice(0, 80), source: 'text' };
   const text = pick(reading?.textWithoutIcons);
   if (text) return { label: text, source: 'text' };
   const title = pick(reading?.title);
@@ -229,6 +258,12 @@ export const CONTROL_READING_SOURCE = `((el) => {
   const iconEl = el.querySelector('.msym');
   return {
     ariaLabel: el.getAttribute('aria-label'),
+    /* The top-level runs, kept apart. \`textContent\` would glue a control's two spans into
+     * one word with nothing between them; the joining happens in Node, in readControlLabel. */
+    segments: [...clone.childNodes]
+      .map((node) => (node.textContent || '').replace(/\\s+/g, ' ').trim())
+      .filter((segment) => segment.length > 0)
+      .slice(0, 8),
     textWithoutIcons: (clone.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 80),
     title: el.getAttribute('title'),
     icon: iconEl ? (iconEl.textContent || '').trim() : '',
@@ -252,10 +287,14 @@ export const CLICKABLE_SELECTOR = 'button, [role=tab], input[type=checkbox], sel
 /**
  * How many overlays are currently up, as a browser-side expression.
  *
- * Replaces the dialog-role count, which this application can never satisfy: it renders no
- * element carrying that role anywhere, so the reading was zero on every screen whether a
- * panel was open or not, and a driver refusing to capture "while a dialog is up" was in
- * fact never refusing anything.
+ * Replaces the dialog-role count, and the reason is narrower than the one first written here.
+ * That reason said the application renders no element carrying the role anywhere, so the
+ * count was always zero; the palette card carries it, so the count is one while the palette
+ * is up. The real objection is that ONE surface out of a dozen declares it. Every other
+ * overlay this console raises -- the wizard, the info sheet, context menus, the appearance
+ * drawer, the lock and unlock sheets, the confirmation gate, the colour picker, the regex
+ * builder -- declares no role at all, so a driver refusing to capture "while a dialog is up"
+ * refused for exactly one of them and sailed past the rest.
  */
 export const OVERLAY_COUNT_SOURCE = `(() => [...document.querySelectorAll('*')].filter((el) => {
   const style = getComputedStyle(el);

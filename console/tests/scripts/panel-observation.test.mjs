@@ -56,6 +56,45 @@ test('a control is named by its accessible name, then its text, then its title',
   );
 });
 
+/**
+ * The second shape of the ligature hazard, found by taking a real reading rather than by
+ * reasoning about the DOM.
+ *
+ * `release/evidence/ui-drive/command-palette-reading.json` came back with a row named
+ * `languageHardware trunks - Signalling & routing`: `textContent` concatenates adjacent
+ * element children with nothing between them, and a palette row is two top-level spans, its
+ * label and the context it sits in. So the browser hands the runs back separately and the
+ * join happens here.
+ */
+test('a control whose label is split across adjacent spans is named with the runs kept apart', () => {
+  assert.deepEqual(
+    readControlLabel({ ariaLabel: null, segments: ['Language', 'Customise everything - Language'] }),
+    { label: 'Language Customise everything - Language', source: 'text' },
+  );
+  /* One run is the ordinary case and must not gain a stray separator. */
+  assert.deepEqual(
+    readControlLabel({ ariaLabel: null, segments: ['Delete last'] }),
+    { label: 'Delete last', source: 'text' },
+  );
+  /* An empty or absent run list falls through to the whole-text reading, so a record or a
+   * driver written before the runs existed still names its controls. */
+  assert.deepEqual(
+    readControlLabel({ ariaLabel: null, segments: [], textWithoutIcons: 'Save pattern' }),
+    { label: 'Save pattern', source: 'text' },
+  );
+  assert.deepEqual(
+    readControlLabel({ ariaLabel: null, segments: ['   ', ''], textWithoutIcons: 'Save pattern' }),
+    { label: 'Save pattern', source: 'text' },
+  );
+  /* An accessible name still wins over both, and the runs never overtake it. */
+  assert.equal(
+    readControlLabel({ ariaLabel: 'Close', segments: ['x', 'y'] }).source, 'aria-label',
+  );
+  /* Capped where the browser side caps its own reading, so one control cannot be named at
+   * two different lengths depending on which path produced it. */
+  assert.equal(readControlLabel({ segments: ['a'.repeat(60), 'b'.repeat(60)] }).label.length, 80);
+});
+
 test('a control with no readable name at all reports the icon AS an icon, never as a label', () => {
   /* The distinction is the whole point: a record carrying `source: "icon"` is saying the
    * control had no name a person could read, which is a finding, not a control label. */
@@ -187,7 +226,43 @@ test('the shell still declares no role and no accessible-name attribute, so the 
     'the shell now declares accessible-name attributes, so the fallthrough to textContent is no longer the whole story');
 });
 
-test('no element anywhere in the renderer carries the dialog role, so a dialog-role count can only ever be zero', () => {
+/**
+ * Every way this codebase can write one HTML attribute, because it writes them two ways.
+ *
+ * The shell and `App.tsx` are hyperscript: attributes are object properties, so a role is
+ * `role: 'dialog'`. Four small components are JSX, so a role there is `role="dialog"`. The
+ * built bundle is a third form again -- the minifier emits backticks, `role:` + backtick.
+ * A needle in one form is blind to the other two, and blind in the silent direction: it
+ * finds nothing and reports absence.
+ */
+const attributeForms = (name, value) => [
+  `${name}="${value}"`,
+  `${name}: '${value}'`,
+  `${name}: "${value}"`,
+  `${name}: \`${value}\``,
+  `${name}:\`${value}\``,
+  `${name}:'${value}'`,
+  `${name}:"${value}"`,
+];
+
+/**
+ * Two renderer files hold serialised PROSE rather than markup, and must be walked past.
+ *
+ * `docs-bundle.ts` is every documentation article as string data, and `changelog-bundle.ts` is
+ * the release history the same way. A sentence in an article that *mentions* an attribute is
+ * not an element carrying it — and this bit immediately: writing the correction below into
+ * `docs/evidence/panel-observation.md` put the words `role: 'dialog'` into the docs bundle, and
+ * the scan reported a second carrier that is a paragraph about the first one.
+ *
+ * Named by exact path rather than skipped by a `generated/` rule, because `console.tsx` and
+ * `m3-control.tsx` live there too and are the markup this scan exists to read.
+ */
+const PROSE_BUNDLES = [
+  'app/renderer/src/generated/docs-bundle.ts',
+  'app/renderer/src/generated/changelog-bundle.ts',
+];
+
+const rendererSources = () => {
   const files = [];
   const walk = (dir) => {
     for (const entry of readdirSync(resolve(root, dir), { withFileTypes: true })) {
@@ -196,12 +271,95 @@ test('no element anywhere in the renderer carries the dialog role, so a dialog-r
     }
   };
   walk('app/renderer/src');
+  /* An excuse for a file that is not there any more is an excuse nobody can check, and a
+   * renamed bundle would silently rejoin the scan as a false carrier. Both are asserted. */
+  for (const bundle of PROSE_BUNDLES) {
+    assert.ok(files.includes(bundle), `${bundle} is excluded from the markup scan but no longer exists`);
+    assert.match(read(bundle).split('\n')[0], /^\/\/ GENERATED/u,
+      `${bundle} is excluded from the markup scan as generated prose, but its first line no longer says it is generated`);
+  }
+  return files.filter((file) => !PROSE_BUNDLES.includes(file));
+};
+
+/**
+ * The dialog role, where it really is.
+ *
+ * This test replaces one that asserted the renderer carried the dialog role NOWHERE, and
+ * that assertion was false the whole time it was green. Its needle was the JSX form
+ * `role="dialog"`; the command palette's card is hyperscript and writes `role: 'dialog'`,
+ * so the needle could not see the one element that has it. The claim it was protecting --
+ * repeated in the harness header and in the evidence document -- was therefore wrong, and
+ * wrong specifically about the palette, which is the surface twenty-five of the empty
+ * records were driven through.
+ *
+ * What is asserted now is the true position and the reason the z-index scan survives it:
+ * exactly one renderer element carries the role, it is the palette card, and the card is
+ * neither positioned nor z-indexed, so it can never be an overlay candidate. A role-based
+ * selector would find one element in one state and nothing on any other screen, which is
+ * not a reader; the scan finds the card's own scrim, which contains it.
+ */
+test('exactly one renderer element carries the dialog role, and it is the palette card', () => {
+  const files = rendererSources();
   assert.ok(files.length > 20, `only ${files.length} renderer sources were walked, so this check would prove little`);
 
-  const DIALOG_ROLE = 'role="' + 'dialog"';
-  const offenders = files.filter((file) => read(file).includes(DIALOG_ROLE));
-  assert.deepEqual(offenders, [],
-    'the renderer now carries the dialog role, so the overlay reading should be reconsidered rather than left as a z-index scan');
+  const forms = attributeForms('role', 'dialog');
+  const carriers = files.filter((file) => forms.some((form) => read(file).includes(form)));
+  assert.deepEqual(carriers, ['app/renderer/src/App.tsx'],
+    'the set of renderer files carrying the dialog role has changed; the overlay reading is designed around '
+    + 'there being exactly one, on an element the z-index scan cannot reach, and that reasoning must be redone');
+
+  /* Per file is not enough on its own: a second dialog role added to App.tsx itself keeps
+   * the carrier list at one entry and would sail through. Count the occurrences too. */
+  const app = read('app/renderer/src/App.tsx');
+  const occurrences = forms.reduce((n, form) => n + (app.split(form).length - 1), 0);
+  assert.equal(occurrences, 1,
+    `App.tsx carries the dialog role ${occurrences} times; the overlay reading is designed around exactly one`);
+
+  /* Not merely that App.tsx contains it somewhere: that it is on the palette card. */
+  const card = app.indexOf(`class: 'palette-card'`);
+  assert.ok(card > 0, 'the palette card no longer carries that class, so this location check needs replacing');
+  const attributes = app.slice(card, card + 400);
+  assert.ok(forms.some((form) => attributes.includes(form)),
+    'the dialog role has moved off the palette card, so the one element it sits on is no longer the one described');
+});
+
+/**
+ * The property that keeps the scan honest about the palette, read off the stylesheet.
+ *
+ * `PANEL_CANDIDATES_SOURCE` collects only `position: absolute|fixed` elements with a
+ * numeric z-index. `.palette-scrim` is both; `.palette-card` is neither, so the card is
+ * never a candidate and the scrim -- which wraps it rather than sitting beside it -- is
+ * what gets chosen. That makes the palette reading honest but coarse: the controls found
+ * are the card's, while the rectangle reported is the whole viewport, so a palette can
+ * never read as anchored to anything. Both are true and the record says so.
+ */
+test('the palette scrim is a candidate and the card it wraps is not, so the scan reads the palette through its scrim', () => {
+  const styles = read('app/renderer/src/styles.css');
+  const rule = (selector) => {
+    const at = styles.indexOf(`${selector} {`);
+    assert.ok(at > 0, `${selector} is no longer a rule in styles.css`);
+    const end = styles.indexOf('\n}', at);
+    assert.ok(end > at, `${selector} has no closing brace`);
+    return styles.slice(at, end);
+  };
+  /* Declarations only: these rule bodies carry prose comments that mention both words. */
+  const declared = (body, property) => body
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('*') && !line.trim().startsWith('/*'))
+    .some((line) => line.trim().startsWith(`${property}:`));
+
+  const scrim = rule('.palette-scrim');
+  assert.ok(declared(scrim, 'position'), 'the palette scrim is no longer positioned, so it is no longer a candidate');
+  const z = /\n\s*z-index:\s*(\d+)/u.exec(scrim);
+  assert.ok(z, 'the palette scrim no longer declares a numeric z-index, so the scan cannot see it at all');
+  assert.ok(Number(z[1]) >= OVERLAY_Z_FLOOR,
+    `the palette scrim sits at z-index ${z[1]}, below the ${OVERLAY_Z_FLOOR} floor, so the palette is now invisible to the scan`);
+
+  const card = rule('.palette-card');
+  assert.equal(declared(card, 'position'), false,
+    'the palette card is now positioned, so it may have become a candidate in its own right and the reading changes shape');
+  assert.equal(declared(card, 'z-index'), false,
+    'the palette card now declares a z-index, so it may have become a candidate in its own right');
 });
 
 test('the shell renders its icon ligatures as elements, before the label, exactly as the reader assumes', () => {
@@ -300,16 +458,42 @@ test('the drivers that name controls import the shared reader instead of carryin
   }
 });
 
-test('no driver has grown a private copy of the ligature pattern or a dialog-role selector', () => {
+/**
+ * The one driver allowed to select on the dialog role, and why it is not the rest of them.
+ *
+ * The ban was written on the premise that the selector could only ever return zero. It
+ * cannot: the command palette's card carries the role, so the selector returns one while the
+ * palette is open. `palette-reading.mjs` uses it deliberately, as the reading whose value
+ * settles that -- it records the count either side of the chord, which is what turns the old
+ * claim from a sentence into a measurement.
+ *
+ * Named here rather than pattern-matched, so adding a second one is an argument somebody has
+ * to make. The ban stands for every driver that CHOOSES a panel: one element in one state is
+ * not a reader, and a driver that reaches for it goes blind on every other screen.
+ */
+const DIALOG_ROLE_SELECTOR_ALLOWED = 'scripts/ui-drive/palette-reading.mjs';
+
+test('no driver has grown a private copy of the ligature pattern, and only the reading script names the dialog role', () => {
   /* Built from pieces so the needles are not present in this file as literals either. */
   const LIGATURE = '[a-z_]+(?=' + '[A-Z])';
   const DIALOG = '[role=' + 'dialog]';
-  for (const relative of driverFiles()) {
+  const drivers = driverFiles();
+  assert.ok(drivers.includes(DIALOG_ROLE_SELECTOR_ALLOWED),
+    `${DIALOG_ROLE_SELECTOR_ALLOWED} is allowed the dialog-role selector but is no longer a driver, `
+    + 'so this allowance now excuses nothing and should be removed');
+
+  for (const relative of drivers) {
     const code = codeOf(relative);
     assert.ok(!code.includes(LIGATURE),
       `${relative} carries its own ligature-prefix pattern again; it cannot see a lowercase label`);
+    if (relative === DIALOG_ROLE_SELECTOR_ALLOWED) {
+      assert.ok(code.includes(DIALOG),
+        `${relative} no longer counts the dialog role, so nothing measures the claim it exists to settle`);
+      continue;
+    }
     assert.ok(!code.includes(DIALOG),
-      `${relative} selects on the dialog role again; nothing in this application carries it`);
+      `${relative} selects on the dialog role; only the palette card carries it, so a panel chosen `
+      + 'that way is one element in one state and nothing on any other screen');
   }
 });
 
@@ -325,6 +509,9 @@ test('the browser-side sources are complete expressions and name what they must 
   }
   assert.ok(CONTROL_READING_SOURCE.includes(".querySelectorAll('.msym')"),
     'the reader no longer removes the icon elements, so every label would carry its glyph name again');
+  assert.ok(CONTROL_READING_SOURCE.includes('childNodes'),
+    'the reader no longer hands back the top-level runs, so a control split across two spans '
+    + 'would be named with its label and its context glued into one word again');
   assert.ok(PANEL_CANDIDATES_SOURCE.includes(String(OVERLAY_Z_FLOOR)),
     'the candidate collector no longer applies the overlay floor it is documented to apply');
   assert.ok(PANEL_CANDIDATES_SOURCE.includes(CONTROL_SELECTOR),
