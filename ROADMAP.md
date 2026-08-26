@@ -85,14 +85,14 @@ to the control plane.
 
 ### Partial gaps — a destination exists but covers a fraction
 
-- [ ] **Security** — edits no access rule and no attestation certificate despite naming both.
+- [x] **Security** — edits no access rule and no attestation certificate despite naming both. Both were already false by the time this line was picked up: the ACL table (add/edit/remove/reorder a real `permit=`/`deny=` rule) landed with the access-control-rules lane, and the attestation certificate (stir_shaken.conf's `private_key_file`/`public_cert_url`/CA material) landed with the TLS-and-certificate-management lane -- this bullet was simply never ticked. Verified both are genuinely wired (not just present in the design) and added `console/tests/ui/voicemail-ami-deepen.test.tsx` as a regression guard, since nothing previously pinned either fact.
 - [ ] **Trunks** — PJSIP only; no IAX2, no hardware, no registration retry detail.
 - [ ] **IVR** — no dialplan application depth, and prompts are names it cannot manage.
 - [ ] **Logger** — level chips only; no rotation, no queue log, no per-channel configuration.
 - [ ] **Modules** — no per-module reload and no dependency view.
 - [ ] **Call records** — one status reading; no backend selection across the several available.
-- [ ] **Manager and REST** — a static table; no live event stream and no operable actions.
-- [ ] **Voicemail** — no storage backend configuration and no greeting management.
+- [ ] **Manager and REST** — a static table; no live event stream and no operable actions. The "static table" half is fixed: the screen's declared file was the compound label `manager.conf · ari.conf · http.conf`, which `resourceForFile` refuses, so it had never read a single real setting -- two of its five original bindings (a_port, a_tlsport) also turned out to be bound to the wrong file entirely, undetected for the same reason. Now reads and writes manager.conf, http.conf and ari.conf for real, with a genuine Add/Remove API user flow (creates or deletes a `[username]` section in manager.conf or ari.conf) and two new Save buttons. Left unticked because the "live event stream" half was not attempted -- that needs a new AMI/ARI event-streaming transport in the control plane, which is out of scope for a deepening pass on the existing screen.
+- [x] **Voicemail** — no storage backend configuration and no greeting management. This screen had ten already-bound fields and no write path of any kind -- no Save button existed on any group. Added three: mailbox defaults (the original ten fields), a Storage backend group (ODBC connection/table/on-disk-audio, IMAP greetings/folder/server/port -- seven fields, every one cited to configs/samples/voicemail.conf.sample), and a Greeting management group (maxgreet, forcegreetings, tempgreetwarn -- three fields). Per-mailbox greeting *audio* upload/replace remains undone: it would need a new media-library root pointed at each mailbox's own spool path, which the sample does not document a stable location for, so it was left rather than guessed.
 - [ ] **Codecs** — a listing only; no per-endpoint negotiation.
 
 ### How each one lands

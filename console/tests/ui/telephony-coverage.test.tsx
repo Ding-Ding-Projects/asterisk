@@ -177,9 +177,21 @@ function measure() {
  * that had already reached 243 by other means, rather than by adding the two deltas
  * together. The comment above still tells the true story of every lane that got here;
  * this number is what running this test with a deliberately wrong value read back,
- * exactly as that comment already recommends doing instead of arithmetic. */
-const WORKING_FLOOR = 286;
-const TELEPHONY_TOTAL = 286;
+ * exactly as that comment already recommends doing instead of arithmetic.
+ *
+ * Then 305, +19, with the Voicemail and AMI & REST deepening lane. Voicemail gained
+ * thirteen: ten new CONTROL_BINDINGS entries (the storage-backend and
+ * greeting-management fields) plus v_save/v_storagesave/v_greetsave, three one-shot
+ * Save buttons recognised via `deliveredByAction` -- this screen had ten already-bound
+ * fields and, before this lane, no write path of any kind. AMI & REST gained six:
+ * a_httpsave/a_mgrsave, two more `deliveredByAction` buttons, plus am_interface/
+ * am_username/am_secret/am_readonly, the Add-an-API-user form's own fields, read
+ * directly out of `state.values` by `onAddApiUser` (the quoted-literal form this
+ * measurement looks for, the same shape s_aclname/s_action/s_spec already use for the
+ * Security screen's own "Add a rule" form). All nineteen work: 286 + 19 = 305, read
+ * back the same way every number above it was. */
+const WORKING_FLOOR = 305;
+const TELEPHONY_TOTAL = 305;
 
 test('an action-delivered control is recognised even though its id never appears as a quoted literal', () => {
   for (const id of ['s_tload', 's_tsave', 's_stirsave', 'ht_save', 'fx_save', 'fx_udptlsave']) {
