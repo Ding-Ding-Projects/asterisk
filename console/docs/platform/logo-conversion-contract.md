@@ -18,6 +18,8 @@ Crop coordinates, focal point, and safe-area insets are numeric proportions betw
 
 ## Conversion and receipts
 
+Both the health handshake and direct conversion use one fail-closed packaged-product validator before worker launch. It requires an identity manifest path, schema version 1, the expected product, a non-placeholder manifest source commit, an equal identity candidate commit, and an identity SHA-256 equal to the exact decoder-manifest bytes. A stale, replaced, missing, or mismatched identity refuses conversion before worker launch and before any cache handoff.
+
 The control-plane converter accepts an injected isolated decoder. It will not convert when that seam is absent. Every decoder result must contain bytes, a successful reopen or round-trip receipt, and optional loss notes. The converter independently re-inspects every output, verifies the requested format, dimensions, alpha policy, signature, output bounds, memory receipt, and elapsed CPU budget. Any failure returns a redacted reason and leaves the previous logo active.
 
 The registration descriptors are `logo.inspect`, `logo.convert`, `logo.cache.read`, `logo.cache.write`, and `logo.cache.clear`. They are local-only and are ready for the control-plane dispatcher to mount without granting the renderer filesystem or network access.

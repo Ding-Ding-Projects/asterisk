@@ -64,7 +64,40 @@ async function runtimeFiles(root: string): Promise<string[]> {
   return output;
 }
 
+type PackagedDecoderManifest = {
+  readonly schemaVersion?: unknown;
+  readonly sourceCommit?: unknown;
+  readonly workerRevision?: unknown;
+  readonly workerSha256?: unknown;
+  readonly launcherSha256?: unknown;
+  readonly recoverySha256?: unknown;
+  readonly packageLockSha256?: unknown;
+  readonly sharpVersion?: unknown;
+  readonly sharpIntegrity?: unknown;
+  readonly platform?: unknown;
+  readonly arch?: unknown;
+  readonly nativeFiles?: unknown;
+};
+
+async function validatePackagedProductIdentity(options: IsolatedLogoDecoderOptions): Promise<{ manifestBytes: Buffer; manifestSha256: string; manifest: PackagedDecoderManifest }> {
+  if (!options.identityManifestPath) throw new Error('The packaged product identity path is missing.');
+  const manifestBytes = await readFile(options.manifestPath);
+  const manifestSha256 = createHash('sha256').update(manifestBytes).digest('hex');
+  const manifest = JSON.parse(manifestBytes.toString('utf8')) as PackagedDecoderManifest;
+  const identity = JSON.parse(await readFile(options.identityManifestPath, 'utf8')) as { schemaVersion?: unknown; product?: unknown; candidateCommit?: unknown; logoDecoderManifestSha256?: unknown };
+  if (
+    identity.schemaVersion !== 1
+    || identity.product !== 'ding-pbx-console'
+    || typeof manifest.sourceCommit !== 'string'
+    || !/^[0-9a-f]{40}$/iu.test(manifest.sourceCommit)
+    || identity.candidateCommit !== manifest.sourceCommit
+    || identity.logoDecoderManifestSha256 !== manifestSha256
+  ) throw new Error('The decoder manifest is not bound to the packaged product identity.');
+  return { manifestBytes, manifestSha256, manifest };
+}
+
 async function runWorker(options: IsolatedLogoDecoderOptions, request: Record<string, unknown>): Promise<Record<string, unknown>> {
+  await validatePackagedProductIdentity(options);
   const launcher = process.platform === 'win32' && options.jobScriptPath;
   if (launcher) {
     if (!options.recoveryScriptPath) throw new Error('The packaged decoder recovery path is missing before conversion.');
@@ -225,14 +258,10 @@ export function createIsolatedLogoDecoder(options: IsolatedLogoDecoderOptions): 
       return { bytes, roundTripVerified: true, cropDigest: result.cropDigest, lossNotes: Array.isArray(result.lossNotes) ? result.lossNotes.filter((note): note is string => typeof note === 'string' && note.length <= 512) : [], peakMemoryBytes: typeof result.workingSetIncrementBytes === 'number' ? result.workingSetIncrementBytes : undefined };
     },
     async health(): Promise<IsolatedLogoDecoderHealth> {
+      const packageIdentity = await validatePackagedProductIdentity(options);
       const result = await runWorker(options, { operation: 'health' });
       if (typeof result.workerPid !== 'number' || typeof result.baselinePid !== 'number' || result.workerPid !== result.baselinePid || typeof result.workerVersion !== 'string' || typeof result.workerRevision !== 'string' || typeof result.sharpVersion !== 'string' || typeof result.nativePlatform !== 'string' || typeof result.nativeArch !== 'string' || typeof result.nativeBindingPath !== 'string' || !/^[0-9a-f]{64}$/iu.test(String(result.nativeBindingSha256)) || typeof result.baselineWorkingSetBytes !== 'number' || typeof result.peakWorkingSetBytes !== 'number' || typeof result.workingSetIncrementBytes !== 'number' || !Array.isArray(result.formats) || result.formats.length !== 3 || new Set(result.formats.map(String)).size !== 3 || result.formats.some((format) => !['png', 'jpeg', 'webp'].includes(String(format)))) throw new Error('The isolated decoder health handshake was incomplete or its baseline PID was not the worker PID.');
-      const manifestBytes = await readFile(options.manifestPath);
-      const manifestSha256 = createHash('sha256').update(manifestBytes).digest('hex');
-      const manifest = JSON.parse(manifestBytes.toString('utf8')) as { schemaVersion?: unknown; sourceCommit?: unknown; workerRevision?: unknown; workerSha256?: unknown; launcherSha256?: unknown; recoverySha256?: unknown; packageLockSha256?: unknown; sharpVersion?: unknown; sharpIntegrity?: unknown; platform?: unknown; arch?: unknown; nativeFiles?: unknown };
-      if (!options.identityManifestPath) throw new Error('The packaged product identity path is missing.');
-      const identity = JSON.parse(await readFile(options.identityManifestPath, 'utf8')) as { schemaVersion?: unknown; product?: unknown; candidateCommit?: unknown; logoDecoderManifestSha256?: unknown };
-      if (identity.schemaVersion !== 1 || identity.product !== 'ding-pbx-console' || identity.candidateCommit !== manifest.sourceCommit || identity.logoDecoderManifestSha256 !== manifestSha256) throw new Error('The decoder manifest is not bound to the packaged product identity.');
+      const { manifest } = packageIdentity;
       const lock = JSON.parse(await readFile(options.packageLockPath, 'utf8')) as { packages?: Record<string, { version?: unknown; integrity?: unknown }> };
       const lockedSharp = lock.packages?.['node_modules/sharp'];
       if (manifest.schemaVersion !== 1 || typeof manifest.sourceCommit !== 'string' || !/^[0-9a-f]{40}$/iu.test(manifest.sourceCommit) || manifest.workerRevision !== result.workerRevision || manifest.sharpVersion !== result.sharpVersion || lockedSharp?.version !== manifest.sharpVersion || typeof manifest.sharpIntegrity !== 'string' || lockedSharp?.integrity !== manifest.sharpIntegrity || manifest.platform !== result.nativePlatform || manifest.arch !== result.nativeArch || !Array.isArray(manifest.nativeFiles) || manifest.nativeFiles.length === 0) throw new Error('The isolated decoder does not match the checked-in worker, native binding, source commit, and sharp lock manifest.');

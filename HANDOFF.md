@@ -202,6 +202,11 @@ One genuine mitigation already in place: `App.tsx` blanks the design's 72 seeded
 
 ## Current handoff
 
+### Logo decoder identity repair, 2026-08-26
+
+- Direct `logo.convert` now shares the pre-launch packaged-product identity validator with `health()`. It requires an identity manifest path, expected schema and product, an equal concrete candidate commit, and the exact decoder-manifest SHA-256 before a worker starts or conversion can reach cache handoff.
+- Focused coverage exercises stale, replaced, missing, mismatched, and valid direct-conversion identities. No package, installer, deployment, or interface verification is claimed.
+
 ### Where the console actually is
 
 | | At the start of this work | Now |
