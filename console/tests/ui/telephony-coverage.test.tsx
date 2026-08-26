@@ -177,9 +177,24 @@ function measure() {
  * that had already reached 243 by other means, rather than by adding the two deltas
  * together. The comment above still tells the true story of every lane that got here;
  * this number is what running this test with a deliberately wrong value read back,
- * exactly as that comment already recommends doing instead of arithmetic. */
-const WORKING_FLOOR = 286;
-const TELEPHONY_TOTAL = 286;
+ * exactly as that comment already recommends doing instead of arithmetic.
+ *
+ * Then 382 with four brand new screens and files -- chan_dahdi.conf, sla.conf,
+ * dundi.conf and calendar.conf, the roadmap's "Hardware trunks / Shared line
+ * appearances / Distributed dialplan lookup / Calendars" line. Every one of the 96 new
+ * controls works: the ordinary fields are bound in CONTROL_BINDINGS (see the long
+ * comments there for the sectionFrom groups picked by sl_trunkname/sl_stationname/
+ * du_peereid/ca_name); every name picker, write-only credential and live status readout
+ * is read via `values['...']` by name in App.tsx's own handlers or carries `action:'...'`
+ * in the design, recognised by `deliveredByAction` exactly the way db_odbcname and
+ * db_pgpasswordstatus already are; and the repeated-key directives this table cannot
+ * express at all -- chan_dahdi's "channel =>" spans and sla's per-station "trunk="
+ * assignments -- are read and written directly against the parsed ConfigValue by
+ * onDahdiAddChannel/onDahdiRemoveChannel and onSlaStationTrunkAdd/onSlaStationTrunkRemove.
+ * Read back the same way every earlier total on this page was: trying a deliberately
+ * wrong value first and taking whatever this test actually reported. */
+const WORKING_FLOOR = 382;
+const TELEPHONY_TOTAL = 382;
 
 test('an action-delivered control is recognised even though its id never appears as a quoted literal', () => {
   for (const id of ['s_tload', 's_tsave', 's_stirsave', 'ht_save', 'fx_save', 'fx_udptlsave']) {

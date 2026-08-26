@@ -43,7 +43,7 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // side: both independently brought the count from 16 to 17 on their own branch, and
   // rebasing one onto the other's tip -- rather than starting from a shared commit --
   // is exactly what makes them stack to 18 instead of collide at 17.
-  assert.equal(screenCount, 18);
+  assert.equal(screenCount, 22);
   // 82 from the first pass, plus a_origin (ami/allowed_origins) and s_failaction
   // (security/failure_action) found on the second look, plus 21 on 2026-08-24: the eight
   // http.conf keys and the thirteen features.conf ones, which brought two whole screens
@@ -147,7 +147,19 @@ test('total bound-screen and control counts are what this pass produced', () => 
   // 199. Rebasing onto the real tip puts it on top of 203 instead, landing on 223 --
   // read back the same way the 203 above was, by trying a deliberately wrong number
   // first and taking whatever this test actually reported.
-  assert.equal(controlCount, 223);
+  // And 290 with four brand new screens and files: chan_dahdi.conf (12, [channels]'s own
+  // cumulative defaults -- see the long comment above CONTROL_BINDINGS.dahdi for why the
+  // repeated "channel =>" directives themselves are NOT in this table), sla.conf (13: one
+  // [general] key plus six sectionFrom fields each for a trunk and a station, picked by
+  // sl_trunkname/sl_stationname the same way db_odbcname already picks a res_odbc.conf
+  // connection), dundi.conf (29: seventeen [general] fields plus twelve sectionFrom peer
+  // fields picked by du_peereid -- the [mappings] section is not here at all, for the
+  // same reason extconfig.conf's family mappings are not, see the comment above
+  // CONTROL_BINDINGS.dundi) and calendar.conf (13: every field but the name picker and
+  // the write-only secret, sectionFrom-bound through ca_name). 12+13+29+13 = 67 new
+  // bindings, read back the same way every earlier total on this page was: trying a
+  // deliberately wrong number first and taking whatever this test actually reported.
+  assert.equal(controlCount, 290);
 });
 
 // ---------------------------------------------------------------- boolean parsing
@@ -1100,4 +1112,181 @@ test('applyControlValues writes the ODBC fields into exactly the section db_odbc
   assert.equal(reporting?.entries.find((e) => e.key === 'dsn')?.value, 'reporting-db');
   const asteriskUntouched = created.find((s) => s.name === 'asterisk');
   assert.deepEqual(asteriskUntouched, odbc[0], 'an unrelated existing connection must be left exactly as it was');
+});
+
+// ---------------------------------------------------------------- chan_dahdi.conf ([channels] defaults)
+
+test('the chan_dahdi.conf [channels] defaults round-trip through CONTROL_BINDINGS.dahdi', () => {
+  // configs/samples/chan_dahdi.conf.sample: context=public (line 56), usecallerid=yes
+  // (line 576), echocancel=yes (line 873), echocancelwhenbridged=yes (line 888).
+  const dahdi: ConfigValue = [
+    { name: 'channels', entries: [
+      { key: 'context', value: 'public' }, { key: 'usecallerid', value: 'yes' },
+      { key: 'echocancel', value: 'yes' }, { key: 'echocancelwhenbridged', value: 'yes' },
+      { key: 'group', value: '1' }, { key: 'channel', value: '1' }, { key: 'channel', value: '2-8' },
+    ] },
+  ];
+  const values = readControlValues('dahdi', dahdi);
+  assert.equal(values.da_context, 'public');
+  assert.equal(values.da_usecallerid, true);
+  assert.equal(values.da_echocancel, 'yes');
+  assert.equal(values.da_echocancelbridged, true);
+  assert.equal(values.da_group, '1');
+  // "channel" is a repeated directive, not a single-key binding -- CONTROL_BINDINGS.dahdi
+  // must never claim it, or a save would silently collapse every span to one.
+  assert.equal('da_spec' in values, false);
+
+  const next = applyControlValues('dahdi', dahdi, {
+    da_context: 'from-pstn', da_switchtype: 'euroisdn', da_busydetect: true, da_rxgain: '2.0',
+  });
+  const channels = next.find((s) => s.name === 'channels');
+  assert.equal(channels?.entries.find((e) => e.key === 'context')?.value, 'from-pstn');
+  assert.equal(channels?.entries.find((e) => e.key === 'switchtype')?.value, 'euroisdn');
+  assert.equal(channels?.entries.find((e) => e.key === 'busydetect')?.value, 'yes');
+  assert.equal(channels?.entries.find((e) => e.key === 'rxgain')?.value, '2.0');
+  // Both "channel =>" directives -- and every entry between them -- must survive a
+  // defaults save untouched: this is the same "first match wins" preservation rule every
+  // other fixed-section binding in this table already gives an unrelated repeated key.
+  const spans = channels?.entries.filter((e) => e.key === 'channel').map((e) => e.value);
+  assert.deepEqual(spans, ['1', '2-8']);
+});
+
+// ---------------------------------------------------------------- sla.conf (trunks and stations)
+
+test('sla.conf trunk and station fields read from whichever section sl_trunkname/sl_stationname currently name', () => {
+  // configs/samples/sla.conf.sample: [general] attemptcallerid=no (line 10, commented
+  // default); [line1] type=trunk/device=DAHDI/3/autocontext=line1/barge default yes/
+  // hold=private (lines 31-60); [station1] type=station/device=SIP/station1/
+  // autocontext=sla_stations/ringtimeout=10/hold=open (lines 83-110), plus repeated
+  // "trunk=" assignment lines (113-126).
+  const sla: ConfigValue = [
+    { name: 'general', entries: [{ key: 'attemptcallerid', value: 'no' }] },
+    { name: 'line1', entries: [
+      { key: 'type', value: 'trunk' }, { key: 'device', value: 'DAHDI/3' },
+      { key: 'autocontext', value: 'line1' }, { key: 'hold', value: 'private' },
+    ] },
+    { name: 'station1', entries: [
+      { key: 'type', value: 'station' }, { key: 'device', value: 'SIP/station1' },
+      { key: 'autocontext', value: 'sla_stations' }, { key: 'ringtimeout', value: '10' },
+      { key: 'hold', value: 'open' }, { key: 'trunk', value: 'line1' }, { key: 'trunk', value: 'line2' },
+    ] },
+  ];
+  const general = readControlValues('sla', sla);
+  assert.equal(general.sl_attemptcid, false);
+
+  const trunk = readControlValues('sla', sla, {}, { sl_trunkname: 'line1' });
+  assert.equal(trunk.sl_trunktype, 'trunk');
+  assert.equal(trunk.sl_trunkdevice, 'DAHDI/3');
+  assert.equal(trunk.sl_trunkautocontext, 'line1');
+  assert.equal(trunk.sl_trunkhold, 'private');
+  // Picking a different section reads that one instead, never the first one found --
+  // station fields never leak from a trunk read, and vice versa.
+  const station = readControlValues('sla', sla, {}, { sl_stationname: 'station1' });
+  assert.equal(station.sl_stationtype, 'station');
+  assert.equal(station.sl_stationringtimeout, '10');
+  assert.equal(station.sl_stationhold, 'open');
+  assert.equal('sl_trunktype' in station, false);
+  // The station's "trunk=" assignment list is a repeated key, not a single-key binding --
+  // CONTROL_BINDINGS.sla must never claim it, or a station save would silently collapse
+  // every assignment to one.
+  assert.equal('sl_stationtrunkline' in station, false);
+});
+
+test('applyControlValues writes sla.conf trunk and station fields into exactly the section named, and can create a new one', () => {
+  const sla: ConfigValue = [{ name: 'line1', entries: [{ key: 'type', value: 'trunk' }] }];
+  const next = applyControlValues('sla', sla, {
+    sl_trunkname: 'line1', sl_trunkdevice: 'DAHDI/3', sl_trunkbarge: false,
+  });
+  const line1 = next.find((s) => s.name === 'line1');
+  assert.equal(line1?.entries.find((e) => e.key === 'device')?.value, 'DAHDI/3');
+  assert.equal(line1?.entries.find((e) => e.key === 'barge')?.value, 'no');
+
+  // A brand new station name is not refused -- sla.conf.sample documents an arbitrary
+  // name per station, so this is simply a station Save has not created yet.
+  const created = applyControlValues('sla', sla, {
+    sl_stationname: 'station9', sl_stationtype: 'station', sl_stationdevice: 'SIP/station9',
+  });
+  const station9 = created.find((s) => s.name === 'station9');
+  assert.ok(station9, 'a brand new [station9] section must be created');
+  assert.equal(station9?.entries.find((e) => e.key === 'device')?.value, 'SIP/station9');
+  const line1Untouched = created.find((s) => s.name === 'line1');
+  assert.deepEqual(line1Untouched, sla[0], 'an unrelated existing trunk must be left exactly as it was');
+});
+
+// ---------------------------------------------------------------- dundi.conf ([general] and peers)
+
+test('dundi.conf [general] and peer fields round-trip through CONTROL_BINDINGS.dundi', () => {
+  // configs/samples/dundi.conf.sample: ttl=32 (line 52, uncommented default),
+  // autokill=yes (line 62, uncommented default); a peer section named by its entityid
+  // (lines 239-246: model=symmetric, host, inkey, outkey, include, permit, qualify=yes).
+  const dundi: ConfigValue = [
+    { name: 'general', entries: [
+      { key: 'ttl', value: '32' }, { key: 'autokill', value: 'yes' }, { key: 'port', value: '4520' },
+    ] },
+    { name: '00:50:8B:F3:75:BB', entries: [
+      { key: 'model', value: 'symmetric' }, { key: 'host', value: '64.215.96.114' },
+      { key: 'inkey', value: 'digium' }, { key: 'outkey', value: 'misery' },
+      { key: 'include', value: 'e164' }, { key: 'permit', value: 'e164' }, { key: 'qualify', value: 'yes' },
+    ] },
+    { name: 'mappings', entries: [{ key: 'e164', value: 'dundi-e164-canonical,0,IAX2,dundi:${SECRET}@${IPADDR}/${NUMBER},nounsolicited' }] },
+  ];
+  const general = readControlValues('dundi', dundi);
+  assert.equal(general.du_ttl, 32);
+  assert.equal(general.du_autokill, 'yes');
+  assert.equal(general.du_port, 4520);
+  // [mappings] varies its KEY, not its section -- CONTROL_BINDINGS.dundi must never claim
+  // it, since App.tsx reads/writes it directly through findEntry/writeEntry instead.
+  assert.equal('du_mapname' in general, false);
+  assert.equal('du_mapvalue' in general, false);
+
+  const peer = readControlValues('dundi', dundi, {}, { du_peereid: '00:50:8B:F3:75:BB' });
+  assert.equal(peer.du_peermodel, 'symmetric');
+  assert.equal(peer.du_peerhost, '64.215.96.114');
+  assert.equal(peer.du_peerinkey, 'digium');
+  assert.equal(peer.du_peeroutkey, 'misery');
+  assert.equal(peer.du_peerqualify, 'yes');
+
+  const next = applyControlValues('dundi', dundi, {
+    du_department: 'Support', du_cachetime: 1800,
+    du_peereid: '00:50:8B:F3:75:BB', du_peerregister: true,
+  });
+  const generalSection = next.find((s) => s.name === 'general');
+  assert.equal(generalSection?.entries.find((e) => e.key === 'department')?.value, 'Support');
+  assert.equal(generalSection?.entries.find((e) => e.key === 'cachetime')?.value, '1800');
+  const peerSection = next.find((s) => s.name === '00:50:8B:F3:75:BB');
+  assert.equal(peerSection?.entries.find((e) => e.key === 'register')?.value, 'yes');
+  // [mappings] must survive a [general]/peer save exactly as it was.
+  assert.deepEqual(next.find((s) => s.name === 'mappings'), dundi[2]);
+});
+
+// ---------------------------------------------------------------- calendar.conf (named calendars)
+
+test('calendar.conf fields read from whichever section ca_name currently names, and the secret is never bound', () => {
+  // configs/samples/calendar.conf.sample: [calendar1] type=ical/url/user/refresh=15/
+  // timeframe=60/channel/context/extension (lines 1-29).
+  const calendar: ConfigValue = [
+    { name: 'calendar1', entries: [
+      { key: 'type', value: 'ical' }, { key: 'url', value: 'https://example.com/home/jdoe/Calendar/' },
+      { key: 'user', value: 'jdoe' }, { key: 'secret', value: 'supersecret' },
+      { key: 'refresh', value: '15' }, { key: 'timeframe', value: '60' },
+      { key: 'channel', value: 'SIP/60001' }, { key: 'context', value: 'default' },
+    ] },
+  ];
+  const values = readControlValues('calendar', calendar, {}, { ca_name: 'calendar1' });
+  assert.equal(values.ca_type, 'ical');
+  assert.equal(values.ca_url, 'https://example.com/home/jdoe/Calendar/');
+  assert.equal(values.ca_user, 'jdoe');
+  assert.equal(values.ca_refresh, '15');
+  assert.equal(values.ca_channel, 'SIP/60001');
+  // The account password must never be seeded by a read -- it is write-only, exactly like
+  // iax.conf's secret and every database password in this console.
+  assert.equal('ca_secret' in values, false);
+
+  const next = applyControlValues('calendar', calendar, { ca_name: 'calendar1', ca_context: 'inbound-calendar' });
+  const cal1 = next.find((s) => s.name === 'calendar1');
+  assert.equal(cal1?.entries.find((e) => e.key === 'context')?.value, 'inbound-calendar');
+  // A value for ca_secret must never be written through this table either -- App.tsx
+  // splices it in directly with writeConfigEntry, the same way db_pgpassword is.
+  const withSecretAttempt = applyControlValues('calendar', calendar, { ca_name: 'calendar1', ca_secret: 'newpass' });
+  assert.equal(withSecretAttempt.find((s) => s.name === 'calendar1')?.entries.find((e) => e.key === 'secret')?.value, 'supersecret');
 });

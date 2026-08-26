@@ -38,17 +38,22 @@ const strip = (markup: string) => markup.replace(/<[^>]*>/g, ' ').replace(/&#x27
  * where before none of the four had ever been read or written by this console. Both
  * screens forked from the same 38-destination tip and each counted its own one-screen
  * jump independently (each calling itself "39 rather than 38"); rebasing one onto the
- * other's tip is what stacks the two arrivals to 40 instead of colliding at 39. */
+ * other's tip is what stacks the two arrivals to 40 instead of colliding at 39.
+ * 44 rather than 40: four brand new screens landed on the pbx rail together (10 to 14) --
+ * chan_dahdi.conf (analogue lines, T1/E1 and PRI), sla.conf (shared line appearances),
+ * dundi.conf (distributed dialplan lookup) and calendar.conf (calendars), the roadmap's
+ * own "Hardware trunks / Shared line appearances / Distributed dialplan lookup /
+ * Calendars" line, none of which had ever had a screen or a real binding before. */
 test('the design reference supplies every rail and destination', () => {
-  assert.equal(ORDER.length, 40);
-  assert.equal(destinations.length, 40);
+  assert.equal(ORDER.length, 44);
+  assert.equal(destinations.length, 44);
   assert.deepEqual(rails.map((rail) => rail.id), ['pbx', 'media', 'data', 'sys', 'agent', 'app']);
   assert.deepEqual(
     rails.map((rail) => destinations.filter((destination) => destination.rail === rail.id).length),
-    [10, 6, 2, 6, 7, 9],
+    [14, 6, 2, 6, 7, 9],
   );
   assert.equal(RAIL.length, 6);
-  assert.equal(Object.keys(SCREENS).length, 40);
+  assert.equal(Object.keys(SCREENS).length, 44);
 });
 
 test('the design audit baseline counts survive compilation', () => {
