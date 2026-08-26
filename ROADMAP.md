@@ -398,6 +398,30 @@ forbids: anything presented as operable must perform its labelled action.
       separator. The transport matches a resource by exact name, so that string resolves to
       nothing and neither screen can write through it. Found while looking for a pattern to
       copy, and deliberately not copied.
+- [x] **On the hosted site, the regex builder claimed to be active and filtered nothing.**
+      Found by actually driving the published site in a real browser (Edge on an off-screen
+      desktop, proven single-target, over the debugging protocol) rather than reading the
+      source and assuming: open any of the six search fields wired to the regex builder,
+      apply a valid pattern from an EMPTY search box, and the mode status honestly says
+      "Regular expression search active" -- while the result list kept showing everything,
+      completely unfiltered, until the user also typed a stray character into the plain-text
+      field. Root cause was `matchText()`'s own `if(!query)return true` firing before it ever
+      consulted the active regex, plus a second, independent copy of the same shortcut inside
+      `changelogSearch()` that bypassed `matchText()` entirely. Both are fixed in
+      `console/site/app.js`; the fix is a two-line reorder plus a one-line deletion, and it
+      repairs all six affected surfaces at once (documentation search, the changelog, local
+      notifications, local history, the settings-page search, and the command palette) because
+      every one of them already shared the one `matchText()` helper. Guarded by a new,
+      behavioural test in `console/site/tests/site.test.mjs` that extracts the real shipped
+      `matchText`/`changelogSearch` source and runs it rather than asserting on a string.
+- [x] **On the hosted site, exporting local settings gave no on-screen confirmation.** Every
+      other export control on the site (destination search results, notifications, the
+      changelog) pairs its real `download()` call with a `notify()` toast so the action is
+      confirmed somewhere a screen reader or low-vision user can actually perceive it. The
+      settings page's own "Export redacted settings" button called `download()` alone --
+      the file genuinely downloaded (confirmed by watching Edge's own download surface open),
+      it just said nothing about it happening. Now calls `notify('Settings exported', ...)`
+      like its siblings; guarded by an anchored source assertion in `site.test.mjs`.
 
 
 ## Accessibility, which is a completion blocker and has never had an entry here
