@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-25T21:34:54.157Z",
+  "generatedAt": "2026-08-25T23:39:53.849Z",
   "regionsOnly": false,
   "side": "reference",
   "regionsMeasuredThisRun": 32,
@@ -27,225 +27,225 @@
       "id": "dash",
       "captured": true,
       "heading": "Dashboard",
-      "bytes": 151406,
-      "sha256": "d8f40cb140fabde8e27aaae8e062ebc6bf42adca7bed47a1dfdb5b8ba6514e67"
+      "bytes": 150591,
+      "sha256": "437b0a1b161e9221baa8ca6d61571c1d59e4e0b79374e810a6a1c9716669fea7"
     },
     {
       "id": "live",
       "captured": true,
       "heading": "Live channels",
-      "bytes": 150203,
-      "sha256": "072037d115471e263fe17d6dd0316af7148ac2c858e38cc281159faa4c349cfd"
+      "bytes": 149639,
+      "sha256": "9940bf3b6ec58f8563920ca48cceeb4a819c80fb5022faea6ffc5e458f145400"
     },
     {
       "id": "endpoints",
       "captured": true,
       "heading": "PJSIP endpoints",
-      "bytes": 153702,
-      "sha256": "736fd9c38c597e70814e31c912035951cd33a55ceee000706553404dee740323"
+      "bytes": 152812,
+      "sha256": "d7d3af4ef097b875cfeeb0eb97fae9b7aad58e67df9e56807ad2c6f843ea498d"
     },
     {
       "id": "trunks",
       "captured": true,
       "heading": "Trunks & registrations",
-      "bytes": 149167,
-      "sha256": "f7bf0732d1623fdfaf01231983c847acb8f1e4f1484ba600601ce72afe793eb6"
+      "bytes": 148822,
+      "sha256": "971f91b3437832fa074cdd0b9945ad39ddf0993651613b429a6a496429cde040"
     },
     {
       "id": "trunkauth",
       "captured": true,
       "heading": "Trunk authentication",
-      "bytes": 184825,
-      "sha256": "688b545599a2fd6aea1e71797436aeb60ac3a3057ef8570367b92483b53bc28c"
+      "bytes": 185354,
+      "sha256": "492cc18b12b98d24445e8bdd49184f4ffa417eb4e8a22460210bee5a4062f74a"
     },
     {
       "id": "canvas",
       "captured": true,
       "heading": "Dialplan canvas",
-      "bytes": 190156,
-      "sha256": "d9f96ef6c3bcf1e8793994ede18caea46ac5dd66e77d8dab01a6989fe53761ff"
+      "bytes": 188733,
+      "sha256": "3953fc4c9aac80e11add1294f8e11b773684bf33a547e7ac58d852c3b1e46c18"
     },
     {
       "id": "ivr",
       "captured": true,
       "heading": "IVR menus",
-      "bytes": 148304,
-      "sha256": "6e7bd0289a818b3da794e2b897cd251581d1b15befad63dbfc0785f2bbb1bb56"
+      "bytes": 147492,
+      "sha256": "ab2e6a0966e2b9432ba7aafd88e8634f70195af7f9869ba9a297f12807bb67a1"
     },
     {
       "id": "queues",
       "captured": true,
       "heading": "Queues & agents",
-      "bytes": 152749,
-      "sha256": "e85d5d4412f1e92adc5e24d28b21ce43c97d84903d07a05fc62c0dda87c75a0b"
+      "bytes": 152180,
+      "sha256": "21713cdf45e968c0978b2c8012166b761116d6d0091a2f6896a546fb2efab7ac"
     },
     {
       "id": "voicemail",
       "captured": true,
       "heading": "Voicemail boxes",
-      "bytes": 148574,
-      "sha256": "64f0fc6de39d986bddce5f7198d7000e8634952f523d30c1e9a349854bb5c2c3"
+      "bytes": 148427,
+      "sha256": "6b5c987c4c6766f60b789f7b6970b2cd63cfbcc0134ba4a13196351a35573da8"
     },
     {
       "id": "confbridge",
       "captured": true,
       "heading": "ConfBridge rooms",
-      "bytes": 135178,
-      "sha256": "cafc9198e39b5506aaa465203b1e2e7e23b232986512222811f48d1a25e175ae"
+      "bytes": 135016,
+      "sha256": "3c73303d52b2968b0bcb625bd80bd903381d7f53e61b6f6b31c4f25b3c4f5754"
     },
     {
       "id": "moh",
       "captured": true,
       "heading": "Music on hold",
-      "bytes": 138517,
-      "sha256": "5ab721b6b6f799f7e8162620e8590f9d3de28bd2e62f5ad021026011427981d5"
+      "bytes": 137723,
+      "sha256": "91d00b5833ce61e12241668e3da3234578eec689cd39a3c140d56b71d1eb41f7"
     },
     {
       "id": "codecs",
       "captured": true,
       "heading": "Codecs & RTP",
-      "bytes": 120760,
-      "sha256": "fd2d6b49056ead77a4a0d05eed156b179d3bdd51fcb4b26b03a3a46230679bc4"
+      "bytes": 120521,
+      "sha256": "99661b8aebda39dfbddeb3966d8f8d283852a1ea3c8da4ae383198923c7e3112"
     },
     {
       "id": "cdr",
       "captured": true,
       "heading": "Call records",
-      "bytes": 126602,
-      "sha256": "bdda5cabf97e9f08c5ecb15bc6d9812f58c6e99daff27ec3c6a3229c9650b8a8"
+      "bytes": 126628,
+      "sha256": "9ca43741baa2278f67e237cba3dd5627af5e668742cdef71a134d84f121ca5f1"
     },
     {
       "id": "ami",
       "captured": true,
       "heading": "Manager & REST interfaces",
-      "bytes": 151372,
-      "sha256": "31af0128c34473b54c7ac1b50335c676c19f656daef5eea7c208c7ccf1a88330"
+      "bytes": 151195,
+      "sha256": "799d070055e2a3ed3feda775faf084f57afb233a200cc16a96b761eff18a7d9a"
     },
     {
       "id": "modules",
       "captured": true,
       "heading": "Modules",
-      "bytes": 125616,
-      "sha256": "e64c68af059f9ede8ae0111b38b17289ae68a09bb17f3b64b8bb51cf8a4c72b4"
+      "bytes": 124611,
+      "sha256": "62246b38b7f777cdb0de3269997535bcb92fc4bfe9a44efef77e557a2b9f7dd7"
     },
     {
       "id": "logger",
       "captured": true,
       "heading": "Logging",
-      "bytes": 116044,
-      "sha256": "0b41ad4cc46aa29a89fbcd52c033a96e40d7a88046ba58fcadf44030c462159b"
+      "bytes": 116158,
+      "sha256": "9dd58bb8451dd9823638b93036cd6d1b8970b851e80ec5eb2b0d374142aea388"
     },
     {
       "id": "security",
       "captured": true,
       "heading": "Security",
-      "bytes": 159657,
-      "sha256": "7bb7b3f930fcf5db8c264a6a6fccecf4b6883ce958631afdb8d0ff876f16838d"
+      "bytes": 160254,
+      "sha256": "635d66dc3d6cd29f02867054676119f787d424efb7ee77804fc7a5970b6ea312"
     },
     {
       "id": "cli",
       "captured": true,
       "heading": "CLI builder",
-      "bytes": 149245,
-      "sha256": "ed0418121472aa7a9bdc068760c406026af817cac46fd46fe22583ae31d5f7eb"
+      "bytes": 149331,
+      "sha256": "079d1433d73a55fd4a5dcb8f0c34c3ba3dd0b3a44401c3e57f2974540768d26c"
     },
     {
       "id": "memory",
       "captured": true,
       "heading": "Memory console",
-      "bytes": 153227,
-      "sha256": "6aa6f2c0b038826b0d5f2595a2dd8104bd1977f265c584acb5619f773c2e33c3"
+      "bytes": 151984,
+      "sha256": "fd66bee84fc9c14bd74a7d44e21ea358bc8c5842443a1b8ee799be902ab87964"
     },
     {
       "id": "sync",
       "captured": true,
       "heading": "Sync & attestation",
-      "bytes": 140041,
-      "sha256": "ff802591d6f84eda84d6703dba00bab886fdb3d7999ed669f186cf5fa32a494c"
+      "bytes": 139528,
+      "sha256": "ba1a8a910078004a2b96ff1fa50f3cd5f3f01a8f79be22d42a619826133a3146"
     },
     {
       "id": "skills",
       "captured": true,
       "heading": "Skills registry",
-      "bytes": 156783,
-      "sha256": "28ff757fb9dacb703b7786e4bcf66eb99119794c89e3717962c4f0261cfe1222"
+      "bytes": 156148,
+      "sha256": "732b439ada66341c0ad520858df1428a460fba0f2460d22500bc8330be437e1e"
     },
     {
       "id": "hub",
       "captured": true,
       "heading": "Status hub sessions",
-      "bytes": 139260,
-      "sha256": "377925813750bdaaeb812e4be74fdc8b906386bec57cf2b824c5f68751f36141"
+      "bytes": 139048,
+      "sha256": "68ca07762dc4f642b82c989cbeed7ed839075648fe7bb922c4b95ca3e1072d55"
     },
     {
       "id": "vocab",
       "captured": true,
       "heading": "Vocabulary & emission guard",
-      "bytes": 135351,
-      "sha256": "71f0dec887218958e10d54c5eedd4ce9807d8c827d220d98894ae8c591ccd0b2"
+      "bytes": 135052,
+      "sha256": "4a894a136d05c83e9287cd6bdf9b8ca4498a3db0857c094aef8b1b7f28d54d99"
     },
     {
       "id": "ops",
       "captured": true,
       "heading": "Operations & releases",
-      "bytes": 152943,
-      "sha256": "13af7bcb5a92639433552f01815f7743d5e99e49c9f91ba27cb349f4c18e7f23"
+      "bytes": 152400,
+      "sha256": "1e6d08ccb2cd9dec09d3a61cb388ce52692b43a2dd77cd71efaa2396c7ccc325"
     },
     {
       "id": "secrets",
       "captured": true,
       "heading": "Secret intake",
-      "bytes": 142310,
-      "sha256": "1912b41080252a9a6affee453aa523c7a0cbb3a4dccf3ac12ea2de1169a662ef"
+      "bytes": 141657,
+      "sha256": "e4525f7a5b837375fdf1f435e150e31ace894bd636145d68a8ea7010403133e2"
     },
     {
       "id": "servers",
       "captured": true,
       "heading": "Deploy a server",
-      "bytes": 298803,
-      "sha256": "1eb40609224630353a866e15ae61c047afab62d3725bf7811419e1b199d8faac"
+      "bytes": 236336,
+      "sha256": "73dc947674c609741be546fc9fa74b4ec63c3f7d8ced9f74d44c64630fd9383e"
     },
     {
       "id": "arcade",
       "captured": true,
       "heading": "Confirmation credits",
-      "bytes": 211571,
-      "sha256": "ec6e2fc7c7c8a3c82a7e27404ff96a818970782b2c8c4e14813891677a51bf78"
+      "bytes": 206852,
+      "sha256": "bb91e49c4a4fd52c1c8678ab2c8c78a2a9a9a9d422f65b9a0a61dae2fed2a8d9"
     },
     {
       "id": "notifications",
       "captured": true,
       "heading": "Notification centre",
-      "bytes": 150690,
-      "sha256": "f22f688328cbb57306d24f4cfe720c8cc6097eb2cd21770c440239a0f09a88f0"
+      "bytes": 149971,
+      "sha256": "6fcf360d127b70f661a03b28e5af2315c917e903a330532b0c2d24190b773731"
     },
     {
       "id": "history",
       "captured": true,
       "heading": "History",
-      "bytes": 194035,
-      "sha256": "a193aa55a2cd7faf7e00ba3cbcb42fb734e1ad24d083366506010281d9b7e38e"
+      "bytes": 194382,
+      "sha256": "e8203c7000975a9a16e28b3f1093a8e2171fe95047f298ee4c56826961af1d5c"
     },
     {
       "id": "customise",
       "captured": true,
       "heading": "Customise everything",
-      "bytes": 271279,
-      "sha256": "74e9927889e4457363d56596104ed68d63c6bf36844f1d24dcebb406f935e0d5"
+      "bytes": 217076,
+      "sha256": "977bafb2e66ad2ac70be9481ddb65b81bcad124319852b8da9c7fdf43a052e1b"
     },
     {
       "id": "appearance",
       "captured": true,
       "heading": "Appearance",
-      "bytes": 154792,
-      "sha256": "05035d0344b2d224f28be2161ad7dddbac0946a7a8b892a35d4de54c23be173f"
+      "bytes": 155686,
+      "sha256": "d8070652208cad3440dbe9c8b6e4ccfdb9fa7229913702c1345c558cf4d47733"
     },
     {
       "id": "about",
       "captured": true,
       "heading": "About",
-      "bytes": 104765,
-      "sha256": "aa2a3eeddc2d776f6063526faf71894fc37e1b748d7f2cc7eb3302985f5537c6"
+      "bytes": 104882,
+      "sha256": "862d2a27b6531e72320b6fc43d63737ceef22732ea2f26a43b6b689f49c72c45"
     }
   ]
 }

@@ -4,6 +4,9 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+/** The one section of an evidence document whose table rows must each name a source commit. */
+const CAPTURE_RECORDS_HEADING = '## Capture records';
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repo = resolve(root, '..', '..');
 const html = await readFile(join(root, 'index.html'), 'utf8');
@@ -57,14 +60,26 @@ test('provides 76 complete feature articles plus checked evidence records', asyn
   assert.ok(evidence.length>0,'the evidence category exists and is empty, which proves nothing');
   for(const name of evidence){
     const content=await readFile(join(evidenceRoot,name),'utf8');
-    for(const heading of ['## Capture records','## Capture method','## Verification boundary','## Suggested articles'])assert.match(content,new RegExp(heading),`${name} has no ${heading}`);
+    for(const heading of [CAPTURE_RECORDS_HEADING,'## Capture method','## Verification boundary','## Suggested articles'])assert.match(content,new RegExp(heading),`${name} has no ${heading}`);
     // The whole value of an evidence record is that a reader can go back to the exact
     // source a capture came from. A capture with no commit is a screenshot.
     //
     // Per ROW, not per file: "this document mentions a commit somewhere" passes while any
     // individual row quietly loses its own, which was exactly what the first version of
     // this check did when it was broken on purpose.
-    const rows=[...content.matchAll(/^\|(?!\s*(?:---|\s*State))(.+)\|\s*$/gm)].map(match=>match[1]);
+    //
+    // Scoped to the Capture records section rather than the whole document. It used to scan
+    // every table anywhere in the file, which is a different rule from the one stated above and
+    // a stricter one than it can justify: an evidence record that explains a measurement with a
+    // table -- a font's variation axes, a before-and-after of the figures -- has no capture in
+    // that table and no commit to name. Narrowing costs nothing against the corpus it was
+    // written for, because every row in every evidence document already sat inside this
+    // section, and it keeps the rule the comment above describes.
+    const recordsAt=content.indexOf(CAPTURE_RECORDS_HEADING);
+    assert.notEqual(recordsAt,-1,`${name} has no ${CAPTURE_RECORDS_HEADING} section to scan`);
+    const captureRecords=content.slice(recordsAt);
+    const nextHeading=captureRecords.indexOf('\n## ',CAPTURE_RECORDS_HEADING.length);
+    const rows=[...(nextHeading===-1?captureRecords:captureRecords.slice(0,nextHeading)).matchAll(/^\|(?!\s*(?:---|\s*State))(.+)\|\s*$/gm)].map(match=>match[1]);
     assert.ok(rows.length>0,`${name} has a capture-records section with no rows in it`);
     for(const row of rows)assert.match(row,/[0-9a-f]{40}/,`a capture row in ${name} names no source commit: ${row.slice(0,60)}`);
     for(const match of content.matchAll(/\]\(([^)]+\.(?:md|png))\)/g)){const target=resolve(evidenceRoot,match[1]);assert.ok((await stat(target)).isFile(),`${name} -> ${match[1]}`)}

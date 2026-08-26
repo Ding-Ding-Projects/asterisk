@@ -1,0 +1,1922 @@
+{
+  "generatedAt": "2026-08-25T23:52:10.649Z",
+  "generatedBy": "console/scripts/design-parity-msym-destination.mjs",
+  "baseline": "12bb4ff85f21d664b92d90410d645440f022ad9c",
+  "pairings": [
+    {
+      "key": "baseline",
+      "reference": "old",
+      "built": "old",
+      "what": "the recorded baseline: both sides as previously committed"
+    },
+    {
+      "key": "pinRemovedOnly",
+      "reference": "old",
+      "built": "new",
+      "what": "the pin removed, against the old reference capture"
+    },
+    {
+      "key": "referenceRetakenOnly",
+      "reference": "new",
+      "built": "old",
+      "what": "the pinned build, against the new reference capture"
+    },
+    {
+      "key": "both",
+      "reference": "new",
+      "built": "new",
+      "what": "both sides retaken in one session by one browser"
+    }
+  ],
+  "whyFourPairings": "The pin's removal and the capture run are two changes at once. Either alone raises the divergence and only both together lower it, so a pass that removed the pin and kept the committed reference captures would have read a correct repair as a regression.",
+  "destinations": [
+    {
+      "id": "dash",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3152,
+          "rail": 2401,
+          "sectionList": 15610,
+          "contentPane": 298390,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3079,
+          "rail": 3346,
+          "sectionList": 16944,
+          "contentPane": 277372,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3335,
+          "rail": 4457,
+          "sectionList": 19621,
+          "contentPane": 299268,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2158,
+          "rail": 1,
+          "sectionList": 11377,
+          "contentPane": 272836,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "live",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 9965,
+          "rail": 2401,
+          "sectionList": 17541,
+          "contentPane": 756810,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 9877,
+          "rail": 3346,
+          "sectionList": 19094,
+          "contentPane": 753854,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 9975,
+          "rail": 4458,
+          "sectionList": 21205,
+          "contentPane": 757374,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 9749,
+          "rail": 0,
+          "sectionList": 14054,
+          "contentPane": 752524,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "endpoints",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 16285,
+          "rail": 2401,
+          "sectionList": 17349,
+          "contentPane": 807541,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 16235,
+          "rail": 3346,
+          "sectionList": 19096,
+          "contentPane": 806658,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 16285,
+          "rail": 4458,
+          "sectionList": 21037,
+          "contentPane": 808148,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 16215,
+          "rail": 0,
+          "sectionList": 14018,
+          "contentPane": 805299,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "trunks",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 15716,
+          "rail": 2401,
+          "sectionList": 17152,
+          "contentPane": 752737,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 15657,
+          "rail": 3346,
+          "sectionList": 18934,
+          "contentPane": 751668,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 15717,
+          "rail": 4458,
+          "sectionList": 20990,
+          "contentPane": 753295,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 15638,
+          "rail": 0,
+          "sectionList": 13680,
+          "contentPane": 750369,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "trunkauth",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 10382,
+          "rail": 2401,
+          "sectionList": 19917,
+          "contentPane": 780539,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 10375,
+          "rail": 3346,
+          "sectionList": 19464,
+          "contentPane": 783037,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 10381,
+          "rail": 4458,
+          "sectionList": 23344,
+          "contentPane": 781127,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 10352,
+          "rail": 0,
+          "sectionList": 14697,
+          "contentPane": 781645,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "canvas",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 16025,
+          "rail": 2401,
+          "sectionList": 17066,
+          "contentPane": 830008,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 15941,
+          "rail": 3346,
+          "sectionList": 20869,
+          "contentPane": 843541,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 16036,
+          "rail": 4458,
+          "sectionList": 20667,
+          "contentPane": 830538,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 15830,
+          "rail": 0,
+          "sectionList": 15909,
+          "contentPane": 842228,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "ivr",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 15454,
+          "rail": 2401,
+          "sectionList": 17398,
+          "contentPane": 811689,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 15368,
+          "rail": 3346,
+          "sectionList": 19141,
+          "contentPane": 811768,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 15466,
+          "rail": 4458,
+          "sectionList": 21096,
+          "contentPane": 812348,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 15258,
+          "rail": 0,
+          "sectionList": 14066,
+          "contentPane": 810342,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "queues",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 10318,
+          "rail": 2401,
+          "sectionList": 17678,
+          "contentPane": 812595,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 10239,
+          "rail": 3346,
+          "sectionList": 19383,
+          "contentPane": 813075,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 10330,
+          "rail": 4458,
+          "sectionList": 21238,
+          "contentPane": 813176,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 10126,
+          "rail": 0,
+          "sectionList": 14444,
+          "contentPane": 811728,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "voicemail",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3639,
+          "rail": 2614,
+          "sectionList": 14969,
+          "contentPane": 813134,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3549,
+          "rail": 3632,
+          "sectionList": 17052,
+          "contentPane": 814939,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3700,
+          "rail": 4543,
+          "sectionList": 17052,
+          "contentPane": 813724,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2929,
+          "rail": 400,
+          "sectionList": 13747,
+          "contentPane": 813584,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "confbridge",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 4010,
+          "sectionList": 18983,
+          "contentPane": 828067,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 5542,
+          "sectionList": 17875,
+          "contentPane": 803273,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 5932,
+          "sectionList": 21013,
+          "contentPane": 828669,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 2437,
+          "sectionList": 14665,
+          "contentPane": 801921,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "moh",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 5476,
+          "sectionList": 16402,
+          "contentPane": 814041,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 6943,
+          "sectionList": 18645,
+          "contentPane": 834106,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 7314,
+          "sectionList": 18336,
+          "contentPane": 814634,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 3939,
+          "sectionList": 15540,
+          "contentPane": 832719,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "codecs",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 6483,
+          "sectionList": 16331,
+          "contentPane": 813914,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 3348,
+          "sectionList": 18642,
+          "contentPane": 833703,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 8260,
+          "sectionList": 18364,
+          "contentPane": 814454,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 0,
+          "sectionList": 15410,
+          "contentPane": 832393,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "cdr",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 2781,
+          "sectionList": 12515,
+          "contentPane": 626243,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 3895,
+          "sectionList": 12084,
+          "contentPane": 652724,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 4711,
+          "sectionList": 13319,
+          "contentPane": 626866,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 676,
+          "sectionList": 10511,
+          "contentPane": 651351,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "ami",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 4656,
+          "sectionList": 10787,
+          "contentPane": 801180,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 5041,
+          "sectionList": 12405,
+          "contentPane": 801202,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 6564,
+          "sectionList": 11522,
+          "contentPane": 801776,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 1858,
+          "sectionList": 10883,
+          "contentPane": 799861,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "modules",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 3522,
+          "sectionList": 42947,
+          "contentPane": 654499,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 5014,
+          "sectionList": 38051,
+          "contentPane": 652413,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 5452,
+          "sectionList": 43332,
+          "contentPane": 655087,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 1833,
+          "sectionList": 37228,
+          "contentPane": 651088,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "logger",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 4979,
+          "sectionList": 44240,
+          "contentPane": 558323,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 6352,
+          "sectionList": 42122,
+          "contentPane": 583311,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 6879,
+          "sectionList": 44628,
+          "contentPane": 558855,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 3341,
+          "sectionList": 41294,
+          "contentPane": 582022,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "security",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 6489,
+          "sectionList": 42812,
+          "contentPane": 748239,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 7248,
+          "sectionList": 42294,
+          "contentPane": 749014,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 8372,
+          "sectionList": 43202,
+          "contentPane": 749016,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 4248,
+          "sectionList": 41467,
+          "contentPane": 747496,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "cli",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 2743,
+          "sectionList": 44718,
+          "contentPane": 639715,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 3358,
+          "sectionList": 40936,
+          "contentPane": 641264,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 4671,
+          "sectionList": 45108,
+          "contentPane": 640256,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 0,
+          "sectionList": 40109,
+          "contentPane": 639935,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "memory",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 2897,
+          "sectionList": 9769,
+          "contentPane": 574283,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 3582,
+          "sectionList": 13048,
+          "contentPane": 568964,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 4825,
+          "sectionList": 12727,
+          "contentPane": 574911,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 344,
+          "sectionList": 8655,
+          "contentPane": 567627,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "sync",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 3782,
+          "sectionList": 10353,
+          "contentPane": 635228,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 4700,
+          "sectionList": 13846,
+          "contentPane": 634196,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 5711,
+          "sectionList": 13287,
+          "contentPane": 635831,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 1472,
+          "sectionList": 9451,
+          "contentPane": 632849,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "skills",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 4714,
+          "sectionList": 10132,
+          "contentPane": 771672,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 5588,
+          "sectionList": 13737,
+          "contentPane": 770627,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 6620,
+          "sectionList": 13170,
+          "contentPane": 772233,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 2464,
+          "sectionList": 9258,
+          "contentPane": 769300,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "hub",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 5532,
+          "sectionList": 10337,
+          "contentPane": 584984,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 6497,
+          "sectionList": 13704,
+          "contentPane": 583932,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 7420,
+          "sectionList": 13425,
+          "contentPane": 585579,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 3515,
+          "sectionList": 9240,
+          "contentPane": 582593,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "vocab",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 6167,
+          "sectionList": 13376,
+          "contentPane": 708041,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 7079,
+          "sectionList": 13909,
+          "contentPane": 616114,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 8041,
+          "sectionList": 16237,
+          "contentPane": 708591,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 4130,
+          "sectionList": 9609,
+          "contentPane": 614793,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "ops",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 6473,
+          "sectionList": 9114,
+          "contentPane": 747928,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 7432,
+          "sectionList": 13699,
+          "contentPane": 749482,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 8349,
+          "sectionList": 12229,
+          "contentPane": 748492,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 4411,
+          "sectionList": 9160,
+          "contentPane": 748156,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "secrets",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 2832,
+          "sectionList": 12204,
+          "contentPane": 636090,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 3354,
+          "sectionList": 11439,
+          "contentPane": 635265,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 4762,
+          "sectionList": 15288,
+          "contentPane": 636656,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 0,
+          "sectionList": 6913,
+          "contentPane": 633951,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "servers",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 2999,
+          "sectionList": 13169,
+          "contentPane": 826482,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 3736,
+          "sectionList": 14417,
+          "contentPane": 840638,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 4928,
+          "sectionList": 16716,
+          "contentPane": 827071,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 496,
+          "sectionList": 9209,
+          "contentPane": 839296,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "arcade",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 4080,
+          "sectionList": 13059,
+          "contentPane": 783706,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 4985,
+          "sectionList": 14993,
+          "contentPane": 810676,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 6008,
+          "sectionList": 16847,
+          "contentPane": 784399,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 1776,
+          "sectionList": 9547,
+          "contentPane": 809309,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "notifications",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 5097,
+          "sectionList": 11188,
+          "contentPane": 716173,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 5910,
+          "sectionList": 14737,
+          "contentPane": 715092,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 7010,
+          "sectionList": 14771,
+          "contentPane": 716764,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 2784,
+          "sectionList": 9436,
+          "contentPane": 713751,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "history",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 5972,
+          "sectionList": 11212,
+          "contentPane": 769051,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 6582,
+          "sectionList": 14850,
+          "contentPane": 773078,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 7864,
+          "sectionList": 14832,
+          "contentPane": 769810,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 3524,
+          "sectionList": 9555,
+          "contentPane": 771756,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "customise",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 6676,
+          "sectionList": 11692,
+          "contentPane": 814790,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 7322,
+          "sectionList": 15223,
+          "contentPane": 827568,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 8574,
+          "sectionList": 15086,
+          "contentPane": 815377,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 4291,
+          "sectionList": 10144,
+          "contentPane": 826215,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "appearance",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 2920,
+          "sectionList": 13744,
+          "contentPane": 838164,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 3356,
+          "sectionList": 14796,
+          "contentPane": 824939,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 4849,
+          "sectionList": 17364,
+          "contentPane": 838729,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 0,
+          "sectionList": 9523,
+          "contentPane": 823616,
+          "outsideEveryArea": 0
+        }
+      }
+    },
+    {
+      "id": "about",
+      "roles": {
+        "brandCell": "chrome",
+        "menuCell": "chrome",
+        "commandCell": "data",
+        "statusCell": "chrome",
+        "tabStrip": "chrome",
+        "rail": "chrome",
+        "sectionList": "chrome",
+        "contentPane": "data"
+      },
+      "pairings": {
+        "baseline": {
+          "brandCell": 1002,
+          "menuCell": 1886,
+          "commandCell": 8331,
+          "statusCell": 1420,
+          "tabStrip": 3129,
+          "rail": 2920,
+          "sectionList": 11080,
+          "contentPane": 319008,
+          "outsideEveryArea": 0
+        },
+        "pinRemovedOnly": {
+          "brandCell": 978,
+          "menuCell": 1903,
+          "commandCell": 6997,
+          "statusCell": 1213,
+          "tabStrip": 3055,
+          "rail": 3356,
+          "sectionList": 13364,
+          "contentPane": 320148,
+          "outsideEveryArea": 0
+        },
+        "referenceRetakenOnly": {
+          "brandCell": 1019,
+          "menuCell": 1902,
+          "commandCell": 8335,
+          "statusCell": 1905,
+          "tabStrip": 3311,
+          "rail": 4849,
+          "sectionList": 14649,
+          "contentPane": 319546,
+          "outsideEveryArea": 0
+        },
+        "both": {
+          "brandCell": 846,
+          "menuCell": 1888,
+          "commandCell": 6986,
+          "statusCell": 555,
+          "tabStrip": 2155,
+          "rail": 0,
+          "sectionList": 8121,
+          "contentPane": 318846,
+          "outsideEveryArea": 0
+        }
+      }
+    }
+  ]
+}

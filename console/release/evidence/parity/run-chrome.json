@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-25T22:49:00.273Z",
+  "generatedAt": "2026-08-25T23:45:07.376Z",
   "regionsOnly": false,
   "side": "chrome",
   "bar": "chrome-parity",
@@ -18,7 +18,7 @@
     {
       "id": "dash",
       "verdict": "diff",
-      "diffPercentage": 6.076213286513101,
+      "diffPercentage": 4.013673925074905,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -26,7 +26,7 @@
     {
       "id": "live",
       "verdict": "diff",
-      "diffPercentage": 8.162130956697647,
+      "diffPercentage": 6.462909597511403,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "tabStrip",
       "reasons": []
@@ -34,7 +34,7 @@
     {
       "id": "endpoints",
       "verdict": "diff",
-      "diffPercentage": 9.623990915857172,
+      "diffPercentage": 7.996812916277028,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "tabStrip",
       "reasons": []
@@ -42,7 +42,7 @@
     {
       "id": "trunks",
       "verdict": "diff",
-      "diffPercentage": 9.441258420962233,
+      "diffPercentage": 7.778535849920799,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "tabStrip",
       "reasons": []
@@ -50,7 +50,7 @@
     {
       "id": "trunkauth",
       "verdict": "diff",
-      "diffPercentage": 8.828412755968627,
+      "diffPercentage": 6.760148094429283,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "tabStrip",
       "reasons": []
@@ -58,7 +58,7 @@
     {
       "id": "canvas",
       "verdict": "diff",
-      "diffPercentage": 9.494456001068723,
+      "diffPercentage": 8.356075497624001,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "tabStrip",
       "reasons": []
@@ -66,7 +66,7 @@
     {
       "id": "ivr",
       "verdict": "diff",
-      "diffPercentage": 9.437441554228135,
+      "diffPercentage": 7.779967174946087,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "tabStrip",
       "reasons": []
@@ -74,7 +74,7 @@
     {
       "id": "queues",
       "verdict": "diff",
-      "diffPercentage": 8.279022500429397,
+      "diffPercentage": 6.645880646577225,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "tabStrip",
       "reasons": []
@@ -82,7 +82,7 @@
     {
       "id": "voicemail",
       "verdict": "diff",
-      "diffPercentage": 6.090287982595088,
+      "diffPercentage": 4.858155689994084,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -90,7 +90,7 @@
     {
       "id": "confbridge",
       "verdict": "diff",
-      "diffPercentage": 7.259203419912594,
+      "diffPercentage": 5.378442336685815,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -98,7 +98,7 @@
     {
       "id": "moh",
       "verdict": "diff",
-      "diffPercentage": 6.993215519380142,
+      "diffPercentage": 5.945485600870246,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -106,7 +106,7 @@
     {
       "id": "codecs",
       "verdict": "diff",
-      "diffPercentage": 7.216502223324872,
+      "diffPercentage": 4.974808679554953,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -114,7 +114,7 @@
     {
       "id": "cdr",
       "verdict": "diff",
-      "diffPercentage": 5.4230519666405845,
+      "diffPercentage": 3.967394415923968,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -122,7 +122,7 @@
     {
       "id": "ami",
       "verdict": "diff",
-      "diffPercentage": 5.458119429760109,
+      "diffPercentage": 4.338107597473234,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -130,7 +130,7 @@
     {
       "id": "modules",
       "verdict": "diff",
-      "diffPercentage": 12.859501135517853,
+      "diffPercentage": 10.61685337506441,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "sectionList",
       "reasons": []
@@ -138,7 +138,7 @@
     {
       "id": "logger",
       "verdict": "diff",
-      "diffPercentage": 13.515525105440943,
+      "diffPercentage": 11.946554323555793,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "sectionList",
       "reasons": []
@@ -146,7 +146,7 @@
     {
       "id": "security",
       "verdict": "diff",
-      "diffPercentage": 13.535086547453195,
+      "diffPercentage": 12.204192828107406,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "sectionList",
       "reasons": []
@@ -154,7 +154,7 @@
     {
       "id": "cli",
       "verdict": "diff",
-      "diffPercentage": 13.096146873031927,
+      "diffPercentage": 10.866858146147827,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "sectionList",
       "reasons": []
@@ -162,7 +162,7 @@
     {
       "id": "memory",
       "verdict": "diff",
-      "diffPercentage": 4.79565449722323,
+      "diffPercentage": 3.44543789003607,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -170,7 +170,7 @@
     {
       "id": "sync",
       "verdict": "diff",
-      "diffPercentage": 5.1460905742476,
+      "diffPercentage": 3.9044161148113514,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -178,7 +178,7 @@
     {
       "id": "skills",
       "verdict": "diff",
-      "diffPercentage": 5.315702589744079,
+      "diffPercentage": 4.0950208973453694,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -186,7 +186,7 @@
     {
       "id": "hub",
       "verdict": "diff",
-      "diffPercentage": 5.559743506555469,
+      "diffPercentage": 4.34144735586557,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -194,7 +194,7 @@
     {
       "id": "vocab",
       "verdict": "diff",
-      "diffPercentage": 6.436191530372717,
+      "diffPercentage": 4.576184660012596,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -202,7 +202,7 @@
     {
       "id": "ops",
       "verdict": "diff",
-      "diffPercentage": 5.492471230366991,
+      "diffPercentage": 4.5361075593045665,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -210,7 +210,7 @@
     {
       "id": "secrets",
       "verdict": "diff",
-      "diffPercentage": 5.361027882211493,
+      "diffPercentage": 2.9478138895780455,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -218,7 +218,7 @@
     {
       "id": "servers",
       "verdict": "diff",
-      "diffPercentage": 5.631071203648925,
+      "diffPercentage": 3.6138571346781423,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -226,7 +226,7 @@
     {
       "id": "arcade",
       "verdict": "diff",
-      "diffPercentage": 5.862707303574496,
+      "diffPercentage": 3.999837783163801,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -234,7 +234,7 @@
     {
       "id": "notifications",
       "verdict": "diff",
-      "diffPercentage": 5.658982041642016,
+      "diffPercentage": 4.213820874444169,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -242,7 +242,7 @@
     {
       "id": "history",
       "verdict": "diff",
-      "diffPercentage": 5.873442241264146,
+      "diffPercentage": 4.418738907231054,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -250,7 +250,7 @@
     {
       "id": "customise",
       "verdict": "diff",
-      "diffPercentage": 6.1558903795873965,
+      "diffPercentage": 4.742218362945858,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -258,7 +258,7 @@
     {
       "id": "appearance",
       "verdict": "diff",
-      "diffPercentage": 5.749394072405962,
+      "diffPercentage": 3.5704402755777784,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []
@@ -266,7 +266,7 @@
     {
       "id": "about",
       "verdict": "diff",
-      "diffPercentage": 5.113885761178649,
+      "diffPercentage": 3.2359873280024423,
       "comparedFraction": 0.29110555555555556,
       "worstArea": "brandCell",
       "reasons": []

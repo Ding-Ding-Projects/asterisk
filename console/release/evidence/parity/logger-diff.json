@@ -12,14 +12,14 @@
       "height": 1000
     }
   },
-  "diffPixelCount": 623310,
+  "diffPixelCount": 639087,
   "totalPixels": 1440000,
-  "diffPercentage": 43.28541666666666,
+  "diffPercentage": 44.38104166666667,
   "boundingBox": {
     "x0": 0,
-    "y0": 5,
-    "x1": 1439,
-    "y1": 999
+    "y0": 6,
+    "x1": 1413,
+    "y1": 986
   },
   "paletteCheck": {
     "blackFraction": 0,
@@ -28,8 +28,8 @@
   "stalenessCheck": {
     "checked": true,
     "stale": false,
-    "builtCaptureMtimeMs": 1787692755003.5227,
-    "newestBuildSourceMtimeMs": 1787691669082.8162
+    "builtCaptureMtimeMs": 1787701426281.2764,
+    "newestBuildSourceMtimeMs": 1787701108062.1504
   },
   "generatedBy": "console/scripts/design-parity-capture-run.mjs --side=diff",
   "tuple": {

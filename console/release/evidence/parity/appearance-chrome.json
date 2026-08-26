@@ -17,13 +17,13 @@
   "comparedPixels": 419192,
   "comparedFraction": 0.29110555555555556,
   "minimumComparedFraction": 0.25,
-  "diffPixelCount": 24101,
-  "diffPercentage": 5.749394072405962,
+  "diffPixelCount": 14967,
+  "diffPercentage": 3.5704402755777784,
   "boundingBox": {
-    "x0": 0,
-    "y0": 5,
-    "x1": 1428,
-    "y1": 999
+    "x0": 41,
+    "y0": 14,
+    "x1": 1314,
+    "y1": 986
   },
   "excluded": {
     "rectangles": [
@@ -42,39 +42,39 @@
     ],
     "pixels": 1020808,
     "clippedAway": [],
-    "diffPixelCount": 846495,
-    "diffPercentage": 82.9240170531579
+    "diffPixelCount": 830602,
+    "diffPercentage": 81.36711311039882
   },
   "areas": {
     "brandCell": {
       "comparedPixels": 6440,
-      "diffPixelCount": 1002,
-      "diffPercentage": 15.559006211180124
+      "diffPixelCount": 846,
+      "diffPercentage": 13.136645962732917
     },
     "menuCell": {
       "comparedPixels": 15360,
-      "diffPixelCount": 1886,
-      "diffPercentage": 12.278645833333334
+      "diffPixelCount": 1888,
+      "diffPercentage": 12.291666666666666
     },
     "statusCell": {
       "comparedPixels": 14720,
-      "diffPixelCount": 1420,
-      "diffPercentage": 9.646739130434783
+      "diffPixelCount": 555,
+      "diffPercentage": 3.770380434782609
     },
     "tabStrip": {
       "comparedPixels": 54720,
-      "diffPixelCount": 3129,
-      "diffPercentage": 5.718201754385965
+      "diffPixelCount": 2155,
+      "diffPercentage": 3.938230994152047
     },
     "rail": {
       "comparedPixels": 81136,
-      "diffPixelCount": 2920,
-      "diffPercentage": 3.5988956813251822
+      "diffPixelCount": 0,
+      "diffPercentage": 0
     },
     "sectionList": {
       "comparedPixels": 247096,
-      "diffPixelCount": 13744,
-      "diffPercentage": 5.562210638780069
+      "diffPixelCount": 9523,
+      "diffPercentage": 3.853967688671609
     }
   },
   "paletteCheck": {
@@ -84,8 +84,8 @@
   "stalenessCheck": {
     "checked": true,
     "stale": false,
-    "builtCaptureMtimeMs": 1787696996882.2114,
-    "newestBuildSourceMtimeMs": 1787691669082.8162
+    "builtCaptureMtimeMs": 1787701427686.9082,
+    "newestBuildSourceMtimeMs": 1787701108062.1504
   },
   "generatedBy": "console/scripts/design-parity-capture-run.mjs --side=chrome",
   "tuple": {

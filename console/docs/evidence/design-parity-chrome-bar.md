@@ -146,15 +146,24 @@ it -- the mask and the pixels are the same render, not two visits that happen to
 supersedes the earlier pair of `--regions-only` runs, which existed so the bar could be applied to
 captures that were already committed.
 
+**Both sides now run under the same browser, and that is a change.** The reference side used to run
+under headless Edge while only the built side ran under Electron, so two artifacts compared at a
+tolerance of exactly zero were being drawn by two different browsers in two different modes. What
+that was worth is measured rather than guessed at, in
+[why one measurement would have got this backwards](#why-one-measurement-would-have-got-this-backwards):
+retaking the reference side alone, with no change to the product, raises the rail's divergence on
+every one of the 32.
+
 - **Reference side.** The design export rendered by its own runtime inside
-  `design-reference/index.html`, under headless Edge, with a capture run's full request
-  interception: React served from the locally vendored copies the design's own integrity hashes pin,
-  the font stylesheet answered from `assets/fonts`, and every other request refused and counted. **No
-  request reached the network** -- 710 to the capture host, 64 font stylesheets answered locally, 0
-  blocked. 32 of 32 destinations.
-- **Built side.** The real built renderer under Electron on an off-screen Windows desktop created by
-  `scripts/launch-on-hidden-desktop.ps1`, from `console/dist` built out of this tree. The visible
-  desktop, cursor and foreground application were never touched. 32 of 32 destinations.
+  `design-reference/index.html`, under **Electron 43.4.1 on an off-screen Windows desktop**, with a
+  capture run's full request interception: React served from the locally vendored copies the design's
+  own integrity hashes pin, the font stylesheet answered from `assets/fonts`, and every other request
+  refused and counted. **No request reached the network** -- 710 to the capture host, 64 font
+  stylesheets answered locally, 0 blocked. 32 of 32 destinations.
+- **Built side.** The real built renderer under **the same Electron 43.4.1** on an off-screen Windows
+  desktop created by `scripts/launch-on-hidden-desktop.ps1`, from `console/dist` built out of this
+  tree. The visible desktop, cursor and foreground application were never touched. 32 of 32
+  destinations.
 - **Comparison.** `--side=diff` and `--side=chrome`, no browser at all.
 
 ## Capture records
@@ -174,12 +183,20 @@ alone, for the reason given under [verification boundary](#verification-boundary
 
 | State | Record | Run from commit | Coverage | Result |
 | --- | --- | --- | --- | --- |
-| Reference-side rectangles | `release/evidence/parity/regions-reference.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 of 32 | 8 area rectangles each; every shell exactly 1440x1000 at the origin |
-| Built-side rectangles | `release/evidence/parity/regions-built.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 of 32 | every shell exactly 1440x1000 at the origin |
-| Whole-frame visual diff | `release/evidence/parity/{id}-diff.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 records | 0 match, 32 diff, 0 refused; 23.07%-60.98% of pixels differ |
-| Per-destination region ledger | `release/evidence/parity/{id}-regions.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 ledgers | 2 data areas excluded, 6 chrome areas compared |
-| Per-destination chrome-parity comparison | `release/evidence/parity/{id}-chrome.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 records | 0 match, 32 diff, 0 refused; 4.80%-13.54% of the compared region differs |
-| Run ledger for the comparison stage | `release/evidence/parity/run-chrome.json` | `3a63ea4d50ee262db85e3a1ef50bd96d4c44e63b` | 32 compared, 0 skipped | exactly 29.1106% of the frame compared, against a declared floor of 25% |
+| Reference-side rectangles | `release/evidence/parity/regions-reference.json` | `5cc309a4421ca843721ea71d7336cd7e317f358c` | 32 of 32 | 8 area rectangles each; every shell exactly 1440x1000 at the origin |
+| Built-side rectangles | `release/evidence/parity/regions-built.json` | `5cc309a4421ca843721ea71d7336cd7e317f358c` | 32 of 32 | every shell exactly 1440x1000 at the origin |
+| Whole-frame visual diff | `release/evidence/parity/{id}-diff.json` | `5cc309a4421ca843721ea71d7336cd7e317f358c` | 32 records | 0 match, 32 diff, 0 refused; 20.60%-61.41% of pixels differ |
+| Per-destination region ledger | `release/evidence/parity/{id}-regions.json` | `5cc309a4421ca843721ea71d7336cd7e317f358c` | 32 ledgers | 2 data areas excluded, 6 chrome areas compared |
+| Per-destination chrome-parity comparison | `release/evidence/parity/{id}-chrome.json` | `5cc309a4421ca843721ea71d7336cd7e317f358c` | 32 records | 0 match, 32 diff, 0 refused; 2.95%-12.20% of the compared region differs |
+| Run ledger for the comparison stage | `release/evidence/parity/run-chrome.json` | `5cc309a4421ca843721ea71d7336cd7e317f358c` | 32 compared, 0 skipped | exactly 29.1106% of the frame compared, against a declared floor of 25% |
+| The axis pin, rendered both ways | `release/evidence/parity/msym-axis-pin.json` | `5cc309a4421ca843721ea71d7336cd7e317f358c` | 98 icons | 0 differing pixels shipped-against-design; 11,252 under the pin |
+| The axis pin, four-way at destination level | `release/evidence/parity/msym-axis-pin-destination.json` | `5cc309a4421ca843721ea71d7336cd7e317f358c` | 32 destinations | baseline `12bb4ff85f21d664b92d90410d645440f022ad9c`; only both changes together converge |
+
+Every figure above came from one full pass per side taken in one session against the build recorded
+in `console/resources/update-manifest.json`, whose `candidateCommit` is that same
+`5cc309a4421ca843721ea71d7336cd7e317f358c`. **`master` gained an IAX2 destination after that build,
+and this pass does not re-photograph it** — that is stated rather than left to inference, and it is
+the same condition `master`'s own Fax commit left behind, which retook no capture either.
 
 ## Verification boundary
 
@@ -303,6 +320,113 @@ an integer, so where the half pixel enters is unknown.
 `.msym` rule, which changes how every icon in the shipped product is drawn and invalidates all 32
 built captures — a decision and a capture run of its own, not a side effect of a role change. Both
 are recorded as roadmap items.
+
+> [!NOTE]
+> **Both have since been answered, and only one of them was what it looked like.** The section above
+> is left exactly as written, because the account of how the two causes were found is still the
+> account. See [the axis pin](#the-axis-pin-what-it-was-and-what-removing-it-cost): the icon cause
+> was demonstrated and repaired, and the picker border turned out not to be a divergence between the
+> two artifacts at all.
+
+## The axis pin: what it was, and what removing it cost
+
+`compile-design.mjs` used to append `font-variation-settings:"FILL" 0,"wght" 400,"GRAD" 0,"opsz" 24`
+to its own `.msym` rule. It does not any more. The decision, and the reason it could not be taken by
+reading the code, are below.
+
+### What the pin was
+
+It arrived in this compiler's **first** commit, `9beed2f159` — **thirty minutes before** the 49-face
+font download in `0611732d0`, and it was never touched again. The roadmap item that raised this
+worried that the pin had arrived *with* that download and that removing it might undo a repair. The
+ordering disproves the premise. It is Google's own documented Material Symbols snippet, carried in
+unchanged and never revisited.
+
+### What it did
+
+`scripts/woff2-fvar.mjs` reads the shipped face's own `fvar` table, rather than trusting the
+stylesheet URL that requested it:
+
+| axis | minimum | **default** | maximum |
+| --- | --- | --- | --- |
+| `FILL` | 0 | **0** | 1 |
+| `GRAD` | −50 | **0** | 200 |
+| `opsz` | 20 | **24** | 48 |
+| `wght` | 100 | **400** | 700 |
+
+Three of the four pinned values are the file's own defaults. They did nothing at all.
+
+The fourth did a great deal. CSS `font-optical-sizing` defaults to `auto`, which drives the `opsz`
+axis from the used font-size, and `font-variation-settings` **outranks it** — so a fixed `opsz 24`
+replaced every icon's own optical size with a 24px icon's. The design draws **175 icons, and four of
+them are 24px**.
+
+### The demonstration
+
+`scripts/design-parity-msym-axes.mjs` renders every distinct literal (size, ligature) pair the design
+draws — 98 of them — four ways in one Chromium at this capture tuple's own metrics, from the shipped
+font file:
+
+| comparison | whole-frame differing pixels |
+| --- | --- |
+| the design's own `.msym` rules against **the shipped rules** | **0** |
+| the design's own rules against **those rules plus the pin** | **11,252** |
+| the design's own rules against **the pin with `opsz` per icon at `clamp(size, 20, 48)`** | **0** |
+
+95 of the 98 differ under the pin; the three that do not are exactly the 24px ones. The last row is
+what identifies the mechanism rather than merely correlating with it — the unpinned rendering **is**
+the pin at each icon's own optical size.
+
+### Why one measurement would have got this backwards
+
+This pass changed two things: the product, and the harness — which now renders **both** sides under
+one Chromium, where the reference side previously ran under headless Edge while only the built side
+ran under Electron. Two artifacts compared at a tolerance of exactly zero were being drawn by two
+different browsers in two different modes.
+
+`scripts/design-parity-msym-destination.mjs` separates the two across all 32 destinations, comparing
+both reference sets against both built sets. On the **navigation rail** — 81,136 compared pixels of
+nothing but icons and their labels:
+
+| pairing | rail, differing pixels |
+| --- | --- |
+| the recorded baseline | 2,401 – 6,676 |
+| the pin removed, against the **old** reference | 3,346 – 7,432 |
+| the pinned build, against the **new** reference | 4,457 – 8,574 |
+| **both retaken together** | **0 – 4,411, exactly zero on 12** |
+
+**Either change alone makes it worse on every destination but one; only both together converge.** A
+pass that had removed the pin and kept the committed reference captures would have measured a correct
+repair as a regression, and would very reasonably have backed it out. The single exception is
+`codecs`, where removing the pin alone does lower the rail figure — named rather than absorbed into a
+"most destinations".
+
+### What it cost and bought
+
+| figure | before | after |
+| --- | --- | --- |
+| `statusCell` | 1,420 pixels (9.6467%) on all 32 | **555 (3.7704%)** on all 32 |
+| `brandCell` | 1,002 (15.5590%) | **846 (13.1366%)** |
+| `menuCell` — the control, holding no icon | 1,886 (12.2786%) | 1,888 (12.2917%) |
+| `rail` | 2.9592% – 8.2282%, never zero | **0% – 5.4366%, byte-identical on 12 of 32** |
+| compared-region divergence | 4.80% – 13.54% | **2.95% – 12.20%** |
+| compared fraction | exactly 29.1106% | exactly 29.1106% |
+| worst-area tally | brandCell 21, tabStrip 7, sectionList 4 | unchanged |
+
+The **mode picker's border** has left the divergence entirely. Of `statusCell`'s remaining 555
+pixels, none is in the border rows; all of them are in the text band, rows 14–25. The half-pixel box
+offset the previous section measured was an artifact of comparing two browsers, not a property of
+either artifact.
+
+### What this does not claim
+
+No destination moved to `verified` and none could — all 32 still report a real chrome divergence, and
+the Material Design 3 audit still reports all 32 nonconforming. The 555 pixels still differing in
+`statusCell` are **not explained**: they sit in three column runs matching the check glyph and the
+two labels, and nothing here says why. The rail's remaining divergence on 20 of the 32 is likewise
+unexplained — it is 0 or 1 on seven of the eight `pbx`-rail destinations and larger elsewhere, and no
+cause was established. And rendering both sides with one Chromium in one mode is a stronger claim
+than before, not a proof that every remaining pixel belongs to the artifacts.
 
 ## Where the divergence actually comes from
 

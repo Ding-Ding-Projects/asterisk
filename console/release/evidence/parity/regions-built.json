@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-25T21:19:16.772Z",
+  "generatedAt": "2026-08-25T23:43:47.777Z",
   "side": "built",
   "target": "console/dist built renderer under Electron on an off-screen Windows desktop",
   "tuple": {
@@ -33,7 +33,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -91,7 +91,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -149,7 +149,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -207,7 +207,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -265,7 +265,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -323,7 +323,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -381,7 +381,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -439,7 +439,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -497,7 +497,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -555,7 +555,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -613,7 +613,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -671,7 +671,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -729,7 +729,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -787,7 +787,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -845,7 +845,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -903,7 +903,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -961,7 +961,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -1019,7 +1019,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -1077,7 +1077,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -1135,7 +1135,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -1193,7 +1193,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -1251,7 +1251,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -1309,7 +1309,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -1367,7 +1367,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -1425,7 +1425,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -1483,7 +1483,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -1541,7 +1541,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -1599,7 +1599,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -1657,7 +1657,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -1715,7 +1715,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -1773,7 +1773,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {
@@ -1831,7 +1831,7 @@
         "commandCell": {
           "x": 546,
           "y": 0,
-          "width": 526,
+          "width": 525,
           "height": 40
         },
         "statusCell": {

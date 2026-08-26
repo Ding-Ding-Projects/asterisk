@@ -14,6 +14,7 @@ import {
   REMOVED_PIN,
   variantStylesheets,
 } from '../../scripts/design-parity-msym-axes.mjs';
+import { differencesByArea, PAIRINGS } from '../../scripts/design-parity-msym-destination.mjs';
 import { readVariationAxes, readWoff2Tables } from '../../scripts/woff2-fvar.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -171,6 +172,77 @@ test('a difference in any single channel counts, alpha included', () => {
     b.pixels[channel] = 11;
     assert.equal(differingPixelsIn(a, b, { x: 0, y: 0, width: 1, height: 1 }), 1, `channel ${channel}`);
   }
+});
+
+/* ------------------------------------------------- the destination-level four-way compare -- */
+
+test('the four pairings cover both sides at both states, once each', () => {
+  assert.equal(PAIRINGS.length, 4);
+  const seen = PAIRINGS.map((p) => `${p.reference}/${p.built}`).sort();
+  assert.deepEqual(seen, ['new/new', 'new/old', 'old/new', 'old/old']);
+  for (const pairing of PAIRINGS) assert.ok(pairing.what.length > 20, `${pairing.key} needs a stated meaning`);
+});
+
+test('a differing pixel is attributed to one area only, even where unions overlap', () => {
+  const a = { width: 2, height: 1, pixels: Uint8ClampedArray.from([0, 0, 0, 255, 0, 0, 0, 255]) };
+  const b = { width: 2, height: 1, pixels: Uint8ClampedArray.from([9, 0, 0, 255, 9, 0, 0, 255]) };
+  const areas = {
+    first: { role: 'chrome', union: { x: 0, y: 0, width: 2, height: 1 } },
+    second: { role: 'chrome', union: { x: 0, y: 0, width: 2, height: 1 } },
+  };
+  const { tally, outsideEveryArea } = differencesByArea(a, b, areas);
+  // Both rectangles contain both pixels. Counting each pixel twice would make the columns of
+  // the reported table sum to more than the frame differs by, and the table's whole value is
+  // that its columns can be compared with each other.
+  assert.deepEqual(tally, { first: 2, second: 0 });
+  assert.equal(outsideEveryArea, 0);
+});
+
+test('a differing pixel outside every declared area is counted rather than dropped', () => {
+  const a = { width: 2, height: 1, pixels: Uint8ClampedArray.from([0, 0, 0, 255, 0, 0, 0, 255]) };
+  const b = { width: 2, height: 1, pixels: Uint8ClampedArray.from([0, 0, 0, 255, 9, 0, 0, 255]) };
+  const areas = { first: { role: 'chrome', union: { x: 0, y: 0, width: 1, height: 1 } } };
+  assert.deepEqual(differencesByArea(a, b, areas), { tally: { first: 0 }, outsideEveryArea: 1 });
+});
+
+test('captures of different sizes are refused rather than compared', () => {
+  const a = { width: 2, height: 1, pixels: new Uint8ClampedArray(8) };
+  const b = { width: 1, height: 1, pixels: new Uint8ClampedArray(4) };
+  assert.throws(() => differencesByArea(a, b, {}), /capture sizes differ/);
+});
+
+test('the destination record says either change alone made the rail worse and only both fixed it', () => {
+  const record = JSON.parse(readFileSync(join(CONSOLE_ROOT, 'release', 'evidence', 'parity', 'msym-axis-pin-destination.json'), 'utf8'));
+  assert.ok(record.destinations.length >= 32, `expected every audited destination, found ${record.destinations.length}`);
+  assert.match(record.baseline, /^[0-9a-f]{40}$/, 'the baseline must be a real commit rather than a branch name that moves');
+  // The finding this record exists for: on the rail -- six icons and their labels -- removing the
+  // pin alone and retaking the reference alone each RAISE the divergence, and only the two
+  // together lower it. A pass that had done one of them would have read a repair as a regression.
+  // The exception is named rather than absorbed into a "most destinations": on `codecs` the pin's
+  // removal alone does lower it, and one exception in thirty-two is a fact about this measurement.
+  const pinAloneWorse = [];
+  const referenceAloneWorse = [];
+  const bothBetter = [];
+  const railIdentical = [];
+  for (const destination of record.destinations) {
+    const { baseline, pinRemovedOnly, referenceRetakenOnly, both } = destination.pairings;
+    if (pinRemovedOnly.rail > baseline.rail) pinAloneWorse.push(destination.id);
+    if (referenceRetakenOnly.rail > baseline.rail) referenceAloneWorse.push(destination.id);
+    if (both.rail < baseline.rail) bothBetter.push(destination.id);
+    if (both.rail === 0) railIdentical.push(destination.id);
+    // statusCell is one cause across the whole set, so its figures are the same on every one.
+    assert.equal(baseline.statusCell, 1420, `${destination.id}: the recorded baseline for statusCell was 1420`);
+    assert.equal(both.statusCell, 555, `${destination.id}: statusCell should differ by exactly 555 with both changes in`);
+  }
+  assert.equal(referenceAloneWorse.length, record.destinations.length, 'retaking the reference alone raises the rail divergence on every destination');
+  assert.equal(bothBetter.length, record.destinations.length, 'both changes together lower the rail divergence on every destination');
+  assert.equal(pinAloneWorse.length, record.destinations.length - 1, 'removing the pin alone raises the rail divergence on all but one destination');
+  assert.deepEqual(
+    record.destinations.map((d) => d.id).filter((id) => !pinAloneWorse.includes(id)),
+    ['codecs'],
+    'the one destination where removing the pin alone helps is codecs',
+  );
+  assert.equal(railIdentical.length, 12, 'twelve destinations reach a byte-identical navigation rail');
 });
 
 /* ------------------------------------------------------------------- the recorded result -- */
