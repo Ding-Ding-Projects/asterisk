@@ -2125,9 +2125,9 @@ const SCREENS = {
       rows:[['1001','10.20.4.31:5060','transport-tls','opus, g722','Reachable'],['1002','10.20.4.32:5060','transport-tls','opus, ulaw','Reachable'],['1003','10.20.4.44:5060','transport-udp','ulaw','Unreachable'],['1004','10.20.4.51:5060','transport-tls','opus, g722','Reachable'],['softphone-ada','198.51.100.9:39412','transport-wss','opus','Reachable'],['reception','10.20.4.12:5060','transport-udp','g722, ulaw','Reachable']] },
     groups:pjsipCtls() },
   trunks:{ rail:'pbx', icon:'swap_horiz', label:'Trunks', badge:'3', title:'Trunks & registrations', file:'pjsip.conf', kind:'table',
-    sub:'Outbound carriers and inbound identifies. Registration state is polled live; credentials live in the secret intake, never on this screen.',
+    sub:'Outbound carriers and inbound identifies, PJSIP and IAX2 alike -- iax2 show registry reads the same table `pjsip show registrations` already fed it. Registration state is polled live; credentials live in the secret intake, never on this screen.',
     table:{ add:'New trunk', grid:'1fr 1.4fr 1fr 1fr 120px', cols:['Trunk','Registrar','Auth','Outbound','State'],
-      rows:[['carrier-primary','sip.carrier.example','userpass','yes','Registered'],['carrier-backup','sip2.carrier.example','userpass','yes','Registered'],['branch-iax','branch.internal','md5','no','Unregistered']] },
+      rows:[['carrier-primary','sip.carrier.example','userpass','yes','Registered'],['carrier-backup','sip2.carrier.example','userpass','yes','Registered']] },
     groups:[{ title:'Failover', desc:'What happens when the primary carrier stops answering.', ctls:[
       ctl('t_retry','Retry interval','slider',60,{ min:10, max:600, step:10, unit:'s' }),
       ctl('t_forbidden','Forbidden retry','slider',300,{ min:30, max:1800, step:30, unit:'s' }),
@@ -2288,8 +2288,9 @@ const SCREENS = {
       ctl('ht_save','Save http.conf settings','segmented','Save',{ options:['Save'], action:'httpd-save', info:'Writes every field on this screen, including TLS, to http.conf on the target -- backed up first, applied through the same plan/apply transaction every other write in this console uses.' })
     ]}]
   },
-  iaxpeers:{ rail:'pbx', icon:'swap_horiz', label:'IAX peers', badge:'', title:'IAX peers', file:'iax.conf', kind:'generic',
-    sub:'IAX2 peers, users and friends. The secret is write-only: this screen can set one and can never show you the one already there, which is why there is no field displaying it.',
+  iaxpeers:{ rail:'pbx', icon:'swap_horiz', label:'IAX peers', badge:'', title:'IAX peers', file:'iax.conf', kind:'table',
+    sub:'IAX2 peers, users and friends -- the table is iax2 show peers, live off the target; selecting a row loads that exact peer\'s real iax.conf section below. The secret is write-only: this screen can set one and can never show you the one already there, which is why there is no field displaying it.',
+    table:{ add:'New peer', grid:'1fr 1.3fr 90px 90px 140px', cols:['Peer','Host','Dynamic','Trunk','Status'], rows:[] },
     groups:[{ title:'Identity', desc:'What this peer is and where it lives.', ctls:[
       ctl('ix_type','type','segmented','friend',{ options:['user','peer','friend'] }),
       ctl('ix_host','host','text','',{ placeholder:'dynamic', info:'An address, or dynamic when the far end registers to you.' }),
@@ -2312,6 +2313,9 @@ const SCREENS = {
     ]},
     { title:'Credential', desc:'Write-only. Setting a secret replaces whatever is there; nothing on this screen can read one back.', ctls:[
       ctl('ix_secret_set','Set a new secret','switch',false,{ info:'Leave this off and the existing secret is left exactly as it is. Switch it on and a strong secret is generated, written once, and shown once — this console never stores or redisplays it.' })
+    ]},
+    { title:'Save', desc:'Select a peer from the table above first -- this writes only what changed for that exact peer, backed up first and applied through the same plan/apply transaction every other write in this console uses.', ctls:[
+      ctl('ix_save','Save this peer','segmented','Save',{ options:['Save'], action:'iaxpeers-save' })
     ]}]
   },
   fcodes:{ rail:'pbx', icon:'dialpad', label:'Feature codes', badge:'', title:'Feature codes', file:'features.conf', kind:'generic',

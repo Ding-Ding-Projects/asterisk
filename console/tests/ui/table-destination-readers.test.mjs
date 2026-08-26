@@ -76,6 +76,10 @@ test('every destination the inventory marks true actually produces rows via rows
     endpoints: available([{ id: '1001', state: 'Not in use', channels: '0 of inf' }]),
     contacts: available([]),
     registrations: available([{ id: 'trunk1', serverUri: 'sip:example.com', status: 'Registered' }]),
+    // `iaxpeers` reads its table off `iax2 show peers`, not off pjsip.conf's registrations
+    // -- see `readings.ts` `iaxPeerRows` and `control-plane/asterisk-readings.ts`
+    // `parseIax2Peers`. Left out of this fixture, "iaxpeers" produced no rows at all.
+    iaxPeers: available([{ name: 'branch-office', host: '203.0.113.9', dynamic: true, trunk: false, status: 'Registered' }]),
     queues: available([{ name: 'support', strategy: 'ringall', callers: 0, members: 1, holdtimeSeconds: 0 }]),
     modules: available([{ name: 'res_pjsip.so', description: 'PJSIP', useCount: 1, status: 'Running' }]),
     voicemailUsers: available({ users: [{ context: 'default', mailbox: '1001', fullName: 'Ada', zone: '', newMessages: 1 }] }),

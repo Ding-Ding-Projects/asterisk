@@ -54,7 +54,10 @@ export type PbxReadView =
   | 'dash' | 'live' | 'endpoints' | 'trunks' | 'queues' | 'modules' | 'canvas'
   /* Destinations that previously had no reader and stayed empty for want of one. */
   | 'voicemail' | 'confbridge' | 'moh' | 'codecs' | 'security' | 'cdr' | 'logger' | 'ami'
-  | 'about' | 'cli';
+  | 'about' | 'cli'
+  /* IAX2 peers -- `iax2 show peers`, the live counterpart to iax.conf's own peer/friend
+   * sections, exactly as `endpoints` reads `pjsip show endpoints` alongside pjsip.conf. */
+  | 'iaxpeers';
 
 export interface ControlPlaneRequest {
   requestId: string;

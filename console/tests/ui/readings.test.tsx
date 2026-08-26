@@ -12,6 +12,7 @@ import {
   formatDuration,
   formatUptime,
   healthBars,
+  iaxPeerRows,
   isReadable,
   mohRows,
   moduleRows,
@@ -23,7 +24,9 @@ import {
   valueOf,
   voicemailRows,
 } from '../../app/renderer/src/readings.ts';
-import type { Channel, ChannelCodecUsage, Contact, Endpoint, ModuleSummary, QueueSummary, Registration, ViewReadings } from '../../app/renderer/src/readings.ts';
+import type {
+  Channel, ChannelCodecUsage, Contact, Endpoint, IaxPeer, IaxRegistration, ModuleSummary, QueueSummary, Registration, ViewReadings,
+} from '../../app/renderer/src/readings.ts';
 
 const NOW = '2026-08-22T12:00:00.000Z';
 
@@ -124,6 +127,45 @@ test('registrationRows marks the trunk/transport columns the console does not re
   assert.deepEqual(registrationRows(registrations), [['trunk1', 'sip:sip.example.com:5060', NOT_READ, NOT_READ, 'Registered']]);
 });
 
+test('registrationRows appends IAX2 registrations after the PJSIP ones, named the way register => is written', () => {
+  const registrations: Registration[] = [{ id: 'trunk1', serverUri: 'sip:sip.example.com:5060', status: 'Registered' }];
+  const iaxRegistrations: IaxRegistration[] = [
+    { host: '203.0.113.9:4569', username: 'markpasswd', refresh: 60, state: 'Registered' },
+    // iax.conf's own `register => host` form (no username) has nothing to join with `@`.
+    { host: '198.51.100.4:4569', username: '', refresh: 120, state: 'Unregistered' },
+  ];
+  assert.deepEqual(registrationRows(registrations, iaxRegistrations), [
+    ['trunk1', 'sip:sip.example.com:5060', NOT_READ, NOT_READ, 'Registered'],
+    ['markpasswd@203.0.113.9:4569', '203.0.113.9:4569', NOT_READ, NOT_READ, 'Registered'],
+    ['198.51.100.4:4569', '198.51.100.4:4569', NOT_READ, NOT_READ, 'Unregistered'],
+  ]);
+});
+
+test('registrationRows with no IAX2 registrations behaves exactly as before -- PJSIP only', () => {
+  const registrations: Registration[] = [{ id: 'trunk1', serverUri: 'sip:sip.example.com:5060', status: 'Registered' }];
+  assert.deepEqual(registrationRows(registrations, []), registrationRows(registrations));
+});
+
+// ---------------------------------------------------------------- iaxPeerRows
+
+test('iaxPeerRows renders the live iax2 show peers reading, never an invented row', () => {
+  // dynamic and trunk deliberately differ within each row (rather than both true or both
+  // false) so a column swap between the two is actually detectable here, not only in the
+  // separate rowsFor(iaxpeers) test below.
+  const peers: IaxPeer[] = [
+    { name: 'branch-office', host: '203.0.113.9', dynamic: true, trunk: false, status: 'Registered' },
+    { name: 'carrier-iax', host: '198.51.100.4', dynamic: false, trunk: true, status: 'UNREACHABLE' },
+  ];
+  assert.deepEqual(iaxPeerRows(peers), [
+    ['branch-office', '203.0.113.9', 'yes', 'no', 'Registered'],
+    ['carrier-iax', '198.51.100.4', 'no', 'yes', 'UNREACHABLE'],
+  ]);
+});
+
+test('iaxPeerRows on an empty reading yields no rows, honestly', () => {
+  assert.deepEqual(iaxPeerRows([]), []);
+});
+
 // ---------------------------------------------------------------- queueRows
 
 test('queueRows formats service level or NOT_READ when it was not observed', () => {
@@ -158,6 +200,21 @@ test('rowsFor dispatches to the matching parser by screen name', () => {
 test('rowsFor returns no rows for an unrecognized screen or undefined readings', () => {
   assert.deepEqual(rowsFor('settings', { channels: available([]) }), []);
   assert.deepEqual(rowsFor('live', undefined), []);
+});
+
+test('rowsFor(trunks) merges PJSIP and IAX2 registrations, never PJSIP alone', () => {
+  const readings: ViewReadings = {
+    registrations: available<Registration[]>([{ id: 'trunk1', serverUri: 'sip:sip.example.com:5060', status: 'Registered' }]),
+    iaxRegistrations: available<IaxRegistration[]>([{ host: '203.0.113.9:4569', username: 'joe', refresh: 60, state: 'Registered' }]),
+  };
+  assert.equal(rowsFor('trunks', readings).length, 2);
+});
+
+test('rowsFor(iaxpeers) reads the live iax2 show peers rows', () => {
+  const readings: ViewReadings = {
+    iaxPeers: available<IaxPeer[]>([{ name: 'branch-office', host: '203.0.113.9', dynamic: true, trunk: false, status: 'Registered' }]),
+  };
+  assert.deepEqual(rowsFor('iaxpeers', readings), [['branch-office', '203.0.113.9', 'yes', 'no', 'Registered']]);
 });
 
 // ---------------------------------------------------------------- dashboardStats
@@ -244,6 +301,7 @@ test('badgeFor is empty for every destination with no matching reading', () => {
   assert.equal(badgeFor('live', {}), '');
   assert.equal(badgeFor('endpoints', {}), '');
   assert.equal(badgeFor('trunks', {}), '');
+  assert.equal(badgeFor('iaxpeers', {}), '');
   assert.equal(badgeFor('queues', {}), '');
   assert.equal(badgeFor('modules', {}), '');
   assert.equal(badgeFor('dash', {}), '');
@@ -268,6 +326,22 @@ test('badgeFor falls back to a dash reading for the same data without firing a n
 test('badgeFor never reports a count for a screen it was not asked about', () => {
   const channels: Channel[] = [{ name: 'c1', context: '', extension: '', state: 'Up', application: '', callerNumber: '', durationSeconds: 0 }];
   assert.equal(badgeFor('endpoints', { live: { channels: available(channels) } }), '');
+});
+
+test('badgeFor(trunks) counts PJSIP and IAX2 registrations together, so it never under-reports the merged table', () => {
+  const registrations: Registration[] = [{ id: 'trunk1', serverUri: 'sip:sip.example.com:5060', status: 'Registered' }];
+  const iaxRegistrations: IaxRegistration[] = [
+    { host: '203.0.113.9:4569', username: 'a', refresh: 60, state: 'Registered' },
+    { host: '198.51.100.4:4569', username: 'b', refresh: 60, state: 'Unregistered' },
+  ];
+  assert.equal(badgeFor('trunks', { trunks: { registrations: available(registrations), iaxRegistrations: available(iaxRegistrations) } }), '3');
+  // IAX2-only, no PJSIP registrations read yet at all -- still counted, not silently zero.
+  assert.equal(badgeFor('trunks', { trunks: { iaxRegistrations: available(iaxRegistrations) } }), '2');
+});
+
+test('badgeFor(iaxpeers) reports the real iax2 show peers count once read', () => {
+  const iaxPeers: IaxPeer[] = [{ name: 'branch-office', host: '203.0.113.9', dynamic: true, trunk: false, status: 'Registered' }];
+  assert.equal(badgeFor('iaxpeers', { iaxpeers: { iaxPeers: available(iaxPeers) } }), '1');
 });
 
 // ---------------------------------------------------------------- regexMatchLabel

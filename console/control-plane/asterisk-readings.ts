@@ -12,6 +12,7 @@ import type { CommandResult, ProcessExecutor } from "./executor.js";
  *   res/res_pjsip/location.c            pjsip show contacts
  *   apps/app_queue.c                    queue show
  *   main/loader.c                       module show
+ *   channels/chan_iax2.c                iax2 show peers, iax2 show registry
  */
 export const READ_ONLY_COMMANDS = [
   "core show channels concise",
@@ -162,6 +163,26 @@ export interface ModuleSummary {
   support: string;
 }
 
+/** One row of `iax2 show peers` -- see `parseIax2Peers` for the exact format string. */
+export interface IaxPeer {
+  /** `peer->name`, i.e. the `[section]` iax.conf itself uses -- with any trailing
+   *  `/<username>` the CLI appends for a peer that also sets `username=` stripped back
+   *  off, so a clicked row can be matched to iax.conf's own peer/friend section by name. */
+  name: string;
+  host: string;
+  dynamic: boolean;
+  trunk: boolean;
+  status: string;
+}
+
+/** One row of `iax2 show registry` -- see `parseIax2Registry` for the exact format string. */
+export interface IaxRegistration {
+  host: string;
+  username: string;
+  refresh: number;
+  state: string;
+}
+
 /** Runs one allowlisted CLI command against a target. */
 export interface AsteriskCliGateway {
   run(target: TargetProfile, command: ReadOnlyCommand, signal?: AbortSignal): Promise<CommandResult>;
@@ -235,6 +256,14 @@ export class AsteriskReadings {
 
   modules(target: TargetProfile, signal?: AbortSignal): Promise<Reading<ModuleSummary[]>> {
     return this.#read(target, "module show", parseModules, signal);
+  }
+
+  iaxPeers(target: TargetProfile, signal?: AbortSignal): Promise<Reading<IaxPeer[]>> {
+    return this.#read(target, "iax2 show peers", parseIax2Peers, signal);
+  }
+
+  iaxRegistrations(target: TargetProfile, signal?: AbortSignal): Promise<Reading<IaxRegistration[]>> {
+    return this.#read(target, "iax2 show registry", parseIax2Registry, signal);
   }
 
   uptimeSeconds(target: TargetProfile, signal?: AbortSignal): Promise<Reading<number>> {
@@ -464,6 +493,98 @@ export function parseModules(stdout: string): ModuleSummary[] {
       useCount: Number.parseInt(match[3], 10),
       status: match[4],
       support: match[5],
+    });
+  }
+  return rows;
+}
+
+/**
+ * `channels/chan_iax2.c` `_iax2_show_peers_one`/`__iax2_show_peers`: `PEERS_FORMAT`
+ * (line 6996) is `"%-15.15s  %-40.40s %s  %-40.40s  %-6s%s %s  %-11s %-32.32s\n"`,
+ * called (line 7084) with `(name, tmp_host, dynamicFlag, tmp_mask, tmp_port, trunkFlag,
+ * encFlag, status, description)` where `dynamicFlag` is `"(D)"`/`"(S)"` and `trunkFlag`
+ * is `"(T)"`/`"   "`.
+ *
+ * Every `%-N.Ns` field is truncated as well as padded, so its column position is fixed
+ * regardless of content: `name` at [0,15), `host` at [17,57) (one literal space after the
+ * two-space separator), the dynamic flag at [58,61), and the trunk flag at [111,114)
+ * (immediately after the un-truncated `%-6s` port field -- there is no space between them
+ * in the format string itself). `status` starts at a fixed offset too (120, two literal
+ * spaces after the encryption flag) because every field ahead of it is fixed-width -- but
+ * `%-11s` carries no precision, so a status longer than 11 characters is not truncated and
+ * the field after it (description) shifts right. This reader never looks past status, so
+ * that shift never matters here.
+ *
+ * The five values status can ever hold are enumerated in `peer_status` (lines 3878-3897):
+ * `"UNREACHABLE"` (3883), `"LAGGED (%d ms)"` (3885), `"OK (%d ms)"` (3888), `"UNKNOWN"`
+ * (3891) and `"Unmonitored"` (3894). Matching against that fixed set, rather than guessing
+ * where status ends by its own whitespace (both `LAGGED`/`OK` forms contain one), is exact
+ * rather than a heuristic.
+ *
+ * The header row (`PEERS_FORMAT2`, line 6995, printed at line 7154) and the summary line
+ * (`"%d iax2 peers [...]"`, line 7173) use different column widths from the data rows and
+ * are excluded on content rather than by reusing these offsets against them.
+ *
+ * `name` here strips a trailing `/<username>`: `_iax2_show_peers_one` (~line 7011) writes
+ * `"%s/%s"` (peer name, username) into the Name column when a peer sets `username=`, and
+ * that combined string is not the `[section]` name iax.conf itself uses -- only the part
+ * before the slash is.
+ */
+export function parseIax2Peers(stdout: string): IaxPeer[] {
+  const STATUS = /^(UNREACHABLE|UNKNOWN|Unmonitored|LAGGED \(\d+ ms\)|OK \(\d+ ms\))/u;
+  const rows: IaxPeer[] = [];
+  for (const line of lines(stdout)) {
+    if (line.length < 121) continue;
+    const raw = line.slice(0, 15).trim();
+    if (!raw || raw === "Name/Username") continue;
+    const dynamicFlag = line.slice(58, 61).trim();
+    const trunkFlag = line.slice(111, 114).trim();
+    const statusMatch = STATUS.exec(line.slice(120));
+    if (!statusMatch) continue;
+    rows.push({
+      name: raw.split("/")[0],
+      host: line.slice(17, 57).trim(),
+      dynamic: dynamicFlag === "(D)",
+      trunk: trunkFlag === "(T)",
+      status: statusMatch[1],
+    });
+  }
+  return rows;
+}
+
+/**
+ * `channels/chan_iax2.c` `handle_cli_iax2_show_registry`: `FORMAT` (line 7484) is
+ * `"%-45.45s  %-6.6s  %-10.10s  %-45.45s %8d  %s\n"`, called (lines 7510-7511) with
+ * `(host, dnsmgr ? "Y" : "N", reg->username, perceived, reg->refresh,
+ * regstate2str(reg->regstate))`.
+ *
+ * `host` and `username` are truncated as well as padded (`.N`), so their column
+ * positions are fixed: `host` at [0,45), `username` at [55,65). `refresh` is `%8d`, an
+ * un-truncated right-justified integer at [113,121) for any value up to eight digits --
+ * iax.conf's own `register =>` refresh interval never approaches that. `state` is the
+ * last field with no width specifier at all, so the remainder of the line from [123,) is
+ * taken whole; it can only ever be one of `regstate2str`'s seven literal returns (lines
+ * 7459-7478): "Unregistered", "Request Sent", "Auth. Sent", "Registered", "Rejected",
+ * "Timeout", "No Authentication", "Unknown".
+ *
+ * The header row (`FORMAT2`, printed at line 7503) is excluded by its literal `"Host"`
+ * column rather than reusing these offsets against it: `FORMAT2`'s own refresh column is
+ * a string (`%8.8s`) rather than `FORMAT`'s integer, so the two rows are not exactly the
+ * same shape even though every other field shares a width.
+ */
+export function parseIax2Registry(stdout: string): IaxRegistration[] {
+  const rows: IaxRegistration[] = [];
+  for (const line of lines(stdout)) {
+    if (line.length < 123) continue;
+    const host = line.slice(0, 45).trim();
+    if (!host || host === "Host") continue;
+    const state = line.slice(123).trim();
+    if (!state) continue;
+    rows.push({
+      host,
+      username: line.slice(55, 65).trim(),
+      refresh: Number.parseInt(line.slice(113, 121).trim(), 10) || 0,
+      state,
     });
   }
   return rows;

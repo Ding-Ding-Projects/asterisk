@@ -71,15 +71,25 @@ function deliveredByAction(id: string): boolean {
  * every ht_* field was seedable and none of them were writable. Recognised the same way as
  * s_tload/s_tsave/s_stirsave, via `deliveredByAction`.
  *
- * Then 222: the new Fax screen, fourteen controls -- twelve bound in CONTROL_BINDINGS.fax
- * (six res_fax.conf, six udptl.conf) plus fx_save/fx_udptlsave, two action buttons
- * recognised via `deliveredByAction` the same way as httpd-save above, each writing
- * through its own `onSaveFax`/`onSaveFaxUdptl`. All fourteen work.
+ * Then 209: the IAX peers screen gained `ix_save`, its own action button
+ * (`action:'iaxpeers-save'`), giving the already-bound `CONTROL_BINDINGS.iaxpeers` table an
+ * actual write path (`onSaveIaxPeer`) for the first time -- the eleven `ix_*` fields were
+ * seedable off a live `iax.conf` and none of them were writable, the same gap `ht_save`
+ * closed for http.conf above. Recognised the same way, via `deliveredByAction`. Net +1
+ * control, and it works: the screen itself also moved from a single fixed section (whichever
+ * peer/friend happened to be first) to a real `iax2 show peers` table, so which peer
+ * `onSaveIaxPeer` writes is now the one actually selected, not an assumption.
+ *
+ * Then 223: landed alongside (and independently of) 209 above -- the new Fax screen added
+ * fourteen controls of its own, twelve bound in CONTROL_BINDINGS.fax (six res_fax.conf, six
+ * udptl.conf) plus fx_save/fx_udptlsave, two action buttons recognised via
+ * `deliveredByAction` the same way as httpd-save above, each writing through its own
+ * `onSaveFax`/`onSaveFaxUdptl`. All fourteen work, so 209 + 14 = 223.
  *
  * It may rise freely and may not fall.
  */
-const WORKING_FLOOR = 222;
-const TELEPHONY_TOTAL = 222;
+const WORKING_FLOOR = 223;
+const TELEPHONY_TOTAL = 223;
 
 function measure() {
   const files = readdirSync(srcDir).filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'));

@@ -8,6 +8,8 @@ import {
   parseChannelStats,
   parseContacts,
   parseEndpoints,
+  parseIax2Peers,
+  parseIax2Registry,
   parseModules,
   parseQueues,
   parseRegistrations,
@@ -358,6 +360,108 @@ test("parseModules reads rows and ignores the header and 'modules loaded' traile
 test("parseModules ignores malformed lines and empty output", () => {
   assert.deepEqual(parseModules(""), []);
   assert.deepEqual(parseModules("garbage line with no useful columns"), []);
+});
+
+// ------------------------------------------------------------ parseIax2Peers
+// channels/chan_iax2.c PEERS_FORMAT (line 6996):
+// "%-15.15s  %-40.40s %s  %-40.40s  %-6s%s %s  %-11s %-32.32s\n"
+// -> name(15) host(40) dynFlag mask(40) port(6) trunkFlag encFlag status(11) description(32)
+// Built with the same field widths/truncation as the real printf spec so the fixed column
+// offsets `parseIax2Peers` slices on land exactly where Asterisk puts them.
+const padTrunc = (value: string, width: number): string =>
+  value.length > width ? value.slice(0, width) : value.padEnd(width, " ");
+
+function iaxPeersRow(
+  name: string, host: string, dynamic: boolean, mask: string, port: string,
+  trunk: boolean, status: string, description = "",
+): string {
+  // status is "%-11s" with no ".N" precision, unlike every field around it -- padded but
+  // never truncated, exactly like LAGGED/OK's own possible values can run past 11 chars.
+  return padTrunc(name, 15) + "  " + padTrunc(host, 40) + " " + (dynamic ? "(D)" : "(S)") + "  "
+    + padTrunc(mask, 40) + "  " + port.padEnd(6, " ") + (trunk ? "(T)" : "   ") + " " + "   " + "  "
+    + status.padEnd(11, " ") + " " + padTrunc(description, 32);
+}
+
+test("parseIax2Peers reads name/host/dynamic/trunk/status off the fixed-width row", () => {
+  const stdout = [
+    "Name/Username    Host                                       Mask                                      Port     Status      Description",
+    iaxPeersRow("branch-office", "203.0.113.9", true, "0.0.0.0", "4569", true, "OK (5 ms)"),
+    iaxPeersRow("carrier-iax", "198.51.100.4", false, "255.255.255.255", "4569", false, "UNREACHABLE"),
+    "2 iax2 peers [1 online, 1 offline, 0 unmonitored]",
+  ].join("\n");
+  const rows = parseIax2Peers(stdout);
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows[0], { name: "branch-office", host: "203.0.113.9", dynamic: true, trunk: true, status: "OK (5 ms)" });
+  assert.deepEqual(rows[1], { name: "carrier-iax", host: "198.51.100.4", dynamic: false, trunk: false, status: "UNREACHABLE" });
+});
+
+test("parseIax2Peers reads a status value that contains a space (OK (%d ms) / LAGGED (%d ms))", () => {
+  const stdout = [
+    iaxPeersRow("peer-a", "10.0.0.5", true, "0.0.0.0", "4569", false, "OK (23 ms)"),
+    iaxPeersRow("peer-b", "10.0.0.6", true, "0.0.0.0", "4569", false, "LAGGED (410 ms)"),
+  ].join("\n");
+  const rows = parseIax2Peers(stdout);
+  assert.equal(rows[0].status, "OK (23 ms)");
+  assert.equal(rows[1].status, "LAGGED (410 ms)");
+});
+
+test("parseIax2Peers strips the CLI's own name/username join back to iax.conf's section name", () => {
+  // _iax2_show_peers_one writes "%s/%s" (peer name, username) into the Name column when the
+  // peer sets username= -- that combined string is not the [section] name iax.conf uses.
+  const stdout = iaxPeersRow("branch-office/asterisk", "203.0.113.9", true, "0.0.0.0", "4569", false, "UNKNOWN");
+  assert.equal(parseIax2Peers(stdout)[0].name, "branch-office");
+});
+
+test("parseIax2Peers excludes the header row and the summary trailer", () => {
+  const header = "Name/Username    Host                                       Mask                                      Port     Status      Description".padEnd(150, " ");
+  const trailer = "1 iax2 peers [1 online, 0 offline, 0 unmonitored]";
+  assert.deepEqual(parseIax2Peers([header, trailer].join("\n")), []);
+});
+
+test("parseIax2Peers ignores empty output, blank lines and a line too short to be a real row", () => {
+  assert.deepEqual(parseIax2Peers(""), []);
+  assert.deepEqual(parseIax2Peers("\n\n"), []);
+  assert.deepEqual(parseIax2Peers("garbage"), []);
+});
+
+// ------------------------------------------------------------ parseIax2Registry
+// channels/chan_iax2.c FORMAT (line 7484):
+// "%-45.45s  %-6.6s  %-10.10s  %-45.45s %8d  %s\n"
+// -> host(45) dnsmgr(6) username(10) perceived(45) refresh(8, right-justified) state
+function iaxRegistryRow(host: string, dnsmgr: boolean, username: string, perceived: string, refresh: number, state: string): string {
+  return padTrunc(host, 45) + "  " + padTrunc(dnsmgr ? "Y" : "N", 6) + "  " + padTrunc(username, 10) + "  "
+    + padTrunc(perceived, 45) + " " + String(refresh).padStart(8, " ") + "  " + state;
+}
+
+test("parseIax2Registry reads host/username/refresh/state off the fixed-width row", () => {
+  const stdout = [
+    "Host                                           dnsmgr  Username    Perceived                                     Refresh  State",
+    iaxRegistryRow("203.0.113.9:4569", false, "markpasswd", "<Unregistered>", 60, "Unregistered"),
+    iaxRegistryRow("198.51.100.4:4569", true, "joe", "203.0.113.50:4569", 120, "Registered"),
+  ].join("\n");
+  const rows = parseIax2Registry(stdout);
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows[0], { host: "203.0.113.9:4569", username: "markpasswd", refresh: 60, state: "Unregistered" });
+  assert.deepEqual(rows[1], { host: "198.51.100.4:4569", username: "joe", refresh: 120, state: "Registered" });
+});
+
+test("parseIax2Registry reads every documented regstate2str value, including the two-word ones", () => {
+  // regstate2str's own literal returns, chan_iax2.c lines 7459-7478 -- "Request Sent" and
+  // "Auth. Sent" are exactly the values a whitespace-splitting reader would misread.
+  for (const state of ["Unregistered", "Request Sent", "Auth. Sent", "Registered", "Rejected", "Timeout", "No Authentication", "Unknown"]) {
+    const row = iaxRegistryRow("203.0.113.9:4569", false, "joe", "<Unregistered>", 60, state);
+    assert.equal(parseIax2Registry(row)[0].state, state);
+  }
+});
+
+test("parseIax2Registry excludes the header row", () => {
+  const header = "Host                                           dnsmgr  Username    Perceived                                     Refresh  State";
+  assert.deepEqual(parseIax2Registry(header), []);
+});
+
+test("parseIax2Registry ignores empty output and a line too short to be a real row", () => {
+  assert.deepEqual(parseIax2Registry(""), []);
+  assert.deepEqual(parseIax2Registry("3 IAX2 registrations."), []);
 });
 
 // ------------------------------------------------------------ parseUptimeSeconds
