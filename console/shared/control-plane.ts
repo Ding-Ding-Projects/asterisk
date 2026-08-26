@@ -4,6 +4,8 @@
  * that was declared here and implemented nowhere, so the application could see its own
  * packaged runtime and had no way to run it.
  */
+import type { DestinationRoute } from './destination-route.js';
+
 export type ControlPlaneAction =
   | 'server.list' | 'server.connect' | 'pbx.snapshot' | 'pbx.apply'
   | 'server.inventory.list' | 'server.inventory.add' | 'server.inventory.update'
@@ -190,6 +192,21 @@ export interface DingDesktopApi {
     path(): Promise<string>;
     /** Opens it in the platform's file manager, or reports exactly why not. */
     openFolder(): Promise<{ ok: true } | { ok: false; reason: string }>;
+  };
+  /**
+   * The `ding-pbx://destination/<id>` deep link, arriving from the operating system.
+   *
+   * The main process decides whether an argument is a route at all; the renderer decides
+   * whether it names a destination this console actually has, because the catalogue is
+   * compiled into the renderer and the main process has no copy of it.
+   *
+   * Optional for the same reason `provisioning` is: a hosted browser tab has no registered
+   * protocol client behind it, so the hosted bridge omits the field rather than supplying a
+   * listener that could never fire.
+   */
+  deepLink?: {
+    /** Subscribes to every arriving route; returns an unsubscribe function. */
+    onDestination(listener: (route: DestinationRoute) => void): () => void;
   };
 }
 

@@ -51,6 +51,16 @@ const api = Object.freeze({
     path: () => ipcRenderer.invoke('local-data:path'),
     openFolder: () => ipcRenderer.invoke('local-data:open-folder'),
   }),
+  // `ding-pbx://destination/<id>` arriving from the operating system. The main process has
+  // already refused anything that is not a route; what crosses here is the parsed tuple, and
+  // the renderer still checks the destination against its own compiled catalogue.
+  deepLink: Object.freeze({
+    onDestination: listener => {
+      const handler = (_event, route) => listener(route);
+      ipcRenderer.on('deep-link:destination', handler);
+      return () => ipcRenderer.removeListener('deep-link:destination', handler);
+    },
+  }),
 });
 
 contextBridge.exposeInMainWorld('dingDesktop', api);

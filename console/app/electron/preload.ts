@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { ControlPlaneRequest, ControlPlaneResponse, DingDesktopApi, UpdaterStatusForRenderer, UpdaterRestartResult } from '../../shared/control-plane.js';
+import type { DestinationRoute } from '../../shared/destination-route.js';
 
 const api: DingDesktopApi = {
   platform: process.platform,
@@ -47,6 +48,13 @@ const api: DingDesktopApi = {
   localData: {
     path: () => ipcRenderer.invoke('local-data:path') as ReturnType<NonNullable<DingDesktopApi['localData']>['path']>,
     openFolder: () => ipcRenderer.invoke('local-data:open-folder') as ReturnType<NonNullable<DingDesktopApi['localData']>['openFolder']>,
+  },
+  deepLink: {
+    onDestination: (listener: (route: DestinationRoute) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, route: DestinationRoute) => listener(route);
+      ipcRenderer.on('deep-link:destination', handler);
+      return () => ipcRenderer.removeListener('deep-link:destination', handler);
+    },
   },
 };
 

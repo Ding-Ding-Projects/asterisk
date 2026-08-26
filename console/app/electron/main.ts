@@ -15,6 +15,8 @@ import {
 import { MAX_DISPLAY_NAME_LENGTH } from '../renderer/src/display-name.js';
 import { detectInstalledEditors, openInEditor, readEditorSettingsSnapshot } from '../../control-plane/editor-launch.js';
 import { openFolderInFileManager } from '../../control-plane/local-folder.js';
+import { DESTINATION_ROUTE_SCHEME, firstDestinationRouteArgument } from '../../shared/destination-route.js';
+import { createDestinationRouteRouter } from './deep-link.js';
 
 let mainWindow: BrowserWindow | null = null;
 const userDataPath = app.getPath('userData');
@@ -171,12 +173,41 @@ ipcMain.handle('updater:restart-to-install', async (): Promise<UpdaterRestartRes
   return result;
 });
 
+/**
+ * The destination deep link: `ding-pbx://destination/<id>?…`.
+ *
+ * This route has been recorded against all thirty-two audited destinations in the
+ * design-parity evidence since that evidence was written, and until now nothing in this
+ * process resolved it: no scheme was registered, no argument was read, and a link would
+ * have opened a second copy of the console on the dashboard, if it opened anything at all.
+ *
+ * `rendererLoaded` is tracked rather than inferred from `webContents.isLoading()` because a
+ * reload puts the page back to having no listener while the window itself is perfectly
+ * alive; a route delivered in that gap is a message into nothing, and nothing reports it.
+ */
+let rendererLoaded = false;
+const destinationRoutes = createDestinationRouteRouter((route) => {
+  if (!mainWindow || mainWindow.isDestroyed() || !rendererLoaded) return false;
+  mainWindow.webContents.send('deep-link:destination', route);
+  return true;
+});
+
+/** Brings the existing window forward, the way any protocol client is expected to. */
+function revealMainWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1440, height: 920, minWidth: 920, minHeight: 640, frame: false, backgroundColor: '#101510', show: false, title: 'Ding PBX Console',
     webPreferences: { preload: join(import.meta.dirname, '../../../app/electron/preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   mainWindow.once('ready-to-show', () => mainWindow?.show());
+  mainWindow.webContents.on('did-start-loading', () => { rendererLoaded = false; });
+  mainWindow.webContents.on('did-finish-load', () => { rendererLoaded = true; destinationRoutes.flush(); });
   if (process.env.VITE_DEV_SERVER_URL) mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
   else mainWindow.loadFile(join(import.meta.dirname, '../../../dist/index.html'));
 }
@@ -226,8 +257,34 @@ ipcMain.handle('local-data:open-folder', async () => openFolderInFileManager(use
 
 if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
   app.quit();
+} else if (!app.requestSingleInstanceLock()) {
+  /* A protocol activation launches the registered client; without the lock that is a
+   * SECOND console, which cannot see the first one's window and so cannot navigate it.
+   * The lock is taken here rather than at the top of the file on purpose: the Squirrel
+   * install/update/uninstall events above run as their own short-lived processes and must
+   * never be refused for a running console holding the lock. */
+  app.quit();
 } else {
-  app.whenReady().then(createWindow).then(scheduleUpdateChecks);
+  app.on('second-instance', (_event, argv) => {
+    revealMainWindow();
+    const route = firstDestinationRouteArgument(argv);
+    if (route) destinationRoutes.offer(route);
+  });
+  /* macOS delivers a protocol activation as an event rather than on the command line.
+   * Kept even though Windows is the only shipped target, because the alternative is a
+   * platform where the scheme is registered and silently does nothing. */
+  app.on('open-url', (event, url) => { event.preventDefault(); revealMainWindow(); destinationRoutes.offer(url); });
+  /* Held before the window exists; `did-finish-load` flushes it. */
+  const launchRoute = firstDestinationRouteArgument(process.argv);
+  if (launchRoute) destinationRoutes.offer(launchRoute);
+  app.whenReady().then(() => {
+    /* Registers `ding-pbx://` for this user (HKCU on Windows). In development the running
+     * binary is Electron itself, so the console's own entry point has to be named or the
+     * association would point at a bare Electron with no application to load. */
+    const scheme = DESTINATION_ROUTE_SCHEME.replace(':', '');
+    if (app.isPackaged) app.setAsDefaultProtocolClient(scheme);
+    else app.setAsDefaultProtocolClient(scheme, process.execPath, [join(import.meta.dirname, '../../..')]);
+  }).then(createWindow).then(scheduleUpdateChecks);
   app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 }
