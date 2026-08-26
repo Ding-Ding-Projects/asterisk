@@ -529,7 +529,23 @@
   // honest fallback: no verified release manifest was found, so downloads.html
   // says so plainly instead of rendering literal "#"/"[]()" source text.
   const RELEASE_NOTES_MARKDOWN = '';
-  const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#82D9A5',fontScale:100,lowMotion:false,englishFunny:0,cantoneseFunny:0,displayName:'',dialogEmojis:false,attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false,focus:false,timeAwareness:false,oneThing:false,momentum:false,currentTask:''},scheduleEnabled:false,notifications:[],collapsed:{destinationMap:true,settingsPreview:true,documentationFilters:false,settingsFilters:false}};
+  // Changelog. The same arrangement as the release notes above, and for the same
+  // reason: this is real release history or it is nothing at all.
+  //
+  // console/scripts/bundle-changelog.mjs builds the Markdown from this repository's
+  // own tags -- every version is a real tag, every change line is a real commit
+  // reachable from that tag and not from the one before it, and every id is the real
+  // 40-character SHA -- and console/site/build.mjs replaces these two exact
+  // declarations with it at build time. Empty here is the honest fallback rather than
+  // a placeholder: a page served straight out of the source directory has no release
+  // history to show, and says so, instead of showing an invented one.
+  //
+  // The repository URL is separate and is equally not guessed. `changelogCommitUrl`
+  // refuses to build a link without it, so an unresolved build renders the SHA as
+  // text; a link that goes nowhere is worse than a fact with no link on it.
+  const CHANGELOG_MARKDOWN = '';
+  const CHANGELOG_REPOSITORY_URL = '';
+  const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#82D9A5',fontScale:100,lowMotion:false,englishFunny:0,cantoneseFunny:0,displayName:'',dialogEmojis:false,attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false,focus:false,timeAwareness:false,oneThing:false,momentum:false,currentTask:''},scheduleEnabled:false,notifications:[],collapsed:{destinationMap:true,settingsPreview:true,documentationFilters:false,settingsFilters:false,changelogFilters:false}};
   // ---- Display name: the name this site shows the person reading it, which is
   // theirs to change, and the shipped product name, which is not.
   //
@@ -656,6 +672,17 @@
       '喺每個對話框同訊息框標題旁邊加一個裝飾用 emoji —— 字句完全一樣，任何按鈕、控制項標籤或者螢幕閱讀器名稱都唔會有。',
       '喺對話框同訊息框標題隔籬擺個細細嘅 emoji。其他一律唔郁：字句一個字都唔會變，按鈕、標籤同螢幕閱讀器名稱一律唔會有。',
       '喺每個對話框同訊息框標題隔籬撒一個 emoji，就咁多，冇下文。字句一個字都唔會走位，按鈕、標籤同螢幕閱讀器名稱死都唔會有 —— 睇得到嘅裝飾冇問題，讀出嚟嘈住你嘅就唔得。'
+    ]},
+    changelogDesc:{en:[
+      'Every released version of Ding PBX Console, newest first, with the real commit behind each line. Filter by date, search the text, and export exactly what you can see. The entries themselves are the release history and are never restyled.',
+      'Every released version of Ding PBX Console, newest first, with the real commit behind each line. Filter by date, search the text, and export exactly what you can see — the entries themselves are release history, so they are never restyled.',
+      'Every version that actually shipped, newest first, each line carrying the commit that did it. Filter by date, search it, export what you can see. The entries stay exactly as the release wrote them, because that is the point of them.',
+      'Every version that ever shipped, newest at the top, and each line hands you the commit that did the deed — no taking anybody word for it. Filter by date, search it, export precisely what is on screen and nothing else. The entries themselves never get restyled at any setting, because a joke about what changed is no longer a record of what changed.'
+    ],zh:[
+      'Ding PBX Console 每一個已發佈版本，最新嘅喺最上面，每一行都附上真正嘅 commit。可以按日期篩選、搜尋內文，亦可以將見到嘅原樣匯出。條目本身係發佈紀錄，唔會改寫語氣。',
+      'Ding PBX Console 每一個已發佈版本，最新嘅行先，每一行都帶住真正嘅 commit。可以按日期篩選、搜尋、將見到嘅嘢匯出 —— 條目本身係發佈紀錄，所以永遠唔會改寫語氣。',
+      '每個真係出過嘅版本，最新嗰個喺頂，每行都揸住做嗰件事嘅 commit。想按日期篩就篩，想搵就搵，見到咩就匯出咩。條目維持發佈時嘅原文，因為咁先有用。',
+      '每一個出過街嘅版本，最新嗰個坐喺最頂，每一行都拎住犯案嘅 commit 出嚟 —— 唔使信人講。想按日期篩、想搵、想將畫面上嘅原封不動匯出都得。條目本身喺任何設定下都唔會改寫語氣，因為講笑咁講返改咗乜，就已經唔算係紀錄。'
     ]},
     themeDesc:{en:[
       'Applies immediately and persists.',
@@ -1027,7 +1054,7 @@
   }
 
   function initCollapsibles(){
-    const map={'destination-map-panel':'destinationMap','settings-preview-panel':'settingsPreview','documentation-filters-panel':'documentationFilters','settings-filters-panel':'settingsFilters'};
+    const map={'destination-map-panel':'destinationMap','settings-preview-panel':'settingsPreview','documentation-filters-panel':'documentationFilters','settings-filters-panel':'settingsFilters','changelog-filters-panel':'changelogFilters'};
     Object.entries(map).forEach(([id,key])=>{
       const el=$(id);if(!el)return;
       el.open=!state.collapsed[key];
@@ -1163,6 +1190,266 @@
       $('notif-confirm').hidden=true;
       renderNotifications($('notification-search')?.value||'');
     });
+  }
+
+  // ============================================================================
+  // Changelog viewer.
+  //
+  // The grammar is the one `app/renderer/src/changelog.ts` already parses, and it is
+  // ported rather than reinvented so the site and the desktop renderer cannot come to
+  // read the same generated Markdown differently:
+  //
+  //     ## <version> — <ISO date>
+  //     ### <Category>
+  //     - <summary> (<40-hex commit>)
+  //
+  // A line that looks like it belongs to that grammar and does not fully match is
+  // COUNTED as skipped rather than thrown away in silence. That count is shown. A
+  // viewer that quietly drops half its input looks exactly like one reading a short
+  // release history, which is the failure worth saying out loud.
+  // ============================================================================
+  const CHANGELOG_SHA40 = /^[0-9a-fA-F]{40}$/;
+  const CHANGELOG_VERSION_HEADING = /^##\s+(\S+)\s+[—-]\s+(\d{4}-\d{2}-\d{2})\s*$/;
+  const CHANGELOG_CATEGORY_HEADING = /^###\s+(.+?)\s*$/;
+  const CHANGELOG_CHANGE_ITEM = /^-\s+(.+?)\s+\(([0-9a-fA-F]{40})\)\s*$/;
+  const CHANGELOG_DEFAULT_CATEGORY = 'General';
+  const CHANGELOG_PRESETS = {all:'Every version',year:'This calendar year',d90:'Last 90 days',d30:'Last 30 days',d7:'Last 7 days'};
+
+  function parseChangelog(markdown){
+    const lines=String(markdown||'').split(/\r\n|\n|\r/);
+    const entries=[];
+    let skipped=0,current=null,category=CHANGELOG_DEFAULT_CATEGORY;
+    const flush=()=>{if(current)entries.push(current)};
+    for(const raw of lines){
+      const line=raw.replace(/\s+$/,'');
+      if(line.trim()==='')continue;
+      const version=CHANGELOG_VERSION_HEADING.exec(line);
+      if(version){flush();current={version:version[1],date:version[2],changes:[]};category=CHANGELOG_DEFAULT_CATEGORY;continue}
+      if(line.startsWith('## ')){skipped+=1;continue}
+      const heading=CHANGELOG_CATEGORY_HEADING.exec(line);
+      if(heading){if(!current){skipped+=1;continue}category=heading[1];continue}
+      if(line.startsWith('- ')){
+        const change=CHANGELOG_CHANGE_ITEM.exec(line);
+        if(!change||!current){skipped+=1;continue}
+        current.changes.push({category,summary:change[1],commit:change[2]});
+        continue;
+      }
+      skipped+=1;
+    }
+    flush();
+    return {entries,skipped};
+  }
+
+  /**
+   * A browsable URL for one commit, or '' when no link can honestly be built.
+   *
+   * Empty rather than a guess in both refusing cases: an id that is not exactly 40
+   * hexadecimal characters, and a build that never resolved the repository. The caller
+   * renders the id as plain text instead, because a fact with no link beside it is
+   * worth more than a link that goes nowhere.
+   */
+  function changelogCommitUrl(commit,repository){
+    if(!CHANGELOG_SHA40.test(String(commit||'')))return '';
+    const base=String(repository||'').trim();
+    if(!/^https:\/\/\S+$/.test(base))return '';
+    return `${base.replace(/\/+$/,'')}/commit/${commit}`;
+  }
+
+  /** Entries whose date falls inside an inclusive ISO range; an absent bound is open. */
+  function changelogFilterByDate(entries,from,to){
+    return entries.filter(entry=>{
+      if(from&&entry.date<from)return false;
+      if(to&&entry.date>to)return false;
+      return true;
+    });
+  }
+
+  /**
+   * Search a version and every one of its change lines, through the same `matchText`
+   * every other search field on this site uses -- so plain text stays the default and
+   * the anchored regular-expression builder attached to `changelog-search` applies here
+   * exactly as it does everywhere else.
+   */
+  function changelogSearch(entries,query){
+    if(!query)return entries;
+    return entries.filter(entry=>matchText(
+      `${entry.version} ${entry.changes.map(change=>`${change.category} ${change.summary}`).join(' ')}`,
+      query,'changelog-search'));
+  }
+
+  /** "2026-08-24 to 2026-08-26", or the single date, or an honest empty statement. */
+  function changelogRangeLabel(entries){
+    if(!entries.length)return 'no entries';
+    const dates=entries.map(entry=>entry.date).slice().sort();
+    const first=dates[0],last=dates[dates.length-1];
+    return first===last?first:`${first} to ${last}`;
+  }
+
+  /**
+   * One flat row per change, for the site's ordinary ten-format export engine.
+   *
+   * `exportedRange` repeats on every row deliberately. The canonical contract asks the
+   * export to state its own range inside the file, and every one of these ten formats
+   * is a flat table: a single metadata row carrying different keys would make the whole
+   * set ragged, which five of the formats would then correctly report as a real loss.
+   * A repeated column costs bytes and says the same thing in CSV, JSON and SQL alike.
+   */
+  function changelogExportRows(entries){
+    const range=changelogRangeLabel(entries);
+    const rows=[];
+    for(const entry of entries){
+      for(const change of entry.changes){
+        rows.push({
+          version:entry.version,date:entry.date,category:change.category,summary:change.summary,
+          commit:change.commit,commitUrl:changelogCommitUrl(change.commit,CHANGELOG_REPOSITORY_URL),
+          exportedRange:range,
+        });
+      }
+    }
+    return rows;
+  }
+
+  /**
+   * The two date bounds, plus whatever the fields are refusing to interpret.
+   *
+   * A native date field answers a half-typed date with an empty `value` and a true
+   * `validity.badInput`. Reading only the value would silently widen the filter back to
+   * everything while the person is still looking at what they typed, so `badInput` is
+   * read and reported and the field is never written to -- the typed characters stay.
+   */
+  function changelogDateBounds(){
+    const read=id=>{
+      const field=$(id);
+      if(!field)return {value:'',bad:false};
+      return {value:field.value||'',bad:Boolean(field.validity&&field.validity.badInput)};
+    };
+    const from=read('changelog-date-from'),to=read('changelog-date-to');
+    const problems=[];
+    if(from.bad)problems.push('The “from” date is incomplete, so it is being ignored. What you typed has been left alone.');
+    if(to.bad)problems.push('The “to” date is incomplete, so it is being ignored. What you typed has been left alone.');
+    if(!from.bad&&!to.bad&&from.value&&to.value&&from.value>to.value){
+      problems.push(`The “from” date (${from.value}) is after the “to” date (${to.value}), so no version can fall between them.`);
+    }
+    return {from:from.value,to:to.value,problems};
+  }
+
+  /** Writes the two date fields from a named preset. 'all' clears both. */
+  function changelogPresetRange(preset,today){
+    const day=86400000;
+    const end=today.toISOString().slice(0,10);
+    if(preset==='all')return {from:'',to:''};
+    if(preset==='year')return {from:`${today.getUTCFullYear()}-01-01`,to:end};
+    const days={d7:7,d30:30,d90:90}[preset];
+    if(!days)return undefined;
+    return {from:new Date(today.getTime()-(days-1)*day).toISOString().slice(0,10),to:end};
+  }
+
+  function changelogVisibleEntries(query){
+    const parsed=parseChangelog(CHANGELOG_MARKDOWN);
+    const bounds=changelogDateBounds();
+    const dated=changelogFilterByDate(parsed.entries,bounds.from,bounds.to);
+    return {...parsed,bounds,matches:changelogSearch(dated,query)};
+  }
+
+  function changelogEntryMarkup(entry){
+    const byCategory=new Map();
+    for(const change of entry.changes){
+      if(!byCategory.has(change.category))byCategory.set(change.category,[]);
+      byCategory.get(change.category).push(change);
+    }
+    const groups=[...byCategory.entries()].map(([category,changes])=>
+      `<h4>${escapeHtml(category)}</h4><ul>${changes.map(change=>{
+        const url=changelogCommitUrl(change.commit,CHANGELOG_REPOSITORY_URL);
+        const short=escapeHtml(change.commit.slice(0,10));
+        const link=url
+          ?`<a class="changelog-commit mono" href="${escapeHtml(url)}" rel="noopener noreferrer">${short}</a>`
+          :`<span class="changelog-commit mono" title="No repository URL was resolved at build time, so this id is shown without a link.">${short}</span>`;
+        return `<li>${escapeHtml(change.summary)} ${link}</li>`;
+      }).join('')}</ul>`).join('');
+    const body=entry.changes.length?groups:'<p class="empty-state">No changes were recorded against this version.</p>';
+    return `<article class="changelog-entry" data-version="${escapeHtml(entry.version)}">`
+      +`<header><h3>${escapeHtml(entry.version)}</h3><time datetime="${escapeHtml(entry.date)}">${escapeHtml(entry.date)}</time></header>`
+      +`${body}</article>`;
+  }
+
+  function renderChangelog(query=''){
+    const list=$('changelog-entries');if(!list)return;
+    const {entries,skipped,bounds,matches}=changelogVisibleEntries(query);
+    if(!CHANGELOG_MARKDOWN){
+      list.innerHTML='<p class="empty-state">No release history was resolved for this build, so none is shown. '
+        +'This page carries the changelog its own build injected; a page served straight from the source directory has none.</p>';
+    }else{
+      list.innerHTML=matches.length
+        ?matches.map(changelogEntryMarkup).join('')
+        :'<p class="empty-state">No version matches the current search and date range. Widen the dates or clear the search.</p>';
+    }
+    const changes=matches.reduce((total,entry)=>total+entry.changes.length,0);
+    if($('changelog-count')){
+      $('changelog-count').textContent=entries.length
+        ?`${matches.length} of ${entries.length} version${entries.length===1?'':'s'} · ${changes} change${changes===1?'':'s'} · ${changelogRangeLabel(matches)}`
+        :'No versions are available in this build.';
+    }
+    if($('changelog-problems')){
+      const notes=[...bounds.problems];
+      if(skipped>0)notes.push(`${skipped} line${skipped===1?'':'s'} of the release history did not match the changelog grammar and ${skipped===1?'was':'were'} not shown.`);
+      // Said once, in words, rather than only in a tooltip on each id. A `title` is
+      // reachable with a pointer and by nothing else, so on its own it would leave a
+      // keyboard or screen-reader reader looking at unlinked ids with no explanation.
+      if(CHANGELOG_MARKDOWN&&!changelogCommitUrl('0'.repeat(40),CHANGELOG_REPOSITORY_URL)){
+        notes.push('This build resolved no repository, so each commit id is shown as text rather than as a link.');
+      }
+      $('changelog-problems').textContent=notes.join(' ');
+    }
+    updateChangelogExport(matches);
+    applyVocabulary();
+  }
+
+  function updateChangelogExport(matches){
+    const select=$('changelog-export-format');if(!select)return;
+    const rows=changelogExportRows(matches),formats=suitableFormats(rows),previous=select.value;
+    select.innerHTML=formats.map(format=>`<option value="${format}">${format.toUpperCase()}</option>`).join('');
+    if(formats.includes(previous))select.value=previous;
+    if($('changelog-export-loss')){
+      $('changelog-export-loss').textContent=rows.length
+        ?describeLoss(rows,select.value||formats[0]).join(' ')
+        :'Nothing is currently shown, so there is nothing to export.';
+    }
+  }
+
+  function changelogExportText(){
+    const query=$('changelog-search')?.value||'';
+    const {matches}=changelogVisibleEntries(query);
+    const rows=changelogExportRows(matches);
+    if(!rows.length)return undefined;
+    const format=$('changelog-export-format')?.value||'json';
+    return {rows,format,range:changelogRangeLabel(matches),text:exportRows({rows,format,table:'changelog'})};
+  }
+
+  function initChangelog(){
+    if(!$('changelog-entries'))return;
+    const rerender=()=>renderChangelog($('changelog-search')?.value||'');
+    $('changelog-search')?.addEventListener('input',rerender);
+    $('changelog-date-from')?.addEventListener('input',rerender);
+    $('changelog-date-to')?.addEventListener('input',rerender);
+    $('changelog-export-format')?.addEventListener('change',rerender);
+    $('changelog-date-preset')?.addEventListener('change',event=>{
+      const range=changelogPresetRange(event.target.value,new Date());
+      if(!range)return;
+      if($('changelog-date-from'))$('changelog-date-from').value=range.from;
+      if($('changelog-date-to'))$('changelog-date-to').value=range.to;
+      rerender();
+    });
+    $('changelog-export')?.addEventListener('click',()=>{
+      const result=changelogExportText();if(!result)return;
+      download(exportFilename('ding-pbx-changelog',result.format,result.range.split(' ').join('-')),result.text,EXPORT_MIME[result.format]);
+      notify('Changelog exported',applyVocabularyText(`Exported ${result.rows.length} change${result.rows.length===1?'':'s'} covering ${result.range} as ${result.format.toUpperCase()}.`));
+    });
+    $('changelog-copy')?.addEventListener('click',()=>{
+      const result=changelogExportText();if(!result)return;
+      if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(result.text).catch(()=>{});
+      notify('Changelog copied',applyVocabularyText(`Copied ${result.rows.length} change${result.rows.length===1?'':'s'} covering ${result.range} as ${result.format.toUpperCase()}.`));
+    });
+    rerender();
   }
 
   // ---- Local history panel: search, an action filter derived from the real
@@ -1430,6 +1717,6 @@
     sync();
   }
 
-  function init(){ensureAttentionUI();applyState();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initTimeAwareness();initMomentum();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
+  function init(){ensureAttentionUI();applyState();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initTimeAwareness();initMomentum();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
   init();
 })();
