@@ -13,7 +13,7 @@ function Template(v: any) {
             "deployed_code"
           ),
           h("span", { style: sty(`font-size:13px; font-weight:500; letter-spacing:.1px; white-space:nowrap; flex:0 0 auto;`) },
-            "Ding PBX Console"
+            "Material Asterisk"
           )
         ),
         h("div", { style: sty(`display:flex; align-items:stretch; min-width:0; overflow-x:auto; flex:0 1 auto;`) },
@@ -2064,7 +2064,7 @@ function Template(v: any) {
                 ),
                 h("div", { style: sty(`position:absolute; left:0; right:0; bottom:24px; text-align:center;`) },
                   h("div", { style: sty(`font-size:13px; letter-spacing:3px; text-transform:uppercase; color:#9FF7C4; animation:m3Slide .6s cubic-bezier(.2,0,0,1) both;`) },
-                    "Ding PBX Console"
+                    "Material Asterisk"
                   ),
                   h("div", { style: sty(`font-size:34px; font-weight:700; color:#DFF3E5; margin-top:6px; text-shadow:0 4px 24px rgba(0,0,0,.6); animation:m3Pop .7s cubic-bezier(.2,1.5,.4,1) both;`) },
                     "Welcome to your first day on earth"
@@ -2983,7 +2983,7 @@ const SCREENS = {
       ctl('t_save','Save this trunk','segmented','Save',{ options:['Save'], action:'trunk-save' })
     ]}] },
   trunkauth:{ rail:'pbx', icon:'handshake', label:'Trunk authentication', badge:'2', title:'Trunk authentication', file:'trunk partner requests', kind:'trunkauth',
-    sub:'When a trunk partner asks to change something on the shared link — a new source address, a codec, a higher call cap — the request lands here and you answer yes or no. Nothing takes effect until you do. The six controls below are this console\'s own answering policy, not an Asterisk key -- there is no pjsip.conf setting for how quickly a request expires or whether to auto-approve one, so they persist as a Ding PBX Console preference the same way the appearance and notification groups do, restored on relaunch rather than read off any target.',
+    sub:'When a trunk partner asks to change something on the shared link — a new source address, a codec, a higher call cap — the request lands here and you answer yes or no. Nothing takes effect until you do. The six controls below are this console\'s own answering policy, not an Asterisk key -- there is no pjsip.conf setting for how quickly a request expires or whether to auto-approve one, so they persist as a Material Asterisk preference the same way the appearance and notification groups do, restored on relaunch rather than read off any target.',
     groups:[{ title:'Answering policy', desc:'How requests arrive and what may be answered without you.', ctls:[
       ctl('ta_auto','Auto-approve low-risk requests','switch',false,{ info:'Low risk means a codec addition or a health-check interval. Address changes and call caps are never auto-approved.' }),
       ctl('ta_expire','Requests expire after','slider',48,{ min:1, max:168, unit:' h' }),
@@ -3410,6 +3410,10 @@ const SCREENS = {
       ctl('r_strict','strictrtp','switch',true),
       ctl('r_ice','ICE support','switch',false),
       ctl('r_save','Save RTP settings','segmented','Save',{ options:['Save'], action:'codecs-rtp-save', info:'Writes the port range, strictrtp and ICE support above to rtp.conf on the target -- backed up first, applied through the same plan/apply transaction every other write in this console uses.' })
+    ]},{ title:'Per-endpoint negotiation', desc:'The graph above is global -- `core show translation`/`core show codecs` name no endpoint at all. This looks up one endpoint\'s own configured codec list and transport on demand.', ctls:[
+      ctl('k_endpoint','Endpoint','text','',{ placeholder:'phone-201', info:'The pjsip.conf endpoint id -- the same id the Endpoints screen\'s own table rows use. Runs "pjsip show endpoint <id>" (res/res_pjsip/pjsip_configuration.c) against the target for exactly this one endpoint.' }),
+      ctl('k_endpointlookup','Look up','segmented','Look up',{ options:['Look up'], action:'codecs-endpoint-lookup', info:'Read-only, so it runs directly rather than behind the confirmation ceremony -- the same "pjsip show endpoint" the Endpoints screen already reads in bulk, looked up here for exactly one id.' }),
+      ctl('k_endpointresult','Configured codecs','text','Type a pjsip.conf endpoint id above and press “Look up”.',{ action:'codecs-endpoint-status', info:'The target\'s own "allow=" codec list (in preference order) and "transport=" for this one endpoint, exactly as pjsip show endpoint printed it.' })
     ]}] },
   fax:{ rail:'media', icon:'fax', label:'Fax', badge:'', title:'Fax & T.38', file:'res_fax.conf', kind:'generic',
     sub:'The fax engine and the UDPTL transport T.38 rides on -- two files, each with its own Save: res_fax.conf holds the engine’s own rate limits and negotiation timeout, udptl.conf holds the port range and error-correction shape UDPTL negotiates over.',
@@ -3468,7 +3472,7 @@ const SCREENS = {
       ctl('l_psave','Save PostgreSQL settings','segmented','Save',{ options:['Save'], action:'cel-pgsql-save' })
     ]}] },
   ami:{ rail:'data', icon:'api', label:'AMI & ARI', badge:'2', title:'Manager & REST interfaces', file:'manager.conf', kind:'table',
-    sub:'Machine access to the PBX. Permissions are checkbox matrices, never a comma string you have to remember. This screen also reaches http.conf (the HTTP server ARI rides on) and ari.conf (allowed origins) -- both are read and written alongside manager.conf, the same way the Security screen also reaches pjsip.conf and stir_shaken.conf.',
+    sub:'Machine access to the PBX. Permissions are checkbox matrices, never a comma string you have to remember. This screen also reaches http.conf (the HTTP server ARI rides on) and ari.conf (allowed origins) -- both are read and written alongside manager.conf, the same way the Security screen also reaches pjsip.conf and stir_shaken.conf. The table above is manager.conf/ari.conf -- who is allowed to connect, configured, not live. "Connected sessions" below is the live half: who actually has an AMI or HTTP socket open on this target right now, from `manager show connected`, with a real "Kick session" action against it. What neither this screen nor REST resources can show yet is a live *event* stream -- watching a session connect or an event fire while this screen stays open needs a websocket/SSE transport this console does not have; the sessions list only reflects whatever it looked like the moment it was last read.',
     table:{ add:'New API user', grid:'1fr 1fr 1.6fr 110px', cols:['User','Interface','Permissions','State'],
       rows:[['monitor','AMI','system, call, log','Connected'],['dialer','AMI','originate, call','Connected'],['stasis-app','ARI','applications, channels','Connected']] },
     groups:[{ title:'HTTP server', desc:'ARI and the built-in web sockets ride on this. http.conf and ari.conf, not manager.conf.', ctls:[
@@ -3484,6 +3488,10 @@ const SCREENS = {
       ctl('a_deny','Deny by default','switch',true,{ info:'configs/samples/manager.conf.sample line 97: ;deny=0.0.0.0/0.0.0.0 -- denying by default is the LINE existing, not a yes or a no, so the off state removes it.' }),
       ctl('a_timeout','Idle timeout','slider',300,{ min:30, max:3600, step:30, unit:'s', info:'configs/samples/manager.conf.sample line 76: ;httptimeout = 60.' }),
       ctl('a_mgrsave','Save manager permissions','segmented','Save',{ options:['Save'], action:'ami-manager-save', info:'Writes the four fields above to manager.conf [general] on the target.' })
+    ]},{ title:'Connected sessions', desc:'Live AMI/HTTP sockets on this target right now -- `manager show connected` (main/manager.c handle_showmanconn), read fresh every time this screen loads. Not a live event stream: it is a snapshot, refreshed the same way the table above is, by reopening or reloading this screen.', ctls:[
+      ctl('a_connected','Connected right now','text','Read manager.conf to check.',{ action:'ami-connected-status', info:'One entry per open session: username, IP address, file descriptor and how long it has been connected. Empty means genuinely nobody is connected, not that this has not been read.' }),
+      ctl('a_kickfd','File descriptor to kick','text','',{ placeholder:'12', info:'main/manager.c handle_kickmanconn: "manager kick session <file descriptor>" -- the fd from the list above, never a username. Ends that session immediately; whatever it was doing does not get a warning.' }),
+      ctl('a_kick','Kick session','segmented','Kick',{ options:['Kick'], action:'ami-kick-session', info:'Runs "manager kick session <fd>" against the target through the same confirmation ceremony every other real action on this console uses.' })
     ]},{ title:'Add an API user', desc:'Creates one manager.conf or ari.conf user -- pick which. The New API user button above the table submits whatever is filled in here.', ctls:[
       ctl('am_interface','Interface','segmented','AMI',{ options:['AMI','ARI'] }),
       ctl('am_username','Username','text','',{ placeholder:'mark', info:'The section name -- configs/samples/manager.conf.sample line 95: ;[mark], or configs/samples/ari.conf.sample line 24: ;[username]. Both files name a user by its own [section].' }),
@@ -3876,8 +3884,8 @@ const SCREENS = {
   customise:{ rail:'app', icon:'auto_awesome', label:'Customise everything', badge:'∞', title:'Customise everything', file:'console profile', kind:'generic',
     sub:'The global layer. Every one of these reaches across the whole console, and every individual element can still override it from its own right-click menu.',
     groups:[{ title:'Identity', desc:'What this console calls itself on screen. The name is a label like every other label here, so it is yours to change.', ctls:[
-      ctl('id_name','Display name','text','',{ placeholder:'Ding PBX Console', info:'Changes the title bar, the About screen and notifications. It does not move your data, your saved servers or your credentials, and diagnostics and bug reports still say Ding PBX Console so anyone reading one knows what software it came from.' }),
-      ctl('id_name_reset','Restore the shipped name','switch',false,{ info:'Switch this on to go back to Ding PBX Console in one action.' })
+      ctl('id_name','Display name','text','',{ placeholder:'Material Asterisk', info:'Changes the title bar, the About screen and notifications. It does not move your data, your saved servers or your credentials, and diagnostics and bug reports still say Material Asterisk so anyone reading one knows what software it came from.' }),
+      ctl('id_name_reset','Restore the shipped name','switch',false,{ info:'Switch this on to go back to Material Asterisk in one action.' })
     ]},
     { title:'External editor', desc:'Hand a config file or an export to the editor you already use. The console works fully without one; this is a convenience, not something it needs.', ctls:[
       ctl('ed_choice','Editor','select','Visual Studio Code',{ options:['Visual Studio Code','Notepad++','Sublime Text','Notepad'], info:'Only editors actually installed on this machine are offered. If yours is missing, add it below by browsing for its executable.' }),
@@ -6028,18 +6036,39 @@ class ConsoleShell extends DCLogic {
           // the same "read straight off the target, refuse rather than guess" shape
           // `onRemoveAclRule` already uses for a rule name that might not resolve.
           const isApiUserRow = s.screen === 'ami';
+          // A module row names a real loadable resource `module show` just read, and
+          // this console's own CLI gateway can run `module load|unload|reload` for real
+          // (`write-commands.ts`, `onModuleAction`) -- so its row menu offers those
+          // instead of the generic fictional "reload <name>"/"delete <name>" lines
+          // every other row falls back to below, and the module's live State cell (the
+          // table's own last column) decides whether Load or Unload/Reload apply.
+          const isModuleRow = s.screen === 'modules';
+          const moduleRowData = isModuleRow && sc.table ? sc.table.rows.filter(r => r[0] === name)[0] : null;
+          const moduleLoaded = !!moduleRowData && moduleRowData[3] !== 'Not loaded';
           return decorate([
             { icon:isPromptRow ? 'play_arrow' : 'edit', label:(isPromptRow ? 'Audition ' : 'Edit ') + name + '…', hint:'↵', run:() => { close(); ((isAclRow || isPromptRow) && this.onPickRow) ? this.onPickRow(name) : this.setState({ wizardOpen:true, wizardStep:0 }); } },
             { icon:'check_box', label:'Select this row', hint:'', run:() => { close(); this.set('selected', sel.indexOf(name) >= 0 ? sel : sel.concat([name])); } },
             { icon:'content_copy', label:'Duplicate', hint:'⌃D', run:() => { close(); this.bulk('Duplicated', [name]); } },
-            { icon:'refresh', label:'Reload just this', hint:'', run:() => { close(); this.ceremony('Reload ' + name, 'reload ' + name); } },
+            ...(isModuleRow && this.onModuleAction ? (moduleLoaded ? [
+              { icon:'refresh', label:'Reload ' + name, hint:'', run:() => { close(); this.onModuleAction('reload', name); } },
+              { icon:'stop_circle', label:'Unload ' + name, hint:'', run:() => { close(); this.onModuleAction('unload', name); } }
+            ] : [
+              { icon:'play_circle', label:'Load ' + name, hint:'', run:() => { close(); this.onModuleAction('load', name); } }
+            ]) : [
+              { icon:'refresh', label:'Reload just this', hint:'', run:() => { close(); this.ceremony('Reload ' + name, 'reload ' + name); } }
+            ]),
+            ...(isModuleRow && this.moduleDeclaredPolicyLine ? [
+              { icon:'account_tree', label:'Show declared policy for ' + name + '…', hint:'', run:() => { close(); this.showInfo(name + ' in modules.conf', this.moduleDeclaredPolicyLine(name), 'Asterisk has no CLI command listing a module\'s dependents or dependencies -- this is everything modules.conf itself says about this one.', s.ctxX, s.ctxY); } }
+            ] : []),
             { icon:'download', label:'Export as configuration', hint:'', run:() => { close(); this.hostAction('export-config', { name:name }); } },
             { icon:'history', label:'Version history for this', hint:'', run:() => { close(); this.openScreen('history'); } },
             ...(isAclRow && this.onMoveAclRule ? [
               { icon:'arrow_upward', label:'Move rule up', hint:'', run:() => { close(); this.onMoveAclRule(name, 'up'); } },
               { icon:'arrow_downward', label:'Move rule down', hint:'', run:() => { close(); this.onMoveAclRule(name, 'down'); } }
             ] : []),
-            { icon:'delete', label:'Delete ' + name, hint:'⌦', run:() => { close(); this.areYouSure('Delete ' + name, sc.kind === 'servers' ? 'This connection profile is removed from the console. It does not touch or reconfigure the target machine.' : (isAclRow ? 'This rule is removed from acl.conf on the target -- backed up first, and rolled back automatically if the write cannot be verified.' : (isPromptRow ? 'This file is removed from /var/lib/asterisk/sounds on the target -- irreversible, and the control plane confirms the removal before this dialog reports success.' : (isApiUserRow ? 'This [' + name + '] section is removed from manager.conf or ari.conf on the target, whichever one actually has it -- backed up first, and rolled back automatically if the write cannot be verified.' : 'This object and everything referencing it are removed. The four gates still apply after the minigame.'))), 3, () => (sc.kind === 'servers' && this.onRemoveServerRow ? this.onRemoveServerRow(name) : (isAclRow && this.onRemoveAclRule ? this.onRemoveAclRule(name) : (isPromptRow && this.onRemovePromptRow ? this.onRemovePromptRow(name) : (isApiUserRow && this.onRemoveApiUser ? this.onRemoveApiUser(name) : this.ceremony('Delete ' + name, 'delete ' + name)))))); } },
+            ...(isModuleRow ? [] : [
+              { icon:'delete', label:'Delete ' + name, hint:'⌦', run:() => { close(); this.areYouSure('Delete ' + name, sc.kind === 'servers' ? 'This connection profile is removed from the console. It does not touch or reconfigure the target machine.' : (isAclRow ? 'This rule is removed from acl.conf on the target -- backed up first, and rolled back automatically if the write cannot be verified.' : (isPromptRow ? 'This file is removed from /var/lib/asterisk/sounds on the target -- irreversible, and the control plane confirms the removal before this dialog reports success.' : (isApiUserRow ? 'This [' + name + '] section is removed from manager.conf or ari.conf on the target, whichever one actually has it -- backed up first, and rolled back automatically if the write cannot be verified.' : 'This object and everything referencing it are removed. The four gates still apply after the minigame.'))), 3, () => (sc.kind === 'servers' && this.onRemoveServerRow ? this.onRemoveServerRow(name) : (isAclRow && this.onRemoveAclRule ? this.onRemoveAclRule(name) : (isPromptRow && this.onRemovePromptRow ? this.onRemovePromptRow(name) : (isApiUserRow && this.onRemoveApiUser ? this.onRemoveApiUser(name) : this.ceremony('Delete ' + name, 'delete ' + name)))))); } }
+            ]),
             common[0], common[1]
           ]);
         }

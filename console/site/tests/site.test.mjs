@@ -74,7 +74,7 @@ function assertFallbackPublished(dist) {
   // is just as false as a guessed URL, so the fallback must say "planned"/"CONCEPT"
   // consistently everywhere that claim is made, in both the JS-rendered hero copy and
   // its static HTML default, never a stale mix of the two states.
-  assert.match(dist['index.html'], /Ding PBX Console is a planned Windows desktop console/);
+  assert.match(dist['index.html'], /Material Asterisk is a planned Windows desktop console/);
   assert.match(dist['index.html'], /<strong>Console overview<\/strong><em>CONCEPT<\/em>/);
   assert.equal((dist['product.html'].match(/planned desktop runtime/g) || []).length, 2);
   assert.doesNotMatch(dist['product.html'], /(?<!planned )desktop runtime/);
@@ -82,7 +82,7 @@ function assertFallbackPublished(dist) {
   assert.match(dist['status.html'], /<p>No verified immutable asset exists yet\.<\/p>/);
   assert.match(dist['status.html'], /<span class="sparkline is-waiting"/);
   assert.match(dist['status.html'], /<li data-state="waiting"><strong>Installer release pending<\/strong>/);
-  assert.match(dist['app.js'], /'Ding PBX Console is a planned desktop administration experience for Asterisk\./);
+  assert.match(dist['app.js'], /'Material Asterisk is a planned desktop administration experience for Asterisk\./);
   assert.match(dist['app.js'], /Asterisk 嘅桌面管理計劃項目/);
   const manifest = JSON.parse(dist['build-manifest.json']);
   assert.equal(manifest.download.resolved, false);
@@ -174,6 +174,57 @@ test('exposes keyboard, tab, regex, and local settings interactions', () => {
   assert.match(everyPage, /class="local-tabs" aria-label=/); assert.match(everyPage, /id="command-palette"/); assert.match(js, /ctrlKey&&event.shiftKey/);
   assert.ok((everyPage.match(/class="regex-trigger"/g) || []).length >= 8);
   for (const id of ['language-mode','english-funny','cantonese-funny','vocabulary-file','attention-settings','schedule-enabled','logo-file','notification-history']) assert.match(everyPage, new RegExp(`id="${id}"`));
+});
+test('regex-mode search filters even when the search field itself is empty', () => {
+  // matchText and changelogSearch are pure (no DOM), so extract their real source
+  // straight out of the shipped file and run it -- this proves the actual shipped
+  // behaviour rather than a description of it copied into the test.
+  const matchTextSrc = js.match(new RegExp('function matchText\\(text,query,target\\)\\{[^\\n]*\\}'));
+  assert.ok(matchTextSrc, 'matchText not found in app.js');
+  const changelogSearchSrc = js.match(new RegExp('function changelogSearch\\(entries,query\\)\\{[\\s\\S]*?\\n  \\}'));
+  assert.ok(changelogSearchSrc, 'changelogSearch not found in app.js');
+  const build = new Function('regexState', `
+    ${matchTextSrc[0]}
+    ${changelogSearchSrc[0]}
+    return { matchText, changelogSearch };
+  `);
+  const regexState = new Map();
+  const { matchText, changelogSearch } = build(regexState);
+
+  // Baseline, unchanged: with no regex active an empty query still matches everything,
+  // which is what every plain-text search field on the site relies on.
+  assert.equal(matchText('anything at all', '', 'feature-search'), true);
+
+  // The defect this guards against: a user opens the regex builder from an EMPTY
+  // search field, applies a valid pattern, and the mode status says "Regular
+  // expression search active" -- but the result list stayed completely unfiltered,
+  // because `if(!query)return true` fired before the regex was ever consulted. Once
+  // regex mode is enabled for a target, the field's literal text is irrelevant; only
+  // the stored pattern governs, empty field or not.
+  regexState.set('feature-search', { pattern: '^ivr', flags: 'iu', enabled: true });
+  assert.equal(matchText('IVR menus', '', 'feature-search'), true, 'regex must match against an empty query field');
+  assert.equal(matchText('Queues & agents', '', 'feature-search'), false, 'regex must still exclude a non-match with an empty query field');
+
+  // changelogSearch used to short-circuit with its own `if(!query)return entries`
+  // before ever calling matchText, which bypassed the fix above entirely for the
+  // downloads page. Prove the whole entry set is filtered once its own regex target
+  // is active, not returned untouched because the field itself is empty.
+  regexState.set('changelog-search', { pattern: 'nonexistentpatternxyz', flags: 'iu', enabled: true });
+  const entries = [{ version: '1.0.0', changes: [{ category: 'fix', summary: 'a real change' }] }];
+  assert.deepEqual(changelogSearch(entries, ''), [], 'changelogSearch must consult its active regex even with an empty query field');
+});
+test('exporting local settings confirms with a real notification, like every other export', () => {
+  // Every other export control on the site (destinations, notifications, changelog)
+  // pairs its download(...) call with a notify(...) call so the action is confirmed
+  // somewhere a screen reader or low-vision user can actually perceive it, not only
+  // as a silent browser download. settings-export used to call download() alone.
+  // Anchored to the exact onclick body so a rename or a commented-out call fails this,
+  // not just a loose substring match.
+  assert.match(
+    js,
+    new RegExp("\\$\\('settings-export'\\)\\.onclick=\\(\\)=>\\{download\\('ding-pbx-page-settings\\.json',[^;]+\\);notify\\('Settings exported'"),
+    'settings-export must download the file and then notify(...) that it happened'
+  );
 });
 test('has accessible names and reduced motion support', () => {
   assert.match(everyPage, /class="skip-link"/); assert.match(everyPage, /aria-live="polite"/); assert.match(everyPage, /aria-label="Open notification history"/);
@@ -342,7 +393,7 @@ test('bakes a verified download manifest into the home page, the downloads page,
     // become "downloadable today"/"PREVIEW" everywhere those claims are made -- and
     // must never leave a stale "planned" behind in the JS-rendered copy that overwrites
     // the static HTML on load.
-    assert.match(dist['index.html'], /Ding PBX Console is a Windows desktop console, downloadable today/);
+    assert.match(dist['index.html'], /Material Asterisk is a Windows desktop console, downloadable today/);
     assert.match(dist['index.html'], /<strong>Console overview<\/strong><em>PREVIEW<\/em>/);
     assert.equal((dist['product.html'].match(/(?<!planned )desktop runtime/g) || []).length, 2);
     assert.doesNotMatch(dist['product.html'], /planned desktop runtime/);
@@ -351,7 +402,7 @@ test('bakes a verified download manifest into the home page, the downloads page,
     assert.match(dist['status.html'], /<span class="state-dot good"><\/span>/);
     assert.match(dist['status.html'], /<span class="sparkline is-good"/);
     assert.match(dist['status.html'], /<li data-state="good"><strong>Installer release published<\/strong><p>v9\.9\.9 verified against SHA256SUMS\.txt/);
-    assert.match(dist['app.js'], /'Ding PBX Console is a desktop administration experience for Asterisk, downloadable today\./);
+    assert.match(dist['app.js'], /'Material Asterisk is a desktop administration experience for Asterisk, downloadable today\./);
     assert.match(dist['app.js'], /Asterisk 嘅桌面管理應用程式，而家已經可以下載/);
     assert.doesNotMatch(dist['app.js'], /a planned desktop administration experience for Asterisk/);
     assert.doesNotMatch(dist['app.js'], /Asterisk 嘅桌面管理計劃項目/);

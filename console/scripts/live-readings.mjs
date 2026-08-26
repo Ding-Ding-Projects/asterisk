@@ -95,6 +95,7 @@ import {
   parseCodecs,
   parseConfbridgeList,
   parseLoggerChannels,
+  parseManagerConnections,
   parseManagerSettings,
   parseManagerUsers,
   parseMediaCacheItems,
@@ -244,6 +245,7 @@ export const READINGS = [
   { id: 'loggerChannels', command: 'logger show channels', parser: parseLoggerChannels, count: (v) => v.channels.length, unit: 'logger channels', entry: "dispatch parsedView 'logger'", screens: ['logger'] },
   { id: 'managerSettings', command: 'manager show settings', parser: parseManagerSettings, count: (v) => Object.keys(v.settings).length, unit: 'settings', entry: "dispatch parsedView 'ami'", screens: ['ami'] },
   { id: 'managerUsers', command: 'manager show users', parser: parseManagerUsers, count: (v) => v.users.length, unit: 'manager users', entry: "dispatch parsedView 'ami'", screens: ['ami'] },
+  { id: 'managerConnections', command: 'manager show connected', parser: parseManagerConnections, count: (v) => v.connections.length, unit: 'connected AMI sessions', entry: "dispatch parsedView 'ami'", screens: ['ami'] },
   { id: 'ariApps', command: 'ari show apps', parser: parseAriApps, count: (v) => v.length, unit: 'connected REST applications', entry: "dispatch parsedView 'ami'", screens: ['ami'] },
   { id: 'sysinfo', command: 'core show sysinfo', parser: parseSysinfo, count: (v) => Object.keys(v.values).length, unit: 'system values', entry: "dispatch parsedView 'about'", screens: ['about', 'cli'] },
   { id: 'uptime', command: 'core show uptime seconds', parser: parseUptime, count: (v) => (v.uptimeSeconds === undefined ? 0 : 1) + (v.lastReloadSeconds === undefined ? 0 : 1), unit: 'uptime values', entry: "dispatch parsedView 'about'", screens: ['about', 'cli'] },
@@ -265,6 +267,7 @@ export const NOT_POPULATABLE = {
   channelStats: 'Same: the command prints one row per live PJSIP channel, so an exchange with no call in progress has none.',
   confbridgeRooms: '`confbridge list` prints conferences that are running, not the rooms configured in confbridge.conf. A room with nobody in it is not listed.',
   ariApps: 'An ARI application appears once a client connects and subscribes over the REST interface. It is not a configuration object.',
+  managerConnections: '`manager show connected` lists AMI/HTTP sockets that are actually open right now. Nothing in a configuration file creates one, and this harness opens no live manager connection -- the same reason `ariApps` above has none.',
   bridges: 'A bridge exists only while two or more channels are actually being mixed together. Nothing in a configuration file creates one, and this harness places no calls.',
   ariUsers: 'ari.conf.sample ships every `[username]` section commented out, so a freshly provisioned exchange has none. The fixture this harness writes creates a PJSIP endpoint, not an ARI user; adding one would be a second, unrelated fixture for a single reading.',
 };

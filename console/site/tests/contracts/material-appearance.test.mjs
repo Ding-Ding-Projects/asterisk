@@ -93,8 +93,10 @@ test('there is no named-preset save/load/export mechanism beyond the one general
   assert.doesNotMatch(app, /appearancePreset|savePreset|loadPreset|presetName/iu,
     'app.js now carries a named appearance-preset mechanism -- the "partial" state needs re-checking');
   /* The one export path that does exist is the general settings-export button, and it
-   * exports the whole flat settings object rather than a named, reusable preset. */
-  assert.match(app, /\$\('settings-export'\)\.onclick=\(\)=>download\('ding-pbx-page-settings\.json'/u,
+   * exports the whole flat settings object rather than a named, reusable preset. The
+   * handler grew a block body (still one download() call, plus a notify() confirming
+   * it happened) on 2026-08-26, so the arrow body is optionally braced here. */
+  assert.match(app, /\$\('settings-export'\)\.onclick=\(\)=>\{?download\('ding-pbx-page-settings\.json'/u,
     'the general settings export itself is gone; the appearance state has no export path at all');
 });
 

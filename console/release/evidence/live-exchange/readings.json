@@ -19,13 +19,14 @@
   "counts": {
     "allowlistedCommands": 65,
     "commandLinesRun": 66,
-    "readings": 30,
-    "readingsParsedWithoutThrowing": 30,
+    "readings": 31,
+    "readingsParsedWithoutThrowing": 31,
     "readingsWithRowsWhenPopulated": 24,
     "readingsStillEmptyWhenPopulated": [
       "channels",
       "channelStats",
       "confbridgeRooms",
+      "managerConnections",
       "ariApps",
       "bridges",
       "ariUsers"
@@ -3570,6 +3571,23 @@
           "unit": "manager users",
           "summary": {
             "users": []
+          }
+        },
+        {
+          "id": "managerConnections",
+          "command": "manager show connected",
+          "entry": "dispatch parsedView 'ami'",
+          "parser": "parseManagerConnections",
+          "screens": [
+            "ami"
+          ],
+          "outcome": "read",
+          "parsedSha256": "7378919579acf1dbcd39f4965353ae92c1514d3e934ef37e33952e4dc1944c07",
+          "rows": 0,
+          "unit": "connected AMI sessions",
+          "summary": {
+            "connections": [],
+            "total": 0
           }
         },
         {
@@ -7257,6 +7275,24 @@
             ],
             "total": 1
           }
+        },
+        {
+          "id": "managerConnections",
+          "command": "manager show connected",
+          "entry": "dispatch parsedView 'ami'",
+          "parser": "parseManagerConnections",
+          "screens": [
+            "ami"
+          ],
+          "outcome": "read",
+          "parsedSha256": "7378919579acf1dbcd39f4965353ae92c1514d3e934ef37e33952e4dc1944c07",
+          "rows": 0,
+          "unit": "connected AMI sessions",
+          "summary": {
+            "connections": [],
+            "total": 0
+          },
+          "notPopulatable": "`manager show connected` lists AMI/HTTP sockets that are actually open right now. Nothing in a configuration file creates one, and this harness opens no live manager connection -- the same reason `ariApps` above has none."
         },
         {
           "id": "ariApps",

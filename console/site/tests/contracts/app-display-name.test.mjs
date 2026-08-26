@@ -32,7 +32,7 @@ const app = read('app.js');
 const settings = pageSource.settings;
 const registry = json('feature-registry.json');
 
-const SHIPPED = 'Ding PBX Console';
+const SHIPPED = 'Material Asterisk';
 
 /* ------------------------------------------------------------------ *
  * Running the real source.
@@ -270,7 +270,7 @@ test('no storage key, cache key or export filename is derived from the display n
 
 test('the published metadata other people read keeps the shipped name, and app.js never rewrites it', () => {
   for (const name of PAGES) {
-    assert.match(pageSource[name], /<meta property="og:site_name" content="Ding PBX Console">/u,
+    assert.match(pageSource[name], /<meta property="og:site_name" content="Material Asterisk">/u,
       `${name}.html no longer publishes the shipped name as its og:site_name`);
   }
   assert.doesNotMatch(app, /og:site_name|og:title|property="og:/u,
@@ -293,7 +293,7 @@ test('the shipped name is still spelled out in the product prose that describes 
  * ------------------------------------------------------------------ */
 
 test('the settings page carries a real, labelled, resettable display-name control', () => {
-  assert.match(settings, /<input id="display-name" type="text" maxlength="\d+" placeholder="Ding PBX Console"/u);
+  assert.match(settings, /<input id="display-name" type="text" maxlength="\d+" placeholder="Material Asterisk"/u);
   assert.match(settings, /<label class="sr-only" for="display-name">Display name<\/label>/u);
   assert.match(settings, /<button id="display-name-reset" class="text-button" type="button">Reset to shipped name<\/button>/u);
   assert.match(settings, /<p id="display-name-status" role="status">/u);

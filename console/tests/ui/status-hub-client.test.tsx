@@ -19,7 +19,7 @@ const lane = (over: Partial<Lane> = {}): Lane => ({
 });
 
 const report = (over: Partial<SessionReport> = {}): SessionReport => ({
-  title: 'Ding PBX Console', summary: 'Reading endpoints from the managed target.',
+  title: 'Material Asterisk', summary: 'Reading endpoints from the managed target.',
   lanes: [lane()], ...over,
 });
 

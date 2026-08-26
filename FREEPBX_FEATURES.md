@@ -1,6 +1,6 @@
-# FreePBX feature adoption catalog for Ding PBX Console
+# FreePBX feature adoption catalog for Material Asterisk
 
-This is the master inventory of FreePBX capabilities that may be designed and implemented in Ding PBX Console. It is deliberately a catalog, not a claim of compatibility, implementation, or source-code portability.
+This is the master inventory of FreePBX capabilities that may be designed and implemented in Material Asterisk. It is deliberately a catalog, not a claim of compatibility, implementation, or source-code portability.
 
 ## Coverage contract
 

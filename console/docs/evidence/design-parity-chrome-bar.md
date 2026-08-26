@@ -515,7 +515,7 @@ and the Material Design 3 audit still reports all 32 nonconforming.
 
 ### The brand cell is 7px wider, and that is not geometry
 
-`Ding PBX Console` measures **106.63px** where the design's `Asterisk Console` measures **100.27px**,
+`Material Asterisk` measures **106.63px** where the design's `Asterisk Console` measures **100.27px**,
 at the same 13px/500 Roboto inside the same 12px padding, 20px glyph and 10px gap: 160.63px against
 154.27px, rounding the two rectangles to **161** and **154**. Every remaining top-strip displacement
 is that one number -- `menuCell` moves right by 7, `commandCell` is squeezed by 8.

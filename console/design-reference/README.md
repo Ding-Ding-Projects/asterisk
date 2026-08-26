@@ -190,7 +190,7 @@ conforming**, so the guard still refuses every row — now for a measured reason
 one.
 
 **Every destination now has a built capture, About included.** It used to be the one that did not:
-the built `<h1>` on About read `About Ding PBX Console` where the design's reads `About`, so the
+the built `<h1>` on About read `About Material Asterisk` where the design's reads `About`, so the
 settle condition that proves the driver arrived could not be satisfied, and that was recorded as a
 real divergence rather than captured on a weaker proof. The heading was repaired in the application,
 and a run against a build carrying that repair settled on About like the other thirty-one.

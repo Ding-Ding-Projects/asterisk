@@ -1,6 +1,6 @@
 /**
  * Server mode: serves the already-compiled renderer (`dist/`) and the control plane
- * over plain HTTP(S), so Ding PBX Console can be installed on a VM next to Asterisk and
+ * over plain HTTP(S), so Material Asterisk can be installed on a VM next to Asterisk and
  * administered from a browser on the network — the way FreePBX is administered.
  *
  * No web framework. `node:http`/`node:https` plus a small router is everything a JSON
@@ -255,7 +255,7 @@ export function startServerMode(options: ServerModeOptions): Server {
   }
   server.listen(port, host, () => {
     // eslint-disable-next-line no-console
-    console.log(`Ding PBX Console server mode listening on ${options.tls ? 'https' : 'http'}://${host}:${port}`);
+    console.log(`Material Asterisk server mode listening on ${options.tls ? 'https' : 'http'}://${host}:${port}`);
     if (!options.tls) console.log(PLAIN_HTTP_WARNING);
   });
   return server;

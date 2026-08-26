@@ -47,7 +47,7 @@ test('pairAuth generates a real random secret with Web Crypto and computes a rea
   const body = fn[0];
   assert.match(body, /crypto\.getRandomValues\(secretBytes\);/u, 'pairAuth no longer generates real random bytes');
   assert.match(body, /const secret = encodeBase32\(secretBytes\);/u, 'pairAuth no longer encodes a real base32 secret');
-  assert.match(body, /const uri = pairingUri\(\{ issuer: 'Ding PBX Console', account, parameters: \{ secret \} \}\);/u,
+  assert.match(body, /const uri = pairingUri\(\{ issuer: 'Material Asterisk', account, parameters: \{ secret \} \}\);/u,
     'pairAuth no longer computes a real pairing URI');
   assert.doesNotMatch(body, /fetch\(|XMLHttpRequest|axios/u, 'pairAuth now makes a network call -- the "never sent anywhere" claim would be false');
 });

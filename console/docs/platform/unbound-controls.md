@@ -132,10 +132,10 @@ is written down rather than summarised.
 | Colourise output | Logger | no colour key in `logger.conf` or `asterisk.conf` |
 | Keep files | Logger | no file-count key; `rotatestrategy` picks a strategy |
 | Rotate at | Logger | no size key |
-| Server certificate | Security | a hostname picker; `tlscertfile` takes a path |
-| TLS method | Security | Asterisk uses `tlsdisablev1`/`v11`/`v12` flags, not a method |
-| Verify client certificates | Security | no such key in these files |
-| Cipher policy | Security | `tlscipher` takes a cipher string; deciding what Modern means is a security decision |
+| ~~Server certificate~~ | Security | *(came back 2026-08-25 as `ht_tlscert`/`ht_tlskey`/`s_tcert`/`s_tprivkey` -- see below)* |
+| TLS method (translated picker) | Security | the *category* picker; `method=` itself is bound today as the free-text `s_tmethod` -- see below |
+| ~~Verify client certificates~~ | Security | *(came back 2026-08-25 as `s_tverifyclient`/`s_tverifyserver` -- see below)* |
+| Cipher policy (translated picker) | Security | the *category* picker; `cipher=` itself is bound today as the free-text `s_tcipher` -- see below |
 
 The last four are the ones worth being careful about. Each could be made to write something,
 and each would require this console to decide a security question on somebody's behalf --

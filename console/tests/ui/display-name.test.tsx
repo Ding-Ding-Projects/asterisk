@@ -113,11 +113,11 @@ test('the About line never begins with the word the heading ends on', () => {
   /* Guards the exact regression this line exists to prevent: the name used to sit in the
    * <h1> as "About <name>", which cost the parity harness its settle condition. Rendered,
    * the heading and this line sit adjacent, so a line starting with the name would read
-   * as "About Ding PBX Console" again -- correct in the markup, wrong on the screen. */
+   * as "About Material Asterisk" again -- correct in the markup, wrong on the screen. */
   const storage = memory();
   setDisplayName(storage, 'Reception');
   for (const line of [aboutIdentityLine(memory()), aboutIdentityLine(storage)]) {
-    assert.equal(/^(Ding PBX Console|Reception)\b/u.test(line), false, line);
+    assert.equal(/^(Material Asterisk|Reception)\b/u.test(line), false, line);
   }
 });
 

@@ -320,6 +320,21 @@ export class LocalAsteriskCliGateway implements AsteriskCliGateway {
     return await this.#executor.execute({ ...invocation, signal, timeoutMs: 15_000, maxOutputBytes: 2 * 1024 * 1024 });
   }
 
+  /**
+   * Runs one command line this class does *not* itself validate -- the caller
+   * (`dispatch.ts`'s `pbx.command` handler) has already checked it against
+   * `isAllowlistedWriteCommand` in `write-commands.ts`, the second, deliberately tiny
+   * allowlist for the handful of non-read-only command lines this console runs (module
+   * load/unload/reload, ending a live AMI session). Kept as a separate method rather than
+   * widening `run`'s own check so the read-only allowlist above stays exactly what it
+   * says on the tin: nothing reaches `asterisk -rx` through *this* method without a
+   * caller-side allowlist of its own having already accepted it verbatim.
+   */
+  async runUnchecked(target: TargetProfile, command: string, signal?: AbortSignal): Promise<CommandResult> {
+    const invocation = this.#invocation(target, command as ReadOnlyCommandLine);
+    return await this.#executor.execute({ ...invocation, signal, timeoutMs: 15_000, maxOutputBytes: 2 * 1024 * 1024 });
+  }
+
   #invocation(target: TargetProfile, command: ReadOnlyCommandLine): { executable: string; args: ReadonlyArray<string> } {
     if (target.connectionKind === "wsl") {
       if (!target.wslDistribution) throw new Error("A WSL target requires a discovered distribution name");

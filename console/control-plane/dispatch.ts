@@ -17,7 +17,7 @@ import { SETTINGS_SOURCE_ALLOWLIST_KEY, parseAllowlist } from './settings-source
 import { AsteriskService } from './asterisk-service.js';
 import {
   parseVoicemailUsers, parseVoicemailZones, parseConfbridgeList, parseMohClasses, parseCodecs,
-  parseTranslations, parseAclRules, parseManagerSettings, parseManagerUsers, parseAriApps,
+  parseTranslations, parseAclRules, parseManagerSettings, parseManagerUsers, parseManagerConnections, parseAriApps,
   parseAriUsers, parseBridges, parseApplications,
   parseCdrStatus, parseLoggerChannels, parseSysinfo, parseUptime, parseMediaCacheItems,
 } from './asterisk-parsers.js';
@@ -26,7 +26,10 @@ import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, Co
 import { ServerInventory, SettingsRegistry, parseSettingsSnapshot } from './index.js';
 import type { ServerInventoryStore, ServerRecord, SettingsSnapshotStore } from './index.js';
 import { atomicWriteFileSync } from './atomic-file.js';
-import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
+import {
+  AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery,
+  isAllowedCommandLine, isAllowlistedWriteCommand,
+} from './index.js';
 import {
   DIALPLAN_FILE_RESOURCE, compareDialplanToFile, parseExtensionsConfSections,
 } from './dialplan-divergence.js';
@@ -34,7 +37,7 @@ import type { DialplanDivergence } from './dialplan-divergence.js';
 import type { DialplanGraph, DialplanReading } from './dialplan-graph.js';
 import type { Observation } from '../shared/control-plane.js';
 import { AgiLibrary, DEFAULT_AGI_DIRECTORY, agiReferences } from './index.js';
-import type { ReadOnlyCommand, TargetProfile, ConfigValue } from './index.js';
+import type { ReadOnlyCommand, ReadOnlyCommandLine, TargetProfile, ConfigValue } from './index.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
 
 /**
@@ -386,12 +389,18 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     }
     if (view === 'logger') return { loggerChannels: await readHere('logger show channels', parseLoggerChannels) };
     if (view === 'ami') {
-      const [settings, users, apps] = await Promise.all([
+      // `manager show connected` is the live-session counterpart to `manager show
+      // users`'s configured-account list: which AMI/HTTP clients are actually holding a
+      // socket open right now, and the file descriptor `manager kick session` needs to
+      // end one of them -- the one genuinely operable action this read-only CLI surface
+      // has for a connected session (see `write-commands.ts`).
+      const [settings, users, apps, connected] = await Promise.all([
         readHere('manager show settings', parseManagerSettings),
         readHere('manager show users', parseManagerUsers),
         readHere('ari show apps', parseAriApps),
+        readHere('manager show connected', parseManagerConnections),
       ]);
-      return { managerSettings: settings, managerUsers: users, ariApps: apps };
+      return { managerSettings: settings, managerUsers: users, ariApps: apps, managerConnections: connected };
     }
     if (view === 'about' || view === 'cli') {
       const [sysinfo, uptime] = await Promise.all([
@@ -671,11 +680,24 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       if (request.action === 'pbx.command') {
         const command = typeof request.payload?.command === 'string' ? request.payload.command.trim() : '';
         if (!command) return { ok: false, requestId: request.requestId, code: 'COMMAND_REQUIRED', message: 'No command was supplied.' };
-        if (!(READ_ONLY_COMMANDS as ReadonlyArray<string>).includes(command)) {
-          return { ok: false, requestId: request.requestId, code: 'COMMAND_NOT_ALLOWLISTED', message: `"${command}" is not in the read-only command allowlist, so it was not run.` };
+        /* `isAllowedCommandLine` covers the whole read-only list, including the object
+         * commands (`pjsip show endpoint <id>`) a plain `READ_ONLY_COMMANDS.includes`
+         * check has never matched -- this used to refuse every one of those outright,
+         * which is why no screen driving this same ceremony route could ever look up one
+         * endpoint's own negotiated codecs. `isAllowlistedWriteCommand` is the second,
+         * deliberately tiny allowlist in `write-commands.ts` for the handful of
+         * non-read-only lines this console runs at all (module load/unload/reload,
+         * ending a live AMI session) -- both are checked by exact shape before anything
+         * reaches the target, never a free-text command taken on trust. */
+        const readOnly = isAllowedCommandLine(command);
+        const write = !readOnly && isAllowlistedWriteCommand(command);
+        if (!readOnly && !write) {
+          return { ok: false, requestId: request.requestId, code: 'COMMAND_NOT_ALLOWLISTED', message: `"${command}" is not in the command allowlist, so it was not run.` };
         }
         const target = await resolveTarget(request.serverId);
-        const result = await cliGateway.run(target, command as ReadOnlyCommand);
+        const result = readOnly
+          ? await cliGateway.run(target, command as ReadOnlyCommandLine)
+          : await cliGateway.runUnchecked(target, command);
         if (result.status !== 'succeeded') {
           return { ok: false, requestId: request.requestId, code: 'COMMAND_FAILED', message: result.stderr.trim() || `The command exited with ${result.exitCode}.` };
         }

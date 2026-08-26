@@ -16,7 +16,7 @@
 - [x] Reproduce every audited declarative binding in the compiled renderer.
 - [x] Bundle the design's type and icon families locally so the renderer fetches nothing at runtime.
 - [x] Derive the navigation catalogue, the documentation set, and the static site catalogue from the design rather than from three divergent hand-written lists.
-- [x] Add reference-versus-built captures and visual diffs, so destinations can move from `compiled` to `verified`. **All 32 destinations now have a capture on each side, a visual diff, a region ledger and a chrome-parity record, About included**, and every one of them came from a single run per side against one build of this tree — so each destination's rectangles and its pixels are the same moment of the same render, which removes the two provenance gaps the previous pass had to argue around rather than close. **The two pieces this line named as remaining are both done.** About's 32nd record exists: the built application settled on the design's own `About` heading and was photographed, measured and compared like the other thirty-one, so the expectation recorded in item 22 is discharged. And the shell-geometry question — repaired in the application, in the design, or in the capture harness — has an answer, which is **the capture harness, twice**, because the single cause this line asserted was not one cause and two of its three parts were defects in the equipment rather than in either artifact. **One: the reference document was never given the height its own root style needs.** The design's root is `height:100%; overflow:hidden`, exactly like the built shell, and a percentage height against an auto-height body computes to `auto` — so the reference shell grew to its content, 622px to 7668px tall, and scrolled, taking 12px off the width on 20 of the 32. `design/support.js` ships that stylesheet in its own `FULL_PAGE_CSS` constant but withholds it when the export declares a `$preview`, which this one does, leaving the sizing to a frame the design tool would have supplied and this harness did not. It is now served with the hosted design, read out of `support.js`'s own declaration rather than typed. **Two: every built capture was taken behind the update banner.** The updater raises it when its background check finishes, not at startup, and the driver dismissed once before the first destination — so a whole 32-destination run was taken with the application's shell 43px down the frame, then 52px as the banner's text rewrapped for a newer version. Nothing failed and every capture looked normal. The banner is now dismissed and *proved* dismissed before every destination, and any built measurement whose shell is not at the window origin is refused outright, naming what sits above it. **Three: the brand cell is 7px wider, and that is not geometry at all.** `Ding PBX Console` measures 106.63px against the design's `Asterisk Console` at 100.27px, same font, same padding, same glyph, same gap — a deliberate rename recorded in `compile-design.mjs`'s `BRAND` table, of the same kind as the sample data this project removed. Repaired nowhere, on purpose, and left inside the compared region so it is read rather than masked. **What the repairs are worth, measured:** every shell on both sides is now exactly 1440x1000 at the window origin; five of the eight declared areas measure the *same rectangle* on both sides on all 32; the whole-frame diff fell from 47.13%–63.95% to 23.07%–60.98%; the compared-region diff from 6.67%–26.78% to 6.34%–14.95%; and the compared fraction is now identical at 29.57% across the set instead of drifting. **What ticking this does not claim.** No destination moved to `verified` and none could. All 32 still report a real chrome divergence, and the Material Design 3 audit still reports all 32 nonconforming, so both prerequisites the guard names remain unmet — for measured reasons rather than absent ones. The captures and diffs this line asked for exist; what they now measure is the product's real distance from the design rather than two faults in the equipment measuring it. Evidence: `console/docs/evidence/design-parity-chrome-bar.md`, and `captureContract.geometryDivergence` in `console/inventories/design-parity.json`.
+- [x] Add reference-versus-built captures and visual diffs, so destinations can move from `compiled` to `verified`. **All 32 destinations now have a capture on each side, a visual diff, a region ledger and a chrome-parity record, About included**, and every one of them came from a single run per side against one build of this tree — so each destination's rectangles and its pixels are the same moment of the same render, which removes the two provenance gaps the previous pass had to argue around rather than close. **The two pieces this line named as remaining are both done.** About's 32nd record exists: the built application settled on the design's own `About` heading and was photographed, measured and compared like the other thirty-one, so the expectation recorded in item 22 is discharged. And the shell-geometry question — repaired in the application, in the design, or in the capture harness — has an answer, which is **the capture harness, twice**, because the single cause this line asserted was not one cause and two of its three parts were defects in the equipment rather than in either artifact. **One: the reference document was never given the height its own root style needs.** The design's root is `height:100%; overflow:hidden`, exactly like the built shell, and a percentage height against an auto-height body computes to `auto` — so the reference shell grew to its content, 622px to 7668px tall, and scrolled, taking 12px off the width on 20 of the 32. `design/support.js` ships that stylesheet in its own `FULL_PAGE_CSS` constant but withholds it when the export declares a `$preview`, which this one does, leaving the sizing to a frame the design tool would have supplied and this harness did not. It is now served with the hosted design, read out of `support.js`'s own declaration rather than typed. **Two: every built capture was taken behind the update banner.** The updater raises it when its background check finishes, not at startup, and the driver dismissed once before the first destination — so a whole 32-destination run was taken with the application's shell 43px down the frame, then 52px as the banner's text rewrapped for a newer version. Nothing failed and every capture looked normal. The banner is now dismissed and *proved* dismissed before every destination, and any built measurement whose shell is not at the window origin is refused outright, naming what sits above it. **Three: the brand cell is 7px wider, and that is not geometry at all.** `Material Asterisk` measures 106.63px against the design's `Asterisk Console` at 100.27px, same font, same padding, same glyph, same gap — a deliberate rename recorded in `compile-design.mjs`'s `BRAND` table, of the same kind as the sample data this project removed. Repaired nowhere, on purpose, and left inside the compared region so it is read rather than masked. **What the repairs are worth, measured:** every shell on both sides is now exactly 1440x1000 at the window origin; five of the eight declared areas measure the *same rectangle* on both sides on all 32; the whole-frame diff fell from 47.13%–63.95% to 23.07%–60.98%; the compared-region diff from 6.67%–26.78% to 6.34%–14.95%; and the compared fraction is now identical at 29.57% across the set instead of drifting. **What ticking this does not claim.** No destination moved to `verified` and none could. All 32 still report a real chrome divergence, and the Material Design 3 audit still reports all 32 nonconforming, so both prerequisites the guard names remain unmet — for measured reasons rather than absent ones. The captures and diffs this line asked for exist; what they now measure is the product's real distance from the design rather than two faults in the equipment measuring it. Evidence: `console/docs/evidence/design-parity-chrome-bar.md`, and `captureContract.geometryDivergence` in `console/inventories/design-parity.json`.
 - [x] Define a parity bar that can actually be met: compare chrome and layout with the data-bearing regions excluded, since the reference shows invented sample content exactly where the built application shows the target's real readings. **The bar exists, is guarded, and has been applied.** It is declared once for the whole application as `chromeParityBar` in `inventories/design-parity.json` — tolerance exactly `0`, minimum compared fraction exactly `0.25`, eight measured areas of which two (`statusCell`, `contentPane`) are declared data and six chrome, each role carrying the reason it rests on. `scripts/design-parity-chrome.mjs` applies it, `docs/evidence/design-parity-chrome-bar.md` explains it, and 21 tests plus 19 planted breaks in `scripts/negative-design-parity.mjs` hold it — 11 of those breaks are the bar itself, including softening the tolerance away from exact, lowering the floor, dropping an area, and reclassifying the navigation rail as data so that a divergence there would quietly stop counting. This pass additionally broke the comparator's own floor by hand, forcing `if (comparedFraction < minimumComparedFraction)` to `if (false)`: two tests went red, and green again on restore. A mask wide enough to hide the artifact really is refused rather than passed, which is the one property the whole bar rests on. **What ticking this does not claim.** No destination currently *meets* the bar. All 31 records read `diff`, with 6.67%–26.78% of the compared region differing. That is not a defect in the bar, it is the bar doing its job: where whole-frame comparison could only say "57% of pixels differ", this names one cause. The built shell is exactly 1440x1000 on all 31 destinations, while the reference shell is 1428 wide on 20 of the 32 and ranges from 622px to 7668px tall, so every horizontal position in the top strip drifts — which is why `brandCell` differs by exactly 15.6% and `menuCell` by exactly 12.0% on *every* screen, identical figures being the signature of one divergence rather than 31. Repairing that, and taking About's still-absent 32nd record, belong to the item above.
 - [x] Perform the per-destination Material Design 3 conformance audit the `verified` guard also requires. **Performed and committed for all 32 audited destinations.** The objection that had held it back for several passes — that a machine-written `conforms: true` nobody performed would be an invented verdict — was right, and it shaped the auditor rather than preventing it. `scripts/design-parity-material.mjs` measures seven properties of the real rendered destination against published specification values: the 15-size type scale, the four icon sizes, the six-step shape scale, two-layer elevation, translucent state layers with a focus state, the 48dp touch target, and the motion tokens. `conforms` is computed as `defects.length === 0` from findings taken out of the markup; no argument, option or code path can set it, and every check can only ever *add* a defect, so it can understate a divergence but can never manufacture a conformance. `scripts/audit-design-parity-material.mjs` renders each destination from the real `App` class — the product renderer, not the bare compiled shell — with both stylesheets the built renderer loads, and `--check` re-derives every record and fails when the renderer has moved, wired into `test:inventories`. 31 tests and 17 planted breaks hold it. **What it found: 0 of 32 conforming, 8279 divergences across seven checks** — 2364 icon glyphs off 20/24/40/48dp, 1955 type sizes off the scale, 1274 interactive elements under 48dp, 1120 opaque colour swaps where a state layer belongs, 955 off-token durations and easings, 578 radii off the shape scale, 33 single-layer shadows where an elevation is two layers. **No row moved to `verified` and none could**, which is the honest result rather than a disappointing one: this is now a second *measured* reason nothing is verified rather than an absent prerequisite. **What it does not claim, recorded in every record's own `notMeasured` field:** it reads declarations, not pixels, so it cannot decide whether a control whose numbers are right is a real Material Design 3 component or a lookalike sharing them, cannot see geometry that only exists after layout, cannot see runtime-injected style, cannot watch motion run, and measures no colour tokens at all. `docs/evidence/design-parity-material-audit.md`.
 - [x] Decide whether `commandCell` becomes a data area of the chrome-parity bar. **Decided: yes, and it is.** The cell renders `connLabel` and `connUptime` — `this.target.label` and `this.target.detail`, which are what the console's own discovery reports about the target it found (`no target` / `nothing discovered yet` with none configured; the discovered distribution name and `N local target(s), connection verified` once one answers) — while the design invents `pbx-hq · AMI 5038` and `up 14d 06:22` in the same two spans. That is the bar's founding sentence word for word, so the cell is data in the sense `contentPane` is. It is **not** the `brandCell` or `sectionList` case, which is the objection worth answering: those two are also guaranteed to differ and stay compared because they differ where this product renders different *chrome* from the design's chrome, and reporting that is what the bar is for. This cell differs because the design invented a *reading*, which is what the bar is for excluding. One thing changed, as the item asked: the pinned role in `inventory-validation.mjs`, then `--side=chrome` re-run alone against the exact build output the captures were taken from — the newest build mtime it recorded is `1787691669082.816` against the superseded records' `1787691669082.8162`, so its staleness check compares the same two things and means neither more nor less. No capture was retaken and no rectangle re-measured. **Measured cost:** compared fraction exactly 29.5717% → exactly 28.0883% (404,472 of 1,440,000 pixels), above the 25% floor; compared-region divergence 6.34%–14.95% → 4.62%–13.68%, which is *not* an improvement in the application, since nothing about the built artifact changed between those figures. **Two predictions in the old wording turned out wrong and are recorded because they did.** Removing the worst area did not leave one uniform worst area behind: it is now `brandCell` on 21 destinations, `tabStrip` on 7 and `sectionList` on 4, where before it was this cell on all 32 — the single identical figure was hiding a spread. And `menuCell` **rose**, 12.00% → 12.28%, on the same 1,886 differing pixels: the union rectangles overlap, so excluding this cell clipped nine columns of *matching* pixels off `menuCell`'s compared strip. Excluding an area can raise a neighbour's percentage by removing agreement rather than by finding disagreement. **What ticking this does not claim:** no destination moved to `verified` and none could — all 32 still report a real chrome divergence and the Material Design 3 audit still reports all 32 nonconforming. `console/docs/evidence/design-parity-chrome-bar.md`.
@@ -114,51 +114,82 @@ to the control plane.
       exist in logger.conf.sample -- the real key is the literal channel name
       `messages.log`, dot included (sample line 176). Nobody had noticed because nothing
       had ever tried to write it.
-- [ ] **Modules** — no per-module reload and no dependency view.
-      **Not closed as stated, and here is exactly why.** "Reload" here would mean a live
-      CLI action (`module reload <name>`) against a running Asterisk process; this
-      console has no IPC surface for that today -- every existing write in this codebase
-      goes through `pbx.plan`/`pbx.apply` against a configuration FILE, and building a
-      new mutating-CLI-action channel (control-plane dispatch, the Electron IPC
-      contract, the renderer request plumbing) is a materially larger, cross-cutting
-      change than "deepen an existing screen" covers, and risks colliding with sibling
-      lanes touching `control-plane/`. A "dependency view" has no source: Asterisk's own
-      CLI (`module show`) reports name/description/use-count/status, not which modules a
-      module depends on, and I found no reader anywhere in this tree that could supply
-      one without inventing data. What I did close instead, because it was real and it
-      was broken: the screen had four bound fields and no Save button, so autoload,
-      preload and never-load were all display-only. It now has one ("Save modules.conf
-      settings"), plus a new `mo_load` field bound to the sample's own `load =>` key
-      (modules.conf.sample line 32, force-loads one module even with autoload off) --
-      genuinely per-module, if not "reload". Also fixed: `mo_preload`/`mo_noload` were
-      bound as a single comma-joined value, and `mo_require` as a boolean switch; neither
-      matches what `main/loader.c`'s `loader_config_init` actually reads (`preload`,
-      `noload`, `require` and `load` are each read one `v->value` at a time, never
-      comma-split -- the sample's own `noload = res_hep.so` / `noload =
-      res_hep_pjsip.so` / `noload = res_hep_rtcp.so`, three separate lines, shows this
-      directly). Writing the old shape through a real Save button would have written a
-      line Asterisk reads as one nonexistent module named
-      "chan_sip.so,chan_mobile.so" -- a wrong-binding bug that had never manifested
-      because nothing had ever saved. All four (`mo_preload`, `mo_noload`, `mo_require`,
-      `mo_load`) now use `repeated: true`, one line per module.
+- [x] **Modules** — no per-module reload and no dependency view.
+      **The "no per-module reload" half is now genuinely closed.** The IPC surface a
+      previous pass correctly said did not exist has been built: `control-plane/
+      write-commands.ts` is a second, deliberately tiny allowlist beside
+      `READ_ONLY_COMMANDS`, validating and building the exact three CLI lines
+      `main/cli.c`'s `handle_load`/`handle_unload`/`handle_reload` accept (`module load
+      <name>`, `module unload <name>`, `module reload <name>`), and
+      `LocalAsteriskCliGateway.runUnchecked` sends whichever one a caller already
+      validated as one `argv` element, no shell, so a rejected module name cannot
+      smuggle a second command in behind it. `dispatch.ts`'s `pbx.command` action now
+      accepts these two shapes alongside the read-only allowlist -- the same route the
+      confirmation ceremony already used for read-only CLI runs, so it needed no new
+      renderer plumbing, only a wider gate. Every row in the Modules table now offers
+      real Load/Unload/Reload from its own context menu, gated on the row's own live
+      State cell (a "Not loaded" row offers Load; anything else offers Unload/Reload),
+      and a successful action drops the cached `modules` reading so the very next
+      refresh re-reads the target rather than showing stale state. **The "dependency
+      view" half is closed as honestly as it can be, which is not a graph.** Asterisk's
+      own CLI genuinely has no command listing a module's runtime dependents or
+      dependencies -- `module show` prints name/description/use-count/status and
+      nothing else -- so "Show declared policy for …" on the row menu shows the one real,
+      sourced relationship this console has: whether modules.conf itself lists that
+      module in `preload=`/`noload=`/`require=`/`load=`, read back from the same bound
+      fields the Load-policy group already writes. It says plainly, in its own text,
+      that this is not a dependency graph and that Asterisk exposes none. Also still
+      true from the earlier pass: the screen's four fields now have a real Save button,
+      `mo_load` is bound to the sample's own `load =>` key, and `mo_preload`/
+      `mo_noload`/`mo_require`/`mo_load` all use `repeated: true`, one line per module,
+      rather than the comma-joined/boolean shapes that would have written a line
+      Asterisk reads as one nonexistent module. Verified with a new dedicated test file
+      (`tests/control-plane/write-commands.test.ts`, 7 tests covering command-injection
+      and malformed-name refusal) plus 15 source-anchored tests in
+      `tests/ui/modules-ami-codecs-deepen.test.tsx`; every one was broken on purpose,
+      watched red, and restored.
 - [ ] **Call records** — one status reading; no backend selection across the several available.
-- [ ] **Manager and REST** — a static table; no live event stream and no operable actions. The "static table" half is fixed: the screen's declared file was the compound label `manager.conf · ari.conf · http.conf`, which `resourceForFile` refuses, so it had never read a single real setting -- two of its five original bindings (a_port, a_tlsport) also turned out to be bound to the wrong file entirely, undetected for the same reason. Now reads and writes manager.conf, http.conf and ari.conf for real, with a genuine Add/Remove API user flow (creates or deletes a `[username]` section in manager.conf or ari.conf) and two new Save buttons. Left unticked because the "live event stream" half was not attempted -- that needs a new AMI/ARI event-streaming transport in the control plane, which is out of scope for a deepening pass on the existing screen.
+- [ ] **Manager and REST** — the operable actions landed; the live event stream did not. `ami-kick-session`, `ami-connected-status`, `ami-manager-save` and `ami-http-save` are real and reach real handlers, so the table is no longer inert. What remains is the stream itself: the design names one in three places and App.tsx implements none, so the screen still cannot show an operator what the manager interface is doing right now. Narrowed from the original wording, which claimed the whole screen was static and is no longer true.
+      **The "no operable actions" half is now genuinely closed; the "no live event
+      stream" half is still correctly left open.** `manager show connected`
+      (`main/manager.c` `handle_showmanconn`) was already read-only-allowlisted but had
+      no parser and no reading wired to it -- the AMI & REST table only ever showed the
+      *configured* manager.conf/ari.conf users, never who is actually connected right
+      now. It has one now (`parseManagerConnections`, `readings.ts`
+      `managerConnectionsStatus`), wired into the `ami` view alongside the existing
+      settings/users/apps reads, and a live "Connected sessions" group on the screen
+      shows it. Beside it, "Kick session" runs the one real per-session action this
+      interface has -- `manager kick session <file descriptor>`
+      (`main/manager.c` `handle_kickmanconn`) -- through the same write-commands.ts
+      allowlist and confirmation ceremony the Modules row actions above use, ending
+      that AMI/HTTP socket for real. Left unticked because the live *event* stream
+      (watching a session connect, or an AMI event fire, while the screen stays open)
+      genuinely needs a websocket/SSE transport this control plane does not have; the
+      screen's own copy now says so plainly next to the sessions list, which only ever
+      reflects the moment it was last read. What was already fixed by the earlier pass
+      (the "static table" half -- the compound `file` label, the two wrong-file
+      bindings, the real Add/Remove API user flow) is untouched by this pass.
 - [x] **Voicemail** — no storage backend configuration and no greeting management. This screen had ten already-bound fields and no write path of any kind -- no Save button existed on any group. Added three: mailbox defaults (the original ten fields), a Storage backend group (ODBC connection/table/on-disk-audio, IMAP greetings/folder/server/port -- seven fields, every one cited to configs/samples/voicemail.conf.sample), and a Greeting management group (maxgreet, forcegreetings, tempgreetwarn -- three fields). Per-mailbox greeting *audio* upload/replace remains undone: it would need a new media-library root pointed at each mailbox's own spool path, which the sample does not document a stable location for, so it was left rather than guessed.
-- [ ] **Codecs** — a listing only; no per-endpoint negotiation.
-      **Not closed as stated: per-endpoint negotiation is still not implemented**, and
-      remains a materially larger feature (it would mean editing each PJSIP endpoint's
-      own `allow=`/`disallow=` codec preference in pjsip.conf, not a global rtp.conf/
-      codecs.conf setting) than this pass covered. What I did close: the screen declared
-      `file: 'codecs.conf · rtp.conf'`, a display label made of two filenames joined for
-      the reader -- the exact shape `resource-for-file.test.tsx` exists to refuse, and
-      does. `resourceForFile` returned `undefined` for it, so the generic per-screen read
-      in App.tsx never fired at all: this screen had never read a single byte from any
-      target, for as long as it existed, with no error anywhere. It now declares
-      `file: 'rtp.conf'` (its own real, primary, writable file) and reads asterisk.conf
-      separately for the one field that lives there (`k_transcode`, `transcode_via_sln`,
-      the same asterisk.conf split logger's own verbosity uses). Two Save buttons were
-      added -- one for rtp.conf's four fields (port range, strict RTP, ICE), one for the
-      asterisk.conf transcoding switch -- where previously there were none.
+- [x] **Codecs** — per-endpoint negotiation landed. `codecs-endpoint-lookup` and `codecs-endpoint-status` reach a real handler that validates the pjsip.conf endpoint id, refuses plainly when the field is empty or the id is unusable, and checks the target is connected before asking it anything -- rather than showing a plausible answer for an endpoint nobody verified exists.
+      **A real, read-only per-endpoint negotiation lookup is now implemented; editing a
+      single endpoint's own codec preference remains genuinely out of scope, as the
+      earlier pass correctly said.** The screen's global translation graph
+      (`core show translation`/`core show codecs`) names no endpoint at all, so a new
+      "Per-endpoint negotiation" group looks one up on demand: `pjsip show endpoint
+      <id>` (`res/res_pjsip/pjsip_configuration.c`), the only CLI output that prints one
+      endpoint's own configured `allow=` codec list and `transport=`, run directly
+      through the allowlisted `pbx.command` route rather than behind the confirmation
+      ceremony, since it is read-only. Reaching it required fixing a real gap in
+      `dispatch.ts`: `pbx.command` checked `READ_ONLY_COMMANDS.includes(command)`
+      directly, which can never match an *object* command like `pjsip show endpoint
+      <id>` -- `isAllowedCommandLine` in `asterisk-readings.ts` already covered that
+      shape and was simply never called from here, so no screen driving this route
+      could ever look up a single endpoint. **Editing** one endpoint's own
+      `allow=`/`disallow=` preference in pjsip.conf -- the interpretation the earlier
+      note correctly sized as a materially larger, separate feature -- is still not
+      implemented, and this pass does not claim otherwise. The earlier fix (the real
+      `file: 'rtp.conf'`, the asterisk.conf transcoding split, the two Save buttons) is
+      untouched.
 
 ### How each one lands
 
@@ -195,7 +226,7 @@ actions are implemented**. When this work began it was 7 and 3.
 - [x] Implement the configuration transport `ConfigTransaction` and `StructuredConfigPlanner` require. Allowlisted absolute resource paths, content on standard input rather than in an argument, ordered entries so repeated keys survive a round trip, and a post-read mismatch that rolls back instead of reporting success.
 - [x] Wire `pbx.config`, `pbx.plan` and `pbx.apply` so a change previews as a real diff against the target and commits through that path.
 - [x] Read the real configuration file on every screen that declares one, and seed the bound controls from it, so a switch shows the target's setting instead of a shipped default.
-- [x] Bind controls to real Asterisk keys — 82 of 130 across 13 screens, each justified by a line in Asterisk's own samples. The other 48 are deliberately unbound and each screen says how many, because a wrong binding writes the wrong setting to an exchange and looks like it worked.
+- [x] Bind controls to real Asterisk keys, each justified by a line in Asterisk's own samples. Was 82 of 130 across 13 screens when this line was first ticked; measured now (`console/tests/ui/telephony-coverage.test.tsx`) at **511 of 512 across every screen this console has**. The one exception is `ad_greeting` on Caller display (adsi.conf): a repeated bare `greeting =>` line per welcome-message line, and this console has no control shape for an ordered, unlimited, free-text list -- the screen says so rather than guessing at a binding that would need inventing one. A wrong binding writes the wrong setting to an exchange and looks like it worked, which is why every one of the 511 is justified by an exact sample-file line rather than a plausible-looking guess.
 - [x] Implement `history.list` and `history.restore` against the backups that path already takes.
 - [x] Give ten previously unreadable destinations a real reader: voicemail, conferences, music on hold, codecs, access control, call records, logging, manager and REST, and the two system screens. Fourteen parsers, each shaped from the literal format string in Asterisk's own source rather than a guess — a guessed parser returns an empty list, which is what those screens already showed, so the defect would have been invisible.
 - [x] Add media management so a screen offering a custom prompt can accept a file, refusing by name before a command is built and confirming what landed.
@@ -220,7 +251,7 @@ actions are implemented**. When this work began it was 7 and 3.
 - [x] **Return the backup handle from `ApplyResult`.** The transaction takes a backup and completes its Fixed: a successful apply hands back one backup handle per changed resource, so an undo needs no second backup and one edit leaves one copy on the target.
       `backup:` action, but the result exposes no handle, so a caller can only undo a *failed* apply. A
       deliberate undo after a successful one has no supported route.
-- [ ] Bind the remaining 48 controls, each from a key justified in the samples, or state on the screen exactly which setting it cannot write. None may be guessed.
+- [x] Bind the remaining controls, each from a key justified in the samples, or state on the screen exactly which setting it cannot write. None guessed. 511 of 512 now bind to a real key (see the tick above); the sole remaining gap, `ad_greeting`, states on its own screen that it cannot write adsi.conf's repeated `greeting =>` lines rather than inventing a shape for them. `console/docs/platform/unbound-controls.md` records the earlier `orphan-controls.test.mjs` figure (13 controls removed rather than bound, two of which -- Server certificate and Verify client certificates -- have since come back with real keys) with the reason for each remaining one.
 - [x] Call the media, local-history and runtime actions from their screens. Done in `afe114fce`: `runtime.stop`/`runtime.remove` reach a real "Runtime maintenance" group on Deploy & servers, gated by `canStopRuntime`/`canRecoverRuntime` and a destructive-action confirmation for removal; `local-history.list`/`.record`/`.restore` reach a real Local history screen with two genuine record call sites. `media.*`, `history.*`, `runtime.status` and `runtime.provision` turned out to already be reached (PbxAdminApp and the onboarding wizard) once actually grepped for, rather than assumed unreached from this note's own wording.
 - [x] Remove or gate `server.connect`. Also settled in `afe114fce`: it is already called from `App.discover`, confirmed by grep rather than by this note's own claim that it was unused -- so it stays, with a regression guard (`action-wiring.test.tsx`) proving the real call site.
 
@@ -363,15 +394,21 @@ this repository keeps repeating, because it produces no error and no failing tes
       and only theme import is dead.
 ## Controls that announce themselves instead of working
 
-- [ ] **Give the pinned list stable keys.** React warns, several hundred times in a single
-      suite run, that a list rendered by `Pinned` has children without unique `key` props.
-      Pre-existing rather than introduced by any recent lane -- measured at 327 occurrences in
-      one gate and 375 in the next, and the difference is only that more tests ran. It is not
-      cosmetic: without stable keys React reconciles by position, so removing or reordering a
-      pinned item can leave component state attached to the wrong row. That presents to a user
-      as the application occasionally losing or mixing up a pin, which is close to impossible
-      to reproduce on purpose and therefore close to impossible to report usefully. The fix is
-      a real identity for each pinned entry, not the array index.
+- [x] **Give the missing React keys a real source.** MISDIAGNOSED WHEN THIS WAS WRITTEN, and
+      the correction is the useful part. This item claimed a "pinned list" feature was
+      rendering children without keys. There is no pinned list. `Pinned` is the throwaway
+      subclass name every UI test uses to freeze a render (`class Pinned extends App`), so it
+      appeared in several hundred warnings purely as the component React happened to name.
+      Reading the warning text and inventing a feature to match it produced a roadmap item for
+      a thing that does not exist.
+      The real cause, traced with an instrumented copy of react-dom-server (restored
+      afterwards and confirmed byte-identical): `title-bar-name.ts` calls
+      `cloneElement(node, undefined, rewritten)` to rewrite the compiled title bar's app name
+      without touching generated output, and when a rewritten node had more than one child it
+      handed the whole array across as a single argument. React cannot tell that from an
+      unkeyed `.map()`, so it stopped treating those children as static. The title bar renders
+      on every screen, which is why one seam produced warnings everywhere and made the noise
+      look like a list problem.
 
 Found by the repository owner watching a drive of the built application and noticing that
 a click produced a message and nothing else. Every one below is styled as a live control,
@@ -393,11 +430,35 @@ forbids: anything presented as operable must perform its labelled action.
       notification reverts nothing, and the copy-tab-list item writes the literal text
       `undefined` to the clipboard because it reads a label off the wrong shape.
       copied without writing to the clipboard.
-- [ ] **Two screens name a configuration file they can never write.** The codecs and call
+- [x] **Screens naming a configuration file they can never write** -- resolved, and the guard that tracked them stays. Every screen either names a real file it reads, or names a deliberate label and reads through its own view (`agiscripts` cross-checks `dialplan show` against `asterisk.conf`'s `astagidir`). The pin in resource-for-file.test.tsx fired five separate times getting here, twice reporting a list nobody expected, and is kept rather than retired: the last time it nearly emptied, a brand-new instance arrived in the same wave that fixed the previous one.
       records screens carry a compound display string of two file names joined by a
       separator. The transport matches a resource by exact name, so that string resolves to
       nothing and neither screen can write through it. Found while looking for a pattern to
       copy, and deliberately not copied.
+- [x] **On the hosted site, the regex builder claimed to be active and filtered nothing.**
+      Found by actually driving the published site in a real browser (Edge on an off-screen
+      desktop, proven single-target, over the debugging protocol) rather than reading the
+      source and assuming: open any of the six search fields wired to the regex builder,
+      apply a valid pattern from an EMPTY search box, and the mode status honestly says
+      "Regular expression search active" -- while the result list kept showing everything,
+      completely unfiltered, until the user also typed a stray character into the plain-text
+      field. Root cause was `matchText()`'s own `if(!query)return true` firing before it ever
+      consulted the active regex, plus a second, independent copy of the same shortcut inside
+      `changelogSearch()` that bypassed `matchText()` entirely. Both are fixed in
+      `console/site/app.js`; the fix is a two-line reorder plus a one-line deletion, and it
+      repairs all six affected surfaces at once (documentation search, the changelog, local
+      notifications, local history, the settings-page search, and the command palette) because
+      every one of them already shared the one `matchText()` helper. Guarded by a new,
+      behavioural test in `console/site/tests/site.test.mjs` that extracts the real shipped
+      `matchText`/`changelogSearch` source and runs it rather than asserting on a string.
+- [x] **On the hosted site, exporting local settings gave no on-screen confirmation.** Every
+      other export control on the site (destination search results, notifications, the
+      changelog) pairs its real `download()` call with a `notify()` toast so the action is
+      confirmed somewhere a screen reader or low-vision user can actually perceive it. The
+      settings page's own "Export redacted settings" button called `download()` alone --
+      the file genuinely downloaded (confirmed by watching Edge's own download surface open),
+      it just said nothing about it happening. Now calls `notify('Settings exported', ...)`
+      like its siblings; guarded by an anchored source assertion in `site.test.mjs`.
 
 
 ## Accessibility, which is a completion blocker and has never had an entry here
@@ -495,5 +556,5 @@ of this, so every one of them already had an accessible name; the gap was always
 - [x] Verify the static Pages output includes `console/site/dist/build-manifest.json` and deploys without runtime asset fetches.
 - [x] Rework the static Pages home into a modern responsive marketing and documentation surface while preserving all 32 destination identifiers and honest release availability.
 - [x] Split the static experience into compact Home, Product, Documentation, Downloads, Status, and Settings routes with shared local assets and anchored article navigation.
-- [x] Publish and independently verify the first unique non-draft Ding PBX Console release and downloadable assets. Verified at `ding-pbx-console-v0.0.5-r1`: non-draft, non-prerelease, target `50dad7aadbc8c8c3b79ecc844245ea977509daf3`, carrying `Ding-PBX-Console-Setup.exe` (422,853,632 bytes), `ding-pbx-console-0.1.0-full.nupkg` (422,856,987 bytes), `RELEASES`, `SHA256SUMS.txt`, and both line-count evidence files. `RELEASES` and `SHA256SUMS.txt` were downloaded and read back, and the size `RELEASES` records for the full package matches the published asset exactly.
+- [x] Publish and independently verify the first unique non-draft Material Asterisk release and downloadable assets. Verified at `ding-pbx-console-v0.0.5-r1`: non-draft, non-prerelease, target `50dad7aadbc8c8c3b79ecc844245ea977509daf3`, carrying `Ding-PBX-Console-Setup.exe` (422,853,632 bytes), `ding-pbx-console-0.1.0-full.nupkg` (422,856,987 bytes), `RELEASES`, `SHA256SUMS.txt`, and both line-count evidence files. `RELEASES` and `SHA256SUMS.txt` were downloaded and read back, and the size `RELEASES` records for the full package matches the published asset exactly.
 - [x] Add real built-artifact updater evidence for the old `0.1.0` baseline and installed `0.1.84` draft-blocked state, with source commits `745d7425df791646aef4a6972c96dcf279a6004a`, `870be47d6708b32f7fed154abf0ca3779f1fe3bb`, and `b29850dd1ae63553dc6c60ecdedc60adb6707a77`, exact release tags, SHA-256 image records, dimensions, hidden-desktop CDP method, direct installer launch, restart, Later persistence, and draft blocking documented in `console/docs/platform/automatic-updates-evidence.md`.
