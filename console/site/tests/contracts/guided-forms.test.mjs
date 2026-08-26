@@ -85,12 +85,20 @@ test('every <select> on the site is either a fixed, hard-coded option list, or o
    * changelog-date-preset joined the static bucket on the same day: its five named
    * ranges are fixed choices in the markup, and the changelog contract pins that list
    * equal to the set of presets the code can actually compute, so an option that would
-   * do nothing when chosen fails there rather than here. All four
-   * empty-in-markup selects are named here explicitly so a
-   * newly added select falls into neither bucket by accident. */
+   * do nothing when chosen fails there rather than here. narration-language joined the
+   * static bucket on 2026-08-26 with the spoken narrator, and the narration contract
+   * pins its three options equal to the selections narrationTracksFor understands.
+   * narration-voice-en and narration-voice-zh joined the empty bucket the same day:
+   * like history-action-filter they are filled from real per-visitor data -- the
+   * speech voices this browser actually reports -- which is precisely why they cannot
+   * be a fixed list in the markup, since nothing can know what is installed on a
+   * computer it has not asked. All six empty-in-markup selects are named here
+   * explicitly so a newly added select falls into neither bucket by accident. */
   assert.deepEqual(withStaticOptions.sort(),
-    ['cantonese-funny', 'changelog-date-preset', 'density-mode', 'english-funny', 'language-mode', 'theme-mode']);
-  assert.deepEqual(empty.sort(), ['changelog-export-format', 'doc-export-format', 'history-action-filter', 'notif-export-format']);
+    ['cantonese-funny', 'changelog-date-preset', 'density-mode', 'english-funny', 'language-mode',
+      'narration-language', 'theme-mode']);
+  assert.deepEqual(empty.sort(), ['changelog-export-format', 'doc-export-format', 'history-action-filter',
+    'narration-voice-en', 'narration-voice-zh', 'notif-export-format']);
 });
 
 test('the three export-format selects are populated from the fixed export-format list, never from live/user data', () => {

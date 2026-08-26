@@ -34,8 +34,13 @@ test('loadLogo genuinely bounds file size and allowlists MIME type before accept
   // line -- match on the exact function signature plus its two guard clauses
   // directly rather than trying to isolate a multi-line function body.
   assert.match(app, /async function loadLogo\(event\)\{/u, 'expected to find loadLogo as a real function');
-  assert.match(app, /if\(file\.size>131072\)\{\$\('logo-status'\)\.textContent='Rejected: file exceeds 128 KiB\.';return\}/u,
+  /* The rejection reason moved behind rejectLogo() on 2026-08-26, when the spoken
+   * narrator gave every rejection one writer -- the status line it shows is the same
+   * string, and the same writer now also speaks it. The bound itself is unchanged. */
+  assert.match(app, /if\(file\.size>131072\)\{rejectLogo\('file exceeds 128 KiB\.'\);return\}/u,
     'the 128 KiB size bound no longer matches');
+  assert.match(app, /function rejectLogo\(reason\)\{\s*\$\('logo-status'\)\.textContent=`Rejected: \$\{reason\}`;/u,
+    'the logo rejection no longer writes its reason to the status line beside the control');
   assert.ok(app.includes(String.raw`if(!/^image\/(png|jpeg|svg\+xml)$/.test(file.type))`),
     'the MIME allowlist no longer matches');
 });

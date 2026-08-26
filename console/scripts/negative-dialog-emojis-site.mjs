@@ -86,12 +86,12 @@ const cases = [
 
   // The decoration is on for everybody, including people who never asked for it.
   ['the switch defaults to on',
-    swap(APP, "displayName:'',dialogEmojis:false,attention:", "displayName:'',dialogEmojis:true,attention:")],
+    swap(APP, "displayName:'',dialogEmojis:false,narration:", "displayName:'',dialogEmojis:true,narration:")],
 
   // The setting disappears from DEFAULTS entirely, so "Reset settings" silently stops
   // clearing it and a stored true survives a reset that claims to clear everything.
   ['the switch is no longer a default at all',
-    swap(APP, "displayName:'',dialogEmojis:false,attention:", "displayName:'',attention:")],
+    swap(APP, "displayName:'',dialogEmojis:false,narration:", "displayName:'',narration:")],
 
   // The glyph goes inside the heading the dialog is labelled by, so every screen reader
   // announces it on open. Nothing about this is visible on screen.
@@ -191,7 +191,8 @@ const cases = [
   // Reset settings clears the switch without saying so, which is the "silently skipping"
   // defect applied to a destructive gate.
   ['the reset gate stops naming the switch among the things it clears',
-    swap(SETTINGS, 'the display name you chose, the dialog emoji switch, uploaded logo', 'the display name you chose, uploaded logo')],
+    swap(SETTINGS, 'the display name you chose, the dialog emoji switch, the spoken-narration switch',
+      'the display name you chose, the spoken-narration switch')],
 
   // The heading stops holding its own width, so the decoration pushes the title into the
   // middle of the heading bar and the switch visibly moves the layout.
