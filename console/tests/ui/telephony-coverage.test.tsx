@@ -196,9 +196,23 @@ function measure() {
  * rather than the 'codecs.conf · rtp.conf' label resource-for-file.test.tsx already
  * refused; k_order and the five previously-bound fields do not recount, only the two new
  * action buttons do. All ten recognised via `deliveredByAction` or a quoted `state.values`
- * literal, the same two routes this measurement has recognised since s_tload/s_tsave. */
-const WORKING_FLOOR = 296;
-const TELEPHONY_TOTAL = 296;
+ * literal, the same two routes this measurement has recognised since s_tload/s_tsave.
+ *
+ * Then 319 with the compliance lane's three new screens: Call attestation (nine
+ * controls -- a name picker, a Load button, six bound overrides and a Save button, all
+ * on stir_shaken.conf's own [profile] objects), Emergency-services location (fourteen,
+ * split across geolocation.conf's [location] and [profile] object groups) and Phone
+ * provisioning (ten, split across phoneprov.conf's [general] section and its own named
+ * profile). 9 + 14 + 10 = 33, and this test reported all 33 as reached the first time
+ * it ran against them -- every picker is read via `values['...']` in App.tsx (the
+ * quoted form `measure()` looks for), and every Load/Save button carries a design
+ * `action:` recognised by `deliveredByAction`, the same two routes every other
+ * named-section screen on this console already uses.
+ *
+ * It may rise freely and may not fall. */
+
+const WORKING_FLOOR = 329;
+const TELEPHONY_TOTAL = 329;
 
 test('an action-delivered control is recognised even though its id never appears as a quoted literal', () => {
   for (const id of [

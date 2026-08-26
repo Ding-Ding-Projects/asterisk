@@ -38,17 +38,21 @@ const strip = (markup: string) => markup.replace(/<[^>]*>/g, ' ').replace(/&#x27
  * where before none of the four had ever been read or written by this console. Both
  * screens forked from the same 38-destination tip and each counted its own one-screen
  * jump independently (each calling itself "39 rather than 38"); rebasing one onto the
- * other's tip is what stacks the two arrivals to 40 instead of colliding at 39. */
+ * other's tip is what stacks the two arrivals to 40 instead of colliding at 39.
+ * 43 rather than 40: the compliance lane's three new screens -- Call attestation
+ * (stir_shaken.conf's own [profile] objects, sys rail: 6 to 7) and Phone provisioning
+ * (phoneprov.conf, sys rail: 7 to 8), plus Emergency-services location (geolocation.conf,
+ * pbx rail: 10 to 11). */
 test('the design reference supplies every rail and destination', () => {
-  assert.equal(ORDER.length, 40);
-  assert.equal(destinations.length, 40);
+  assert.equal(ORDER.length, 43);
+  assert.equal(destinations.length, 43);
   assert.deepEqual(rails.map((rail) => rail.id), ['pbx', 'media', 'data', 'sys', 'agent', 'app']);
   assert.deepEqual(
     rails.map((rail) => destinations.filter((destination) => destination.rail === rail.id).length),
-    [10, 6, 2, 6, 7, 9],
+    [11, 6, 2, 8, 7, 9],
   );
   assert.equal(RAIL.length, 6);
-  assert.equal(Object.keys(SCREENS).length, 40);
+  assert.equal(Object.keys(SCREENS).length, 43);
 });
 
 test('the design audit baseline counts survive compilation', () => {
