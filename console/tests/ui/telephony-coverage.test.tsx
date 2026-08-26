@@ -209,10 +209,51 @@ function measure() {
  * `action:` recognised by `deliveredByAction`, the same two routes every other
  * named-section screen on this console already uses.
  *
- * It may rise freely and may not fall. */
+ * Then a further jump once the telephony deepening lane's four brand new screens and
+ * files landed -- chan_dahdi.conf, sla.conf, dundi.conf and calendar.conf, the
+ * roadmap's "Hardware trunks / Shared line appearances / Distributed dialplan lookup /
+ * Calendars" line. Every one of the 96 new controls works: the ordinary fields are
+ * bound in CONTROL_BINDINGS (see the long comments there for the sectionFrom groups
+ * picked by sl_trunkname/sl_stationname/du_peereid/ca_name); every name picker,
+ * write-only credential and live status readout is read via `values['...']` by name in
+ * App.tsx's own handlers or carries `action:'...'` in the design, recognised by
+ * `deliveredByAction` exactly the way db_odbcname and db_pgpasswordstatus already are;
+ * and the repeated-key directives this table cannot express at all -- chan_dahdi's
+ * "channel =>" spans and sla's per-station "trunk=" assignments -- are read and written
+ * directly against the parsed ConfigValue by onDahdiAddChannel/onDahdiRemoveChannel and
+ * onSlaStationTrunkAdd/onSlaStationTrunkRemove.
+ *
+ * It may rise freely and may not fall.
+ *
+ * Then a further jump once the ops lane's five screens landed: Monitoring
+ * (res_snmp.conf + prometheus.conf, 11 controls, all working -- the write-only
+ * pm_authpassword is recognised because its id appears quoted in App.tsx's
+ * consumeCredential(...) call, and the three action buttons/status readout via
+ * deliveredByAction), Directories & identity (asterisk.conf, 24 controls, all working),
+ * NAT discovery (res_stun_monitor.conf, 3, all working) and Messaging (xmpp.conf, 7, all
+ * working) are each fully wired. Caller display (adsi.conf, 3) is not: ad_greeting is
+ * deliberately left dead, because adsi.conf repeats a bare "greeting =>" line once per
+ * line of the welcome message and this console has no control for an ordered, unlimited,
+ * free-text list -- see the long comment on CONTROL_BINDINGS.adsi. That is the one control
+ * this pass leaves genuinely unwired, on purpose, which is why the floor and the total are
+ * no longer the same number. Read back the same way every earlier total on this page
+ * was: trying a deliberately wrong value first and taking whatever this test actually
+ * reported.
+ *
+ * Then a further jump with the Voicemail and AMI & REST deepening lane. Voicemail
+ * gained thirteen: ten new CONTROL_BINDINGS entries (the storage-backend and
+ * greeting-management fields) plus v_save/v_storagesave/v_greetsave, three one-shot
+ * Save buttons recognised via `deliveredByAction` -- this screen had ten already-bound
+ * fields and, before this lane, no write path of any kind. AMI & REST gained six:
+ * a_httpsave/a_mgrsave, two more `deliveredByAction` buttons, plus am_interface/
+ * am_username/am_secret/am_readonly, the Add-an-API-user form's own fields, read
+ * directly out of `state.values` by `onAddApiUser` (the quoted-literal form this
+ * measurement looks for, the same shape s_aclname/s_action/s_spec already use for the
+ * Security screen's own "Add a rule" form). All nineteen work, read back the same way
+ * every number above it was. */
 
-const WORKING_FLOOR = 329;
-const TELEPHONY_TOTAL = 329;
+const WORKING_FLOOR = 491;
+const TELEPHONY_TOTAL = 492;
 
 test('an action-delivered control is recognised even though its id never appears as a quoted literal', () => {
   for (const id of [
@@ -265,9 +306,13 @@ test('the number of telephony controls that work does not fall', () => {
 
 test('the floor is raised when the number rises, so it cannot go stale', () => {
   const { working } = measure();
-  /* Every telephony control now works, so the floor and the total are the same number. The
-   * check stays because it is what would notice the day a control is added without being
-   * wired -- the total would rise, the working count would not, and this would go red. */
-  assert.equal(working, TELEPHONY_TOTAL,
-    `${working} of ${TELEPHONY_TOTAL} work. A control was added without being wired, or one was unwired.`);
+  /* The floor and the total were the same number until Caller display (ADSI) landed --
+   * ad_greeting is the one deliberately unwired control on this whole console, left that
+   * way because adsi.conf repeats a bare "greeting =>" line once per line of the welcome
+   * message and nothing here can express an ordered, unlimited, free-text list. So the
+   * gap here is exactly WORKING_FLOOR to TELEPHONY_TOTAL (333 to 334), never more: a
+   * second gap would mean some OTHER control was added without being wired, or one that
+   * used to work stopped. */
+  assert.equal(working, WORKING_FLOOR,
+    `${working} of ${TELEPHONY_TOTAL} work, expected exactly ${WORKING_FLOOR} (only ad_greeting stays dead on purpose).`);
 });

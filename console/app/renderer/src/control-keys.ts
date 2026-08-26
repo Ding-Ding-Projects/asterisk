@@ -142,9 +142,16 @@ export interface ControlBinding {
   multi?: Readonly<Record<string, Readonly<Record<string, string>>>>;
 }
 
-/** A section name that cannot break the file it is written into. */
+/** A section name that cannot break the file it is written into.
+ *
+ * `:` and `*` are both included for dundi.conf's own peer sections -- named after a
+ * colon-separated entityid such as `[00:50:8B:F3:75:BB]` (dundi.conf.sample line 239), or
+ * the literal `[*]` peer that matches any unspecified entity (line 288). Neither character
+ * can break a `[name]` header or start a new section the way `[`, `]`, a newline or a
+ * quote could, so widening the charset by exactly these two costs nothing for every
+ * existing binding, none of which has ever used either. */
 function usableSectionName(value: unknown): string | undefined {
-  return typeof value === 'string' && /^[A-Za-z0-9_-]{1,79}$/u.test(value) ? value : undefined;
+  return typeof value === 'string' && /^(\*|[A-Za-z0-9:_-]{1,79})$/u.test(value) ? value : undefined;
 }
 
 /**
@@ -413,6 +420,115 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     { ...st('ix_mailbox', 'peer', 'mailbox'), sectionType: ['peer', 'friend'], sectionTypeFrom: 'ix_type' },  // mailbox=
     { ...lt('ix_codecs', 'peer', 'allow'), sectionType: ['peer', 'friend'], sectionTypeFrom: 'ix_type' },  // allow=, written after disallow=all as the design says
   ],
+  // configs/samples/chan_dahdi.conf.sample. Every key below lives in the [channels]
+  // section, whose settings apply cumulatively to every "channel =>" directive that
+  // follows -- so this table reads/writes the FIRST occurrence of each key (the same
+  // "first match wins" rule `applyControlValues` already documents for every other
+  // fixed-section binding), which is where installers conventionally put the shared
+  // defaults, before any "channel =>" line. Adding or removing a channel span itself is
+  // NOT expressible here (the key "channel" repeats, with a different value each time,
+  // rather than carrying a list) -- App.tsx's onDahdiAddChannel/onDahdiRemoveChannel do
+  // that directly against the parsed ConfigValue.
+  dahdi: [
+    s('da_context', 'channels', 'context'),  // line 56: context=public
+    s('da_language', 'channels', 'language'),  // line 52: ;language=en
+    s('da_switchtype', 'channels', 'switchtype'),  // line 68: ;switchtype=euroisdn
+    s('da_signalling', 'channels', 'signalling'),  // line 514: ;signalling=fxo_ls
+    b('da_usecallerid', 'channels', 'usecallerid'),  // line 576: usecallerid=yes
+    b('da_busydetect', 'channels', 'busydetect'),  // line 1097: ;busydetect=yes
+    s('da_echocancel', 'channels', 'echocancel'),  // line 873: echocancel=yes
+    b('da_echocancelbridged', 'channels', 'echocancelwhenbridged'),  // line 888: echocancelwhenbridged=yes
+    b('da_immediate', 'channels', 'immediate'),  // line 1014: ;immediate=yes
+    s('da_rxgain', 'channels', 'rxgain'),  // line 949: ;rxgain=2.0
+    s('da_txgain', 'channels', 'txgain'),  // line 950: ;txgain=3.0
+    s('da_group', 'channels', 'group'),  // line 972: group=1
+  ],
+  // configs/samples/sla.conf.sample. attemptcallerid is the file's only [general] key
+  // (line 10). Every trunk/station field is bound through sectionFrom, picked by the
+  // name typed into sl_trunkname/sl_stationname, the same mechanism db_odbcname gives
+  // res_odbc.conf's per-connection fields (see CONTROL_BINDINGS.dbrealtime below) --
+  // sla.conf names each trunk and station after an arbitrary section, not a fixed one.
+  // The station's own repeated "trunk=" assignment lines are NOT expressible here for
+  // the same reason chan_dahdi's "channel =>" directives are not: App.tsx's
+  // onSlaStationTrunkAdd/onSlaStationTrunkRemove edit those directly.
+  sla: [
+    b('sl_attemptcid', 'general', 'attemptcallerid'),  // line 10: ;attemptcallerid=no
+    sFrom('sl_trunktype', 'sl_trunkname', 'type'),  // line 33: type=trunk
+    sFrom('sl_trunkdevice', 'sl_trunkname', 'device'),  // line 35: device=DAHDI/3
+    sFrom('sl_trunkautocontext', 'sl_trunkname', 'autocontext'),  // line 42: autocontext=line1
+    sFrom('sl_trunkringtimeout', 'sl_trunkname', 'ringtimeout'),  // line 47: ;ringtimeout=30
+    bFrom('sl_trunkbarge', 'sl_trunkname', 'barge'),  // line 50: ;barge=no
+    sFrom('sl_trunkhold', 'sl_trunkname', 'hold'),  // line 54: ;hold=private (open/private)
+    sFrom('sl_stationtype', 'sl_stationname', 'type'),  // line 85: type=station
+    sFrom('sl_stationdevice', 'sl_stationname', 'device'),  // line 87: device=SIP/station1
+    sFrom('sl_stationautocontext', 'sl_stationname', 'autocontext'),  // line 89: autocontext=sla_stations
+    sFrom('sl_stationringtimeout', 'sl_stationname', 'ringtimeout'),  // line 94: ;ringtimeout=10
+    sFrom('sl_stationringdelay', 'sl_stationname', 'ringdelay'),  // line 97: ;ringdelay=10
+    sFrom('sl_stationhold', 'sl_stationname', 'hold'),  // line 100: ;hold=private (open/private)
+  ],
+  // configs/samples/dundi.conf.sample. The contact/network/query/outgoing-call fields
+  // below all live in [general], checked per key against the sample. Peer fields are
+  // bound through sectionFrom, picked by the entityid typed into du_peereid -- dundi.conf
+  // names each peer's section after its own entityid, an arbitrary string, not a fixed
+  // one. The [mappings] section is NOT expressible through this table at all: it varies
+  // its KEY (the DUNDi context) rather than its section, the same shape
+  // extconfig.conf's family mappings are (see the long comment above
+  // CONTROL_BINDINGS.dbrealtime) -- App.tsx's du_map* handlers read/write it directly
+  // through control-plane/realtime-mappings-model.ts's findEntry/writeEntry/removeEntry.
+  dundi: [
+    s('du_department', 'general', 'department'),  // line 15: ;department=Your Department
+    s('du_organization', 'general', 'organization'),  // line 16: ;organization=Your Company, Inc.
+    s('du_locality', 'general', 'locality'),  // line 17: ;locality=Your City
+    s('du_stateprov', 'general', 'stateprov'),  // line 18: ;stateprov=ST
+    s('du_country', 'general', 'country'),  // line 19: ;country=US
+    s('du_email', 'general', 'email'),  // line 20: ;email=your@email.com
+    s('du_phone', 'general', 'phone'),  // line 21: ;phone=+12565551212
+    s('du_bindaddr', 'general', 'bindaddr'),  // line 29: ;bindaddr=0.0.0.0
+    n('du_port', 'general', 'port'),  // line 30: ;port=4520
+    s('du_tos', 'general', 'tos'),  // line 33: ;tos=ef
+    s('du_entityid', 'general', 'entityid'),  // line 41: ;entityid=00:07:E9:3B:76:60
+    n('du_cachetime', 'general', 'cachetime'),  // line 46: ;cachetime=3600
+    n('du_ttl', 'general', 'ttl'),  // line 52: ttl=32
+    s('du_autokill', 'general', 'autokill'),  // line 62: autokill=yes
+    b('du_storehistory', 'general', 'storehistory'),  // line 77: ;storehistory=yes
+    s('du_outgoingsiptech', 'general', 'outgoing_sip_tech'),  // line 83: ;outgoing_sip_tech=pjsip
+    s('du_pjsipendpoint', 'general', 'pjsip_outgoing_endpoint'),  // line 89: ;pjsip_outgoing_endpoint=outgoing
+    sFrom('du_peermodel', 'du_peereid', 'model'),  // line 240: model = symmetric
+    sFrom('du_peerhost', 'du_peereid', 'host'),  // line 181: host - What their host is
+    sFrom('du_peerport', 'du_peereid', 'port'),  // line 183: port - default 4520
+    sFrom('du_peerinkey', 'du_peereid', 'inkey'),  // line 242: inkey = digium
+    sFrom('du_peeroutkey', 'du_peereid', 'outkey'),  // line 243: outkey = misery
+    sFrom('du_peerorder', 'du_peereid', 'order'),  // line 187-191: primary/secondary/tertiary/quartiary
+    sFrom('du_peerinclude', 'du_peereid', 'include'),  // line 244: include = e164
+    sFrom('du_peerpermit', 'du_peereid', 'permit'),  // line 245: permit = e164
+    sFrom('du_peerdeny', 'du_peereid', 'deny'),  // line 207-209: deny -   Denies this peer
+    sFrom('du_peerqualify', 'du_peereid', 'qualify'),  // line 246: qualify = yes
+    bFrom('du_peerregister', 'du_peereid', 'register'),  // line 281: register = yes
+    sFrom('du_peerprecache', 'du_peereid', 'precache'),  // line 267/279: precache = inbound/outbound
+  ],
+  // configs/samples/calendar.conf.sample. Every calendar is its own named [section] --
+  // there is no [general] section in this file at all -- so every field is bound through
+  // sectionFrom, picked by the name typed into ca_name, the same mechanism db_odbcname
+  // gives res_odbc.conf. ca_secret carries NO binding, on purpose: a real account
+  // password must never travel through an ordinary binding into renderer state, from
+  // where an export, history entry or screenshot could reach it -- App.tsx takes it,
+  // writes it once, and blanks the field in the same step, exactly like db_pgpassword
+  // and iax.conf's ix_secret_set before it.
+  calendar: [
+    sFrom('ca_type', 'ca_name', 'type'),  // line 2: type = ical
+    sFrom('ca_url', 'ca_name', 'url'),  // line 3: url = https://example.com/...
+    sFrom('ca_user', 'ca_name', 'user'),  // line 4: user = jdoe
+    sFrom('ca_refresh', 'ca_name', 'refresh'),  // line 6: refresh = 15
+    sFrom('ca_timeframe', 'ca_name', 'timeframe'),  // line 7: timeframe = 60
+    bFrom('ca_fetchagain', 'ca_name', 'fetch_again_at_reload'),  // line 9: fetch_again_at_reload = no
+    sFrom('ca_autoreminder', 'ca_name', 'autoreminder'),  // line 25: autoreminder = 10
+    sFrom('ca_channel', 'ca_name', 'channel'),  // line 27: channel = SIP/60001
+    sFrom('ca_context', 'ca_name', 'context'),  // line 28: context = default
+    sFrom('ca_extension', 'ca_name', 'extension'),  // line 29: extension = 123
+    sFrom('ca_app', 'ca_name', 'app'),  // line 33: app = Playback
+    sFrom('ca_appdata', 'ca_name', 'appdata'),  // line 34: appdata = tt-weasels
+    sFrom('ca_waittime', 'ca_name', 'waittime'),  // line 36: waittime = 30
+  ],
   // configs/samples/http.conf.sample — every key below is in [general] there, checked
   // by hand against the file in this checkout rather than taken from a proposal.
   // ht_tlsaddr and ht_tlsport are two halves of one Asterisk value: tlsbindaddr is
@@ -568,9 +684,15 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     b('q_position', 'general', 'announce-position'),
   ],
 
-  // configs/samples/voicemail.conf.sample — all ten controls are documented under
-  // [general] (some noted "per-mailbox only", still shown there as the general-level
-  // default in the sample).
+  // configs/samples/voicemail.conf.sample — all ten original controls are documented
+  // under [general] (some noted "per-mailbox only", still shown there as the
+  // general-level default in the sample). v_save is a pure action button with no key of
+  // its own, recognised by telephony-coverage.test.tsx's `deliveredByAction`, the same
+  // shape as d_save/l_save on the CDR/CEL screen.
+  //
+  // The storage-backend and greeting-management controls below were added in the same
+  // pass that gave this screen its first Save action at all -- ten bound fields with no
+  // write path, undetected because nothing on this screen had ever been saved before.
   voicemail: [
     b('v_attach', 'general', 'attach'),
     b('v_delete', 'general', 'delete'),
@@ -582,6 +704,26 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     b('v_operator', 'general', 'operator'),
     b('v_envelope', 'general', 'envelope'),
     b('v_saycid', 'general', 'saycid'),
+    // voicemail.conf.sample line 155: ;odbcstorage = voicemail.
+    s('v_odbcstorage', 'general', 'odbcstorage'),
+    // voicemail.conf.sample line 166: ;odbctable = voicemail_messages.
+    s('v_odbctable', 'general', 'odbctable'),
+    // voicemail.conf.sample line 219: ; odbc_audio_on_disk = no.
+    b('v_odbcaudiodisk', 'general', 'odbc_audio_on_disk'),
+    // voicemail.conf.sample line 288: ;imapgreetings=no.
+    b('v_imapgreetings', 'general', 'imapgreetings'),
+    // voicemail.conf.sample line 291: ;greetingsfolder=INBOX.
+    s('v_greetingsfolder', 'general', 'greetingsfolder'),
+    // voicemail.conf.sample line 299: ;imapserver=localhost.
+    s('v_imapserver', 'general', 'imapserver'),
+    // voicemail.conf.sample line 300: ;imapport=143.
+    n('v_imapport', 'general', 'imapport'),
+    // voicemail.conf.sample line 58: ;maxgreet=60.
+    n('v_maxgreet', 'general', 'maxgreet'),
+    // voicemail.conf.sample line 396: ; forcegreetings=no.
+    b('v_forcegreetings', 'general', 'forcegreetings'),
+    // voicemail.conf.sample line 400: ; tempgreetwarn=yes.
+    b('v_tempgreetwarn', 'general', 'tempgreetwarn'),
   ],
 
   // configs/samples/confbridge.conf.sample — [default_bridge] template (~line 181) and
@@ -710,37 +852,53 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     s('l_papp', 'global', 'appname', 'cel_pgsql.conf'),
   ],
 
-  // configs/samples/manager.conf.sample — [general] (the only section header the
-  // sample declares; the read/write example at ~line 330 sits textually under it).
-  // configs/samples/http.conf.sample — [general]. configs/samples/ari.conf.sample —
-  // [general] (~line 1), which shares this screen's synthetic 'general' section
-  // safely: none of its own keys collide by name with manager.conf's or http.conf's.
+  // This screen's declared `file` is manager.conf.sample — [general] (the only section
+  // header the sample declares; the read/write example at ~line 330 sits textually
+  // under it, and is exactly what a_read/a_write bind to below). The screen also reaches
+  // two more files, exactly the way the Security screen reaches pjsip.conf and
+  // stir_shaken.conf besides its own acl.conf: http.conf.sample — [general], which is
+  // where the HTTP server ARI and the built-in websockets actually ride on lives — and
+  // ari.conf.sample — [general] (~line 1), for cross-origin access.
+  //
+  // Two keys were bound to the WRONG file before this pass, undetected because this
+  // screen's `file` was the compound label 'manager.conf · ari.conf · http.conf' and so
+  // had never actually been read from a real target: a_port ('Bind port', default 8088)
+  // was bound to manager.conf, which has no `bindport` key at all (it uses a plain
+  // `port` for the AMI TCP socket, manager.conf.sample line 25 — a different setting
+  // entirely, not bound here since this screen's "Bind port" is documented and shown as
+  // the HTTP server's port). a_tlsport (default 8089) was bound to manager.conf's own
+  // `tlsbindaddr` (line 34, default port 5039) even though the design's own default
+  // value is http.conf's port, not manager.conf's. Both now point at http.conf, which is
+  // where their documented sample defaults actually come from.
   // a_origin ("Allowed origins", a chip list) binds to ari.conf.sample's
-  // `;allowed_origins=` (~line 5) — a second look found this; the first pass checked
-  // only http.conf.sample, which genuinely has no CORS key, and missed that ari.conf
-  // is one of this screen's declared files and does have one. a_tlsport (a discrete
-  // numeric port) stays unmapped: http.conf.sample's only TLS bind setting is
-  // `;tlsbindaddr=0.0.0.0:8089` (~line 89), a combined address:port string with no
-  // separate port key this table's kinds can address without guessing where the colon
-  // falls. a_deny is unmapped because the real `deny=` key takes a CIDR string, not a
-  // boolean.
+  // `;allowed_origins=` (line 5) — http.conf.sample genuinely has no CORS key.
   ami: [
     // manager.conf.sample line 97: ;deny=0.0.0.0/0.0.0.0 -- denying by default is the LINE
     // existing, not a yes or a no, so the off state removes it. Writing deny=no would be a
     // line Asterisk tries to read as a network.
     { control: 'a_deny', section: 'general', key: 'deny', kind: 'boolean',
       presence: { whenPresent: '0.0.0.0/0.0.0.0' } },
-    // manager.conf.sample line 34: ;tlsbindaddr=0.0.0.0:5039 -- address and port in one
-    // value, the same shape as http.conf, so the port owns its half and leaves the address.
+    // http.conf.sample line 88: ;tlsbindaddr=0.0.0.0:8089 -- address and port in one
+    // value; the port owns its half and leaves the address. Not manager.conf's own
+    // tlsbindaddr (line 34) -- see the long comment above for why.
     { control: 'a_tlsport', section: 'general', key: 'tlsbindaddr', kind: 'number',
-      composite: { separator: ':', part: 'after' } },
-    b('a_http', 'general', 'enabled'),
-    n('a_port', 'general', 'bindport'),
-    b('a_tls', 'general', 'tlsenable'),
+      composite: { separator: ':', part: 'after' }, file: 'http.conf' },
+    // http.conf.sample line 29: ;enabled=yes.
+    b('a_http', 'general', 'enabled', undefined, 'http.conf'),
+    // http.conf.sample line 39: ;bindport=8088.
+    n('a_port', 'general', 'bindport', 'http.conf'),
+    // http.conf.sample line 87: ;tlsenable=yes.
+    b('a_tls', 'general', 'tlsenable', undefined, 'http.conf'),
+    // manager.conf.sample line 330: ;read = system,call,log,verbose,agent,user,config,
+    // dtmf,reporting,cdr,dialplan.
     l('a_read', 'general', 'read'),
+    // manager.conf.sample line 331: ;write = system,call,agent,user,config,command,
+    // reporting,originate,message.
     l('a_write', 'general', 'write'),
+    // manager.conf.sample line 76: ;httptimeout = 60.
     n('a_timeout', 'general', 'httptimeout'),
-    l('a_origin', 'general', 'allowed_origins'),
+    // ari.conf.sample line 5: ;allowed_origins =.
+    l('a_origin', 'general', 'allowed_origins', 'ari.conf'),
   ],
 
   // configs/samples/modules.conf.sample. main/loader.c's own loader_config_init reads
@@ -1080,6 +1238,77 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     sFrom('db_odbcisolation', 'db_odbcname', 'isolation', 'res_odbc.conf'),  // ;isolation => repeatable_read
     sFrom('db_odbccachetype', 'db_odbcname', 'cache_type', 'res_odbc.conf'),  // ;cache_type => roundrobin
   ],
+  // configs/samples/res_snmp.conf.sample (two keys total, both in [general]) plus
+  // configs/samples/prometheus.conf.sample (also [general], a different file entirely --
+  // every prometheus.conf binding below carries an explicit `file`, the same shape the CDR
+  // screen's cel.conf/cel_odbc.conf/cel_pgsql.conf bindings use for a screen that spans
+  // several files). pm_authpassword and pm_authpasswordstatus carry no binding at all: the
+  // password is write-only, handled the same way db_pgpassword is in App.tsx's
+  // onSaveResPgsql -- read via findConfigEntry/consumeCredential/writeConfigEntry rather
+  // than through this table, so it can never be populated by an ordinary read.
+  monitoring: [
+    b('mn_subagent', 'general', 'subagent'),  // line 16: ;subagent = yes
+    b('mn_enabled', 'general', 'enabled'),  // line 18: ;enabled = yes
+    b('pm_enabled', 'general', 'enabled', undefined, 'prometheus.conf'),  // line 20: enabled = no
+    b('pm_core', 'general', 'core_metrics_enabled', undefined, 'prometheus.conf'),  // line 41: core_metrics_enabled = yes
+    s('pm_uri', 'general', 'uri', 'prometheus.conf'),  // line 46: uri = metrics
+    s('pm_authuser', 'general', 'auth_username', 'prometheus.conf'),  // line 49: ; auth_username = Asterisk
+    s('pm_authrealm', 'general', 'auth_realm', 'prometheus.conf'),  // line 61: ; auth_realm =
+  ],
+  // configs/samples/asterisk.conf.sample. [directories] is a template in the shipped
+  // sample ([directories](!)) that most installs never activate -- see that file's own
+  // first lines -- but a real target that HAS activated it carries a plain [directories]
+  // section this table matches like any other. [options] is the rest.
+  identity: [
+    s('as_dircache', 'directories', 'astcachedir'),  // line 6: astcachedir => /var/cache/asterisk
+    s('as_diretc', 'directories', 'astetcdir'),  // line 7: astetcdir => /etc/asterisk
+    s('as_dirmod', 'directories', 'astmoddir'),  // line 8: astmoddir => /usr/lib/asterisk/modules
+    s('as_dirvarlib', 'directories', 'astvarlibdir'),  // line 9: astvarlibdir => /var/lib/asterisk
+    s('as_dirdb', 'directories', 'astdbdir'),  // line 10: astdbdir => /var/lib/asterisk
+    s('as_dirkey', 'directories', 'astkeydir'),  // line 11: astkeydir => /var/lib/asterisk
+    s('as_dirdata', 'directories', 'astdatadir'),  // line 12: astdatadir => /var/lib/asterisk
+    s('as_diragi', 'directories', 'astagidir'),  // line 13: astagidir => /var/lib/asterisk/agi-bin
+    s('as_dirspool', 'directories', 'astspooldir'),  // line 14: astspooldir => /var/spool/asterisk
+    s('as_dirrun', 'directories', 'astrundir'),  // line 15: astrundir => /var/run/asterisk
+    s('as_dirlog', 'directories', 'astlogdir'),  // line 16: astlogdir => /var/log/asterisk
+    s('as_dirsbin', 'directories', 'astsbindir'),  // line 17: astsbindir => /usr/sbin
+    s('as_systemname', 'options', 'systemname'),  // line 38: ;systemname = my_system_name
+    b('as_autosystemname', 'options', 'autosystemname'),  // line 40: ;autosystemname = yes
+    s('as_entityid', 'options', 'entityid'),  // line 108: ;entityid=00:11:22:33:44:55
+    s('as_runuser', 'options', 'runuser'),  // line 79: ;runuser = asterisk
+    s('as_rungroup', 'options', 'rungroup'),  // line 80: ;rungroup = asterisk
+    s('as_documentation_language', 'options', 'documentation_language'),  // line 87: documentation_language = en_US
+    s('as_defaultlanguage', 'options', 'defaultlanguage'),  // line 86: ;defaultlanguage = en
+    n('as_maxcalls', 'options', 'maxcalls'),  // line 46: ;maxcalls = 10
+    n('as_maxload', 'options', 'maxload'),  // line 47: ;maxload = 0.9
+    n('as_maxfiles', 'options', 'maxfiles'),  // line 49: ;maxfiles = 1000
+    n('as_minmemfree', 'options', 'minmemfree'),  // line 50: ;minmemfree = 1
+  ],
+  // configs/samples/res_stun_monitor.conf.sample -- both keys in [general].
+  stun: [
+    s('su_addr', 'general', 'stunaddr'),  // line 19: ;stunaddr = mystunserver.com
+    n('su_refresh', 'general', 'stunrefresh'),  // line 25: ;stunrefresh = 30
+  ],
+  // configs/samples/xmpp.conf.sample -- [general] only. The [asterisk] connection section
+  // further down the sample mixes address fields with real credentials (secret,
+  // refresh_token, oauth_secret) in one block, exactly the shape this table refuses to
+  // guess a binding for; it is left entirely unbound, same reasoning as ix_secret_set.
+  xmpp: [
+    b('xm_debug', 'general', 'debug'),  // line 2: ;debug=yes
+    b('xm_autoprune', 'general', 'autoprune'),  // line 3: ;autoprune=yes
+    b('xm_autoregister', 'general', 'autoregister'),  // line 6: ;autoregister=yes
+    b('xm_collection_nodes', 'general', 'collection_nodes'),  // line 7: ;collection_nodes=yes
+    b('xm_pubsub_autocreate', 'general', 'pubsub_autocreate'),  // line 9: ;pubsub_autocreate=yes
+    s('xm_auth_policy', 'general', 'auth_policy'),  // line 13: ;auth_policy=accept
+  ],
+  // configs/samples/adsi.conf.sample. Only [intro] exists in the shipped sample.
+  // ad_greeting stays unbound: adsi.conf repeats a bare "greeting =>" line once per line
+  // of the welcome message, and this table has no mechanism for an ordered, unlimited,
+  // untyped multi-line control -- `repeated` exists for one key with many values, not for
+  // free text, so guessing a shape for it would be exactly the guess this table refuses.
+  adsi: [
+    s('ad_alignment', 'intro', 'alignment'),  // line 5: alignment = center
+  ],
 };
 
 function bindingsFor(screen: string): ReadonlyArray<ControlBinding> {
@@ -1337,6 +1566,63 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     'ix_calltoken', 'ix_codecs', 'ix_context', 'ix_accountcode', 'ix_mailbox', 'ix_secret_set',
     'ix_save',
   ],
+  /* chan_dahdi.conf. Every one of the twelve [channels] fields is bound in
+   * CONTROL_BINDINGS.dahdi above; da_savegeneral is the write action (App.tsx's
+   * onSaveDahdiGeneral). da_spans is a live status readout (`action:'dahdi-spans-status'`);
+   * da_spec, da_addspan and da_removespan drive App.tsx's onDahdiAddChannel/
+   * onDahdiRemoveChannel directly, since a repeated "channel =>" directive is not a
+   * single-key binding this table can express. */
+  dahdi: [
+    'da_context', 'da_language', 'da_switchtype', 'da_signalling', 'da_usecallerid',
+    'da_busydetect', 'da_echocancel', 'da_echocancelbridged', 'da_immediate', 'da_rxgain',
+    'da_txgain', 'da_group', 'da_savegeneral', 'da_spans', 'da_spec', 'da_addspan', 'da_removespan',
+  ],
+  /* sla.conf. sl_attemptcid and every sl_trunk-/sl_station-prefixed field bound in
+   * CONTROL_BINDINGS.sla above; sl_trunkname/sl_stationname are the sectionFrom pickers
+   * (read via `values['sl_trunkname']`/`values['sl_stationname']`, same shape as
+   * db_odbcname); sl_trunkload/sl_trunksave/sl_stationload/sl_stationsave are the four
+   * write/read actions. The station's own "trunk=" list is not a single-key binding --
+   * sl_stationtrunkline/sl_stationtrunkadd/sl_stationtrunkremove/sl_stationtrunks drive
+   * App.tsx's onSlaStationTrunkAdd/onSlaStationTrunkRemove and the live status readout
+   * directly, the same shape chan_dahdi's channel spans above use. */
+  sla: [
+    'sl_attemptcid',
+    'sl_trunkname', 'sl_trunkload', 'sl_trunktype', 'sl_trunkdevice', 'sl_trunkautocontext',
+    'sl_trunkringtimeout', 'sl_trunkbarge', 'sl_trunkhold', 'sl_trunksave',
+    'sl_stationname', 'sl_stationload', 'sl_stationtype', 'sl_stationdevice',
+    'sl_stationautocontext', 'sl_stationringtimeout', 'sl_stationringdelay', 'sl_stationhold',
+    'sl_stationsave',
+    'sl_stationtrunks', 'sl_stationtrunkline', 'sl_stationtrunkadd', 'sl_stationtrunkremove',
+  ],
+  /* dundi.conf. The seventeen [general] fields and the twelve peer fields are bound in
+   * CONTROL_BINDINGS.dundi above; du_savegeneral is the general-settings write action.
+   * du_peereid is the sectionFrom picker (read via `values['du_peereid']`);
+   * du_peerload/du_peersave are its two actions. [mappings] varies its KEY rather than
+   * its section, which this table cannot express at all -- du_mapname/du_mapvalue/
+   * du_mapload/du_mapsave/du_mapremove drive App.tsx's onDundiMapping* handlers directly
+   * through control-plane/realtime-mappings-model.ts, the same shape the Database
+   * backends screen's db_family/db_driver/db_database/db_table/db_priority group uses
+   * for extconfig.conf below. */
+  dundi: [
+    'du_department', 'du_organization', 'du_locality', 'du_stateprov', 'du_country', 'du_email',
+    'du_phone', 'du_bindaddr', 'du_port', 'du_tos', 'du_entityid', 'du_cachetime', 'du_ttl',
+    'du_autokill', 'du_storehistory', 'du_outgoingsiptech', 'du_pjsipendpoint', 'du_savegeneral',
+    'du_mapname', 'du_mapload', 'du_mapvalue', 'du_mapsave', 'du_mapremove',
+    'du_peereid', 'du_peerload', 'du_peermodel', 'du_peerhost', 'du_peerport', 'du_peerinkey',
+    'du_peeroutkey', 'du_peerorder', 'du_peerinclude', 'du_peerpermit', 'du_peerdeny',
+    'du_peerqualify', 'du_peerregister', 'du_peerprecache', 'du_peersave',
+  ],
+  /* calendar.conf. Every ca_* field except ca_name and ca_secret is bound in
+   * CONTROL_BINDINGS.calendar above through sectionFrom, picked by ca_name (read via
+   * `values['ca_name']`, same shape as db_odbcname). ca_secret is write-only (see the
+   * long comment above CONTROL_BINDINGS.calendar); ca_secretstatus is its live
+   * password-on-target readout (`action:'calendar-secret-status'`); ca_load/ca_save are
+   * the two actions. */
+  calendar: [
+    'ca_name', 'ca_load', 'ca_type', 'ca_url', 'ca_user', 'ca_secretstatus', 'ca_secret',
+    'ca_refresh', 'ca_timeframe', 'ca_fetchagain', 'ca_autoreminder', 'ca_channel', 'ca_context',
+    'ca_extension', 'ca_app', 'ca_appdata', 'ca_waittime', 'ca_save',
+  ],
   live: ['m_spy', 'm_format', 'm_beep', 'm_retain'],
   endpoints: [
     'e_transport', 'e_context', 'e_trust',
@@ -1356,7 +1642,10 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
   ],
   voicemail: [
     'v_attach', 'v_delete', 'v_format', 'v_maxmsg', 'v_maxsecs', 'v_minsecs',
-    'v_review', 'v_operator', 'v_envelope', 'v_saycid',
+    'v_review', 'v_operator', 'v_envelope', 'v_saycid', 'v_save',
+    'v_odbcstorage', 'v_odbctable', 'v_odbcaudiodisk', 'v_imapgreetings',
+    'v_greetingsfolder', 'v_imapserver', 'v_imapport', 'v_storagesave',
+    'v_maxgreet', 'v_forcegreetings', 'v_tempgreetwarn', 'v_greetsave',
   ],
   confbridge: [
     'c_rate', 'c_mixing', 'c_video', 'c_denoise', 'c_jitter', 'c_talker',
@@ -1400,7 +1689,17 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     'l_oshow', 'l_octx', 'l_oload', 'l_oconn', 'l_otable', 'l_osave',
     'l_pshow', 'l_pgmtime', 'l_phost', 'l_pport', 'l_pdb', 'l_puser', 'l_ptable', 'l_pschema', 'l_papp', 'l_psave',
   ],
-  ami: ['a_http', 'a_port', 'a_tls', 'a_tlsport', 'a_origin', 'a_read', 'a_write', 'a_deny', 'a_timeout'],
+  /* manager.conf's own Manager users editor (a_mgrsave) adds a named-section CRUD group
+   * the same shape as IAX peers and the SLA trunk/station editors: am_interface names
+   * the section, am_username/am_secret/am_readonly are its fields, read and written
+   * directly in App.tsx rather than through CONTROL_BINDINGS. a_httpsave is http.conf's
+   * own one-shot Save button, recognised via `deliveredByAction` the same way ht_save
+   * already is. */
+  ami: [
+    'a_http', 'a_port', 'a_tls', 'a_tlsport', 'a_origin', 'a_httpsave',
+    'a_read', 'a_write', 'a_deny', 'a_timeout', 'a_mgrsave',
+    'am_interface', 'am_username', 'am_secret', 'am_readonly',
+  ],
   /* modules.conf, all bound as `repeated: true` lists (see CONTROL_BINDINGS.modules
    * above for why); mo_save is the screen's one Save button, a pure action with no key
    * of its own. */
@@ -1462,4 +1761,34 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     'db_sorcerymodule', 'db_sorceryload', 'db_sorceryobjtype', 'db_sorcerywizard',
     'db_sorceryconfig', 'db_sorcerysave', 'db_sorceryremove',
   ],
+  /* res_snmp.conf and prometheus.conf. Every control except pm_authpassword and
+   * pm_authpasswordstatus is bound in CONTROL_BINDINGS.monitoring above; those two carry
+   * no key of their own for the same reason db_pgpassword/db_pgpasswordstatus do not
+   * (see the comment there). mn_save/pm_save are the two Save actions. */
+  monitoring: [
+    'mn_subagent', 'mn_enabled', 'mn_save',
+    'pm_enabled', 'pm_core', 'pm_uri', 'pm_authuser', 'pm_authpassword', 'pm_authpasswordstatus',
+    'pm_authrealm', 'pm_save',
+  ],
+  /* asterisk.conf: [directories] and [options]. Every control is bound in
+   * CONTROL_BINDINGS.identity above; as_save is the one Save action for the whole screen. */
+  identity: [
+    'as_dircache', 'as_diretc', 'as_dirmod', 'as_dirvarlib', 'as_dirdb', 'as_dirkey',
+    'as_dirdata', 'as_diragi', 'as_dirspool', 'as_dirrun', 'as_dirlog', 'as_dirsbin',
+    'as_systemname', 'as_autosystemname', 'as_entityid', 'as_runuser', 'as_rungroup',
+    'as_documentation_language', 'as_defaultlanguage',
+    'as_maxcalls', 'as_maxload', 'as_maxfiles', 'as_minmemfree', 'as_save',
+  ],
+  /* res_stun_monitor.conf. Both fields are bound in CONTROL_BINDINGS.stun above;
+   * su_save is the Save action. */
+  stun: ['su_addr', 'su_refresh', 'su_save'],
+  /* xmpp.conf's [general] section. Every control is bound in CONTROL_BINDINGS.xmpp
+   * above; xm_save is the Save action. */
+  xmpp: [
+    'xm_debug', 'xm_autoprune', 'xm_autoregister', 'xm_collection_nodes',
+    'xm_pubsub_autocreate', 'xm_auth_policy', 'xm_save',
+  ],
+  /* adsi.conf's [intro] section. ad_alignment is bound in CONTROL_BINDINGS.adsi above;
+   * ad_greeting stays unbound (see the comment there) and ad_save is the Save action. */
+  adsi: ['ad_alignment', 'ad_greeting', 'ad_save'],
 };
