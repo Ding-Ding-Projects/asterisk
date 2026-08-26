@@ -28,6 +28,8 @@ The optional host mode requires an exact host, user, port, architecture, thresho
 
 An image with a mismatched revision label, missing provenance, a mutable tag, or an invalid health response is not a verified deployment. Preserve the data volume, inspect the exact image record, and select a previously verified immutable image reference. `deployer/deployment/deploy-control-plane.ps1` derives source commit and version from embedded provenance, waits for liveness, and automatically restores the previous image when the new image fails. `deployer/deployment/rollback.ps1` prints a plan by default and changes Compose state only when `-Execute` is supplied. It never removes the data volume.
 
+Standalone snapshot restore validates the fixed ordered set of five persistent volume names before it writes anything, then verifies every volume's project and role label. After Compose restarts, the restore resolves a fresh container ID and binds it to the `ding-pbx` and `control-plane` ownership labels, the immutable manifest image reference and image ID, and the same exact volume inventory. Health and authenticated readiness are accepted only after those ownership and identity checks pass; a stale ID, wrong label, missing volume label, reordered or substituted volume, or image mismatch is a restore failure.
+
 If the desktop reports an unusable managed WSL distribution, recovery is scoped to `ding-pbx-console`: stop it, inspect the reported WSL reason, and use the destructive removal action only after the app's confirmation flow. Re-provisioning then uses the packaged archive and validates Asterisk directly. A registered user distribution is never imported over or removed by the desktop runtime lane.
 
 ## Security considerations

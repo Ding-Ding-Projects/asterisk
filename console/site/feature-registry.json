@@ -269,7 +269,7 @@
     },
     "hosted-control-plane-deployment": {
       "state": "partial",
-      "note": "The hosted deployment article documents the committed Dockerfile, Compose contract, external TLS secrets, five named writable volumes plus the /run/asterisk tmpfs, read-only runtime, resource and admin-only network limits, liveness versus authenticated readiness, exact source-commit provenance, read-only private-inventory preflight, external immutable deployment manifest, and provenance-driven rollback. Implementation is present, but runtime, installer, rollback, and target verification remain unrun, so no hosted deployment is claimed or linked.",
+      "note": "The hosted deployment article documents the committed Dockerfile, Compose contract, external TLS secrets, five named writable volumes plus the /run/asterisk tmpfs, read-only runtime, resource and admin-only network limits, liveness versus authenticated readiness, exact source-commit provenance, read-only private-inventory preflight, external immutable deployment manifest, and provenance-driven rollback. Standalone restore re-resolves the post-Compose container and rejects label, immutable-image, ordered-volume, or required-volume-label mismatches before health or readiness can be accepted. Implementation is present, but runtime, installer, rollback, and target verification remain unrun, so no hosted deployment is claimed or linked.",
       "files": [
         "docs/platform/hosted-control-plane-deployment.md",
         "docs/changelog/hosted-control-plane-deployment.md",

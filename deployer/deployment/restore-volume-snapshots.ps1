@@ -56,7 +56,9 @@ if ([string]::IsNullOrWhiteSpace([string]$snapshotAcl.Owner) -or @($snapshotAcl.
 $recordPath = Join-Path $snapshotPath 'snapshot-record.json'
 if (-not (Test-Path -LiteralPath $recordPath -PathType Leaf)) { throw 'Snapshot record is missing.' }
 $record = Get-Content -Raw -LiteralPath $recordPath | ConvertFrom-Json
-if ($record.schemaVersion -ne 1 -or $record.snapshotKeyId -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$' -or $record.volumeSchemaVersion -ne 1 -or $record.mountProfile -ne 'five-volumes-plus-run-tmpfs' -or @($record.volumes).Count -ne 5 -or @($record.archives).Count -ne 5) { throw 'Snapshot record is incomplete or incompatible with the five-volume deployment contract.' }
+$ExpectedPersistentVolumes = @('ding-pbx-control-plane-data', 'ding-pbx-control-plane-asterisk-etc', 'ding-pbx-control-plane-asterisk-lib', 'ding-pbx-control-plane-asterisk-log', 'ding-pbx-control-plane-asterisk-spool')
+$ExpectedPersistentVolumeLabels = @('control-plane-data', 'asterisk-etc', 'asterisk-lib', 'asterisk-log', 'asterisk-spool')
+if ($record.schemaVersion -ne 1 -or $record.snapshotKeyId -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$' -or $record.volumeSchemaVersion -ne 1 -or $record.mountProfile -ne 'five-volumes-plus-run-tmpfs' -or (@($record.volumes) -join '|') -ne ($ExpectedPersistentVolumes -join '|') -or (@($record.archives | ForEach-Object { $_.volume }) -join '|') -ne ($ExpectedPersistentVolumes -join '|')) { throw 'Snapshot record is incomplete or incompatible with the exact ordered five-volume deployment contract.' }
 if ([string]::IsNullOrWhiteSpace($ImageRef)) { $ImageRef = [string]$record.sourceImage }
 if ($ImageRef -notmatch '@sha256:[0-9a-f]{64}$') { throw 'ImageRef must be an immutable image@sha256 reference.' }
 if ($Execute -and ([string]::IsNullOrWhiteSpace($ManifestPath) -or [string]::IsNullOrWhiteSpace($PreflightEvidencePath) -or [string]::IsNullOrWhiteSpace($SnapshotEncryptionKeyFile) -or $TlsCertificateSha256 -notmatch '^[0-9a-fA-F]{64}$' -or [string]::IsNullOrWhiteSpace($SessionCookieFile))) { throw 'Execute requires the compatible manifest, fresh preflight evidence, protected encryption key, TLS pin, and readiness credential.' }
@@ -111,6 +113,26 @@ function Invoke-AuthenticatedReadiness {
     try { $client.DefaultRequestHeaders.Add('Cookie', $cookie); $response = $client.GetAsync("https://$probeAddress`:$AdminPort/api/v1/ready").GetAwaiter().GetResult(); $body = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult() | ConvertFrom-Json; if (-not $response.IsSuccessStatusCode -or $body.status -ne 'ready' -or [string]$body.asteriskVersion -notmatch '^[0-9]+\.[0-9]+') { throw 'Standalone restore readiness verification failed.' } } finally { $client.Dispose(); $handler.Dispose() }
 }
 
+function Assert-ExactOwnedPersistentVolumes {
+    for ($index = 0; $index -lt $ExpectedPersistentVolumes.Count; $index++) {
+        $volume = $ExpectedPersistentVolumes[$index]
+        $volumeRecord = @(& docker volume inspect $volume 2>$null | ConvertFrom-Json)
+        if ($LASTEXITCODE -ne 0 -or $volumeRecord.Count -ne 1 -or [string]$volumeRecord[0].Name -ne $volume -or $volumeRecord[0].Labels.'io.ding.pbx.project' -ne 'ding-pbx' -or $volumeRecord[0].Labels.'io.ding.pbx.volume' -ne $ExpectedPersistentVolumeLabels[$index]) {
+            throw "Volume $volume is not the exact labeled persistent deployment volume."
+        }
+    }
+}
+
+function Assert-RestoredOwnedContainer([string]$ContainerId, [string]$ExpectedImageRef) {
+    if ($ContainerId -notmatch '^[0-9a-f]{12,64}$') { throw 'Standalone restore restart verification did not find a valid container id.' }
+    $expectedImage = @(& docker image inspect $ExpectedImageRef 2>$null | ConvertFrom-Json)
+    if ($LASTEXITCODE -ne 0 -or $expectedImage.Count -ne 1 -or [string]$expectedImage[0].Id -notmatch '^sha256:[0-9a-f]{64}$' -or @($expectedImage[0].RepoDigests) -notcontains $ExpectedImageRef) { throw 'Standalone restore cannot bind the manifest-declared immutable image to a local image id.' }
+    $container = @(& docker inspect $ContainerId 2>$null | ConvertFrom-Json)
+    if ($LASTEXITCODE -ne 0 -or $container.Count -ne 1 -or [string]$container[0].Id -ne $ContainerId -or $container[0].Config.Labels.'io.ding.pbx.project' -ne 'ding-pbx' -or $container[0].Config.Labels.'io.ding.pbx.service' -ne 'control-plane' -or [string]$container[0].Config.Image -ne $ExpectedImageRef -or [string]$container[0].Image -ne [string]$expectedImage[0].Id) {
+        throw 'Standalone restore restart verification rejected a stale, unowned, or manifest-image-mismatched container.'
+    }
+}
+
 function Get-TarExecutable {
     if ($env:SystemRoot) {
         $candidate = Join-Path $env:SystemRoot 'System32\tar.exe'
@@ -162,10 +184,7 @@ if ($existingId) {
     $state = (& docker inspect --format '{{.State.Status}}' $existingId).Trim()
     if ($project -ne 'ding-pbx' -or $service -ne 'control-plane' -or $state -eq 'running') { throw 'Standalone restore requires the exact owned project container to be stopped.' }
 }
-foreach ($volume in @($record.volumes)) {
-    $volumeRecord = (& docker volume inspect $volume 2>$null | ConvertFrom-Json)
-    if (-not $volumeRecord -or $volumeRecord[0].Labels.'io.ding.pbx.project' -ne 'ding-pbx') { throw "Volume $volume is not an exact owned deployment volume." }
-}
+Assert-ExactOwnedPersistentVolumes
 $restoreJournalPath = Join-Path $snapshotPath 'standalone-restore-journal.json'
 $restoreJournal = [ordered]@{ schemaVersion = 1; transactionId = ([guid]::NewGuid().ToString('N')); state = 'started'; snapshotId = $record.snapshotId; volumeResults = @(); startedAt = [DateTimeOffset]::UtcNow.ToString('o') }
 [System.IO.File]::WriteAllText($restoreJournalPath, ($restoreJournal | ConvertTo-Json -Depth 8), [System.Text.UTF8Encoding]::new($false))
@@ -195,7 +214,8 @@ Write-Host "Restored five persistent volumes from snapshot $($record.snapshotId)
 & docker compose --project-name $ProjectName --file $ComposeFile up --detach --no-build | Out-Host
 if ($LASTEXITCODE -ne 0) { throw 'Standalone restore could not restart the owned Compose project.' }
 $restoredId = (& docker compose --project-name $ProjectName --file $ComposeFile ps -q control-plane 2>$null).Trim()
-if ($restoredId -notmatch '^[0-9a-f]{12,64}$') { throw 'Standalone restore restart verification did not find the owned container.' }
+Assert-RestoredOwnedContainer $restoredId $manifest.image
+Assert-ExactOwnedPersistentVolumes
 $deadline = [DateTimeOffset]::UtcNow.AddMinutes(5)
 do { Start-Sleep -Seconds 2; $health = (& docker inspect --format '{{.State.Health.Status}}' $restoredId 2>$null).Trim(); if ([DateTimeOffset]::UtcNow -gt $deadline) { throw 'Standalone restore restart verification timed out.' } } while ($health -eq 'starting')
 if ($health -ne 'healthy') { throw "Standalone restore restart verification found health state $health." }

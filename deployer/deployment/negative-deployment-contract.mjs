@@ -23,6 +23,17 @@ const checks = [
   ['installer artifact digest binding', files.installer, 'function Assert-IdentityArtifact'],
   ['installer artifact digest use', files.installer, 'Assert-IdentityArtifact $identity.artifacts.setup'],
   ['build helper immutable id', files.build, 'docker create --label io.ding.pbx.inspect=true $Tag'],
+  ['restore exact ordered persistent volume names', files.restore, "$ExpectedPersistentVolumes = @('ding-pbx-control-plane-data', 'ding-pbx-control-plane-asterisk-etc', 'ding-pbx-control-plane-asterisk-lib', 'ding-pbx-control-plane-asterisk-log', 'ding-pbx-control-plane-asterisk-spool')"],
+  ['restore exact ordered archive volume names', files.restore, "(@($record.archives | ForEach-Object { $_.volume }) -join '|') -ne ($ExpectedPersistentVolumes -join '|')"],
+  ['restore persistent project label', files.restore, "Labels.'io.ding.pbx.project' -ne 'ding-pbx'"],
+  ['restore persistent ownership label', files.restore, "Labels.'io.ding.pbx.volume' -ne $ExpectedPersistentVolumeLabels[$index]"],
+  ['restore container project label', files.restore, "Config.Labels.'io.ding.pbx.project' -ne 'ding-pbx'"],
+  ['restore container service label', files.restore, "Config.Labels.'io.ding.pbx.service' -ne 'control-plane'"],
+  ['restore manifest image identity', files.restore, 'container[0].Config.Image -ne $ExpectedImageRef'],
+  ['restore image id identity', files.restore, 'container[0].Image -ne [string]$expectedImage[0].Id'],
+  ['restore stale container id rejection', files.restore, 'container[0].Id -ne $ContainerId'],
+  ['restore post-compose identity revalidation', files.restore, 'Assert-RestoredOwnedContainer $restoredId $manifest.image'],
+  ['restore post-compose volume revalidation', files.restore, 'Assert-ExactOwnedPersistentVolumes\n$deadline'],
 ];
 
 function assertContract(name, text, needle) {
@@ -31,7 +42,7 @@ function assertContract(name, text, needle) {
 
 for (const [name, text, needle] of checks) {
   assertContract(name, text, needle);
-  const broken = text.replace(needle, 'REMOVED_CONTRACT');
+  const broken = text.replaceAll(needle, 'REMOVED_CONTRACT');
   let rejected = false;
   try { assertContract(name, broken, needle); } catch { rejected = true; }
   if (!rejected) throw new Error(`${name} negative regression stayed green after deliberate removal`);

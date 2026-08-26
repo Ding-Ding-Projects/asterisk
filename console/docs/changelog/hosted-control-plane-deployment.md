@@ -6,6 +6,8 @@ Added a reproducible hosted control-plane image and Compose contract under `depl
 
 The desktop control plane now hashes the bundled WSL rootfs in bounded chunks and rejects it when its trusted manifest, source commit, runtime identifier, base-image digest, SHA-256, byte count, or 8 GiB upper bound does not match. Hosted mode uses an explicit local Asterisk transport when configured and refuses WSL, daemon lifecycle, configuration, media, history, connect, and snapshot actions by name. `/api/v1/health` is liveness only. Authenticated target readiness is `/api/v1/ready`.
 
+Standalone snapshot restore now re-resolves the Compose container after restart and fails closed unless that exact ID has the expected project and service labels, the manifest-declared immutable image and local image ID, plus the fixed ordered five-volume inventory with both required ownership labels on every volume. Runtime restore verification remains unrun.
+
 ## Verification
 
 Implementation records are present. Docker build, WSL import, hosted deployment, private-host inventory, installer execution, runtime interaction, and captures were not run in this change.
