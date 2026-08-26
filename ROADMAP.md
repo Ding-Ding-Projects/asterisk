@@ -160,8 +160,8 @@ actions are implemented**. When this work began it was 7 and 3.
       `backup:` action, but the result exposes no handle, so a caller can only undo a *failed* apply. A
       deliberate undo after a successful one has no supported route.
 - [ ] Bind the remaining 48 controls, each from a key justified in the samples, or state on the screen exactly which setting it cannot write. None may be guessed.
-- [ ] Call the media, local-history and runtime actions from their screens. The actions exist; the interface does not yet reach them.
-- [ ] Remove or gate `server.connect`, which is implemented in the main process and never called from the interface.
+- [x] Call the media, local-history and runtime actions from their screens. Done in `afe114fce`: `runtime.stop`/`runtime.remove` reach a real "Runtime maintenance" group on Deploy & servers, gated by `canStopRuntime`/`canRecoverRuntime` and a destructive-action confirmation for removal; `local-history.list`/`.record`/`.restore` reach a real Local history screen with two genuine record call sites. `media.*`, `history.*`, `runtime.status` and `runtime.provision` turned out to already be reached (PbxAdminApp and the onboarding wizard) once actually grepped for, rather than assumed unreached from this note's own wording.
+- [x] Remove or gate `server.connect`. Also settled in `afe114fce`: it is already called from `App.discover`, confirmed by grep rather than by this note's own claim that it was unused -- so it stays, with a regression guard (`action-wiring.test.tsx`) proving the real call site.
 
 ### Platform contract features delivered
 
@@ -218,9 +218,59 @@ this repository keeps repeating, because it produces no error and no failing tes
 - [ ] **Anchor notifications in a corner and let them stack.** Toasts currently appear
       bottom-centre and do not stack, and the Notification centre screen renders the fixed rows
       that came from the design rather than a reviewable history of what was actually raised.
-- [ ] **Import the six finished modules nothing imports:** status hub, bounded overlays,
-      context-menu shortcuts, long-operation progress, collapsible filters, and forge publishing.
-      Each is complete and covered by its own tests; none is reachable from the interface.
+- [ ] **Import the six finished modules nothing imports.** Two are genuinely reached now;
+      four remain blocked on something real, precisely enough to act on:
+      - [x] **Bounded overlays.** `App.tsx` shadows the compiled shell's own `setState`
+            (`boundedOverlaySetState`) so every click that opens the context menu -- which sets
+            `ctxX`/`ctxY` as a raw, unclamped `${clientX}px`/`${clientY}px` pair inside generated
+            `console.tsx`, with no bound against the window anywhere -- gets clamped through
+            `computeOverlayPlacement` before the real `setState` ever sees it. `lockX`/`lockY` and
+            `regexX`/`regexY` copy `ctxX`/`ctxY` the moment they open, so they inherit the clamp
+            for free; `showInfo`'s own click-anchored call site is clamped the same way at its
+            existing styling wrapper. No design file touched.
+      - [x] **Long-operation progress.** `deployProgressLine` (Deploy & servers' provisioning
+            status) is now driven by the module's real weighted state machine instead of a bare
+            step count. The actual blocker recorded against this module was correct and sharper
+            than "nothing imports it": provisioning is really two fixed step sequences
+            (`provisioning.provision(true)` vs `provisioning.provisionFromBaseImage()`, chosen by
+            `dispatch.ts` before the first step exists), and one plan cannot describe both without
+            `reportProgress` throwing. Resolved with two phase lists
+            (`DEPLOY_PHASES`/`DEPLOY_PHASES_FROM_BASE_IMAGE`) and `firstStepPlan`, which reads the
+            first real step to pick the one a run actually opened. A 2-second ticker keeps the
+            percentage and stall message live through `wsl --import`/the base-image download's
+            silent minutes, since those phases carry no intermediate step of their own.
+      - [ ] **Context-menu shortcuts.** Every hint shown beside a context-menu item (`⌃L`, `F2`,
+            `⌃D`, `⌦`, `⌃W`, `⌃E`, `F1`, `⌃R`, …) is a hardcoded literal in generated `console.tsx`
+            with no real global key handler behind it. Confirmed by grep: the one genuine global
+            chord this app has is `Ctrl+Shift+F` for the command palette (`App.tsx`'s
+            `listenForPaletteChord`) -- nothing else in the renderer, generated or not, ever calls
+            `window.addEventListener('keydown', …)`. Making the module's own contract true (the
+            displayed shortcut is the one that actually fires) means either registering real
+            global handlers for each one -- a genuinely new, context-dependent feature well past
+            wiring -- or rewriting the hint literals at their source, which live entirely inside
+            `design/Asterisk Console M3.dc.html`'s compiled output, e.g.
+            `console/app/renderer/src/generated/console.tsx` around the `ctxItems` builders near
+            lines 5578-5710. Neither fits "pure wiring."
+      - [ ] **Collapsible filters.** No search bar, filter row or the one statistics panel this
+            app renders (the dashboard's stat-card grid, `console/app/renderer/src/generated/console.tsx:315-330`,
+            `A(v.stats).map(...)`) has any collapse/expand affordance anywhere in the compiled
+            design. The module's toggle button, `aria-expanded` wiring and persisted collapsed
+            state have no existing element to attach to without adding one to the design file.
+      - [ ] **Forge publishing.** Confirmed by grep: no `control-plane` action, OAuth flow, or
+            git-remote-push call site exists anywhere in this app for the module's
+            account/owner/fork-vs-copy decision logic to sit in front of. The "History & git"
+            screen's `hi_push` ("Mirror to a remote") switch
+            (`console/app/renderer/src/generated/console.tsx:3494`) is the one UI surface shaped
+            like it, but it is a bare persisted boolean with nothing behind it -- the real
+            config-change history transport (`ConfigHistory`, `console/control-plane/dispatch.ts:643`)
+            keeps target-side backup handles, not a local git repository to mirror. Wiring the
+            module to that switch would make an app-owned control claim an action it cannot
+            perform.
+      - [ ] **Status hub.** No HTTP transport exists anywhere in the app (confirmed by grep) and
+            the "Status hub" screen (`console/app/renderer/src/generated/console.tsx`, the `hub:{…}`
+            entry) is entirely hardcoded sample rows with no `hub.*` control-plane action behind
+            it at all -- no configured host, no session key, nothing to send the module's own
+            validated payload to.
 - [x] **Correct the implementation registry where its notes are now false.** It still records that
       per-element locks have no one-time-code option and no documented context-menu command; both
       shipped. Their real gap is that credentials sit in plain state rather than the operating
