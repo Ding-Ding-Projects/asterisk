@@ -313,6 +313,17 @@ export const CANTONESE: Catalog = {
   'HTTP server': 'HTTP 伺服器',
   'IAX peers': 'IAX 對端',
   'PBX': '電話系統',
+
+  /* The four telephony screens for chan_dahdi.conf, sla.conf, dundi.conf and
+   * calendar.conf: hardware trunks, shared line appearances, distributed dialplan
+   * lookup, and calendars. Only the rail-nav labels are checked here; the screen
+   * titles and every field's own label ride the "every control left untouched
+   * writes nothing" plain-English convention the rest of this console already uses
+   * for configuration key names. */
+  'Hardware trunks': '硬件中繼線',
+  'Shared lines': '共享線路',
+  'Distributed lookup': '分散式查詢',
+  'Calendars': '行事曆',
   'Anchor both ends': '兩邊都固定',
   'Auto-collapse when inactive': '冇用嗰陣自動收埋',
   'By colour…': '按顏色…',

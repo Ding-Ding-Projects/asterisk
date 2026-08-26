@@ -209,10 +209,26 @@ function measure() {
  * `action:` recognised by `deliveredByAction`, the same two routes every other
  * named-section screen on this console already uses.
  *
- * It may rise freely and may not fall. */
+ * Then a further jump once the telephony deepening lane's four brand new screens and
+ * files landed -- chan_dahdi.conf, sla.conf, dundi.conf and calendar.conf, the
+ * roadmap's "Hardware trunks / Shared line appearances / Distributed dialplan lookup /
+ * Calendars" line. Every one of the 96 new controls works: the ordinary fields are
+ * bound in CONTROL_BINDINGS (see the long comments there for the sectionFrom groups
+ * picked by sl_trunkname/sl_stationname/du_peereid/ca_name); every name picker,
+ * write-only credential and live status readout is read via `values['...']` by name in
+ * App.tsx's own handlers or carries `action:'...'` in the design, recognised by
+ * `deliveredByAction` exactly the way db_odbcname and db_pgpasswordstatus already are;
+ * and the repeated-key directives this table cannot express at all -- chan_dahdi's
+ * "channel =>" spans and sla's per-station "trunk=" assignments -- are read and written
+ * directly against the parsed ConfigValue by onDahdiAddChannel/onDahdiRemoveChannel and
+ * onSlaStationTrunkAdd/onSlaStationTrunkRemove.
+ *
+ * It may rise freely and may not fall. Read back the same way every earlier total on
+ * this page was: trying a deliberately wrong value first and taking whatever this test
+ * actually reported. */
 
-const WORKING_FLOOR = 329;
-const TELEPHONY_TOTAL = 329;
+const WORKING_FLOOR = 425;
+const TELEPHONY_TOTAL = 425;
 
 test('an action-delivered control is recognised even though its id never appears as a quoted literal', () => {
   for (const id of [

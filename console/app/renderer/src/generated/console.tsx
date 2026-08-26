@@ -3144,6 +3144,158 @@ const SCREENS = {
       ctl('ix_save','Save this peer','segmented','Save',{ options:['Save'], action:'iaxpeers-save' })
     ]}]
   },
+  dahdi:{ rail:'pbx', icon:'router', label:'Hardware trunks', badge:'', title:'Hardware trunks (DAHDI)', file:'chan_dahdi.conf', kind:'generic',
+    sub:'Analogue lines, T1/E1 and PRI spans through chan_dahdi.conf. The settings below are the [channels] section\'s own cumulative defaults -- Asterisk applies whichever value is currently in effect to every "channel =>" line that follows it in the file, so this screen edits the FIRST occurrence of each key (where installers conventionally put the shared defaults) and leaves any later per-span override further down the file exactly as it is. Adding or removing a channel span writes or removes a "channel =>" directive at the end of [channels], using whatever defaults are saved above at the time.',
+    groups:[{ title:'Signalling & routing', desc:'What kind of line this is and where calls land.', ctls:[
+      ctl('da_context','context','text','public',{ placeholder:'public', info:'chan_dahdi.conf.sample line 56: the dialplan context incoming calls enter. Defaults to public in this checkout\'s own sample.' }),
+      ctl('da_language','language','text','',{ placeholder:'en', info:'chan_dahdi.conf.sample line 52.' }),
+      ctl('da_switchtype','switchtype','text','',{ placeholder:'euroisdn', info:'PRI only. chan_dahdi.conf.sample line 68: national, dms100, 4ess, 5ess, euroisdn, ni1 or qsig. Cannot be changed on a reload.' }),
+      ctl('da_signalling','signalling','text','',{ placeholder:'fxo_ls', info:'chan_dahdi.conf.sample line 514, one of the dozens of FXS/FXO/E&M/PRI/SS7 signalling types the sample documents just above it. Cannot be changed on a reload.' })
+    ]},
+    { title:'Caller ID & detection', desc:'How this span reads and reports who is calling.', ctls:[
+      ctl('da_usecallerid','usecallerid','switch',true,{ info:'chan_dahdi.conf.sample line 576. On FXO ports this detects incoming Caller ID; on FXS ports it sends a Caller ID spill to the CPE.' }),
+      ctl('da_busydetect','busydetect','switch',false,{ info:'chan_dahdi.conf.sample line 1097 (commented, so no is the shipped default).' })
+    ]},
+    { title:'Echo cancellation', desc:'Whether and when the echo canceller runs.', ctls:[
+      ctl('da_echocancel','echocancel','text','yes',{ placeholder:'yes', info:'chan_dahdi.conf.sample line 873: yes, no, or a numeric tap length with optional parameters (e.g. "128,param1=32").' }),
+      ctl('da_echocancelbridged','echocancelwhenbridged','switch',true,{ info:'chan_dahdi.conf.sample line 888: run the canceller even when the whole path is TDM, which is otherwise wasteful.' })
+    ]},
+    { title:'Levels & grouping', desc:'Gain adjustment and the logical group this span joins.', ctls:[
+      ctl('da_immediate','immediate','switch',false,{ info:'chan_dahdi.conf.sample line 1014: answer immediately and jump straight into the dialplan instead of waiting for digits.' }),
+      ctl('da_rxgain','rxgain','text','',{ placeholder:'2.0', info:'chan_dahdi.conf.sample line 949, in dB.' }),
+      ctl('da_txgain','txgain','text','',{ placeholder:'3.0', info:'chan_dahdi.conf.sample line 950, in dB.' }),
+      ctl('da_group','group','text','',{ placeholder:'1', info:'chan_dahdi.conf.sample line 972: a logical group 0-63 for outgoing roll-over, e.g. Dial(DAHDI/g1/...).' })
+    ]},
+    { title:'Save defaults', desc:'Writes every field above to chan_dahdi.conf\'s [channels] section on the target -- backed up first, applied through the same plan/apply transaction every other write in this console uses.', ctls:[
+      ctl('da_savegeneral','Save these defaults','segmented','Save',{ options:['Save'], action:'dahdi-save-general' })
+    ]},
+    { title:'Channel spans', desc:'The "channel =>" directives currently declared in [channels] -- each one picks up whichever defaults above were in effect when it was written. Type a DAHDI channel number or range (chan_dahdi.conf.sample shows single numbers like "1" and ranges like "1-8") and add or remove the exact directive.', ctls:[
+      ctl('da_spans','Currently declared','text','Read chan_dahdi.conf to check.',{ action:'dahdi-spans-status', info:'Every "channel =>" value in [channels], in file order.' }),
+      ctl('da_spec','Channel number or range','text','',{ placeholder:'1-8' }),
+      ctl('da_addspan','Add this span','segmented','Add',{ options:['Add'], action:'dahdi-add-channel' }),
+      ctl('da_removespan','Remove this span','segmented','Remove',{ options:['Remove'], action:'dahdi-remove-channel' })
+    ]}]
+  },
+  sla:{ rail:'pbx', icon:'call_split', label:'Shared lines', badge:'', title:'Shared line appearances (SLA)', file:'sla.conf', kind:'generic',
+    sub:'Trunks and stations for Shared Line Appearances. sla.conf.sample requires every trunk to be declared before any station, so save every trunk this station will list before saving the station itself.',
+    groups:[{ title:'General', desc:'The [general] section.', ctls:[
+      ctl('sl_attemptcid','attemptcallerid','switch',false,{ info:'sla.conf.sample line 10: off by default because CallerID handling with SLA is documented as not reliable in some setups.' })
+    ]},
+    { title:'Trunk', desc:'One [name] section marked type=trunk. sla.conf.sample lines 31-60.', ctls:[
+      ctl('sl_trunkname','Trunk name','text','',{ placeholder:'line1', info:'The section name, e.g. [line1]. Load reads it, Save writes it (creating the section if it is new).' }),
+      ctl('sl_trunkload','Load from target','segmented','Load',{ options:['Load'], action:'sla-trunk-load' }),
+      ctl('sl_trunktype','type','text','trunk',{ placeholder:'trunk', info:'sla.conf.sample line 33: the line that marks this entry as a trunk rather than a station.' }),
+      ctl('sl_trunkdevice','device','text','',{ placeholder:'DAHDI/3', info:'sla.conf.sample line 35: a DAHDI channel, or a Local channel dialling Disa for an IP trunk (line 74).' }),
+      ctl('sl_trunkautocontext','autocontext','text','',{ placeholder:'line1', info:'sla.conf.sample line 42: generates the dialplan for this trunk automatically; chan_dahdi.conf should route this device\'s incoming calls to the same context name.' }),
+      ctl('sl_trunkringtimeout','ringtimeout','text','',{ placeholder:'30', info:'sla.conf.sample line 47, seconds.' }),
+      ctl('sl_trunkbarge','barge','switch',true,{ info:'sla.conf.sample line 50: whether a station may join a call already in progress on this trunk. Default yes; set off to refuse barging.' }),
+      ctl('sl_trunkhold','hold','segmented','open',{ options:['open','private'], info:'sla.conf.sample lines 54-60.' }),
+      ctl('sl_trunksave','Save this trunk','segmented','Save',{ options:['Save'], action:'sla-trunk-save' })
+    ]},
+    { title:'Station', desc:'One [name] section marked type=station. sla.conf.sample lines 83-127.', ctls:[
+      ctl('sl_stationname','Station name','text','',{ placeholder:'station1', info:'The section name, e.g. [station1]. Load reads it, Save writes it (creating the section if it is new).' }),
+      ctl('sl_stationload','Load from target','segmented','Load',{ options:['Load'], action:'sla-station-load' }),
+      ctl('sl_stationtype','type','text','station',{ placeholder:'station', info:'sla.conf.sample line 85: the line that marks this entry as a station rather than a trunk.' }),
+      ctl('sl_stationdevice','device','text','',{ placeholder:'SIP/station1', info:'sla.conf.sample line 87.' }),
+      ctl('sl_stationautocontext','autocontext','text','',{ placeholder:'sla_stations', info:'sla.conf.sample line 89: every station can share this same context name.' }),
+      ctl('sl_stationringtimeout','ringtimeout','text','',{ placeholder:'10', info:'sla.conf.sample line 94, seconds.' }),
+      ctl('sl_stationringdelay','ringdelay','text','',{ placeholder:'10', info:'sla.conf.sample line 97, seconds.' }),
+      ctl('sl_stationhold','hold','segmented','open',{ options:['open','private'], info:'sla.conf.sample lines 100-110.' }),
+      ctl('sl_stationsave','Save this station','segmented','Save',{ options:['Save'], action:'sla-station-save' })
+    ]},
+    { title:'Trunks on this station', desc:'The "trunk=" lines for the station named above, in the order the phone should show them (sla.conf.sample lines 113-126). A ring delay or ring timeout for one specific trunk can be appended after a comma, e.g. "line3,ringdelay=5".', ctls:[
+      ctl('sl_stationtrunks','Currently listed','text','Load a station to check.',{ action:'sla-station-trunks-status' }),
+      ctl('sl_stationtrunkline','Trunk assignment','text','',{ placeholder:'line1' }),
+      ctl('sl_stationtrunkadd','Add to this station','segmented','Add',{ options:['Add'], action:'sla-station-trunk-add' }),
+      ctl('sl_stationtrunkremove','Remove from this station','segmented','Remove',{ options:['Remove'], action:'sla-station-trunk-remove' })
+    ]}]
+  },
+  dundi:{ rail:'pbx', icon:'travel_explore', label:'Distributed lookup', badge:'', title:'Distributed dialplan lookup (DUNDi)', file:'dundi.conf', kind:'generic',
+    sub:'dundi.conf: this system\'s own contact details and defaults, the DUNDi-context-to-local-context mappings that decide what this system answers for, and the peers it trusts.',
+    groups:[{ title:'Contact details', desc:'The [general] section\'s own "who to contact" fields.', ctls:[
+      ctl('du_department','department','text','',{ placeholder:'Your Department' }),
+      ctl('du_organization','organization','text','',{ placeholder:'Your Company, Inc.' }),
+      ctl('du_locality','locality','text','',{ placeholder:'Your City' }),
+      ctl('du_stateprov','stateprov','text','',{ placeholder:'ST' }),
+      ctl('du_country','country','text','',{ placeholder:'US' }),
+      ctl('du_email','email','text','',{ placeholder:'your@email.com' }),
+      ctl('du_phone','phone','text','',{ placeholder:'+12565551212' })
+    ]},
+    { title:'Network', desc:'Where this system listens for DUNDi.', ctls:[
+      ctl('du_bindaddr','bindaddr','text','',{ placeholder:'0.0.0.0', info:'dundi.conf.sample line 29. IPv6 accepted; a second bindaddr2 is documented but not exposed here.' }),
+      ctl('du_port','port','stepper',4520,{ min:1, max:65535, info:'dundi.conf.sample line 30, default 4520.' }),
+      ctl('du_tos','tos','text','',{ placeholder:'ef', info:'dundi.conf.sample line 33.' }),
+      ctl('du_entityid','entityid','text','',{ placeholder:'00:07:E9:3B:76:60', info:'dundi.conf.sample line 41: this system\'s own entity id, normally its MAC address.' })
+    ]},
+    { title:'Query behaviour', desc:'Caching, depth and how failed lookups are handled.', ctls:[
+      ctl('du_cachetime','cachetime','stepper',3600,{ min:0, max:86400, info:'dundi.conf.sample line 46, seconds peers may cache a response from us.' }),
+      ctl('du_ttl','ttl','stepper',32,{ min:1, max:255, info:'dundi.conf.sample line 52 (uncommented, so this is the shipped default), the maximum hops to search.' }),
+      ctl('du_autokill','autokill','text','yes',{ placeholder:'yes', info:'dundi.conf.sample line 62 (uncommented default): yes, no, or a number of milliseconds before giving up on an unresponsive host.' }),
+      ctl('du_storehistory','storehistory','switch',false,{ info:'dundi.conf.sample line 77: keep the last several queries for slow-node tracking. Off by default for performance.' })
+    ]},
+    { title:'Outgoing calls', desc:'The channel technology DUNDi itself dials with.', ctls:[
+      ctl('du_outgoingsiptech','outgoing_sip_tech','segmented','PJSIP',{ options:['SIP','PJSIP'], info:'dundi.conf.sample lines 79-83, default PJSIP.' }),
+      ctl('du_pjsipendpoint','pjsip_outgoing_endpoint','text','',{ placeholder:'outgoing', info:'dundi.conf.sample line 89: required when outgoing_sip_tech is pjsip, since a PJSIP call must name an endpoint explicitly.' })
+    ]},
+    { title:'Save general settings', desc:'Writes every field above to dundi.conf\'s [general] section on the target.', ctls:[
+      ctl('du_savegeneral','Save these settings','segmented','Save',{ options:['Save'], action:'dundi-save-general' })
+    ]},
+    { title:'Mapping', desc:'One "dundi_context => local_context,weight,tech,dest[,options]" line in the [mappings] section (dundi.conf.sample lines 100-145). There must be at least one mapping for DUNDi to answer any request at all.', ctls:[
+      ctl('du_mapname','DUNDi context','text','',{ placeholder:'e164', info:'The key on the left of "=>" -- the context being requested.' }),
+      ctl('du_mapload','Load from target','segmented','Load',{ options:['Load'], action:'dundi-mapping-load' }),
+      ctl('du_mapvalue','Mapping value','text','',{ placeholder:'dundi-e164-canonical,0,IAX2,dundi:${SECRET}@${IPADDR}/${NUMBER},nounsolicited', info:'Everything on the right of "=>": local_context, weight, tech and dest, comma-joined, with any of nounsolicited/nocomunsolicit/residential/commercial/mobile/nopartial appended.' }),
+      ctl('du_mapsave','Save this mapping','segmented','Save',{ options:['Save'], action:'dundi-mapping-save' }),
+      ctl('du_mapremove','Remove this mapping','segmented','Remove',{ options:['Remove'], action:'dundi-mapping-remove' })
+    ]},
+    { title:'Peer', desc:'One [entityid] section -- a system this one fundamentally trusts. dundi.conf.sample lines 173-289.', ctls:[
+      ctl('du_peereid','Peer entity ID','text','',{ placeholder:'00:50:8B:F3:75:BB', info:'The section name: the peer\'s own entityid, or * to match any unspecified peer.' }),
+      ctl('du_peerload','Load from target','segmented','Load',{ options:['Load'], action:'dundi-peer-load' }),
+      ctl('du_peermodel','model','segmented','symmetric',{ options:['inbound','outbound','symmetric'], info:'dundi.conf.sample lines 211-213: whether we receive requests, send them, or both.' }),
+      ctl('du_peerhost','host','text','',{ placeholder:'dynamic', info:'dundi.conf.sample line 181.' }),
+      ctl('du_peerport','port','text','',{ placeholder:'4520', info:'dundi.conf.sample line 183, default 4520.' }),
+      ctl('du_peerinkey','inkey','text','',{ placeholder:'digium', info:'dundi.conf.sample line 177: the key they authenticate to us with.' }),
+      ctl('du_peeroutkey','outkey','text','',{ placeholder:'misery', info:'dundi.conf.sample line 179: the key we use to authenticate to them.' }),
+      ctl('du_peerorder','order','segmented','primary',{ options:['primary','secondary','tertiary','quartiary'], info:'dundi.conf.sample lines 187-191.' }),
+      ctl('du_peerinclude','include','text','',{ placeholder:'e164', info:'dundi.conf.sample line 193: which DUNDi context to search this peer for, or "all".' }),
+      ctl('du_peerpermit','permit','text','',{ placeholder:'e164', info:'dundi.conf.sample line 202: which context this peer may search on us, or "all".' }),
+      ctl('du_peerdeny','deny','text','',{ placeholder:'', info:'dundi.conf.sample line 207.' }),
+      ctl('du_peerqualify','qualify','text','yes',{ placeholder:'yes', info:'dundi.conf.sample lines 226-228: yes, no, or a millisecond threshold.' }),
+      ctl('du_peerregister','register','switch',false,{ info:'dundi.conf.sample lines 230-231: register with this peer, presupposing its own host is dynamic for us.' }),
+      ctl('du_peerprecache','precache','text','',{ placeholder:'outbound', info:'dundi.conf.sample lines 214-220: outgoing, incoming or symmetric.' }),
+      ctl('du_peersave','Save this peer','segmented','Save',{ options:['Save'], action:'dundi-peer-save' })
+    ]}]
+  },
+  calendar:{ rail:'pbx', icon:'event', label:'Calendars', badge:'', title:'Calendars', file:'calendar.conf', kind:'generic',
+    sub:'calendar.conf: one [name] section per calendar. res_calendar can dial a channel or run an application when a calendar\'s busy status is about to start -- calendar.conf.sample documents ical, caldav, exchange and ews as the four supported types. The account password is write-only: this screen can set one and can never show you the one already there.',
+    groups:[{ title:'Source', desc:'What this calendar is and where it lives.', ctls:[
+      ctl('ca_name','Calendar name','text','',{ placeholder:'calendar1', info:'The section name, e.g. [calendar1]. Load reads it, Save writes it (creating the section if it is new).' }),
+      ctl('ca_load','Load from target','segmented','Load',{ options:['Load'], action:'calendar-load' }),
+      ctl('ca_type','type','segmented','ical',{ options:['ical','caldav','exchange','ews'], info:'calendar.conf.sample line 2.' }),
+      ctl('ca_url','url','text','',{ placeholder:'https://example.com/home/jdoe/Calendar/', info:'calendar.conf.sample line 3. For CalDAV a trailing slash matters (line 92).' }),
+      ctl('ca_user','user','text','',{ placeholder:'jdoe', info:'calendar.conf.sample line 4.' })
+    ]},
+    { title:'Credential', desc:'Write-only. Setting a password replaces whatever is there; nothing on this screen can read one back.', ctls:[
+      ctl('ca_secretstatus','Password on target','text','Load a calendar to check.',{ action:'calendar-secret-status', info:'Whether calendar.conf currently has a secret line for this calendar -- never what it holds.' }),
+      ctl('ca_secret','New password','text','',{ placeholder:'', info:'calendar.conf.sample line 5. Typed here and written once; this field is blanked the instant Save reads it.' })
+    ]},
+    { title:'Refresh', desc:'How often the calendar is re-fetched.', ctls:[
+      ctl('ca_refresh','refresh','text','15',{ placeholder:'15', info:'calendar.conf.sample line 6, minutes.' }),
+      ctl('ca_timeframe','timeframe','text','60',{ placeholder:'60', info:'calendar.conf.sample line 7: minutes of data pulled each refresh, should be >= refresh.' }),
+      ctl('ca_fetchagain','fetch_again_at_reload','switch',false,{ info:'calendar.conf.sample line 9: re-pull the calendar content when the module reloads.' })
+    ]},
+    { title:'Busy-status call', desc:'What to do when this calendar shows an upcoming busy status.', ctls:[
+      ctl('ca_autoreminder','autoreminder','text','',{ placeholder:'10', info:'calendar.conf.sample line 25, minutes before the event to override its own reminder.' }),
+      ctl('ca_channel','channel','text','',{ placeholder:'SIP/60001', info:'calendar.conf.sample line 27.' }),
+      ctl('ca_context','context','text','',{ placeholder:'default', info:'calendar.conf.sample line 28.' }),
+      ctl('ca_extension','extension','text','',{ placeholder:'123', info:'calendar.conf.sample line 29.' }),
+      ctl('ca_app','app','text','',{ placeholder:'Playback', info:'calendar.conf.sample line 33: run this application on answer instead of context/extension.' }),
+      ctl('ca_appdata','appdata','text','',{ placeholder:'tt-weasels', info:'calendar.conf.sample line 34.' }),
+      ctl('ca_waittime','waittime','text','30',{ placeholder:'30', info:'calendar.conf.sample line 36, seconds to wait for an answer.' })
+    ]},
+    { title:'Save', desc:'Writes every field above to calendar.conf on the target -- backed up first, applied through the same plan/apply transaction every other write in this console uses.', ctls:[
+      ctl('ca_save','Save this calendar','segmented','Save',{ options:['Save'], action:'calendar-save' })
+    ]}]
+  },
   fcodes:{ rail:'pbx', icon:'dialpad', label:'Feature codes', badge:'', title:'Feature codes', file:'features.conf', kind:'generic',
     sub:'The digits a caller presses mid-call, the transfer behaviour around them, and the parking lot a park sends a call into. The codes and timeouts below write features.conf; the parking lot itself lives in res_parking.conf -- Asterisk moved parking lot configuration out of features.conf from Asterisk 12 onward, and this checkout\'s own features.conf.sample says so on its own fifth line. Every code here is free text because Asterisk accepts any digit string including * and #, and a picker cannot know what a site has standardised on -- but a control left untouched writes nothing at all.',
     groups:[{ title:'In-call feature map', desc:'The [featuremap] section. A caller presses these during a call.', ctls:[
@@ -3767,7 +3919,7 @@ const DOCS = {
 
 const ADVANCED = ['e_symmetric','e_forcerport','e_ice','e_trust','r_dtmf','r_strict','r_ice','r_start','r_end','k_ptime','k_opusbr','a_deny','a_timeout','mo_preload','mo_noload','mo_require','mo_load','g_queue','s_ciphers','s_verify','t_100rel','t_privacy','t_from','c_mixing','c_rate','l_date','d_batch','d_size','y_retain','hi_gc','hi_sign','hi_push','sv_forward','sv_sshport','cp_ease','cp_dir','fun_random_seed','fun_random_scope','fun_random_strength','fun_random_reroll','mo_curve','mo_dialog','ly_radius','ly_gap','ly_sidebar','th_tint','pr_perscreen','pr_export'];
 
-const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','canvas','ivr','queues','voicemail','confbridge','moh','sounds','codecs','fax','cdr','ami','modules','logger','httpd','security','dbrealtime','stirshaken','geolocation','phoneprov','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
+const ORDER = ['servers','dash','live','endpoints','trunks','trunkauth','fcodes','iaxpeers','dahdi','sla','dundi','calendar','canvas','ivr','queues','voicemail','confbridge','moh','sounds','codecs','fax','cdr','ami','modules','logger','httpd','security','dbrealtime','stirshaken','geolocation','phoneprov','cli','memory','sync','skills','hub','vocab','ops','secrets','arcade','notifications','history','customise','appearance','about','docs','changelog'];
 
 const GAMES = [
   { id:'whack', kind:'whack', icon:'sports_martial_arts', name:'Whack the bug', reward:2, blurb:'Targets pop across fifteen holes. Hit them, miss the empties. Twenty seconds.' },

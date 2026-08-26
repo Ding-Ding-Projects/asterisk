@@ -6,8 +6,8 @@
   "interactionRulesAudited": 57,
   "stylesheetMotionDeclarationsAudited": 8,
   "divergencesPerCheck": {
-    "typeScale": 2144,
-    "iconSize": 2494,
+    "typeScale": 2176,
+    "iconSize": 2526,
     "shapeScale": 612,
     "elevation": 33,
     "stateLayer": 1120,
