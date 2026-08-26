@@ -125,11 +125,11 @@ test('contains exactly 32 destination definitions in six declared groups', () =>
     'arcade','notifications','history','customise','appearance','about',
   ]);
 });
-test('provides 76 complete feature articles plus checked evidence records', async () => {
+test('provides 77 complete feature articles plus checked evidence records', async () => {
   const docsRoot=resolve(root,'..','docs'), categories=['pbx','media','data','system','agent','app','platform'];
   const articles=[];
   for(const category of categories)for(const name of await readdir(join(docsRoot,category)))if(name.endsWith('.md')&&name!=='README.md')articles.push(join(docsRoot,category,name));
-  assert.equal(articles.length,76); // 32 destination articles (pbx/media/data/system/agent/app) plus 44 platform articles
+  assert.equal(articles.length,77); // 32 destination articles (pbx/media/data/system/agent/app) plus 45 platform articles
   // An evidence record is a different genre from a feature article: it says what was
   // captured, from which commit, and by what method, and forcing "## Behavior" onto it
   // would distort a document that is doing its job. So it lives in its own category --
@@ -239,7 +239,13 @@ test('build composes deterministic local output without fetches', async () => {
   // production write path so twelve of them were verified against real rows rather than against
   // an empty exchange, and the three defects that exercise turned up.
   // One article in, one HTML page out.
-  assert.equal(manifest.outputFiles.length, 191);
+  // 192 from 2026-08-26, for a forty-fifth platform article:
+  // docs/platform/destination-deep-links.md, which records the `ding-pbx://destination/<id>`
+  // route the parity evidence had mapped every audited destination to and nothing resolved --
+  // no registered scheme, no argument read, no navigation -- and what resolving it now does,
+  // does not do, and deliberately refuses.
+  // One article in, one HTML page out.
+  assert.equal(manifest.outputFiles.length, 192);
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');

@@ -16,6 +16,7 @@
   },
   "include": [
     "main.ts",
+    "deep-link.ts",
     "preload.ts",
     "squirrel-events.ts",
     "updater-runtime.ts",

@@ -14,6 +14,7 @@ import {
   buildPayload, validateReport, type Payload, type SessionReport,
 } from './status-hub-client';
 import { trunkAuthNote } from './trunk-auth';
+import { resolveDestinationRoute, type DestinationRoute } from '../../../shared/destination-route';
 import { canvasReason, dialplanDivergenceNote, edgePairs, layoutNodes, valueOf as canvasValueOf, type CanvasReadings } from './canvas';
 import {
   blameRows as historyBlameRows, commitCountLabel, commitRows as historyCommitRows, compareLabel as historyCompareLabel,
@@ -326,6 +327,9 @@ interface Shell {
   /** Set by the app; the compiled menus call it for anything with a real effect. */
   hostAction?: (kind: HostActionKind, payload: Record<string, unknown>) => void;
   set(key: string, value: unknown): void;
+  /** The compiled shell's own navigation: sets the screen AND the rail it belongs to,
+   *  which `setState({ screen })` alone does not. */
+  openScreen(id: string): void;
   setState(update: Record<string, unknown>): void;
   moveNode(id: string, dx: number, dy: number): void;
   addEdgeFrom(): void;
@@ -480,6 +484,10 @@ export class App extends Base {
   /** Torn down on unmount; set only when the desktop bridge actually reports
    *  accessibility-support changes (see `listenForScreenReader` below). */
   private stopScreenReaderListener: (() => void) | undefined;
+
+  /** Torn down on unmount; set only when the desktop bridge can deliver a
+   *  `ding-pbx://destination/<id>` deep link (see `listenForDestinationRoutes` below). */
+  private stopDeepLinkListener: (() => void) | undefined;
 
   /** Read by the compiled `text`-kind control marked `action:'logo-status'`. */
   private logoStatusLine = 'The shipped mark.';
@@ -1134,6 +1142,7 @@ export class App extends Base {
     this.listenForProvisionSteps();
     this.startVoiceEnumeration();
     this.listenForScreenReader();
+    this.listenForDestinationRoutes();
     this.listenForPaletteChord();
     /* The configured server list is not a reading from any PBX — it exists before
      * anything is reachable and must be on screen whether or not discovery finds a
@@ -1173,6 +1182,8 @@ export class App extends Base {
     this.stopVoiceListener = undefined;
     this.stopScreenReaderListener?.();
     this.stopScreenReaderListener = undefined;
+    this.stopDeepLinkListener?.();
+    this.stopDeepLinkListener = undefined;
     this.stopPaletteKeys?.();
     this.stopPaletteKeys = undefined;
     /* Cancels anything mid-utterance and drops the voice-list subscription the narrator
@@ -2718,6 +2729,38 @@ What you can do: ${offered}.` : ''}`);
     if (!accessibility) return;
     void accessibility.isScreenReaderActive().then((active) => this.narrator.setScreenReaderActive(active));
     this.stopScreenReaderListener = accessibility.onChange((active) => this.narrator.setScreenReaderActive(active));
+  }
+
+  /**
+   * The renderer's half of the `ding-pbx://destination/<id>` deep link.
+   *
+   * The privileged process has already refused anything that is not a route; what it
+   * cannot decide is whether the id names a destination, because the catalogue is compiled
+   * into this bundle and the main process has no copy of it. Optional on the bridge like
+   * every other main-process signal: a hosted browser tab has no registered protocol
+   * client, so this does nothing there rather than pretending to listen.
+   */
+  private listenForDestinationRoutes(): void {
+    const deepLink = window.dingDesktop?.deepLink;
+    if (!deepLink) return;
+    this.stopDeepLinkListener = deepLink.onDestination((route) => this.openDestinationRoute(route));
+  }
+
+  /**
+   * Opens the destination a route names, or says why it did not.
+   *
+   * Nothing falls back to the dashboard on an unknown id. A link that quietly lands
+   * somewhere else looks exactly like a link that worked, and the person who followed it
+   * would have no reason to doubt the screen in front of them.
+   *
+   * `openScreen` rather than `setState({ screen })`: the compiled shell derives the open
+   * rail from the active destination, so setting the screen alone leaves the rail showing
+   * a different group's section list.
+   */
+  private openDestinationRoute(route: DestinationRoute): void {
+    const resolution = resolveDestinationRoute(route, ORDER as string[]);
+    if (!resolution.ok) { this.toast(`That link could not be opened: ${resolution.reason}`); return; }
+    this.openScreen(resolution.destinationId);
   }
 
   /**

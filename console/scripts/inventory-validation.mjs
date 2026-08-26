@@ -1,3 +1,6 @@
+import { parseDestinationRoute, resolveDestinationRoute } from '../shared/destination-route.ts';
+import { referenceRouteFor, builtRouteFor } from './design-parity-capture.mjs';
+
 const requiredTemplateKeys = [
   'implementation', 'documentation', 'localization', 'localCheck', 'builtInteraction', 'capture',
 ];
@@ -129,6 +132,59 @@ function validateChromeParityBar(bar) {
   if (chromeAreas === 0) throw new Error("design parity inventory: chromeParityBar declares no 'chrome' area, so the bar would compare nothing and pass vacuously");
 }
 
+/**
+ * The one tuple both sides of every comparison are captured at, pinned by exact value.
+ *
+ * Pinned rather than merely shape-checked for the same reason the chrome-parity bar above
+ * is: every destination's recorded routes are derived from it, so editing it here would
+ * silently re-derive thirty-two routes to agree with whatever it was changed to, and the
+ * equality check below would keep passing while naming a screen size nobody argued for.
+ */
+const captureTuple = { state: 'default', theme: 'dark', width: 1440, height: 1000, scale: 1 };
+
+function validateCaptureTuple(tuple) {
+  if (!tuple || typeof tuple !== 'object') throw new Error('design parity inventory: captureContract.captureTuple is required');
+  exactSet(Object.keys(tuple), Object.keys(captureTuple), 'capture tuple fields');
+  for (const [key, expected] of Object.entries(captureTuple)) {
+    if (tuple[key] !== expected) throw new Error(`design parity inventory: captureTuple.${key} must be exactly ${JSON.stringify(expected)}, found ${JSON.stringify(tuple[key])}; both sides of every comparison are captured at this tuple, and every destination's recorded routes are derived from it`);
+  }
+}
+
+/**
+ * The mapping this inventory exists to carry: destination -> reference route, product route,
+ * built capture.
+ *
+ * Recorded per row rather than left to `evidenceTemplates` because a template is an
+ * instruction for producing a route, not the route that was produced; the two are only the
+ * same thing while nobody has edited either. So the recorded value is compared against the
+ * template expansion at the pinned tuple, and (the part that makes the product route a
+ * fact rather than a hopeful string) the recorded `builtRoute` is handed to the exact
+ * parser the running application uses, and must resolve to THIS row's own destination.
+ * A route the console would refuse, or one that opens a different screen, fails here.
+ */
+function validateDestinationRouteMapping(data, destination, knownIds) {
+  const { id } = destination;
+  const expectedReference = referenceRouteFor(data, id, captureTuple);
+  if (destination.referenceRoute !== expectedReference) {
+    throw new Error(`destination ${id}: referenceRoute is '${destination.referenceRoute}', but the committed template at the capture tuple gives '${expectedReference}'`);
+  }
+  const expectedBuilt = builtRouteFor(data, id, captureTuple);
+  if (destination.builtRoute !== expectedBuilt) {
+    throw new Error(`destination ${id}: builtRoute is '${destination.builtRoute}', but the committed template at the capture tuple gives '${expectedBuilt}'`);
+  }
+  const expectedCapture = data.evidenceTemplates.builtCapture.replaceAll('{id}', id);
+  if (destination.builtCapture !== expectedCapture) {
+    throw new Error(`destination ${id}: builtCapture is '${destination.builtCapture}', but the committed template gives '${expectedCapture}'`);
+  }
+  const parsed = parseDestinationRoute(destination.builtRoute);
+  if (!parsed.ok) throw new Error(`destination ${id}: the application's own parser refuses this builtRoute: ${parsed.reason}`);
+  const resolved = resolveDestinationRoute(parsed.route, knownIds);
+  if (!resolved.ok) throw new Error(`destination ${id}: builtRoute does not resolve: ${resolved.reason}`);
+  if (resolved.destinationId !== id) {
+    throw new Error(`destination ${id}: builtRoute opens '${resolved.destinationId}'; a row mapped to a route that lands somewhere else is worse than one mapped to nothing`);
+  }
+}
+
 export function validateParityInventory(data, { allowUnverified = false } = {}) {
   if (data?.schemaVersion !== 1) throw new Error('design parity inventory: schemaVersion 1 required');
   if (data.sourceArchive?.sha256 !== '9A4284745A745C18A18B0A23D2A2F5851A79F9B6EFCBC5EE30EDCD69CEA2863F') throw new Error('design parity inventory: source archive SHA-256 drift');
@@ -147,11 +203,13 @@ export function validateParityInventory(data, { allowUnverified = false } = {}) 
   if (data.auditBaseline.transientStateFamilyCount !== 17) throw new Error('design parity inventory: transient-state count drift');
   if (!Array.isArray(data.destinations)) throw new Error('design parity inventory: destinations array required');
   exactSet(data.destinations.map((destination) => destination.id), destinationIds, 'destination identifiers');
+  validateCaptureTuple(data.captureContract?.captureTuple);
   for (const destination of data.destinations) {
-    exactSet(Object.keys(destination), ['rail', 'id', 'status'], `destination ${destination.id} fields`);
+    exactSet(Object.keys(destination), ['rail', 'id', 'status', 'referenceRoute', 'builtRoute', 'builtCapture'], `destination ${destination.id} fields`);
     if (!(destination.rail in exactRails)) throw new Error(`destination ${destination.id}: invalid rail '${destination.rail}'`);
     if (!parityStatuses.includes(destination.status)) throw new Error(`destination ${destination.id}: invalid status`);
     if (!allowUnverified && destination.status !== 'verified') throw new Error(`destination ${destination.id}: evidence remains ${destination.status}`);
+    validateDestinationRouteMapping(data, destination, destinationIds);
   }
   // `compiled` is a weaker claim than `verified`: the destination was rendered from the
   // compiled design source and asserted, but no reference/built capture diff exists yet.
