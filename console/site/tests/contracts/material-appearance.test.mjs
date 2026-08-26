@@ -65,9 +65,42 @@ test('changing appearance settings updates a live preview in the same pass, via 
     'applyState no longer applies the live accent colour');
 });
 
-test('there is no per-element "Edit appearance..." editor anywhere in the published site', () => {
-  assert.doesNotMatch(everyPage, /edit appearance/iu, 'a per-element appearance editor now exists -- revisit the "partial" state');
-  assert.doesNotMatch(app, /edit appearance/iu, 'a per-element appearance editor now exists in app.js -- revisit the "partial" state');
+/**
+ * Re-derived on 2026-08-26, when the right-click menu landed.
+ *
+ * This used to ban the phrase "edit appearance" outright, and a phrase ban is exactly the
+ * needle this repository keeps getting caught by: it is satisfied by any rename, and it
+ * fails on any innocent mention. The menu now offers "Edit this element’s appearance…"
+ * from every element -- because the canonical contract asks every menu for it -- and that
+ * entry would have slipped straight past the old ban while a real editor written under a
+ * third name would too.
+ *
+ * So the claim is now the property rather than the wording: the per-element entry exists,
+ * refuses unconditionally, and names this registry row; and nothing anywhere stores or
+ * writes an appearance value keyed by an element.
+ */
+test('the per-element appearance entry exists, refuses unconditionally, and names the row that records why', () => {
+  assert.match(app, /\{id:'element-appearance',label:'Edit this element’s appearance…',chord:null,kinds:'any',/u,
+    'the menu no longer offers the canonical per-element appearance entry at all');
+  /* Zero-argument, so no page, element or state can make it available. */
+  assert.match(app, /\{id:'element-appearance'[\s\S]{0,160}?unavailable:\(\)=>'this site has no per-element appearance editor: material-appearance is recorded partial in site\/feature-registry\.json'/u,
+    'the per-element appearance entry no longer refuses unconditionally, or no longer names the registry row');
+  assert.match(app, /\{id:'element-appearance'[\s\S]{0,400}?run:\(\)=>\{\}\}/u,
+    'the per-element appearance entry now has a body -- something would happen if it could be activated');
+});
+
+test('no appearance value is stored or applied per element -- every one of them is global', () => {
+  /* The property a phrase ban could never see. A per-element editor needs somewhere to
+   * put a per-element value, which means a keyed record or a style written onto an
+   * element the user picked. Every appearance value here is a field on the one settings
+   * record and is applied to documentElement. */
+  assert.doesNotMatch(app, /elementStyles|styleFor\(|appearanceFor\(|state\.elements\b|perElementAppearance/u,
+    'an appearance value is now looked up per element -- a real per-element editor may exist');
+  const styleWrites = [...app.matchAll(/\.style\.setProperty\(/gu)];
+  assert.ok(styleWrites.length > 0, 'no style writes found at all, so this would pass vacuously');
+  const globalWrites = [...app.matchAll(/document\.documentElement\.style\.setProperty\(/gu)];
+  assert.equal(styleWrites.length, globalWrites.length,
+    `${styleWrites.length} setProperty calls but only ${globalWrites.length} on documentElement -- something now styles an individual element`);
 });
 
 test('there is no named-preset save/load/export mechanism beyond the one general settings export', () => {

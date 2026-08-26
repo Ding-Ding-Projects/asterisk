@@ -370,8 +370,15 @@ const cases = [
 
   // The copy key disappears from the recorded set, so the registry no longer knows what
   // it is claiming coverage of.
+  //
+  // Anchored to this entry alone rather than to it and whatever happens to follow it. The
+  // pair broke on 2026-08-26 when the right-click menu added two keys that sort between
+  // them, and this script's own did-the-bytes-change assertion reported it as a FAILED
+  // CASE rather than letting it pass as a guard that held. The four leading spaces are
+  // what tell this entry in `knownCopyKeys` apart from the same key eight spaces deep
+  // inside a feature row.
   ['the recorded copy-key list forgets changelogDesc',
-    swap(LOCALES, '    "changelogDesc",\n    "dialogEmojisDesc",', '    "dialogEmojisDesc",')],
+    swap(LOCALES, '    "changelogDesc",\n', '')],
 ];
 
 const runTest = () => {

@@ -855,6 +855,28 @@
       '呢個欄位而家用緊正則模式。',
       '正則模式：開。其他地方照舊用純文字。',
       '正則模式已開機——祝你回溯順利。'
+    ]},
+    contextMenuHint:{en:[
+      'Shift+F10 or the Menu key opens this menu for whatever has focus. Escape clears the filter, then closes.',
+      'Shift+F10 or the Menu key opens this for whatever has focus. Escape clears the filter first, then closes.',
+      'No mouse? Shift+F10 or the Menu key. Escape wipes the filter, then shuts the whole thing.',
+      'Shift+F10, or that lonely Menu key nobody presses. Escape twice: once for the filter, once for the door.'
+    ],zh:[
+      '按 Shift+F10 或者 Menu 鍵，就會為有焦點嗰件嘢開呢個選單。Escape 先清篩選，再關。',
+      '冇滑鼠？撳 Shift+F10 或者 Menu 鍵，Escape 先清走篩選，再撳先關。',
+      '唔使滑鼠都得：Shift+F10 或者 Menu 鍵。Escape 第一下清篩選，第二下先閂門。',
+      'Shift+F10，或者塊鍵盤上面冇人撳過嗰粒 Menu 鍵。Escape 撳兩下：一下清篩選，一下閂門。'
+    ]},
+    contextMenuNoMatch:{en:[
+      'No action here matches that filter.',
+      'Nothing in this menu matches that filter.',
+      'Nothing matches. The actions are still all there; the filter just does not like them.',
+      'Zero hits. Every action is still sitting right behind that filter, sulking.'
+    ],zh:[
+      '呢度冇動作符合個篩選。',
+      '呢個選單入面冇嘢符合個篩選。',
+      '搵唔到。啲動作全部仲喺度，只係個篩選唔鍾意佢哋咋。',
+      '零命中。啲動作全部仲匿喺個篩選後面扁嘴。'
     ]}
   };
 
@@ -1923,6 +1945,602 @@
   function renderModeStatus(target){const el=$(`${target}-mode-status`);if(!el)return;const config=regexState.get(target);if(config?.enabled){el.textContent=`${copyText('searchModeRegex')} /${config.pattern}/${config.flags}`;el.classList.add('is-regex')}else{el.textContent=copyText('searchModePlain');el.classList.remove('is-regex')}}
   function renderAllModeStatuses(){all('.mode-status').forEach(el=>renderModeStatus(el.id.replace(/-mode-status$/,'')))}
 
+  // ------------------------------------------------------------------
+  // Right-click menus, and the shortcut column that must not lie.
+  //
+  // The whole feature turns on one property: the chord printed beside an item and the
+  // chord that actually fires it are THE SAME OBJECT. A menu is where a person goes to
+  // find out what a thing can do, so a label showing a shortcut that no longer works
+  // teaches them to press a key that does nothing -- worse than showing none, because
+  // they now believe something false and it took a menu to tell them.
+  //
+  // Everything that decides is a pure function taking values a caller supplies, and the
+  // half that touches the page does nothing else. That split matters more than usual
+  // here, because "the menu is on the page", "an item is listed" and "a chord is
+  // printed" are all true of a menu whose every action is inert.
+  //
+  // A page cannot claim every chord. The browser gets first refusal on a long list of
+  // them -- Ctrl+Shift+N is a private window, Ctrl+Shift+C is the element picker,
+  // Ctrl+Shift+R is a hard reload -- and a page that binds one prints a shortcut its
+  // own handler never sees. RESERVED_CHORDS below names them with the claimant, and no
+  // action may sit on one. That is why the site's own chords are Alt+Shift: the one
+  // remaining collision there is Firefox's access keys, which is why this site declares
+  // no `accesskey` anywhere and a test says so.
+  // ------------------------------------------------------------------
+
+  const CONTEXT_MENU_SEARCH_ID = 'context-menu-search';
+  const CONTEXT_MENU_MARGIN = 8;
+  const CONTEXT_MENU_MIN_HEIGHT = 120;
+  const CONTEXT_MENU_WIDTH = 320;
+  const CONTEXT_MENU_LONG_PRESS_MS = 550;
+  const CONTEXT_MENU_LONG_PRESS_SLOP = 10;
+  /** The tags worth describing in their own right; anything else is described as it is found. */
+  const CONTEXT_MENU_TARGETS = 'a[href],img,pre,code,input,textarea,select,h1,h2,h3,h4,h5,h6,button';
+
+  function chord(key,{ctrl=false,shift=false,alt=false,meta=false}={}){return {key:String(key).toLowerCase(),ctrl,shift,alt,meta}}
+  function chordEquals(a,b){return Boolean(a)&&Boolean(b)&&a.key===b.key&&a.ctrl===b.ctrl&&a.shift===b.shift&&a.alt===b.alt&&a.meta===b.meta}
+
+  /**
+   * Chords the browser answers before the page does, with the claimant named.
+   *
+   * Not exhaustive across every browser and platform, and deliberately not presented as
+   * though it were: it is the set this site refuses, and an action landing on one is a
+   * defect rather than a warning, because there is no version of "the shortcut mostly
+   * works" that a menu can honestly print.
+   */
+  const RESERVED_CHORDS = [
+    {chord:chord('n',{ctrl:true,shift:true}),claimedBy:'a new private or incognito window'},
+    {chord:chord('t',{ctrl:true,shift:true}),claimedBy:'reopening the last closed tab'},
+    {chord:chord('w',{ctrl:true,shift:true}),claimedBy:'closing the window'},
+    {chord:chord('q',{ctrl:true,shift:true}),claimedBy:'quitting the browser'},
+    {chord:chord('i',{ctrl:true,shift:true}),claimedBy:'the developer tools'},
+    {chord:chord('j',{ctrl:true,shift:true}),claimedBy:'the developer tools console'},
+    {chord:chord('c',{ctrl:true,shift:true}),claimedBy:'the developer tools element picker'},
+    {chord:chord('m',{ctrl:true,shift:true}),claimedBy:'the developer tools device toolbar'},
+    {chord:chord('p',{ctrl:true,shift:true}),claimedBy:'a private window or the developer command menu'},
+    {chord:chord('r',{ctrl:true,shift:true}),claimedBy:'a cache-bypassing reload'},
+    {chord:chord('o',{ctrl:true,shift:true}),claimedBy:'the bookmark manager'},
+    {chord:chord('b',{ctrl:true,shift:true}),claimedBy:'the bookmarks bar'},
+    {chord:chord('delete',{ctrl:true,shift:true}),claimedBy:'the clear-browsing-data dialog'},
+  ];
+  function reservedChordClaim(candidate){return RESERVED_CHORDS.find(entry=>chordEquals(entry.chord,candidate))||null}
+
+  /** Whether a real keyboard event is this chord. The one reading both halves of the feature use. */
+  function chordMatches(candidate,event){
+    if(!candidate||!event)return false;
+    if(String(event.key||'')==='')return false;
+    return String(event.key).toLowerCase()===candidate.key
+      &&Boolean(event.ctrlKey)===candidate.ctrl
+      &&Boolean(event.shiftKey)===candidate.shift
+      &&Boolean(event.altKey)===candidate.alt
+      &&Boolean(event.metaKey)===candidate.meta;
+  }
+
+  const CHORD_KEY_NAMES = {f10:'F10',contextmenu:'Menu',delete:'Delete',escape:'Esc',enter:'Enter',' ':'Space'};
+  function chordKeyLabel(key){return CHORD_KEY_NAMES[key]||(key.length===1?key.toUpperCase():key.replace(/^./,c=>c.toUpperCase()))}
+  /** The platform's own notation. Apple keyboards print glyphs; everything else prints words. */
+  function chordLabel(candidate,platform){
+    if(!candidate)return '';
+    const apple=/mac|iphone|ipad|ipod/i.test(String(platform||''));
+    if(apple){
+      return `${candidate.ctrl?'⌃':''}${candidate.alt?'⌥':''}${candidate.shift?'⇧':''}${candidate.meta?'⌘':''}${chordKeyLabel(candidate.key)}`;
+    }
+    const parts=[];
+    if(candidate.ctrl)parts.push('Ctrl');
+    if(candidate.meta)parts.push('Win');
+    if(candidate.alt)parts.push('Alt');
+    if(candidate.shift)parts.push('Shift');
+    parts.push(chordKeyLabel(candidate.key));
+    return parts.join('+');
+  }
+  /** The `aria-keyshortcuts` spelling, which is a fixed grammar rather than the platform's. */
+  function chordAriaLabel(candidate){
+    if(!candidate)return '';
+    const parts=[];
+    if(candidate.ctrl)parts.push('Control');
+    if(candidate.meta)parts.push('Meta');
+    if(candidate.alt)parts.push('Alt');
+    if(candidate.shift)parts.push('Shift');
+    parts.push(chordKeyLabel(candidate.key));
+    return parts.join('+');
+  }
+
+  /**
+   * The name to call an element, or null when it has none.
+   *
+   * A leading run of symbols is stripped rather than shown, and an element whose whole
+   * name is symbols returns null instead of the glyph. That is a lesson this repository
+   * paid for twice: a driver once recorded a control called `backspaceDelete last`
+   * because an icon font puts its glyph name in `textContent`, and an empty reading and
+   * a glyph reading look identical from outside while meaning opposite things.
+   */
+  function accessibleName(element){
+    if(!element)return null;
+    const candidates=[
+      element.getAttribute?.('aria-label'),
+      element.getAttribute?.('alt'),
+      element.getAttribute?.('title'),
+      element.textContent,
+    ];
+    for(const raw of candidates){
+      const text=String(raw||'').replace(/\s+/gu,' ').trim();
+      if(!text)continue;
+      const stripped=text.replace(/^[^\p{L}\p{N}]+/u,'').trim();
+      if(!stripped)continue;
+      return stripped.length>60?`${stripped.slice(0,59)}…`:stripped;
+    }
+    return null;
+  }
+
+  /** The element a right-click is really about: the nearest thing with actions of its own. */
+  function resolveContextTarget(element){
+    if(!element)return null;
+    return element.closest?.(CONTEXT_MENU_TARGETS)||element;
+  }
+  function contextTargetKind(element){
+    const tag=String(element?.tagName||'').toLowerCase();
+    if(!tag)return 'page';
+    if(tag==='a'&&element.getAttribute?.('href'))return 'link';
+    if(tag==='img')return 'image';
+    if(tag==='pre'||tag==='code')return 'code';
+    if(tag==='input'||tag==='textarea'||tag==='select')return 'field';
+    if(/^h[1-6]$/u.test(tag))return 'heading';
+    if(tag==='button')return 'control';
+    return 'element';
+  }
+
+  /** Everything the item list is decided from, gathered once so the decisions stay pure. */
+  function contextMenuContext(element){
+    const target=resolveContextTarget(element);
+    const name=accessibleName(target);
+    const section=target?.closest?.('[id]')||null;
+    return {
+      element:target,
+      kind:contextTargetKind(target),
+      name,
+      namedOnlyByIcon:Boolean(target)&&name===null&&String(target.textContent||'').trim().length>0,
+      href:target?.getAttribute?.('href')||'',
+      sectionId:section?.id||'',
+      page:{
+        palette:Boolean($('command-palette')),
+        notifications:Boolean($('notifications-dialog')),
+        history:Boolean($('history-dialog')),
+        resetGate:Boolean($('reset-confirm-dialog')),
+        appearance:Boolean($('theme-mode')),
+      },
+    };
+  }
+
+  /**
+   * Every action this menu can offer, declared once.
+   *
+   * `chord` is the shortcut BOTH the printed label and the live handler read, and
+   * `unavailable` returns the exact unmet condition rather than a shrug -- a disabled
+   * item with no explanation reads as broken rather than as unavailable for a reason.
+   */
+  const MENU_ACTIONS = [
+    {id:'copy-text',label:'Copy this text',chord:chord('c',{alt:true,shift:true}),kinds:['element','heading','code','link','control','image','page'],
+      unavailable:ctx=>ctx.name?null:'this element is named only by an icon, so it has no text to copy',
+      run:ctx=>copyToClipboard(ctx.name,'Text copied')},
+    {id:'copy-link',label:'Copy link address',chord:null,kinds:['link'],
+      unavailable:ctx=>ctx.href?null:'this link carries no address',
+      run:ctx=>copyToClipboard(absoluteHref(ctx.href),'Link address copied')},
+    {id:'open-link-new',label:'Open link in a new tab',chord:null,kinds:['link'],
+      unavailable:ctx=>ctx.href?null:'this link carries no address',
+      run:ctx=>{window.open?.(absoluteHref(ctx.href),'_blank','noopener,noreferrer')}},
+    {id:'copy-image-description',label:'Copy this image’s description',chord:null,kinds:['image'],
+      unavailable:ctx=>ctx.element?.getAttribute?.('alt')?null:'this image carries no description to copy',
+      run:ctx=>copyToClipboard(ctx.element.getAttribute('alt'),'Image description copied')},
+    {id:'copy-section-link',label:'Copy a link to this section',chord:chord('l',{alt:true,shift:true}),kinds:'any',
+      unavailable:ctx=>ctx.sectionId?null:'nothing around this element carries an id, so there is no address to link to',
+      run:ctx=>copyToClipboard(`${location.href.split('#')[0]}#${ctx.sectionId}`,'Section link copied')},
+    {id:'command-palette',label:'Command palette',chord:chord('f',{ctrl:true,shift:true}),kinds:'any',
+      unavailable:ctx=>ctx.page.palette?null:'this page does not carry the command palette',
+      run:()=>openPalette()},
+    {id:'notification-centre',label:'Notification centre',chord:chord('n',{alt:true,shift:true}),kinds:'any',
+      unavailable:ctx=>ctx.page.notifications?null:'this page does not carry the notification centre; it is on the home and settings pages',
+      run:()=>$('notification-open')?.click()},
+    {id:'local-history',label:'Local history',chord:chord('h',{alt:true,shift:true}),kinds:'any',
+      unavailable:ctx=>ctx.page.history?null:'this page does not carry the local history panel; it is on the settings page',
+      run:()=>$('history-open')?.click()},
+    {id:'appearance-settings',label:'Appearance settings…',chord:chord('a',{alt:true,shift:true}),kinds:'any',
+      unavailable:()=>null,
+      run:ctx=>{if(ctx.page.appearance){$('theme-mode').focus?.();return}location.href=`${BASE}settings.html#appearance`}},
+    /* The two entries below are deliberately, permanently unavailable, and each names the
+     * registry row that records why. The canonical contract asks every menu for both; this
+     * site has neither mechanism, and an entry that silently did nothing when clicked
+     * would be exactly the decorative control the rest of these rules forbid. Naming the
+     * row is what keeps them honest -- when either feature stops being what the registry
+     * says it is, these sentences stop being true and the tests beside them go red.
+     *
+     * `unavailable` takes no argument on purpose. There is no page, element or state that
+     * could make either one available, so it must not be able to depend on one. */
+    {id:'element-appearance',label:'Edit this element’s appearance…',chord:null,kinds:'any',
+      unavailable:()=>'this site has no per-element appearance editor: material-appearance is recorded partial in site/feature-registry.json',
+      run:()=>{}},
+    {id:'lock-element',label:'Lock this element…',chord:null,kinds:'any',
+      unavailable:()=>'this site ships no per-element lock: per-element-toy-locks is recorded absent in site/feature-registry.json',
+      run:()=>{}},
+    /* No chord, and that is not an oversight. A destructive action reached by a chord is
+     * a destructive action reached without reading anything, and this one is only ever
+     * meant to be reached through the two-key gate below. */
+    {id:'reset-settings',label:'Reset this site’s settings…',chord:null,kinds:'any',destructive:true,
+      unavailable:ctx=>ctx.page.resetGate?null:'this page does not carry the reset gate; it is on the settings page',
+      run:()=>$('settings-reset')?.click()},
+  ];
+
+  function absoluteHref(href){try{return new URL(String(href),document.baseURI).href}catch{return String(href||'')}}
+  function copyToClipboard(value,title){
+    const text=String(value??'');
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).catch(()=>{});
+    notify(title,applyVocabularyText(`Copied ${text.length} character${text.length===1?'':'s'} to the clipboard.`),
+      {category:'export',en:`${title}. ${text.length} characters went to the clipboard.`,zh:`${title}。已經複製咗 ${text.length} 個字元去剪貼簿。`});
+  }
+
+  /**
+   * The items for one element, in declared order, each carrying its printed shortcut.
+   *
+   * The shortcut string is derived here from the same `chord` the dispatcher matches
+   * against, which is the entire point of the feature. Nothing downstream may re-derive
+   * or restate it.
+   */
+  function menuItemsFor(ctx,platform){
+    return MENU_ACTIONS
+      .filter(action=>action.kinds==='any'||action.kinds.includes(ctx.kind))
+      .map(action=>{
+        const reason=action.unavailable(ctx);
+        return {
+          id:action.id,
+          label:action.label,
+          chord:action.chord,
+          shortcut:chordLabel(action.chord,platform),
+          ariaShortcut:chordAriaLabel(action.chord),
+          destructive:Boolean(action.destructive),
+          enabled:!reason,
+          unavailableReason:reason||'',
+        };
+      });
+  }
+
+  /**
+   * Filtering narrows; it never reorders, renames, or re-points anything.
+   *
+   * `filter` preserves source order by construction, and the objects handed back are the
+   * same objects -- so a filtered item cannot quietly become a different action, which is
+   * the one way a search box over a menu can do real damage.
+   */
+  function filterMenuItems(items,query,target){
+    if(!String(query||'').trim())return items.slice();
+    return items.filter(item=>matchText(`${item.label} ${item.shortcut} ${item.unavailableReason}`,query,target));
+  }
+
+  function menuResultSummary(shown,total,query){
+    const trimmed=String(query||'').trim();
+    if(!trimmed)return `${total} action${total===1?'':'s'} for this element.`;
+    if(shown===0)return `No action matches “${trimmed}”. ${total} action${total===1?'':'s'} were offered for this element.`;
+    return `${shown} of ${total} action${total===1?'':'s'} match “${trimmed}”.`;
+  }
+
+  /**
+   * Whether a chord may fire this item right now.
+   *
+   * The second clause is the rule that matters: while the menu is open, an item the
+   * filter has hidden is not reachable by its shortcut either. Otherwise typing three
+   * letters could leave a destructive action invisible on screen and live on the
+   * keyboard, which is the exact shape of an accident nobody can explain afterwards.
+   */
+  function chordIsLive(item,menuState){
+    if(!item||!item.enabled)return false;
+    if(!menuState||!menuState.open)return true;
+    return (menuState.visibleIds||[]).includes(item.id);
+  }
+
+  let contextMenu={open:false,ctx:null,opener:null,items:[],visibleIds:[],active:-1};
+
+  function ensureContextMenuUI(){
+    if(!document.body||$('context-menu'))return;
+    const menu=document.createElement('div');
+    menu.id='context-menu';menu.className='context-menu';menu.hidden=true;
+    menu.setAttribute('role','dialog');menu.setAttribute('aria-modal','false');
+    menu.setAttribute('aria-labelledby','context-menu-title');
+
+    const title=document.createElement('p');
+    title.id='context-menu-title';title.className='context-menu-title';
+
+    const row=document.createElement('div');row.className='context-menu-search-row';
+    const input=document.createElement('input');
+    input.id=CONTEXT_MENU_SEARCH_ID;input.type='search';input.className='context-menu-search';
+    input.setAttribute('placeholder','Filter these actions');
+    input.setAttribute('aria-label','Filter the actions in this menu');
+    input.setAttribute('aria-controls','context-menu-list');
+    /* The same anchored builder every other search field on this site gets, bound to this
+     * field's own key so its pattern can never be another field's. */
+    const trigger=document.createElement('button');
+    trigger.type='button';trigger.className='regex-trigger context-menu-regex';
+    trigger.dataset.regexFor=CONTEXT_MENU_SEARCH_ID;
+    trigger.textContent='.*';
+    trigger.setAttribute('aria-label','Open the regular expression builder for this menu’s filter');
+    row.append(input,trigger);
+
+    const status=document.createElement('p');
+    status.className='mode-status mono';status.id=`${CONTEXT_MENU_SEARCH_ID}-mode-status`;
+    status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+
+    const list=document.createElement('ul');
+    list.id='context-menu-list';list.className='context-menu-list';
+    list.setAttribute('role','listbox');list.setAttribute('aria-label','Actions for this element');
+
+    const count=document.createElement('p');
+    count.id='context-menu-count';count.className='context-menu-count';
+    count.setAttribute('role','status');count.setAttribute('aria-live','polite');
+
+    const foot=document.createElement('p');
+    foot.id='context-menu-foot';foot.className='context-menu-foot';
+    foot.dataset.copy='contextMenuHint';
+
+    menu.append(title,row,status,list,count,foot);
+    document.body.append(menu);
+  }
+
+  /**
+   * Where the menu goes: inside the viewport, scrolling rather than overflowing, and
+   * flipped rather than laid over the point it was opened from.
+   *
+   * Fitting the viewport wins over not covering the anchor when the two disagree, because
+   * a menu partly off-screen is unusable while a menu overlapping its own anchor is only
+   * untidy. Pure, so both properties can be asked rather than eyeballed.
+   */
+  function clampMenuPosition({x,y,menuWidth,menuHeight,viewWidth,viewHeight,margin=CONTEXT_MENU_MARGIN}){
+    const available=Math.max(CONTEXT_MENU_MIN_HEIGHT,viewHeight-margin*2);
+    const height=Math.min(menuHeight,available);
+    let left=x,flippedX=false;
+    if(x+menuWidth+margin>viewWidth){left=x-menuWidth;flippedX=true}
+    if(left+menuWidth>viewWidth-margin)left=viewWidth-margin-menuWidth;
+    if(left<margin)left=margin;
+    let top=y,flippedY=false;
+    if(y+height+margin>viewHeight){top=y-height;flippedY=true}
+    if(top+height>viewHeight-margin)top=viewHeight-margin-height;
+    if(top<margin)top=margin;
+    return {left,top,maxHeight:height,scrolls:height<menuHeight,flippedX,flippedY};
+  }
+
+  function renderContextMenuList(){
+    const list=$('context-menu-list');if(!list)return;
+    const query=$(CONTEXT_MENU_SEARCH_ID)?.value||'';
+    const visible=filterMenuItems(contextMenu.items,query,CONTEXT_MENU_SEARCH_ID);
+    contextMenu.visibleIds=visible.map(item=>item.id);
+    list.replaceChildren();
+    visible.forEach((item,index)=>{
+      const li=document.createElement('li');
+      li.id=`context-menu-item-${item.id}`;
+      li.className=`context-menu-item${item.destructive?' is-destructive':''}`;
+      li.dataset.actionId=item.id;
+      li.setAttribute('role','option');
+      li.setAttribute('aria-selected',String(index===contextMenu.active));
+      if(!item.enabled)li.setAttribute('aria-disabled','true');
+      const label=document.createElement('span');
+      label.className='context-menu-label';label.textContent=item.label;
+      li.append(label);
+      if(item.chord){
+        li.setAttribute('aria-keyshortcuts',item.ariaShortcut);
+        const keys=document.createElement('span');
+        keys.className='context-menu-keys';
+        /* Announced once, through aria-keyshortcuts above. The visible copy is decoration
+         * of that fact, so it is hidden from the reading rather than repeated into it. */
+        keys.setAttribute('aria-hidden','true');
+        keys.textContent=item.shortcut;
+        li.append(keys);
+      }
+      if(!item.enabled){
+        const reason=document.createElement('span');
+        reason.className='context-menu-reason';reason.textContent=item.unavailableReason;
+        li.append(reason);
+      }
+      list.append(li);
+    });
+    if(visible.length===0){
+      const empty=document.createElement('li');
+      empty.className='context-menu-empty';empty.textContent=copyText('contextMenuNoMatch')||'Nothing here matches that.';
+      list.append(empty);
+    }
+    if($('context-menu-count'))$('context-menu-count').textContent=menuResultSummary(visible.length,contextMenu.items.length,query);
+    /* Written here as well as carrying its `data-copy` hook, and both are load-bearing:
+     * the hook is what a language or funny-level change re-renders through applyCopy(),
+     * and this call is what puts words in it the first time the menu is ever opened. */
+    if($('context-menu-foot'))$('context-menu-foot').textContent=copyText('contextMenuHint');
+    syncContextMenuActive();
+  }
+
+  function syncContextMenuActive(){
+    const list=$('context-menu-list');if(!list)return;
+    const options=[...(list.querySelectorAll?.('[data-action-id]')||[])];
+    if(contextMenu.active>=options.length)contextMenu.active=options.length-1;
+    options.forEach((node,index)=>node.setAttribute('aria-selected',String(index===contextMenu.active)));
+    const input=$(CONTEXT_MENU_SEARCH_ID);
+    if(!input)return;
+    if(contextMenu.active>=0&&options[contextMenu.active])input.setAttribute('aria-activedescendant',options[contextMenu.active].id);
+    else input.removeAttribute('aria-activedescendant');
+  }
+
+  function openContextMenu({element,x,y,opener}){
+    ensureContextMenuUI();
+    const menu=$('context-menu');if(!menu)return;
+    contextMenu.ctx=contextMenuContext(element);
+    contextMenu.items=menuItemsFor(contextMenu.ctx,navigator.platform);
+    contextMenu.active=-1;
+    contextMenu.opener=opener||element||null;
+    contextMenu.open=true;
+    const title=$('context-menu-title');
+    if(title)title.textContent=contextMenu.ctx.name
+      ? `Actions for “${contextMenu.ctx.name}”`
+      : `Actions for this ${contextMenu.ctx.kind}`;
+    const input=$(CONTEXT_MENU_SEARCH_ID);
+    if(input)input.value='';
+    menu.hidden=false;
+    renderContextMenuList();
+    renderModeStatus(CONTEXT_MENU_SEARCH_ID);
+    positionContextMenu(x,y);
+    applyVocabulary();
+    input?.focus?.();
+  }
+
+  function positionContextMenu(x,y){
+    const menu=$('context-menu');if(!menu||!menu.style)return;
+    const box=menu.getBoundingClientRect?.()||{width:CONTEXT_MENU_WIDTH,height:CONTEXT_MENU_MIN_HEIGHT};
+    const placed=clampMenuPosition({
+      x:Number(x)||0,y:Number(y)||0,
+      menuWidth:box.width||CONTEXT_MENU_WIDTH,
+      menuHeight:box.height||CONTEXT_MENU_MIN_HEIGHT,
+      viewWidth:window.innerWidth||0,viewHeight:window.innerHeight||0,
+    });
+    menu.style.left=`${placed.left}px`;
+    menu.style.top=`${placed.top}px`;
+    menu.style.maxHeight=`${placed.maxHeight}px`;
+  }
+
+  function closeContextMenu({restoreFocus=true}={}){
+    const menu=$('context-menu');
+    if(menu)menu.hidden=true;
+    const opener=contextMenu.opener;
+    contextMenu.open=false;contextMenu.visibleIds=[];contextMenu.active=-1;contextMenu.opener=null;
+    if(restoreFocus)opener?.focus?.();
+  }
+
+  function activateContextMenuItem(id){
+    const item=contextMenu.items.find(entry=>entry.id===id);
+    if(!item||!item.enabled)return;
+    const action=MENU_ACTIONS.find(entry=>entry.id===id);
+    const ctx=contextMenu.ctx;
+    closeContextMenu({restoreFocus:false});
+    action?.run(ctx);
+  }
+
+  function moveContextMenuActive(step){
+    const options=[...($('context-menu-list')?.querySelectorAll?.('[data-action-id]')||[])];
+    if(options.length===0)return;
+    const next=contextMenu.active<0?(step>0?0:options.length-1):contextMenu.active+step;
+    contextMenu.active=Math.max(0,Math.min(options.length-1,next));
+    syncContextMenuActive();
+  }
+
+  function onContextMenuKeydown(event){
+    if(!contextMenu.open)return;
+    const key=String(event.key||'');
+    if(key==='ArrowDown'){event.preventDefault();moveContextMenuActive(1);return}
+    if(key==='ArrowUp'){event.preventDefault();moveContextMenuActive(-1);return}
+    if(key==='Home'){event.preventDefault();contextMenu.active=0;syncContextMenuActive();return}
+    if(key==='End'){event.preventDefault();contextMenu.active=contextMenu.visibleIds.length-1;syncContextMenuActive();return}
+    if(key==='Enter'){
+      const id=contextMenu.visibleIds[contextMenu.active];
+      if(id){event.preventDefault();activateContextMenuItem(id)}
+      return;
+    }
+    if(key==='Escape'){
+      event.preventDefault();
+      const input=$(CONTEXT_MENU_SEARCH_ID);
+      /* Escape clears the filter first and closes only on the second press. Somebody who
+       * has typed four letters into the wrong filter wants those four letters gone, not
+       * the whole menu -- and the menu is one keystroke away either way. */
+      if(input&&input.value){input.value='';renderContextMenuList();return}
+      closeContextMenu({restoreFocus:true});
+    }
+  }
+
+  /** The element a chord is about: whatever the open menu is describing, else what has focus. */
+  function chordContextElement(){
+    if(contextMenu.open&&contextMenu.ctx)return contextMenu.ctx.element;
+    return document.activeElement||document.body;
+  }
+
+  /**
+   * The one live shortcut handler. It walks the same table the labels came from, so a
+   * chord that is printed is a chord that is dispatched, and a chord that is removed
+   * disappears from both halves in the same edit.
+   */
+  function contextMenuChordAction(event,items,menuState){
+    for(const item of items){
+      if(!item.chord||!chordMatches(item.chord,event))continue;
+      if(!chordIsLive(item,menuState))return null;
+      return item;
+    }
+    return null;
+  }
+
+  function handleContextMenuChord(event){
+    /* Ctrl+Shift+F is bound by initNavigation(), which owns it and is covered by the
+     * command-palette contract. Running it a second time here would call showModal() on
+     * an already-open dialog, which throws -- so the table prints that chord and this
+     * dispatcher does not claim it. A contract test evaluates initNavigation's own
+     * literal condition against this chord, so the two cannot drift apart in silence. */
+    const items=menuItemsFor(contextMenuContext(chordContextElement()),navigator.platform)
+      .filter(item=>item.id!=='command-palette');
+    const hit=contextMenuChordAction(event,items,{open:contextMenu.open,visibleIds:contextMenu.visibleIds});
+    if(!hit)return false;
+    event.preventDefault();
+    if(contextMenu.open)activateContextMenuItem(hit.id);
+    else MENU_ACTIONS.find(entry=>entry.id===hit.id)?.run(contextMenuContext(chordContextElement()));
+    return true;
+  }
+
+  function openContextMenuForFocus(){
+    const element=document.activeElement||document.body;
+    const box=element?.getBoundingClientRect?.()||{left:CONTEXT_MENU_MARGIN,bottom:CONTEXT_MENU_MARGIN};
+    openContextMenu({element,x:box.left,y:box.bottom,opener:element});
+  }
+
+  function initContextMenu(){
+    ensureContextMenuUI();
+    const menu=$('context-menu');if(!menu)return;
+    $(CONTEXT_MENU_SEARCH_ID)?.addEventListener('input',()=>renderContextMenuList());
+    menu.addEventListener('keydown',onContextMenuKeydown);
+    $('context-menu-list')?.addEventListener('click',event=>{
+      const option=event.target?.closest?.('[data-action-id]');
+      if(option)activateContextMenuItem(option.dataset.actionId);
+    });
+    /* On `document`, so every rendered element genuinely has one -- rather than a list of
+     * selectors that is correct on the day it is written and wrong by the next screen. */
+    document.addEventListener('contextmenu',event=>{
+      /* Shift+right-click keeps the browser's own menu. A page that takes the context
+       * menu away entirely has taken away "copy image", "search for this", "view source"
+       * and the reader's only escape hatch when ours is the wrong menu. */
+      if(event.shiftKey)return;
+      event.preventDefault();
+      openContextMenu({element:event.target,x:event.clientX,y:event.clientY,opener:event.target});
+    });
+    document.addEventListener('keydown',event=>{
+      if((String(event.key)==='F10'&&event.shiftKey)||String(event.key)==='ContextMenu'){
+        event.preventDefault();openContextMenuForFocus();return;
+      }
+      handleContextMenuChord(event);
+    });
+    document.addEventListener('pointerdown',event=>{
+      if(contextMenu.open){
+        if(menu.contains?.(event.target))return;
+        /* The regex builder opens as a modal over this menu; a click into it must not be
+         * read as a click away from the menu that owns the field it is building for. */
+        if($('regex-dialog')?.open)return;
+        closeContextMenu({restoreFocus:false});
+        return;
+      }
+      if(event.pointerType==='mouse')return;
+      startLongPress(event);
+    },true);
+    ['pointerup','pointercancel','scroll'].forEach(type=>document.addEventListener(type,cancelLongPress,true));
+    document.addEventListener('pointermove',event=>{
+      if(!longPress.timer)return;
+      if(Math.abs(event.clientX-longPress.x)>CONTEXT_MENU_LONG_PRESS_SLOP||Math.abs(event.clientY-longPress.y)>CONTEXT_MENU_LONG_PRESS_SLOP)cancelLongPress();
+    },true);
+  }
+
+  /** Touch and pen get the same menu through a long press, because they have no right button. */
+  let longPress={timer:null,x:0,y:0};
+  function startLongPress(event){
+    cancelLongPress();
+    const {clientX:x,clientY:y,target}=event;
+    longPress.x=x;longPress.y=y;
+    longPress.timer=setTimeout(()=>{longPress.timer=null;openContextMenu({element:target,x,y,opener:target})},CONTEXT_MENU_LONG_PRESS_MS);
+  }
+  function cancelLongPress(){if(longPress.timer){clearTimeout(longPress.timer);longPress.timer=null}}
 
   function renderPalette(query=''){const list=$('palette-results');if(!list)return;const pages=[['Home','index.html'],['Product','product.html'],['Documentation','documentation.html'],['Downloads','downloads.html'],['Status','status.html'],['Settings','settings.html']],items=[...pages,...DESTINATIONS.map(item=>[item.name,`documentation.html#destination-${item.id}`])].filter(([name])=>matchText(name,query,'palette-search'));list.innerHTML=items.length?items.map(([name,path])=>`<a class="palette-result" role="option" href="${BASE}${path}"><strong>${escapeHtml(name)}</strong><span>Open destination</span></a>`).join(''):'<p>No matching commands.</p>'}
   function openPalette(){const dialog=$('command-palette');if(!dialog)return;dialog.showModal();$('palette-search').value='';renderPalette();applyVocabulary();setTimeout(()=>$('palette-search').focus(),0)}
@@ -2830,6 +3448,6 @@
     sync();
   }
 
-  function init(){ensureAttentionUI();initSchoolWatch();applyState();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initUpdates();initTimeAwareness();initMomentum();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
+  function init(){ensureAttentionUI();initSchoolWatch();ensureContextMenuUI();applyState();initContextMenu();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initUpdates();initTimeAwareness();initMomentum();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
   init();
 })();
