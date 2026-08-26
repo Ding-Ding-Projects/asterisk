@@ -142,9 +142,16 @@ export interface ControlBinding {
   multi?: Readonly<Record<string, Readonly<Record<string, string>>>>;
 }
 
-/** A section name that cannot break the file it is written into. */
+/** A section name that cannot break the file it is written into.
+ *
+ * `:` and `*` are both included for dundi.conf's own peer sections -- named after a
+ * colon-separated entityid such as `[00:50:8B:F3:75:BB]` (dundi.conf.sample line 239), or
+ * the literal `[*]` peer that matches any unspecified entity (line 288). Neither character
+ * can break a `[name]` header or start a new section the way `[`, `]`, a newline or a
+ * quote could, so widening the charset by exactly these two costs nothing for every
+ * existing binding, none of which has ever used either. */
 function usableSectionName(value: unknown): string | undefined {
-  return typeof value === 'string' && /^[A-Za-z0-9_-]{1,79}$/u.test(value) ? value : undefined;
+  return typeof value === 'string' && /^(\*|[A-Za-z0-9:_-]{1,79})$/u.test(value) ? value : undefined;
 }
 
 /**
@@ -397,6 +404,115 @@ export const CONTROL_BINDINGS: Readonly<Record<string, ReadonlyArray<ControlBind
     { ...st('ix_accountcode', 'peer', 'accountcode'), sectionType: ['peer', 'friend'], sectionTypeFrom: 'ix_type' },  // accountcode=
     { ...st('ix_mailbox', 'peer', 'mailbox'), sectionType: ['peer', 'friend'], sectionTypeFrom: 'ix_type' },  // mailbox=
     { ...lt('ix_codecs', 'peer', 'allow'), sectionType: ['peer', 'friend'], sectionTypeFrom: 'ix_type' },  // allow=, written after disallow=all as the design says
+  ],
+  // configs/samples/chan_dahdi.conf.sample. Every key below lives in the [channels]
+  // section, whose settings apply cumulatively to every "channel =>" directive that
+  // follows -- so this table reads/writes the FIRST occurrence of each key (the same
+  // "first match wins" rule `applyControlValues` already documents for every other
+  // fixed-section binding), which is where installers conventionally put the shared
+  // defaults, before any "channel =>" line. Adding or removing a channel span itself is
+  // NOT expressible here (the key "channel" repeats, with a different value each time,
+  // rather than carrying a list) -- App.tsx's onDahdiAddChannel/onDahdiRemoveChannel do
+  // that directly against the parsed ConfigValue.
+  dahdi: [
+    s('da_context', 'channels', 'context'),  // line 56: context=public
+    s('da_language', 'channels', 'language'),  // line 52: ;language=en
+    s('da_switchtype', 'channels', 'switchtype'),  // line 68: ;switchtype=euroisdn
+    s('da_signalling', 'channels', 'signalling'),  // line 514: ;signalling=fxo_ls
+    b('da_usecallerid', 'channels', 'usecallerid'),  // line 576: usecallerid=yes
+    b('da_busydetect', 'channels', 'busydetect'),  // line 1097: ;busydetect=yes
+    s('da_echocancel', 'channels', 'echocancel'),  // line 873: echocancel=yes
+    b('da_echocancelbridged', 'channels', 'echocancelwhenbridged'),  // line 888: echocancelwhenbridged=yes
+    b('da_immediate', 'channels', 'immediate'),  // line 1014: ;immediate=yes
+    s('da_rxgain', 'channels', 'rxgain'),  // line 949: ;rxgain=2.0
+    s('da_txgain', 'channels', 'txgain'),  // line 950: ;txgain=3.0
+    s('da_group', 'channels', 'group'),  // line 972: group=1
+  ],
+  // configs/samples/sla.conf.sample. attemptcallerid is the file's only [general] key
+  // (line 10). Every trunk/station field is bound through sectionFrom, picked by the
+  // name typed into sl_trunkname/sl_stationname, the same mechanism db_odbcname gives
+  // res_odbc.conf's per-connection fields (see CONTROL_BINDINGS.dbrealtime below) --
+  // sla.conf names each trunk and station after an arbitrary section, not a fixed one.
+  // The station's own repeated "trunk=" assignment lines are NOT expressible here for
+  // the same reason chan_dahdi's "channel =>" directives are not: App.tsx's
+  // onSlaStationTrunkAdd/onSlaStationTrunkRemove edit those directly.
+  sla: [
+    b('sl_attemptcid', 'general', 'attemptcallerid'),  // line 10: ;attemptcallerid=no
+    sFrom('sl_trunktype', 'sl_trunkname', 'type'),  // line 33: type=trunk
+    sFrom('sl_trunkdevice', 'sl_trunkname', 'device'),  // line 35: device=DAHDI/3
+    sFrom('sl_trunkautocontext', 'sl_trunkname', 'autocontext'),  // line 42: autocontext=line1
+    sFrom('sl_trunkringtimeout', 'sl_trunkname', 'ringtimeout'),  // line 47: ;ringtimeout=30
+    bFrom('sl_trunkbarge', 'sl_trunkname', 'barge'),  // line 50: ;barge=no
+    sFrom('sl_trunkhold', 'sl_trunkname', 'hold'),  // line 54: ;hold=private (open/private)
+    sFrom('sl_stationtype', 'sl_stationname', 'type'),  // line 85: type=station
+    sFrom('sl_stationdevice', 'sl_stationname', 'device'),  // line 87: device=SIP/station1
+    sFrom('sl_stationautocontext', 'sl_stationname', 'autocontext'),  // line 89: autocontext=sla_stations
+    sFrom('sl_stationringtimeout', 'sl_stationname', 'ringtimeout'),  // line 94: ;ringtimeout=10
+    sFrom('sl_stationringdelay', 'sl_stationname', 'ringdelay'),  // line 97: ;ringdelay=10
+    sFrom('sl_stationhold', 'sl_stationname', 'hold'),  // line 100: ;hold=private (open/private)
+  ],
+  // configs/samples/dundi.conf.sample. The contact/network/query/outgoing-call fields
+  // below all live in [general], checked per key against the sample. Peer fields are
+  // bound through sectionFrom, picked by the entityid typed into du_peereid -- dundi.conf
+  // names each peer's section after its own entityid, an arbitrary string, not a fixed
+  // one. The [mappings] section is NOT expressible through this table at all: it varies
+  // its KEY (the DUNDi context) rather than its section, the same shape
+  // extconfig.conf's family mappings are (see the long comment above
+  // CONTROL_BINDINGS.dbrealtime) -- App.tsx's du_map* handlers read/write it directly
+  // through control-plane/realtime-mappings-model.ts's findEntry/writeEntry/removeEntry.
+  dundi: [
+    s('du_department', 'general', 'department'),  // line 15: ;department=Your Department
+    s('du_organization', 'general', 'organization'),  // line 16: ;organization=Your Company, Inc.
+    s('du_locality', 'general', 'locality'),  // line 17: ;locality=Your City
+    s('du_stateprov', 'general', 'stateprov'),  // line 18: ;stateprov=ST
+    s('du_country', 'general', 'country'),  // line 19: ;country=US
+    s('du_email', 'general', 'email'),  // line 20: ;email=your@email.com
+    s('du_phone', 'general', 'phone'),  // line 21: ;phone=+12565551212
+    s('du_bindaddr', 'general', 'bindaddr'),  // line 29: ;bindaddr=0.0.0.0
+    n('du_port', 'general', 'port'),  // line 30: ;port=4520
+    s('du_tos', 'general', 'tos'),  // line 33: ;tos=ef
+    s('du_entityid', 'general', 'entityid'),  // line 41: ;entityid=00:07:E9:3B:76:60
+    n('du_cachetime', 'general', 'cachetime'),  // line 46: ;cachetime=3600
+    n('du_ttl', 'general', 'ttl'),  // line 52: ttl=32
+    s('du_autokill', 'general', 'autokill'),  // line 62: autokill=yes
+    b('du_storehistory', 'general', 'storehistory'),  // line 77: ;storehistory=yes
+    s('du_outgoingsiptech', 'general', 'outgoing_sip_tech'),  // line 83: ;outgoing_sip_tech=pjsip
+    s('du_pjsipendpoint', 'general', 'pjsip_outgoing_endpoint'),  // line 89: ;pjsip_outgoing_endpoint=outgoing
+    sFrom('du_peermodel', 'du_peereid', 'model'),  // line 240: model = symmetric
+    sFrom('du_peerhost', 'du_peereid', 'host'),  // line 181: host - What their host is
+    sFrom('du_peerport', 'du_peereid', 'port'),  // line 183: port - default 4520
+    sFrom('du_peerinkey', 'du_peereid', 'inkey'),  // line 242: inkey = digium
+    sFrom('du_peeroutkey', 'du_peereid', 'outkey'),  // line 243: outkey = misery
+    sFrom('du_peerorder', 'du_peereid', 'order'),  // line 187-191: primary/secondary/tertiary/quartiary
+    sFrom('du_peerinclude', 'du_peereid', 'include'),  // line 244: include = e164
+    sFrom('du_peerpermit', 'du_peereid', 'permit'),  // line 245: permit = e164
+    sFrom('du_peerdeny', 'du_peereid', 'deny'),  // line 207-209: deny -   Denies this peer
+    sFrom('du_peerqualify', 'du_peereid', 'qualify'),  // line 246: qualify = yes
+    bFrom('du_peerregister', 'du_peereid', 'register'),  // line 281: register = yes
+    sFrom('du_peerprecache', 'du_peereid', 'precache'),  // line 267/279: precache = inbound/outbound
+  ],
+  // configs/samples/calendar.conf.sample. Every calendar is its own named [section] --
+  // there is no [general] section in this file at all -- so every field is bound through
+  // sectionFrom, picked by the name typed into ca_name, the same mechanism db_odbcname
+  // gives res_odbc.conf. ca_secret carries NO binding, on purpose: a real account
+  // password must never travel through an ordinary binding into renderer state, from
+  // where an export, history entry or screenshot could reach it -- App.tsx takes it,
+  // writes it once, and blanks the field in the same step, exactly like db_pgpassword
+  // and iax.conf's ix_secret_set before it.
+  calendar: [
+    sFrom('ca_type', 'ca_name', 'type'),  // line 2: type = ical
+    sFrom('ca_url', 'ca_name', 'url'),  // line 3: url = https://example.com/...
+    sFrom('ca_user', 'ca_name', 'user'),  // line 4: user = jdoe
+    sFrom('ca_refresh', 'ca_name', 'refresh'),  // line 6: refresh = 15
+    sFrom('ca_timeframe', 'ca_name', 'timeframe'),  // line 7: timeframe = 60
+    bFrom('ca_fetchagain', 'ca_name', 'fetch_again_at_reload'),  // line 9: fetch_again_at_reload = no
+    sFrom('ca_autoreminder', 'ca_name', 'autoreminder'),  // line 25: autoreminder = 10
+    sFrom('ca_channel', 'ca_name', 'channel'),  // line 27: channel = SIP/60001
+    sFrom('ca_context', 'ca_name', 'context'),  // line 28: context = default
+    sFrom('ca_extension', 'ca_name', 'extension'),  // line 29: extension = 123
+    sFrom('ca_app', 'ca_name', 'app'),  // line 33: app = Playback
+    sFrom('ca_appdata', 'ca_name', 'appdata'),  // line 34: appdata = tt-weasels
+    sFrom('ca_waittime', 'ca_name', 'waittime'),  // line 36: waittime = 30
   ],
   // configs/samples/http.conf.sample — every key below is in [general] there, checked
   // by hand against the file in this checkout rather than taken from a proposal.
@@ -1177,6 +1293,63 @@ const SCREEN_CONTROL_IDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     'ix_type', 'ix_host', 'ix_username', 'ix_port', 'ix_transfer', 'ix_qualify', 'ix_trunk',
     'ix_calltoken', 'ix_codecs', 'ix_context', 'ix_accountcode', 'ix_mailbox', 'ix_secret_set',
     'ix_save',
+  ],
+  /* chan_dahdi.conf. Every one of the twelve [channels] fields is bound in
+   * CONTROL_BINDINGS.dahdi above; da_savegeneral is the write action (App.tsx's
+   * onSaveDahdiGeneral). da_spans is a live status readout (`action:'dahdi-spans-status'`);
+   * da_spec, da_addspan and da_removespan drive App.tsx's onDahdiAddChannel/
+   * onDahdiRemoveChannel directly, since a repeated "channel =>" directive is not a
+   * single-key binding this table can express. */
+  dahdi: [
+    'da_context', 'da_language', 'da_switchtype', 'da_signalling', 'da_usecallerid',
+    'da_busydetect', 'da_echocancel', 'da_echocancelbridged', 'da_immediate', 'da_rxgain',
+    'da_txgain', 'da_group', 'da_savegeneral', 'da_spans', 'da_spec', 'da_addspan', 'da_removespan',
+  ],
+  /* sla.conf. sl_attemptcid and every sl_trunk-/sl_station-prefixed field bound in
+   * CONTROL_BINDINGS.sla above; sl_trunkname/sl_stationname are the sectionFrom pickers
+   * (read via `values['sl_trunkname']`/`values['sl_stationname']`, same shape as
+   * db_odbcname); sl_trunkload/sl_trunksave/sl_stationload/sl_stationsave are the four
+   * write/read actions. The station's own "trunk=" list is not a single-key binding --
+   * sl_stationtrunkline/sl_stationtrunkadd/sl_stationtrunkremove/sl_stationtrunks drive
+   * App.tsx's onSlaStationTrunkAdd/onSlaStationTrunkRemove and the live status readout
+   * directly, the same shape chan_dahdi's channel spans above use. */
+  sla: [
+    'sl_attemptcid',
+    'sl_trunkname', 'sl_trunkload', 'sl_trunktype', 'sl_trunkdevice', 'sl_trunkautocontext',
+    'sl_trunkringtimeout', 'sl_trunkbarge', 'sl_trunkhold', 'sl_trunksave',
+    'sl_stationname', 'sl_stationload', 'sl_stationtype', 'sl_stationdevice',
+    'sl_stationautocontext', 'sl_stationringtimeout', 'sl_stationringdelay', 'sl_stationhold',
+    'sl_stationsave',
+    'sl_stationtrunks', 'sl_stationtrunkline', 'sl_stationtrunkadd', 'sl_stationtrunkremove',
+  ],
+  /* dundi.conf. The seventeen [general] fields and the twelve peer fields are bound in
+   * CONTROL_BINDINGS.dundi above; du_savegeneral is the general-settings write action.
+   * du_peereid is the sectionFrom picker (read via `values['du_peereid']`);
+   * du_peerload/du_peersave are its two actions. [mappings] varies its KEY rather than
+   * its section, which this table cannot express at all -- du_mapname/du_mapvalue/
+   * du_mapload/du_mapsave/du_mapremove drive App.tsx's onDundiMapping* handlers directly
+   * through control-plane/realtime-mappings-model.ts, the same shape the Database
+   * backends screen's db_family/db_driver/db_database/db_table/db_priority group uses
+   * for extconfig.conf below. */
+  dundi: [
+    'du_department', 'du_organization', 'du_locality', 'du_stateprov', 'du_country', 'du_email',
+    'du_phone', 'du_bindaddr', 'du_port', 'du_tos', 'du_entityid', 'du_cachetime', 'du_ttl',
+    'du_autokill', 'du_storehistory', 'du_outgoingsiptech', 'du_pjsipendpoint', 'du_savegeneral',
+    'du_mapname', 'du_mapload', 'du_mapvalue', 'du_mapsave', 'du_mapremove',
+    'du_peereid', 'du_peerload', 'du_peermodel', 'du_peerhost', 'du_peerport', 'du_peerinkey',
+    'du_peeroutkey', 'du_peerorder', 'du_peerinclude', 'du_peerpermit', 'du_peerdeny',
+    'du_peerqualify', 'du_peerregister', 'du_peerprecache', 'du_peersave',
+  ],
+  /* calendar.conf. Every ca_* field except ca_name and ca_secret is bound in
+   * CONTROL_BINDINGS.calendar above through sectionFrom, picked by ca_name (read via
+   * `values['ca_name']`, same shape as db_odbcname). ca_secret is write-only (see the
+   * long comment above CONTROL_BINDINGS.calendar); ca_secretstatus is its live
+   * password-on-target readout (`action:'calendar-secret-status'`); ca_load/ca_save are
+   * the two actions. */
+  calendar: [
+    'ca_name', 'ca_load', 'ca_type', 'ca_url', 'ca_user', 'ca_secretstatus', 'ca_secret',
+    'ca_refresh', 'ca_timeframe', 'ca_fetchagain', 'ca_autoreminder', 'ca_channel', 'ca_context',
+    'ca_extension', 'ca_app', 'ca_appdata', 'ca_waittime', 'ca_save',
   ],
   live: ['m_spy', 'm_format', 'm_beep', 'm_retain'],
   endpoints: [

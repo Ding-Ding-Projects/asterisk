@@ -30,7 +30,7 @@ import {
   toConfigValue, validateRule as validateAclRule, type AclModel,
 } from '../../../control-plane/acl-model';
 import {
-  findEntry as findConfigEntry, writeEntry as writeConfigEntry,
+  findEntry as findConfigEntry, writeEntry as writeConfigEntry, removeEntry as removeConfigEntry,
   findRealtimeMapping, writeRealtimeMapping, removeRealtimeMapping,
   findSorceryMapping, writeSorceryMapping, removeSorceryMapping,
   usableMappingName,
@@ -287,6 +287,16 @@ const PROMPT_ACCEPT = '.wav,.gsm,.ulaw,.alaw,.g722,.sln,.sln16,.ogg,.opus';
 const TABLE_SCREENS = Object.entries(SCREENS as Record<string, { table?: { rows: string[][] } }>)
   .filter(([, screen]) => Array.isArray(screen.table?.rows))
   .map(([id]) => id);
+
+/** A dundi.conf peer section name safe to write as a literal `[name]` header: either the
+ *  special "*" peer that matches any unspecified entity (dundi.conf.sample line 288), or a
+ *  colon-separated entity id such as "00:50:8B:F3:75:BB" (line 239). `usableSectionName`'s
+ *  own charset in control-keys.ts refuses the colon, which a real entity id always carries,
+ *  so this widens it by exactly that one character rather than reusing a pattern that would
+ *  reject every genuine dundi peer name. */
+function usableDundiPeerName(value: unknown): string | undefined {
+  return typeof value === 'string' && /^(\*|[A-Za-z0-9:_-]{1,79})$/u.test(value) ? value : undefined;
+}
 
 /** The generated shell is untyped; this is the surface the console builds on. */
 interface Shell {
@@ -3107,6 +3117,9 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'cel-status') return this.celBackendStatus();
     if (action === 'db-pgsql-password-status') return this.dbPgsqlPasswordStatusLine();
     if (action === 'db-odbc-password-status') return this.dbOdbcPasswordStatusLine();
+    if (action === 'dahdi-spans-status') return this.dahdiSpansStatus();
+    if (action === 'sla-station-trunks-status') return this.slaStationTrunksStatus();
+    if (action === 'calendar-secret-status') return this.calendarSecretStatusLine();
     return '';
   };
 
@@ -3211,6 +3224,23 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'security-stir-save') { void this.onSaveStirShaken(); return; }
     if (action === 'httpd-save') { void this.onSaveHttp(); return; }
     if (action === 'iaxpeers-save') { void this.onSaveIaxPeer(); return; }
+    if (action === 'dahdi-save-general') { void this.onSaveDahdiGeneral(); return; }
+    if (action === 'dahdi-add-channel') { void this.onDahdiAddChannel(); return; }
+    if (action === 'dahdi-remove-channel') { void this.onDahdiRemoveChannel(); return; }
+    if (action === 'sla-trunk-load') { this.onLoadSlaTrunk(); return; }
+    if (action === 'sla-trunk-save') { void this.onSaveSlaTrunk(); return; }
+    if (action === 'sla-station-load') { this.onLoadSlaStation(); return; }
+    if (action === 'sla-station-save') { void this.onSaveSlaStation(); return; }
+    if (action === 'sla-station-trunk-add') { void this.onSlaStationTrunkAdd(); return; }
+    if (action === 'sla-station-trunk-remove') { void this.onSlaStationTrunkRemove(); return; }
+    if (action === 'dundi-save-general') { void this.onSaveDundiGeneral(); return; }
+    if (action === 'dundi-mapping-load') { this.onLoadDundiMapping(); return; }
+    if (action === 'dundi-mapping-save') { void this.onSaveDundiMapping(); return; }
+    if (action === 'dundi-mapping-remove') { void this.onRemoveDundiMapping(); return; }
+    if (action === 'dundi-peer-load') { this.onLoadDundiPeer(); return; }
+    if (action === 'dundi-peer-save') { void this.onSaveDundiPeer(); return; }
+    if (action === 'calendar-load') { this.onLoadCalendar(); return; }
+    if (action === 'calendar-save') { void this.onSaveCalendar(); return; }
     if (action === 'cdr-save') { void this.onSaveCdr(); return; }
     if (action === 'cel-save') { void this.onSaveCel(); return; }
     if (action === 'cel-odbc-load') { this.onLoadCelOdbc(); return; }
@@ -4654,6 +4684,428 @@ It is shown once. The phone needs it to register.`);
 
 It is shown once. The far end needs it to register.`);
     }
+  };
+
+  // ---------------------------------------------------------------- Hardware trunks (DAHDI) screen
+
+  /** "Save these defaults": chan_dahdi.conf's [channels] section holds cumulative
+   *  settings that apply to every "channel =>" line below wherever they were last set --
+   *  see CONTROL_BINDINGS.dahdi's own header comment for why this table reads and writes
+   *  the FIRST occurrence of each key. */
+  private static readonly DAHDI_CONTROLS = [
+    'da_context', 'da_language', 'da_switchtype', 'da_signalling', 'da_usecallerid',
+    'da_busydetect', 'da_echocancel', 'da_echocancelbridged', 'da_immediate', 'da_rxgain',
+    'da_txgain', 'da_group',
+  ] as const;
+
+  onSaveDahdiGeneral = async (): Promise<void> => {
+    const current = this.configs.dahdi?.state === 'read' ? this.configs.dahdi.value : undefined;
+    if (!current) { this.fire('Not written', 'chan_dahdi.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.DAHDI_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('dahdi', current, changes);
+    await this.writeConfigResource(
+      this.configs.dahdi?.resource ?? (resourceForFile('chan_dahdi.conf') as string),
+      next,
+      'chan_dahdi.conf [channels] defaults updated on the target.',
+      'Hardware trunk defaults saved',
+      () => { delete this.configs.dahdi; this.seeded.delete('dahdi'); },
+    );
+  };
+
+  /** Read by the compiled `text`-kind control marked `action:'dahdi-spans-status'`: every
+   *  "channel =>" value currently declared in [channels], in file order. */
+  dahdiSpansStatus = (): string => {
+    const value = this.configs.dahdi?.state === 'read' ? this.configs.dahdi.value : undefined;
+    if (!value) return 'Read chan_dahdi.conf to check.';
+    const channels = value.find((section) => section.name === 'channels');
+    const spans = (channels?.entries ?? []).filter((entry) => entry.key === 'channel').map((entry) => entry.value);
+    return spans.length > 0 ? spans.join(', ') : 'No "channel =>" directives declared yet.';
+  };
+
+  /** "Add this span": appends a new "channel =>" directive to the end of [channels],
+   *  after whatever defaults are currently saved there -- exactly how
+   *  chan_dahdi.conf.sample's own examples read: settings first, then the channel(s)
+   *  they apply to (e.g. lines 1403-1419). Not expressible through CONTROL_BINDINGS at
+   *  all: the key "channel" repeats, with a different value on every line, rather than
+   *  carrying a list at one key the way `repeated: true` needs. */
+  onDahdiAddChannel = async (): Promise<void> => {
+    const current = this.configs.dahdi?.state === 'read' ? this.configs.dahdi.value : undefined;
+    if (!current) { this.fire('Not written', 'chan_dahdi.conf has not been read from the target yet.'); return; }
+    const spec = String((this.state as { values: Record<string, unknown> }).values['da_spec'] ?? '').trim();
+    if (!spec) { this.fire('Not written', 'Type a channel number or range first, e.g. "1-8".'); return; }
+    const sections = current.map((section) => ({ name: section.name, entries: [...section.entries] }));
+    let channels = sections.find((section) => section.name === 'channels');
+    if (!channels) { channels = { name: 'channels', entries: [] }; sections.push(channels); }
+    (channels.entries as { key: string; value: string }[]).push({ key: 'channel', value: spec });
+    await this.writeConfigResource(
+      this.configs.dahdi?.resource ?? (resourceForFile('chan_dahdi.conf') as string),
+      sections,
+      `chan_dahdi.conf: channel => ${spec} added.`,
+      `Channel ${spec} added`,
+      () => { delete this.configs.dahdi; this.seeded.delete('dahdi'); },
+    );
+  };
+
+  /** "Remove this span": deletes every "channel =>" entry in [channels] whose value
+   *  matches exactly, leaving every other directive and setting untouched. A spec that
+   *  matches nothing is reported rather than silently doing nothing. */
+  onDahdiRemoveChannel = async (): Promise<void> => {
+    const current = this.configs.dahdi?.state === 'read' ? this.configs.dahdi.value : undefined;
+    if (!current) { this.fire('Not removed', 'chan_dahdi.conf has not been read from the target yet.'); return; }
+    const spec = String((this.state as { values: Record<string, unknown> }).values['da_spec'] ?? '').trim();
+    if (!spec) { this.fire('Not removed', 'Type the exact channel number or range to remove first.'); return; }
+    const channels = current.find((section) => section.name === 'channels');
+    const matches = channels?.entries.filter((entry) => entry.key === 'channel' && entry.value === spec).length ?? 0;
+    if (matches === 0) { this.toast(`No "channel => ${spec}" directive in chan_dahdi.conf to remove.`); return; }
+    const next = current.map((section) => (
+      section.name === 'channels'
+        ? { name: section.name, entries: section.entries.filter((entry) => !(entry.key === 'channel' && entry.value === spec)) }
+        : section
+    ));
+    await this.writeConfigResource(
+      this.configs.dahdi?.resource ?? (resourceForFile('chan_dahdi.conf') as string),
+      next,
+      `chan_dahdi.conf: channel => ${spec} removed.`,
+      `Channel ${spec} removed`,
+      () => { delete this.configs.dahdi; this.seeded.delete('dahdi'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Shared line appearances (SLA) screen
+
+  private static readonly SLA_TRUNK_CONTROLS = [
+    'sl_trunktype', 'sl_trunkdevice', 'sl_trunkautocontext', 'sl_trunkringtimeout', 'sl_trunkbarge', 'sl_trunkhold',
+  ] as const;
+  private static readonly SLA_STATION_CONTROLS = [
+    'sl_stationtype', 'sl_stationdevice', 'sl_stationautocontext', 'sl_stationringtimeout',
+    'sl_stationringdelay', 'sl_stationhold',
+  ] as const;
+
+  /** "Load from target" on the Trunk group: reads the named [section]'s current trunk
+   *  fields out of sla.conf (already fetched by `refresh()` above) into the fields. A
+   *  name matching nothing is not a refusal -- sla.conf.sample documents an arbitrary
+   *  name per trunk, so a name typed for one that does not exist yet is simply a trunk
+   *  Save has not created. */
+  onLoadSlaTrunk = (): void => {
+    const value = this.configs.sla?.state === 'read' ? this.configs.sla.value : undefined;
+    if (!value) { this.toast('sla.conf has not finished reading yet -- press Load again in a moment.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['sl_trunkname'] ?? '').trim();
+    if (!name) { this.toast('Type a trunk name first.'); return; }
+    const found = value.find((section) => section.name === name);
+    if (!found) { this.toast(`No [${name}] section in sla.conf yet -- Save will create it.`); return; }
+    const bound = readControlValues('sla', value, {}, { sl_trunkname: name });
+    this.setState({ values: { ...state.values, ...bound } } as never);
+    this.toast(`Loaded [${name}] from sla.conf.`);
+  };
+
+  /** "Save this trunk": writes every trunk field into the named [section], creating it
+   *  (appended to the file) if it does not exist yet -- sla.conf.sample line 22-23
+   *  requires every trunk to be declared before any station, so this should run before
+   *  a station names it in its own "trunk=" list below. */
+  onSaveSlaTrunk = async (): Promise<void> => {
+    const current = this.configs.sla?.state === 'read' ? this.configs.sla.value : undefined;
+    if (!current) { this.fire('Not written', 'sla.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = usableMappingName(String(state.values['sl_trunkname'] ?? '').trim());
+    if (!name) { this.fire('Not written', 'Type a valid trunk name first -- letters, digits, underscore or hyphen only.'); return; }
+    const changes: Record<string, unknown> = { sl_trunkname: name };
+    for (const id of App.SLA_TRUNK_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('sla', current, changes);
+    await this.writeConfigResource(
+      this.configs.sla?.resource ?? (resourceForFile('sla.conf') as string),
+      next,
+      `sla.conf updated on the target: [${name}].`,
+      `Trunk [${name}] saved`,
+      () => { delete this.configs.sla; this.seeded.delete('sla'); },
+    );
+  };
+
+  /** "Load from target" on the Station group, the same shape as `onLoadSlaTrunk` above. */
+  onLoadSlaStation = (): void => {
+    const value = this.configs.sla?.state === 'read' ? this.configs.sla.value : undefined;
+    if (!value) { this.toast('sla.conf has not finished reading yet -- press Load again in a moment.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['sl_stationname'] ?? '').trim();
+    if (!name) { this.toast('Type a station name first.'); return; }
+    const found = value.find((section) => section.name === name);
+    if (!found) { this.toast(`No [${name}] section in sla.conf yet -- Save will create it.`); return; }
+    const bound = readControlValues('sla', value, {}, { sl_stationname: name });
+    this.setState({ values: { ...state.values, ...bound } } as never);
+    this.toast(`Loaded [${name}] from sla.conf.`);
+  };
+
+  /** "Save this station", the same shape as `onSaveSlaTrunk` above. The station's own
+   *  "trunk=" assignment list is saved separately below -- it is a repeated key, which
+   *  this screen's ordinary bound fields cannot carry. */
+  onSaveSlaStation = async (): Promise<void> => {
+    const current = this.configs.sla?.state === 'read' ? this.configs.sla.value : undefined;
+    if (!current) { this.fire('Not written', 'sla.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = usableMappingName(String(state.values['sl_stationname'] ?? '').trim());
+    if (!name) { this.fire('Not written', 'Type a valid station name first -- letters, digits, underscore or hyphen only.'); return; }
+    const changes: Record<string, unknown> = { sl_stationname: name };
+    for (const id of App.SLA_STATION_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('sla', current, changes);
+    await this.writeConfigResource(
+      this.configs.sla?.resource ?? (resourceForFile('sla.conf') as string),
+      next,
+      `sla.conf updated on the target: [${name}].`,
+      `Station [${name}] saved`,
+      () => { delete this.configs.sla; this.seeded.delete('sla'); },
+    );
+  };
+
+  /** Read by the compiled `text`-kind control marked `action:'sla-station-trunks-status'`:
+   *  every "trunk=" value currently declared in the station named by sl_stationname, in
+   *  file order. */
+  slaStationTrunksStatus = (): string => {
+    const value = this.configs.sla?.state === 'read' ? this.configs.sla.value : undefined;
+    const name = String((this.state as { values: Record<string, unknown> }).values['sl_stationname'] ?? '').trim();
+    if (!value) return 'Load a station to check.';
+    if (!name) return 'Type a station name first.';
+    const station = value.find((section) => section.name === name);
+    const trunks = (station?.entries ?? []).filter((entry) => entry.key === 'trunk').map((entry) => entry.value);
+    return trunks.length > 0 ? trunks.join(', ') : `[${name}] lists no trunks yet.`;
+  };
+
+  /** "Add to this station": appends a "trunk=" line to the station named by
+   *  sl_stationname, at the end of its existing trunk list -- sla.conf.sample lines
+   *  113-126 say the order is significant, matching phone button order. Not expressible
+   *  through CONTROL_BINDINGS: the key "trunk" repeats within one station's section. */
+  onSlaStationTrunkAdd = async (): Promise<void> => {
+    const current = this.configs.sla?.state === 'read' ? this.configs.sla.value : undefined;
+    if (!current) { this.fire('Not written', 'sla.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['sl_stationname'] ?? '').trim();
+    if (!name) { this.fire('Not written', 'Type a station name first.'); return; }
+    const line = String(state.values['sl_stationtrunkline'] ?? '').trim();
+    if (!line) { this.fire('Not written', 'Type a trunk assignment first, e.g. "line1" or "line3,ringdelay=5".'); return; }
+    const sections = current.map((section) => ({ name: section.name, entries: [...section.entries] }));
+    let station = sections.find((section) => section.name === name);
+    if (!station) { this.fire('Not written', `No [${name}] section in sla.conf yet -- save the station first.`); return; }
+    (station.entries as { key: string; value: string }[]).push({ key: 'trunk', value: line });
+    await this.writeConfigResource(
+      this.configs.sla?.resource ?? (resourceForFile('sla.conf') as string),
+      sections,
+      `sla.conf: [${name}] trunk=${line} added.`,
+      `Trunk assignment added to [${name}]`,
+      () => { delete this.configs.sla; this.seeded.delete('sla'); },
+    );
+  };
+
+  /** "Remove from this station": deletes every "trunk=" entry in the named station whose
+   *  value matches exactly. */
+  onSlaStationTrunkRemove = async (): Promise<void> => {
+    const current = this.configs.sla?.state === 'read' ? this.configs.sla.value : undefined;
+    if (!current) { this.fire('Not removed', 'sla.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['sl_stationname'] ?? '').trim();
+    if (!name) { this.fire('Not removed', 'Type a station name first.'); return; }
+    const line = String(state.values['sl_stationtrunkline'] ?? '').trim();
+    if (!line) { this.fire('Not removed', 'Type the exact trunk assignment to remove first.'); return; }
+    const station = current.find((section) => section.name === name);
+    const matches = station?.entries.filter((entry) => entry.key === 'trunk' && entry.value === line).length ?? 0;
+    if (matches === 0) { this.toast(`[${name}] has no "trunk=${line}" assignment to remove.`); return; }
+    const next = current.map((section) => (
+      section.name === name
+        ? { name: section.name, entries: section.entries.filter((entry) => !(entry.key === 'trunk' && entry.value === line)) }
+        : section
+    ));
+    await this.writeConfigResource(
+      this.configs.sla?.resource ?? (resourceForFile('sla.conf') as string),
+      next,
+      `sla.conf: [${name}] trunk=${line} removed.`,
+      `Trunk assignment removed from [${name}]`,
+      () => { delete this.configs.sla; this.seeded.delete('sla'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Distributed dialplan lookup (DUNDi) screen
+
+  private static readonly DUNDI_GENERAL_CONTROLS = [
+    'du_department', 'du_organization', 'du_locality', 'du_stateprov', 'du_country', 'du_email',
+    'du_phone', 'du_bindaddr', 'du_port', 'du_tos', 'du_entityid', 'du_cachetime', 'du_ttl',
+    'du_autokill', 'du_storehistory', 'du_outgoingsiptech', 'du_pjsipendpoint',
+  ] as const;
+  private static readonly DUNDI_PEER_CONTROLS = [
+    'du_peermodel', 'du_peerhost', 'du_peerport', 'du_peerinkey', 'du_peeroutkey', 'du_peerorder',
+    'du_peerinclude', 'du_peerpermit', 'du_peerdeny', 'du_peerqualify', 'du_peerregister', 'du_peerprecache',
+  ] as const;
+
+  onSaveDundiGeneral = async (): Promise<void> => {
+    const current = this.configs.dundi?.state === 'read' ? this.configs.dundi.value : undefined;
+    if (!current) { this.fire('Not written', 'dundi.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const changes: Record<string, unknown> = {};
+    for (const id of App.DUNDI_GENERAL_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('dundi', current, changes);
+    await this.writeConfigResource(
+      this.configs.dundi?.resource ?? (resourceForFile('dundi.conf') as string),
+      next,
+      'dundi.conf [general] settings updated on the target.',
+      'DUNDi settings saved',
+      () => { delete this.configs.dundi; this.seeded.delete('dundi'); },
+    );
+  };
+
+  /** "Load from target" on the Mapping group: reads the named DUNDi context's current
+   *  raw mapping value out of dundi.conf's [mappings] section -- a single comma-joined
+   *  string ("local_context,weight,tech,dest[,options]"), read and written whole rather
+   *  than split into fields, the same way `findConfigEntry`/`writeConfigEntry` already do
+   *  for cel_odbc.conf's connection string above. A name matching nothing is not a
+   *  refusal: dundi.conf.sample's own examples (lines 139-159) show this is exactly how a
+   *  new mapping starts out. */
+  onLoadDundiMapping = (): void => {
+    const value = this.configs.dundi?.state === 'read' ? this.configs.dundi.value : undefined;
+    if (!value) { this.toast('dundi.conf has not finished reading yet -- press Load again in a moment.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['du_mapname'] ?? '').trim();
+    if (!name) { this.toast('Type a DUNDi context name first.'); return; }
+    const raw = findConfigEntry(value, 'mappings', name);
+    if (raw === undefined) { this.toast(`No "${name} =>" mapping in dundi.conf yet -- Save will create one.`); return; }
+    this.setState({ values: { ...state.values, du_mapvalue: raw } } as never);
+    this.toast(`Loaded "${name}" from dundi.conf.`);
+  };
+
+  /** "Save this mapping": writes `dundi_context => value` into dundi.conf's [mappings]
+   *  section, creating the section (and the entry) if either does not exist yet. */
+  onSaveDundiMapping = async (): Promise<void> => {
+    const current = this.configs.dundi?.state === 'read' ? this.configs.dundi.value : undefined;
+    if (!current) { this.fire('Not written', 'dundi.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = usableMappingName(String(state.values['du_mapname'] ?? '').trim());
+    if (!name) { this.fire('Not written', 'Type a valid DUNDi context name first -- letters, digits, underscore or hyphen only.'); return; }
+    const raw = String(state.values['du_mapvalue'] ?? '').trim();
+    if (!raw) { this.fire('Not written', 'Type the mapping value first: local_context,weight,tech,dest.'); return; }
+    const next = writeConfigEntry(current, 'mappings', name, raw);
+    await this.writeConfigResource(
+      this.configs.dundi?.resource ?? (resourceForFile('dundi.conf') as string),
+      next,
+      `dundi.conf: "${name}" mapped to ${raw}.`,
+      'DUNDi mapping saved',
+      () => { delete this.configs.dundi; this.seeded.delete('dundi'); },
+    );
+  };
+
+  /** "Remove this mapping": deletes the "dundi_context =>" line from [mappings]
+   *  entirely. */
+  onRemoveDundiMapping = async (): Promise<void> => {
+    const current = this.configs.dundi?.state === 'read' ? this.configs.dundi.value : undefined;
+    if (!current) { this.fire('Not removed', 'dundi.conf has not been read from the target yet.'); return; }
+    const name = String((this.state as { values: Record<string, unknown> }).values['du_mapname'] ?? '').trim();
+    if (!name) { this.fire('Not removed', 'Type the DUNDi context to remove first.'); return; }
+    const next = findConfigEntry(current, 'mappings', name) === undefined ? undefined : removeConfigEntry(current, 'mappings', name);
+    if (!next) { this.toast(`No "${name} =>" mapping in dundi.conf to remove.`); return; }
+    await this.writeConfigResource(
+      this.configs.dundi?.resource ?? (resourceForFile('dundi.conf') as string),
+      next,
+      `dundi.conf: "${name}" mapping removed.`,
+      'DUNDi mapping removed',
+      () => { delete this.configs.dundi; this.seeded.delete('dundi'); },
+    );
+  };
+
+  /** "Load from target" on the Peer group: reads the named entity's current peer fields
+   *  out of dundi.conf, the same shape `onLoadSlaTrunk` gives sla.conf's trunks above. */
+  onLoadDundiPeer = (): void => {
+    const value = this.configs.dundi?.state === 'read' ? this.configs.dundi.value : undefined;
+    if (!value) { this.toast('dundi.conf has not finished reading yet -- press Load again in a moment.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const eid = String(state.values['du_peereid'] ?? '').trim();
+    if (!eid) { this.toast('Type a peer entity id first.'); return; }
+    const found = value.find((section) => section.name === eid);
+    if (!found) { this.toast(`No [${eid}] section in dundi.conf yet -- Save will create it.`); return; }
+    const bound = readControlValues('dundi', value, {}, { du_peereid: eid });
+    this.setState({ values: { ...state.values, ...bound } } as never);
+    this.toast(`Loaded [${eid}] from dundi.conf.`);
+  };
+
+  /** "Save this peer": writes every peer field into the named [entityid] section,
+   *  creating it if it does not exist yet -- dundi.conf.sample's own examples (lines
+   *  238-286) show a peer as a complete section on its own, nothing else required. */
+  onSaveDundiPeer = async (): Promise<void> => {
+    const current = this.configs.dundi?.state === 'read' ? this.configs.dundi.value : undefined;
+    if (!current) { this.fire('Not written', 'dundi.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const eid = usableDundiPeerName(String(state.values['du_peereid'] ?? '').trim());
+    if (!eid) { this.fire('Not written', 'Type a valid peer entity id first -- a colon-separated MAC-style id, or "*".'); return; }
+    const changes: Record<string, unknown> = { du_peereid: eid };
+    for (const id of App.DUNDI_PEER_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    const next = applyBoundControlValues('dundi', current, changes);
+    await this.writeConfigResource(
+      this.configs.dundi?.resource ?? (resourceForFile('dundi.conf') as string),
+      next,
+      `dundi.conf updated on the target: [${eid}].`,
+      `Peer [${eid}] saved`,
+      () => { delete this.configs.dundi; this.seeded.delete('dundi'); },
+    );
+  };
+
+  // ---------------------------------------------------------------- Calendars screen
+
+  private static readonly CALENDAR_CONTROLS = [
+    'ca_type', 'ca_url', 'ca_user', 'ca_refresh', 'ca_timeframe', 'ca_fetchagain', 'ca_autoreminder',
+    'ca_channel', 'ca_context', 'ca_extension', 'ca_app', 'ca_appdata', 'ca_waittime',
+  ] as const;
+
+  /** "Load from target" on the calendar group, the same shape as `onLoadSlaTrunk` above.
+   *  Never seeds ca_secret: calendar.conf.sample's own secret line is write-only here,
+   *  exactly like every other credential field in this console. */
+  onLoadCalendar = (): void => {
+    const value = this.configs.calendar?.state === 'read' ? this.configs.calendar.value : undefined;
+    if (!value) { this.toast('calendar.conf has not finished reading yet -- press Load again in a moment.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = String(state.values['ca_name'] ?? '').trim();
+    if (!name) { this.toast('Type a calendar name first.'); return; }
+    const found = value.find((section) => section.name === name);
+    if (!found) { this.toast(`No [${name}] section in calendar.conf yet -- Save will create it.`); return; }
+    const bound = readControlValues('calendar', value, {}, { ca_name: name });
+    this.setState({ values: { ...state.values, ...bound } } as never);
+    this.toast(`Loaded [${name}] from calendar.conf.`);
+  };
+
+  /** Read by the compiled `text`-kind control marked `action:'calendar-secret-status'`:
+   *  whether calendar.conf currently has a `secret` line for the calendar named by
+   *  ca_name -- never what it holds, the same shape `dbPgsqlPasswordStatusLine` gives
+   *  res_pgsql.conf's password above. */
+  calendarSecretStatusLine = (): string => {
+    const value = this.configs.calendar?.state === 'read' ? this.configs.calendar.value : undefined;
+    const name = String((this.state as { values: Record<string, unknown> }).values['ca_name'] ?? '').trim();
+    if (!value) return 'Load a calendar to check.';
+    if (!name) return 'Type a calendar name first.';
+    return findConfigEntry(value, name, 'secret') !== undefined
+      ? 'A password is set on the target.'
+      : 'No password is set on the target.';
+  };
+
+  /** "Save this calendar": writes every ordinary field into the named [section],
+   *  creating it if it does not exist yet, then -- only if a new password was typed --
+   *  splices `secret` in directly, outside CONTROL_BINDINGS, and blanks the field the
+   *  instant it has been read, exactly like `onSaveResPgsql`'s db_pgpassword above. */
+  onSaveCalendar = async (): Promise<void> => {
+    const current = this.configs.calendar?.state === 'read' ? this.configs.calendar.value : undefined;
+    if (!current) { this.fire('Not written', 'calendar.conf has not been read from the target yet.'); return; }
+    const state = this.state as { values: Record<string, unknown> };
+    const name = usableMappingName(String(state.values['ca_name'] ?? '').trim());
+    if (!name) { this.fire('Not written', 'Type a valid calendar name first -- letters, digits, underscore or hyphen only.'); return; }
+    const changes: Record<string, unknown> = { ca_name: name };
+    for (const id of App.CALENDAR_CONTROLS) if (id in state.values) changes[id] = state.values[id];
+    let next = applyBoundControlValues('calendar', current, changes);
+    const { secret, values: blanked } = consumeCredential(state.values, 'ca_secret');
+    if (secret !== undefined) {
+      next = writeConfigEntry(next, name, 'secret', secret);
+      this.setState({ values: blanked } as never);
+    }
+    await this.writeConfigResource(
+      this.configs.calendar?.resource ?? (resourceForFile('calendar.conf') as string),
+      next,
+      `calendar.conf updated on the target: [${name}].`,
+      `Calendar [${name}] saved`,
+      () => { delete this.configs.calendar; this.seeded.delete('calendar'); },
+    );
   };
 
   // ---------------------------------------------------------------- CDR / CEL screen
