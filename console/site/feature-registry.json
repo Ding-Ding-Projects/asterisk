@@ -28,9 +28,13 @@
       ]
     },
     "school-mode": {
-      "state": "absent",
-      "note": "No School mode setting, rename, or shared unlock credential was found anywhere in site/app.js or the settings page.",
-      "files": []
+      "state": "implemented",
+      "note": "The canonical restricted presentation, shipped as \"School mode\" and renameable by whoever switches it on. While it is on the page presents itself in plain English at the plainest funny level, and four containers -- the language card with both funny selects, the personal-vocabulary card, the narrated-language choice and the Cantonese voice picker -- are removed from the document rather than disabled or hidden, each held in schoolRetained with a bare comment in its place so it returns as the same node with its handlers intact. Turning it off needs the value chosen when it was turned on; that value is never stored, only a random 16-byte salt and the SHA-256 digest of salt-and-value, and a browser that gives the page no cryptographic digest refuses to arm rather than falling back to storing it. The record lives in its own storage key, ding-pbx-pages-school-v1, so neither \"Reset settings\" nor restoring a local-history revision can open it, and clearing the site's storage is the stated recovery. There is no attempt lockout and no waiting period, so this page can never lock somebody out on a clock. Live copy renders the chosen name; persisted text -- history entries and stored notifications -- never names the mode at all, because history is append-only and a rename cannot rewrite it.",
+      "files": [
+        "site/app.js",
+        "site/settings.html",
+        "site/styles.css"
+      ]
     },
     "narration": {
       "state": "implemented",

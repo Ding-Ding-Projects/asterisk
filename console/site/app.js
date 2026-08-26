@@ -648,7 +648,7 @@
   const state=loadState();
   function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
   function update(key,value){state[key]=value;save();applyState();recordHistory('setting-changed',`${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`${key} now uses ${value}.`),{category:'setting',copyKey:'notifSettingSaved'})}
-  function applyState(){document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyDisplayName();applyVocabulary();applyDialogEmojis();applyNarration();updateSessionTimer();updateOneThingBanner();renderAllModeStatuses();renderUpdateState()}
+  function applyState(){applySchoolMode();document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyDisplayName();applyVocabulary();applyDialogEmojis();applyNarration();updateSessionTimer();updateOneThingBanner();renderAllModeStatuses();renderUpdateState()}
   function updateAttention(key,value){state.attention={...state.attention,[key]:value};save();applyState();recordHistory('attention-changed',`attention.${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`attention.${key} now uses ${value}.`),{category:'setting',copyKey:'notifSettingSaved'})}
   function applyLanguage(){if(!$('language-preview'))return;document.documentElement.lang=state.language==='zh'?'zh-Hant':'en';$('language-preview').textContent=state.language==='en'?'English presentation active.':state.language==='zh'?'廣東話顯示已啟用。':'Bilingual presentation active. / 雙語顯示已啟用。'}
 
@@ -729,6 +729,22 @@
       '用瀏覽器自己嘅語音讀出事件 —— 預設關咗，要你開先出聲，而且佢讀嘅嘢全部已經喺畫面上，唔會多講新資料。可以揀朗讀語言、每種語言嘅聲，同埋語速同音高。',
       '畀呢版自己讀出嚟。你唔開佢就關住，開咗之後都淨係讀畫面上已經有嘅嘢，唔會偷偷加旁白。揀語言、揀把聲、揀讀得幾快幾尖。',
       '畀呢版一把聲。預設係關住嘅，你唔撳掣佢就死都唔開口；開咗都淨係讀畫面上已經有嘅嘢 —— 讀出嚟嘅嘢你一定睇得到，呢個先係重點。語言、聲線、幾快幾尖，全部你話事。'
+    ]},
+    /* Voice moves with the slider; four facts never do, and no level names the mode --
+     * the name is the reader's to change, so it is written into the card at run time
+     * instead. Every level says: plain English only, the listed settings are removed
+     * rather than greyed out, the choices behind them survive, and turning it off
+     * needs the value chosen now. */
+    schoolDesc:{en:[
+      'While this is on, the page presents itself in plain English only. The Cantonese and bilingual choices, both funny levels and the personal-vocabulary upload are removed from this page rather than greyed out, and your existing choices stay stored and return when it is turned off. Turning it off needs a value you choose now.',
+      'While this is on, the page presents itself in plain English only — the Cantonese and bilingual choices, both funny levels and the personal-vocabulary upload are removed from this page rather than greyed out. Your existing choices stay stored and return when it is turned off, and turning it off needs a value you choose now.',
+      'Switch it on and the page goes plain English and stays there. The Cantonese and bilingual choices, both funny levels and the personal-vocabulary upload are taken off this page rather than greyed out, so there is nothing left to poke at. Your choices are still stored and come straight back when it is off, and getting it off needs a value you pick now.',
+      'Flip this and the page turns severely sensible: plain English, no second language, no jokes. The Cantonese and bilingual choices, both funny levels and the personal-vocabulary upload are lifted clean off this page rather than sitting there greyed out and tempting. Everything you had chosen is still stored and walks right back in when it is off — and getting it off needs the value you pick now, so pick one you will remember.'
+    ],zh:[
+      '開咗之後，呢版淨係用簡單英文顯示。廣東話同雙語選項、兩個好笑程度，同埋個人詞彙上載都會由呢版度移走，唔係變灰咁擺喺度；你原本揀過嘅嘢照樣存住，關返佢就會返晒嚟。要關佢就要用你而家揀嘅一個值。',
+      '開咗之後，呢版淨係用簡單英文顯示 —— 廣東話同雙語選項、兩個好笑程度，同埋個人詞彙上載會由呢版移走，唔係變灰擺喺度。你揀過嘅嘢照樣存住，關返佢就返晒嚟；要關佢，就要用你而家揀嘅值。',
+      '一開咗，成版就淨返簡單英文，唔會走樣。廣東話同雙語、兩個好笑程度、個人詞彙上載全部搬走，唔會變灰喺度引你撳。你揀過嘅設定仲喺度，關返佢就即刻返嚟；想關？要你而家揀嘅個值。',
+      '撳落去，呢版就正經到極：淨係簡單英文，冇第二種語言，冇笑話。廣東話同雙語、兩個好笑程度、個人詞彙上載全部搬走晒，唔會變灰咁喺度引你撳。你之前揀嘅嘢一件都冇少，關返佢就大搖大擺行返入嚟 —— 不過想關，就要你而家揀嘅個值，揀個記得住嘅。'
     ]},
     changelogDesc:{en:[
       'Every released version of Ding PBX Console, newest first, with the real commit behind each line. Filter by date, search the text, and export exactly what you can see. The entries themselves are the release history and are never restyled.',
@@ -850,16 +866,23 @@
   }
   function copyText(key){
     if(!COPY[key])return '';
-    if(state.attention.simplifiedLanguage){
-      return applyVocabularyText(COPY[key][state.language==='zh'?'zh':'en'][0]);
+    /* Two different requests that land on the same wording, and both arrive here
+     * rather than in copyLevel: simplified language asks for the plainest variant,
+     * and the restricted presentation makes the funny levels behave as though they
+     * were not installed, which for copy means the level nobody chose -- the exact
+     * wording this page shipped with. `effectiveLanguage()` is already English in
+     * the second case, so the branch below picks the English array either way. */
+    const lang=effectiveLanguage();
+    if(state.attention.simplifiedLanguage||schoolActive()){
+      return applyVocabularyText(COPY[key][lang==='zh'?'zh':'en'][0]);
     }
     let text;
-    if(state.language==='en')text=copyLevel(key,'en');
-    else if(state.language==='zh')text=copyLevel(key,'zh');
+    if(lang==='en')text=copyLevel(key,'en');
+    else if(lang==='zh')text=copyLevel(key,'zh');
     else text=`${copyLevel(key,'en')} / ${copyLevel(key,'zh')}`;
     return applyVocabularyText(text);
   }
-  function applyCopy(){all('[data-copy]').forEach(el=>{const key=el.dataset.copy;if(COPY[key])el.textContent=copyText(key)})}
+  function applyCopy(){all('[data-copy]').forEach(node=>{const key=node.dataset.copy;if(COPY[key])node.textContent=copyText(key)})}
 
   function vocabularyReplacements(){
     try{
@@ -870,6 +893,13 @@
     }catch{return null}
   }
   function applyVocabularyText(text){
+    /* The restricted presentation makes this capability behave as though it were not
+     * installed, and that has to be here rather than only on the upload control: the
+     * cached file is deliberately kept so it returns when the mode is turned off, so
+     * a mode that only removed the control would go on substituting from it. Every
+     * already-substituted node reverts on the next pass, because the walker replays
+     * each node's own original through this function. */
+    if(schoolActive())return text;
     const list=vocabularyReplacements();
     if(!list||!list.length)return text;
     let out=String(text);
@@ -900,6 +930,372 @@
     });
   }
   function applyVocabulary(){applyVocabularyToNode(document.body)}
+
+  // ============================================================================
+  // Restricted presentation -- shipped as "School mode", renameable by whoever
+  // switches it on.
+  //
+  // What it does is small; the boundaries around it are the whole feature.
+  //
+  //   - While it is on this page presents itself in plain English, and the
+  //     capabilities the canon names -- the Cantonese and bilingual choices, both
+  //     funny levels, the personal-vocabulary upload, the narrated-language choice
+  //     and the Cantonese voice picker -- are REMOVED from the document rather
+  //     than disabled or visually hidden. A disabled control is still a control
+  //     somebody can see and ask about; the point of this mode is that the
+  //     capability is not there.
+  //   - Nothing is destroyed. Every removed node is retained in `schoolRetained`
+  //     with a bare comment standing in its place, and goes back exactly where it
+  //     was when the mode is turned off. The settings behind those controls are
+  //     never written while it is on, so a chosen language, a chosen funny level
+  //     and an uploaded vocabulary all survive the whole time and return.
+  //   - Turning it OFF needs the value chosen when it was turned on. That value is
+  //     never stored: what is stored is a random salt and the SHA-256 digest of
+  //     salt-and-value, so the record on disk cannot be read back into the value.
+  //   - It is a speed bump somebody sets for themselves, and the card says so in
+  //     those words. It protects nothing from anybody else with this computer, and
+  //     clearing this site's storage turns it off without the value. That is the
+  //     documented recovery rather than a hole: a toy lock with no way out is a
+  //     page somebody has permanently lost.
+  //   - There is deliberately NO attempt lockout and no waiting period, so this
+  //     page can never lock anybody out on a clock -- which is why it ships no
+  //     unlock ladder, there being no wait for one to shorten. Wrong attempts are
+  //     counted on screen and recorded in the local history instead.
+  //
+  // Two rules about the NAME, and the second is the one that is easy to get wrong.
+  // Live copy always renders the chosen name. Persisted text -- a local history
+  // entry, a stored notification -- never names the mode at all, because the
+  // history here is append-only and a rename cannot rewrite it: an entry written
+  // before a rename would sit in the record still naming the previous name, which
+  // for the first rename is exactly the shipped name this mode exists to stop
+  // showing.
+  //
+  // "Reset settings" deliberately does not reach this record, and neither does
+  // restoring a local-history revision: both write `state`, and this lives in its
+  // own storage key beside the history's. A reset button that turned the mode off
+  // would be a way around the lock rather than a reset.
+  const SCHOOL_KEY='ding-pbx-pages-school-v1';
+  const SCHOOL_SHIPPED_NAME='School mode';
+  const SCHOOL_NAME_MAX=60;
+  const SCHOOL_SECRET_MIN=4;
+  const SCHOOL_SECRET_MAX=128;
+  const SCHOOL_DIGEST='SHA-256';
+  /**
+   * Every capability this mode removes, by the container that owns it.
+   *
+   * One entry per container rather than one per control, because a label left
+   * behind by a control that went away is a worse surface than either state.
+   */
+  const SCHOOL_SUPPRESSED=[
+    {id:'language-and-funny-levels',selector:'#settings-language-card',what:'the language mode and both funny levels'},
+    {id:'personal-vocabulary',selector:'#settings-vocabulary-card',what:'the personal-vocabulary upload'},
+    {id:'narrated-language',selector:'#narration-language-controls',what:'the narrated-language choice'},
+    {id:'narrated-cantonese-voice',selector:'#narration-cantonese-controls',what:'the Cantonese voice picker'}
+  ];
+  /**
+   * Capabilities the canon says this mode must suppress that this site has not got
+   * at all, named here so the absence is a recorded decision rather than a gap.
+   *
+   * The per-launch startup surprise is the one: it does not exist on this site, so
+   * there is nothing here to remove. The contract test re-derives that absence from
+   * the real source every run, so the day somebody builds one, this list stops being
+   * true and the test says so rather than the mode quietly failing to hide it.
+   */
+  const SCHOOL_ABSENT_HERE=['startup-surprise'];
+
+  function schoolDefaultRecord(){return{on:false,name:'',secret:null}}
+  /**
+   * Read the record, refusing anything malformed rather than half-trusting it.
+   *
+   * A corrupt record falls back to OFF rather than to a locked page nobody can
+   * open. That is not a bypass dressed as a fallback: clearing this site's storage
+   * is the documented recovery already, and corrupting the record is the same act
+   * with more steps.
+   */
+  function loadSchool(){
+    try{
+      const raw=JSON.parse(localStorage.getItem(SCHOOL_KEY)||'null');
+      if(!raw||typeof raw!=='object')return schoolDefaultRecord();
+      const secret=raw.secret&&typeof raw.secret==='object'
+        &&typeof raw.secret.saltHex==='string'&&raw.secret.saltHex.length>0
+        &&typeof raw.secret.digestHex==='string'&&raw.secret.digestHex.length>0
+        ?{algorithm:String(raw.secret.algorithm||SCHOOL_DIGEST),saltHex:raw.secret.saltHex,digestHex:raw.secret.digestHex}
+        :null;
+      return{on:Boolean(raw.on),name:String(raw.name||'').slice(0,SCHOOL_NAME_MAX),secret};
+    }catch{return schoolDefaultRecord()}
+  }
+  let schoolRecord=loadSchool();
+  function saveSchool(){localStorage.setItem(SCHOOL_KEY,JSON.stringify(schoolRecord))}
+  function reloadSchool(){schoolRecord=loadSchool()}
+  /**
+   * On AND holding a credential. A record that says on without one would be a page
+   * with no way back, so it is treated as off rather than honoured.
+   */
+  function schoolActive(){return Boolean(schoolRecord.on&&schoolRecord.secret)}
+  function schoolName(){const chosen=String(schoolRecord.name||'').trim();return chosen||SCHOOL_SHIPPED_NAME}
+  function schoolIsRenamed(){return schoolName()!==SCHOOL_SHIPPED_NAME}
+  /** Keywords the settings search matches this card on -- the chosen name, never the shipped one. */
+  function schoolSearchKeywords(){return `${schoolName()} restricted plain english only lock`.toLowerCase()}
+  /** The language every surface renders in, which this mode overrides and nothing else does. */
+  function effectiveLanguage(){return schoolActive()?'en':state.language}
+
+  function schoolCryptoApi(){
+    const api=typeof crypto==='undefined'?null:crypto;
+    if(!api||typeof api.getRandomValues!=='function')return null;
+    if(!api.subtle||typeof api.subtle.digest!=='function')return null;
+    return api;
+  }
+  function schoolHex(bytes){return [...bytes].map(byte=>byte.toString(16).padStart(2,'0')).join('')}
+  function schoolSalt(){
+    const api=schoolCryptoApi();
+    if(!api)return '';
+    return schoolHex(api.getRandomValues(new Uint8Array(16)));
+  }
+  /**
+   * The digest of one value under one salt, or null when this browser gives the page
+   * no cryptographic digest at all -- an insecure context such as a `file://` load.
+   *
+   * Null fails the mode closed: it cannot be armed, and the card says why. The
+   * alternative would be storing the value itself under a weaker name, which is the
+   * one thing a credential store must never do.
+   */
+  async function schoolDigestOf(secret,saltHex){
+    const api=schoolCryptoApi();
+    if(!api||!saltHex)return null;
+    const data=new TextEncoder().encode(`${saltHex}:${String(secret)}`);
+    return schoolHex(new Uint8Array(await api.subtle.digest(SCHOOL_DIGEST,data)));
+  }
+  /**
+   * Whether one offered digest opens one stored credential, and why when it does not.
+   *
+   * Pure, and compares every character rather than stopping at the first difference,
+   * so the time it takes says nothing about how much of the value was right.
+   */
+  function schoolUnlockVerdict(stored,digestHex){
+    if(!stored||typeof stored.digestHex!=='string'||!stored.digestHex)return{unlock:false,why:'no-credential'};
+    if(typeof digestHex!=='string'||!digestHex)return{unlock:false,why:'no-digest'};
+    if(digestHex.length!==stored.digestHex.length)return{unlock:false,why:'wrong-value'};
+    let difference=0;
+    for(let index=0;index<digestHex.length;index+=1){
+      difference|=digestHex.charCodeAt(index)^stored.digestHex.charCodeAt(index);
+    }
+    return difference===0?{unlock:true,why:'match'}:{unlock:false,why:'wrong-value'};
+  }
+  /** Whether the mode can be armed from what is currently typed, and why not. Pure. */
+  function schoolArmVerdict(input){
+    if(input&&input.alreadyOn)return{arm:false,why:'already-on'};
+    if(!input||!input.hasDigest)return{arm:false,why:'no-digest-available'};
+    const secret=String(input.secret||'');
+    if(secret.length<SCHOOL_SECRET_MIN)return{arm:false,why:'too-short'};
+    if(secret.length>SCHOOL_SECRET_MAX)return{arm:false,why:'too-long'};
+    if(secret!==String(input.confirm||''))return{arm:false,why:'mismatch'};
+    return{arm:true,why:'ready'};
+  }
+  const SCHOOL_ARM_REASON={
+    'already-on':'It is already on, so there is nothing to turn on.',
+    'no-digest-available':`This browser gives this page no cryptographic digest here, which happens when the page is not served over a secure connection. Without one the value could only be kept in the clear, so it cannot be turned on at all rather than being turned on with a value stored as itself.`,
+    'too-short':`Choose at least ${SCHOOL_SECRET_MIN} characters.`,
+    'too-long':`Choose at most ${SCHOOL_SECRET_MAX} characters.`,
+    mismatch:'The two values are not the same. Nothing was changed.'
+  };
+
+  /* Removed nodes, held by their entry id, each with the empty comment standing in
+   * its place in the document. Held rather than rebuilt, so the handlers bound to
+   * them at load are still bound when they come back. */
+  const schoolRetained=new Map();
+  function schoolSuppress(entry){
+    if(schoolRetained.has(entry.id))return;
+    const node=document.querySelector(entry.selector);
+    if(!node||!node.parentNode)return;
+    /* An empty comment: it is not a control, it is not read by anything, and it says
+     * nothing about what used to be here -- which matters, because the name of this
+     * mode is exactly what it must not leave lying in the document. */
+    const marker=document.createComment('');
+    node.parentNode.replaceChild(marker,node);
+    schoolRetained.set(entry.id,{node,marker});
+  }
+  function schoolRestore(entry){
+    const held=schoolRetained.get(entry.id);
+    if(!held)return;
+    schoolRetained.delete(entry.id);
+    if(held.marker.parentNode)held.marker.parentNode.replaceChild(held.node,held.marker);
+  }
+  /**
+   * An element by id, whether it is in the document or currently held out of it.
+   *
+   * Every handler on a suppressible control is bound once, through this, so the
+   * control works when it comes back instead of returning as a dead one.
+   */
+  function el(id){
+    const live=document.getElementById(id);
+    if(live)return live;
+    for(const held of schoolRetained.values()){
+      if(held.node.id===id)return held.node;
+      const found=typeof held.node.querySelector==='function'?held.node.querySelector(`[id="${id}"]`):null;
+      if(found)return found;
+    }
+    return null;
+  }
+
+  let schoolWrongAttempts=0;
+  function schoolSuppressionSentence(){
+    const list=SCHOOL_SUPPRESSED.map(entry=>entry.what).join('; ');
+    return schoolActive()
+      ? `Removed from this page right now: ${list}. Your choices behind them are still stored and come back when it is turned off.`
+      : `Turning it on removes these from this page: ${list}. Your choices behind them stay stored.`;
+  }
+  function schoolRecoverySentence(){
+    return `Nothing here can give the value back to you: it is not stored, only a random salt and the ${SCHOOL_DIGEST} digest of salt-and-value, and this page cannot reverse that. Clearing this site's storage in your browser removes ${SCHOOL_KEY} along with every other local setting this page keeps, and the switch goes with it. There is no waiting period and no attempt limit here, so this page can never lock you out on a clock.`;
+  }
+  function renderSchoolCard(){
+    const card=$('school-card');
+    if(!card)return;
+    const on=schoolActive();
+    const name=schoolName();
+    card.dataset.search=schoolSearchKeywords();
+    const title=$('school-title');
+    if(title)title.textContent=name;
+    const nameField=$('school-name');
+    if(nameField&&document.activeElement!==nameField)nameField.value=schoolRecord.name||'';
+    const armControls=$('school-arm-controls');
+    if(armControls)armControls.hidden=on;
+    const unlockControls=$('school-unlock-controls');
+    if(unlockControls)unlockControls.hidden=!on;
+    const suppressed=$('school-suppressed');
+    if(suppressed)suppressed.textContent=schoolSuppressionSentence();
+    const recovery=$('school-recovery-text');
+    if(recovery)recovery.textContent=schoolRecoverySentence();
+    const status=$('school-status');
+    if(!status)return;
+    if(on){
+      status.textContent=schoolWrongAttempts>0
+        ? `${name} is still on: that value did not match, and nothing was changed. Values tried since this page loaded: ${schoolWrongAttempts}.`
+        : `${name} is on. This page is in plain English, and the settings listed below are not on it.`;
+      return;
+    }
+    if(!schoolCryptoApi()){
+      status.textContent=`${name} is off, and cannot be turned on here. ${SCHOOL_ARM_REASON['no-digest-available']}`;
+      return;
+    }
+    status.textContent=`${name} is off. Every setting on this page is available.`;
+  }
+  /**
+   * Applied on every state change, so the mode is watched rather than read once at
+   * load: a second tab turning it on reaches this through the `storage` event below.
+   */
+  function applySchoolMode(){
+    const on=schoolActive();
+    for(const entry of SCHOOL_SUPPRESSED){
+      if(on)schoolSuppress(entry);
+      else schoolRestore(entry);
+    }
+    /* Forced here rather than in applyLanguage(), which returns early on every page
+     * that has no language preview line -- which is every page but this one, and this
+     * one too while the card holding that line is removed. */
+    if(on)document.documentElement.lang='en';
+    document.body.classList.toggle('school-on',on);
+    renderSchoolCard();
+  }
+  /** What the redacted settings export says about this mode. Never the credential. */
+  function schoolExportSummary(){
+    return{on:schoolActive(),renamed:schoolIsRenamed(),name:schoolName(),credential:'omitted',storedSeparatelyIn:SCHOOL_KEY};
+  }
+  function setSchoolName(raw){
+    schoolRecord={...schoolRecord,name:String(raw||'').slice(0,SCHOOL_NAME_MAX)};
+    saveSchool();
+    applyState();
+  }
+  function commitSchoolName(){
+    /* No name in the entry or the notification: both are kept, and a later rename
+     * cannot rewrite either, so a name written here would outlive the rename that
+     * replaced it. */
+    recordHistory('presentation-mode','The restricted presentation on this page was renamed.');
+    notify('Page presentation','The restricted presentation on this page has a new name in your browser.',{category:'setting',en:'The restricted presentation on this page was renamed.'});
+  }
+  async function armSchoolMode(){
+    const secretField=$('school-secret');
+    const confirmField=$('school-secret-confirm');
+    const status=$('school-status');
+    const secret=secretField?secretField.value:'';
+    const verdict=schoolArmVerdict({alreadyOn:schoolActive(),hasDigest:Boolean(schoolCryptoApi()),secret,confirm:confirmField?confirmField.value:''});
+    if(!verdict.arm){
+      if(status)status.textContent=`${schoolName()} was not turned on. ${SCHOOL_ARM_REASON[verdict.why]||'That value cannot be used.'}`;
+      return verdict;
+    }
+    const saltHex=schoolSalt();
+    const digestHex=await schoolDigestOf(secret,saltHex);
+    if(!digestHex){
+      if(status)status.textContent=`${schoolName()} was not turned on. ${SCHOOL_ARM_REASON['no-digest-available']}`;
+      return{arm:false,why:'no-digest-available'};
+    }
+    schoolRecord={...schoolRecord,on:true,secret:{algorithm:SCHOOL_DIGEST,saltHex,digestHex}};
+    saveSchool();
+    /* Cleared the moment the digest exists, so the value is not sitting in a field
+     * behind a locked page waiting for the next person to read it. */
+    if(secretField)secretField.value='';
+    if(confirmField)confirmField.value='';
+    schoolWrongAttempts=0;
+    applyState();
+    recordHistory('presentation-mode','The restricted presentation on this page was turned on.');
+    notify('Page presentation','This page is in plain English until the restricted presentation is turned off again.',{category:'setting',en:'The restricted presentation on this page was turned on.'});
+    return verdict;
+  }
+  async function unlockSchoolMode(){
+    const field=$('school-unlock');
+    const status=$('school-status');
+    if(!schoolActive())return{unlock:false,why:'not-on'};
+    const offered=field?field.value:'';
+    const digestHex=await schoolDigestOf(offered,schoolRecord.secret.saltHex);
+    const verdict=schoolUnlockVerdict(schoolRecord.secret,digestHex);
+    if(!verdict.unlock){
+      schoolWrongAttempts+=1;
+      if(field)field.value='';
+      renderSchoolCard();
+      if(status&&verdict.why==='no-digest')status.textContent=`${schoolName()} is still on. ${SCHOOL_ARM_REASON['no-digest-available']}`;
+      recordHistory('presentation-mode','A value that does not match was offered to the restricted presentation on this page; nothing changed.');
+      return verdict;
+    }
+    /* The credential goes with the mode. Keeping it would leave a digest of somebody's
+     * value on disk for a lock that is no longer there. */
+    schoolRecord={...schoolRecord,on:false,secret:null};
+    saveSchool();
+    if(field)field.value='';
+    schoolWrongAttempts=0;
+    applyState();
+    recordHistory('presentation-mode','The restricted presentation on this page was turned off.');
+    notify('Page presentation','Every setting on this page is available again.',{category:'setting',en:'The restricted presentation on this page was turned off.'});
+    return verdict;
+  }
+  function initSchool(){
+    const card=$('school-card');
+    if(!card)return;
+    const nameField=$('school-name');
+    if(nameField){
+      nameField.value=schoolRecord.name||'';
+      nameField.oninput=event=>setSchoolName(event.target.value);
+      nameField.onchange=commitSchoolName;
+    }
+    const arm=$('school-arm');
+    if(arm)arm.onclick=()=>{armSchoolMode()};
+    const unlock=$('school-unlock-submit');
+    if(unlock)unlock.onclick=()=>{unlockSchoolMode()};
+    renderSchoolCard();
+  }
+  /**
+   * A second tab is a second surface, and this mode is one switch across all of them.
+   * `storage` fires in every OTHER tab of this origin, so turning it on in one turns
+   * it on in the rest live rather than at their next load. A null key is the whole
+   * store being cleared, which is the documented recovery happening elsewhere.
+   */
+  function initSchoolWatch(){
+    if(typeof window==='undefined'||typeof window.addEventListener!=='function')return;
+    window.addEventListener('storage',event=>{
+      if(event&&event.key!==null&&event.key!==SCHOOL_KEY)return;
+      reloadSchool();
+      schoolWrongAttempts=0;
+      applyState();
+    });
+  }
 
   const DEFAULT_FAVICON='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="8" fill="#82D9A5"/><text x="50%" y="58%" font-family="monospace" font-size="22" font-weight="800" text-anchor="middle" fill="#0B0F0C">D</text></svg>');
   function applyLogo(){
@@ -1258,7 +1654,14 @@
    */
   function narrate(category,texts,options={}){
     const isError=Boolean(options.isError);
-    const available=NARRATION_TRACKS.map(track=>track.key).filter(key=>String(texts&&texts[key]||'').trim().length>0);
+    /* Filtered here rather than at the selection, because `narrationTracksFor` falls
+     * back to whichever language a line actually has wording for -- so dropping the
+     * Cantonese SELECTION while leaving Cantonese TEXT in place would still speak
+     * Cantonese for any line with no English wording. Under the restricted
+     * presentation a Cantonese-only line is not spoken at all, which is the same
+     * answer the rest of the page gives: that capability is not installed. */
+    const spokenTracks=NARRATION_TRACKS.map(track=>track.key).filter(key=>!(schoolActive()&&key!=='en'));
+    const available=spokenTracks.filter(key=>String(texts&&texts[key]||'').trim().length>0);
     if(!available.length)return{spoken:false,why:'no-text'};
     const last=narrationLastSpokenAt.has(category)?narrationLastSpokenAt.get(category):null;
     const gate=narrationGate({category,isError,enabled:Boolean(state.narration.enabled),quiet:narrationQuiet(),lastSpokenAtMs:last,now:Date.now()});
@@ -1282,6 +1685,12 @@
         narrationLastSpokenAt.set(item.category,Date.now());
         for(const line of item.lines){
           if(!state.narration.enabled||narrationQuiet())break;
+          /* `continue` rather than `break`: the restricted presentation removes the
+           * Cantonese capability, it does not silence the narrator, so the English
+           * half of a bilingual line queued a moment earlier is still read. This is
+           * checked here as well as at queue time because the switch is shared across
+           * tabs and can come on between the two halves of one line. */
+          if(schoolActive()&&line.track!=='en')continue;
           await speakNarrationLine(line);
         }
       }
@@ -1379,10 +1788,10 @@
     const toggle=$('narration-enabled');
     if(!toggle)return;
     toggle.onchange=event=>{setNarration('enabled',event.target.checked);commitNarration('enabled')};
-    const language=$('narration-language');
+    const language=el('narration-language');
     if(language)language.onchange=event=>{setNarration('language',event.target.value);commitNarration('language')};
     for(const track of NARRATION_TRACKS){
-      const select=$(track.select);
+      const select=el(track.select);
       if(select)select.onchange=event=>{setNarration(track.field,event.target.value);commitNarration(track.field)};
     }
     const rate=$('narration-rate');
@@ -1967,7 +2376,7 @@
     dialog.addEventListener('close',()=>{resetConfirmFields();$('settings-reset')?.focus()});
   }
 
-  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);$('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);$('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));$('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);if($('dialog-emojis'))$('dialog-emojis').onchange=event=>update('dialogEmojis',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState();recordHistory('attention-changed','attention.currentTask changed.')};$('settings-reset').onclick=()=>{const dialog=$('reset-confirm-dialog');if(!dialog)return;resetConfirmFields();dialog.showModal()};$('settings-export').onclick=()=>download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state},null,2));$('vocabulary-file').onchange=loadVocabulary;$('vocabulary-clear').onclick=()=>{localStorage.removeItem('ding-pbx-vocabulary-cache');$('vocabulary-file').value='';$('vocabulary-status').textContent='No file loaded; original wording is active.';applyVocabulary();applyState()};initDisplayName();initNarration();$('logo-file').onchange=loadLogo;$('logo-clear').onclick=()=>{localStorage.removeItem('ding-pbx-logo-cache');$('logo-file').value='';$('logo-status').textContent='No file loaded; default mark is active.';applyLogo()};if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));initResetConfirm();initHistory()}
+  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);el('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);el('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));el('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);if($('dialog-emojis'))$('dialog-emojis').onchange=event=>update('dialogEmojis',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState();recordHistory('attention-changed','attention.currentTask changed.')};$('settings-reset').onclick=()=>{const dialog=$('reset-confirm-dialog');if(!dialog)return;resetConfirmFields();dialog.showModal()};$('settings-export').onclick=()=>download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state,restrictedPresentation:schoolExportSummary()},null,2));el('vocabulary-file').onchange=loadVocabulary;el('vocabulary-clear').onclick=()=>{localStorage.removeItem('ding-pbx-vocabulary-cache');el('vocabulary-file').value='';el('vocabulary-status').textContent='No file loaded; original wording is active.';applyVocabulary();applyState()};initDisplayName();initNarration();initSchool();$('logo-file').onchange=loadLogo;$('logo-clear').onclick=()=>{localStorage.removeItem('ding-pbx-logo-cache');$('logo-file').value='';$('logo-status').textContent='No file loaded; default mark is active.';applyLogo()};if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));initResetConfirm();initHistory()}
   /* One writer for every vocabulary rejection, so the rule below holds for all of them
    * rather than for whichever branch somebody remembered.
    *
@@ -2417,10 +2826,10 @@
   function initSettingsPreview(){
     const preview=$('settings-preview');if(!preview)return;
     const sync=()=>{if($('preview-scale'))$('preview-scale').style.width=`${Math.max(0,Math.min(100,(state.fontScale-90)/40*100))}%`;if($('preview-density'))$('preview-density').textContent=state.density};
-    ['theme-mode','language-mode','density-mode','accent-color','font-scale','motion-mode'].forEach(id=>{const el=$(id);if(el)el.addEventListener('input',sync)});
+    ['theme-mode','language-mode','density-mode','accent-color','font-scale','motion-mode'].forEach(id=>{const control=el(id);if(control)control.addEventListener('input',sync)});
     sync();
   }
 
-  function init(){ensureAttentionUI();applyState();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initUpdates();initTimeAwareness();initMomentum();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
+  function init(){ensureAttentionUI();initSchoolWatch();applyState();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initUpdates();initTimeAwareness();initMomentum();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
   init();
 })();

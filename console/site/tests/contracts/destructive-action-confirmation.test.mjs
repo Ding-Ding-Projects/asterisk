@@ -54,8 +54,15 @@ test('"Reset settings" now opens a real two-key-plus-slider super-confirmation g
     'settings-reset no longer opens the reset-confirm-dialog gate');
   assert.match(settingsHtml, /<dialog id="reset-confirm-dialog" class="overlay-card" aria-labelledby="reset-confirm-title" aria-describedby="reset-confirm-text">/u,
     'the reset-confirm-dialog element no longer matches');
-  assert.match(settingsHtml, /<p id="reset-confirm-text">This clears every local setting on this page[^<]*It cannot be undone\.<\/p>/u,
+  assert.match(settingsHtml, /<p id="reset-confirm-text">This clears every local setting on this page[^<]*It cannot be undone\./u,
     'the dialog no longer names the exact action and loss in plain text');
+  /* And the exact thing it does NOT clear. The restricted presentation keeps its switch,
+   * its chosen name and its credential in a storage key of its own, which is what stops
+   * this gate from being a one-click way around that lock -- so the dialog has to say
+   * so, or somebody reading "every local setting on this page" would reasonably expect
+   * a reset to open it. */
+  assert.match(settingsHtml, /<p id="reset-confirm-text">[^<]*deliberately does not clear the restricted-presentation switch[^<]*<\/p>/u,
+    'the dialog no longer states that the restricted-presentation record survives a reset');
 });
 
 test('the gate really is two independently operated keys plus a slider, and the reset only actually runs once the slider completes with both keys active', () => {

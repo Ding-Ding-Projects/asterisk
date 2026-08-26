@@ -19,6 +19,7 @@
     "notifRegexApplied",
     "notifSettingSaved",
     "notifSettingsReset",
+    "schoolDesc",
     "searchModePlain",
     "searchModeRegex",
     "themeDesc",
@@ -51,11 +52,13 @@
       "note": "Covered by COPY keys: dialogEmojisDesc. The dialog-emoji card description carries four English and four Cantonese variants, and every one of the eight states both facts the switch turns on: that the wording is unchanged, and that no button, label or screen-reader name carries a glyph. The checkbox label, the card heading and the live status line are still fixed English."
     },
     "school-mode": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
-      "copyKeys": [],
+      "copyKeys": [
+        "schoolDesc"
+      ],
       "missingCopyKeys": [],
-      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+      "note": "The card ships COPY.schoolDesc with four English and four Cantonese funny levels, wired through data-copy=\"schoolDesc\". None of the eight variants names the mode, deliberately: the name is the reader's to change, so it is written into the heading, the status line and the search keywords at run time instead, and a description that named it could never be renamed with it. The status, suppression and recovery sentences are generated at run time from the chosen name and render in English, which is the only language available while the mode is on."
     },
     "narration": {
       "state": "localized",
