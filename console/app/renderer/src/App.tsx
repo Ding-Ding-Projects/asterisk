@@ -7100,7 +7100,7 @@ It is shown once. The far end needs it to register.`);
      * failure reason was unreachable code. The canvas is not a configuration screen in the
      * sense that branch means: every control on it is read-only (see `canvasVals`), and
      * what it has to report is what `dialplan show` said, not what a file holds. */
-    if (screen === 'canvas-disabled') {
+    if (screen === 'canvas') {
       if (!this.canvasReadings) return 'Reading…';
       /* Two different facts, and both get said. `canvasReason` is why there is no graph;
        * the divergence note is what the graph on screen actually describes. A canvas that

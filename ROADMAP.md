@@ -394,15 +394,21 @@ this repository keeps repeating, because it produces no error and no failing tes
       and only theme import is dead.
 ## Controls that announce themselves instead of working
 
-- [ ] **Give the pinned list stable keys.** React warns, several hundred times in a single
-      suite run, that a list rendered by `Pinned` has children without unique `key` props.
-      Pre-existing rather than introduced by any recent lane -- measured at 327 occurrences in
-      one gate and 375 in the next, and the difference is only that more tests ran. It is not
-      cosmetic: without stable keys React reconciles by position, so removing or reordering a
-      pinned item can leave component state attached to the wrong row. That presents to a user
-      as the application occasionally losing or mixing up a pin, which is close to impossible
-      to reproduce on purpose and therefore close to impossible to report usefully. The fix is
-      a real identity for each pinned entry, not the array index.
+- [x] **Give the missing React keys a real source.** MISDIAGNOSED WHEN THIS WAS WRITTEN, and
+      the correction is the useful part. This item claimed a "pinned list" feature was
+      rendering children without keys. There is no pinned list. `Pinned` is the throwaway
+      subclass name every UI test uses to freeze a render (`class Pinned extends App`), so it
+      appeared in several hundred warnings purely as the component React happened to name.
+      Reading the warning text and inventing a feature to match it produced a roadmap item for
+      a thing that does not exist.
+      The real cause, traced with an instrumented copy of react-dom-server (restored
+      afterwards and confirmed byte-identical): `title-bar-name.ts` calls
+      `cloneElement(node, undefined, rewritten)` to rewrite the compiled title bar's app name
+      without touching generated output, and when a rewritten node had more than one child it
+      handed the whole array across as a single argument. React cannot tell that from an
+      unkeyed `.map()`, so it stopped treating those children as static. The title bar renders
+      on every screen, which is why one seam produced warnings everywhere and made the noise
+      look like a list problem.
 
 Found by the repository owner watching a drive of the built application and noticing that
 a click produced a message and nothing else. Every one below is styled as a live control,
