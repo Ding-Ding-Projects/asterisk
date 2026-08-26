@@ -120,11 +120,13 @@
     },
     "material-appearance": {
       "state": "partial",
-      "note": "app/renderer/src/appearance.ts and colour.ts implement Material appearance tokens, an infinite-colour-picker translator (colour.ts, 743 lines) and per-element editing logic, covered by tests/ui/appearance.test.tsx and colour.test.tsx, but neither module is imported by App.tsx/PbxAdminApp.tsx. The compiled console separately implements its own tab-colour picker and a rainbow colour cycle (generated/console.tsx applyColour, tabColourOpts) which is real and wired, but narrower (tab colour only) than the appearance.ts/colour.ts module set.",
+      "note": "CORRECTED 2026-08-25: the previous note's central claim, 'neither module is imported by App.tsx/PbxAdminApp.tsx', is now false for both. colour.ts's translate (imported as translateColour) is genuinely called at least three times: the wildcard appearance panel's live colour-format list, the accessibility contrast readout (which explicitly reuses this same translator so the measured value is exactly the one being shown), and a further live conversion. appearance.ts is imported too, and four of its six imported symbols -- addRule, applyTheme, cssVarFor, resetAll -- are genuinely called from App.tsx's buildAppearanceTheme()/applyAppearanceToDom(), which write real inline styles (color, font-family, font-weight, font-size) onto the actual root element, live, with no restart, from the hue/saturation/lightness/family/weight/size values the appearance panel already exposes. exportTheme is also genuinely called (App.tsx's exportAppearance(), which triggers a real downloaded JSON file) but is a fifth real symbol that does not itself write DOM styles. importTheme is the one dead symbol of the six: imported alongside the other five, never called anywhere in App.tsx -- there is no appearance IMPORT path even though export is real. One further honest limit worth keeping: the whole system is scoped to the wildcard element only, because the compiled interface exposes no per-element CSS hook for a rule to be read back from, so this is one live global theme rather than the true per-element appearance editor the contract describes. The compiled console separately implements its own tab-colour picker and a rainbow colour cycle (generated/console.tsx applyColour, tabColourOpts), real and wired but narrower (tab colour only) than the appearance.ts/colour.ts module set.",
       "files": [
+        "app/renderer/src/App.tsx",
         "app/renderer/src/appearance.ts",
         "app/renderer/src/colour.ts",
-        "app/renderer/src/generated/console.tsx"
+        "app/renderer/src/generated/console.tsx",
+        "tests/contracts/material-appearance.test.mjs"
       ]
     },
     "app-logo-customization": {
@@ -213,17 +215,23 @@
     },
     "complete-exports": {
       "state": "partial",
-      "note": "app/renderer/src/export.ts (547 lines, tested by tests/ui/export.test.tsx) implements multi-format export logic, but is never imported by App.tsx or any mounted component.",
+      "note": "CORRECTED 2026-08-25: 'never imported by App.tsx' is now false, though the honest gap it was pointing at is real, just misdescribed. export.ts (547 lines) is imported at the top of App.tsx and called from inside App.tsx's own live bulk() method, in an if (verb === 'Exported') branch that picks a format able to faithfully carry the columns on screen, states any loss the format entails, builds a real filename, and triggers a real browser download -- that much is genuinely wired and reachable code. What is still true, for a subtler reason than 'never imported': the compiled UI's own bulk-action-bar 'Export' button does not call this.bulk('Exported', sel); it calls this.hostAction('export-json', ...) instead (generated/console.tsx near line 4879), a separate, narrower code path (host-actions.ts's exportFile()) that writes plain JSON only, with no format choice and no loss disclosure. So export.ts's rich multi-format engine is imported, referenced, and sits inside a live class method, and is still unreachable from a real click, because nothing ever hands bulk() the verb 'Exported'.",
       "files": [
-        "app/renderer/src/export.ts"
+        "app/renderer/src/App.tsx",
+        "app/renderer/src/export.ts",
+        "app/renderer/src/generated/console.tsx",
+        "app/renderer/src/host-actions.ts",
+        "tests/contracts/complete-exports.test.mjs"
       ]
     },
     "bulk-actions": {
       "state": "partial",
-      "note": "app/renderer/src/bulk.ts (336 lines, tested by tests/ui/bulk.test.tsx) implements bulk selection/action logic, but is never imported by App.tsx or any mounted component. The compiled console does implement one real bulk action (bulk = (verb, sel) => ...fire...) for canvas-node selection, narrower than the bulk.ts contract.",
+      "note": "CORRECTED 2026-08-25: 'never imported by App.tsx' is now false. bulk.ts (336 lines) is imported at the top of App.tsx, and App.tsx's own bulk() method (overriding the compiled design's trivial one-liner through the same App-extends-ConsoleShell mechanism used elsewhere) genuinely calls planBulk/bulkSummarise on every invocation, building a real plan (affected versus skipped, and why) before acting. What narrows the honest state further than 'wired' alone: the compiled UI's own bulk-action-bar buttons call this.bulk(...) with only three verbs -- 'Enabled', 'Disabled', 'Duplicated' (generated/console.tsx near line 4873). Its Export button calls hostAction('export-json', ...) directly instead of this.bulk('Exported', sel) (see complete-exports), and its Delete button calls ceremony(...) directly instead of this.bulk('Deleted', sel) (generated/console.tsx line 4880) -- so the 'Exported' and 'Deleted' branches inside bulk() are unreachable from a real click, even though the code for both is real and syntactically correct. And of the three verbs that do reach bulk(), App.tsx's own trailing comment states the honest limit plainly: every other bulk verb has no write path in this console yet, so the plan and its honest count are real and a real message fires, but nothing is actually applied against server state.",
       "files": [
+        "app/renderer/src/App.tsx",
         "app/renderer/src/bulk.ts",
-        "app/renderer/src/generated/console.tsx"
+        "app/renderer/src/generated/console.tsx",
+        "tests/contracts/bulk-actions.test.mjs"
       ]
     },
     "accessibility": {
@@ -258,9 +266,12 @@
     },
     "per-element-toy-locks": {
       "state": "partial",
-      "note": "The compiled console implements a real per-element lock/unlock mechanism (state.locks keyed by element id, tryUnlock() checking PIN or password, generated/console.tsx near line 3963) that is wired and functional. Missing against the contract: no OTP/TOTP option, no per-element lock-creation wizard reachable from a documented context-menu command, and no OS credential-vault storage - credentials live in plain component state.",
+      "note": "CORRECTED 2026-08-25: the previous note claimed two gaps that are now false. First, no OTP/TOTP option: the compiled lock wizard's lockMethods list genuinely offers three TOTP-including combinations -- 'PIN+TOTP', 'Password+TOTP', 'Password+PIN+TOTP' (generated/console.tsx near line 5690) -- and App.tsx's own lockNext/tryUnlock (overriding the generated design's PIN/password-only originals through the same App-extends-ConsoleShell mechanism used elsewhere) genuinely verify a real RFC 6238 code through totp.ts's verifyCode, refusing to finish a TOTP-including lock until pairAuth() has actually generated a secret (see built-in-authenticator.md for the pairing details). Second, no lock-creation wizard reachable from a documented context-menu command: 'Lock this element...' is a real, wired context-menu command with a shortcut hint (hint:'^L', generated/console.tsx line 5531) that opens the same lockOpen wizard, and it is documented below. The real gap this note should have named instead: the PIN, the password and the TOTP secret are all stored in plain React component state (state.locks, written and read directly in App.tsx's lockNext/tryUnlock), never in the OS credential vault -- confirmed by grepping the renderer for any vault/keytar/safeStorage reference near the lock mechanism and finding none. A toy lock is explicitly a for-fun speed bump rather than a security boundary, but the credential is still worth moving to the vault so a lock's PIN or password is not sitting in memory any more casually than it has to.",
       "files": [
-        "app/renderer/src/generated/console.tsx"
+        "app/renderer/src/App.tsx",
+        "app/renderer/src/generated/console.tsx",
+        "app/renderer/src/totp.ts",
+        "tests/contracts/per-element-toy-locks.test.mjs"
       ]
     },
     "support-tickets": {
