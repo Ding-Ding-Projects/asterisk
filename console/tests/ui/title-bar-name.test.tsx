@@ -116,3 +116,44 @@ test('an already vocabulary-substituted shipped name is still found and replaced
 test('a plain string tree (no element at all) is returned unchanged', () => {
   assert.equal(withTitleBarName('just text' as never, 'Reception'), 'just text');
 });
+
+/**
+ * `React.cloneElement(node, config, singleValue)` and `React.cloneElement(node, config,
+ * ...manyValues)` are different calls -- the first never marks the array `singleValue`
+ * happens to be as a list of literal, static children, so React treats every item
+ * inside it exactly as it would treat an unkeyed `.map()` result. The compiled shell
+ * always renders the rewritten drag region as one of several siblings in a real array
+ * (the top-level list of screens, dialogs and overlays `Template()` returns), so this
+ * reproduces that exact shape rather than rendering the rewritten tree alone, which
+ * would never exercise the array-context check that actually fires the warning.
+ *
+ * Proved by breaking it on purpose: passing `rewritten`/`next` straight to
+ * `cloneElement` instead of through `cloneWithChildren`'s array-spread turns this red
+ * with real "Each child in a list should have a unique key" console.error calls;
+ * restoring the spread turns it back green.
+ */
+test('rewriting the title bar name never reports a missing-key warning when the result sits in a real sibling array', () => {
+  const original = console.error;
+  const warnings: string[] = [];
+  console.error = ((...args: unknown[]) => {
+    const message = String(args[0] ?? '');
+    if (message.includes('key')) warnings.push(message);
+    else original(...(args as []));
+  }) as typeof console.error;
+  try {
+    const rewritten = withTitleBarName(realWindow(), 'Reception');
+    /* The real siblings a compiled shell surrounds the drag region with: other
+     * top-level nodes and a couple of `null`s from closed dialogs, exactly like
+     * `Template()`'s own conditional overlay children. */
+    const siblingArray = createElement('div', null,
+      rewritten,
+      createElement('div', {}, 'sibling one'),
+      null,
+      createElement('div', {}, 'sibling two'),
+    );
+    renderToStaticMarkup(siblingArray);
+  } finally {
+    console.error = original;
+  }
+  assert.deepEqual(warnings, [], `expected no missing-key warnings, got: ${warnings.join(' | ')}`);
+});
