@@ -624,6 +624,17 @@ body.attn-focus .topbar:hover,body.attn-focus .topbar:focus-within,body.attn-foc
 .setting-card-stack label[for^="narration-"]{color:var(--muted-2);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}
 .setting-card-stack .range-row label[for^="narration-"]{flex:0 0 auto}
 .setting-card-stack .range-row input[type="range"]{flex:1 1 auto;min-width:0}
+/* The restricted-presentation card: its labels read as labels for the same reason the
+   narration ones do, and its three control groups are laid out as stacks. The [hidden]
+   rules are load-bearing rather than defensive -- `display:grid` on a group would
+   otherwise beat the browser's own `[hidden]{display:none}`, and the group a person is
+   not in the state for would sit there fully operable. */
+.school-card label[for^="school-"]{color:var(--muted-2);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}
+#school-name-controls,#school-arm-controls,#school-unlock-controls{display:grid;gap:6px}
+#school-name-controls[hidden],#school-arm-controls[hidden],#school-unlock-controls[hidden]{display:none}
+#school-arm-controls button,#school-unlock-controls button{justify-self:start;margin-top:6px}
+#school-recovery summary{cursor:pointer;color:var(--muted-2);font-size:.82rem}
+#school-recovery p{margin:8px 0 0;color:var(--muted-2);font-size:.82rem}
 .setting-note{margin:0;color:var(--muted-2);font-size:.82rem}
 .colour-translate{display:flex;flex-direction:column;gap:10px}
 .colour-translate .search-composite{width:100%}

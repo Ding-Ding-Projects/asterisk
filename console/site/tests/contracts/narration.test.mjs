@@ -299,12 +299,18 @@ function loadNarration({
   quiet = false,
   withCard = true,
   copy = {},
+  restrictedPresentation = false,
 } = {}) {
   const elements = withCard
     ? Object.fromEntries(CARD_IDS.map((id) => [id, new El(id.includes('status') ? 'p' : 'input')]))
     : {};
   const idsAsked = [];
   const $ = (id) => { idsAsked.push(id); return elements[id] ?? null; };
+  /* `el()` is app.js's own resolver for a control that may currently be held out of
+   * the document by the restricted presentation. Nothing here suppresses anything, so
+   * every id is live and it answers exactly as `$` does -- but the narrator binds
+   * through it, so the harness has to supply it or every binding test throws. */
+  const el = $;
   const document = { createElement: (tag) => new El(tag) };
   const speechEngine = engine === 'fake' ? new FakeEngine(voices) : engine;
 
@@ -320,6 +326,9 @@ function loadNarration({
    * make the drain loop's own guard untestable -- which it was, until a planted break
    * survived and said so. */
   const quietState = { on: quiet };
+  /* Mutable for the same reason: the restricted presentation is one switch shared
+   * across every tab, so it can come on while a bilingual line is half-spoken. */
+  const restricted = { on: restrictedPresentation };
 
   const body = `${blockSource(app, CONSTANTS_FROM, CONSTANTS_TO)}\n`
     + `${FUNCTIONS.map((name) => functionSource(app, name)).join('\n')}\n`
@@ -330,10 +339,11 @@ function loadNarration({
 
   // eslint-disable-line no-new-func -- deliberately re-running the real extracted source
   const api = new Function(
-    'document', '$', 'state', 'speechSynthesis', 'SpeechSynthesisUtterance', 'reduceMotion',
-    'copyLevel', 'save', 'recordHistory', 'notify', 'addEventListener', 'setTimeout', 'clearTimeout', body,
+    'document', '$', 'el', 'state', 'speechSynthesis', 'SpeechSynthesisUtterance', 'reduceMotion',
+    'copyLevel', 'save', 'recordHistory', 'notify', 'addEventListener', 'setTimeout', 'clearTimeout',
+    'schoolActive', body,
   )(
-    document, $, state, speechEngine, FakeUtterance, () => quietState.on,
+    document, $, el, state, speechEngine, FakeUtterance, () => quietState.on,
     (key, lang) => (copy[key] ? copy[key][lang] : ''),
     () => saved.push(JSON.stringify(state.narration)),
     (kind, message) => history.push({ kind, message }),
@@ -341,9 +351,10 @@ function loadNarration({
     (name, listener) => { windowListeners.set(name, listener); },
     () => 0,
     () => {},
+    () => restricted.on,
   );
 
-  return { ...api, state, elements, engine: speechEngine, idsAsked, saved, history, notified, windowListeners, quietState };
+  return { ...api, state, elements, engine: speechEngine, idsAsked, saved, history, notified, windowListeners, quietState, restricted };
 }
 
 /* ------------------------------------------------------------------ *
@@ -1022,4 +1033,50 @@ test('the localization registry records the card copy rather than claiming untra
   assert.equal(row.state, 'localized');
   assert.deepEqual(row.copyKeys, ['narrationDesc']);
   assert.ok(locales.knownCopyKeys.includes('narrationDesc'), 'narrationDesc is missing from the recorded COPY keys');
+});
+
+/* ------------------------------------------------------------------ *
+ * The restricted presentation, which removes Cantonese from this page.
+ *
+ * The narrator is the one surface where "removed" needs saying twice, because a
+ * missing control does not silence a voice. `narrate` drops the track when the line
+ * is queued, and the drain loop drops it again per line -- the switch is shared
+ * across tabs, so it can arrive between the two halves of one bilingual line.
+ * ------------------------------------------------------------------ */
+
+test('under the restricted presentation a bilingual line is read in English only', async () => {
+  const h = loadNarration({ narration: { enabled: true, language: 'both' }, restrictedPresentation: true });
+  const result = h.narrate('notification', { en: 'Something happened.', zh: 'Cantonese wording.' });
+  assert.deepEqual(result.tracks, ['en'], 'the Cantonese track was queued while the restricted presentation was on');
+  await h.engine.finishAll();
+  assert.deepEqual(h.engine.spoken.map((utterance) => utterance.text), ['Something happened.']);
+});
+
+test('under it a line with only Cantonese wording is not spoken at all, and says why', async () => {
+  const h = loadNarration({ narration: { enabled: true, language: 'both' }, restrictedPresentation: true });
+  assert.deepEqual(h.narrate('notification', { zh: 'Cantonese wording.' }), { spoken: false, why: 'no-text' },
+    'a Cantonese-only line was queued anyway -- narrationTracksFor falls back to whatever wording exists, so filtering the SELECTION alone is not enough');
+  await h.engine.finishAll();
+  assert.equal(h.engine.spoken.length, 0);
+});
+
+test('switched on between the two halves of a bilingual line, the second half is dropped and the first is not', async () => {
+  /* Same shape as the Low-stimulation mid-line test above, and here for the same
+   * reason: both halves belong to one queued item, so the queue-level filter in
+   * narrate() never sees this case at all. */
+  const h = loadNarration({ narration: { enabled: true, language: 'both' } });
+  h.narrate('notification', { en: 'English half.', zh: 'Cantonese half.' });
+  assert.equal(h.engine.spoken.length, 1, 'the English half was not started, so this would prove nothing');
+  h.restricted.on = true;
+  await h.engine.finishAll();
+  assert.deepEqual(h.engine.spoken.map((utterance) => utterance.text), ['English half.'],
+    'the Cantonese half was spoken after the restricted presentation came on');
+});
+
+test('with it off nothing changes: both halves are still spoken', async () => {
+  const h = loadNarration({ narration: { enabled: true, language: 'both' } });
+  h.narrate('notification', { en: 'English half.', zh: 'Cantonese half.' });
+  await h.engine.finishAll();
+  assert.deepEqual(h.engine.spoken.map((utterance) => utterance.text), ['English half.', 'Cantonese half.'],
+    'the previous test would pass vacuously if this one did not');
 });

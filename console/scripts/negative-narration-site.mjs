@@ -302,6 +302,19 @@ const cases = [
   ['the narration labels lose the rule that makes them read as labels',
     swap(CSS, '.setting-card-stack label[for^="narration-"]{', '.setting-card-stack label[for^="narrationX-"]{')],
 
+  /* ---- The restricted presentation, which removes Cantonese from this page. ----
+   *
+   * Two guards rather than one, and both are needed: the queue-level filter never sees a
+   * line whose two halves are already inside one queued item, and the per-line guard
+   * never sees a line that was refused before it was ever queued. */
+
+  ['a Cantonese track is queued anyway while the restricted presentation is on',
+    swap(APP, "const spokenTracks=NARRATION_TRACKS.map(track=>track.key).filter(key=>!(schoolActive()&&key!=='en'));",
+      'const spokenTracks=NARRATION_TRACKS.map(track=>track.key);')],
+
+  ['a Cantonese half already queued is still read after the restricted presentation arrives',
+    swap(APP, "          if(schoolActive()&&line.track!=='en')continue;\n", '')],
+
   /* ---- The registries. ---- */
 
   ['the registry claims the feature is still absent',
