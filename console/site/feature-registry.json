@@ -263,9 +263,12 @@
       ]
     },
     "context-menu-shortcuts": {
-      "state": "absent",
-      "note": "No context menu (oncontextmenu handling) exists anywhere on the site.",
-      "files": []
+      "state": "implemented",
+      "note": "A document-level 'contextmenu' listener gives every rendered element its own menu, with a keyboard equivalent on Shift+F10 and the Menu key and a long-press equivalent for touch. Each item's printed keyboard shortcut is derived from the same chord object the live dispatcher matches against, so the column cannot drift from the binding; no action sits on a chord the browser claims first (RESERVED_CHORDS names each claimant), and the site declares no accesskey anywhere because Firefox fires those on the same Alt+Shift pair. The menu carries its own filter field with its own anchored regex builder, filtering preserves order and identity, and an item the filter has hidden stops being reachable by its shortcut. Two entries are permanently unavailable and say which registry row records why: 'Lock this element…' (per-element-toy-locks is absent) and 'Edit this element’s appearance…' (material-appearance is partial). The destructive reset carries no chord and routes through the existing two-key gate rather than round it. Shift+right-click still yields the browser's own menu. No chord has been pressed in a real browser: the dispatch is proved over the extracted source against synthetic events.",
+      "files": [
+        "site/app.js",
+        "site/styles.css"
+      ]
     },
     "long-operation-progress": {
       "state": "absent",
