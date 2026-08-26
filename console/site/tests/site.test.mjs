@@ -144,7 +144,12 @@ test('build composes deterministic local output without fetches', async () => {
   // Design 3 conformance audit a design-parity row also has to meet, why a machine is allowed
   // to write that one, and what the first run of it measured across all 32 destinations.
   // One article in, one HTML page out.
-  assert.equal(manifest.outputFiles.length, 189);
+  // 190 from 2026-08-25, for a third evidence record:
+  // docs/evidence/statuscell-text-pixels.md, which traces the last measured divergence inside
+  // statusCell to a font weight the built application inherits and the design does not, and
+  // records the two hypotheses that were falsified on the way to it.
+  // One article in, one HTML page out.
+  assert.equal(manifest.outputFiles.length, 190);
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');
