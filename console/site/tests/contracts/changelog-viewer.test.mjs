@@ -524,10 +524,23 @@ test('every exported row states the range of the export it came from', () => {
   const rows = api.changelogExportRows(entries);
   assert.ok(rows.every((row) => row.exportedRange === expected),
     'not every exported row states the same range, so the file does not state its own range');
-  /* And a narrowed export states the NARROWED range, not the whole history's. */
+  /* And a narrowed export states the NARROWED range, not the whole history's.
+   *
+   * The narrowed entry has to carry a date the whole history does not, or this proves
+   * nothing. This repository ships many releases in one day -- all twenty in the current
+   * generated history are dated 2026-08-26 -- so `changelogRangeLabel(everything)` and a
+   * single real entry's own date are the same string, and an export that wrongly claimed
+   * the whole range would read as correct. That is not hypothetical: it left this exact
+   * assertion unable to see a deliberately planted break. So the narrowed entry is given
+   * a date of its own, and the fixture is asserted to be discriminating before it is
+   * trusted. */
   const one = entries.find((entry) => entry.changes.length > 0);
-  const narrowed = api.changelogExportRows([one]);
-  assert.ok(narrowed.length > 0 && narrowed.every((row) => row.exportedRange === one.date),
+  assert.ok(one, 'no real entry carries a change, so the narrowing below would prove nothing');
+  const OUTSIDE_THE_HISTORY = '2000-01-01';
+  assert.notEqual(OUTSIDE_THE_HISTORY, expected,
+    'the narrowed date is the whole history\'s own range label, so this check cannot tell them apart');
+  const narrowed = api.changelogExportRows([{ ...one, date: OUTSIDE_THE_HISTORY }]);
+  assert.ok(narrowed.length > 0 && narrowed.every((row) => row.exportedRange === OUTSIDE_THE_HISTORY),
     'a filtered export still claims the range of the unfiltered history');
 });
 

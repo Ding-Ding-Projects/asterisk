@@ -211647,7 +211647,7 @@
         },
         {
           "featureId": "responsive-sizing",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -212064,7 +212064,7 @@
         },
         {
           "featureId": "built-in-authenticator",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -212505,7 +212505,7 @@
         },
         {
           "featureId": "guided-forms",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -212684,7 +212684,7 @@
         },
         {
           "featureId": "context-menu-shortcuts",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -212765,7 +212765,7 @@
         },
         {
           "featureId": "long-operation-progress",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -212846,7 +212846,7 @@
         },
         {
           "featureId": "in-context-recovery",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -215559,7 +215559,7 @@
         },
         {
           "featureId": "responsive-sizing",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -215976,7 +215976,7 @@
         },
         {
           "featureId": "built-in-authenticator",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -216417,7 +216417,7 @@
         },
         {
           "featureId": "guided-forms",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -216596,7 +216596,7 @@
         },
         {
           "featureId": "context-menu-shortcuts",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -216677,7 +216677,7 @@
         },
         {
           "featureId": "long-operation-progress",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -216758,7 +216758,7 @@
         },
         {
           "featureId": "in-context-recovery",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -219471,7 +219471,7 @@
         },
         {
           "featureId": "responsive-sizing",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -219888,7 +219888,7 @@
         },
         {
           "featureId": "built-in-authenticator",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -220329,7 +220329,7 @@
         },
         {
           "featureId": "guided-forms",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -220508,7 +220508,7 @@
         },
         {
           "featureId": "context-menu-shortcuts",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -220589,7 +220589,7 @@
         },
         {
           "featureId": "long-operation-progress",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -220670,7 +220670,7 @@
         },
         {
           "featureId": "in-context-recovery",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -223383,7 +223383,7 @@
         },
         {
           "featureId": "responsive-sizing",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -223800,7 +223800,7 @@
         },
         {
           "featureId": "built-in-authenticator",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -224241,7 +224241,7 @@
         },
         {
           "featureId": "guided-forms",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -224420,7 +224420,7 @@
         },
         {
           "featureId": "context-menu-shortcuts",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -224501,7 +224501,7 @@
         },
         {
           "featureId": "long-operation-progress",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -224582,7 +224582,7 @@
         },
         {
           "featureId": "in-context-recovery",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -227295,7 +227295,7 @@
         },
         {
           "featureId": "responsive-sizing",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -227712,7 +227712,7 @@
         },
         {
           "featureId": "built-in-authenticator",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -228153,7 +228153,7 @@
         },
         {
           "featureId": "guided-forms",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -228332,7 +228332,7 @@
         },
         {
           "featureId": "context-menu-shortcuts",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -228413,7 +228413,7 @@
         },
         {
           "featureId": "long-operation-progress",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -228494,7 +228494,7 @@
         },
         {
           "featureId": "in-context-recovery",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -231207,7 +231207,7 @@
         },
         {
           "featureId": "responsive-sizing",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -231624,7 +231624,7 @@
         },
         {
           "featureId": "built-in-authenticator",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -232065,7 +232065,7 @@
         },
         {
           "featureId": "guided-forms",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -232244,7 +232244,7 @@
         },
         {
           "featureId": "context-menu-shortcuts",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -232325,7 +232325,7 @@
         },
         {
           "featureId": "long-operation-progress",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -232406,7 +232406,7 @@
         },
         {
           "featureId": "in-context-recovery",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",

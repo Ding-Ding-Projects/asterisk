@@ -1074,8 +1074,8 @@ test('the stylesheet declares the region exactly once and hides nothing by defau
 test('the site feature registry records in-context-recovery as implemented, and names the files it lives in', () => {
   const row = registry.features['in-context-recovery'];
   assert.ok(row, 'no in-context-recovery row in site/feature-registry.json');
-  assert.equal(row.state, 'implemented');
-  assert.deepEqual(row.files.slice().sort(), ['site/app.js', 'site/styles.css']);
+  assert.equal(row.status, 'implemented-unverified');
+  assert.deepEqual(row.implementation.paths.slice().sort(), ['site/app.js', 'site/styles.css']);
   assert.match(row.note, /recoveryFor/u, 'the note no longer names the pure decision this feature rests on');
   assert.match(row.note, /page-unbuilt/u, 'the note no longer names the route that deliberately offers nothing');
 });

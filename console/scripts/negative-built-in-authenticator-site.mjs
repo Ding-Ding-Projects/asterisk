@@ -369,7 +369,7 @@ const cases = [
   // ---- The registries and the article ----
 
   ['the registry claims the feature is still absent',
-    swap(REGISTRY, '"state": "implemented",\n      "note": "Built on 2026-08-26. site/settings.html carries a SECURITY card', '"state": "absent",\n      "note": "Built on 2026-08-26. site/settings.html carries a SECURITY card')],
+    swap(REGISTRY, '"status": "implemented-unverified",\n      "note": "Built on 2026-08-26. site/settings.html carries a SECURITY card', '"status": "absent",\n      "note": "Built on 2026-08-26. site/settings.html carries a SECURITY card')],
 
   ['the localization registry claims the card is untranslated',
     swap(LOCALES, '"state": "localized",\n      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",\n      "copyKeys": [\n        "authenticatorDesc"\n      ],',
