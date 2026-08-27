@@ -39,17 +39,22 @@ release evidence.
 
 ### Cleanup state
 
-The integration and cleanup pass removed 47 linked worktrees, 49 local branches, and 148
-remote branches after clean-state, push, and ancestry checks. No stash exists. The following
-items were deliberately retained:
+The integration and cleanup pass removed 49 linked worktrees, 49 local branches, and 148
+remote branches after clean-state, push, and ancestry checks. No stash exists. Exactly one
+working tree remains: the primary checkout on `master`.
 
-- The primary checkout on `master`.
-- One detached checkout owned by another session, because ownership is uncertain.
-- The local `codex/ui-smoke-recovery` checkout at
-  `1ea934bcd65e018a0d4f71c3b5d1ca26ce793875`, because its extra commit contains a
-  159.93 MB Git blob and the server rejects that tip. The safely published predecessor is
+Two preservation branches remain locally without linked checkouts:
+
+- `claude/busy-zhukovsky-ae0b75` at
+  `fd1f2c51a9e91779cd8fd278bbbe9d43cc822d91`; its committed tip is published and is an
+  ancestor of `master`.
+- `codex/ui-smoke-recovery` at
+  `1ea934bcd65e018a0d4f71c3b5d1ca26ce793875`; its extra commit contains a 159.93 MB Git
+  blob and the server rejects that tip. The local branch preserves the commit after its linked
+  checkout was removed. The safely published predecessor is
   `cbad600e5483e5ab19da35aa941efe923467f9f0`.
-- Remote branch `site-per-element-toy-locks` at
+
+Remote branch `site-per-element-toy-locks` remains at
   `1cadefa72b861dec5c6de5bd5c926a32db0e4e58`, because it appeared during cleanup and is
   not an ancestor of the published default branch.
 
