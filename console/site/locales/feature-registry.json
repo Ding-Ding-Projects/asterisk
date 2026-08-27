@@ -8,6 +8,7 @@
     "both"
   ],
   "knownCopyKeys": [
+    "authenticatorDesc",
     "changelogDesc",
     "contextMenuHint",
     "contextMenuNoMatch",
@@ -262,11 +263,13 @@
       "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
     },
     "built-in-authenticator": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
-      "copyKeys": [],
+      "copyKeys": [
+        "authenticatorDesc"
+      ],
       "missingCopyKeys": [],
-      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+      "note": "COPY.authenticatorDesc ships four English and four Cantonese variants, wired to the sliders from the start through the card data-copy=\"authenticatorDesc\" hook. Voice moves with the slider; three facts never do -- every one of the eight says that the secrets stay in this browser and nothing is sent anywhere, that every code is computed on this page from the secret the reader registered, and that clearing this site storage deletes them with no way back. Those three are what the feature IS, so a variant that dropped one would be describing something considerably less careful. The rest of the surface -- the capability sentence naming what this browser can and cannot scan, the clock note, every refusal reason, and the two dialogs -- is factual English written once and passed through applyVocabularyText(), the same treatment the notification and history surfaces already get."
     },
     "attention-modes": {
       "state": "localized",
