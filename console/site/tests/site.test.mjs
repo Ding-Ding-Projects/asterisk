@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /** The one section of an evidence document whose table rows must each name a source commit. */
@@ -125,14 +125,74 @@ test('contains exactly 32 destination definitions in six declared groups', () =>
     'arcade','notifications','history','customise','appearance','about',
   ]);
 });
-test('provides 78 complete feature articles plus checked evidence records', async () => {
-  const docsRoot=resolve(root,'..','docs'), categories=['pbx','media','data','system','agent','app','platform'];
+/**
+ * The article count this suite expects, written per category rather than as one total.
+ *
+ * It used to be the bare number 78, and it had gone stale: the tree holds 101 articles
+ * today, because four more destination screens and nineteen more platform contracts each
+ * landed with their own article, exactly as the documentation rule requires. So the guard
+ * was red on master while every article it exists to protect was present and correct --
+ * it was reporting legitimate growth as a defect.
+ *
+ * A single total is the weakest useful shape for this. `101 !== 78` says a number moved
+ * and nothing about which of the seven categories moved or in which direction, and one
+ * article deleted while another is added nets to zero and passes in silence. Per category,
+ * a failure names the category, and the two directions cannot cancel out.
+ *
+ * It stays hand-written on purpose. Deriving the expectation from the same directory
+ * listing it checks would make the assertion true by construction, which is the exact
+ * failure a completeness list exists to refuse: it would go on passing after every
+ * article in a category had been deleted.
+ */
+const EXPECTED_ARTICLES_BY_CATEGORY = {
+  pbx: 10, media: 4, data: 2, system: 4, agent: 9, app: 8, platform: 64,
+};
+
+/**
+ * Changelog fragments that live in a feature category, named one at a time.
+ *
+ * These are a third genre, and the reasoning is the one already applied two ways in this
+ * file: `docs/changelog` sits outside the article list because a changelog is not a
+ * feature explanation, and `docs/evidence` gets its OWN required sections rather than the
+ * article ones because forcing "## Behavior" onto a capture record would distort a
+ * document doing its job. A fragment records what one lane added. It has no behaviour, no
+ * configuration and no failure modes of its own, so the five article sections would each
+ * have to be invented to satisfy a rule that was never about this kind of file.
+ *
+ * They are listed by exact name rather than matched by a `changelog-` prefix, for two
+ * reasons that both bit here. A prefix would silently absorb any future article somebody
+ * happened to name that way, turning an exemption into a hole. And it would not have
+ * caught `changelog-dim-sum-runtime.md`, whose title is "Runtime contract: dim-sum startup
+ * cache" -- a name and a title that disagree about the genre, which is exactly the case a
+ * pattern cannot judge and a person can.
+ *
+ * Exempt from the ARTICLE sections, not from checking: each one still has to be a real
+ * fragment, and each still has to state its verification honestly, which is the rule that
+ * applies to every document in this repository regardless of genre.
+ */
+const CHANGELOG_FRAGMENTS_IN_FEATURE_CATEGORIES = new Set([
+  'agent/changelog-status-hub-client.md',
+  'platform/changelog-browser-extension-transfer.md',
+  'platform/changelog-dim-sum-runtime.md',
+  'platform/changelog-logo-conversion.md',
+]);
+
+test('provides a complete feature article for every documented category, plus checked evidence records', async () => {
+  const docsRoot=resolve(root,'..','docs'), categories=Object.keys(EXPECTED_ARTICLES_BY_CATEGORY);
   const articles=[];
-  for(const category of categories)for(const name of await readdir(join(docsRoot,category)))if(name.endsWith('.md')&&name!=='README.md')articles.push(join(docsRoot,category,name));
-  // 32 destination articles (pbx/media/data/system/agent/app) plus 45 platform articles,
-  // plus one more: docs/pbx/iaxpeers.md, the IAX peers screen's own previously missing
-  // documentation article, added alongside the Trunks/IVR deepening pass.
-  assert.equal(articles.length,78);
+  const found={};
+  for(const category of categories){
+    const inCategory=[];
+    for(const name of await readdir(join(docsRoot,category)))if(name.endsWith('.md')&&name!=='README.md')inCategory.push(join(docsRoot,category,name));
+    found[category]=inCategory.length;
+    articles.push(...inCategory);
+  }
+  assert.deepEqual(found,EXPECTED_ARTICLES_BY_CATEGORY,
+    'the articles on disk no longer match the hand-written per-category expectation -- one was added or deleted without this list being told');
+  // Stated as well as summed, so a reader does not have to add up seven numbers to learn
+  // what the corpus is meant to be.
+  assert.equal(articles.length,101);
+  assert.equal(articles.length,Object.values(EXPECTED_ARTICLES_BY_CATEGORY).reduce((total,count)=>total+count,0));
   // An evidence record is a different genre from a feature article: it says what was
   // captured, from which commit, and by what method, and forcing "## Behavior" onto it
   // would distort a document that is doing its job. So it lives in its own category --
@@ -168,7 +228,28 @@ test('provides 78 complete feature articles plus checked evidence records', asyn
     for(const row of rows)assert.match(row,/[0-9a-f]{40}/,`a capture row in ${name} names no source commit: ${row.slice(0,60)}`);
     for(const match of content.matchAll(/\]\(([^)]+\.(?:md|png))\)/g)){const target=resolve(evidenceRoot,match[1]);assert.ok((await stat(target)).isFile(),`${name} -> ${match[1]}`)}
   }
-  for(const article of articles){const content=await readFile(article,'utf8');for(const heading of ['## Behavior','## Configuration','## Failure modes','## Verification','## Suggested articles'])assert.match(content,new RegExp(heading));for(const match of content.matchAll(/\]\(([^)]+\.md)\)/g)){const target=resolve(dirname(article),match[1]);assert.ok((await stat(target)).isFile(),`${article} -> ${match[1]}`)}}
+  // Every exempted fragment must actually be on disk. Without this, deleting one would
+  // leave a name in the list matching nothing, and the exemption would quietly become an
+  // entry nobody could trace to a file -- the same silence the per-category count refuses.
+  let fragmentsSeen=0;
+  for(const article of articles){
+    const relative=article.slice(docsRoot.length+1).split(sep).join('/');
+    const content=await readFile(article,'utf8');
+    if(CHANGELOG_FRAGMENTS_IN_FEATURE_CATEGORIES.has(relative)){
+      fragmentsSeen+=1;
+      // Its own genre check, not a free pass: a fragment says what a lane added, and says
+      // what that lane did and did not verify. A fragment claiming neither is a paragraph
+      // nobody can act on.
+      assert.match(content,/^## .+/mu,`${relative} is exempt from the article sections but carries no section of its own`);
+      assert.match(content,/Verification (for this fragment|state)/u,
+        `${relative} states no verification, which every document here owes regardless of genre`);
+      continue;
+    }
+    for(const heading of ['## Behavior','## Configuration','## Failure modes','## Verification','## Suggested articles'])assert.match(content,new RegExp(heading),`${relative} has no ${heading}`);
+    for(const match of content.matchAll(/\]\(([^)]+\.md)\)/g)){const target=resolve(dirname(article),match[1]);assert.ok((await stat(target)).isFile(),`${article} -> ${match[1]}`)}
+  }
+  assert.equal(fragmentsSeen,CHANGELOG_FRAGMENTS_IN_FEATURE_CATEGORIES.size,
+    'a name in the changelog-fragment exemption list matched no file on disk, so the list and the tree have drifted apart');
 });
 test('exposes keyboard, tab, regex, and local settings interactions', () => {
   assert.match(everyPage, /class="local-tabs" aria-label=/); assert.match(everyPage, /id="command-palette"/); assert.match(js, /ctrlKey&&event.shiftKey/);
@@ -328,8 +409,39 @@ test('build composes deterministic local output without fetches', async () => {
   // made outside a git checkout cannot name its own commit, deliberately writes no manifest
   // rather than one carrying a placeholder, and bakes no identity into app.js -- so that
   // page reports itself unbuilt instead of asking for a file that was never published.
-  const expectedFiles = manifest.buildIdentity.resolved ? 196 : 195;
+  /* This was the bare number 196 and it had gone stale the same way the article count
+   * above had: the build publishes 232 files today, 23 of them the HTML pages for the 23
+   * articles that have landed since, and the rest evidence, changelog and feature pages
+   * added alongside them. So it was red while the build was correct.
+   *
+   * Written per directory rather than as one total, for the reason the article list gives:
+   * `232 !== 196` names no directory, and a page lost from one while another gains one
+   * cancels out and passes in silence. Hand-written, so it cannot be satisfied by the very
+   * listing it checks.
+   *
+   * The root entry is the one conditional value, because `version.json` is the one output
+   * whose presence depends on the environment rather than on the source: a build outside a
+   * git checkout cannot name its own commit and deliberately publishes no identity rather
+   * than a placeholder one. */
+  const expectedByDirectory = {
+    '.': manifest.buildIdentity.resolved ? 10 : 9,
+    'assets/fonts': 51, 'assets/site-fonts': 32,
+    docs: 2, 'docs/agent': 10, 'docs/app': 9, 'docs/changelog': 3,
+    'docs/changelog-fragments': 3, 'docs/data': 3, 'docs/evidence': 7,
+    'docs/features': 2, 'docs/features/auth-lock-ui': 5, 'docs/features/navigation': 1,
+    'docs/media': 5, 'docs/operations': 2, 'docs/pbx': 11, 'docs/platform': 65,
+    'docs/system': 5, screens: 6,
+  };
+  const publishedByDirectory = {};
+  for (const file of manifest.outputFiles) {
+    const directory = file.path.includes('/') ? file.path.slice(0, file.path.lastIndexOf('/')) : '.';
+    publishedByDirectory[directory] = (publishedByDirectory[directory] ?? 0) + 1;
+  }
+  assert.deepEqual(publishedByDirectory, expectedByDirectory,
+    'the published output no longer matches the hand-written per-directory expectation -- a page was added or dropped without this list being told');
+  const expectedFiles = Object.values(expectedByDirectory).reduce((total, count) => total + count, 0);
   assert.equal(manifest.outputFiles.length, expectedFiles);
+  assert.equal(expectedFiles, manifest.buildIdentity.resolved ? 232 : 231);
   assert.equal(
     manifest.outputFiles.some(file => file.path === 'version.json'),
     manifest.buildIdentity.resolved,

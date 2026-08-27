@@ -2,7 +2,9 @@
 
 The desktop console has a mount-ready React surface for a local Ollama installation, and the documentation site has a browser-local equivalent at `ollama.html`. Neither is a cloud model store or an Ollama replacement. The desktop surface accepts an `OllamaSuiteClient`; the site requires an explicitly approved loopback endpoint. Both treat observed backend data as authoritative and never seed sample models, simulated progress, or fake health results.
 
-## Desktop behavior
+## Behavior
+
+### Desktop
 
 The desktop surface has four destinations. Model Store presents every model and variant returned by a completed catalog traversal with source identity, revision, refresh time, last successful refresh, page count, completeness, staleness, and offline-cache evidence. Installed tags are reconciled with the catalog without hiding either set.
 
@@ -14,11 +16,35 @@ The central mount must provide `OllamaSuiteClient` from `ollama-suite-model.ts`.
 
 Hardware fit is one of **Runs well**, **Runs with limits**, **Unlikely**, or **Unknown**, backed by observed RAM, GPU and VRAM, driver or backend support, free storage, exact blob size, parameter count, quantization, context, and overhead. Missing facts remain missing and produce a conservative verdict.
 
-## Documentation site behavior
+### Documentation site
 
 The site asks the user to approve one endpoint before a request can start. It accepts only localhost, `127.0.0.1`, or `[::1]`, rejects credentials, query strings, fragments, and unsupported schemes, and reports mixed-content and browser CORS boundaries distinctly. It offers no shell command, guessed download, cloud fallback, or web hunt.
 
 After approval, it reads version, installed tags, and running tags through the documented local API with bounded response sizes and timeouts. The official catalog is not fetched by this browser surface, so catalog completeness remains **Unknown** and is never inferred from installed tags. Pull and chat remain disabled until a real model tag is returned, use bounded newline-delimited streams, and support cancellation and partial output. Capability metadata comes from the selected model and is never guessed.
+
+## Configuration
+
+Nothing here ships a preconfigured endpoint, model, or harness, because every one of
+those is a fact about the reader's own machine that this software cannot know. What the
+reader configures, and where it is kept:
+
+- **The local endpoint.** The site holds no default and asks for one explicit approval
+  before any request; only `localhost`, `127.0.0.1` and `[::1]` are accepted, and a
+  credential, query string, fragment or unsupported scheme is refused rather than
+  cleaned up. The desktop surface takes its endpoint from the `OllamaSuiteClient` the
+  mount supplies, so the renderer never carries an address of its own.
+- **Harness profiles.** Bundled profiles ship ready to run. A further profile is
+  registered through semantic executable and folder pickers and an allowlisted argument
+  schema; there is deliberately no free-text command field, so an arbitrary shell string
+  has nowhere to enter.
+- **Generation settings** for local chat are validated against the selected model's own
+  reported bounds rather than against a table written here.
+- **Search state** is separate for the catalog, chat sessions and harness profiles.
+  Plain text is the default in each, and each carries its own adjacent regex builder
+  with bounded evaluation.
+
+Secrets named by a harness profile live in the operating-system credential store and are
+referenced by key. The profile records the key name; it never records the value.
 
 ## Failure modes and recovery
 

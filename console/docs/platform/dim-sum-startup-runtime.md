@@ -18,6 +18,51 @@ The renderer reads only through the `DimSumCacheReader` seam. A missing or inval
 
 `DIM_SUM_SURPRISE_REGISTRATION` identifies the `startup-overlay` mount, its non-blocking and focus-neutral behavior, its automatic dismissal, its no-opt-out contract, its cache boundary, and its cryptographically secure ten-percent draw. The host supplies `context`, including the shared School-mode state, and a `cacheReader` that returns the private JSON text.
 
+## Configuration
+
+There is no setting here, and that is the contract rather than an omission: the surprise
+has no opt-out, so a control that turned it off would contradict the feature it belongs to.
+`DIM_SUM_SURPRISE_REGISTRATION` records that no-opt-out boundary explicitly, so a later
+surface cannot quietly add one.
+
+What the host supplies at mount, none of it a reader's preference:
+
+- **`context`**, including the shared School-mode state, which is one of the conditions
+  that suppresses the draw.
+- **`cacheReader`**, returning the private JSON text. The renderer reads only through this
+  seam and has no route to the public catalogue of its own.
+- **The dismissal interval**, a short fixed period after which the surface removes itself.
+
+The ten-percent winning interval is a constant rather than a tunable. It is exactly ten
+percent of the uint32 range, drawn once per launch, so nothing can make the surprise more
+frequent than the contract states.
+
+## Failure modes
+
+A missing or invalid cache produces an unavailable diagnostic and no image. It never falls
+back to a placeholder, a generated picture, or a dish name with nothing behind it, because
+a dish shown without its photograph is exactly the invented content this feature is not
+allowed to produce.
+
+The envelope fails closed as a whole on an unknown field, a repeated entry id, a malformed
+data URL, oversized bytes, a non-published asset URL, missing decode proof, or an
+unsupported revision. Each local image digest is recomputed with Web Crypto before
+selection, so an entry whose bytes no longer match its recorded digest is refused rather
+than rendered.
+
+Suppression is its own outcome rather than a failure. School mode, first run, an active
+error, an active update and a mid-task state each suppress the draw, and the mount callback
+is told that it was suppressed without being told which dish was hidden -- naming it would
+leak the very capability School mode exists to conceal.
+
+## Verification
+
+Nothing here has been driven in a built artifact. The draw, the suppression conditions, the
+envelope validator and the mount seam are described as they are written; no launch has been
+observed winning or losing the draw, no cache has been produced by a package step, and no
+surface has been photographed. The parent surface still owns the final mount and the package
+step still owns cache production, so both halves remain unexercised end to end.
+
 ## Suggested articles
 
 [Dim sum surprise](dim-sum-surprise.md), [School mode](school-mode.md), and [Non-blocking notifications](non-blocking-notifications.md).
