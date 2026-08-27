@@ -84,8 +84,14 @@ test('a duplicate "from" key across two replacement entries is rejected, not sil
 
 test('a validated upload is stored only in localStorage, under the documented cache key', () => {
   const body = functionBody(/^\s*async function loadVocabulary\(event\)\{/);
-  assert.match(body, /localStorage\.setItem\('ding-pbx-vocabulary-cache',JSON\.stringify\(parsed\)\)/u,
+  /* Through `writeLocal` since in-context recovery landed -- the one writer every store
+   * on this page goes through, so a browser refusing the write is reported where it
+   * happened rather than thrown past whichever setter was in use. The property is
+   * unchanged and still exact: the validated file goes to that one local key. */
+  assert.match(body, /writeLocal\('ding-pbx-vocabulary-cache',JSON\.stringify\(parsed\)\)/u,
     'loadVocabulary no longer caches the validated vocabulary in localStorage');
+  assert.match(app, /function writeLocal\(key,value\)\{\s*try\{localStorage\.setItem\(key,String\(value\)\)/u,
+    'writeLocal no longer writes to localStorage, so the line above no longer proves the file is cached locally');
   assert.doesNotMatch(body, /fetch\(|XMLHttpRequest|navigator\.sendBeacon/u,
     'loadVocabulary now performs a network call -- the local-only claim is no longer true');
 });
@@ -96,10 +102,17 @@ test('clearing the vocabulary removes the cache and restores the original-wordin
    * bound once at load. `el()` resolves an id whether the control is in the document or
    * currently held out of it, so the control works when it comes back instead of
    * returning as a dead one. */
+  /* The handler moved into a named `clearVocabulary` when in-context recovery landed,
+   * because two things clear the dictionary now: this button, and the recovery route
+   * raised when a file is refused. Both halves are checked -- that the button is wired
+   * to it, and that it is what removes the cache and restores the wording -- so a button
+   * wired to a function that no longer clears anything cannot pass either half. */
   const line = app.split('\n').find((l) => /\bel\('vocabulary-clear'\)\.onclick=/.test(l));
   assert.ok(line, 'the vocabulary-clear click handler was not found');
-  assert.match(line, /localStorage\.removeItem\('ding-pbx-vocabulary-cache'\)/u, 'clearing no longer removes the vocabulary cache');
-  assert.match(line, /original wording is active/u, 'clearing no longer restores the original-wording status text');
+  assert.match(line, /el\('vocabulary-clear'\)\.onclick=clearVocabulary;/u, 'the vocabulary-clear button is no longer wired to clearVocabulary');
+  const clear = functionBody(/^\s*function clearVocabulary\(\)\{/);
+  assert.match(clear, /localStorage\.removeItem\('ding-pbx-vocabulary-cache'\)/u, 'clearing no longer removes the vocabulary cache');
+  assert.match(clear, /original wording is active/u, 'clearing no longer restores the original-wording status text');
 });
 
 test('the general settings export explicitly omits the personal vocabulary rather than silently leaking it', () => {

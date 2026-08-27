@@ -601,6 +601,22 @@ meter::-webkit-meter-optimum-value{background:var(--primary);border-radius:999px
 .update-banner p{margin:0 0 10px;color:var(--on-surface-variant)}
 .update-banner-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 
+/* In-context recovery. Deliberately shaped like the surface it interrupts rather
+   than like an alert: it appears where somebody is already looking, so it should
+   read as part of that card and not as a second thing to deal with. The accent
+   edge is decoration only -- every fact is in the text, because a colour is not
+   something a listener can hear or a monochrome display can show. */
+.recovery{margin:8px 0 0;padding:10px 14px;border:1px solid var(--outline-variant);border-left:3px solid var(--primary);border-radius:var(--radius);background:var(--surface-1);font-size:.82rem}
+.recovery-heading{margin:0 0 4px;font-size:.86rem;font-weight:700}
+.recovery-detail{margin:0 0 6px;color:var(--on-surface-variant)}
+.recovery-lead{margin:0 0 6px;color:var(--on-surface-variant)}
+.recovery-note{margin:0 0 8px;color:var(--muted-2)}
+.recovery-nothing{margin:0 0 8px;color:var(--muted-2)}
+.recovery-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+.recovery-forbidden-label{margin:0 0 4px;font-weight:600}
+.recovery-forbidden{margin:0;padding-left:18px;color:var(--muted-2)}
+.recovery-forbidden li{margin-bottom:4px}
+
 body.attn-focus .topbar,body.attn-focus footer{opacity:.55;transition:opacity .2s}
 body.attn-focus .topbar:hover,body.attn-focus .topbar:focus-within,body.attn-focus footer:hover,body.attn-focus footer:focus-within{opacity:1}
 @media(prefers-reduced-motion:reduce){

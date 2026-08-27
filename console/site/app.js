@@ -602,7 +602,7 @@
   let historySeq = 0;
   function loadHistory(){try{const saved=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');return Array.isArray(saved)?saved:[]}catch{return []}}
   let historyEntries = loadHistory();
-  function saveHistory(){localStorage.setItem(HISTORY_KEY,JSON.stringify(historyEntries.slice(0,HISTORY_LIMIT)))}
+  function saveHistory(){return reportWrite('the local history',writeLocal(HISTORY_KEY,JSON.stringify(historyEntries.slice(0,HISTORY_LIMIT))))}
   const regexState = new Map();
   let regexTarget = '';
   let destinationPage = 0;
@@ -646,7 +646,7 @@
   }
   function loadState(){try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');return{...DEFAULTS,...saved,attention:{...DEFAULTS.attention,...(saved.attention||{})},narration:{...DEFAULTS.narration,...(saved.narration||{})},collapsed:{...DEFAULTS.collapsed,...(saved.collapsed||{})}}}catch{return{...DEFAULTS,attention:{...DEFAULTS.attention},narration:{...DEFAULTS.narration},collapsed:{...DEFAULTS.collapsed}}}}
   const state=loadState();
-  function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
+  function save(){return reportWrite('this page’s settings',writeLocal(STORAGE_KEY,JSON.stringify(state)))}
   function update(key,value){state[key]=value;save();applyState();recordHistory('setting-changed',`${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`${key} now uses ${value}.`),{category:'setting',copyKey:'notifSettingSaved'})}
   function applyState(){applySchoolMode();document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyDisplayName();applyVocabulary();applyDialogEmojis();applyNarration();updateSessionTimer();updateOneThingBanner();renderAllModeStatuses();renderUpdateState()}
   function updateAttention(key,value){state.attention={...state.attention,[key]:value};save();applyState();recordHistory('attention-changed',`attention.${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`attention.${key} now uses ${value}.`),{category:'setting',copyKey:'notifSettingSaved'})}
@@ -658,6 +658,20 @@
   // exact wording this page already shipped, so nothing changes for anyone who never
   // touches the sliders.
   const COPY = {
+    /* Voice moves with the slider; every fact in a recovery region sits in a
+     * sibling of this line, so nothing here can carry one. What each level says
+     * is the same thing: this is what this page can do about it, from here. */
+    recoveryLead:{en:[
+      'Here is what this page can do about it, without you going anywhere else.',
+      'Here is what this page can actually do about it, from right here.',
+      'Right then — here is what this page can do about it without sending you off on a hunt.',
+      'Deep breath. Here is what this page can do about it from exactly where you are standing, no expedition required.'
+    ],zh:[
+      '呢頁可以幫你做嘅嘢喺下面，唔使你走去第二度。',
+      '呢頁喺呢度就可以幫你做到嘅嘢，全部列咗喺下面。',
+      '好喇 —— 呢頁喺呢度就搞得掂嘅嘢喺下面，唔使你周圍搵。',
+      '深呼吸先。企喺呢度就搞得掂嘅嘢全部喺下面，唔使去探險。'
+    ]},
     /* Voice moves with the slider; three facts never do. Every level says that one
      * file is written per record set in the single format chosen, that nothing
      * leaves this browser, and that the run names the file it is writing and the
@@ -970,6 +984,505 @@
   function applyVocabulary(){applyVocabularyToNode(document.body)}
 
   // ============================================================================
+  // In-context recovery -- when something here fails, the way out is offered at
+  // the surface where the failure was discovered, not in a menu somewhere else.
+  //
+  // Four properties carry it, and each is written so it can be checked rather
+  // than promised:
+  //
+  //   - the route is rendered as the immediate next sibling of the status line
+  //     that reported the failure. "Beside the control that failed" is the whole
+  //     canonical clause: somebody whose upload has just been refused is looking
+  //     at the upload control, and a recovery they have to go and find is a
+  //     recovery they will not find while they are annoyed;
+  //   - every action offered is a capability this page really has. `recoveryFor`
+  //     is pure and names action ids, `RECOVERY_ACTIONS` holds the real
+  //     implementations, and a route may only name an id declared there. A
+  //     button that looks like it retries and does not is the decorative-control
+  //     defect wearing a helpful face;
+  //   - a route with nothing to offer says so, and says why, instead of showing
+  //     a retry that cannot work. `page-unbuilt` is exactly that case -- a page
+  //     the site build never produced has no build identity, so there is no
+  //     published build to compare it against and nothing whatsoever to try
+  //     again. "Try again" there would be a lie somebody could press repeatedly;
+  //   - the remedies that would lose work are named, with what each would cost,
+  //     because those are precisely the ones that look fastest to somebody who
+  //     is stuck.
+  //
+  // It deliberately does not raise a notification. A message box is somewhere
+  // else by definition, and not sending anybody somewhere else is the entire
+  // feature -- and, usefully, `notify` writes to storage, which is the exact
+  // thing that has failed in one of these routes.
+  //
+  // It deliberately does not narrate either. Every failure routed here already
+  // speaks its own line at the moment it happens, so a second spoken line would
+  // be the narrator reporting one event twice; the region is announced instead
+  // by carrying `aria-live`, which is what a listener actually needs.
+  // ============================================================================
+
+  /**
+   * The remedies that lose work, declared once with what each one costs, so a
+   * route points at one rather than restating it and no route can warn about a
+   * remedy nobody declared.
+   */
+  const RECOVERY_FORBIDDEN={
+    'clear-storage':"Clearing this site's storage in your browser. That removes every local setting this page keeps -- the theme, the language, both funny levels, the attention settings, the name you gave this page, the image you added, the dictionary you loaded and the whole local history -- and none of that is what went wrong here.",
+    'reset-settings':'Reset settings. It returns every local setting on this page to its shipped value, so it loses your choices without touching the thing that failed.',
+    'reload-the-page':'Reloading this page. A check that could not reach the published version file says nothing at all about the page you already have, and reloading loses anything typed into a field and not yet saved.',
+    'store-the-value-in-the-clear':'Keeping the value somewhere this page could read back. A value this page can read is a value anybody with this browser can read, which is the one thing a stored credential must never be.'
+  };
+
+  /** How many local-history entries the pruning action keeps. */
+  const RECOVERY_HISTORY_KEEP=20;
+
+  /**
+   * Every failure this page can produce that somebody cannot get out of by
+   * reading the message alone, and what this page can actually do about each.
+   *
+   * Hand-written, one row per failure, rather than derived from anything. A
+   * derived list can only ever hold the failures somebody already routed, so it
+   * could never report the one that is missing -- which is the only report worth
+   * having here.
+   */
+  const FAILURE_ROUTES=[
+    {
+      id:'vocabulary-rejected',
+      surface:'vocabulary-status',
+      heading:'That dictionary file was not loaded',
+      forbidden:['clear-storage','reset-settings'],
+      note:context=>context.dictionaryLoaded
+        ? 'The dictionary you loaded earlier is still in use: the refused file replaced nothing.'
+        : 'No dictionary is loaded, so what you are reading is the original wording.',
+      actions:context=>[
+        {id:'choose-vocabulary-file',label:'Choose another file'},
+        ...(context.dictionaryLoaded?[{id:'clear-vocabulary',label:'Remove the dictionary that is loaded'}]:[])
+      ]
+    },
+    {
+      id:'logo-rejected',
+      surface:'logo-status',
+      heading:'That image was not used as the mark',
+      forbidden:['clear-storage','reset-settings'],
+      note:context=>context.markLoaded
+        ? 'The image you added earlier is still the mark: the refused file replaced nothing.'
+        : 'No image is stored, so the shipped mark is what you are seeing.',
+      actions:context=>[
+        {id:'choose-logo-file',label:'Choose another image'},
+        ...(context.markLoaded?[{id:'clear-logo',label:'Go back to the shipped mark'}]:[])
+      ]
+    },
+    {
+      id:'update-check-failed',
+      surface:'update-status',
+      heading:'The published version file could not be read',
+      forbidden:['reload-the-page','clear-storage'],
+      note:()=>'The page you are reading is unaffected. This check only asks this site for one small file; failing to read it means the check has no answer, not that anything here is wrong.',
+      actions:()=>[
+        {id:'check-again',label:'Check again now'},
+        {id:'open-downloads',label:'Open the downloads page'}
+      ]
+    },
+    {
+      id:'page-unbuilt',
+      surface:'update-status',
+      heading:'This copy of the page was never built',
+      forbidden:['reload-the-page'],
+      note:()=>'The site build is what stamps a page with the commit it was made from, and this copy carries none. That is why the check button beside this is switched off.',
+      actions:()=>[],
+      /* The whole reason this route exists. Every other route ends in a button;
+       * this one ends in a sentence, because there is genuinely nothing to press
+       * and a retry control here would be a lie somebody could press all day. */
+      noActionsReason:()=>'There is nothing to try again: with no build identity there is nothing to compare against the published one, and no button on this page can create one. A copy served straight out of the source directory is always in this state.'
+    },
+    {
+      id:'school-cannot-arm',
+      surface:'school-status',
+      heading:'The restricted presentation could not be switched on',
+      forbidden:['store-the-value-in-the-clear'],
+      note:()=>'Nothing was changed and nothing was stored. This page keeps only a random salt and a digest of salt-and-value, and it has no digest to make here.',
+      actions:context=>(context.secureAddress?[{id:'open-over-https',label:'Open this page over a secure connection'}]:[]),
+      noActionsReason:context=>context.secureAddress===''&&context.openedFrom
+        ? `This page was opened from ${context.openedFrom}, so there is no secure address of it for this page to send you to. Serving these files over https is what makes the switch available.`
+        : 'There is no secure address of this page for this page to send you to. Serving these files over https is what makes the switch available.'
+    },
+    {
+      id:'local-storage-refused',
+      /* The one route that is not anchored to a control, and the exception is
+       * declared rather than quietly taken: a write can be refused during any
+       * setting on any page, so there is no single control it belongs beside.
+       * It goes to the top of the page being read, immediately, which is the
+       * nearest honest thing to "where it was discovered". */
+      surface:'page',
+      heading:'This browser refused to save that',
+      forbidden:['reset-settings','clear-storage'],
+      note:context=>`What this page is keeping here, in characters: the local history ${context.historyCharacters} across ${context.historyEntries} entr${context.historyEntries===1?'y':'ies'}, the image ${context.markCharacters}, the dictionary ${context.dictionaryCharacters}, the settings ${context.settingsCharacters}. The change you just made is still on screen and is not saved, so it will be gone when this page next loads.`,
+      actions:context=>[
+        ...(context.markCharacters>0&&context.hasLogoControls?[{id:'clear-logo',label:'Remove the image and free that space'}]:[]),
+        ...(context.historyEntries>RECOVERY_HISTORY_KEEP?[{id:'prune-local-history',label:`Keep only the newest ${RECOVERY_HISTORY_KEEP} history entries`}]:[]),
+        ...(context.hasHistoryDialog?[{id:'open-local-history',label:'Look at the local history first'}]:[])
+      ],
+      noActionsReason:()=>'Nothing this page stores here is large enough to be worth removing, so the space belongs to something else in this browser. Clearing this site\'s storage would free it and would take every setting on this page with it, which is why it is listed below rather than offered as a button.'
+    },
+    {
+      id:'regex-invalid',
+      surface:'regex-feedback',
+      heading:'That pattern was not applied',
+      forbidden:[],
+      note:context=>`The field this builder is attached to (${context.target||'the search field'}) is unchanged, and whatever it was already filtering on is still what it filters on.`,
+      actions:()=>[
+        {id:'clear-the-pattern',label:'Empty the pattern'},
+        {id:'search-plainly',label:'Search this field as plain text instead'}
+      ]
+    }
+  ];
+
+  /**
+   * Failures this page can produce that are deliberately left without a route,
+   * and why -- so an absence here is a decision somebody made rather than a gap
+   * nobody noticed. Each of these already says the whole answer on its own line.
+   */
+  const FAILURES_WITHOUT_A_ROUTE=[
+    {id:'export-run-found-nothing',why:'the report says there is nothing to export, and the way out is to select a record set, which is the control directly above it'},
+    {id:'school-value-did-not-match',why:'the card already carries the recovery, permanently, in its own "Forgotten the value?" disclosure -- a second copy of it appearing on a wrong attempt would be this page nagging'},
+    {id:'changelog-unavailable',why:'a page built without release history says so where the history would be, and no action on this page can produce one'}
+  ];
+
+  /** One route by id, or null. */
+  function recoveryRoute(id){return FAILURE_ROUTES.find(route=>route.id===id)||null}
+
+  /**
+   * What to offer for one failure, given the facts the caller gathered.
+   *
+   * Pure: it reads no storage, touches no document and returns a plain
+   * description, so every branch is decided by values a caller supplies. The
+   * rendering below is the only impure half, and it decides nothing.
+   */
+  function recoveryFor(failure){
+    const id=String(failure&&failure.id||'');
+    const route=recoveryRoute(id);
+    if(!route)return{ok:false,id,why:'no-route-declared'};
+    const context=(failure&&failure.context)||{};
+    const actions=(route.actions?route.actions(context):[]).filter(action=>Boolean(RECOVERY_ACTIONS[action.id]));
+    const forbidden=(route.forbidden||[])
+      .filter(key=>Object.prototype.hasOwnProperty.call(RECOVERY_FORBIDDEN,key))
+      .map(key=>({id:key,cost:RECOVERY_FORBIDDEN[key]}));
+    return{
+      ok:true,
+      id:route.id,
+      surface:route.surface,
+      heading:route.heading,
+      /* Carried on the result rather than left in a map beside it. An earlier shape kept
+       * the facts in a side map keyed by route id and had `renderRecovery` look them up
+       * again, which meant a resolved route rendered directly -- without going through
+       * `reportFailure` -- silently lost every link's address. Wired at one end and
+       * consumed at neither, in miniature. */
+      context,
+      detail:String(failure&&failure.detail||'').trim(),
+      note:route.note?String(route.note(context)||''):'',
+      actions,
+      forbidden,
+      /* Only when there is nothing to press. A route that CAN be empty must
+       * declare this, and the emptiness is then always explained rather than
+       * being an inexplicably actionless box. */
+      nothingToOffer:actions.length===0&&route.noActionsReason?String(route.noActionsReason(context)||''):''
+    };
+  }
+
+  /**
+   * Every action any route may name, and what it really does.
+   *
+   * A `link` carries a real address; an `action` carries a real function. Both
+   * are capabilities this page already had before this feature existed, which is
+   * the point: recovery routes people to what the page can do, and never invents
+   * a capability to have something to offer.
+   */
+  const RECOVERY_ACTIONS={
+    'choose-vocabulary-file':{kind:'action',run(){const input=el('vocabulary-file');if(!input)return false;input.value='';input.click();return true}},
+    'clear-vocabulary':{kind:'action',run(){clearVocabulary();return true}},
+    'choose-logo-file':{kind:'action',run(){const input=el('logo-file');if(!input)return false;input.value='';input.click();return true}},
+    'clear-logo':{kind:'action',run(){clearLogo();return true}},
+    'check-again':{kind:'action',run(){checkForUpdate({manual:true});return true}},
+    'open-downloads':{kind:'link',href(){return `${BASE}downloads.html`}},
+    'open-over-https':{kind:'link',href(context){return String(context&&context.secureAddress||'')}},
+    'prune-local-history':{kind:'action',run(){pruneLocalHistory(RECOVERY_HISTORY_KEEP);return true}},
+    'open-local-history':{kind:'action',run(){const dialog=el('history-dialog');if(!dialog||!dialog.showModal)return false;dialog.showModal();renderHistory(el('history-search')?.value||'');return true}},
+    'clear-the-pattern':{kind:'action',run(){const field=el('regex-pattern');if(!field)return false;field.value='';previewRegex();field.focus?.();return true}},
+    'search-plainly':{kind:'action',run(){return searchPlainlyInstead()}}
+  };
+
+  /**
+   * The one address this page would send somebody to for a secure copy of
+   * itself, or '' when there is not one.
+   *
+   * Pure, and deliberately narrow: only an `http:` page with a real host has a
+   * secure twin worth naming. A `file:` load has no address to make secure, and
+   * a page already on https did not get here.
+   */
+  function secureAddressOf(location){
+    if(!location)return '';
+    if(String(location.protocol||'')!=='http:')return '';
+    const host=String(location.host||'');
+    if(!host)return '';
+    return `https://${host}${String(location.pathname||'/')}${String(location.search||'')}`;
+  }
+
+  /** Where a page was opened from, in words, for the case above that has no route. */
+  function openedFromLabel(location){
+    const protocol=String(location&&location.protocol||'');
+    if(protocol==='file:')return 'a file on this computer';
+    if(protocol==='http:')return 'an address with no host';
+    return protocol?`a ${protocol.replace(':','')} address`:'';
+  }
+
+  /** How many characters one stored value occupies, or 0 when it is not there. */
+  function localCharacters(key){
+    try{const raw=localStorage.getItem(key);return raw?raw.length:0}
+    catch{return 0}
+  }
+
+  /**
+   * The facts the storage route needs. Characters rather than bytes, said in
+   * those words on screen too: a string's length is not its size on disk, and
+   * reporting it as bytes would be a measurement nobody took.
+   */
+  function storageFailureContext(){
+    return{
+      historyCharacters:localCharacters(HISTORY_KEY),
+      historyEntries:historyEntries.length,
+      markCharacters:localCharacters('ding-pbx-logo-cache'),
+      dictionaryCharacters:localCharacters('ding-pbx-vocabulary-cache'),
+      settingsCharacters:localCharacters(STORAGE_KEY),
+      hasHistoryDialog:Boolean(el('history-dialog')),
+      hasLogoControls:Boolean(el('logo-clear'))
+    };
+  }
+
+  /**
+   * Every write this page makes to local storage goes through here.
+   *
+   * `setItem` throws when the browser refuses the write -- a full quota is the
+   * usual reason and a browser configured to refuse site storage altogether is
+   * the other -- and until this existed that exception escaped through whichever
+   * setter had just been used. The value stayed in memory and on screen, so the
+   * setting looked saved; it was not, and the next load quietly had the old one
+   * back with nothing anywhere saying why.
+   */
+  function writeLocal(key,value){
+    try{localStorage.setItem(key,String(value));return{ok:true,reason:''}}
+    catch(error){return{ok:false,reason:storageRefusalReason(error)}}
+  }
+  function storageRefusalReason(error){
+    const name=String(error&&error.name||'');
+    if(name==='QuotaExceededError'||name==='NS_ERROR_DOM_QUOTA_REACHED')return 'this browser has no room left for this site';
+    if(name==='SecurityError')return 'this browser is refusing to let this site store anything';
+    return String(error&&error.message||'this browser refused the write');
+  }
+  /**
+   * Report the outcome of one write, naming what it was.
+   *
+   * A refusal raises the route; a write that then succeeds takes the route down
+   * again, because a recovery still sitting there for a problem that has gone is
+   * worse than none -- it is a page insisting something is broken when it is not.
+   */
+  function reportWrite(what,result){
+    if(result.ok){clearRecovery('page','local-storage-refused');return true}
+    reportFailure('local-storage-refused',{detail:`${what} could not be saved: ${result.reason}.`,context:storageFailureContext()});
+    return false;
+  }
+
+  /** Trim the local history to its newest `keep` entries, then save what is left. */
+  function pruneLocalHistory(keep){
+    const before=historyEntries.length;
+    historyEntries=historyEntries.slice(0,Math.max(0,Number(keep)||0));
+    saveHistory();
+    renderHistory(el('history-search')?.value||'');
+    return before-historyEntries.length;
+  }
+
+  /**
+   * Turn a compiled pattern off for the field the builder is attached to and
+   * leave the plain query in charge, which is the other real way out of an
+   * invalid pattern.
+   */
+  function searchPlainlyInstead(){
+    if(!regexTarget)return false;
+    regexState.delete(regexTarget);
+    const dialog=el('regex-dialog');
+    if(dialog&&dialog.close)dialog.close();
+    const field=el(regexTarget);
+    if(field&&field.dispatchEvent)field.dispatchEvent(new Event('input'));
+    renderModeStatus(regexTarget);
+    return true;
+  }
+
+  /**
+   * The element a route's region attaches to.
+   *
+   * `page` is the declared exception above and goes to the top of `main`.
+   * Everything else resolves the status element it belongs beside and returns
+   * null when that element is not on this page -- which is what keeps a route
+   * from rendering somewhere it does not belong. A failure whose surface is not
+   * here is a failure this page cannot show the way out of, and it says nothing
+   * rather than putting the region in the wrong place.
+   */
+  function recoveryHost(surface){
+    if(surface==='page'){const main=document.querySelector('main');return main?{parent:main,after:null}:null}
+    const anchor=el(surface);
+    if(!anchor||!anchor.parentNode)return null;
+    return{parent:anchor.parentNode,after:anchor};
+  }
+
+  /**
+   * Build the region.
+   *
+   * `textContent` throughout and never a markup string, exactly as the update
+   * banner is built: several of these values are somebody's file quoted back,
+   * and this way there is no template for the next person to add an unescaped
+   * one to.
+   */
+  function renderRecovery(resolved){
+    if(!resolved||!resolved.ok)return false;
+    const host=recoveryHost(resolved.surface);
+    if(!host)return false;
+    const regionId=`${resolved.surface}-recovery`;
+    let region=el(regionId);
+    if(!region){
+      region=document.createElement('section');
+      region.id=regionId;
+      region.className='recovery';
+      region.setAttribute('role','group');
+      /* Announced when it appears. The failure line above it is already a
+       * `role="status"`, so without this a listener would hear that something
+       * failed and never hear that there is a way out of it. */
+      region.setAttribute('aria-live','polite');
+      region.setAttribute('aria-labelledby',`${regionId}-heading`);
+      if(host.after)host.parent.insertBefore(region,host.after.nextSibling);
+      else host.parent.prepend(region);
+    }
+    region.dataset.recoveryFor=resolved.id;
+    region.replaceChildren();
+
+    const heading=document.createElement('h3');
+    heading.id=`${regionId}-heading`;
+    heading.className='recovery-heading';
+    heading.textContent=resolved.heading;
+    region.append(heading);
+
+    if(resolved.detail){
+      const detail=document.createElement('p');
+      detail.className='recovery-detail';
+      detail.textContent=resolved.detail;
+      region.append(detail);
+    }
+
+    /* Voice, and only voice. Every fact in this region is in a sibling of this
+     * line, so both funny sliders can restyle it without a single figure,
+     * reason or consequence moving. */
+    const lead=document.createElement('p');
+    lead.className='recovery-lead';
+    lead.dataset.copy='recoveryLead';
+    lead.textContent=copyText('recoveryLead');
+    region.append(lead);
+
+    if(resolved.note){
+      const note=document.createElement('p');
+      note.className='recovery-note';
+      note.textContent=resolved.note;
+      region.append(note);
+    }
+
+    if(resolved.actions.length){
+      const actions=document.createElement('div');
+      actions.className='recovery-actions';
+      for(const action of resolved.actions){
+        const implementation=RECOVERY_ACTIONS[action.id];
+        if(!implementation)continue;
+        if(implementation.kind==='link'){
+          const href=implementation.href(resolved.context||{});
+          if(!href)continue;
+          const link=document.createElement('a');
+          link.className='text-button';
+          link.dataset.recoveryAction=action.id;
+          link.href=href;
+          link.textContent=action.label;
+          actions.append(link);
+          continue;
+        }
+        const button=document.createElement('button');
+        button.type='button';
+        button.className='text-button';
+        button.dataset.recoveryAction=action.id;
+        button.textContent=action.label;
+        button.addEventListener('click',()=>{implementation.run()});
+        actions.append(button);
+      }
+      region.append(actions);
+    }else if(resolved.nothingToOffer){
+      const nothing=document.createElement('p');
+      nothing.className='recovery-nothing';
+      nothing.textContent=resolved.nothingToOffer;
+      region.append(nothing);
+    }
+
+    if(resolved.forbidden.length){
+      const label=document.createElement('p');
+      label.className='recovery-forbidden-label';
+      label.textContent='Not this, whatever else you try:';
+      const list=document.createElement('ul');
+      list.className='recovery-forbidden';
+      for(const item of resolved.forbidden){
+        const entry=document.createElement('li');
+        entry.dataset.recoveryForbidden=item.id;
+        entry.textContent=item.cost;
+        list.append(entry);
+      }
+      region.append(label,list);
+    }
+
+    applyVocabularyToNode(region);
+    return true;
+  }
+
+  /**
+   * Raise the route for one failure. Returns what `recoveryFor` decided, so a
+   * caller can tell a routed failure from one nobody has written a route for.
+   */
+  function reportFailure(id,failure){
+    const resolved=recoveryFor({id,detail:failure&&failure.detail,context:(failure&&failure.context)||{}});
+    if(!resolved.ok)return resolved;
+    renderRecovery(resolved);
+    return resolved;
+  }
+
+  /**
+   * Take a route down again once the thing it was about has gone.
+   *
+   * `onlyRouteId` matters: two routes share the update card's status line, and
+   * clearing whichever one happens to be showing would let a successful check
+   * remove a completely different unresolved failure's way out.
+   */
+  function clearRecovery(surface,onlyRouteId){
+    const region=el(`${surface}-recovery`);
+    if(!region)return false;
+    if(onlyRouteId&&region.dataset.recoveryFor!==onlyRouteId)return false;
+    if(region.parentNode)region.parentNode.removeChild(region);
+    return true;
+  }
+
+  /**
+   * The one caller that has to look at where this page was opened from, kept
+   * here rather than in the restricted-presentation block so the two pure
+   * address functions above have exactly one reader.
+   */
+  function reportSchoolCannotArm(detail){
+    const here=typeof location==='undefined'?null:location;
+    return reportFailure('school-cannot-arm',{
+      detail,
+      context:{secureAddress:secureAddressOf(here),openedFrom:openedFromLabel(here)}
+    });
+  }
+
+  // ============================================================================
   // Restricted presentation -- shipped as "School mode", renameable by whoever
   // switches it on.
   //
@@ -1063,7 +1576,7 @@
     }catch{return schoolDefaultRecord()}
   }
   let schoolRecord=loadSchool();
-  function saveSchool(){localStorage.setItem(SCHOOL_KEY,JSON.stringify(schoolRecord))}
+  function saveSchool(){return reportWrite('the restricted-presentation record',writeLocal(SCHOOL_KEY,JSON.stringify(schoolRecord)))}
   function reloadSchool(){schoolRecord=loadSchool()}
   /**
    * On AND holding a credential. A record that says on without one would be a page
@@ -1258,15 +1771,23 @@
     const verdict=schoolArmVerdict({alreadyOn:schoolActive(),hasDigest:Boolean(schoolCryptoApi()),secret,confirm:confirmField?confirmField.value:''});
     if(!verdict.arm){
       if(status)status.textContent=`${schoolName()} was not turned on. ${SCHOOL_ARM_REASON[verdict.why]||'That value cannot be used.'}`;
+      /* Only the one refusal somebody cannot act on by reading it. A value too
+       * short, a confirmation that does not match or a mode already on each say
+       * the whole answer in the line above; this one says the browser will not
+       * give this page a digest, which is true and is not a thing anybody can do
+       * anything about from where they are standing. */
+      if(verdict.why==='no-digest-available')reportSchoolCannotArm(SCHOOL_ARM_REASON[verdict.why]);
       return verdict;
     }
     const saltHex=schoolSalt();
     const digestHex=await schoolDigestOf(secret,saltHex);
     if(!digestHex){
       if(status)status.textContent=`${schoolName()} was not turned on. ${SCHOOL_ARM_REASON['no-digest-available']}`;
+      reportSchoolCannotArm(SCHOOL_ARM_REASON['no-digest-available']);
       return{arm:false,why:'no-digest-available'};
     }
     schoolRecord={...schoolRecord,on:true,secret:{algorithm:SCHOOL_DIGEST,saltHex,digestHex}};
+    clearRecovery('school-status','school-cannot-arm');
     saveSchool();
     /* Cleared the moment the digest exists, so the value is not sitting in a field
      * behind a locked page waiting for the next person to read it. */
@@ -1957,7 +2478,11 @@
   function openRegex(target){regexTarget=target;const dialog=$('regex-dialog');if(!dialog)return;const saved=regexState.get(target)||{pattern:'',flags:'iu'};$('regex-target-label').textContent=`Attached to: ${target}`;$('regex-pattern').value=saved.pattern;$('regex-i').checked=saved.flags.includes('i');$('regex-m').checked=saved.flags.includes('m');$('regex-u').checked=saved.flags.includes('u');dialog.showModal();previewRegex();setTimeout(()=>$('regex-pattern').focus(),0)}
   function regexConfig(){return{pattern:$('regex-pattern').value.slice(0,256),flags:`${$('regex-i').checked?'i':''}${$('regex-m').checked?'m':''}${$('regex-u').checked?'u':''}`}}
   function previewRegex(){if(!$('regex-feedback'))return;const config=regexConfig();if(!config.pattern){$('regex-feedback').textContent='Enter a pattern.';return}try{const re=new RegExp(config.pattern,config.flags),flags=re.flags.includes('g')?re.flags:`${re.flags}g`,matches=[...$('regex-sample').value.matchAll(new RegExp(re.source,flags))];$('regex-feedback').textContent=`Valid JavaScript regular expression · ${matches.length} sample match${matches.length===1?'':'es'}.`}catch(error){$('regex-feedback').textContent=`Invalid pattern: ${error.message}`}}
-  function applyRegex(){const config=regexConfig();try{new RegExp(config.pattern,config.flags)}catch{return}regexState.set(regexTarget,{...config,enabled:Boolean(config.pattern)});$('regex-dialog').close();$(regexTarget)?.dispatchEvent(new Event('input'));notify(copyText('notifRegexApplied'),applyVocabularyText(`${regexTarget} now uses the local JavaScript regular expression engine.`),{category:'search',copyKey:'notifRegexApplied'});renderModeStatus(regexTarget)}
+  /* An invalid pattern used to return here in silence: the dialog stayed open,
+   * the Apply button appeared to do nothing at all, and the preview line said
+   * why in a sentence somebody had already read and could not act on. It raises
+   * the route instead, beside the preview, with the two real ways out. */
+  function applyRegex(){const config=regexConfig();try{new RegExp(config.pattern,config.flags)}catch(error){reportFailure('regex-invalid',{detail:error.message,context:{target:regexTarget}});return}clearRecovery('regex-feedback','regex-invalid');regexState.set(regexTarget,{...config,enabled:Boolean(config.pattern)});$('regex-dialog').close();$(regexTarget)?.dispatchEvent(new Event('input'));notify(copyText('notifRegexApplied'),applyVocabularyText(`${regexTarget} now uses the local JavaScript regular expression engine.`),{category:'search',copyKey:'notifRegexApplied'});renderModeStatus(regexTarget)}
   function initRegex(){if(!$('regex-dialog'))return;$('regex-pattern').addEventListener('input',previewRegex);$('regex-apply').onclick=applyRegex;all('[data-insert]').forEach(button=>button.onclick=()=>{const input=$('regex-pattern'),start=input.selectionStart;input.value=`${input.value.slice(0,start)}${button.dataset.insert}${input.value.slice(input.selectionEnd)}`;input.focus();input.setSelectionRange(start+button.dataset.insert.length,start+button.dataset.insert.length);previewRegex()})}
   function renderModeStatus(target){const el=$(`${target}-mode-status`);if(!el)return;const config=regexState.get(target);if(config?.enabled){el.textContent=`${copyText('searchModeRegex')} /${config.pattern}/${config.flags}`;el.classList.add('is-regex')}else{el.textContent=copyText('searchModePlain');el.classList.remove('is-regex')}}
   function renderAllModeStatuses(){all('.mode-status').forEach(el=>renderModeStatus(el.id.replace(/-mode-status$/,'')))}
@@ -3362,7 +3887,7 @@
     renderExportEverything();
   }
 
-  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);el('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);el('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));el('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);if($('dialog-emojis'))$('dialog-emojis').onchange=event=>update('dialogEmojis',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState();recordHistory('attention-changed','attention.currentTask changed.')};$('settings-reset').onclick=()=>{const dialog=$('reset-confirm-dialog');if(!dialog)return;resetConfirmFields();dialog.showModal()};$('settings-export').onclick=()=>{download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state,restrictedPresentation:schoolExportSummary()},null,2));notify('Settings exported',applyVocabularyText('Exported the local settings on this page as ding-pbx-page-settings.json. Uploaded personal vocabulary was omitted.'),{category:'export',en:'Exported the local settings on this page. Uploaded personal vocabulary was omitted.',zh:'已經匯出呢版嘅本地設定，上載嘅個人詞彙冇包埋。'});};el('vocabulary-file').onchange=loadVocabulary;el('vocabulary-clear').onclick=()=>{localStorage.removeItem('ding-pbx-vocabulary-cache');el('vocabulary-file').value='';el('vocabulary-status').textContent='No file loaded; original wording is active.';applyVocabulary();applyState()};initDisplayName();initNarration();initSchool();$('logo-file').onchange=loadLogo;$('logo-clear').onclick=()=>{localStorage.removeItem('ding-pbx-logo-cache');$('logo-file').value='';$('logo-status').textContent='No file loaded; default mark is active.';applyLogo()};if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));initResetConfirm();initHistory()}
+  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);el('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);el('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));el('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);if($('dialog-emojis'))$('dialog-emojis').onchange=event=>update('dialogEmojis',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState();recordHistory('attention-changed','attention.currentTask changed.')};$('settings-reset').onclick=()=>{const dialog=$('reset-confirm-dialog');if(!dialog)return;resetConfirmFields();dialog.showModal()};$('settings-export').onclick=()=>{download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state,restrictedPresentation:schoolExportSummary()},null,2));notify('Settings exported',applyVocabularyText('Exported the local settings on this page as ding-pbx-page-settings.json. Uploaded personal vocabulary was omitted.'),{category:'export',en:'Exported the local settings on this page. Uploaded personal vocabulary was omitted.',zh:'已經匯出呢版嘅本地設定，上載嘅個人詞彙冇包埋。'});};el('vocabulary-file').onchange=loadVocabulary;el('vocabulary-clear').onclick=clearVocabulary;initDisplayName();initNarration();initSchool();$('logo-file').onchange=loadLogo;$('logo-clear').onclick=clearLogo;if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));initResetConfirm();initHistory()}
   /* One writer for every vocabulary rejection, so the rule below holds for all of them
    * rather than for whichever branch somebody remembered.
    *
@@ -3374,6 +3899,19 @@
   function rejectVocabulary(reason){
     $('vocabulary-status').textContent=`Rejected: ${reason}`;
     narrate('error',{en:'The personal vocabulary file was rejected. The reason is beside the upload control; it is not read aloud, because it can quote the file.',zh:'個人詞彙檔案唔收得。原因寫咗喺上載控制項隔籬，唔會讀出嚟，因為入面可能引用返個檔案嘅內容。'},{isError:true});
+    reportFailure('vocabulary-rejected',{detail:reason,context:{dictionaryLoaded:Boolean(vocabularyReplacements())}});
+  }
+  /* Clearing, as its own writer, because two things do it now: the button on the
+   * card, and the recovery route this page raises when a file is refused. Two
+   * copies of it would be two answers to the same question the moment one of
+   * them was edited. */
+  function clearVocabulary(){
+    localStorage.removeItem('ding-pbx-vocabulary-cache');
+    el('vocabulary-file').value='';
+    el('vocabulary-status').textContent='No file loaded; original wording is active.';
+    clearRecovery('vocabulary-status','vocabulary-rejected');
+    applyVocabulary();
+    applyState();
   }
   /* The opposite case, and stated rather than assumed: every reason a logo rejection
    * can carry is written by this file or by the browser's own reader ("only PNG, JPEG,
@@ -3382,6 +3920,15 @@
   function rejectLogo(reason){
     $('logo-status').textContent=`Rejected: ${reason}`;
     narrate('error',{en:`The local logo was rejected. ${reason}`,zh:`本機標誌唔收得。${reason}`},{isError:true});
+    reportFailure('logo-rejected',{detail:reason,context:{markLoaded:localCharacters('ding-pbx-logo-cache')>0}});
+  }
+  /* The same arrangement as the dictionary above, and for the same reason. */
+  function clearLogo(){
+    localStorage.removeItem('ding-pbx-logo-cache');
+    $('logo-file').value='';
+    $('logo-status').textContent='No file loaded; default mark is active.';
+    clearRecovery('logo-status','logo-rejected');
+    applyLogo();
   }
   async function loadVocabulary(event){const file=event.target.files[0];if(!file)return;if(file.size>65536){rejectVocabulary(`the file is ${Math.round(file.size/1024)} KiB and the limit is 64 KiB.`);return}try{const raw=JSON.parse(await file.text());
     /* Accept the spellings a real file actually uses before judging it.
@@ -3412,8 +3959,8 @@
     if(parsed.replacements.length>256)throw new Error(`this file has ${parsed.replacements.length} replacements and the limit is 256. Remove ${parsed.replacements.length-256}.`);
     const badIndex=parsed.replacements.findIndex(item=>!item||typeof item.from!=='string'||typeof item.to!=='string'||item.from.length>128||item.to.length>256);
     if(badIndex>=0){const bad=parsed.replacements[badIndex];const why=!bad||typeof bad.from!=='string'?'"from" is missing or is not a string':typeof bad.to!=='string'?'"to" is missing or is not a string':bad.from.length>128?`"from" is ${bad.from.length} characters and the limit is 128`:`"to" is ${bad.to.length} characters and the limit is 256`;throw new Error(`replacement ${badIndex+1} is not valid: ${why}. Every replacement needs bounded from and to strings.`)}
-    const keys=parsed.replacements.map(item=>item.from);const seen=new Set();const duplicate=keys.find(key=>seen.size===seen.add(key).size);if(new Set(keys).size!==keys.length)throw new Error(`Duplicate keys are not accepted; each from value must appear once. ${JSON.stringify(duplicate)} appears more than once.`);localStorage.setItem('ding-pbx-vocabulary-cache',JSON.stringify(parsed));$('vocabulary-status').textContent=`Loaded ${parsed.replacements.length} local replacement${parsed.replacements.length===1?'':'s'}. No data was transmitted.`;applyVocabulary();applyState()}catch(error){rejectVocabulary(error.message)}}
-  async function loadLogo(event){const file=event.target.files[0];if(!file)return;if(file.size>131072){rejectLogo('file exceeds 128 KiB.');return}if(!/^image\/(png|jpeg|svg\+xml)$/.test(file.type)){rejectLogo('only PNG, JPEG, or SVG images are accepted.');return}try{const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('Could not read the file.'));reader.readAsDataURL(file)});localStorage.setItem('ding-pbx-logo-cache',dataUrl);$('logo-status').textContent=`Loaded local logo (${Math.round(file.size/1024)} KiB). No data was transmitted.`;applyLogo()}catch(error){rejectLogo(error.message)}}
+    const keys=parsed.replacements.map(item=>item.from);const seen=new Set();const duplicate=keys.find(key=>seen.size===seen.add(key).size);if(new Set(keys).size!==keys.length)throw new Error(`Duplicate keys are not accepted; each from value must appear once. ${JSON.stringify(duplicate)} appears more than once.`);if(!reportWrite('the dictionary you loaded',writeLocal('ding-pbx-vocabulary-cache',JSON.stringify(parsed))))return;$('vocabulary-status').textContent=`Loaded ${parsed.replacements.length} local replacement${parsed.replacements.length===1?'':'s'}. No data was transmitted.`;clearRecovery('vocabulary-status','vocabulary-rejected');applyVocabulary();applyState()}catch(error){rejectVocabulary(error.message)}}
+  async function loadLogo(event){const file=event.target.files[0];if(!file)return;if(file.size>131072){rejectLogo('file exceeds 128 KiB.');return}if(!/^image\/(png|jpeg|svg\+xml)$/.test(file.type)){rejectLogo('only PNG, JPEG, or SVG images are accepted.');return}try{const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('Could not read the file.'));reader.readAsDataURL(file)});if(!reportWrite('the image you added',writeLocal('ding-pbx-logo-cache',dataUrl)))return;$('logo-status').textContent=`Loaded local logo (${Math.round(file.size/1024)} KiB). No data was transmitted.`;clearRecovery('logo-status','logo-rejected');applyLogo()}catch(error){rejectLogo(error.message)}}
   function download(name,text,mime='application/json'){const link=document.createElement('a'),url=URL.createObjectURL(new Blob([text],{type:mime}));link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
   const EXPORT_MIME={json:'application/json',jsonl:'application/x-ndjson',yaml:'application/yaml',toml:'application/toml',xml:'application/xml',csv:'text/csv',tsv:'text/tab-separated-values',markdown:'text/markdown',html:'text/html',sql:'application/sql'};
   function slugForFilename(text){const slug=String(text||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);return slug||'all'}
@@ -3736,6 +4283,11 @@
     if(!running.commit){
       updateWatch={...updateWatch,state:'unbuilt',direction:'unknown',reason:'',inFlight:false};
       renderUpdateState();
+      /* Raised whether or not anybody asked, because on this one the check
+       * button is switched off -- so nobody CAN ask, and a disabled control has
+       * to say in adjacent text which condition is unmet. It renders only where
+       * `update-status` is, which is the card that owns that button. */
+      reportFailure('page-unbuilt',{});
       return updateWatch;
     }
     if(updateWatch.inFlight)return updateWatch;
@@ -3747,6 +4299,7 @@
     if(!url){
       updateWatch={...updateWatch,state:'failed',reason:'the published version manifest does not resolve to an address on this site',inFlight:false};
       renderUpdateState();
+      reportFailure('update-check-failed',{detail:updateWatch.reason,context:{}});
       return updateWatch;
     }
     updateWatch={...updateWatch,inFlight:true,state:'checking',reason:''};
@@ -3771,6 +4324,10 @@
         const repeat=previous.state==='available'&&Boolean(previous.deployed)&&previous.deployed.commit===parsed.manifest.commit;
         updateWatch={...updateWatch,inFlight:false,state:verdict.state,direction:verdict.direction,deployed:parsed.manifest,reason:'',checkedAt:Date.now()};
         renderUpdateState();
+        /* The check answered, so the way out of a check that did not is no
+         * longer wanted. Named, so a successful check cannot take down the
+         * unbuilt-page route that shares this status line. */
+        clearRecovery('update-status','update-check-failed');
         /* Told once per published build, and again on a check the person asked for. A
          * banner that raises a notification on every poll is the nagging this site is
          * not allowed to do. */
@@ -3787,6 +4344,7 @@
     }
     updateWatch={...updateWatch,inFlight:false,state:'failed',reason:failure,checkedAt:Date.now()};
     renderUpdateState();
+    reportFailure('update-check-failed',{detail:failure,context:{}});
     if(manual)notify('Update check failed',applyVocabularyText(`Could not check: ${failure}`),
       {category:'error',isError:true,en:`The update check failed: ${failure}.`,zh:`更新檢查失敗：${failure}。`});
     return updateWatch;
