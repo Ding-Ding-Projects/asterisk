@@ -18,6 +18,26 @@ Each execute and revert call receives a real `AbortSignal` from its own linked `
 
 Undo is exposed only when a confirmed mutation supplies an inverse token or local-history revision and the surface registers a real inverse handler. A notification action cannot manufacture undo support.
 
+## Configuration
+
+There is no settings file and no user-facing option here. What a host chooses is the adapter,
+and every capability this core exposes follows from what that adapter reports rather than from
+a flag:
+
+- **Which platform port is supplied.** A host implements `ExportPlatformPort`; the export
+  formats, the clipboard route and the editor handoff are each available exactly when that
+  adapter implements them and says so. A missing method leaves its control visible and
+  disabled with the reason, rather than absent.
+- **Which editor is detected.** Editor launch is not configured with a path in this core. The
+  adapter performs detection and returns what it found, so a machine with no editor produces an
+  honest unavailable state instead of a launch that fails later.
+- **What undo is offered.** Undo is not a setting either. It appears only when a confirmed
+  mutation supplied an inverse token or a local-history revision *and* the surface registered a
+  real inverse handler, so an integration cannot turn it on by asking for it.
+
+The one genuine bound a host sets is the depth and value-count ceiling used during preparation,
+and exceeding it is reported as an exact path and reason rather than as a truncated export.
+
 ## Platform integration contract
 
 The renderer does not write files or launch an editor directly. A privileged desktop or hosted adapter must implement the shared `ExportPlatformPort` contract for save, download, clipboard, editor detection, and editor launch. The renderer reports success only after that adapter returns a confirmation receipt with an operation identifier and completion time.

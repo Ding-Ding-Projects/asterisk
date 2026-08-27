@@ -120,6 +120,11 @@ test('the general settings export explicitly omits the personal vocabulary rathe
 });
 
 test('the registry records personal-vocabulary-upload as implemented, and every bound above holds', () => {
-  assert.equal(registry.features['personal-vocabulary-upload'].state, 'implemented',
+  /* Migrated to schema v2 on 2026-08-27, with the same reasoning recorded in
+   * built-in-authenticator.test.mjs. This row's v2 content was already correct; only
+   * the field this line reads was stale. */
+  assert.equal(registry.features['personal-vocabulary-upload'].status, 'implemented-unverified',
     'a real, bounded, local-only, duplicate-rejecting JSON upload exists on settings.html -- "implemented" is the honest state');
+  assert.equal(Object.hasOwn(registry.features['personal-vocabulary-upload'], 'state'), false,
+    'the legacy state field is back on this row');
 });

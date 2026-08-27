@@ -16,6 +16,26 @@ Setup and sign-in surfaces report checking, ready, busy, timeout, unavailable, r
 
 Successful sign-in creates a random, HMAC-signed session identifier in an `HttpOnly`, `SameSite=Strict` cookie. TLS deployments also set `Secure`. Sign-out revokes the current session. The hosted bridge also exposes a revoke-all-sessions action for the signed-in administrator.
 
+## Configuration
+
+The administrator account is created once, through the first-run setup request, and is not
+configured by editing a file. What a deployment chooses is where the state directory lives and
+what the listener is bound to; everything else below is a fixed bound rather than a setting.
+
+- **State directory.** `admin-account.json` and the session signing key are written there. Both
+  are created with restrictive permissions where the operating system supports them, and
+  published to a unique same-directory temporary file rather than over an existing one, so two
+  concurrent setup requests cannot both win.
+- **Bind address and TLS.** This is the one choice that changes what the service will do.
+  Password creation and sign-in are allowed over TLS or over a loopback-only plain HTTP
+  listener, and refused when a plain HTTP server is bound to a non-loopback address. `Secure` is
+  set on the session cookie exactly when the deployment is TLS.
+- **What is deliberately not configurable.** The scrypt parameters, salt size and derived-key
+  size are fixed and are validated *before* verification runs, so a hand-edited record cannot
+  request unbounded work. So are the 1,024-character password limit, the 128-character username
+  limit, the 1,024-session table cap and the 4,096-address rate table. Forwarding headers are
+  never trusted, whatever a proxy in front of the service sends.
+
 ## Storage and limits
 
 `admin-account.json` uses schema version 1 and contains only the username, scrypt password hash, and creation time. The reader limits file size, rejects unknown or extra fields, validates exact field bounds, and accepts the original unversioned three-field record as schema version 1 for compatibility. A malformed file is corrupt, never missing.

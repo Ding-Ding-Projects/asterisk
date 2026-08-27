@@ -125,14 +125,41 @@ test('contains exactly 32 destination definitions in six declared groups', () =>
     'arcade','notifications','history','customise','appearance','about',
   ]);
 });
-test('provides 78 complete feature articles plus checked evidence records', async () => {
+test('provides 97 complete feature articles plus checked evidence records', async () => {
   const docsRoot=resolve(root,'..','docs'), categories=['pbx','media','data','system','agent','app','platform'];
   const articles=[];
   for(const category of categories)for(const name of await readdir(join(docsRoot,category)))if(name.endsWith('.md')&&name!=='README.md')articles.push(join(docsRoot,category,name));
   // 32 destination articles (pbx/media/data/system/agent/app) plus 45 platform articles,
   // plus one more: docs/pbx/iaxpeers.md, the IAX peers screen's own previously missing
   // documentation article, added alongside the Trunks/IVR deepening pass.
-  assert.equal(articles.length,78);
+  //
+  // 78 to 101 on 2026-08-27, and the direction is upward for one reason: 23 articles landed
+  // with the console feature integration and nothing re-derived this pin, so it had been
+  // failing on `master` rather than guarding anything. Every one of the 23 is named here so
+  // the next reader can check the arithmetic instead of trusting it -- 19 platform
+  // (accessibility-runtime-primitives, appearance-runtime-core,
+  // browser-extension-download-surfaces-implementation, changelog-browser-extension-transfer,
+  // changelog-dim-sum-runtime, changelog-logo-conversion, completeness-matrix,
+  // desktop-settings-runtime, dim-sum-startup-runtime, docs-runtime, export-and-bulk-core,
+  // hosted-authentication, local-file-converter, local-file-converter-ui,
+  // logo-conversion-contract, ollama-local-suite-backend, ollama-suite-manager,
+  // operation-receipts, site-history-and-delivery), 2 agent (status-hub-client,
+  // changelog-status-hub-client), 1 app (lifecycle-integrity) and 1 pbx (control-provenance).
+  // The total was stale, which is the failure mode a bare count has and a named list does not.
+  //
+  // Then 101 back down to 97, because four of those 23 were never feature articles. Each is
+  // a lane's "Added ..." bullet list with a verification statement at the end -- the genre
+  // this file's own comment below says lives in docs/changelog precisely so that forcing
+  // "## Behavior" onto it does not distort a document doing its job. Two said so in their own
+  // titles ("Changelog fragment: ..."); two had been retitled and were structurally identical.
+  // They are now docs/changelog/{status-hub-client,logo-conversion,browser-extension-transfer,
+  // dim-sum-startup-runtime}.md. Moved rather than rewritten, so the output-file count below
+  // does not move with them: the build walks docs/ whole and still publishes one page each.
+  //
+  // The remaining 19 were genuine articles missing canonical sections, and 13 articles in
+  // total gained the ones they lacked in this pass. That is the part of this repair worth
+  // reading: the count was never the defect, it was the symptom.
+  assert.equal(articles.length,97);
   // An evidence record is a different genre from a feature article: it says what was
   // captured, from which commit, and by what method, and forcing "## Behavior" onto it
   // would distort a document that is doing its job. So it lives in its own category --
@@ -328,7 +355,18 @@ test('build composes deterministic local output without fetches', async () => {
   // made outside a git checkout cannot name its own commit, deliberately writes no manifest
   // rather than one carrying a placeholder, and bakes no identity into app.js -- so that
   // page reports itself unbuilt instead of asking for a file that was never published.
-  const expectedFiles = manifest.buildIdentity.resolved ? 196 : 195;
+  //
+  // 196 to 232 on 2026-08-27, alongside the article pin above and for the same reason: the
+  // console feature integration added 36 Markdown documents under docs/ and nothing
+  // re-derived either number, so both had been failing on `master`. One document in, one
+  // HTML page out, and the 36 are exactly the 36 files `git log --diff-filter=A` names as
+  // added under console/docs/ since this pin was last correct: the 23 feature articles the
+  // assertion above lists, 2 changelog records (attention-runtime-mount,
+  // forge-publishing-runtime), 3 changelog fragments, and the 8 documents in docs/features/.
+  // The two counts move together because the build walks docs/ whole; a future change that
+  // moves one without the other is a change that added or dropped a non-article output, and
+  // is worth reading rather than reconciling.
+  const expectedFiles = manifest.buildIdentity.resolved ? 232 : 231;
   assert.equal(manifest.outputFiles.length, expectedFiles);
   assert.equal(
     manifest.outputFiles.some(file => file.path === 'version.json'),

@@ -18,6 +18,25 @@ Quiet hours suppress presentation according to the configured policy, not record
 
 Notification actions are explicit references. Retry appears only when the operation receipt supplies a retry reference. Undo appears only when the receipt supplies a real inverse operation or a local history revision. Running Undo is another operation and must return its own receipt.
 
+## Configuration
+
+Receipts are not switched on or off, and there is no verbosity dial. An operation either
+returns a receipt or it has not completed, so the only thing an integration configures is what
+each dispatch declares about itself before it runs:
+
+- **Request identity.** Every dispatch carries an idempotency key. A duplicate in-flight key is
+  refused by the handler, including on keyboard or programmatic re-entry, so the key is the
+  configuration that makes re-entry safe rather than a guard callers remember to add.
+- **Target and affected data.** These are required fields, not optional annotations. A request
+  that cannot describe what it will change is refused before dispatch, which is why a
+  destructive confirmation can always name the thing it is about to affect.
+- **Action references.** Retry appears only when a receipt supplies a retry reference, and Undo
+  only when it supplies a real inverse operation or a local-history revision. Neither is a flag
+  a surface can set: a notification cannot manufacture an action the receipt did not offer.
+- **History bounds.** The retained history length and the export projection are fixed by this
+  core rather than by a caller, so an export cannot be widened into serializing callbacks or
+  operation payloads.
+
 ## Search, export, and bulk actions
 
 History can be filtered by text, severity, state, and source. Export projection includes factual notification text, source, timestamps, operation receipt reference, and action labels without serializing executable callbacks or operation payloads.

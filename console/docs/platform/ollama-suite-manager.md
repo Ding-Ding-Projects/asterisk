@@ -1,6 +1,42 @@
 # Local Ollama suite manager
 
-The desktop console has a mount-ready React surface for a local Ollama installation, and the documentation site has a browser-local equivalent at `ollama.html`. Neither is a cloud model store or an Ollama replacement. The desktop surface accepts an `OllamaSuiteClient`; the site requires an explicitly approved loopback endpoint. Both treat observed backend data as authoritative and never seed sample models, simulated progress, or fake health results.
+The desktop console has a mount-ready React surface for a local Ollama installation. Neither it nor the site page described below is a cloud model store or an Ollama replacement. The desktop surface accepts an `OllamaSuiteClient` and treats observed backend data as authoritative: it never seeds sample models, simulated progress, or fake health results.
+
+**Corrected on 2026-08-27.** This paragraph used to say that "the documentation site has a
+browser-local equivalent at `ollama.html`". `console/site/ollama.html` exists as markup and is
+wired to nothing: `console/site/app.js` contains no occurrence of `ollama-probe`,
+`ollama-endpoint` or `ollama-models`, the page loads `app.js` and no other script, and
+`site/build.mjs` does not publish it, so it has no address on the site. The same is true of
+`converter.html` and `history.html`; see the corrected section in
+[Local file converter](local-file-converter.md) for the full list and the guard that now keeps
+it honest. Everything below headed "Documentation site behavior" is the intended contract for
+that page, not a description of what it does.
+
+## Behavior
+
+Two rules govern every surface here, and the rest follows from them. The first is that observed
+data is the only data: a model, a tag, a byte count, a health result or a capability appears
+because the backend returned it, and nothing is seeded, inferred from a name, or filled in while
+a request is pending. The second is that a fact the backend did not supply stays missing rather
+than being estimated — which is why hardware fit has an explicit **Unknown** verdict, why a pull
+shows byte progress only when Ollama supplies bytes, and why catalogue completeness can read as
+unknown even while a list of installed tags is on screen.
+
+## Configuration
+
+- **The client.** The central mount must provide `OllamaSuiteClient` from
+  `ollama-suite-model.ts`. It owns local HTTP, catalogue pagination, offline-cache evidence,
+  bounded regex evaluation, pull persistence, chat streaming, file picking, preflight, process
+  launch, snapshots, rollback and secret redaction. The renderer configures none of that.
+- **Endpoint approval (site page).** One endpoint, approved explicitly before any request.
+  Only `localhost`, `127.0.0.1` or `[::1]` is accepted; credentials, query strings, fragments
+  and unsupported schemes are refused.
+- **Pull parallelism** is bounded and backend-controlled. There is no renderer setting for it.
+- **Harness profiles** are bundled, or registered through semantic executable and folder pickers
+  with allowlisted argument profiles. There is no free-text command field anywhere, which is the
+  configuration decision that makes the launch path safe rather than a convention callers follow.
+- **Search state** is separate for the catalogue, chat sessions and harness profiles. Each has
+  its own adjacent regex builder with bounded evaluation, and plain text is the default.
 
 ## Desktop behavior
 

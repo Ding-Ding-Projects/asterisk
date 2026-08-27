@@ -12,6 +12,27 @@ Settings use schema version 1 from `console/shared/settings-schema.ts`. A fresh 
 
 When School mode is enabled, the effective projection forces English and English narration, reports Cantonese, funny-level controls, personal vocabulary, and dim-sum behavior as unavailable, and leaves the user's stored choices untouched for restoration when the mode is disabled.
 
+## Configuration
+
+Nothing here is configured through a file a person edits. Every value is a settings field the
+runtime already owns, and each one reports where its current value came from — compiled
+defaults, validated local storage, a schedule rule, or School-mode suppression — through
+`provenance(target)`. The configurable surface is therefore the integration itself: which
+storage adapter the runtime is constructed with, whether a platform speech engine is mounted,
+and which scheduled sources are declared.
+
+- **Storage.** `browserSettingsRuntime()` reads and writes the browser's local storage. A host
+  that is not a browser supplies its own adapter instead; the schema and validation do not move
+  with it, so a non-browser host cannot widen what a stored document may contain.
+- **Narration.** Speech is off until `mountNarration(engine)` is called with a real engine, and
+  `unmountNarration()` puts it back. No engine is discovered, and no default voice is assumed.
+- **Scheduled sources.** A rule's state arrives through `setScheduleSourceState()` rather than
+  being polled from here, so a source this runtime cannot reach stays visibly unresolved rather
+  than silently defaulting.
+- **Credentials.** A Home Assistant rule stores an operating-system credential-vault account
+  key and nothing else. There is no field in this schema that can hold a credential value, which
+  is a property of the schema rather than a convention callers are asked to observe.
+
 ## Integration API
 
 The application integration point is `console/app/renderer/src/settings/index.ts`.
@@ -48,11 +69,16 @@ Replacement is available only through an explicitly classified private user-inte
 - Speech failures are retained in queue status and do not block the application or later queued lines.
 - Secrets are not part of the settings schema. Home Assistant rules store only a credential-vault account key, never credential material.
 
-## Current integration state
+## Verification
 
 The settings core and public integration functions exist, but the desktop shell does not yet construct the store, subscribe to runtime snapshots, route rendered text through the vocabulary boundary, mount a platform speech engine, or apply appearance overrides. Those seams belong to the application wiring change. Until that wiring lands, these settings do not change the visible desktop interface.
 
 This ultra-speed implementation did not run tests, type checking, builds, packaging, UI interaction, or captures. Its behavior remains unverified until the owning integration work runs the repository's local validation and built-artifact evidence paths.
+
+Read that as the whole verification state rather than as a caveat attached to one. Nothing in
+this article has been proved by running it: there is no focused suite, no built-artifact
+interaction and no capture behind any sentence above, and the runtime is wired at one end and
+consumed at neither, which is a state a reader cannot infer from an API that reads as complete.
 
 ## Suggested articles
 

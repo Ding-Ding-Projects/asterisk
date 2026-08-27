@@ -63,4 +63,11 @@ The renderer receives project and session evidence links, states and ids, but no
 
 This lane was implemented without launching tests, builds, lint, network requests, runtime interaction, or capture workflows. The decisive verification remains the later integration's typed build and server-contract checks against the exact endpoints recorded above.
 
-Suggested articles: [Status Hub](../platform/status-hub.md), [local security](../system/security.md), and [hosted authentication](../platform/in-context-recovery.md).
+## Suggested articles
+
+[Status Hub](../platform/status-hub.md), [local security](../system/security.md), [hosted authentication](../platform/hosted-authentication.md), and [in-context recovery](../platform/in-context-recovery.md).
+
+The last two used to be one link: the label said "hosted authentication" and the target was
+`in-context-recovery.md`, so a reader who followed it landed somewhere that had nothing to do
+with authentication and had no way to tell whether the label or the target was the mistake.
+Both articles exist, so both are named.

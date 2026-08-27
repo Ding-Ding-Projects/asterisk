@@ -1103,8 +1103,15 @@ test('Export everything states that it does not write the accounts, rather than 
 test('the site feature registry records the feature as implemented, and names its files', () => {
   const row = registry.features['built-in-authenticator'];
   assert.ok(row, 'no built-in-authenticator row in site/feature-registry.json');
-  assert.equal(row.state, 'implemented');
-  assert.deepEqual([...row.files].sort(), ['site/app.js', 'site/settings.html', 'site/styles.css']);
+  /* Migrated to schema v2 on 2026-08-27. This branch was written against the legacy
+   * `state`/`files` shape and merged after the site registry moved to `status` and
+   * `implementation.paths`, so it kept asserting a field the file no longer carries --
+   * green here while thirty-three sibling contracts went red against the same file.
+   * `implemented-unverified` is v2's spelling of exactly what `implemented` meant here:
+   * the feature ships, and no built-artifact evidence has been recorded for it. */
+  assert.equal(row.status, 'implemented-unverified');
+  assert.equal(Object.hasOwn(row, 'state'), false, 'the legacy state field is back on this row');
+  assert.deepEqual([...row.implementation.paths].sort(), ['site/app.js', 'site/settings.html', 'site/styles.css']);
   assert.match(row.note, /BarcodeDetector/);
   assert.match(row.note, /RFC 6238/);
 });

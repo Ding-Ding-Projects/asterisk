@@ -1,6 +1,11 @@
 # Browser-extension download transfer surfaces
 
-This implementation adds three mount-ready renderer surfaces for a browser-extension handoff:
+## Behavior
+
+This implementation adds three mount-ready renderer surfaces for a browser-extension handoff.
+They are three surfaces rather than one with three states on purpose: the decision must be
+answerable before any byte moves, the progress must be readable without the decision still in
+the way, and the result must be dismissible without either.
 
 1. **Start download** is a blocking decision surface. It names the file, source, destination, and known size. Nothing starts until `DownloadTransferClient.start()` accepts the typed handoff. Cancel uses `cancelHandoff()` and reports the receipt.
 2. **Downloading** is a separate progress surface. It renders only `DownloadTransferSnapshot` values from the transfer client, including exact bytes, known totals, observed rate, known ETA, deadline, pause/resume/cancel/retry availability, errors, and partial outcomes. It never increments a local timer or predicts a result.
@@ -18,9 +23,45 @@ The dedicated `Ding-PBX-Console-NativeMessagingHost.exe` submits a bounded hando
 
 Language and funny-copy selection remain host-owned: labels are ordinary strings in these mount-ready components, so a future host can pass localized or funny-level copy without changing transfer facts such as bytes, timestamps, URLs, paths, status, or error codes. Unsaved-work state is required in the handoff and remains visible on the Start surface; no transfer action discards it.
 
-## Failure and verification boundaries
+## Configuration
 
-The transfer manager stores `download-transfers.json` beneath the installation data directory, strictly validates every persisted snapshot field before accepting it, and reconciles interrupted queued, downloading, and paused states at startup. It streams the HTTPS response into a unique adjacent temporary file, validates the byte total, records the exact complete size and SHA-256 digest, then uses the shared bounded Windows rename helper to publish atomically. A body interruption is distinct from a full-body publication failure. A complete temporary file remains available for retry publication only after its recorded size and digest are revalidated, without requesting Range at EOF. Header, body-idle, and total deadlines have distinct timeout codes. Pause and resume use HTTP Range with a recorded ETag or Last-Modified validator, and controls remain disabled with the exact reason when the server cannot resume. Cancel, discard, and non-resumable failure remove temporary files unless a resumable partial or publication-pending state is retained. A missing first snapshot is shown as a waiting state. A rejected command, deadline, non-retryable error, cancellation, and partial result stay visible and are not converted into success. This lane intentionally did not run tests, builds, runtime interaction, or captures, so built-artifact evidence remains pending.
+Almost nothing here is a setting. What varies between installations is the registration, and
+each item below is a fact established at registration time rather than a value someone tunes.
+
+- **Allowlisted extension origin and per-installation pipe.** `register-native-host.ps1`
+  verifies each regular-file SHA-256, installs absolute manifest and broker paths for Chrome and
+  Edge, creates the current-user challenge configuration, verifies protected inheritance plus
+  the exact allow rules, and returns a typed registration receipt. The pipe name is random per
+  installation; its descriptor admits only the current user and `SYSTEM`.
+- **The secure-helper path is armed, not enabled.** It comes up only after every config,
+  manifest, host, broker and helper digest and ACL check passes, and any config, registration,
+  ACL, digest, broker startup, broker shutdown or hot-reload failure clears it again before the
+  failure state is published. There is no override.
+- **What the host may send.** Exactly one message kind, `download-handoff`, and it receives only
+  its receipt. It cannot issue transfer commands or read queue or snapshot state, which is the
+  boundary that makes the extension untrusted by construction rather than by policy.
+- **Deadlines** are three distinct kinds — header, body-idle and total — each with its own
+  timeout code, so a stalled body and an unresponsive server are not reported as one thing.
+- **Storage.** `download-transfers.json` beneath the installation data directory. Every
+  persisted snapshot field is revalidated before it is accepted at startup.
+- **Copy.** Labels are ordinary strings and language and funny-level selection stay host-owned,
+  so localized copy can be supplied without touching bytes, timestamps, URLs, paths, status or
+  error codes.
+- **Hosted mode** returns an explicit unavailable receipt. It cannot accept a desktop extension
+  handoff, and says so rather than appearing to be configurable into it.
+
+## Failure modes
+
+The transfer manager stores `download-transfers.json` beneath the installation data directory, strictly validates every persisted snapshot field before accepting it, and reconciles interrupted queued, downloading, and paused states at startup. It streams the HTTPS response into a unique adjacent temporary file, validates the byte total, records the exact complete size and SHA-256 digest, then uses the shared bounded Windows rename helper to publish atomically. A body interruption is distinct from a full-body publication failure. A complete temporary file remains available for retry publication only after its recorded size and digest are revalidated, without requesting Range at EOF. Header, body-idle, and total deadlines have distinct timeout codes. Pause and resume use HTTP Range with a recorded ETag or Last-Modified validator, and controls remain disabled with the exact reason when the server cannot resume. Cancel, discard, and non-resumable failure remove temporary files unless a resumable partial or publication-pending state is retained. A missing first snapshot is shown as a waiting state. A rejected command, deadline, non-retryable error, cancellation, and partial result stay visible and are not converted into success.
+
+## Verification
+
+This lane intentionally did not run tests, builds, runtime interaction, or captures, so
+built-artifact evidence remains pending. Take that literally for the whole article: the
+resume-size reconciliation, the publish-ambiguity path, the broker handshake and the
+late-publication conflict check are each described from the code that implements them and have
+not been watched happening. The ones that fail closed are the ones to be most careful about
+believing — a guard nobody has seen go red is a guard nobody has tested.
 
 ## Suggested articles
 

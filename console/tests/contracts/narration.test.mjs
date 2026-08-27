@@ -90,12 +90,42 @@ test('voice enumeration is live and its status source is the effective channel v
   assert.match(src, /resolveVoiceStatus\(language, this\.narration\.channels\[language\]\.voiceId, this\.voices\)/);
 });
 
+/**
+ * Repaired 2026-08-27. Three of the four needles below were pinned to a signature the
+ * feature has not had since the notification-severity work landed: `narratedFire` grew a
+ * `NotificationSeverity | boolean` third parameter, its declaration went multi-line, and
+ * the narrator's `isError` stopped being a shorthand. The old needles matched nothing, so
+ * this contract had been failing on `master` rather than guarding anything -- and the
+ * direction matters: it was a stale test against a working feature, not the reverse.
+ *
+ * What is pinned now is the property rather than the spelling. The narrator must speak
+ * the STYLED text (narrating the raw text would have the console say one thing while the
+ * screen showed another), the rendered notice must be that same styled text, and error
+ * priority must survive the widening -- which is exactly what the boolean-to-severity
+ * mapping decides, so that mapping is asserted here for the first time. The declaration
+ * is matched across its own line breaks with an explicit `[\s\S]` run bounded to the
+ * parameter list, rather than by re-flattening it into one line that the source does not
+ * contain.
+ */
 test('the mounted notification path is narrated and preserves the styled message plus error priority', () => {
   const src = app();
-  assert.match(src, /private narratedFire = \(title: string, body: string, isError = false\): void => \{/);
+  assert.match(src, /private narratedFire = \(\s*title: string,\s*body: string,\s*severityOrLegacyError: NotificationSeverity \| boolean = 'warning',\s*\): void => \{/,
+    'narratedFire no longer declares the widened (title, body, severity-or-legacy-error) signature');
   assert.match(src, /const styled = styledDialog\(/);
-  assert.match(src, /this\.narrator\.enqueue\('notification', styled\.body \? `\$\{styled\.heading\}\. \$\{styled\.body\}` : styled\.heading, \{ isError \}\);/);
-  assert.match(src, /this\.baseFire\(styled\.heading, styled\.body\);/);
+  /* The legacy two-argument and boolean-true call shapes still have to reach the same
+   * severities, or a compiled-shell error path would quietly become a warning. */
+  assert.match(src, /const severity: NotificationSeverity = typeof severityOrLegacyError === 'boolean'\s*\? \(severityOrLegacyError \? 'error' : 'warning'\)\s*: severityOrLegacyError;/,
+    'the boolean-to-severity mapping is gone, so a legacy fire(title, body, true) may no longer be an error');
+  /* These two are matched together, in order, inside one bounded run rather than as two
+   * independent needles. The second was a bare `this.baseFire(styled.heading, styled.body);`
+   * and App.tsx contains that call TWICE -- once here and once in an unrelated notice path
+   * around line 846 -- so deleting it from `narratedFire` left the assertion satisfied by the
+   * other occurrence. Measured on 2026-08-27 rather than reasoned about: with `narratedFire`'s
+   * call replaced by `this.baseFire(title, body)`, one occurrence of the styled call remained
+   * in the file and the old bare needle still matched it. A substring that exists elsewhere in
+   * the file is not a check on the place it was written for. */
+  assert.match(src, /this\.narrator\.enqueue\('notification', styled\.body \? `\$\{styled\.heading\}\. \$\{styled\.body\}` : styled\.heading, \{ isError: severity === 'error' \}\);\s*this\.baseFire\(styled\.heading, styled\.body\);/,
+    'the narrator no longer speaks the styled text, no longer carries error priority, or no longer renders that same styled text');
 });
 
 test('the registry row remains an honest unresolved inventory task until the central inventory materializer records proof', () => {

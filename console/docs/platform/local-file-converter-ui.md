@@ -5,6 +5,18 @@ surface is mounted later by `CONVERTER_SURFACE_REGISTRATION`, which accepts a ty
 `ConverterClient` and keeps the privileged file and control-plane operations outside the
 renderer component.
 
+## Behavior
+
+The surface renders the converter and owns none of it. Every fact it shows arrived from the
+typed `ConverterClient`: the detected format and its confidence, the adapter catalogue and each
+adapter's availability, the queue page, the progress events, the PDF capabilities, and the
+result of every command. The renderer performs no file access, runs no process, and derives no
+state it was not told. Two consequences are worth stating rather than leaving to be inferred —
+a missing client method leaves its control visible and disabled with the exact reason, and a
+rejected call becomes visible error copy rather than a success state.
+
+The flow below is the whole of it, in order.
+
 ## User flow
 
 1. Choose a local file through the client-provided native picker.
@@ -31,6 +43,25 @@ classes, anchors, groups, alternation, and quantifiers, plus a raw JavaScript `R
 pattern, flags, bounded sample text, syntax feedback, matches, capture groups, and copy.
 The query and pattern stay synchronized when regex mode is selected. Invalid patterns and
 oversized samples produce an explicit local error and no match result.
+
+## Configuration
+
+Nothing on this surface is configured by a setting a person edits. What decides its behaviour
+is the registered client, and the mapping is exact:
+
+- **Which controls exist at all.** Overwrite confirmation, the native destination picker, PDF
+  execution and the Visual Studio Code handoff each require their own client method. A client
+  that does not expose one leaves the control disabled with the reason, rather than removing it
+  and leaving a reader to wonder whether the feature exists.
+- **Which adapters are enabled.** The renderer does not decide. It shows the catalogue the
+  client returns, with the unavailable entries and their missing bundled dependency intact.
+- **Page size.** The queue loads at most 100 records at a time and offers refresh and next-page
+  controls. The surface never collects the queue into an unbounded renderer array, so this bound
+  is a property of the code rather than a limit a caller can raise.
+- **Deadlines.** Every client call is made under a bounded deadline. A timeout is a visible
+  status, not a spinner that never resolves.
+- **Search state.** Each category owns its own query, mode and pattern. There is no shared
+  builder, so a pattern applied in one category cannot silently filter another.
 
 ## Queue and failure states
 
@@ -67,6 +98,27 @@ validation, and editor launch. The renderer holds only display metadata and the 
 provided by the client. A consumer integration must keep the client methods local and
 bounded, and must not put credentials or source contents in logs, exports, history, or
 telemetry.
+
+## Failure modes
+
+- A client method that is absent leaves its control disabled with the exact reason. It is never
+  hidden, because a hidden control and an unsupported one are indistinguishable to a reader.
+- A rejected promise or an exceeded deadline becomes visible error or status copy. No rejected
+  call is converted into a success state.
+- Progress is shown only for a progress event the client actually reported. A missing total
+  renders as an indeterminate detail rather than an invented percentage.
+- An unavailable adapter or PDF command stays listed with the reason the client returned, rather
+  than disappearing from the catalogue.
+- A destination is never assumed absent. Without an overwrite response from the client, the
+  request is not queued.
+
+## Verification
+
+None of this has been run. The surface is mounted later by `CONVERTER_SURFACE_REGISTRATION`,
+and until a host registers a real `ConverterClient` there is no client to answer any of the
+calls described above — so there is no focused suite behind this article, no built-artifact
+interaction, and no capture. The article describes a contract that is ready to be mounted, and
+that is the whole of its claim.
 
 ## Suggested articles
 
