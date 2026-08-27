@@ -116,9 +116,14 @@ test('summariseBulk reports "nothing selected" honestly rather than a misleading
   assert.equal(summariseBulk(plan), 'Dismiss: nothing selected.');
 });
 
-test('the bulk model is wired to exactly one real surface: the notification history panel', () => {
+test('the bulk model is wired to exactly two real surfaces: the notification history panel and the authenticator account list', () => {
+  /* The count moved on 2026-08-26, when the built-in authenticator became the second
+   * surface with a list somebody would want to act on in bulk. It is pinned rather than
+   * left open because the interesting failure is the opposite one: a THIRD list arriving
+   * with its own hand-rolled selection instead of this shared model, which reads as
+   * working and diverges the first time one of them is fixed. */
   const src = norm(read('site/app.js'));
-  for (const [name, expectedCalls] of [['bulkClick', 1], ['bulkSelectAll', 2], ['planBulk', 1], ['summariseBulk', 1]]) {
+  for (const [name, expectedCalls] of [['bulkClick', 2], ['bulkSelectAll', 4], ['planBulk', 2], ['summariseBulk', 2]]) {
     const total = src.split(`${name}(`).length - 1;
     const def = src.split(`function ${name}(`).length - 1;
     assert.equal(def, 1, `expected exactly one definition of ${name}`);
@@ -136,6 +141,26 @@ test('the bulk model is wired to exactly one real surface: the notification hist
   for (const call of ['bulkClick(notifSelection', "bulkSelectAll(notifSelection,'page'", "bulkSelectAll(notifSelection,'matches'", "planBulk('Dismiss'"]) {
     assert.ok(body.includes(call), `initNotificationBulk() no longer calls ${call} -- the bulk model may be disconnected from the notification panel`);
   }
+
+  const authStart = src.indexOf('function initAuthenticator(){');
+  assert.notEqual(authStart, -1, 'initAuthenticator() not found');
+  let authDepth = 0, j = src.indexOf('{', authStart);
+  for (; j < src.length; j += 1) {
+    if (src[j] === '{') authDepth += 1;
+    else if (src[j] === '}') { authDepth -= 1; if (authDepth === 0) { j += 1; break; } }
+  }
+  const authBody = src.slice(authStart, j);
+  for (const call of ['bulkClick(authSelection', "bulkSelectAll(authSelection,'page'", "bulkSelectAll(authSelection,'matches'", "planBulk('Remove'"]) {
+    assert.ok(authBody.includes(call), `initAuthenticator() no longer calls ${call} -- the bulk model may be disconnected from the authenticator list`);
+  }
+});
+
+test('the authenticator account list exposes the same real select-page, select-matches, select-none and remove controls', () => {
+  const html = norm(read('site/settings.html'));
+  for (const id of ['auth-select-page', 'auth-select-matches', 'auth-select-none', 'auth-remove-selected', 'auth-confirm-yes', 'auth-confirm-cancel']) {
+    assert.match(html, new RegExp(`id="${id}"`), `#${id} control not found on the authenticator card`);
+  }
+  assert.match(html, /id="auth-confirm-text"/, 'the reviewable confirm-preview element (#auth-confirm-text) is missing');
 });
 
 test('the notification history panel exposes real select-page, select-matches, select-none and dismiss controls', () => {

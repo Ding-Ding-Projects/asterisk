@@ -96,16 +96,24 @@ test('every <select> on the site is either a fixed, hard-coded option list, or o
    * 2026-08-26 with the Export everything dialog, filled the same way as the other
    * three format pickers -- from suitableFormats(), narrowed to the intersection
    * across the record sets that run will actually write, since one format is chosen
-   * for all of them. All seven empty-in-markup selects are named here explicitly so a
-   * newly added select falls into neither bucket by accident. */
+   * for all of them. auth-export-format joined the empty bucket on 2026-08-26 with the
+   * built-in authenticator, filled from suitableFormats() over the selected accounts
+   * exactly like the other format pickers. auth-algorithm and auth-digits joined the
+   * static bucket the same day, and they are fixed lists for a reason worth stating:
+   * they are not preferences but the set of parameters this page can actually compute a
+   * code from, so an option outside them would be one that produces codes no service
+   * accepts. The authenticator contract pins both lists equal to what the code accepts.
+   * All eight empty-in-markup selects are named here explicitly so a newly added select
+   * falls into neither bucket by accident. */
   assert.deepEqual(withStaticOptions.sort(),
-    ['cantonese-funny', 'changelog-date-preset', 'density-mode', 'english-funny', 'language-mode',
-      'narration-language', 'theme-mode']);
-  assert.deepEqual(empty.sort(), ['changelog-export-format', 'doc-export-format', 'export-everything-format',
-    'history-action-filter', 'narration-voice-en', 'narration-voice-zh', 'notif-export-format']);
+    ['auth-algorithm', 'auth-digits', 'cantonese-funny', 'changelog-date-preset', 'density-mode',
+      'english-funny', 'language-mode', 'narration-language', 'theme-mode']);
+  assert.deepEqual(empty.sort(), ['auth-export-format', 'changelog-export-format', 'doc-export-format',
+    'export-everything-format', 'history-action-filter', 'narration-voice-en', 'narration-voice-zh',
+    'notif-export-format']);
 });
 
-test('the four export-format selects are populated from the fixed export-format list, never from live/user data', () => {
+test('the five export-format selects are populated from the fixed export-format list, never from live/user data', () => {
   const src = norm(read('site/app.js'));
   /* `exportEverythingFormats` rather than its caller. The Export everything dialog
    * keeps the suitability decision in a pure function, so the intersection across
@@ -113,7 +121,7 @@ test('the four export-format selects are populated from the fixed export-format 
    * only writes that answer into the select. Naming the caller here would look
    * consistent with the other three and check nothing at all. */
   for (const fn of ['updateDocumentationExport', 'updateNotificationExportFormats', 'updateChangelogExport',
-    'exportEverythingFormats']) {
+    'exportEverythingFormats', 'authUpdateExportFormats']) {
     const start = src.indexOf(`function ${fn}(`);
     assert.ok(start !== -1, `${fn}() not found`);
     let depth = 0, i = src.indexOf('{', start);

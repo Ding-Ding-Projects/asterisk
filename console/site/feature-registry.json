@@ -214,9 +214,13 @@
       "files": []
     },
     "built-in-authenticator": {
-      "state": "absent",
-      "note": "No TOTP/authenticator surface, QR generation, or code display exists in site/app.js.",
-      "files": []
+      "state": "implemented",
+      "note": "Built on 2026-08-26. site/settings.html carries a SECURITY card (#authenticator-card) holding the account list, its own search with an anchored regex builder, the shared bulk-selection controls, and two dialogs: #authenticator-dialog to add an account and #auth-secrets-dialog for the one export that writes usable secrets, behind the same two-key-plus-slider gate the settings reset uses. site/app.js implements RFC 6238 over RFC 4226 with Web Crypto (authGenerateCode/authVerifyCode), RFC 4648 base32, and otpauth:// build/parse, ported from app/renderer/src/totp.ts so the two implementations cannot drift; the published RFC 6238 vectors run against it for SHA-1, SHA-256 and SHA-512. Direction matters and is the reason there is no QR generator here: this page owns no one-time-code factor of its own, so it has no secret to pair OUT and would be drawing a QR for a factor nobody can use. Pairing IN is what it does, and the reading routes are the browser own BarcodeDetector over an image file, the clipboard and the camera -- each one removed with its reason stated where the browser lacks the capability, rather than left as a scan button that cannot scan. Secrets live in their own storage key (ding-pbx-pages-authenticator-v1), never in the settings state, so no local-history snapshot, no redacted settings export and no Export everything run can carry one; the ordinary account export writes the word omitted where the secret would be, and says so.",
+      "files": [
+        "site/app.js",
+        "site/settings.html",
+        "site/styles.css"
+      ]
     },
     "attention-modes": {
       "state": "implemented",
