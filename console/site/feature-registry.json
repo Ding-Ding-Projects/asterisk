@@ -102,12 +102,12 @@
     },
     "local-file-converter": {
       "state": "absent",
-      "note": "The site's many to*() functions (toJson, toXml, toYaml, toSql, toToml, toDelimited, toMarkdown, toHtml) convert the documentation/notification export data into different text formats - this is export formatting (complete-exports), not a general-purpose local file converter with a category catalogue and bundled adapters. No such converter surface exists.",
+      "note": "Excluded by owner decision on 2026-08-23, recorded in console/inventories/exemptions.json, which covers this surface as well as the desktop console -- so this is a decision to argue with rather than a gap to fill. What is factually here: the site's many to*() functions (toJson, toXml, toYaml, toSql, toToml, toDelimited, toMarkdown, toHtml) convert the documentation/notification export data into different text formats, which is export formatting (complete-exports), not a general-purpose converter with a category catalogue and bundled adapters. No such converter surface exists.",
       "files": []
     },
     "ollama-suite-manager": {
       "state": "absent",
-      "note": "No Ollama integration of any kind exists in the site.",
+      "note": "Excluded by owner decision on 2026-08-23, recorded in console/inventories/exemptions.json, which covers this surface as well as the desktop console. No Ollama integration of any kind exists in the site.",
       "files": []
     },
     "browser-style-tabs": {

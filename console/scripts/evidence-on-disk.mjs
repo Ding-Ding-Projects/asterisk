@@ -59,6 +59,104 @@ export function verifyExemptions(inventory, exemptions) {
   return { exemptRows };
 }
 
+/**
+ * Which per-surface feature registry speaks for each surface in the completeness
+ * inventory.
+ *
+ * Declared here rather than derived, and a surface with no entry is a hard failure
+ * below rather than a silent skip: a new surface arriving with no registry named would
+ * otherwise be exempt from the check that its exemptions mean anything.
+ */
+export const EXEMPTION_SURFACE_REGISTRIES = {
+  'windows-console': 'console/app/feature-registry.json',
+  'pages-site': 'console/site/feature-registry.json',
+};
+
+/**
+ * Proves that a feature recorded as excluded was actually left unbuilt, and that the
+ * registry a reader is most likely to open says so.
+ *
+ * `verifyExemptions` above already ties the inventory to the exemption record in both
+ * directions. Nothing tied either of them to the third record -- the per-surface feature
+ * registry that says what exists -- and that gap is not hypothetical. On 2026-08-27 an
+ * agent read `site/feature-registry.json`, found `local-file-converter` marked `absent`
+ * with a note explaining only that the site's export formatters are not a converter,
+ * took that as a gap to fill, built the whole feature with 57 contract tests and 48
+ * planted breaks behind it, and set the registry row to `implemented`. Every existing
+ * check stayed green: the site suite, the completeness validator, and this file's own
+ * exemption check, which asks whether an exempt row has a REASON and never whether it
+ * has been quietly built anyway. The exclusion was the owner's, recorded four days
+ * earlier, and covered that exact surface.
+ *
+ * So two things are required of every exempt row, and the second is what would have
+ * stopped that afternoon before it started:
+ *
+ *   - the registry must record the feature as `absent`, because an exclusion that has
+ *     shipped is not an exclusion, and a row saying `implemented` under an exemption is
+ *     the two records contradicting each other in the expensive direction;
+ *   - the registry note must point at `exemptions.json` by name, so somebody reading
+ *     the registry alone meets an argument they can disagree with rather than a gap
+ *     that looks like an oversight. The pointer is required rather than the word
+ *     "excluded", because a path is checkable and a word is a box to tick.
+ */
+export function verifyExemptionRegistries(inventory, exemptions, {
+  root, read = readFileSync, registries = EXEMPTION_SURFACE_REGISTRIES,
+} = {}) {
+  if (typeof root !== 'string' || root.length === 0) {
+    throw new Error('verifyExemptionRegistries requires an absolute repository root');
+  }
+  const recorded = new Map();
+  for (const entry of exemptions?.exemptions ?? []) {
+    for (const surface of entry.surfaces ?? []) recorded.set(`${surface}.${entry.feature}`, entry);
+  }
+
+  const problems = [];
+  const loaded = new Map();
+  let checked = 0;
+
+  for (const surface of inventory.surfaces) {
+    const relativePath = registries[surface.id];
+    if (!relativePath) {
+      problems.push(`${surface.id} names no feature registry, so nothing can check whether its exempt rows were built anyway`);
+      continue;
+    }
+    if (!loaded.has(surface.id)) {
+      try {
+        loaded.set(surface.id, JSON.parse(read(resolve(root, relativePath), 'utf8')));
+      } catch (error) {
+        problems.push(`${surface.id}: ${relativePath} could not be read (${error.message})`);
+        loaded.set(surface.id, null);
+      }
+    }
+    const registry = loaded.get(surface.id);
+    if (!registry) continue;
+
+    for (const feature of surface.features) {
+      if (feature.status !== 'exempt') continue;
+      checked += 1;
+      const key = `${surface.id}.${feature.id}`;
+      const row = registry.features?.[feature.id];
+      if (!row) {
+        problems.push(`${key} is exempt and ${relativePath} carries no row for it at all`);
+        continue;
+      }
+      const decided = recorded.get(key);
+      const who = decided ? `${decided.decidedBy} on ${decided.decidedOn}` : 'an unrecorded decision';
+      if (row.state !== 'absent') {
+        problems.push(`${key} was excluded by ${who} and ${relativePath} records it as "${row.state}" -- an excluded feature has been built`);
+      }
+      if (!String(row.note ?? '').includes('exemptions.json')) {
+        problems.push(`${key} is excluded by ${who} and its note in ${relativePath} never points at exemptions.json, so a reader of that file alone sees a gap to fill rather than a decision to argue with`);
+      }
+    }
+  }
+
+  if (problems.length > 0) {
+    throw new Error(`${problems.length} exemption-registry problem(s):\n  - ${problems.join('\n  - ')}`);
+  }
+  return { checked };
+}
+
 export function verifyEvidenceOnDisk(inventory, { root, exists = existsSync, read = readFileSync } = {}) {
   if (typeof root !== 'string' || root.length === 0) {
     throw new Error('verifyEvidenceOnDisk requires an absolute repository root');

@@ -9,7 +9,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { verifyEvidenceOnDisk, verifyExemptions } from './evidence-on-disk.mjs';
+import { verifyEvidenceOnDisk, verifyExemptions, verifyExemptionRegistries, EXEMPTION_SURFACE_REGISTRIES } from './evidence-on-disk.mjs';
 
 const root = resolve(import.meta.dirname, '..', '..');
 const source = JSON.parse(readFileSync(resolve(root, 'console/inventories/surface-completeness.json'), 'utf8'));
@@ -141,3 +141,64 @@ exemptionMustFail(
 
 verifyExemptions(source, exemptions);
 console.log('GREEN: every exempt row carries a recorded reason, decider and date.');
+
+/* And the third record. The two checks above tie the inventory to the exemption record
+ * in both directions and never ask the surface's own feature registry whether the
+ * excluded thing was built anyway -- which is exactly what happened on 2026-08-27, with
+ * every check in this file green while a whole excluded feature sat in the tree. */
+const registryFor = (relative) => JSON.parse(readFileSync(resolve(root, relative), 'utf8'));
+const readerFor = (overrides) => (absolute) => {
+  const key = String(absolute).replaceAll('\\', '/').slice(String(root).replaceAll('\\', '/').length + 1);
+  return Object.hasOwn(overrides, key) ? JSON.stringify(overrides[key]) : readFileSync(absolute, 'utf8');
+};
+const withRow = (relative, id, row) => {
+  const registry = registryFor(relative);
+  registry.features[id] = { ...registry.features[id], ...row };
+  return { [relative]: registry };
+};
+
+function registryMustFail(name, options) {
+  try { verifyExemptionRegistries(source, exemptions, { root, ...options }); }
+  catch (error) { console.log(`RED: ${name}: ${error.message.split('\n')[1]?.trim() ?? error.message}`); return; }
+  throw new Error(`${name}: deliberate break stayed green`);
+}
+
+verifyExemptionRegistries(source, exemptions, { root });
+
+registryMustFail('build an excluded feature and record it as implemented', {
+  read: readerFor(withRow('console/site/feature-registry.json', 'local-file-converter', {
+    state: 'implemented',
+    note: 'Excluded on paper, recorded in console/inventories/exemptions.json, and shipped in practice.',
+  })),
+});
+
+registryMustFail('half-build an excluded feature', {
+  read: readerFor(withRow('console/app/feature-registry.json', 'ollama-suite-manager', {
+    state: 'partial',
+    note: 'Recorded in console/inventories/exemptions.json.',
+  })),
+});
+
+registryMustFail('leave the registry note reading as a gap nobody got to rather than a decision', {
+  read: readerFor(withRow('console/site/feature-registry.json', 'local-file-converter', {
+    state: 'absent',
+    note: 'No such converter surface exists.',
+  })),
+});
+
+registryMustFail('drop the registry row for an excluded feature entirely', {
+  read: (absolute) => {
+    const key = String(absolute).replaceAll('\\', '/');
+    if (!key.endsWith('console/site/feature-registry.json')) return readFileSync(absolute, 'utf8');
+    const registry = registryFor('console/site/feature-registry.json');
+    delete registry.features['local-file-converter'];
+    return JSON.stringify(registry);
+  },
+});
+
+registryMustFail('add a surface with no registry named, so its exclusions answer to nothing', {
+  registries: { 'windows-console': EXEMPTION_SURFACE_REGISTRIES['windows-console'] },
+});
+
+verifyExemptionRegistries(source, exemptions, { root });
+console.log('GREEN: every excluded feature is recorded absent in its own surface registry, each note pointing at the exclusion.');

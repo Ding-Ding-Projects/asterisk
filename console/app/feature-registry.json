@@ -140,12 +140,12 @@
     },
     "local-file-converter": {
       "state": "absent",
-      "note": "No file-converter surface, adapter registry, or category catalogue exists anywhere in the renderer, control-plane, or server. Has no documentation article under docs/platform either, consistent with never having been built.",
+      "note": "Excluded by owner decision on 2026-08-23, recorded in console/inventories/exemptions.json; this row records what exists rather than what is wanted, and nothing exists. No file-converter surface, adapter registry, or category catalogue exists anywhere in the renderer, control-plane, or server, and there is no documentation article under docs/platform -- both consistent with a feature decided against rather than one nobody got to.",
       "files": []
     },
     "ollama-suite-manager": {
       "state": "absent",
-      "note": "No Ollama integration of any kind (local API client, model store, chat surface, harness launcher) exists. Has no documentation article under docs/platform either.",
+      "note": "Excluded by owner decision on 2026-08-23, recorded in console/inventories/exemptions.json; this row records what exists rather than what is wanted, and nothing exists. No Ollama integration of any kind (local API client, model store, chat surface, harness launcher) exists, and there is no documentation article under docs/platform.",
       "files": []
     },
     "browser-style-tabs": {
