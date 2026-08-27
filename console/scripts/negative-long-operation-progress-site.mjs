@@ -321,12 +321,21 @@ const cases = [
   // ---- The records that speak for the code ----
 
   ['the site registry still calls the feature absent',
-    swap(REGISTRY, '      "state": "implemented",\n      "note": "The Export everything dialog runs a real multi-unit operation',
-      '      "state": "absent",\n      "note": "The Export everything dialog runs a real multi-unit operation')],
+    swap(REGISTRY, '      "status": "implemented-unverified",\n      "note": "The Export everything dialog runs a real multi-unit operation',
+      '      "status": "absent",\n      "note": "The Export everything dialog runs a real multi-unit operation')],
 
   ['the site registry stops naming the stylesheet the dialog depends on',
-    swap(REGISTRY, '        "site/settings.html",\n        "site/styles.css"\n      ]\n    },\n    "in-context-recovery"',
-      '        "site/settings.html"\n      ]\n    },\n    "in-context-recovery"')],
+    /* Re-anchored on 2026-08-27 when the site registry moved to schema v2: the row's file
+     * list is `implementation.paths` now rather than a top-level `files`, so it is one level
+     * deeper and followed by `symbols` rather than by the next row. The old anchor matched
+     * nothing, and this script's own did-the-bytes-change check reported that as a FAILED
+     * CASE rather than letting a break that never landed read as a guard that held.
+     *
+     * The three-file list is no longer unique on its own -- three rows now carry exactly
+     * `site/app.js`, `site/settings.html`, `site/styles.css` -- so this anchor is tied to the
+     * tail of this row's own note. `swap`'s exactly-once check is what caught that too. */
+    swap(REGISTRY, 'no request is made.",\n      "implementation": {\n        "paths": [\n          "site/app.js",\n          "site/settings.html",\n          "site/styles.css"\n        ],',
+      'no request is made.",\n      "implementation": {\n        "paths": [\n          "site/app.js",\n          "site/settings.html"\n        ],')],
 
   ['the localization registry still calls the copy untranslated',
     swap(LOCALES, '    "long-operation-progress": {\n      "state": "localized",', '    "long-operation-progress": {\n      "state": "not-localized",')],

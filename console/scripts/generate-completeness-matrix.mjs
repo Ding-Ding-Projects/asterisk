@@ -8,8 +8,34 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const root = resolve(import.meta.dirname, '..', '..');
+// `--root=<dir>` points every read and write at a copy of the tree instead of this checkout.
+// It exists so a guard can prove `--check` is capable of reporting drift at all: run it against
+// a copied tree with one byte changed and require it to fail. Without that, a `--check` neutered
+// into always agreeing still prints its PASS line, and a guard that only reads that line stays
+// green -- which is exactly what the first version of this pass's own guard did.
+const rootOverride = process.argv.find((argument) => argument.startsWith('--root='));
+const root = rootOverride ? resolve(rootOverride.slice('--root='.length)) : resolve(import.meta.dirname, '..', '..');
 const baselineCommit = '088ecde1a6';
+
+// `--check` re-derives every generated artifact and compares it with what is committed,
+// instead of overwriting it. Without this the generator is a producer nobody re-runs, and a
+// stale table inside it is invisible until somebody runs it and reads a several-thousand-line
+// diff -- which is how six site features sat recorded `absent` for days after they were built.
+const checkOnly = process.argv.includes('--check');
+const drifted = [];
+
+// Compare with line endings normalised. This checkout runs with core.autocrlf=true, so the
+// committed JSON is CRLF on disk here and LF in the repository, while writeFileSync below
+// emits LF. Comparing raw bytes would fail on every Windows checkout for a reason that has
+// nothing to do with drift.
+const normalise = (text) => text.replace(/\r\n/gu, '\n');
+
+function emit(relativePath, text) {
+  const absolute = resolve(root, relativePath);
+  if (!checkOnly) { writeFileSync(absolute, text, 'utf8'); return; }
+  const committed = normalise(readFileSync(absolute, 'utf8'));
+  if (committed !== normalise(text)) drifted.push(relativePath);
+}
 
 const features = [
   ['language-modes', 'Language modes'], ['funny-levels', 'Funny levels'],
@@ -71,6 +97,20 @@ const desktopStatus = {
   'collapsible-filters': 'partial', 'automatic-updates': 'implemented-unverified',
 };
 
+// The published site's status per canonical feature.
+//
+// This table is the producer for BOTH `console/site/feature-registry.json` and the six
+// `site-*` surfaces of the canonical matrix, so a value that goes stale here goes stale in
+// two committed artifacts at once and in the same direction. It did: six features the site
+// genuinely built between 2026-08-24 and 2026-08-26 -- responsive-sizing, guided-forms,
+// built-in-authenticator, context-menu-shortcuts, long-operation-progress and
+// in-context-recovery -- were still recorded `absent` here long after each one's own pass had
+// written a real note into the registry describing what it had built. Re-running the generator
+// would have quietly reverted all six.
+//
+// `--check` exists so that cannot happen again silently: it re-derives both artifacts and
+// fails when either has drifted from this table, rather than waiting for somebody to run the
+// generator and read a 3,000-line diff.
 const siteStatus = {
   'language-modes': 'partial', 'funny-levels': 'partial', 'dialog-emojis': 'implemented-unverified', 'school-mode': 'implemented-unverified',
   narration: 'implemented-unverified', 'scheduled-settings': 'partial', 'external-settings-sources': 'absent', 'dim-sum-surprise': 'absent',
@@ -79,12 +119,12 @@ const siteStatus = {
   'ollama-suite-manager': 'absent', 'browser-style-tabs': 'absent', 'tab-groups-and-searches': 'absent', 'command-palette': 'partial',
   'destructive-action-confirmation': 'partial', 'local-version-history': 'implemented-unverified', 'changelog-viewer': 'implemented-unverified',
   'external-editor-handoff': 'absent', 'complete-exports': 'implemented-unverified', 'bulk-actions': 'implemented-unverified',
-  accessibility: 'partial', 'responsive-sizing': 'absent', 'personal-vocabulary-upload': 'implemented-unverified',
-  'per-element-toy-locks': 'absent', 'support-tickets': 'absent', 'unlock-ladder': 'absent', 'built-in-authenticator': 'absent',
+  accessibility: 'partial', 'responsive-sizing': 'partial', 'personal-vocabulary-upload': 'implemented-unverified',
+  'per-element-toy-locks': 'absent', 'support-tickets': 'absent', 'unlock-ladder': 'absent', 'built-in-authenticator': 'implemented-unverified',
   'attention-modes': 'implemented-unverified', 'browser-extension-download-surfaces': 'absent',
-  'offline-documentation-browser': 'partial', 'app-display-name': 'implemented-unverified', 'guided-forms': 'absent',
-  'bounded-overlays': 'implemented-unverified', 'context-menu-shortcuts': 'absent', 'long-operation-progress': 'absent',
-  'in-context-recovery': 'absent', 'provider-markup-rendering': 'implemented-unverified', 'forge-publishing': 'absent',
+  'offline-documentation-browser': 'partial', 'app-display-name': 'implemented-unverified', 'guided-forms': 'partial',
+  'bounded-overlays': 'implemented-unverified', 'context-menu-shortcuts': 'implemented-unverified', 'long-operation-progress': 'implemented-unverified',
+  'in-context-recovery': 'implemented-unverified', 'provider-markup-rendering': 'implemented-unverified', 'forge-publishing': 'absent',
   'collapsible-filters': 'implemented-unverified', 'automatic-updates': 'implemented-unverified',
 };
 
@@ -297,7 +337,7 @@ const matrix = {
   negativeRegression: { script: 'console/scripts/negative-surface-completeness.mjs', cases: negativeCases, state: 'not-run-under-yum-leung-cha' },
 };
 
-writeFileSync(resolve(root, 'console/inventories/surface-completeness.json'), `${JSON.stringify(matrix, null, 2)}\n`, 'utf8');
+emit('console/inventories/surface-completeness.json', `${JSON.stringify(matrix, null, 2)}\n`);
 
 function readRegistry(relativePath) {
   return JSON.parse(readFileSync(resolve(root, relativePath), 'utf8'));
@@ -350,8 +390,17 @@ function rewriteRegistry(relativePath, surface, statuses) {
       }
     }
   }
-  writeFileSync(resolve(root, relativePath), `${JSON.stringify(next, null, 2)}\n`, 'utf8');
+  emit(relativePath, `${JSON.stringify(next, null, 2)}\n`);
 }
 
 rewriteRegistry('console/app/feature-registry.json', 'windows-console', desktopStatus);
 rewriteRegistry('console/site/feature-registry.json', 'pages-site', siteStatus);
+
+if (checkOnly) {
+  if (drifted.length > 0) {
+    console.error(`FAIL: generated inventory artifacts have drifted from this generator: ${drifted.join(', ')}`);
+    console.error('Run `node scripts/generate-completeness-matrix.mjs` and review the diff, or correct the tables in that script.');
+    process.exit(1);
+  }
+  console.log('PASS: the canonical matrix and both feature registries match a fresh generator run.');
+}

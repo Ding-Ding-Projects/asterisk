@@ -524,11 +524,29 @@ test('every exported row states the range of the export it came from', () => {
   const rows = api.changelogExportRows(entries);
   assert.ok(rows.every((row) => row.exportedRange === expected),
     'not every exported row states the same range, so the file does not state its own range');
-  /* And a narrowed export states the NARROWED range, not the whole history's. */
+  /* And a narrowed export states the NARROWED range, not the whole history's.
+   *
+   * This used to narrow to one real entry and compare its `exportedRange` against that
+   * entry's own date, which could never fail: the generated bundle's releases are all cut
+   * on the same day, so `changelogRangeLabel(<the whole history>)` collapses to
+   * `first === last` and returns that one date -- exactly the string the narrowed row was
+   * being checked against. Computing the range from the whole history instead of from what
+   * was exported was planted deliberately, and the assertion stayed green.
+   *
+   * So the narrowed set is synthetic now, and its two dates are chosen to be ones the real
+   * release history cannot contain. The expected label is then unreachable unless the range
+   * really is derived from the rows being exported, whatever the data does. */
   const one = entries.find((entry) => entry.changes.length > 0);
-  const narrowed = api.changelogExportRows([one]);
-  assert.ok(narrowed.length > 0 && narrowed.every((row) => row.exportedRange === one.date),
-    'a filtered export still claims the range of the unfiltered history');
+  assert.ok(one, 'the real release history contains no version with changes');
+  const impossible = [{ ...one, date: '1999-01-02' }, { ...one, date: '1999-03-04' }];
+  for (const entry of impossible) {
+    assert.ok(!REAL_MARKDOWN.includes(entry.date),
+      `${entry.date} appears in the real history, so this assertion could pass by coincidence`);
+  }
+  const narrowed = api.changelogExportRows(impossible);
+  assert.ok(narrowed.length > 0, 'the synthetic narrowed export produced no rows at all');
+  assert.ok(narrowed.every((row) => row.exportedRange === '1999-01-02 to 1999-03-04'),
+    'a filtered export does not state its own range -- it is computed from something other than the rows being exported');
 });
 
 test('the export honours the current search and date range rather than dumping everything', () => {

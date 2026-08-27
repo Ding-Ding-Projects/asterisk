@@ -244,11 +244,16 @@ const cases = [
     swap(CSS, '.update-banner[hidden]{display:none}\n', '')],
 
   ['the registry still calls the feature absent',
-    swap(REGISTRY, '"automatic-updates": {\n      "state": "implemented",', '"automatic-updates": {\n      "state": "absent",')],
+    swap(REGISTRY, '"automatic-updates": {\n      "status": "implemented-unverified",', '"automatic-updates": {\n      "status": "absent",')],
 
   ['the registry names only the page, not the build that publishes what it checks against',
-    swap(REGISTRY, '        "site/app.js",\n        "site/build.mjs",\n        "site/settings.html",',
-      '        "site/app.js",\n        "site/settings.html",')],
+    /* Re-anchored on 2026-08-27 when the site registry moved to schema v2: the row's file
+     * list is `implementation.paths` now rather than a top-level `files`, so it sits one
+     * level deeper. The old anchor matched nothing, and this script's own
+     * did-the-bytes-change check reported that as a FAILED CASE rather than letting a break
+     * that never landed read as a guard that held. */
+    swap(REGISTRY, '          "site/app.js",\n          "site/build.mjs",\n          "site/settings.html",',
+      '          "site/app.js",\n          "site/settings.html",')],
 
   ['the localization registry still calls the feature untranslated',
     swap(LOCALES, '"automatic-updates": {\n      "state": "localized",', '"automatic-updates": {\n      "state": "not-localized",')],

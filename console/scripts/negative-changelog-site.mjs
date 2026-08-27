@@ -355,13 +355,18 @@ const cases = [
 
   // The registry claims the feature is still absent while the code implements it.
   ['the registry claims the feature is still absent',
-    swap(REGISTRY, '"changelog-viewer": {\n      "state": "implemented",', '"changelog-viewer": {\n      "state": "absent",')],
+    swap(REGISTRY, '"changelog-viewer": {\n      "status": "implemented-unverified",', '"changelog-viewer": {\n      "status": "absent",')],
 
   // The recorded file list drifts from where the feature actually lives, so the next
   // person looking for it is sent to the wrong files.
   ['the registry forgets one of the files the feature lives in',
-    swap(REGISTRY, '        "site/build.mjs",\n        "site/downloads.html",\n        "site/styles.css"\n      ]\n    },\n    "external-editor-handoff"',
-      '        "site/downloads.html",\n        "site/styles.css"\n      ]\n    },\n    "external-editor-handoff"')],
+    /* Re-anchored on 2026-08-27 when the site registry moved to schema v2: the row's file
+     * list is `implementation.paths` now rather than a top-level `files`, one level deeper
+     * and followed by `symbols` instead of closing the row. The old anchor matched nothing,
+     * and this script's own did-the-bytes-change check reported that as a FAILED CASE
+     * rather than letting a break that never landed read as a guard that held. */
+    swap(REGISTRY, '          "site/build.mjs",\n          "site/downloads.html",\n          "site/styles.css"\n        ],',
+      '          "site/downloads.html",\n          "site/styles.css"\n        ],')],
 
   // The localization registry claims the description is untranslated while four
   // Cantonese variants of it ship.
