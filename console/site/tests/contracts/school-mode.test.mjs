@@ -271,6 +271,12 @@ function loadSchool({
   const notified = [];
   const windowListeners = new Map();
   const applied = { count: 0 };
+  /* In-context recovery, recorded rather than rendered: since it landed, this block
+   * writes through the one guarded writer and takes its own route down when the mode
+   * is armed. The region itself is built and checked in
+   * site/tests/contracts/in-context-recovery.test.mjs against its own page. */
+  const recoveriesReported = [];
+  const recoveriesCleared = [];
   let api = null;
 
   const block = schoolBlock();
@@ -287,13 +293,21 @@ function loadSchool({
 
   // eslint-disable-line no-new-func -- deliberately re-running the real extracted source
   api = new Function(
-    'document', '$', 'localStorage', 'crypto', 'state', 'applyState', 'recordHistory', 'notify', 'window', body,
+    'document', '$', 'localStorage', 'crypto', 'state', 'applyState', 'recordHistory', 'notify', 'window',
+    'writeLocal', 'reportWrite', 'clearRecovery', 'reportSchoolCannotArm', body,
   )(
     document, $, storage, cryptoApi, state,
     () => { applied.count += 1; if (api) api.applySchoolMode(); },
     (action, summary) => history.push({ action, summary }),
     (title, message, narration) => notified.push({ title, message, narration }),
     { addEventListener: (name, listener) => { windowListeners.set(name, listener); } },
+    /* Both halves are real here -- the value genuinely reaches the fake storage -- so
+     * every assertion below about what is and is not stored still reads the bytes
+     * rather than a spy's opinion of them. */
+    (key, value) => { storage.setItem(key, String(value)); return { ok: true, reason: '' }; },
+    (what, result) => Boolean(result && result.ok),
+    (surface, only) => { recoveriesCleared.push({ surface, only }); return true; },
+    (detail) => { recoveriesReported.push({ id: 'school-cannot-arm', detail }); return { ok: true, id: 'school-cannot-arm' }; },
   );
 
   const copyBody = `${functionSource(app, 'copyLevel')}\n${functionSource(app, 'copyText')}\n`
@@ -304,7 +318,7 @@ function loadSchool({
     COPY_FIXTURE, state, storage, api.schoolActive, api.effectiveLanguage,
   );
 
-  return { ...api, ...copy, root, storage, document, state, history, notified, windowListeners, applied, bodyClasses, $ };
+  return { ...api, ...copy, root, storage, document, state, history, notified, windowListeners, applied, bodyClasses, recoveriesReported, recoveriesCleared, $ };
 }
 
 const suppressibleIds = () => SUPPRESSED_SELECTORS.map((selector) => selector.slice(1));

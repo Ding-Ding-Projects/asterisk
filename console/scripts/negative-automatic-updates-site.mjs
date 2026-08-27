@@ -134,9 +134,14 @@ const cases = [
   ['a request that never answers is left hanging forever',
     swap(APP, '    const timer=setTimeout(()=>{controller.abort()},UPDATE_FETCH_TIMEOUT_MS);', '    const timer=0;')],
 
+  // The anchor here moved on 2026-08-26 when in-context recovery landed: the unbuilt
+  // branch now also raises the route that says, in adjacent text, why the check button
+  // beside it is switched off. This script's own once-and-only-once anchor check
+  // reported that as a FAILED CASE rather than letting a break that never landed read
+  // as a guard that held, which is exactly what it is there for.
   ['an unbuilt page asks anyway, and a failing request reads as a site that is down',
-    swap(APP, "      updateWatch={...updateWatch,state:'unbuilt',direction:'unknown',reason:'',inFlight:false};\n      renderUpdateState();\n      return updateWatch;\n",
-      "      updateWatch={...updateWatch,state:'unbuilt',direction:'unknown',reason:'',inFlight:false};\n      renderUpdateState();\n")],
+    swap(APP, "      reportFailure('page-unbuilt',{});\n      return updateWatch;\n",
+      "      reportFailure('page-unbuilt',{});\n")],
 
   ['a second check may run while one is already in flight',
     swap(APP, '    if(updateWatch.inFlight)return updateWatch;\n', '')],
