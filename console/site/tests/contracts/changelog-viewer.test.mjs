@@ -531,6 +531,46 @@ test('every exported row states the range of the export it came from', () => {
     'a filtered export still claims the range of the unfiltered history');
 });
 
+/*
+ * The assertion above is the right one and, against the real release history, it cannot
+ * fail. Every release in the generated bundle is currently dated the same day, so the
+ * whole history's range label and any single entry's date are the same string -- and an
+ * export that computed its range from the whole history instead of from what it was
+ * handed would produce identical output. That was not a hypothetical: it was found by
+ * planting exactly that defect and watching the assertion stay green.
+ *
+ * So the narrowing property is proved here against a fixture built to have two distinct
+ * dates. This is the one place in this file that does not use the real history, and the
+ * reason is the opposite of convenience: the real history cannot distinguish the two
+ * behaviours, so testing only against it proves nothing about this property at all.
+ */
+test('a narrowed export states its own range even when the whole history spans more days', () => {
+  const api = loadChangelog();
+  const sha = (digit) => String(digit).repeat(40);
+  const twoDays = [
+    '## 9.9.9-r1 — 2026-05-02',
+    '',
+    '### General',
+    `- The later change (${sha(1)})`,
+    '',
+    '## 9.9.8-r1 — 2026-05-01',
+    '',
+    '### General',
+    `- The earlier change (${sha(2)})`,
+    '',
+  ].join('\n');
+  const { entries } = api.parseChangelog(twoDays);
+  assert.equal(entries.length, 2, 'the two-date fixture no longer parses as two versions');
+  assert.equal(api.changelogRangeLabel(entries), '2026-05-01 to 2026-05-02',
+    'the two-date fixture no longer spans two days, so the assertion below could not fail');
+
+  const later = entries.find((entry) => entry.date === '2026-05-02');
+  const narrowed = api.changelogExportRows([later]);
+  assert.ok(narrowed.length > 0, 'the narrowed export produced no rows');
+  assert.ok(narrowed.every((row) => row.exportedRange === '2026-05-02'),
+    'a filtered export states the range of the whole history rather than of what was exported');
+});
+
 test('the export honours the current search and date range rather than dumping everything', () => {
   const api = loadChangelog();
   const { entries } = api.parseChangelog(REAL_MARKDOWN);

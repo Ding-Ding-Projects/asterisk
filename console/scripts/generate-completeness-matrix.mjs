@@ -11,6 +11,29 @@ import { resolve } from 'node:path';
 const root = resolve(import.meta.dirname, '..', '..');
 const baselineCommit = '088ecde1a6';
 
+/*
+ * `--check` re-derives all three generated files and compares them against what is on
+ * disk instead of writing. It exists because the alternative is what actually happened:
+ * this generator owns three checked-in files, nothing ran it for weeks, its own status
+ * table went six features stale, and the only way to find that out was to run it and
+ * read a three-thousand-line diff. A drift you can only see by overwriting the file is
+ * a drift nobody looks for.
+ *
+ * The comparison is on exact bytes, so a reordered key or a changed note fails as
+ * loudly as a changed status. Line endings are normalised first and only first: a
+ * checkout with `core.autocrlf` on stores CRLF, this generator writes LF, and a check
+ * that failed on that alone would fail on every Windows clone forever and be turned off
+ * within the day.
+ */
+const checkOnly = process.argv.includes('--check');
+const drift = [];
+function emit(relativePath, text) {
+  const absolute = resolve(root, relativePath);
+  if (!checkOnly) { writeFileSync(absolute, text, 'utf8'); return; }
+  const onDisk = readFileSync(absolute, 'utf8').replace(/\r\n/gu, '\n');
+  if (onDisk !== text.replace(/\r\n/gu, '\n')) drift.push(relativePath);
+}
+
 const features = [
   ['language-modes', 'Language modes'], ['funny-levels', 'Funny levels'],
   ['dialog-emojis', 'Dialog emojis'], ['school-mode', 'School mode'],
@@ -71,6 +94,17 @@ const desktopStatus = {
   'collapsible-filters': 'partial', 'automatic-updates': 'implemented-unverified',
 };
 
+/*
+ * The site's half of the inventory. This table is the generator's own belief about
+ * each row, and it had gone six features stale: `responsive-sizing`, `guided-forms`,
+ * `built-in-authenticator`, `context-menu-shortcuts`, `long-operation-progress` and
+ * `in-context-recovery` were all still recorded `absent` here long after each one
+ * shipped and grew its own contract test. Nothing said so, because the generator that
+ * owns the file had not been run since -- so the staleness was invisible right up
+ * until a run would have reverted six real features to `absent` in one write. The six
+ * are corrected against the hand-written notes those features' own passes left in the
+ * registry, and `--check` below is what stops the next six going the same way.
+ */
 const siteStatus = {
   'language-modes': 'partial', 'funny-levels': 'partial', 'dialog-emojis': 'implemented-unverified', 'school-mode': 'implemented-unverified',
   narration: 'implemented-unverified', 'scheduled-settings': 'partial', 'external-settings-sources': 'absent', 'dim-sum-surprise': 'absent',
@@ -79,12 +113,12 @@ const siteStatus = {
   'ollama-suite-manager': 'absent', 'browser-style-tabs': 'absent', 'tab-groups-and-searches': 'absent', 'command-palette': 'partial',
   'destructive-action-confirmation': 'partial', 'local-version-history': 'implemented-unverified', 'changelog-viewer': 'implemented-unverified',
   'external-editor-handoff': 'absent', 'complete-exports': 'implemented-unverified', 'bulk-actions': 'implemented-unverified',
-  accessibility: 'partial', 'responsive-sizing': 'absent', 'personal-vocabulary-upload': 'implemented-unverified',
-  'per-element-toy-locks': 'absent', 'support-tickets': 'absent', 'unlock-ladder': 'absent', 'built-in-authenticator': 'absent',
+  accessibility: 'partial', 'responsive-sizing': 'partial', 'personal-vocabulary-upload': 'implemented-unverified',
+  'per-element-toy-locks': 'absent', 'support-tickets': 'absent', 'unlock-ladder': 'absent', 'built-in-authenticator': 'implemented-unverified',
   'attention-modes': 'implemented-unverified', 'browser-extension-download-surfaces': 'absent',
-  'offline-documentation-browser': 'partial', 'app-display-name': 'implemented-unverified', 'guided-forms': 'absent',
-  'bounded-overlays': 'implemented-unverified', 'context-menu-shortcuts': 'absent', 'long-operation-progress': 'absent',
-  'in-context-recovery': 'absent', 'provider-markup-rendering': 'implemented-unverified', 'forge-publishing': 'absent',
+  'offline-documentation-browser': 'partial', 'app-display-name': 'implemented-unverified', 'guided-forms': 'partial',
+  'bounded-overlays': 'implemented-unverified', 'context-menu-shortcuts': 'implemented-unverified', 'long-operation-progress': 'implemented-unverified',
+  'in-context-recovery': 'implemented-unverified', 'provider-markup-rendering': 'implemented-unverified', 'forge-publishing': 'absent',
   'collapsible-filters': 'implemented-unverified', 'automatic-updates': 'implemented-unverified',
 };
 
@@ -297,7 +331,7 @@ const matrix = {
   negativeRegression: { script: 'console/scripts/negative-surface-completeness.mjs', cases: negativeCases, state: 'not-run-under-yum-leung-cha' },
 };
 
-writeFileSync(resolve(root, 'console/inventories/surface-completeness.json'), `${JSON.stringify(matrix, null, 2)}\n`, 'utf8');
+emit('console/inventories/surface-completeness.json', `${JSON.stringify(matrix, null, 2)}\n`);
 
 function readRegistry(relativePath) {
   return JSON.parse(readFileSync(resolve(root, relativePath), 'utf8'));
@@ -350,8 +384,17 @@ function rewriteRegistry(relativePath, surface, statuses) {
       }
     }
   }
-  writeFileSync(resolve(root, relativePath), `${JSON.stringify(next, null, 2)}\n`, 'utf8');
+  emit(relativePath, `${JSON.stringify(next, null, 2)}\n`);
 }
 
 rewriteRegistry('console/app/feature-registry.json', 'windows-console', desktopStatus);
 rewriteRegistry('console/site/feature-registry.json', 'pages-site', siteStatus);
+
+if (checkOnly) {
+  if (drift.length > 0) {
+    console.error(`FAIL: generated inventory drift in ${drift.length} file(s): ${drift.join(', ')}`);
+    console.error('Run `node scripts/generate-completeness-matrix.mjs` and review the diff before committing.');
+    process.exit(1);
+  }
+  console.log('PASS: the completeness matrix and both feature registries match what this generator derives.');
+}

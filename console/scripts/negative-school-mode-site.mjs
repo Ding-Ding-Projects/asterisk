@@ -266,7 +266,7 @@ const cases = [
   /* ---- The registries and the article. ---- */
 
   ['the registry claims the feature is still absent',
-    swap(REGISTRY, '"school-mode": {\n      "state": "implemented",', '"school-mode": {\n      "state": "absent",')],
+    swap(REGISTRY, '"school-mode": {\n      "status": "implemented-unverified",', '"school-mode": {\n      "status": "absent",')],
 
   ['the registry note stops recording that the value is not stored',
     swap(REGISTRY, 'only a random 16-byte salt and the SHA-256 digest of salt-and-value',

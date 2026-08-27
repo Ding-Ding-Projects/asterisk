@@ -321,12 +321,12 @@ const cases = [
   // ---- The records that speak for the code ----
 
   ['the site registry still calls the feature absent',
-    swap(REGISTRY, '      "state": "implemented",\n      "note": "The Export everything dialog runs a real multi-unit operation',
-      '      "state": "absent",\n      "note": "The Export everything dialog runs a real multi-unit operation')],
+    swap(REGISTRY, '      "status": "implemented-unverified",\n      "note": "The Export everything dialog runs a real multi-unit operation',
+      '      "status": "absent",\n      "note": "The Export everything dialog runs a real multi-unit operation')],
 
   ['the site registry stops naming the stylesheet the dialog depends on',
-    swap(REGISTRY, '        "site/settings.html",\n        "site/styles.css"\n      ]\n    },\n    "in-context-recovery"',
-      '        "site/settings.html"\n      ]\n    },\n    "in-context-recovery"')],
+    swap(REGISTRY, '          "site/app.js",\n          "site/settings.html",\n          "site/styles.css"\n        ],\n        "symbols": []\n      },\n      "registration": {\n        "paths": [],\n        "symbols": []\n      },\n      "route": "https://ding-ding-projects.github.io/asterisk/",\n      "documentation": {\n        "path": "console/docs/platform/long-operation-progress.md",',
+      '          "site/app.js",\n          "site/settings.html"\n        ],\n        "symbols": []\n      },\n      "registration": {\n        "paths": [],\n        "symbols": []\n      },\n      "route": "https://ding-ding-projects.github.io/asterisk/",\n      "documentation": {\n        "path": "console/docs/platform/long-operation-progress.md",')],
 
   ['the localization registry still calls the copy untranslated',
     swap(LOCALES, '    "long-operation-progress": {\n      "state": "localized",', '    "long-operation-progress": {\n      "state": "not-localized",')],

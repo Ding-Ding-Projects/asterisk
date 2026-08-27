@@ -90,11 +90,20 @@ test('voice enumeration is live and its status source is the effective channel v
   assert.match(src, /resolveVoiceStatus\(language, this\.narration\.channels\[language\]\.voiceId, this\.voices\)/);
 });
 
+/*
+ * These pins were written against `narratedFire(title, body, isError = false)` and went
+ * stale when a later pass replaced the boolean with a three-value severity. They matched
+ * nothing after that, which is a loud failure and the reason they are being repaired
+ * rather than a silent one -- but the property they were written for is unchanged and is
+ * what is pinned again below: the narrator is handed the STYLED text, so the humour level
+ * reaches speech, and an error keeps its priority through the substitution.
+ */
 test('the mounted notification path is narrated and preserves the styled message plus error priority', () => {
   const src = app();
-  assert.match(src, /private narratedFire = \(title: string, body: string, isError = false\): void => \{/);
+  assert.match(src, /^  private narratedFire = \($/mu);
+  assert.match(src, /^    severityOrLegacyError: NotificationSeverity \| boolean = 'warning',$/mu);
   assert.match(src, /const styled = styledDialog\(/);
-  assert.match(src, /this\.narrator\.enqueue\('notification', styled\.body \? `\$\{styled\.heading\}\. \$\{styled\.body\}` : styled\.heading, \{ isError \}\);/);
+  assert.match(src, /this\.narrator\.enqueue\('notification', styled\.body \? `\$\{styled\.heading\}\. \$\{styled\.body\}` : styled\.heading, \{ isError: severity === 'error' \}\);/);
   assert.match(src, /this\.baseFire\(styled\.heading, styled\.body\);/);
 });
 
