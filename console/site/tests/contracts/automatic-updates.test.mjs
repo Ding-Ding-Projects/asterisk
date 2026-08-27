@@ -177,6 +177,12 @@ function loadWatch({
   const intervals = [];
   const clearedIntervals = [];
   const reloads = [];
+  /* In-context recovery, recorded rather than rendered. The watch raises a route when a
+   * check cannot answer and takes it down when one does; the region itself is built and
+   * checked in site/tests/contracts/in-context-recovery.test.mjs against its own page,
+   * so what this harness needs is only that the calls happen. */
+  const recoveries = [];
+  const recoveriesCleared = [];
 
   const fetchFake = (url, options) => {
     requests.push({ url, options });
@@ -194,7 +200,8 @@ function loadWatch({
   const api = new Function(
     'SITE_BUILD_VERSION', 'SITE_BUILD_COMMIT', 'SITE_BUILD_AT', 'BASE',
     'document', '$', 'state', 'save', 'notify', 'applyVocabularyText',
-    'fetch', 'location', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', body,
+    'fetch', 'location', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval',
+    'reportFailure', 'clearRecovery', body,
   )(
     running.version, running.commit, running.builtAt, base,
     doc, $, state,
@@ -207,12 +214,16 @@ function loadWatch({
     (id) => clearedTimeouts.push(id),
     (handler, ms) => { intervals.push({ handler, ms }); return intervals.length; },
     (id) => clearedIntervals.push(id),
+    (id, failure) => { recoveries.push({ id, detail: failure && failure.detail }); return { ok: true, id }; },
+    (surface, only) => { recoveriesCleared.push({ surface, only }); return true; },
   );
 
   return {
     ...api,
     main,
     state,
+    recoveries,
+    recoveriesCleared,
     saves,
     notifications,
     requests,

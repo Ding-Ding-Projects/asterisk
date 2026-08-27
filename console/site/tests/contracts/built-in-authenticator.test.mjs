@@ -270,6 +270,7 @@ function loadAuthenticator({
   const intervals = [];
   const timeouts = [];
   const networkCalls = [];
+  const writeReports = [];
 
   const clock = { value: now };
   class DateShim extends Date { static now() { return clock.value; } }
@@ -280,7 +281,8 @@ function loadAuthenticator({
   };
 
   const body = `${exportEngineSource(app)}\n${mimeSource(app)}\n`
-    + `${['bulkClick', 'bulkSelectAll', 'planBulk', 'summariseBulk', 'matchText', 'escapeHtml'].map((name) => functionSource(app, name)).join('\n')}\n`
+    + `${['bulkClick', 'bulkSelectAll', 'planBulk', 'summariseBulk', 'matchText', 'escapeHtml',
+      'writeLocal', 'storageRefusalReason'].map((name) => functionSource(app, name)).join('\n')}\n`
     + `${AUTH_SOURCE}\n`
     + `return { ${EXPORTED.join(', ')}, get authEntries(){return authEntries}, get authSelection(){return authSelection}, set authSelection(v){authSelection=v} };`;
 
@@ -294,7 +296,7 @@ function loadAuthenticator({
   const api = new Function(
     '$', 'localStorage', 'Date', 'crypto', 'document', 'navigator', 'setInterval', 'setTimeout',
     'recordHistory', 'notify', 'download', 'applyVocabulary', 'applyVocabularyText', 'regexState',
-    'createImageBitmap', 'fetch',
+    'createImageBitmap', 'fetch', 'reportWrite',
     body,
   )(
     $, localStorage, DateShim, crypto,
@@ -310,12 +312,13 @@ function loadAuthenticator({
     new Map(),
     async (blob) => blob,
     (...args) => { networkCalls.push(args); throw new Error('the authenticator made a network call'); },
+    (what, result) => { writeReports.push({ what, result }); return result.ok; },
   );
 
   /* Copied by name rather than spread. A spread EVALUATES the two accessors below, so
    * `h.authEntries` would be a snapshot of the empty list taken at load time and every
    * assertion about what saving did would read zero accounts and say the save failed. */
-  const handle = { api, $, elements, store, history, notifications, downloads, intervals, timeouts, networkCalls, clock };
+  const handle = { api, $, elements, store, history, notifications, downloads, intervals, timeouts, networkCalls, writeReports, clock, localStorage };
   for (const name of EXPORTED) handle[name] = api[name];
   Object.defineProperty(handle, 'authEntries', { get: () => api.authEntries });
   Object.defineProperty(handle, 'authSelection', { get: () => api.authSelection, set: (value) => { api.authSelection = value; } });
@@ -551,6 +554,26 @@ test('no history entry, notification or ordinary export carries a secret', async
   assert.ok(!h.downloads[0].text.includes(SAMPLE_SECRET), 'the ordinary account export wrote a usable secret');
   assert.match(h.downloads[0].text, /omitted/);
   assert.match(h.$('auth-export-loss').textContent, /Secrets are omitted from this file/);
+});
+
+test('a browser that refuses the write says so rather than losing the account in silence', async () => {
+  /* Every store on this page goes through the one guarded writer, and this one has the
+   * most to lose by not: an account added into a full browser would simply be gone at
+   * the next load, and the only thing the reader would have to go on is a code that is
+   * no longer there. */
+  const h = loadAuthenticator();
+  h.initAuthenticator();
+  const refusal = new Error('quota');
+  refusal.name = 'QuotaExceededError';
+  h.localStorage.setItem = () => { throw refusal; };
+  h.$('auth-issuer').value = 'Example';
+  h.$('auth-secret').value = SAMPLE_SECRET;
+  await h.authSaveDraft();
+  const reported = h.writeReports.at(-1);
+  assert.ok(reported, 'the account store wrote without going through the guarded writer');
+  assert.equal(reported.what, 'your authenticator accounts');
+  assert.equal(reported.result.ok, false);
+  assert.equal(reported.result.reason, 'this browser has no room left for this site');
 });
 
 test('removing an account deletes its secret from storage and says so', async () => {

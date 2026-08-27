@@ -210,8 +210,18 @@ const cases = [
       '  function authExportSummary(){return {accounts:authEntries.length,secrets:authEntries.map(entry=>entry.secret),storedSeparatelyIn:AUTH_KEY}}')],
 
   ['the accounts move into the settings store, where every history snapshot serializes them',
-    swap(APP, '  function authSaveEntries(){localStorage.setItem(AUTH_KEY,JSON.stringify(authEntries))}',
-      '  function authSaveEntries(){state.authenticator=authEntries;localStorage.setItem(AUTH_KEY,JSON.stringify(authEntries))}')],
+    swap(APP, "  function authSaveEntries(){return reportWrite('your authenticator accounts',writeLocal(AUTH_KEY,JSON.stringify(authEntries)))}",
+      "  function authSaveEntries(){state.authenticator=authEntries;return reportWrite('your authenticator accounts',writeLocal(AUTH_KEY,JSON.stringify(authEntries)))}")],
+
+  // A browser out of room refuses the write and the account is gone at the next load,
+  // with nothing on screen having said so. This is the one store where that silence
+  // costs the reader a credential rather than a preference.
+  ['the account store writes straight past the guard that reports a refused write',
+    swap(APP, "  function authSaveEntries(){return reportWrite('your authenticator accounts',writeLocal(AUTH_KEY,JSON.stringify(authEntries)))}",
+      '  function authSaveEntries(){localStorage.setItem(AUTH_KEY,JSON.stringify(authEntries))}')],
+
+  ['a refused write is reported as a different store, so the sentence names the wrong thing',
+    swap(APP, "return reportWrite('your authenticator accounts',writeLocal(AUTH_KEY", "return reportWrite('something',writeLocal(AUTH_KEY")],
 
   ['removing an account leaves its secret in storage',
     swap(APP, '    authEntries=authEntries.filter(entry=>!wanted.has(entry.id));\n    authSaveEntries();',

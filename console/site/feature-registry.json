@@ -284,9 +284,12 @@
       ]
     },
     "in-context-recovery": {
-      "state": "absent",
-      "note": "No surface-level recovery route (for example re-authentication offered directly beside a refused action) was found.",
-      "files": []
+      "state": "implemented",
+      "note": "site/app.js carries FAILURE_ROUTES: seven hand-written routes, one per failure this page can produce that somebody cannot get out of by reading the message alone -- vocabulary-rejected, logo-rejected, update-check-failed, page-unbuilt, school-cannot-arm, local-storage-refused and regex-invalid. recoveryFor() is the pure decision (it reads no storage and touches no document, so every branch is decided by facts the caller gathers); RECOVERY_ACTIONS holds the real implementations, and a route may only name an id declared there, so a button that looks like it retries and does not cannot ship. renderRecovery() puts the region immediately after the status line that reported the failure, as that element's own next sibling, which is the canonical 'beside the control that failed, not in a menu elsewhere' clause; the single exception is local-storage-refused, whose surface is 'page' because a refused write has no one control it belongs beside. RECOVERY_FORBIDDEN names the remedies that lose work with what each would cost, and a route may only warn about a declared one. page-unbuilt is the route that deliberately offers nothing at all and says why instead, because a page the build never stamped has no build identity and there is genuinely nothing to try again. writeLocal() is now the one writer for every localStorage.setItem on this page, so a browser refusing a write is reported where it happened rather than escaping through whichever setter was in use. FAILURES_WITHOUT_A_ROUTE names the failures deliberately left alone, each with its reason. The region is built with textContent throughout, carries role=group with aria-live and its own heading, and raises no notification and speaks no line of its own.",
+      "files": [
+        "site/app.js",
+        "site/styles.css"
+      ]
     },
     "provider-markup-rendering": {
       "state": "implemented",

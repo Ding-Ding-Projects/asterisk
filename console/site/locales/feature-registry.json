@@ -23,6 +23,7 @@
     "notifRegexApplied",
     "notifSettingSaved",
     "notifSettingsReset",
+    "recoveryLead",
     "schoolDesc",
     "searchModePlain",
     "searchModeRegex",
@@ -337,11 +338,13 @@
       "note": "COPY.exportEverythingDesc ships four English and four Cantonese variants, wired to the sliders from the start through the dialog's data-copy=\"exportEverythingDesc\" hook. Voice moves with the slider; three facts never do -- every one of the eight states that one file is written per record set in the single format chosen, that nothing leaves this browser, and that the run names the file being written and the count done. That third fact is what separates a progress report from a spinner, so a variant dropping it would be describing a different feature. The plan sentence, the progress sentence, the decline sentence and the disabled reason are rendered from the run's own numbers rather than from COPY, so they are English at every level; they are a factual report of counts and filenames rather than product prose, and every one of them still passes through applyVocabularyText()."
     },
     "in-context-recovery": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
-      "copyKeys": [],
+      "copyKeys": [
+        "recoveryLead"
+      ],
       "missingCopyKeys": [],
-      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+      "note": "Every recovery region opens with COPY.recoveryLead, wired through data-copy=\"recoveryLead\" and rendered by copyText('recoveryLead'), with four English and four Cantonese variants. It is the first key here that is hooked from a runtime element rather than from any page's markup, because a region is built by app.js at the moment a failure happens. The split is deliberate and is checked: the lead line carries voice and nothing else, while every fact -- the heading, the reason the browser gave, the sizes of each store, the labels on the buttons and what each forbidden remedy would cost -- sits in a sibling of it, so no funny level can move one. Those facts are written in English at every level, which is the honest state rather than a finished one: translating them is a second pass and the row stays localized on the strength of the key that exists."
     },
     "provider-markup-rendering": {
       "state": "not-localized",
