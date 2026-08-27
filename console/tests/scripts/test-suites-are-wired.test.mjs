@@ -42,14 +42,42 @@ const testDirectories = () => {
   return [...found].sort();
 };
 
-/** The scripts `npm test` actually chains, followed one level deep. */
-const chainedCommands = () => {
+/**
+ * The scripts `npm test` actually runs, followed one level deep.
+ *
+ * This used to split `pkg.scripts.test` on `&&`, because that is what the script was. It
+ * is now a runner that takes the group names as arguments, so the names are read from the
+ * argument list instead -- the property being checked is unchanged, only where the list is
+ * written down. The runner itself refuses to start unless that list is exactly the set of
+ * `test:*` scripts, which is the half a filesystem walk cannot see.
+ */
+const RUNNER = 'node scripts/run-test-groups.mjs ';
+const requestedGroups = () => {
   const chain = pkg.scripts.test;
   assert.ok(typeof chain === 'string' && chain.length > 0, 'package.json has no test script');
-  const names = chain.split('&&').map((part) => part.trim().replace('npm run ', '')).filter(Boolean);
-  assert.ok(names.length > 1, 'the test script chains nothing, so this check would pass vacuously');
-  return names.map((name) => pkg.scripts[name]).filter(Boolean).join(' ; ');
+  assert.ok(chain.startsWith(RUNNER),
+    'npm test no longer goes through scripts/run-test-groups.mjs, so one failing group can again stop every group after it from running');
+  return chain.slice(RUNNER.length).split(/\s+/u).filter(Boolean).map((name) => `test:${name}`);
 };
+const chainedCommands = () => {
+  const names = requestedGroups();
+  assert.ok(names.length > 1, 'the test script names fewer than two groups, so this check would pass vacuously');
+  for (const name of names) assert.ok(pkg.scripts[name], `npm test asks for ${name}, which package.json does not declare`);
+  return names.map((name) => pkg.scripts[name]).join(' ; ');
+};
+
+test('npm test runs every group rather than stopping at the first failure', () => {
+  /* The defect this was written for: `npm test` was a `&&` chain, so one stale anchor in
+   * the fourth group meant the seven groups after it never ran at all -- and the exit code
+   * was 1 either way, so a single visible failure was concealing thirty-three more plus a
+   * whole inventory group that could not get past its own first command. */
+  assert.doesNotMatch(pkg.scripts.test, /&&/u,
+    'npm test chains groups with && again, which stops every group after the first failure from running');
+  const declared = Object.keys(pkg.scripts).filter((name) => name.startsWith('test:')).sort();
+  assert.ok(declared.length > 1, 'fewer than two test:* scripts are declared, so this check would pass vacuously');
+  assert.deepEqual(requestedGroups().slice().sort(), declared,
+    'npm test does not name exactly the declared test:* groups, so a group is either never run or never declared');
+});
 
 test('every directory that holds tests is reached by the npm test chain', () => {
   const directories = testDirectories();

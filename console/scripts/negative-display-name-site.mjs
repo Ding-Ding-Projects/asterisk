@@ -173,7 +173,7 @@ const cases = [
 
   // The registry claims the feature is still absent while the code implements it.
   ['the registry claims the feature is still absent',
-    swap(REGISTRY, '"app-display-name": {\n      "state": "implemented",',
+    swap(REGISTRY, '"app-display-name": {\n      "status": "implemented-unverified",',
       '"app-display-name": {\n      "state": "absent",')],
 ];
 

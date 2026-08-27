@@ -91,11 +91,22 @@ test('voice enumeration is live and its status source is the effective channel v
 });
 
 test('the mounted notification path is narrated and preserves the styled message plus error priority', () => {
+  /* Two of these four anchors were re-derived on 2026-08-27 because the signature moved
+   * under them and nobody noticed: `narratedFire` grew a third parameter carrying a real
+   * severity, so the old one-line signature and the old bare `{ isError }` matched
+   * nothing and this test had been red on master ever since. The property is unchanged --
+   * the narrator speaks the STYLED text and an error keeps its priority -- so what
+   * follows is the same claim written against the code that is actually there. */
   const src = app();
-  assert.match(src, /private narratedFire = \(title: string, body: string, isError = false\): void => \{/);
-  assert.match(src, /const styled = styledDialog\(/);
-  assert.match(src, /this\.narrator\.enqueue\('notification', styled\.body \? `\$\{styled\.heading\}\. \$\{styled\.body\}` : styled\.heading, \{ isError \}\);/);
-  assert.match(src, /this\.baseFire\(styled\.heading, styled\.body\);/);
+  assert.match(src, /private narratedFire = \(\n\s+title: string,\n\s+body: string,\n\s+severityOrLegacyError: NotificationSeverity \| boolean = 'warning',\n\s+\): void => \{/u);
+  /* The compiled shell still calls fire(title, body, true), so the boolean form has to
+   * keep meaning what it meant. An anchor on the signature alone would not notice that
+   * mapping disappearing, and a two-argument call quietly becoming an error would be
+   * exactly as wrong as an error quietly becoming a notice. */
+  assert.match(src, /\? \(severityOrLegacyError \? 'error' : 'warning'\)\n\s+: severityOrLegacyError;/u);
+  assert.match(src, /const styled = styledDialog\(/u);
+  assert.match(src, /this\.narrator\.enqueue\('notification', styled\.body \? `\$\{styled\.heading\}\. \$\{styled\.body\}` : styled\.heading, \{ isError: severity === 'error' \}\);/u);
+  assert.match(src, /this\.baseFire\(styled\.heading, styled\.body\);/u);
 });
 
 test('the registry row remains an honest unresolved inventory task until the central inventory materializer records proof', () => {

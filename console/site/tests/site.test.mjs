@@ -125,14 +125,28 @@ test('contains exactly 32 destination definitions in six declared groups', () =>
     'arcade','notifications','history','customise','appearance','about',
   ]);
 });
-test('provides 78 complete feature articles plus checked evidence records', async () => {
+test('provides 101 complete feature articles plus checked evidence records', async () => {
   const docsRoot=resolve(root,'..','docs'), categories=['pbx','media','data','system','agent','app','platform'];
   const articles=[];
-  for(const category of categories)for(const name of await readdir(join(docsRoot,category)))if(name.endsWith('.md')&&name!=='README.md')articles.push(join(docsRoot,category,name));
-  // 32 destination articles (pbx/media/data/system/agent/app) plus 45 platform articles,
-  // plus one more: docs/pbx/iaxpeers.md, the IAX peers screen's own previously missing
-  // documentation article, added alongside the Trunks/IVR deepening pass.
-  assert.equal(articles.length,78);
+  const perCategory={};
+  for(const category of categories){
+    const names=(await readdir(join(docsRoot,category))).filter(name=>name.endsWith('.md')&&name!=='README.md');
+    perCategory[category]=names.length;
+    for(const name of names)articles.push(join(docsRoot,category,name));
+  }
+  /* Pinned per category rather than as one total, re-derived on 2026-08-27.
+   *
+   * The total had been 78 and was 101, and the reason it drifted by 23 without anybody
+   * noticing is that this group never ran: `npm test` chained its groups with `&&` and a
+   * stale anchor three groups earlier stopped it. The 23 arrived with the consolidation
+   * merges -- 20 of them into `platform`, plus one each into `pbx`, `agent` (two) and
+   * `app`. See docs/evidence/hidden-red-groups.md.
+   *
+   * A single total is exactly as easy to bump as it was to let drift, and it says nothing
+   * about WHICH category moved. Per category, an article appearing or disappearing names
+   * itself. */
+  assert.deepEqual(perCategory,{pbx:10,media:4,data:2,system:4,agent:9,app:8,platform:64});
+  assert.equal(articles.length,101);
   // An evidence record is a different genre from a feature article: it says what was
   // captured, from which commit, and by what method, and forcing "## Behavior" onto it
   // would distort a document that is doing its job. So it lives in its own category --
@@ -163,7 +177,22 @@ test('provides 78 complete feature articles plus checked evidence records', asyn
     assert.notEqual(recordsAt,-1,`${name} has no ${CAPTURE_RECORDS_HEADING} section to scan`);
     const captureRecords=content.slice(recordsAt);
     const nextHeading=captureRecords.indexOf('\n## ',CAPTURE_RECORDS_HEADING.length);
-    const rows=[...(nextHeading===-1?captureRecords:captureRecords.slice(0,nextHeading)).matchAll(/^\|(?!\s*(?:---|\s*State))(.+)\|\s*$/gm)].map(match=>match[1]);
+    /* A markdown header row is the line directly above the `|---|` separator, so that is
+     * how one is recognised now. It used to be recognised by its first cell reading
+     * `State` -- a hand-written list of one spelling, which quietly makes "name your first
+     * column State" a rule nobody wrote down, and reports a header row as a capture row
+     * with no commit the first time somebody names a column something else. Every
+     * separator row is dropped too, as before. */
+    const section=(nextHeading===-1?captureRecords:captureRecords.slice(0,nextHeading)).split('\n');
+    const isSeparator=line=>/^\|[\s:|-]+\|\s*$/.test(line);
+    const rows=[];
+    for(let index=0;index<section.length;index+=1){
+      const line=section[index];
+      if(!/^\|.*\|\s*$/.test(line))continue;
+      if(isSeparator(line))continue;
+      if(isSeparator(section[index+1]??''))continue;
+      rows.push(line.replace(/^\|/,'').replace(/\|\s*$/,''));
+    }
     assert.ok(rows.length>0,`${name} has a capture-records section with no rows in it`);
     for(const row of rows)assert.match(row,/[0-9a-f]{40}/,`a capture row in ${name} names no source commit: ${row.slice(0,60)}`);
     for(const match of content.matchAll(/\]\(([^)]+\.(?:md|png))\)/g)){const target=resolve(evidenceRoot,match[1]);assert.ok((await stat(target)).isFile(),`${name} -> ${match[1]}`)}
@@ -328,8 +357,31 @@ test('build composes deterministic local output without fetches', async () => {
   // made outside a git checkout cannot name its own commit, deliberately writes no manifest
   // rather than one carrying a placeholder, and bakes no identity into app.js -- so that
   // page reports itself unbuilt instead of asking for a file that was never published.
-  const expectedFiles = manifest.buildIdentity.resolved ? 196 : 195;
+  /* Re-derived on 2026-08-27: 196 -> 233. The trail above stopped being kept, because this
+   * group never ran -- `npm test` chained its groups with `&&` and a stale anchor three
+   * groups earlier stopped it, so nobody saw the number go out by 36 over several merges.
+   * Rather than reconstruct 36 "+1 because..." lines nobody can check now, the one
+   * relationship the trail was really recording is asserted directly below the total: one
+   * markdown article in, one HTML page out. A total on its own is exactly as easy to bump
+   * as it was to let drift; the relationship is the thing that would notice an article
+   * silently failing to publish. */
+  const expectedFiles = manifest.buildIdentity.resolved ? 233 : 232;
   assert.equal(manifest.outputFiles.length, expectedFiles);
+  const markdownArticles = manifest.outputFiles.filter(file => file.path.startsWith('docs/') && file.path.endsWith('.html'));
+  assert.ok(markdownArticles.length > 100, 'almost no documentation pages were published, so the comparison below would prove nothing');
+  const sources = [];
+  const walkDocs = async (dir, prefix) => {
+    for (const entry of await readdir(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) { await walkDocs(join(dir, entry.name), `${prefix}${entry.name}/`); continue; }
+      if (entry.name.endsWith('.md')) sources.push(`${prefix}${entry.name.slice(0, -3)}.html`);
+    }
+  };
+  await walkDocs(resolve(root, '..', 'docs'), 'docs/');
+  assert.deepEqual(
+    markdownArticles.map(file => file.path).sort(),
+    sources.sort(),
+    'every documentation article publishes exactly one page and no page is published without one',
+  );
   assert.equal(
     manifest.outputFiles.some(file => file.path === 'version.json'),
     manifest.buildIdentity.resolved,

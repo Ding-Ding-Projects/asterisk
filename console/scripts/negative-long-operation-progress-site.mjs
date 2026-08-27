@@ -321,12 +321,15 @@ const cases = [
   // ---- The records that speak for the code ----
 
   ['the site registry still calls the feature absent',
-    swap(REGISTRY, '      "state": "implemented",\n      "note": "The Export everything dialog runs a real multi-unit operation',
+    swap(REGISTRY, '      "status": "implemented-unverified",\n      "note": "The Export everything dialog runs a real multi-unit operation',
       '      "state": "absent",\n      "note": "The Export everything dialog runs a real multi-unit operation')],
 
   ['the site registry stops naming the stylesheet the dialog depends on',
-    swap(REGISTRY, '        "site/settings.html",\n        "site/styles.css"\n      ]\n    },\n    "in-context-recovery"',
-      '        "site/settings.html"\n      ]\n    },\n    "in-context-recovery"')],
+    /* Anchored to the tail of this row's own note, because the three-file list it edits
+     * is the identical text in seven other rows and a swap that hits the wrong one plants
+     * its break somewhere nothing here is looking. */
+    swap(REGISTRY, 'and no request is made.",\n      "implementation": {\n        "paths": [\n          "site/app.js",\n          "site/settings.html",\n          "site/styles.css"\n        ],',
+      'and no request is made.",\n      "implementation": {\n        "paths": [\n          "site/app.js",\n          "site/settings.html"\n        ],')],
 
   ['the localization registry still calls the copy untranslated',
     swap(LOCALES, '    "long-operation-progress": {\n      "state": "localized",', '    "long-operation-progress": {\n      "state": "not-localized",')],

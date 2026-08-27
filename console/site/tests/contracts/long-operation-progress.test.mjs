@@ -256,10 +256,11 @@ const plan = (h, includeChangelog = true) => h.planExportEverything({ includeCha
 test('the site feature registry carries an implemented row for long-operation-progress', () => {
   const row = registry.features['long-operation-progress'];
   assert.ok(row, 'no long-operation-progress row in site/feature-registry.json');
-  assert.equal(row.state, 'implemented',
+  /* Schema-2 field names; see the note on the same assertion in built-in-authenticator. */
+  assert.equal(row.status, 'implemented-unverified',
     'the site now runs a real reported multi-unit operation, so "absent" is no longer the honest state');
   for (const file of ['site/app.js', 'site/settings.html', 'site/styles.css']) {
-    assert.ok(row.files.includes(file), `the row no longer names ${file}`);
+    assert.ok(row.implementation.paths.includes(file), `the row no longer names ${file}`);
   }
 });
 

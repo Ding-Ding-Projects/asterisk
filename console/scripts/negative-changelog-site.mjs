@@ -355,13 +355,13 @@ const cases = [
 
   // The registry claims the feature is still absent while the code implements it.
   ['the registry claims the feature is still absent',
-    swap(REGISTRY, '"changelog-viewer": {\n      "state": "implemented",', '"changelog-viewer": {\n      "state": "absent",')],
+    swap(REGISTRY, '"changelog-viewer": {\n      "status": "implemented-unverified",', '"changelog-viewer": {\n      "status": "absent",')],
 
   // The recorded file list drifts from where the feature actually lives, so the next
   // person looking for it is sent to the wrong files.
   ['the registry forgets one of the files the feature lives in',
-    swap(REGISTRY, '        "site/build.mjs",\n        "site/downloads.html",\n        "site/styles.css"\n      ]\n    },\n    "external-editor-handoff"',
-      '        "site/downloads.html",\n        "site/styles.css"\n      ]\n    },\n    "external-editor-handoff"')],
+    swap(REGISTRY, '          "site/build.mjs",\n          "site/downloads.html",\n          "site/styles.css"\n        ],\n        "symbols": []',
+      '          "site/downloads.html",\n          "site/styles.css"\n        ],\n        "symbols": []')],
 
   // The localization registry claims the description is untranslated while four
   // Cantonese variants of it ship.

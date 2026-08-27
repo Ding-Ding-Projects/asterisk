@@ -206,7 +206,7 @@ const cases = [
 
   // The registry claims the feature is still absent while the code implements it.
   ['the registry claims the feature is still absent',
-    swap(REGISTRY, '"dialog-emojis": {\n      "state": "implemented",', '"dialog-emojis": {\n      "state": "absent",')],
+    swap(REGISTRY, '"dialog-emojis": {\n      "status": "implemented-unverified",', '"dialog-emojis": {\n      "status": "absent",')],
 
   // The localization registry claims the card is untranslated while four Cantonese
   // variants of its description ship.

@@ -933,8 +933,9 @@ test('the article records what this surface does and what it deliberately cannot
 });
 
 test('the registry records context-menu-shortcuts as implemented, and every fact above supports that', () => {
-  assert.equal(registry.features['context-menu-shortcuts'].state, 'implemented',
-    'a real document-level right-click menu with a derived, dispatched shortcut column exists -- "implemented" is the honest state');
+  /* Schema-2 field name; see the note on the same assertion in built-in-authenticator. */
+  assert.equal(registry.features['context-menu-shortcuts'].status, 'implemented-unverified',
+    'a real document-level right-click menu with a derived, dispatched shortcut column exists -- "implemented-unverified" is the honest state');
   assert.match(registry.features['context-menu-shortcuts'].note, /shortcut/iu,
     'the registry note no longer describes the half this feature is named after');
 });

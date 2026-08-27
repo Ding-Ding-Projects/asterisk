@@ -120,6 +120,7 @@ test('the general settings export explicitly omits the personal vocabulary rathe
 });
 
 test('the registry records personal-vocabulary-upload as implemented, and every bound above holds', () => {
-  assert.equal(registry.features['personal-vocabulary-upload'].state, 'implemented',
-    'a real, bounded, local-only, duplicate-rejecting JSON upload exists on settings.html -- "implemented" is the honest state');
+  /* Schema-2 field name; see the note on the same assertion in built-in-authenticator. */
+  assert.equal(registry.features['personal-vocabulary-upload'].status, 'implemented-unverified',
+    'a real, bounded, local-only, duplicate-rejecting JSON upload exists on settings.html -- "implemented-unverified" is the honest state');
 });

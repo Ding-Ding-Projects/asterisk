@@ -1103,8 +1103,12 @@ test('Export everything states that it does not write the accounts, rather than 
 test('the site feature registry records the feature as implemented, and names its files', () => {
   const row = registry.features['built-in-authenticator'];
   assert.ok(row, 'no built-in-authenticator row in site/feature-registry.json');
-  assert.equal(row.state, 'implemented');
-  assert.deepEqual([...row.files].sort(), ['site/app.js', 'site/settings.html', 'site/styles.css']);
+  /* Schema-2 field names. The site registry spent a while at schema 1 because a merge
+   * reverted it, so features landing in that window were written against `state` and
+   * `files` while the thirty-three older contracts kept asking for `status` and
+   * `implementation.paths` and quietly failed. The claim is unchanged. */
+  assert.equal(row.status, 'implemented-unverified');
+  assert.deepEqual([...row.implementation.paths].sort(), ['site/app.js', 'site/settings.html', 'site/styles.css']);
   assert.match(row.note, /BarcodeDetector/);
   assert.match(row.note, /RFC 6238/);
 });
