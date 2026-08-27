@@ -18,7 +18,7 @@ Wide-gamut input reports when its displayed sRGB result was clipped. The origina
 
 Rainbow is a discriminated marker, not a color string and not a palette entry. One global speed level maps to one duration shared by every mounted rainbow surface. Reduced motion resolves the marker to one stable hue and disables the animation.
 
-## Persistence and import
+## Configuration, persistence and import
 
 The local store uses schema version 2 and a caller-provided storage adapter. The browser adapter can use local storage, while tests or non-browser hosts can supply another adapter without changing the model. Reads revalidate the complete stored document. Writes serialize and validate the complete next model before replacing the prior stored value. A rejected import applies nothing.
 

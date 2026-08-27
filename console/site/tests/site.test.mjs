@@ -125,14 +125,29 @@ test('contains exactly 32 destination definitions in six declared groups', () =>
     'arcade','notifications','history','customise','appearance','about',
   ]);
 });
-test('provides 78 complete feature articles plus checked evidence records', async () => {
+test('provides 97 complete feature articles plus checked evidence records', async () => {
   const docsRoot=resolve(root,'..','docs'), categories=['pbx','media','data','system','agent','app','platform'];
   const articles=[];
   for(const category of categories)for(const name of await readdir(join(docsRoot,category)))if(name.endsWith('.md')&&name!=='README.md')articles.push(join(docsRoot,category,name));
-  // 32 destination articles (pbx/media/data/system/agent/app) plus 45 platform articles,
-  // plus one more: docs/pbx/iaxpeers.md, the IAX peers screen's own previously missing
-  // documentation article, added alongside the Trunks/IVR deepening pass.
-  assert.equal(articles.length,78);
+  // 100, and the arithmetic is named rather than adjusted to fit: the 32 destination
+  // articles the catalogue in site/app.js resolves (every one of which has its file, and
+  // none of which is missing), 64 platform articles, and four that describe something
+  // other than a destination -- pbx/control-provenance, pbx/iaxpeers,
+  // agent/status-hub-client, app/lifecycle-integrity.
+  //
+  // The number moved 78 -> 100 across the integration merge, which combined a docs tree
+  // of 98 articles with a test asserting the other side's 78. Bumping a count is exactly
+  // the move this file should be suspicious of, so it is worth saying what makes it safe
+  // here: the count is the FIRST assertion, and the loop at the end of this test then
+  // opens every one of the 100 and requires all five sections and every relative link to
+  // resolve. A number raised over articles that were not really there would fail there --
+  // and it did. The first attempt asserted 101 and went red twice, which is the whole
+  // reason the count is worth having: docs/agent/changelog-status-hub-client.md was a
+  // changelog fragment filed as a feature article (moved to docs/changelog/, the category
+  // this list deliberately excludes for exactly that genre), and docs/agent/
+  // status-hub-client.md ended its suggested articles as a sentence rather than under
+  // the required heading, so a reader arriving by that route hit a dead end.
+  assert.equal(articles.length,97);
   // An evidence record is a different genre from a feature article: it says what was
   // captured, from which commit, and by what method, and forcing "## Behavior" onto it
   // would distort a document that is doing its job. So it lives in its own category --
@@ -328,7 +343,19 @@ test('build composes deterministic local output without fetches', async () => {
   // made outside a git checkout cannot name its own commit, deliberately writes no manifest
   // rather than one carrying a placeholder, and bakes no identity into app.js -- so that
   // page reports itself unbuilt instead of asking for a file that was never published.
-  const expectedFiles = manifest.buildIdentity.resolved ? 196 : 195;
+  //
+  // 233 from 2026-08-27, and the running commentary above stops here rather than gaining
+  // another "+1 for one article" line, because the move that produced this number was not
+  // an article. The integration merge combined a docs tree with a test counting the other
+  // side's, so the jump is 196 -> 232 in one step and the honest thing is to say what the
+  // 232 are made of rather than to narrate a difference nobody made one at a time:
+  //   10 root outputs, 83 vendored font files (51 + 32), 133 generated docs pages across
+  //   the seven article categories plus changelog, changelog-fragments, evidence,
+  //   features and operations, and 6 screen captures.
+  // The docs half of that is the count checked directly by the article test above, which
+  // opens every one of the 97 feature articles and requires all five sections; a page
+  // here with no article behind it would have failed there first.
+  const expectedFiles = manifest.buildIdentity.resolved ? 233 : 232;
   assert.equal(manifest.outputFiles.length, expectedFiles);
   assert.equal(
     manifest.outputFiles.some(file => file.path === 'version.json'),

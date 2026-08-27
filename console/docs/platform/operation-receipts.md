@@ -24,6 +24,10 @@ History can be filtered by text, severity, state, and source. Export projection 
 
 Bulk dismissal, deletion, and read-state changes report every changed id and every skipped id with its reason. An empty selection or a selection containing no applicable record fails explicitly.
 
+## Configuration
+
+A host configures three things, and each one decides something visible. The quiet-hours policy decides whether a record is presented, never whether it is recorded, so a suppressed notice is still in history with its severity intact. The persistence adapter decides what a receipt can confirm: an in-memory change whose write was not observed is reported as partial rather than successful, so an adapter that does not return receipts turns every mutation into a partial one rather than a silent success. And the references an operation receipt supplies decide which actions appear at all -- Retry only with a retry reference, Undo only with a real inverse operation or a local history revision -- so a host that omits them ships a notification with no way out of the failure it reports.
+
 ## Failure modes and security
 
 - Missing or malformed request identity, target details, affected-data descriptions, or timestamps are refused before dispatch.

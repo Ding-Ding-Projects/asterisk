@@ -5,7 +5,7 @@ surface is mounted later by `CONVERTER_SURFACE_REGISTRATION`, which accepts a ty
 `ConverterClient` and keeps the privileged file and control-plane operations outside the
 renderer component.
 
-## User flow
+## Behavior: the user flow
 
 1. Choose a local file through the client-provided native picker.
 2. Read the source bytes through the typed `sniff` method. The surface shows the exact
@@ -23,7 +23,7 @@ renderer component.
 7. Queue one request through `enqueueOne`. Queue records are loaded in bounded pages and
    are never collected into an unbounded renderer array by the surface.
 
-## Search and regex builder
+## Configuration: search and the regex builder
 
 Every category owns a separate search query and an adjacent anchored regex builder. Plain
 text is the initial mode. The builder exposes guided insertions for literals, character
@@ -32,7 +32,7 @@ pattern, flags, bounded sample text, syntax feedback, matches, capture groups, a
 The query and pattern stay synchronized when regex mode is selected. Invalid patterns and
 oversized samples produce an explicit local error and no match result.
 
-## Queue and failure states
+## Failure modes: the queue and its states
 
 The queue uses the backend cursor contract. The surface loads at most 100 records at a
 time, offers refresh and next-page controls, and displays every returned item state and
@@ -67,6 +67,10 @@ validation, and editor launch. The renderer holds only display metadata and the 
 provided by the client. A consumer integration must keep the client methods local and
 bounded, and must not put credentials or source contents in logs, exports, history, or
 telemetry.
+
+## Verification
+
+This article records the renderer surface and the client contract behind it, not a run. The bundled-adapter proof, the byte inspection, the destination validation and the atomic output validation are the client's to establish and are verified by the owning integration lane; nothing described here has been driven from a packaged application, and no capture of the queue, its progress or its failure states exists yet.
 
 ## Suggested articles
 

@@ -8,7 +8,7 @@ The renderer makes one fresh cryptographically secure random draw per launch. Th
 
 The draw is suppressed during School mode, first run, an active error, an active update, or a mid-task state. Suppression is reported to the mount callback and never names or reveals a hidden dish. The attempt flag is held in the component instance so Strict Mode or a rerender cannot create a second draw in one launch.
 
-## Cache contract
+## Configuration: the cache contract
 
 `console/shared/dim-sum.ts` validates the complete JSON envelope before any image bytes render. The envelope must identify the public `Ding-Ding-Projects/dim-sum-photos` catalog URL, an immutable catalog revision, its revision URL, and a published `catalog-v1*` release asset. Every entry carries exact bilingual names, the public asset identity and URL, a local data URL, its byte size and SHA-256 digest, and a static decode proof with MIME type and dimensions. The async validator recomputes each local image digest with Web Crypto before selection. Unknown fields, repeated entry ids, malformed data URLs, oversized bytes, non-published asset URLs, missing proof, and unsupported revisions fail closed.
 
@@ -17,6 +17,14 @@ The renderer reads only through the `DimSumCacheReader` seam. A missing or inval
 ## Mount seam
 
 `DIM_SUM_SURPRISE_REGISTRATION` identifies the `startup-overlay` mount, its non-blocking and focus-neutral behavior, its automatic dismissal, its no-opt-out contract, its cache boundary, and its cryptographically secure ten-percent draw. The host supplies `context`, including the shared School-mode state, and a `cacheReader` that returns the private JSON text.
+
+## Failure modes
+
+Every refusal above is fail-closed and visible rather than silent. An unknown field, a repeated entry id, a malformed data URL, an oversized byte count, an asset URL that is not a published `catalog-v1*` release asset, a missing decode proof, an unsupported revision, or a local digest that does not recompute all reject the whole envelope; none of them applies part of it. A missing or invalid cache produces an unavailable diagnostic and no image, and the renderer draws nothing rather than substituting a dish. The renderer has no fallback path that reaches the network, so an unavailable cache stays unavailable until the package or application-data owner republishes one.
+
+## Verification
+
+This article records a contract, not a run. Nothing here has been driven from a packaged application: the ten-percent draw has not been observed at a real launch, the overlay has not been captured, and no cache has been validated against a published catalog asset from a built artifact. What can be established without one is the envelope contract above and its refusals.
 
 ## Suggested articles
 

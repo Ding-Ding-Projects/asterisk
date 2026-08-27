@@ -652,6 +652,31 @@ export class App extends Base {
    *  and time awareness's "since anything changed" reading both come from here. */
   private lastChangeAt = Date.now();
 
+  /**
+   * The callback the compiled shell makes after it commits a control value.
+   *
+   * `setVal` in `generated/console.tsx` ends with `this.onUserMutation('control:' + ...)`
+   * inside its `setState` callback, and nothing in this tree defined it -- so every
+   * control change on every screen threw `this.onUserMutation is not a function`. The
+   * generated file carries `// @ts-nocheck`, so the compiler had nothing to say about a
+   * call to a method that does not exist, and the one test covering that call site
+   * assigns the method onto its own instance before driving it, which is how a suite of
+   * 1,858 renderer tests stayed green over a crash on the commonest interaction there is.
+   *
+   * What it does is what its call site is for: mark that the user changed something, so
+   * the attention rail's "since anything changed" reading and Momentum's idle clock both
+   * see it. {@link languageAwareSetVal} already sets the same field on the way in, and
+   * the redundancy is deliberate -- that override can be bypassed, this callback cannot,
+   * and a clock that silently stops is worse than one written to twice.
+   *
+   * It records the fact and not the source. The source string is what the shell knows
+   * about itself, and giving it per-source behaviour here would describe a mechanism this
+   * tree does not have: the wider inventory of recorded mutations is a separate open item.
+   */
+  onUserMutation = (_source: string): void => {
+    this.lastChangeAt = Date.now();
+  };
+
   /** Redraws the attention rail on a slow clock so the elapsed-time reading and a
    *  momentum prompt that has just become due both appear without requiring the user
    *  to touch anything else first. */

@@ -933,8 +933,12 @@ test('the article records what this surface does and what it deliberately cannot
 });
 
 test('the registry records context-menu-shortcuts as implemented, and every fact above supports that', () => {
-  assert.equal(registry.features['context-menu-shortcuts'].state, 'implemented',
+  /* `state` was the flat shape the pages-site registry briefly carried; schema v2 spells
+   * the same fact `status`, and its vocabulary distinguishes "built" from "verified". */
+  assert.equal(registry.features['context-menu-shortcuts'].status, 'implemented-unverified',
     'a real document-level right-click menu with a derived, dispatched shortcut column exists -- "implemented" is the honest state');
+  assert.deepEqual([...registry.features['context-menu-shortcuts'].implementation.paths].sort(), ['site/app.js', 'site/styles.css'],
+    'the recorded file list has drifted from the files the menu actually lives in');
   assert.match(registry.features['context-menu-shortcuts'].note, /shortcut/iu,
     'the registry note no longer describes the half this feature is named after');
 });

@@ -92,10 +92,29 @@ test('voice enumeration is live and its status source is the effective channel v
 
 test('the mounted notification path is narrated and preserves the styled message plus error priority', () => {
   const src = app();
-  assert.match(src, /private narratedFire = \(title: string, body: string, isError = false\): void => \{/);
+  /* This pinned the whole one-line signature, `(title, body, isError = false)`. The
+   * parameter genuinely changed -- a boolean became `NotificationSeverity | boolean`, so
+   * an informational notice can be told from a warning -- and the assertion went red for
+   * a real improvement while saying nothing about the property it exists to protect.
+   *
+   * What is pinned now is the property: `narratedFire` is what `fire` is replaced by, so
+   * it IS the mounted path; the narrator is handed the STYLED text rather than the raw
+   * text, so the humour level reaches speech; and error priority survives, whichever of
+   * the two shapes the caller used. A signature is not asserted at all, because the next
+   * caller shape is a change to make freely and this test has no opinion about it. */
+  /* Anchored to the whole line, because the first version of this assertion was not and
+   * stayed green when the mount was commented out -- which is how a wiring line usually
+   * dies. Watched go red on that exact break before being trusted. */
+  assert.match(src, /^\s*private narratedFire = \(/m, 'narratedFire is no longer declared as a bound field');
+  assert.match(src, /^\s*this\.fire = this\.narratedFire;\s*$/m, 'narratedFire is no longer the mounted notification path');
   assert.match(src, /const styled = styledDialog\(/);
-  assert.match(src, /this\.narrator\.enqueue\('notification', styled\.body \? `\$\{styled\.heading\}\. \$\{styled\.body\}` : styled\.heading, \{ isError \}\);/);
+  assert.match(src, /this\.narrator\.enqueue\('notification', styled\.body \? `\$\{styled\.heading\}\. \$\{styled\.body\}` : styled\.heading, \{ isError: [^}]+\}\);/,
+    'the narrator no longer speaks the styled text, or no longer carries error priority with it');
   assert.match(src, /this\.baseFire\(styled\.heading, styled\.body\);/);
+  /* The legacy two-argument call shape still reaches this path from the compiled shell,
+   * so the boolean it passes must still mean what it did. */
+  assert.match(src, /typeof severityOrLegacyError === 'boolean'\s*\n?\s*\? \(severityOrLegacyError \? 'error' : 'warning'\)/,
+    'a legacy fire(title, body, true) call no longer resolves to error severity');
 });
 
 test('the registry row remains an honest unresolved inventory task until the central inventory materializer records proof', () => {

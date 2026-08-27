@@ -12,7 +12,7 @@ Settings use schema version 1 from `console/shared/settings-schema.ts`. A fresh 
 
 When School mode is enabled, the effective projection forces English and English narration, reports Cantonese, funny-level controls, personal vocabulary, and dim-sum behavior as unavailable, and leaves the user's stored choices untouched for restoration when the mode is disabled.
 
-## Integration API
+## Configuration: the integration API
 
 The application integration point is `console/app/renderer/src/settings/index.ts`.
 
@@ -48,7 +48,7 @@ Replacement is available only through an explicitly classified private user-inte
 - Speech failures are retained in queue status and do not block the application or later queued lines.
 - Secrets are not part of the settings schema. Home Assistant rules store only a credential-vault account key, never credential material.
 
-## Current integration state
+## Verification: current integration state
 
 The settings core and public integration functions exist, but the desktop shell does not yet construct the store, subscribe to runtime snapshots, route rendered text through the vocabulary boundary, mount a platform speech engine, or apply appearance overrides. Those seams belong to the application wiring change. Until that wiring lands, these settings do not change the visible desktop interface.
 

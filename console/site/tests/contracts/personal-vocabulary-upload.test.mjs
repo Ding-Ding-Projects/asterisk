@@ -120,6 +120,12 @@ test('the general settings export explicitly omits the personal vocabulary rathe
 });
 
 test('the registry records personal-vocabulary-upload as implemented, and every bound above holds', () => {
-  assert.equal(registry.features['personal-vocabulary-upload'].state, 'implemented',
+  /* `state` was the flat shape the pages-site registry briefly carried; schema v2 spells
+   * the same fact `status`, and its vocabulary distinguishes "built" from "verified". */
+  assert.equal(registry.features['personal-vocabulary-upload'].status, 'implemented-unverified',
     'a real, bounded, local-only, duplicate-rejecting JSON upload exists on settings.html -- "implemented" is the honest state');
+  /* The reader this row names was renamed loadVocabularyFromInput -> loadVocabulary; the
+   * row followed it, and this pins the pair so the next rename cannot slip past. */
+  assert.deepEqual(registry.features['personal-vocabulary-upload'].implementation.symbols.map((symbol) => symbol.name).sort(),
+    ['loadVocabulary'], 'the row no longer names the function that actually reads the uploaded file');
 });

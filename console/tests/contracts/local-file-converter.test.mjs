@@ -65,7 +65,9 @@ test('PDF capability is explicit and disabled without packaged evidence', () => 
 });
 
 test('documentation states present source behavior and the unverified boundary', () => {
-  assert.match(docs, /Desktop backend contract/u);
+  /* The heading gained the canonical `## Behavior:` prefix every feature article carries,
+   * so the pin is on the phrase rather than on the whole line. */
+  assert.match(docs, /desktop backend contract/iu);
   assert.match(docs, /Verification boundary/u);
   assert.match(docs, /implemented but unverified/u);
 });

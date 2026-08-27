@@ -18,7 +18,7 @@ Each execute and revert call receives a real `AbortSignal` from its own linked `
 
 Undo is exposed only when a confirmed mutation supplies an inverse token or local-history revision and the surface registers a real inverse handler. A notification action cannot manufacture undo support.
 
-## Platform integration contract
+## Configuration: the platform integration contract
 
 The renderer does not write files or launch an editor directly. A privileged desktop or hosted adapter must implement the shared `ExportPlatformPort` contract for save, download, clipboard, editor detection, and editor launch. The renderer reports success only after that adapter returns a confirmation receipt with an operation identifier and completion time.
 

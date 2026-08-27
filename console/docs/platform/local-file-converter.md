@@ -2,7 +2,7 @@
 
 The converter backend and documentation-site equivalent are separate local surfaces. Both keep source bytes local, detect types from bounded bytes rather than extensions, and leave the source unchanged. Neither uses PATH discovery, a remote converter, or guessed output.
 
-## Desktop backend contract
+## Behavior: the desktop backend contract
 
 The backend defines a bounded, offline conversion catalog and a persistent queue. It always exposes Documents and PDF, Images, Audio, Video, Archives, Structured Data and Spreadsheets, Code and Text, and Binary Encodings, including when every adapter in a category is unavailable. Unavailable adapters remain visible with the exact missing bundled dependency and reason.
 
@@ -18,13 +18,13 @@ The queue consumes an `AsyncIterable` one path at a time and persists each item 
 
 PDF adapters are cataloged but disabled until a packaged offline tool is proven. A valid adapter must reopen its output and verify page count, order, rotations, metadata, and opaque capability limits before replacement. Encrypted, signed, malformed, and unsupported inputs remain explicit facts.
 
-## Documentation site surface
+## Configuration: the documentation-site surface
 
 The site exposes `converter.html` as a browser-local equivalent. Its catalog is categorized as Documents/PDF, Images, Audio, Video, Archives, Structured Data/Spreadsheets, Code/Text, and Binary Encodings. Browser-bundled adapters are limited to UTF-8 text, Markdown, JSON, JSONL, CSV, TSV, and Base64 output. Other entries stay visible as unavailable with their missing-adapter reason.
 
 The site queue stores file handles and bounded metadata, reads one file at a time, pages visible results, and reports queued, reading, ready, skipped, failed, or cancelled state. A Blob is offered only after conversion succeeds, preview text is capped, cancellation is honored at safe boundaries, and one failed item never marks another successful. Adapter search is plain text by default with its own adjacent regex builder. Pattern evaluation and file bytes stay in the browser.
 
-## Privacy and failure modes
+## Failure modes, privacy and security
 
 Conversion is local-only. Paths must be absolute and null-free, symbolic-link sources and destination components are refused, and no adapter is enabled through PATH discovery. Inputs, outputs, memory, time, temporary storage, and concurrency are bounded. Existing destinations require explicit overwrite approval. The backend and site report unavailable adapters, malformed encodings, source mismatches, missing disclosures, resource limits, storage shortages, cancellation, output validation mismatches, and destination conflicts without writing guessed or partial output.
 
