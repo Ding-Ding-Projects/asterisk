@@ -27,6 +27,8 @@
     "schoolDesc",
     "searchModePlain",
     "searchModeRegex",
+    "supportDesc",
+    "supportFirstResponse",
     "themeDesc",
     "updatesDesc"
   ],
@@ -250,11 +252,14 @@
       "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
     },
     "support-tickets": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
-      "copyKeys": [],
+      "copyKeys": [
+        "supportDesc",
+        "supportFirstResponse"
+      ],
       "missingCopyKeys": [],
-      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+      "note": "COPY.supportDesc ships four English and four Cantonese variants wired through the card's data-copy=\"supportDesc\" hook, and COPY.supportFirstResponse ships four of each as the canned first answer written into a new ticket's own update list, so a ticket keeps the voice it was answered in rather than being re-rendered later at whatever level is current. The joke is allowed to move with the slider; two things never do. SUPPORT_DISCLOSURE is a plain constant rendered verbatim into every .support-disclosure node -- not a COPY key, not passed through applyVocabularyText, and therefore reachable by no funny level, no language mode and no uploaded vocabulary file. SUPPORT_SEVERITY_NOTE is fixed for the same reason: it is the sentence admitting that severity changes nothing. The resolution steps, the storage-key list and the status labels are generated from the code's own constants and render in English, which is also the only language available while the restricted presentation is on."
     },
     "unlock-ladder": {
       "state": "not-localized",
