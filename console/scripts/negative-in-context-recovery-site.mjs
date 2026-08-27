@@ -339,7 +339,7 @@ const cases = [
     swap(CSS, '.recovery-heading{margin:0 0 4px', '.recovery{display:none}\n.recovery-heading{margin:0 0 4px')],
 
   ['the site registry goes back to claiming there is no recovery route here',
-    swap(REGISTRY, '"in-context-recovery": {\n      "state": "implemented",', '"in-context-recovery": {\n      "state": "absent",')],
+    swap(REGISTRY, '"in-context-recovery": {\n      "status": "implemented-unverified",', '"in-context-recovery": {\n      "status": "absent",')],
 
   ['the localization registry forgets the line it is responsible for',
     swap(LOCALES, '"recoveryLead",\n', '')],

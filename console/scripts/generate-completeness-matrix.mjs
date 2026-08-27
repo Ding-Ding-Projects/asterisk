@@ -71,6 +71,14 @@ const desktopStatus = {
   'collapsible-filters': 'partial', 'automatic-updates': 'implemented-unverified',
 };
 
+/* This table and console/site/feature-registry.json are required to agree, row for row,
+ * by site/tests/contracts/feature-registry-schema.test.mjs. They are checked against each
+ * other because this table is what rewriteRegistry() below writes INTO that file: when the
+ * two drift, re-running this generator silently reverts whatever the registry had learned
+ * since. That is not hypothetical -- six rows had gone stale here (responsive-sizing,
+ * guided-forms, built-in-authenticator, context-menu-shortcuts, long-operation-progress
+ * and in-context-recovery), every one of them a feature that had been built and audited in
+ * the registry while this copy still called it absent. Change both, or neither. */
 const siteStatus = {
   'language-modes': 'partial', 'funny-levels': 'partial', 'dialog-emojis': 'implemented-unverified', 'school-mode': 'implemented-unverified',
   narration: 'implemented-unverified', 'scheduled-settings': 'partial', 'external-settings-sources': 'absent', 'dim-sum-surprise': 'absent',
@@ -79,12 +87,12 @@ const siteStatus = {
   'ollama-suite-manager': 'absent', 'browser-style-tabs': 'absent', 'tab-groups-and-searches': 'absent', 'command-palette': 'partial',
   'destructive-action-confirmation': 'partial', 'local-version-history': 'implemented-unverified', 'changelog-viewer': 'implemented-unverified',
   'external-editor-handoff': 'absent', 'complete-exports': 'implemented-unverified', 'bulk-actions': 'implemented-unverified',
-  accessibility: 'partial', 'responsive-sizing': 'absent', 'personal-vocabulary-upload': 'implemented-unverified',
-  'per-element-toy-locks': 'absent', 'support-tickets': 'absent', 'unlock-ladder': 'absent', 'built-in-authenticator': 'absent',
+  accessibility: 'partial', 'responsive-sizing': 'partial', 'personal-vocabulary-upload': 'implemented-unverified',
+  'per-element-toy-locks': 'absent', 'support-tickets': 'absent', 'unlock-ladder': 'absent', 'built-in-authenticator': 'implemented-unverified',
   'attention-modes': 'implemented-unverified', 'browser-extension-download-surfaces': 'absent',
-  'offline-documentation-browser': 'partial', 'app-display-name': 'implemented-unverified', 'guided-forms': 'absent',
-  'bounded-overlays': 'implemented-unverified', 'context-menu-shortcuts': 'absent', 'long-operation-progress': 'absent',
-  'in-context-recovery': 'absent', 'provider-markup-rendering': 'implemented-unverified', 'forge-publishing': 'absent',
+  'offline-documentation-browser': 'partial', 'app-display-name': 'implemented-unverified', 'guided-forms': 'partial',
+  'bounded-overlays': 'implemented-unverified', 'context-menu-shortcuts': 'implemented-unverified', 'long-operation-progress': 'implemented-unverified',
+  'in-context-recovery': 'implemented-unverified', 'provider-markup-rendering': 'implemented-unverified', 'forge-publishing': 'absent',
   'collapsible-filters': 'implemented-unverified', 'automatic-updates': 'implemented-unverified',
 };
 
@@ -341,13 +349,16 @@ function rewriteRegistry(relativePath, surface, statuses) {
         entry.note = feature.id === 'local-file-converter'
           ? 'The converter is mounted at #surface=converter through surface-mounts.tsx and the real control-plane catalog and PDF-capability seam in dispatch.ts. The source picker, queue mutations, and packaged-worker proof remain explicitly unavailable until their privileged handlers are registered; no source, output, or sample value is invented.'
           : 'The Ollama surface is mounted at #surface=ollama through surface-mounts.tsx. Its client returns an honest bridge-not-registered state until the privileged local Ollama dispatcher is registered; no model, health, catalog, pull, chat, or harness value is assumed.';
-      } else {
-        entry.implementation.paths = ['site/app.js', feature.id === 'local-file-converter' ? 'site/converter.html' : 'site/ollama.html'];
-        entry.registration.paths = ['site/app.js'];
-        entry.note = feature.id === 'local-file-converter'
-          ? 'The documentation site exposes converter.html with categorized local adapters, bounded byte inspection, a paged queue, cancellation, and an adjacent regex builder. This is implemented in site/app.js and converter.html but remains unverified because no build, browser session, or capture ran in this lane.'
-          : 'The documentation site exposes ollama.html as a browser-local loopback surface with explicit endpoint approval, bounded local API reads, pull and chat cancellation, and honest Unknown catalog completeness. It remains unverified because no build, browser session, or capture ran in this lane.';
       }
+      /* The pages-site half of this special case used to write "This is implemented in
+       * site/app.js and converter.html", with site/app.js in implementation.paths, for
+       * both rows. Neither claim survives measurement: site/app.js is the only script any
+       * page on that site loads, and it contains the strings "converter" and "ollama"
+       * exactly zero times, so both pages publish controls no code reaches. Regenerating
+       * would have overwritten the audited rows -- which record the feature absent and the
+       * surface published, and are proved by site/tests/contracts/published-pages.test.mjs
+       * -- with that claim. So the site rows are left exactly as the registry has them,
+       * and this special case is now the desktop's alone. */
     }
   }
   writeFileSync(resolve(root, relativePath), `${JSON.stringify(next, null, 2)}\n`, 'utf8');

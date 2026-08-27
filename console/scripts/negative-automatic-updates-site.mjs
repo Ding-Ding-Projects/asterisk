@@ -244,11 +244,11 @@ const cases = [
     swap(CSS, '.update-banner[hidden]{display:none}\n', '')],
 
   ['the registry still calls the feature absent',
-    swap(REGISTRY, '"automatic-updates": {\n      "state": "implemented",', '"automatic-updates": {\n      "state": "absent",')],
+    swap(REGISTRY, '"automatic-updates": {\n      "status": "implemented-unverified",', '"automatic-updates": {\n      "status": "absent",')],
 
   ['the registry names only the page, not the build that publishes what it checks against',
-    swap(REGISTRY, '        "site/app.js",\n        "site/build.mjs",\n        "site/settings.html",',
-      '        "site/app.js",\n        "site/settings.html",')],
+    swap(REGISTRY, '          "site/app.js",\n          "site/build.mjs",\n          "site/settings.html",',
+      '          "site/app.js",\n          "site/settings.html",')],
 
   ['the localization registry still calls the feature untranslated',
     swap(LOCALES, '"automatic-updates": {\n      "state": "localized",', '"automatic-updates": {\n      "state": "not-localized",')],

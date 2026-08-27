@@ -318,7 +318,7 @@ const cases = [
   /* ---- The registries. ---- */
 
   ['the registry claims the feature is still absent',
-    swap(REGISTRY, '"narration": {\n      "state": "implemented",', '"narration": {\n      "state": "absent",')],
+    swap(REGISTRY, '"narration": {\n      "status": "implemented-unverified",', '"narration": {\n      "status": "absent",')],
 
   ['the registry stops recording the vocabulary boundary',
     swap(REGISTRY, 'narrationTextFor() reads copyLevel(), the per-language copy before vocabulary substitution',

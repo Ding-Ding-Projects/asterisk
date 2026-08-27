@@ -321,12 +321,15 @@ const cases = [
   // ---- The records that speak for the code ----
 
   ['the site registry still calls the feature absent',
-    swap(REGISTRY, '      "state": "implemented",\n      "note": "The Export everything dialog runs a real multi-unit operation',
-      '      "state": "absent",\n      "note": "The Export everything dialog runs a real multi-unit operation')],
+    swap(REGISTRY, '      "status": "implemented-unverified",\n      "note": "The Export everything dialog runs a real multi-unit operation',
+      '      "status": "absent",\n      "note": "The Export everything dialog runs a real multi-unit operation')],
 
+  // Anchored through the symbol that follows the path list, because three other rows
+  // name exactly the same three files and an anchor on the paths alone would land on
+  // whichever of them the file happens to hold first.
   ['the site registry stops naming the stylesheet the dialog depends on',
-    swap(REGISTRY, '        "site/settings.html",\n        "site/styles.css"\n      ]\n    },\n    "in-context-recovery"',
-      '        "site/settings.html"\n      ]\n    },\n    "in-context-recovery"')],
+    swap(REGISTRY, '          "site/settings.html",\n          "site/styles.css"\n        ],\n        "symbols": [\n          {\n            "path": "site/app.js",\n            "name": "runExportEverything",',
+      '          "site/settings.html"\n        ],\n        "symbols": [\n          {\n            "path": "site/app.js",\n            "name": "runExportEverything",')],
 
   ['the localization registry still calls the copy untranslated',
     swap(LOCALES, '    "long-operation-progress": {\n      "state": "localized",', '    "long-operation-progress": {\n      "state": "not-localized",')],
