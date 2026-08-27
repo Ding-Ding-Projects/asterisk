@@ -101,9 +101,13 @@
       ]
     },
     "local-file-converter": {
-      "state": "absent",
-      "note": "The site's many to*() functions (toJson, toXml, toYaml, toSql, toToml, toDelimited, toMarkdown, toHtml) convert the documentation/notification export data into different text formats - this is export formatting (complete-exports), not a general-purpose local file converter with a category catalogue and bundled adapters. No such converter surface exists.",
-      "files": []
+      "state": "implemented",
+      "note": "site/converter.html is wired: initConverter() in site/app.js reads chosen files in the browser, identifies each by its bytes rather than its extension, renders the eight-category adapter catalogue with an exact reason beside every unavailable adapter, discloses what a conversion would lose before it runs, converts on an explicit press, and reports converted/skipped/cancelled separately. Row-shaped output is written through the same exportRows()/describeLoss() pipeline the exports use, so the two cannot drift. Nothing is uploaded and no network call exists in the block. Not yet driven in a real browser: no real file picker has been operated and no capture exists.",
+      "files": [
+        "site/app.js",
+        "site/converter.html",
+        "site/styles.css"
+      ]
     },
     "ollama-suite-manager": {
       "state": "absent",

@@ -273,6 +273,279 @@
   }
 
   // ============================================================================
+  // Local file converter engine -- browser-local, bounded, and explicit about
+  // every format it cannot read.
+  //
+  // This block is deliberately free of `document.` and `window.` so the contract
+  // test can extract it and run the real source against real bytes, exactly as
+  // the export-engine block above is run. The DOM half lives in initConverter().
+  //
+  // It writes its row-shaped output through exportRows() rather than carrying a
+  // second set of format writers, so a CSV produced here and a CSV produced by
+  // an export cannot drift apart, and describeLoss() answers for both.
+  // ============================================================================
+  const CONVERTER_MAX_BYTES = 32*1024*1024;
+  const CONVERTER_PAGE_SIZE = 5;
+  const CONVERTER_TARGETS = ['json','jsonl','csv','tsv','txt','base64'];
+  const CONVERTER_TARGET_LABEL = {json:'JSON',jsonl:'JSONL',csv:'CSV',tsv:'TSV',txt:'Plain text',base64:'Base64'};
+  const CONVERTER_TARGET_EXTENSION = {json:'json',jsonl:'jsonl',csv:'csv',tsv:'tsv',txt:'txt',base64:'base64.txt'};
+
+  /**
+   * The adapter catalogue.
+   *
+   * Every category the canonical contract names is present, and a category with
+   * nothing bundled behind it still appears -- carrying the exact reason no
+   * adapter is available rather than quietly vanishing, because a catalogue that
+   * lists only what works reads as "every format is supported".
+   *
+   * `bundled` means the adapter runs entirely inside this page with nothing
+   * fetched: there is no discovery from PATH, no download, and no remote
+   * service, so an adapter is either here in the source or it is unavailable.
+   */
+  const CONVERTER_CATEGORIES = [
+    {id:'structured-data',label:'Structured data and spreadsheets',adapters:[
+      {id:'json',label:'JSON',bundled:true,reads:'json',writes:['json','jsonl','csv','tsv','txt','base64']},
+      {id:'jsonl',label:'JSONL / NDJSON',bundled:true,reads:'jsonl',writes:['json','jsonl','csv','tsv','txt','base64']},
+      {id:'csv',label:'CSV',bundled:true,reads:'csv',writes:['json','jsonl','csv','tsv','txt','base64']},
+      {id:'tsv',label:'TSV',bundled:true,reads:'tsv',writes:['json','jsonl','csv','tsv','txt','base64']},
+      {id:'xlsx',label:'Excel workbook (.xlsx)',bundled:false,
+        unavailable:'no spreadsheet decoder is bundled: an .xlsx file is a ZIP container of XML parts, so reading one needs an inflate implementation this page does not carry'}
+    ]},
+    {id:'code-text',label:'Code and text',adapters:[
+      {id:'utf8-text',label:'UTF-8 text',bundled:true,reads:'text',writes:['txt','base64']},
+      {id:'markdown',label:'Markdown',bundled:true,reads:'markdown',writes:['txt','base64']},
+      {id:'utf16-text',label:'UTF-16 text',bundled:false,
+        unavailable:'only UTF-8 is decoded here: a UTF-16 file is rejected as invalid UTF-8 rather than being decoded into wrong characters'}
+    ]},
+    {id:'binary-encodings',label:'Binary encodings',adapters:[
+      {id:'base64',label:'Bytes to Base64',bundled:true,reads:'any',writes:['base64']}
+    ]},
+    {id:'documents',label:'Documents and PDF',adapters:[
+      {id:'pdf',label:'PDF',bundled:false,
+        unavailable:'no PDF parser is bundled, so a PDF is recognised by its %PDF- signature and then refused rather than being read as text'}
+    ]},
+    {id:'images',label:'Images',adapters:[
+      {id:'image',label:'PNG, JPEG, GIF',bundled:false,
+        unavailable:'no image decoder is bundled; these are recognised by signature and offered only as Base64, which re-encodes the bytes without decoding the picture'}
+    ]},
+    {id:'audio',label:'Audio',adapters:[
+      {id:'audio',label:'WAV, MP3, Ogg',bundled:false,
+        unavailable:'no audio decoder or encoder is bundled, and transcoding audio in a page without one would produce a file that is not what it claims to be'}
+    ]},
+    {id:'video',label:'Video',adapters:[
+      {id:'video',label:'MP4',bundled:false,
+        unavailable:'no video decoder or encoder is bundled; the same reason as audio, at a size that would also exceed the per-file bound'}
+    ]},
+    {id:'archives',label:'Archives',adapters:[
+      {id:'archive',label:'ZIP, gzip',bundled:false,
+        unavailable:'no inflate implementation is bundled, so an archive is recognised by signature and left unopened rather than half-read'}
+    ]}
+  ];
+
+  /** Every adapter in the catalogue, flattened, each carrying its category. */
+  function converterAdapters(){
+    return CONVERTER_CATEGORIES.flatMap(category=>category.adapters.map(adapter=>({...adapter,category:category.id,categoryLabel:category.label})));
+  }
+  /** The bundled adapter that reads this detected kind, or undefined. */
+  function converterAdapterFor(kind){
+    return converterAdapters().find(adapter=>adapter.bundled&&adapter.reads===kind);
+  }
+
+  /**
+   * What these bytes actually are, decided by the bytes.
+   *
+   * The extension is read too, but only as a separate, clearly-labelled hint:
+   * a name is what somebody typed and a signature is what is in the file, and
+   * when they disagree the signature is what gets acted on.
+   */
+  function converterSignature(bytes){
+    const at=(offset,...sig)=>sig.every((byte,index)=>bytes[offset+index]===byte);
+    if(at(0,0x25,0x50,0x44,0x46,0x2D))return{kind:'pdf',signature:'%PDF-'};
+    if(at(0,0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A))return{kind:'png',signature:'\\x89PNG'};
+    if(at(0,0xFF,0xD8,0xFF))return{kind:'jpeg',signature:'\\xFF\\xD8\\xFF'};
+    if(at(0,0x47,0x49,0x46,0x38))return{kind:'gif',signature:'GIF8'};
+    if(at(0,0x50,0x4B,0x03,0x04))return{kind:'zip',signature:'PK\\x03\\x04'};
+    if(at(0,0x1F,0x8B))return{kind:'gzip',signature:'\\x1F\\x8B'};
+    if(at(0,0x52,0x49,0x46,0x46)&&at(8,0x57,0x41,0x56,0x45))return{kind:'wav',signature:'RIFF....WAVE'};
+    if(at(0,0x49,0x44,0x33))return{kind:'mp3',signature:'ID3'};
+    if(at(0,0x4F,0x67,0x67,0x53))return{kind:'ogg',signature:'OggS'};
+    if(at(4,0x66,0x74,0x79,0x70))return{kind:'mp4',signature:'....ftyp'};
+    return undefined;
+  }
+
+  /** Decode as UTF-8, refusing rather than substituting replacement characters. */
+  function converterDecodeUtf8(bytes){
+    try{return{ok:true,text:new TextDecoder('utf-8',{fatal:true}).decode(bytes)}}
+    catch{return{ok:false,reason:'these bytes are not valid UTF-8'}}
+  }
+
+  /** Split one delimited line, honouring RFC 4180 double-quoted fields. */
+  function converterSplitDelimited(line,delimiter){
+    const fields=[];let field='',quoted=false;
+    for(let i=0;i<line.length;i+=1){
+      const char=line[i];
+      if(quoted){
+        if(char==='"'&&line[i+1]==='"'){field+='"';i+=1;continue}
+        if(char==='"'){quoted=false;continue}
+        field+=char;continue;
+      }
+      if(char==='"'){quoted=true;continue}
+      if(char===delimiter){fields.push(field);field='';continue}
+      field+=char;
+    }
+    fields.push(field);
+    return fields;
+  }
+  function converterDelimitedLines(text){
+    return text.split(/\r\n|\n|\r/).filter((line,index,lines)=>line!==''||index<lines.length-1);
+  }
+  /** True when every line splits into the same number of fields, and there is more than one field. */
+  function converterLooksDelimited(text,delimiter){
+    const lines=converterDelimitedLines(text);
+    if(lines.length<2)return false;
+    const width=converterSplitDelimited(lines[0],delimiter).length;
+    if(width<2)return false;
+    return lines.every(line=>converterSplitDelimited(line,delimiter).length===width);
+  }
+
+  /**
+   * Classify decoded text. JSON and JSONL are decided by parsing, not by looking
+   * at the name; CSV and TSV by a consistent field count; Markdown only by its
+   * extension, which is why that one hint is reported as a hint.
+   */
+  function converterClassifyText(text,name){
+    const trimmed=text.trim();
+    if(trimmed!==''){
+      try{JSON.parse(trimmed);return{kind:'json',why:'the whole file parses as JSON'}}catch{/* not JSON; fall through */}
+      const lines=converterDelimitedLines(text).filter(line=>line.trim()!=='');
+      if(lines.length>0&&lines.every(line=>{try{JSON.parse(line);return true}catch{return false}}))
+        return{kind:'jsonl',why:'every line parses as its own JSON value'};
+      if(converterLooksDelimited(text,'\t'))return{kind:'tsv',why:'every line holds the same number of tab-separated fields'};
+      if(converterLooksDelimited(text,','))return{kind:'csv',why:'every line holds the same number of comma-separated fields'};
+    }
+    if(/\.(md|markdown)$/i.test(String(name||'')))
+      return{kind:'markdown',why:'the name ends in .md, which is a hint from the name rather than anything in the bytes'};
+    return{kind:'text',why:'the bytes decode as UTF-8 and match no structured shape'};
+  }
+
+  /**
+   * Everything known about one chosen file, before any conversion is asked for.
+   * `rows` is present only when the file genuinely holds a table.
+   */
+  function converterInspect(name,bytes){
+    const size=bytes.length;
+    if(size>CONVERTER_MAX_BYTES)
+      return{name,size,kind:'over-bound',why:`this file is ${size} bytes and the per-file bound is ${CONVERTER_MAX_BYTES} bytes`,readable:false};
+    const signature=converterSignature(bytes);
+    if(signature)
+      return{name,size,kind:signature.kind,why:`the first bytes are ${signature.signature}`,readable:true,binary:true};
+    const decoded=converterDecodeUtf8(bytes);
+    if(!decoded.ok)return{name,size,kind:'binary',why:decoded.reason,readable:true,binary:true};
+    if(decoded.text.includes('\u0000'))
+      return{name,size,kind:'binary',why:'the bytes decode as UTF-8 but hold a NUL, so this is not text',readable:true,binary:true};
+    const classified=converterClassifyText(decoded.text,name);
+    const inspected={name,size,kind:classified.kind,why:classified.why,readable:true,binary:false,text:decoded.text};
+    const rows=converterRowsFor(classified.kind,decoded.text);
+    if(rows.ok)inspected.rows=rows.rows;
+    else inspected.rowsRefused=rows.reason;
+    return inspected;
+  }
+
+  /**
+   * The table inside a file, or the exact reason there is not one.
+   *
+   * An array of scalars is refused on purpose: a table needs named columns, and
+   * inventing one to hold the values would be this page making up a heading.
+   */
+  function converterRowsFor(kind,text){
+    const isPlainRow=value=>typeof value==='object'&&value!==null&&!Array.isArray(value);
+    if(kind==='json'){
+      const parsed=JSON.parse(text.trim());
+      if(Array.isArray(parsed)){
+        if(parsed.length===0)return{ok:true,rows:[]};
+        if(parsed.every(isPlainRow))return{ok:true,rows:parsed};
+        return{ok:false,reason:'this JSON is an array whose entries are not all objects, so it has no named columns to become a table'};
+      }
+      if(isPlainRow(parsed))return{ok:true,rows:[parsed]};
+      return{ok:false,reason:'this JSON is a single scalar value, so it has no named columns to become a table'};
+    }
+    if(kind==='jsonl'){
+      const values=converterDelimitedLines(text).filter(line=>line.trim()!=='').map(line=>JSON.parse(line));
+      if(values.every(isPlainRow))return{ok:true,rows:values};
+      return{ok:false,reason:'at least one line is not a JSON object, so these lines have no named columns to become a table'};
+    }
+    if(kind==='csv'||kind==='tsv'){
+      const delimiter=kind==='tsv'?'\t':',';
+      const lines=converterDelimitedLines(text);
+      const header=converterSplitDelimited(lines[0],delimiter);
+      const duplicate=header.find((column,index)=>header.indexOf(column)!==index);
+      if(duplicate!==undefined)return{ok:false,reason:`the first line repeats the column name "${duplicate}", so a row read from it would lose one of them`};
+      const rows=lines.slice(1).map(line=>{
+        const fields=converterSplitDelimited(line,delimiter),row={};
+        header.forEach((column,index)=>{row[column]=fields[index]??''});
+        return row;
+      });
+      return{ok:true,rows};
+    }
+    return{ok:false,reason:`a ${kind} file holds no table`};
+  }
+
+  /** Base64 of the raw bytes, chunked so a large file cannot exhaust the argument list. */
+  function converterBase64(bytes){
+    let binary='';
+    for(let i=0;i<bytes.length;i+=0x8000)binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));
+    return btoa(binary);
+  }
+
+  /**
+   * Whether this file can become this target, and if not, exactly why.
+   * Nothing here converts; this is what the Convert button reads to decide
+   * whether it is switched on and what its adjacent text says.
+   */
+  function converterCan(inspected,target){
+    if(!CONVERTER_TARGETS.includes(target))return{ok:false,reason:`${target} is not one of the targets this page writes`};
+    if(!inspected.readable)return{ok:false,reason:inspected.why};
+    if(target==='base64')return{ok:true};
+    if(inspected.binary)return{ok:false,reason:`this file is ${inspected.kind}, and no ${inspected.kind} decoder is bundled, so Base64 is the only target that keeps its bytes honestly`};
+    if(target==='txt')return{ok:true};
+    if(!inspected.rows)return{ok:false,reason:inspected.rowsRefused||`a ${inspected.kind} file holds no table, and ${CONVERTER_TARGET_LABEL[target]} writes a table`};
+    if((target==='csv'||target==='tsv')&&!suitableFormats(inspected.rows).includes(target))
+      return{ok:false,reason:`${CONVERTER_TARGET_LABEL[target]} cannot represent this table: ${describeLoss(inspected.rows,target).join(' ')}`};
+    return{ok:true};
+  }
+
+  /**
+   * What this conversion would lose, said before it runs.
+   * Row-shaped targets defer to describeLoss(), so the converter and the export
+   * pipeline cannot disagree about the same table and the same format.
+   */
+  function converterLoss(inspected,target){
+    if(!inspected.readable)return[inspected.why];
+    if(target==='base64')return['Base64 keeps every byte exactly and makes the output about a third larger. The file name, its timestamp and its permissions are not part of the output.'];
+    if(inspected.binary)return[`No ${inspected.kind} decoder is bundled, so this file cannot become ${CONVERTER_TARGET_LABEL[target]}.`];
+    if(target==='txt')return['Nothing is lost: the decoded UTF-8 text is written back unchanged, including its original line endings.'];
+    if(!inspected.rows)return[inspected.rowsRefused||`A ${inspected.kind} file holds no table.`];
+    const loss=describeLoss(inspected.rows,target);
+    if(target==='csv'||target==='tsv')loss.push('Every value is written as text, so a number and the text of that number become the same field.');
+    return loss.length>0?loss:['Nothing is lost: this table can be represented in full.'];
+  }
+
+  /** Run the conversion. Returns the output text, or the reason there is none. */
+  function converterConvert(inspected,target,bytes){
+    const can=converterCan(inspected,target);
+    if(!can.ok)return{ok:false,reason:can.reason};
+    if(target==='base64')return{ok:true,text:converterBase64(bytes)};
+    if(target==='txt')return{ok:true,text:inspected.text};
+    return{ok:true,text:exportRows({rows:inspected.rows,format:target,table:'row'})};
+  }
+
+  /** The output name, keeping the original stem and never a path separator. */
+  function converterOutputName(name,target){
+    const stem=String(name).replace(/\.[^./\\]*$/,'').replace(/[/\\]/g,'-').trim();
+    return `${stem===''?'converted':stem}.${CONVERTER_TARGET_EXTENSION[target]}`;
+  }
+
+  // ============================================================================
   // Selection and bulk-operation model — ported from app/renderer/src/bulk.ts.
   // ============================================================================
   function bulkClick(state,id,modifiers,ordered){
@@ -869,6 +1142,17 @@
       '設定已經重設。',
       '重設完成，返晒去原廠設定。',
       '人生都有 Ctrl-Z：返番去出廠設定。'
+    ]},
+    notifConverted:{en:[
+      'Conversion finished',
+      'Conversion finished.',
+      'Conversion done — counts below.',
+      'Converted, and every file that did not make it says why.'
+    ],zh:[
+      '轉換完成',
+      '轉換已經完成。',
+      '轉換搞掂，下面有數。',
+      '轉換完成，唔得嘅每個都寫低咗點解。'
     ]},
     notifRegexApplied:{en:[
       'Regular expression applied',
@@ -3111,7 +3395,7 @@
   }
   function cancelLongPress(){if(longPress.timer){clearTimeout(longPress.timer);longPress.timer=null}}
 
-  function renderPalette(query=''){const list=$('palette-results');if(!list)return;const pages=[['Home','index.html'],['Product','product.html'],['Documentation','documentation.html'],['Downloads','downloads.html'],['Status','status.html'],['Settings','settings.html']],items=[...pages,...DESTINATIONS.map(item=>[item.name,`documentation.html#destination-${item.id}`])].filter(([name])=>matchText(name,query,'palette-search'));list.innerHTML=items.length?items.map(([name,path])=>`<a class="palette-result" role="option" href="${BASE}${path}"><strong>${escapeHtml(name)}</strong><span>Open destination</span></a>`).join(''):'<p>No matching commands.</p>'}
+  function renderPalette(query=''){const list=$('palette-results');if(!list)return;const pages=[['Home','index.html'],['Product','product.html'],['Documentation','documentation.html'],['Converter','converter.html'],['Downloads','downloads.html'],['Status','status.html'],['Settings','settings.html']],items=[...pages,...DESTINATIONS.map(item=>[item.name,`documentation.html#destination-${item.id}`])].filter(([name])=>matchText(name,query,'palette-search'));list.innerHTML=items.length?items.map(([name,path])=>`<a class="palette-result" role="option" href="${BASE}${path}"><strong>${escapeHtml(name)}</strong><span>Open destination</span></a>`).join(''):'<p>No matching commands.</p>'}
   function openPalette(){const dialog=$('command-palette');if(!dialog)return;dialog.showModal();$('palette-search').value='';renderPalette();applyVocabulary();setTimeout(()=>$('palette-search').focus(),0)}
   let notifSeq=0;
   // `narration` is the words to speak, per language, and is deliberately a separate
@@ -4730,6 +5014,209 @@
   function reduceMotion(){return matchMedia('(prefers-reduced-motion: reduce)').matches||state.lowMotion}
 
 
+  // ------------------------------------------------------------------
+  // The converter page.
+  //
+  // Everything that decides lives in the engine block above and takes values a
+  // caller supplies; this half does nothing but read controls, call it, and put
+  // the answer on the page. Two properties are worth stating because the page
+  // asserts them in words:
+  //
+  //   - Nothing is uploaded. Every byte is read through the File object the
+  //     picker hands over and never leaves this browser, so there is no request
+  //     to fail and no server to be down.
+  //   - No conversion happens until somebody presses Convert. A file that is
+  //     merely chosen is inspected and described; the lossy part waits for the
+  //     person who would lose something by it.
+  // ------------------------------------------------------------------
+  let converterItems=[];
+  let converterPage=0;
+  let converterSeq=0;
+  let converterRunning=false;
+  let converterCancelRequested=false;
+
+  function converterTarget(){return $('converter-target-format')?.value||'json'}
+  function converterPageCount(){return Math.max(1,Math.ceil(converterItems.length/CONVERTER_PAGE_SIZE))}
+  function converterPageItems(){const start=converterPage*CONVERTER_PAGE_SIZE;return converterItems.slice(start,start+CONVERTER_PAGE_SIZE)}
+  function converterItemById(id){return converterItems.find(item=>item.id===id)}
+
+  /**
+   * The catalogue, filtered by its own search field.
+   *
+   * An unavailable adapter is listed with its reason rather than removed, and
+   * the count beneath says how many the search is hiding, so a short list is
+   * never mistaken for a short catalogue.
+   */
+  function renderConverterAdapters(){
+    const host=$('converter-adapters');if(!host)return;
+    const query=$('converter-format-search')?.value||'';
+    let shown=0,hidden=0;
+    const sections=[];
+    for(const category of CONVERTER_CATEGORIES){
+      const matched=category.adapters.filter(adapter=>matchText(
+        `${category.label} ${adapter.label} ${adapter.bundled?`bundled ${(adapter.writes||[]).map(target=>CONVERTER_TARGET_LABEL[target]).join(' ')}`:`unavailable ${adapter.unavailable}`}`,
+        query,'converter-format-search'));
+      shown+=matched.length;hidden+=category.adapters.length-matched.length;
+      if(matched.length===0)continue;
+      sections.push(`<section class="adapter-category"><h3>${escapeHtml(category.label)}</h3><ul>${matched.map(adapter=>`<li class="adapter-entry${adapter.bundled?'':' is-unavailable'}"><span class="adapter-name">${escapeHtml(adapter.label)}</span><span class="status-chip ${adapter.bundled?'ok-chip':'warning-chip'}">${adapter.bundled?'Bundled':'Unavailable'}</span><p>${adapter.bundled?`Writes ${escapeHtml((adapter.writes||[]).map(target=>CONVERTER_TARGET_LABEL[target]).join(', '))}.`:escapeHtml(adapter.unavailable)}</p></li>`).join('')}</ul></section>`);
+    }
+    host.innerHTML=sections.length?sections.join(''):'<p class="empty-state">No category or format matches this search. Clear the search to see the whole catalogue again.</p>';
+    const status=$('converter-format-status');
+    if(status)status.textContent=`${shown} of ${shown+hidden} formats listed${hidden>0?`, ${hidden} hidden by this search`:''}. ${converterRunning?'Cancel stops the batch before the next file.':'Cancel is switched off because no conversion is running.'}`;
+    const cancel=$('converter-cancel');
+    if(cancel)cancel.disabled=!converterRunning;
+  }
+
+  /**
+   * The one writer of the picker's status line.
+   *
+   * The claim it carries -- that every byte was read here and nothing was uploaded --
+   * is the only thing on this page a reader cannot check for themselves, so it lives
+   * in exactly one place and travels with every rewrite of the line rather than being
+   * copied into each caller and quietly lost from one of them.
+   */
+  function converterInputStatus(extra){
+    const node=$('converter-input-status');if(!node)return;
+    node.textContent=`${converterItems.length} file${converterItems.length===1?'':'s'} in the queue. Every byte was read in this browser and nothing was uploaded.${extra?` ${extra}`:''}`;
+  }
+  /** Read the chosen files here in the browser, and say what was refused. */
+  async function converterAddFiles(fileList){
+    const files=[...(fileList||[])];
+    if(files.length===0)return;
+    const refused=[];
+    for(const file of files){
+      if(file.size>CONVERTER_MAX_BYTES){refused.push(`${file.name} is ${file.size} bytes, over the ${CONVERTER_MAX_BYTES}-byte per-file bound`);continue}
+      let bytes;
+      try{bytes=new Uint8Array(await file.arrayBuffer())}
+      catch(error){refused.push(`${file.name} could not be read: ${String(error&&error.message||'the browser refused it')}`);continue}
+      converterSeq+=1;
+      converterItems.push({id:`c${converterSeq}`,name:file.name,bytes,inspected:converterInspect(file.name,bytes),state:'queued',reason:'',output:'',outputName:''});
+    }
+    converterPage=0;
+    renderConverterQueue();
+    updateConverterLoss();
+    converterInputStatus(refused.length>0?`${refused.length} refused: ${refused.join('; ')}.`:'');
+  }
+
+  /** One queue row: what the file is, what it can become, and what it became. */
+  function converterItemMarkup(item,target){
+    const can=converterCan(item.inspected,target);
+    const stateLabel={queued:'Queued',converted:'Converted',skipped:'Skipped',failed:'Failed',cancelled:'Cancelled'}[item.state]||item.state;
+    const stateChip=item.state==='converted'?'ok-chip':item.state==='queued'?'warning-chip':'warning-chip';
+    const reason=item.reason||(can.ok?'':can.reason);
+    return `<article class="converter-item" data-item="${escapeHtml(item.id)}">`
+      +`<div class="converter-item-head"><strong>${escapeHtml(item.name)}</strong><span class="status-chip ${stateChip}">${escapeHtml(stateLabel)}</span></div>`
+      +`<p class="converter-item-facts">${item.inspected.size} bytes · read as <strong>${escapeHtml(item.inspected.kind)}</strong> because ${escapeHtml(item.inspected.why)}.</p>`
+      +(reason?`<p class="converter-item-reason">${escapeHtml(reason)}</p>`:'')
+      +`<div class="converter-item-actions">`
+      +`<button type="button" class="secondary-button" data-convert="${escapeHtml(item.id)}"${can.ok?'':' disabled'}>Convert to ${escapeHtml(CONVERTER_TARGET_LABEL[target])}</button>`
+      +(item.state==='converted'?`<button type="button" class="text-button" data-download="${escapeHtml(item.id)}">Download ${escapeHtml(item.outputName)}</button>`:'')
+      +`<button type="button" class="text-button" data-remove="${escapeHtml(item.id)}">Remove from queue</button>`
+      +`</div>`
+      +(item.state==='converted'?`<pre class="converter-preview">${escapeHtml(item.output.slice(0,600))}${item.output.length>600?'\n…':''}</pre>`:'')
+      +`</article>`;
+  }
+
+  function renderConverterQueue(){
+    const host=$('converter-queue');if(!host)return;
+    if(converterPage>converterPageCount()-1)converterPage=converterPageCount()-1;
+    const target=converterTarget();
+    const items=converterPageItems();
+    host.innerHTML=items.length>0
+      ?items.map(item=>converterItemMarkup(item,target)).join('')
+      :'<p class="empty-state">No file has been chosen yet. Nothing is read, and nothing is converted, until you choose one.</p>';
+    const first=converterPage*CONVERTER_PAGE_SIZE;
+    const status=$('converter-page-status');
+    if(status)status.textContent=converterItems.length===0
+      ?'The queue is empty, so both page buttons are switched off.'
+      :`Showing ${first+1}-${Math.min(first+CONVERTER_PAGE_SIZE,converterItems.length)} of ${converterItems.length}.${converterPage===0?' Previous is switched off because this is the first page.':''}${converterPage>=converterPageCount()-1?' Next is switched off because this is the last page.':''}`;
+    if($('converter-prev'))$('converter-prev').disabled=converterPage===0;
+    if($('converter-next'))$('converter-next').disabled=converterPage>=converterPageCount()-1;
+    const listed=$('converter-convert-listed');
+    if(listed){
+      const convertible=items.filter(item=>converterCan(item.inspected,target).ok).length;
+      listed.disabled=converterRunning||convertible===0;
+      listed.textContent=`Convert the ${convertible} convertible file${convertible===1?'':'s'} listed here`;
+    }
+  }
+
+  /** Everything the current page of the queue would lose, said before Convert. */
+  function updateConverterLoss(){
+    const node=$('converter-loss');if(!node)return;
+    const target=converterTarget();
+    const items=converterPageItems();
+    node.textContent=items.length===0
+      ?'Select a file to see conversion limits and loss disclosure.'
+      :items.map(item=>`${item.name} → ${CONVERTER_TARGET_LABEL[target]}: ${converterLoss(item.inspected,target).join(' ')}`).join(' ');
+  }
+
+  function converterConvertItem(item){
+    const target=converterTarget();
+    const result=converterConvert(item.inspected,target,item.bytes);
+    if(!result.ok){item.state='skipped';item.reason=result.reason;item.output='';item.outputName='';return false}
+    item.state='converted';item.reason='';item.output=result.text;item.outputName=converterOutputName(item.name,target);
+    return true;
+  }
+
+  /**
+   * Convert the files listed on this page, one at a time, checking for a cancel
+   * between each. A cancelled file is left saying so rather than silently
+   * staying queued, and the count reported at the end distinguishes all three
+   * outcomes instead of calling the batch a success.
+   */
+  async function converterConvertListed(){
+    if(converterRunning)return;
+    converterRunning=true;converterCancelRequested=false;
+    renderConverterAdapters();renderConverterQueue();
+    let converted=0,skipped=0,cancelled=0;
+    for(const item of converterPageItems()){
+      if(converterCancelRequested){item.state='cancelled';item.reason='the batch was cancelled before this file was reached';item.output='';cancelled+=1;continue}
+      if(converterConvertItem(item))converted+=1;else skipped+=1;
+      await new Promise(resolve=>setTimeout(resolve,0));
+    }
+    converterRunning=false;converterCancelRequested=false;
+    renderConverterAdapters();renderConverterQueue();updateConverterLoss();
+    const summary=`${converted} converted, ${skipped} skipped, ${cancelled} cancelled.`;
+    recordHistory('files-converted',`Converted files to ${CONVERTER_TARGET_LABEL[converterTarget()]}: ${summary}`);
+    notify(copyText('notifConverted'),applyVocabularyText(summary),{category:'export',copyKey:'notifConverted'});
+  }
+
+  function initConverter(){
+    if(!$('converter-files'))return;
+    $('converter-files').addEventListener('change',event=>{const chosen=event.target.files;event.target.value='';converterAddFiles(chosen)});
+    $('converter-target-format')?.addEventListener('change',()=>{
+      for(const item of converterItems){if(item.state!=='queued'){item.state='queued';item.reason='';item.output='';item.outputName=''}}
+      renderConverterQueue();updateConverterLoss();
+    });
+    $('converter-format-search')?.addEventListener('input',renderConverterAdapters);
+    $('converter-cancel')?.addEventListener('click',()=>{if(converterRunning)converterCancelRequested=true});
+    $('converter-convert-listed')?.addEventListener('click',converterConvertListed);
+    $('converter-prev')?.addEventListener('click',()=>{if(converterPage===0)return;converterPage-=1;renderConverterQueue();updateConverterLoss()});
+    $('converter-next')?.addEventListener('click',()=>{if(converterPage>=converterPageCount()-1)return;converterPage+=1;renderConverterQueue();updateConverterLoss()});
+    $('converter-queue')?.addEventListener('click',event=>{
+      const button=event.target.closest('[data-convert],[data-download],[data-remove]');
+      if(!button)return;
+      if(button.dataset.convert!==undefined){
+        const item=converterItemById(button.dataset.convert);
+        if(!item)return;
+        converterConvertItem(item);renderConverterQueue();updateConverterLoss();
+        return;
+      }
+      if(button.dataset.download!==undefined){
+        const item=converterItemById(button.dataset.download);
+        if(!item||item.state!=='converted')return;
+        download(item.outputName,item.output,'text/plain;charset=utf-8');
+        return;
+      }
+      const item=converterItemById(button.dataset.remove);
+      if(!item)return;
+      converterItems=converterItems.filter(entry=>entry.id!==item.id);
+      renderConverterQueue();updateConverterLoss();
+      converterInputStatus('');
+    });
+    renderConverterAdapters();renderConverterQueue();updateConverterLoss();
+  }
+
   function initHeroCanvas(){
     const canvas=$('hero-canvas');if(!canvas||!canvas.getContext)return;
     const ctx=canvas.getContext('2d');
@@ -5137,6 +5624,6 @@
     sync();
   }
 
-  function init(){ensureAttentionUI();initSchoolWatch();ensureContextMenuUI();applyState();initContextMenu();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initUpdates();initExportEverything();initTimeAwareness();initMomentum();initAuthenticator();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
+  function init(){ensureAttentionUI();initSchoolWatch();ensureContextMenuUI();applyState();initContextMenu();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initUpdates();initExportEverything();initTimeAwareness();initMomentum();initAuthenticator();initConverter();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
   init();
 })();

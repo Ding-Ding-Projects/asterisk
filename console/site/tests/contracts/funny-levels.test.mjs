@@ -65,7 +65,15 @@ function copyTable() {
 
 test('the COPY table defines a genuine four-level voice for both languages, on every key', () => {
   const table = copyTable();
-  /* Last moved on 2026-08-26, 19 -> 20, when in-context recovery landed with a
+  /* Last moved on 2026-08-27, 21 -> 22, when the local file converter was wired to the
+   * page that had been shipping its controls inert. The new key is `notifConverted`,
+   * the notification raised when a batch finishes; it is reached through
+   * `copyText('notifConverted')` rather than from markup, like `recoveryLead` below,
+   * because the message only exists at the moment a batch ends. The counts it reports
+   * -- converted, skipped, cancelled -- deliberately sit in the notification BODY and
+   * not in this line, so no funny level can move a number.
+   *
+   * Before that, 19 -> 20, when in-context recovery landed with a
    * `recoveryLead` line. That key is the first one here that is rendered from a runtime
    * element rather than from any page's markup: a recovery region is built by app.js at
    * the moment a failure happens, so the hook lives in the code that creates it. It is
@@ -87,8 +95,8 @@ test('the COPY table defines a genuine four-level voice for both languages, on e
    * the feature they describe is switched on -- that mode forces English -- and they are
    * required all the same, because the card is read by somebody deciding whether to turn
    * it on, which is a state in which every language mode is still available. */
-  assert.equal(Object.keys(table).length, 21,
-    `expected exactly 21 COPY keys, found ${Object.keys(table).length} -- update this pin if a message was deliberately added or removed`);
+  assert.equal(Object.keys(table).length, 22,
+    `expected exactly 22 COPY keys, found ${Object.keys(table).length} -- update this pin if a message was deliberately added or removed`);
   for (const [key, counts] of Object.entries(table)) {
     assert.equal(counts.enCount, 4, `${key}: expected 4 English funny-level variants (Plain/Mild/Playful/Maximum), found ${counts.enCount}`);
     assert.equal(counts.zhCount, 4, `${key}: expected 4 Cantonese funny-level variants, found ${counts.zhCount}`);
