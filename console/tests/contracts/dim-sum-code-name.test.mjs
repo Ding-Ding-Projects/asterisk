@@ -31,9 +31,10 @@ const CATALOGUE = [
 
 /** Serves the fixture catalogue, and answers HEAD for every photo except a named one. */
 const withServer = async (missing, body) => {
+  const missingAssets = new Set(Array.isArray(missing) ? missing : [missing]);
   const server = createServer((req, res) => {
     if (req.url === '/catalog.json') { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify(CATALOGUE)); return; }
-    if (req.url.endsWith(`/${missing}`)) { res.writeHead(404); res.end(); return; }
+    if ([...missingAssets].some((asset) => req.url.endsWith(`/${asset}`))) { res.writeHead(404); res.end(); return; }
     res.writeHead(200, { 'content-length': '2406444' }); res.end();
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -87,6 +88,34 @@ test('walks past a dish whose photo was never published', async () => {
     const out = await runScript({ DING_PBX_DIM_SUM_CATALOG: `${base}/catalog.json`, DING_PBX_DIM_SUM_DOWNLOAD_BASE: base });
     assert.equal(out.resolved, true);
     assert.equal(out.id, 'hk-dish-0002');
+  });
+});
+
+test('skips both a spent dish and an unpublished dish before selecting a published unused record', async () => {
+  await withServer('b.png', async (base) => {
+    const dir = mkdtempSync(join(tmpdir(), 'dimsum-'));
+    const used = join(dir, 'used.txt');
+    writeFileSync(used, 'release one took hk-dish-0001\n');
+    const out = await runScript(
+      { DING_PBX_DIM_SUM_CATALOG: `${base}/catalog.json`, DING_PBX_DIM_SUM_DOWNLOAD_BASE: base },
+      ['--used-from', used],
+    );
+    assert.equal(out.resolved, true);
+    assert.equal(out.id, 'hk-dish-0003');
+    assert.equal(out.codeName, 'Char Siu Bao · 叉燒包');
+    assert.equal(out.spentBefore, 1, 'the prior-release ledger is read once before selection');
+  });
+});
+
+test('photo exhaustion stays non-fatal and does not substitute a legacy local copy', async () => {
+  await withServer(['a.png', 'b.png', 'c.png'], async (base) => {
+    const out = await runScript({
+      DING_PBX_DIM_SUM_CATALOG: `${base}/catalog.json`,
+      DING_PBX_DIM_SUM_DOWNLOAD_BASE: base,
+    });
+    assert.equal(out.resolved, false);
+    assert.match(out.reason, /no published photo/);
+    assert.equal(Object.hasOwn(out, 'asset'), false, 'no local or legacy photo fallback is allowed');
   });
 });
 

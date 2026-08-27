@@ -30,6 +30,6 @@ test('no support-ticket surface exists anywhere in the published markup or app.j
 });
 
 test('the registry records support-tickets as absent, and the code agrees', () => {
-  assert.equal(registry.features['support-tickets'].state, 'absent',
+  assert.equal(registry.features['support-tickets'].status, 'absent',
     'no Support Tickets surface exists on the site -- "absent" is the honest state');
 });

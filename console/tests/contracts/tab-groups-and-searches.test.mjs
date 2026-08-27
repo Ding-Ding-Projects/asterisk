@@ -33,19 +33,20 @@ const json = (p) => JSON.parse(read(p));
 
 const GENERATED = 'app/renderer/src/generated/console.tsx';
 
-test('the registry row is internally honest: a defined state with a note explaining what is and is not wired', () => {
+test('the registry row is internally honest: it records the real generated implementation instead of calling it absent', () => {
   const registry = json('app/feature-registry.json');
   const row = registry.features['tab-groups-and-searches'];
   assert.ok(row, 'the implementation registry has no row for tab-groups-and-searches');
-  assert.ok(['implemented', 'partial', 'absent'].includes(row.state), `undefined state "${row.state}"`);
-  assert.ok(typeof row.note === 'string' && row.note.length > 40, 'no note explaining what is and is not wired');
+  assert.ok(['implemented-unverified', 'partial', 'absent'].includes(row.status), `undefined status "${row.status}"`);
+  assert.ok(row.implementation.symbols.some((symbol) => symbol.path === 'app/renderer/src/generated/console.tsx'), 'the generated tab surface is missing from the registry implementation symbols');
+  assert.doesNotMatch(row.note, /^No implementation is recorded/u, 'the registry contradicts the generated tab controls');
 });
 
 test('tab groups are real: rename, ungroup, and per-group colour all exist as wired context-menu commands', () => {
   const src = read(GENERATED);
   assert.match(src, /\{ icon:'edit', label:'Rename group…', hint:'F2', run:\(\) => \{ close\(\); this\.setState\(\{ renameOpen:true, renameKey:'group:' \+ g\.id, renameValue:g\.name \}\); \} \}/u,
     'Rename group… no longer matches the expected wired command');
-  assert.match(src, /\{ icon:'link_off', label:'Ungroup', hint:'', run:\(\) => \{ close\(\); this\.setState\(\{ groups:s\.groups\.filter\(x => x\.id !== g\.id\) \}\); this\.toast\('Group dissolved — tabs kept'\); \} \}/u,
+  assert.match(src, /\{ icon:'link_off', label:'Ungroup', hint:'', run:\(\) => \{ close\(\); this\.setState\(\{ groups:s\.groups\.filter\(x => x\.id !== g\.id\) \}\); this\.toastWithId\('event-generated-event-source-\d+-toast-0', 'Group dissolved — tabs kept'\); \} \}/u,
     'Ungroup no longer matches the expected wired command');
 });
 
@@ -55,19 +56,16 @@ test('pinning is real: pin/unpin, "Pin whole group", and "All unpinned" all muta
   assert.match(src, /\{ icon:'push_pin', label:'Pin whole group', run:\(\) => \{ close\(\); this\.set\('pinned', s\.pinned\.concat\(g\.tabs\)\); \} \}/u, '"Pin whole group" no longer matches');
 });
 
-test('the one existing filter is a bulk CLOSE action (three modes), not a find/reveal search', () => {
+test('tab discovery implements current-strip, per-group, group-name, and master searches without repurposing bulk close', () => {
   const src = read(GENERATED);
   assert.match(src, /tabFilterTitle:s\.tabFilterMode === 'not' \? 'Close tabs NOT containing…' : \(s\.tabFilterMode === 'colour' \? 'Close tabs by colour' : 'Close tabs containing…'\),/u,
     'the tab filter titles no longer match the expected three close modes');
   assert.match(src, /applyTabFilter:\(\) => \{/u, 'applyTabFilter no longer exists');
-  assert.doesNotMatch(src, /revealTab|focusTab|jumpToTab|findTab/iu,
-    'a find/reveal-shaped tab action now exists -- the "close-only, no find" gap may have been closed');
-});
-
-test('there is no dedicated group-name search, in-group search, or master cross-window search', () => {
-  const src = read(GENERATED);
-  assert.doesNotMatch(src, /groupSearch|searchGroups|masterTabSearch|crossWindowSearch/iu,
-    'a dedicated group-name, in-group, or master tab search now exists -- update this row');
+  for (const symbol of ['stripTabSearch', 'groupTabSearch', 'groupNameSearch', 'masterTabSearch']) {
+    assert.match(src, new RegExp(`\\b${symbol}\\b`, 'u'), `${symbol} is missing`);
+  }
+  assert.match(src, /tabSearchRevealTab|activateTabSearch/u,
+    'a tab search must reveal and focus its match rather than only deleting tabs');
 });
 
 test('"Wrap in group" is a regex-builder action on the current pattern, unrelated to tab groups -- the naming coincidence does not extend to behaviour', () => {

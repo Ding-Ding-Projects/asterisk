@@ -13,6 +13,7 @@ import {
   outline,
   resolveLink,
   search,
+  searchBounded,
   suggested,
 } from '../../app/renderer/src/docs-browser.ts';
 import type { DocsArticle, DocsBundle } from '../../app/renderer/src/generated/docs-bundle.ts';
@@ -90,26 +91,36 @@ test('the excerpt contains the match', () => {
   assert.equal(hit.excerpt.toLowerCase().includes('narrator voice'), true);
 });
 
-test('regex search is opt-in only', () => {
+test('regex search is opt-in only and uses the bounded asynchronous evaluator', async () => {
   const b = bundle([article({ id: 'a', category: 'app', title: 'foo123bar', body: 'no match here' })]);
   const plain = search(b, 'foo\\d+bar');
   assert.equal(plain.matches.length, 0);
-  const regex = search(b, 'foo\\d+bar', { regex: true });
-  assert.equal(regex.ok, true);
-  assert.equal(regex.matches.length, 1);
+  const regex = await searchBounded(b, 'foo\\d+bar', { regex: true });
+  // Node has no browser Worker. The worker-only API must fail closed here rather
+  // than evaluating a user pattern on this test process's main thread.
+  assert.equal(regex.ok, false);
+  assert.match(regex.error ?? '', /isolated regular-expression search is unavailable/iu);
 });
 
-test('an invalid regex is reported, not thrown', () => {
+test('an invalid regex is reported by the bounded evaluator, not thrown', async () => {
   const b = bundle([article({ id: 'a', category: 'app', title: 'Anything' })]);
-  const result = search(b, '(unclosed', { regex: true });
+  const result = await searchBounded(b, '(unclosed', { regex: true });
   assert.equal(result.ok, false);
   assert.ok(result.error);
   assert.deepEqual(result.matches, []);
 });
 
-test('search never throws on a hostile pattern', () => {
+test('bounded search never throws on a hostile pattern', async () => {
   const b = bundle([article({ id: 'a', category: 'app', title: 'a'.repeat(50), body: 'a'.repeat(5000) })]);
-  assert.doesNotThrow(() => search(b, '(a+)+$', { regex: true }));
+  await assert.doesNotReject(() => searchBounded(b, '(a+)+$', { regex: true }));
+});
+
+test('App routes regex documentation searches through the bounded API and drops stale worker replies', () => {
+  const app = readFileSync(join(consoleRoot, 'app', 'renderer', 'src', 'App.tsx'), 'utf8');
+  assert.match(app, /docsSearchBounded\(DOCS_BUNDLE, query, \{ regex: true, flags, signal: abort\.signal \}\)/u);
+  assert.match(app, /generation !== this\.docsSearchGeneration \|\| abort\.signal\.aborted/u);
+  assert.match(app, /setDocsQuery: this\.updateDocsQuery/u);
+  assert.match(app, /toggleDocsRegex: this\.toggleDocsRegex/u);
 });
 
 test('empty query returns no matches without error', () => {

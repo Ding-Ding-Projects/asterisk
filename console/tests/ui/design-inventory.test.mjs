@@ -23,6 +23,27 @@ function validateInventory(inventory) {
   });
 }
 
+const expectedPreloadSections = [
+  'platform', 'window', 'dialog', 'controlPlane', 'school', 'provisioning', 'accessibility', 'editors',
+  'localData', 'deepLink', 'statusHub', 'nativeHost', 'downloads', 'converter', 'updater',
+];
+
+function topLevelPreloadSections(preload) {
+  return [...preload.matchAll(/^  ([A-Za-z][A-Za-z0-9]*):/gm)].map(([, section]) => section);
+}
+
+function validateRuntimePreloadBoundary(preload, typedPreload) {
+  assert.deepEqual(topLevelPreloadSections(preload), expectedPreloadSections, 'runtime preload section inventory drifted');
+  assert.deepEqual(topLevelPreloadSections(typedPreload), expectedPreloadSections, 'typed preload section inventory drifted');
+  for (const member of [
+    'setTitle:', 'provisioning: Object.freeze({', 'accessibility: Object.freeze({', 'editors: Object.freeze({', 'localData: Object.freeze({', 'deepLink: Object.freeze({',
+    "'provision:step'", "'accessibility:changed'", "'editors:detect'", "'local-data:path'", "'deep-link:destination'",
+  ]) assert.ok(preload.includes(member), `runtime preload boundary missing exact member: ${member}`);
+  for (const forbidden of ['ipcRenderer.invoke.bind', 'ipcRenderer.on.bind', 'ipcRenderer.send.bind', "ipcRenderer.invoke('*'", "ipcRenderer.on('*'"]) {
+    assert.equal(preload.includes(forbidden), false, `runtime preload leaked an unbounded IPC capability: ${forbidden}`);
+  }
+}
+
 test('pins every authoritative design destination and audit count', async () => {
   validateInventory(JSON.parse(await read('design/inventory.json')));
 });
@@ -73,6 +94,7 @@ test('public source contains no runtime CDN or private source branding', async (
 
 test('preload exposes a typed, bounded control-plane boundary', async () => {
   const preload = await read('app/electron/preload.cjs');
+  const typedPreload = await read('app/electron/preload.ts');
   const main = await read('app/electron/main.ts');
   // The action dispatch itself moved to control-plane/dispatch.ts so the Electron main
   // process and the hosted HTTP server (server/http-server.ts) run the exact same
@@ -81,12 +103,32 @@ test('preload exposes a typed, bounded control-plane boundary', async () => {
   const dispatch = await read('control-plane/dispatch.ts');
   assert.match(preload, /contextBridge\.exposeInMainWorld\('dingDesktop', api\)/);
   assert.match(preload, /ipcRenderer\.invoke\('control-plane:request', request\)/);
+  assert.match(typedPreload, /const api: DingDesktopApi = \{/);
+  // The CJS preload is the runtime artifact configured by Electron. Keep this explicit list
+  // hand-written so a surface cannot disappear just because a discovery-only scan stopped seeing it.
+  validateRuntimePreloadBoundary(preload, typedPreload);
   assert.match(main, /createControlPlaneDispatcher/);
   assert.match(dispatch, /discoverWslDistributions/);
   assert.match(dispatch, /discoverLocalDocker\('ding-pbx-console'\)/);
   assert.match(dispatch, /TARGET_NOT_DISCOVERED/);
   assert.equal(main.includes('exec('), false);
-  assert.equal(main.includes('spawn('), false);
+  // The native-host broker is a named, validated executable. The exact call is allowed,
+  // while arbitrary renderer-to-main process launch APIs remain absent from the preload.
+  assert.match(main, /spawn\(nativeIngressConfig\.brokerPath, \['--listen', nativeIngressConfig\.pipeName\], \{ stdio: 'pipe', windowsHide: true \}\)/);
+  assert.equal((main.match(/\bspawn\(/g) ?? []).length, 1, 'Electron main must expose exactly one validated native-host launch');
   assert.equal(dispatch.includes('exec('), false);
-  assert.equal(dispatch.includes('spawn('), false);
+  assert.match(dispatch, /spawn\('wsl\.exe', \['-d', distribution, '--', 'cat', resource\], \{/);
+  assert.equal((dispatch.match(/\bspawn\(/g) ?? []).length, 1, 'control-plane dispatch must expose exactly one bounded WSL config read');
+});
+
+test('negative regression: a removed runtime preload capability turns the boundary check red', async () => {
+  const preload = await read('app/electron/preload.cjs');
+  const typedPreload = await read('app/electron/preload.ts');
+  assert.throws(() => validateRuntimePreloadBoundary(preload.replace('editors: Object.freeze({', 'editorsRemoved: Object.freeze({'), typedPreload));
+});
+
+test('negative regression: an added runtime preload capability turns the boundary check red', async () => {
+  const preload = await read('app/electron/preload.cjs');
+  const typedPreload = await read('app/electron/preload.ts');
+  assert.throws(() => validateRuntimePreloadBoundary(preload.replace('  updater:', '  fakeRuntimeEscape: Object.freeze({}),\n  updater:'), typedPreload));
 });

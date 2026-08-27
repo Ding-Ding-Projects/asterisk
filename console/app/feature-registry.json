@@ -1,416 +1,3570 @@
 {
   "surface": "windows-console",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "canonicalMatrix": "console/inventories/surface-completeness.json",
   "features": {
     "language-modes": {
-      "state": "partial",
-      "note": "Implemented 2026-08-23, replacing an \"absent\" row. The mechanism is app/renderer/src/text-boundary.ts, mounted as `h` in app/renderer/src/dc-runtime.tsx -- the element factory every compiled template is built from -- so all three modes (en/yue/both) reach the compiled renderer without any generated file being edited. The `lang_mode` control went into the design and recompiled byte-identically; App.tsx intercepts it in setVal, applies it live and persists it through durable storage, restoring it on mount. PARTIAL rather than implemented, and deliberately so: the catalog covers 187 of roughly 217 design labels, so 21 of the 44 canonical features still render English in every mode. See app/locales/feature-registry.json for the per-feature breakdown, which is recomputed from the catalog by tests/contracts/language-modes.test.mjs and cannot be edited into agreement. An untranslated string renders English rather than a placeholder.",
-      "files": [
-        "app/renderer/src/text-boundary.ts",
-        "app/renderer/src/locale-yue.ts",
-        "app/renderer/src/dc-runtime.tsx",
-        "app/renderer/src/App.tsx",
-        "app/locales/feature-registry.json",
-        "tests/ui/text-boundary.test.tsx",
-        "tests/contracts/language-modes.test.mjs"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/text-boundary.ts",
+            "name": "setLanguageMode",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/language-modes.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "funny-levels": {
-      "state": "implemented",
-      "note": "Implemented 2026-08-24 as app/renderer/src/funny-levels.ts with two sliders in the design (fun_level, fun_level_yue), persisted through App's setVal interception. PREVIOUSLY MISCLAIMED 'acted on through App': the module and its slider persistence were real, but renderMessage had no caller anywhere outside its own test file, so turning the dial changed a stored number and nothing a person could see. Fixed 2026-08-25 with app/renderer/src/message-styling.ts, which builds a Message from whatever raw copy a call site already produces (that raw text is the message's sole fact, so it survives every level by construction) and renders it through the real renderMessage. App.tsx wraps the shell's own fire/areYouSure/showInfo/toast -- the three real dialog and message-box surfaces it exposes -- so every one of them now renders through the styling pipeline rather than the bare call-site string. The same pass found and fixed a second, unrelated defect discovered while confirming the wiring: the design reused the control id fun_level for both this slider (range 1-5, default 5) and an unrelated legacy random-appearance-chaos dial (range 0-4, default 2, indexing a 5-entry lookup table), so setting the funny level to 5 drove the chaos dial one index past the end of its table, and setting the chaos dial to 1-4 silently overwrote the persisted funny-level setting through the same setVal interception. The chaos dial's id was renamed to chaos_level in design/, recompiled, and re-verified against the drift guard.",
-      "files": [
-        "app/renderer/src/funny-levels.ts",
-        "app/renderer/src/message-styling.ts",
-        "app/renderer/src/App.tsx",
-        "tests/ui/funny-levels.test.tsx",
-        "tests/ui/message-styling.test.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/funny-levels.ts",
+            "name": "setFunnyLevel",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/funny-levels.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "dialog-emojis": {
-      "state": "implemented",
-      "note": "Implemented 2026-08-23 as app/renderer/src/dialog-emojis.ts: a persisted toggle, off by default, decorating a dialog heading and body and nothing else. buildDialog enforces the boundary by shape rather than by everyone remembering it -- an emoji never reaches a button, an action label or an accessible name, because a screen reader announces an emoji by its Unicode description and a decorated accessible name is heard on every focus. Decoration does not stack on a re-render and an unrecognised stored value reads as off. Control dlg_emoji went into the design and came back through the compiler; App.tsx acts on it in the same setVal interception the language mode uses. PREVIOUSLY MISCLAIMED completeness: only the setter reached App.tsx, and buildDialog/emojisEnabled had no caller, so no dialog was ever decorated regardless of the switch. Fixed 2026-08-25 alongside funny-levels, through the same app/renderer/src/message-styling.ts seam: fire/areYouSure/showInfo now build their heading and body through buildDialog (classified by a best-effort DialogKind reader, or unconditionally 'question' for areYouSure's confirmation gates), and the gated toast wrapper decorates its single line with decorateDialogText. Every dialog surface the shell actually exposes is now covered.",
-      "files": [
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/dialog-emojis.ts",
-        "app/renderer/src/message-styling.ts",
-        "app/renderer/src/generated/console.tsx",
-        "tests/ui/dialog-emojis.test.tsx",
-        "tests/ui/message-styling.test.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/dialog-emojis.ts",
+            "name": "setEmojisEnabled",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/dialog-emojis.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "school-mode": {
-      "state": "partial",
-      "note": "CORRECTED 2026-08-25 in two directions at once. First, the stale claim: this note used to say the school-status control \"declares action:'school-status' which App does not answer yet, so the control is present and inert\" -- App.tsx line 1956 does answer it (`if (action === 'school-status') return this.schoolStatusLine;`), and schoolStatusLine is set from schoolModeActive() on mount (line 1052), so the control genuinely reports live state; it was never inert by the time that sentence was written, only stale. Second, the real gap the old note buried under that stale claim: school-mode.ts exports the visibility filter this feature is named for -- capabilityVisible(), filterVisibleCapabilities(), effectiveLanguageMode(), effectiveFunnyLevel(), HIDDEN_CAPABILITIES -- and none of them are imported by App.tsx. What App.tsx does import and genuinely wire is the switch itself: activateSchoolMode, deactivateSchoolMode, hasCredential, renameSchoolMode, schoolModeActive, schoolModeName, setCredential, all called from real control handlers, all covered by the credential-consumption design described below. So turning School mode on and off is real, renaming it is real, the credential gate is real -- but the mode's whole point per its own contract (\"forces plain English presentation and makes ... every optional or playful capability behave as though uninstalled\") never happens: schoolModeActive() is read only to build the status line, never to gate a language choice, a funny level, or any capability's visibility. Activating School mode currently changes nothing except what the status control says. Honest about being a presentation lock rather than a security boundary, including that deleting the shared local record resets it. 32 tests. NOTE: this lane also added five controls to the design and recompiled the renderer, which was outside the file boundary it was given; the edit inserted cleanly ahead of the Fun group and destroyed nothing, and the drift guard passes, so it is kept. The credential surface is a bound field plus app/renderer/src/credential-field.ts, which CONSUMES it: the secret is taken and the field blanked in the same step, so its life in component state is one call long. That matters because a bound control value is walked by exports, by the settings surfaces and by anything that dumps or screenshots state -- a secret merely sitting there has already left through several doors. The earlier draft used window.prompt, which Electron does not implement and which would have thrown at runtime with no unit test catching it. Turning the mode on needs nothing and turning it off needs the credential, so the two directions deliberately do not share a path. A rejected attempt never reveals whether a credential is even set, no message quotes what was typed, and every message uses the chosen name rather than the shipped one.",
-      "files": [
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/credential-field.ts",
-        "app/renderer/src/school-mode.ts",
-        "tests/ui/credential-field.test.tsx",
-        "tests/ui/school-mode.test.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/school-mode.ts",
+            "name": "activateSchoolMode",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/school-mode.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "narration": {
-      "state": "partial",
-      "note": "CORRECTED 2026-08-25 -- the previous note contradicted itself in one breath, saying both \"the module is never imported... so it never runs\" and, one sentence later, \"Wired 2026-08-24 with seven controls\" as though the feature spoke. Both halves were half true, which is exactly why leaving them stitched together was worse than picking one: App.tsx DOES import from narration.ts (line 52, defaultNarrationSettings/resolveVoiceStatus/DEFAULT_PITCH/DEFAULT_RATE/MIN_PITCH/MAX_PITCH/MIN_RATE/MAX_RATE) and genuinely wires seven controls -- persisted settings, per-language voice pickers that subscribe to late voice enumeration, rate/pitch bounds, and a status line naming what will actually speak versus what merely shows in the picker. All of that is real and runs in the mounted app (App extends into PbxAdminApp extends into PbxAdminIntegratedApp, the actual mounted root). What is not imported, anywhere outside narration.ts and its own test, is the exported `Narrator` class -- the queue, the per-category cooldown, and the speak() call that would make any of this settings machinery actually say a word. Turning narration on configures a narrator that is never built. partial, not implemented: the settings half is real; the speaking half does not exist in the running app.",
-      "files": [
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/narration.ts"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/narration.ts",
+            "name": "Narrator",
+            "kind": "class"
+          },
+          {
+            "path": "app/renderer/src/narration.ts",
+            "name": "resolveVoiceStatus",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/narration.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "scheduled-settings": {
-      "state": "partial",
-      "note": "CORRECTED 2026-08-25: everything the previous note claimed about the engine is real and independently confirmed -- app/renderer/src/scheduled-settings.ts validates rules (optional date/time windows, every-day or explicit weekdays, every problem reported at once, cross-midnight/equal-value/partial-input/empty-schedule semantics tested, 38 tests), and app/renderer/src/schedule-runner.ts genuinely computes what should be in force and applies it: App.tsx (line 1768) calls tick() on a timer, and its result.changes are pushed through this.baseSetVal (line 1772) -- the same path a manual edit takes, so a scheduled change really is validated, persisted and noticed exactly as claimed. The override-never-becomes-base property and the sch_status readout are real and wired (App.tsx line 1052 region, generated/console.tsx line 3385). What the note omitted entirely: the compiled design has exactly one control for this whole feature -- sch_status, a read-only text field. There is no date/time picker, no weekday selector, no way to create, edit, or delete a rule anywhere in the running application; scheduled-settings.ts also exports saveRules() to persist an authored rule set, and it has no caller anywhere in the app. The engine is real and would apply a rule the moment one exists, but no user of this build can ever create one -- the canonical contract's \"schedule editor uses native, keyboard-accessible date and time pickers\" does not exist in any form.",
-      "files": [
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/schedule-runner.ts",
-        "app/renderer/src/scheduled-settings.ts",
-        "tests/ui/schedule-runner.test.tsx",
-        "tests/ui/scheduled-settings.test.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/scheduled-settings.ts",
+            "name": "loadRules",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/scheduled-settings.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "external-settings-sources": {
-      "state": "implemented",
-      "note": "Implemented 2026-08-24 as app/renderer/src/external-settings-sources.ts: URL validation, response validation and the settings a response is permitted to change, for both an HTTPS API and a Home Assistant boolean entity. Written defensively because a settings value arriving over the network is an input from a system nobody here controls. HTTPS only except an explicitly bounded loopback development route, since http anywhere else sends the accompanying token in the clear; no credentials in the URL, because a URL reaches logs and error messages; redirects refused, since a redirect is the far end choosing a destination this console never validated; responses size-capped and JSON-parsed defensively; only allowlisted keys read, and only string values, because coercing a number would be this console deciding what a remote system meant. An answer carrying an older generation is dropped, so a slow reply from the previous poll cannot land after a fast one and flip a setting back with nothing to explain it. A Home Assistant \"off\" is an ordinary state rather than a failure. An unreachable source keeps the last known good values and says the person’s own settings are untouched underneath, because the one thing a remote source must never do is become the base.Wired end to end 2026-08-24. A person configures a source on the Settings sources group; App polls each one on its own timer through the settings.source.fetch action; the privileged process makes the request because it needs the token; the renderer decides what the answer may change; and the applied values go through baseSetVal, the same path a manual edit takes. A stored source is treated as untrusted input on the way back IN as well as out -- the file is hand-editable, and a source whose allowlist went missing would sit in the list looking configured while permitting anything a response offered, so it is dropped rather than loaded. One bad entry drops itself and not the list. A corrupt file yields no sources rather than throwing on mount, because losing the list is recoverable and failing to start is not. A source that has stopped working is named in the status with the reason and the time, since silently ceasing to track is the failure this feature exists to avoid.",
-      "files": [
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/external-settings-sources.ts",
-        "app/renderer/src/source-store.ts",
-        "control-plane/dispatch.ts",
-        "control-plane/settings-source-fetcher.ts",
-        "tests/control-plane/settings-source-dispatch.test.ts",
-        "tests/control-plane/settings-source-fetcher.test.ts",
-        "tests/ui/external-settings-sources.test.tsx",
-        "tests/ui/source-store.test.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/external-settings-sources.ts",
+            "name": "applyResponse",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/external-settings-sources.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "dim-sum-surprise": {
-      "state": "partial",
-      "note": "CORRECTED 2026-08-25: app/renderer/src/dim-sum-surprise.ts implements a real one-in-ten startup draw (non-blocking, focus-preserving, self-dismissing, suppressed during a first run/error path/update/mid-task flow/quiet hours), exactly one draw per launch with an exclusive probability boundary, both-language dish names with alt text, bundled local images never fetched over a URL, and a deliberate lack of an off switch (storedPreferenceIsIgnored() asserts that as a fact). Every one of those properties is real and tested. What is not real: nothing in the mounted application ever calls this module. A grep for its two exports (surpriseFor, storedPreferenceIsIgnored) across App.tsx, main.tsx, PbxAdminApp.tsx and PbxAdminIntegratedApp.tsx finds no reference outside dim-sum-surprise.ts and its own test -- unlike narration and dialog-emojis, which at least have their settings halves wired, this module has no caller of any kind. A launch of the built app therefore never draws a dish; the whole feature exists as tested, unreachable code.",
-      "files": [
-        "app/renderer/src/dim-sum-surprise.ts",
-        "tests/ui/dim-sum-surprise.test.tsx"
-      ],
-      "blockedBy": "BLOCKED ON A STARTUP CONSUMER. Nothing calls surpriseFor() anywhere the app boots -- not App.tsx's mount path, not main.tsx's boot(). Real consumption means the startup sequence calling surpriseFor() once per launch and rendering whatever it returns as a real non-blocking, self-dismissing surface; today it is never called at all, so the described suppression rules (first run, error path, update, quiet hours) never run either."
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/DimSumSurprise.tsx",
+            "name": "DimSumSurprise",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/dim-sum-surprise.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "regex-builder": {
-      "state": "partial",
-      "note": "A real regex-capable control is wired: App.tsx binds readings.regexMatchLabel() to a live regex-match count (App.tsx line 889, readings.ts lines 356-360), and the compiled console tab-close filter (generated/console.tsx applyTabFilter, near line 4459) evaluates typed text as new RegExp(q, \"i\") with a plain-text fallback. Neither is the full guided builder (literal/class/anchor/group construction, flags UI, capture-group display) the contract requires; it is a single pattern field with live match feedback.",
-      "files": [
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/readings.ts",
-        "app/renderer/src/generated/console.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "applyTabFilter",
+            "kind": "method"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/regex-builder.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "non-blocking-notifications": {
-      "state": "partial",
-      "note": "The compiled console (ConsoleShell, generated/console.tsx) implements this.fire()/this.toast() as the notification primitives, called extensively from App.tsx and the compiled UI itself. The toast now renders bottom-RIGHT (right:24px; bottom:24px, fixed 2026-08-26 -- it previously rendered bottom-CENTRE at left:50% with a re-centring transform, which was the wrong corner for the canonical contract). Stacking remains unbuilt: toastOpen/toastText are still single scalar state fields, so a second toast() while one is showing replaces it rather than queuing beside it -- undoToast's own logic (see undo-toast.ts) reverts \"the most recent commit\" whenever the single visible toast is the one that commit raised, and a real stack needs that identity threaded per-toast before more than one can be shown safely. The \"Notification centre\" screen (rail 'app', a Source/Message/When/State table, 'Mark all read', and a Delivery settings group) now has a real live consumer as of 2026-08-26: narratedFire and gatedToast, the two chokepoints every fire()/toast() call already passes through, each record into App.tsx's own notificationHistory, and applyRows renders that real history as the table's rows -- newest first, Source honestly reporting 'notice' or 'toast' rather than inventing a subsystem neither primitive actually tags. 'Mark all read' reaches a real handler through the same generic table-add dispatch onAddServer/onAddAclRule/onAddApiUser already use. nt_levels, nt_quiet and nt_keep remain unimplemented intentions: there is still no per-toast severity filter, no configured quiet-hours window, and history is capped by entry count rather than by nt_keep's configured day count.",
-      "files": [
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/generated/console.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "toast",
+            "kind": "method"
+          },
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "fire",
+            "kind": "method"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "ConsoleShell",
+            "kind": "class"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/non-blocking-notifications.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "status-hub": {
-      "state": "partial",
-      "note": "Implemented 2026-08-24 as app/renderer/src/status-hub-client.ts: the report a console sends about its own state, and the rules for refusing to send a claim it cannot support. A lane claiming passed or failed with no evidence is refused, because those are the two states a reader acts on and a lane claiming either with nothing to check is what makes a status page worse than none. `unrun` is a state of its own rather than a synonym for failed, since a check nobody ran reported as failed sends somebody hunting a defect that does not exist. Every field is named explicitly when the payload is built rather than spread, because a session is assembled from state that also holds credentials, hostnames and vault keys. And a reply cursor older than the hub still holds resynchronises and REPORTS the gap, because retrying asks the same impossible question forever and skipping means somebody’s answer was never acted on. The Status hub screen's own ‘Record this session’ button (App.tsx onBuildHubSession, landed 2026-08-26) is now a real consumer: it builds a SessionReport from this window's own state -- one lane per config screen this run has tried to read, passed/failed with real evidence, never invented -- validates it with validateReport, and lists the buildPayload result as a row on the screen. What remains genuinely unbuilt is the network half: this console has no privileged HTTP client, no configured hub address and no session key, so a recorded session is never transmitted anywhere, and the button and the screen both say so plainly. Real remote consumption still needs the same shape the settings source now has -- a fetcher in the process that owns the credential vault, a dispatch action reaching it, and a surface to configure the hub -- plus a poll that reports on a timer and reads the reply inbox with the cursor advanceCursor() already resynchronises against.",
-      "files": [
-        "app/renderer/src/status-hub-client.ts",
-        "tests/ui/status-hub-client.test.tsx"
-      ]
+      "status": "partial",
+      "note": "The desktop Status hub screen records only this window's observed configuration reads. App.tsx builds a bounded SessionReport from real config readings, validates it, stores the explicitly constructed payload in memory, re-renders the table, and tells the user that nothing was sent anywhere. The record is deliberately volatile and this local-only path has no authenticated Hub transport, registration receipt, reply delivery, built-artifact interaction, or capture evidence.",
+      "implementation": {
+        "paths": [
+          "app/renderer/src/App.tsx",
+          "app/renderer/src/status-hub-client.ts"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/status-hub-client.ts",
+            "name": "buildPayload",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/status-hub.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "material-appearance": {
-      "state": "partial",
-      "note": "CORRECTED 2026-08-25: the previous note's central claim, 'neither module is imported by App.tsx/PbxAdminApp.tsx', is now false for both. colour.ts's translate (imported as translateColour) is genuinely called at least three times: the wildcard appearance panel's live colour-format list, the accessibility contrast readout (which explicitly reuses this same translator so the measured value is exactly the one being shown), and a further live conversion. appearance.ts is imported too, and four of its six imported symbols -- addRule, applyTheme, cssVarFor, resetAll -- are genuinely called from App.tsx's buildAppearanceTheme()/applyAppearanceToDom(), which write real inline styles (color, font-family, font-weight, font-size) onto the actual root element, live, with no restart, from the hue/saturation/lightness/family/weight/size values the appearance panel already exposes. exportTheme is also genuinely called (App.tsx's exportAppearance(), which triggers a real downloaded JSON file) but is a fifth real symbol that does not itself write DOM styles. importTheme is the one dead symbol of the six: imported alongside the other five, never called anywhere in App.tsx -- there is no appearance IMPORT path even though export is real. One further honest limit worth keeping: the whole system is scoped to the wildcard element only, because the compiled interface exposes no per-element CSS hook for a rule to be read back from, so this is one live global theme rather than the true per-element appearance editor the contract describes. The compiled console separately implements its own tab-colour picker and a rainbow colour cycle (generated/console.tsx applyColour, tabColourOpts), real and wired but narrower (tab colour only) than the appearance.ts/colour.ts module set.",
-      "files": [
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/appearance.ts",
-        "app/renderer/src/colour.ts",
-        "app/renderer/src/generated/console.tsx",
-        "tests/contracts/material-appearance.test.mjs"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/appearance.ts",
+            "name": "applyTheme",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/colour.ts",
+            "name": "translate",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/material-appearance.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "app-logo-customization": {
-      "state": "implemented",
-      "note": "Wired 2026-08-24 with four controls: shipped presets, a picture of your own, one-action reset, and a status line naming the mark actually in use. The file is read in the renderer from the File the picker hands over, which needs no new privilege -- an input already opens the platform dialog, and a main-process reader would have given the window the ability to open anything else. Only the head is read, because discovering a file is too large by reading all of it does the expensive thing before the cheap check; the size comes from the File rather than from that capped read, since a capped read reports the cap and every oversized file would then measure exactly the limit and pass. Dimensions come from the header before anything decodes, which is the only ordering under which the pixel bound catches a decompression bomb at all. A rejected picture leaves the previous mark exactly as it was and says so.",
-      "files": [
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/logo-customization.ts",
-        "control-plane/image-facts.ts",
-        "tests/ui/logo-customization.test.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/logo-customization.ts",
+            "name": "acceptLogo",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/app-logo-customization.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "local-file-converter": {
-      "state": "absent",
-      "note": "No file-converter surface, adapter registry, or category catalogue exists anywhere in the renderer, control-plane, or server. Has no documentation article under docs/platform either, consistent with never having been built.",
-      "files": []
+      "status": "implemented-unverified",
+      "note": "The converter is mounted at #surface=converter through surface-mounts.tsx and the real control-plane catalog and PDF-capability seam in dispatch.ts. The source picker, queue mutations, and packaged-worker proof remain explicitly unavailable until their privileged handlers are registered; no source, output, or sample value is invented.",
+      "implementation": {
+        "paths": [
+          "app/renderer/src/surface-mounts.tsx",
+          "app/renderer/src/converter-surface.tsx"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/surface-mounts.tsx",
+            "name": "ConverterSurface",
+            "kind": "mount"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [
+          "app/renderer/src/main.tsx",
+          "app/renderer/src/surface-mounts.tsx"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/main.tsx",
+            "name": "SurfaceMounts",
+            "kind": "mount"
+          }
+        ]
+      },
+      "route": "desktop://console/#surface=converter",
+      "documentation": {
+        "path": "console/docs/platform/local-file-converter.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "ollama-suite-manager": {
-      "state": "absent",
-      "note": "No Ollama integration of any kind (local API client, model store, chat surface, harness launcher) exists. Has no documentation article under docs/platform either.",
-      "files": []
+      "status": "implemented-unverified",
+      "note": "The Ollama surface is mounted at #surface=ollama through surface-mounts.tsx. Its client returns an honest bridge-not-registered state until the privileged local Ollama dispatcher is registered; no model, health, catalog, pull, chat, or harness value is assumed.",
+      "implementation": {
+        "paths": [
+          "app/renderer/src/surface-mounts.tsx",
+          "app/renderer/src/ollama-suite.tsx"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/surface-mounts.tsx",
+            "name": "OllamaSuite",
+            "kind": "mount"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [
+          "app/renderer/src/main.tsx",
+          "app/renderer/src/surface-mounts.tsx"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/main.tsx",
+            "name": "SurfaceMounts",
+            "kind": "mount"
+          }
+        ]
+      },
+      "route": "desktop://console/#surface=ollama",
+      "documentation": {
+        "path": "console/docs/platform/ollama-suite-manager.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "browser-style-tabs": {
-      "state": "implemented",
-      "note": "The compiled console (generated/console.tsx) implements a real tab strip with groups, docking (state.dock), colours, rename, pin (state.pinned / $t.pinned), and a bulk close-by-text/regex/colour filter (tabFilterOpen/applyTabFilter, near line 4437). This is live, wired UI, not a stub, though it is compiled from the checked-in design reference rather than hand-authored.",
-      "files": [
-        "app/renderer/src/generated/console.tsx"
-      ]
+      "status": "implemented-unverified",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "openScreen",
+            "kind": "method"
+          },
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "applyTabFilter",
+            "kind": "method"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "ConsoleShell",
+            "kind": "class"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/browser-style-tabs.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "tab-groups-and-searches": {
-      "state": "partial",
-      "note": "Tab groups (state.groups, tabGroups, group colours/collapse), a per-strip filter with Containing/Not-containing/By-colour modes (generated/console.tsx near line 4829), and pinning are real and wired. Missing: a dedicated group-name search, an in-group search, and a master cross-window tab search - only the single strip filter exists, so the four-search contract is not met.",
-      "files": [
-        "app/renderer/src/generated/console.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "applyTabFilter",
+            "kind": "method"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "ConsoleShell",
+            "kind": "class"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/tab-groups-and-searches.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "command-palette": {
-      "state": "implemented",
-      "note": "Wired 2026-08-24. Ctrl+Shift+F from anywhere, captured rather than bubbled so a field that stops key propagation cannot swallow the one chord meant to work everywhere. The list is DERIVED from the compiled design -- every destination, every setting on every screen, every appearance control -- because a hand-written palette is a second inventory of the same thing and the two diverge the first time somebody adds a control, always with the palette as the stale one. Plain text matching, case-insensitive, never a pattern: regex is an explicit opt-in everywhere else, and a palette treating a typed dot as any-character would return the wrong thing rather than nothing. Starts-with beats contains beats detail-only, stably, so a familiar result stops moving between keystrokes. Selecting a setting opens its screen and then scrolls and focuses the exact row through a data-ctl hook added to the design control template -- landing on the right screen and leaving somebody to hunt is not teleporting, and when the row genuinely is not on display it says so rather than silently doing nothing. Closed, it is absent from the document entirely, so nothing of it is tabbable or readable by a screen reader; Escape returns focus to whatever had it.",
-      "files": [
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/catalog.ts",
-        "app/renderer/src/command-palette.ts"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/catalog.ts",
+            "name": "destinations",
+            "kind": "const"
+          },
+          {
+            "path": "app/renderer/src/catalog.ts",
+            "name": "findDestination",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/command-palette.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "destructive-action-confirmation": {
-      "state": "implemented",
-      "note": "app/renderer/src/ceremony.ts (runCeremonyCommand) is imported and invoked by App.tsx (lines 8, 788) to run a confirmation ceremony before a destructive PBX command executes; the compiled console additionally implements areYouSure() as a timed confirm used for other destructive UI actions (tab-partner approval, dialplan-step delete). Genuinely wired end to end.",
-      "files": [
-        "app/renderer/src/ceremony.ts",
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/generated/console.tsx"
-      ]
+      "status": "implemented-unverified",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/ceremony.ts",
+            "name": "runCeremonyCommand",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "areYouSure",
+            "kind": "method"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/App.tsx",
+            "name": "runCeremonyCommand",
+            "kind": "import"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/destructive-action-confirmation.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "local-version-history": {
-      "state": "partial",
-      "note": "CORRECTED 2026-08-24, and the correction is the point. This row read \"absent -- backend plumbing with no reachable UI\", which was accurate when written and stale by the time it mattered: control-plane/local-history.ts implements Git-backed history with secret redaction, control-plane/config-history.ts backs the config side, dispatch answers history.list and history.restore, and PbxAdminApp -- which is the mounted root, through PbxAdminIntegratedApp -- lists recovery points per resource and restores one behind a confirmation, handling the failure of each. I read the row, believed it, and began designing a replacement for a feature that already worked. A guard now refuses any absent row whose evidence is in the source tree.",
-      "files": [
-        "app/renderer/src/PbxAdminApp.tsx",
-        "control-plane/config-history.ts",
-        "control-plane/dispatch.ts",
-        "control-plane/local-history.ts"
-      ],
-      "blockedBy": "BLOCKED ON THE REST OF THE CONTRACT, not on existence. What is there: Git-backed snapshots in an isolated repository, secret redaction before anything is written, listing recovery points per resource, and restore behind a confirmation. What the canonical contract also asks for and this does not yet do: a diff between two points, user-applied labels, retention and pruning controls, export of redacted history, and a date-and-action filter over the list. Real consumption of the rest means a History panel in the design carrying those controls, reading the same history.list the admin surface already calls, plus a history.diff action beside it -- the snapshots to diff are already being written, so this is a surface and one action rather than new plumbing."
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/local-history-screen.ts",
+            "name": "registerLocalHistoryScreen",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/local-version-history.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "changelog-viewer": {
-      "state": "partial",
-      "note": "Wired and reachable: App rail > App > Changelog renders every version parsed from a real build-time bundle of this repository's own tag history (scripts/bundle-changelog.mjs -> generated/changelog-bundle.ts), with search (plain text + regex toggle), a date range filter, copy and Markdown export, and per-change commit links validated against real commits (tests/ui/changelog-wired.test.tsx). Confirmed rendering real entries in the built Electron app via headless CDP. Remaining gap: the date filter is typed ISO fields plus range presets, not the full month/year-jump calendar grid the contract describes.",
-      "files": [
-        "app/renderer/src/changelog.ts",
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/generated/changelog-bundle.ts",
-        "design/Asterisk Console M3.dc.html",
-        "scripts/bundle-changelog.mjs",
-        "tests/ui/changelog-wired.test.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/changelog.ts",
+            "name": "parseChangelog",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/changelog.ts",
+            "name": "filterAndSearch",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/App.tsx",
+            "name": "changelogVals",
+            "kind": "method"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/changelog-viewer.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "external-editor-handoff": {
-      "state": "partial",
-      "note": "CORRECTED 2026-08-25: the previous note claimed the app \"detects installed editors\" and that opening a folder or file actually launches one -- neither happens. What is real: four controls exist in the design (ed_choice, ed_custom_name, ed_custom_path, ed_clear) and App.tsx genuinely wires all four -- chooseEditor/saveCustomEditor/clearEditorChoice/validateCustomEditor persist a selection, and a hand-added path is validated as a bare executable that refuses operators and quotes (that half of the note is accurate). What is not real: the ed_choice dropdown's four options ('Visual Studio Code','Notepad++','Sublime Text','Notepad', generated/console.tsx line 3357) are a static list compiled into the design, not a live detection result -- its own info text (\"Only editors actually installed on this machine are offered\") is false, because external-editor.ts's detectEditors() (PATH-first, absolute-fallback detection) has no caller anywhere in App.tsx, the control-plane, or main.ts. And planLaunch() -- the function that would turn a choice plus a target file/folder into a real, non-shell launch with workspace-root arguments -- also has no caller anywhere. There is no fifth control or action of any kind to actually open something in the chosen editor. A person can pick or type an editor name and it will be remembered, but nothing in the running app ever detects what is installed or launches anything.",
-      "files": [
-        "app/renderer/src/external-editor.ts",
-        "app/renderer/src/App.tsx",
-        "tests/ui/external-editor.test.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "control-plane/editor-launch.ts",
+            "name": "detectInstalledEditors",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/external-editor-handoff.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "complete-exports": {
-      "state": "partial",
-      "note": "CORRECTED 2026-08-25: 'never imported by App.tsx' is now false, though the honest gap it was pointing at is real, just misdescribed. export.ts (547 lines) is imported at the top of App.tsx and called from inside App.tsx's own live bulk() method, in an if (verb === 'Exported') branch that picks a format able to faithfully carry the columns on screen, states any loss the format entails, builds a real filename, and triggers a real browser download -- that much is genuinely wired and reachable code. What is still true, for a subtler reason than 'never imported': the compiled UI's own bulk-action-bar 'Export' button does not call this.bulk('Exported', sel); it calls this.hostAction('export-json', ...) instead (generated/console.tsx near line 4879), a separate, narrower code path (host-actions.ts's exportFile()) that writes plain JSON only, with no format choice and no loss disclosure. So export.ts's rich multi-format engine is imported, referenced, and sits inside a live class method, and is still unreachable from a real click, because nothing ever hands bulk() the verb 'Exported'. SUPERSEDED 2026-08-25 by the lane that closed this: the rich engine is now reached from a real click. App.tsx intercepts the compiled Export button's hostAction('export-json', { subject: 'selection' }) and hands bulk() the verb 'Exported', so a real export now picks a format able to carry the columns on screen, states any loss that format entails, and triggers a real download instead of the plain-JSON-only path with no format choice and no loss disclosure.",
-      "files": [
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/export.ts",
-        "app/renderer/src/generated/console.tsx",
-        "app/renderer/src/host-actions.ts",
-        "tests/contracts/complete-exports.test.mjs"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/export.ts",
+            "name": "prepareExport",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/complete-exports.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "bulk-actions": {
-      "state": "partial",
-      "note": "CORRECTED 2026-08-25: 'never imported by App.tsx' is now false. bulk.ts (336 lines) is imported at the top of App.tsx, and App.tsx's own bulk() method (overriding the compiled design's trivial one-liner through the same App-extends-ConsoleShell mechanism used elsewhere) genuinely calls planBulk/bulkSummarise on every invocation, building a real plan (affected versus skipped, and why) before acting. What narrows the honest state further than 'wired' alone: the compiled UI's own bulk-action-bar buttons call this.bulk(...) with only three verbs -- 'Enabled', 'Disabled', 'Duplicated' (generated/console.tsx near line 4873). Its Export button calls hostAction('export-json', ...) directly instead of this.bulk('Exported', sel) (see complete-exports), and its Delete button calls ceremony(...) directly instead of this.bulk('Deleted', sel) (generated/console.tsx line 4880) -- so the 'Exported' and 'Deleted' branches inside bulk() are unreachable from a real click, even though the code for both is real and syntactically correct. And of the three verbs that do reach bulk(), App.tsx's own trailing comment states the honest limit plainly: every other bulk verb has no write path in this console yet, so the plan and its honest count are real and a real message fires, but nothing is actually applied against server state. SUPERSEDED 2026-08-25 by the lane that closed this: both branches are now reached from a real click. App.tsx intercepts the compiled Export button's hostAction('export-json', { subject: 'selection' }) and routes it to bulk('Exported', ...), and recovers the confirmed selection from the Delete ceremony's own title and command pair to route it to bulk('Deleted', ...), cross-checking the id count against the title so a single row's separately gated delete cannot be mistaken for the bulk one. The two-key confirmation gate is untouched and still runs to completion first. The write limit above is unchanged and is the honest remaining gap: a plan is built and its skips reported, and nothing is applied against server state. Worth recording what Delete used to do, because it was worse than unreachable: once confirmed it sent the string 'delete' followed by the ids to the target as though that were an Asterisk command. It is not one, and this repository's own comment elsewhere calls that shape entirely fictional.",
-      "files": [
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/bulk.ts",
-        "app/renderer/src/generated/console.tsx",
-        "tests/contracts/bulk-actions.test.mjs"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/bulk.ts",
+            "name": "unsupportedBulkAction",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/bulk.ts",
+            "name": "planBulkAction",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/App.tsx",
+            "name": "bulkSelectionVals",
+            "kind": "method"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/bulk-actions.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "accessibility": {
-      "state": "implemented",
-      "note": "Implemented 2026-08-24 as app/renderer/src/accessibility-contract.ts: WCAG relative luminance and contrast ratio from hex with the AA and AAA thresholds, target-size checking including a visually small control with adequate padded hit area, accessible-name resolution refusing a name whose only source is a decorative glyph, focus-indicator and positive-tabindex checks, and a reduced-motion resolver where either the platform preference or the app setting asking for less motion wins. Every threshold is a named constant citing its source. 37 tests. Wired 2026-08-24 into the appearance editor, which is where a person picks a colour and therefore where a contrast measurement is worth having. The ap_contrast readout reports the real WCAG ratio for the accent being chosen against the console’s own surface, taken from the compiled design’s root background rather than guessed, and it reuses the same colour translator the panel itself shows so the measured value is the one on screen rather than a second conversion. It reports the ratio as well as the level, because \"fail\" alone does not say whether a colour is slightly short or hopeless, and it distinguishes passing for large text only. It reports and never refuses: a colour that fails AA is still the person’s to keep, but they should not have to discover it is unreadable by trying to read it.",
-      "files": [
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/accessibility-contract.ts",
-        "tests/ui/accessibility-contract.test.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/accessibility-contract.ts",
+            "name": "meetsTargetSize",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/accessibility.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "responsive-sizing": {
-      "state": "partial",
-      "note": "styles.css carries real width breakpoints at 1200px and 1000px: the section list narrows, the icon rail narrows from 88px to 72px, and every compiled grid collapses to a single flexed column. They are forced overrides because the compiled interface writes literal pixel values into inline style strings, which no external selector can otherwise beat. Building them found a real clipping defect at the app's own 920px floor, where the new-record button on every table screen was cut off the right edge, and a dead rule in the compiled stylesheet: React re-serialises inline styles with a space after the colon, so [style*=\"display:grid\"] > * has never matched an element. Two gaps remain: below the 920px floor the main process enforces, the title bar's menu row can still overlap, and that overflow is computed in App.tsx rather than in CSS; and the per-screen narrow flag is still a per-control picker variant rather than part of the breakpoint system.",
-      "files": [
-        "app/renderer/src/App.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/runtime.ts",
+            "name": "runtimeHint",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/responsive-sizing.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "personal-vocabulary-upload": {
-      "state": "implemented",
-      "note": "Corrected 2026-08-23, and the correction is the point: this row previously read \"implemented -- fully wired into App.tsx\", which was true of load, clear, status and storage and false of the one thing the feature exists to do. applyVocabularyText had no caller anywhere outside its own tests, so an uploaded file changed a validation status line and not one rendered word. Twelve assertions covered the function; none covered the wiring, which is why a green suite never noticed. It is now consumed through app/renderer/src/text-boundary.ts, which App.tsx hands the storage handle on mount, and tests/ui/text-boundary.test.tsx asserts a replacement actually reaches rendered text. Replacement runs after translation so a personal rename is the last word. app/renderer/src/personal-vocabulary.ts is imported and fully wired into App.tsx: file load (loadVocabularyFile), clear (clearVocabulary), status (vocabularyStatus) and storage. Corrected 2026-08-23: the durability gap noted then is fixed. The renderer no longer reaches window.localStorage (in-memory only for a file:// origin) for this cache; it now goes through app/renderer/src/durable-storage.ts, which write-through-caches against the main process's control-plane settings.snapshot/settings.write/settings.remove actions (control-plane/settings-store.ts), persisted atomically (control-plane/atomic-file.ts) to settings.json under app.getPath('userData') the way the server inventory already is. Proved by a real relaunch on a headless desktop: set a value, force-killed then gracefully closed the app, inspected settings.json on disk between runs, relaunched, and confirmed the restored value without any manual reload.",
-      "files": [
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/durable-storage.ts",
-        "app/renderer/src/personal-vocabulary.ts",
-        "app/renderer/src/text-boundary.ts",
-        "control-plane/atomic-file.ts",
-        "control-plane/dispatch.ts",
-        "control-plane/settings-store.ts",
-        "tests/ui/text-boundary.test.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/personal-vocabulary.ts",
+            "name": "loadVocabularyFile",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/personal-vocabulary.ts",
+            "name": "clearVocabulary",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/App.tsx",
+            "name": "loadVocabularyFile",
+            "kind": "import"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/personal-vocabulary-upload.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "per-element-toy-locks": {
-      "state": "partial",
-      "note": "CORRECTED 2026-08-25: the previous note claimed two gaps that are now false. First, no OTP/TOTP option: the compiled lock wizard's lockMethods list genuinely offers three TOTP-including combinations -- 'PIN+TOTP', 'Password+TOTP', 'Password+PIN+TOTP' (generated/console.tsx near line 5690) -- and App.tsx's own lockNext/tryUnlock (overriding the generated design's PIN/password-only originals through the same App-extends-ConsoleShell mechanism used elsewhere) genuinely verify a real RFC 6238 code through totp.ts's verifyCode, refusing to finish a TOTP-including lock until pairAuth() has actually generated a secret (see built-in-authenticator.md for the pairing details). Second, no lock-creation wizard reachable from a documented context-menu command: 'Lock this element...' is a real, wired context-menu command with a shortcut hint (hint:'^L', generated/console.tsx line 5531) that opens the same lockOpen wizard, and it is documented below. The real gap this note should have named instead: the PIN, the password and the TOTP secret are all stored in plain React component state (state.locks, written and read directly in App.tsx's lockNext/tryUnlock), never in the OS credential vault -- confirmed by grepping the renderer for any vault/keytar/safeStorage reference near the lock mechanism and finding none. A toy lock is explicitly a for-fun speed bump rather than a security boundary, but the credential is still worth moving to the vault so a lock's PIN or password is not sitting in memory any more casually than it has to.",
-      "files": [
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/generated/console.tsx",
-        "app/renderer/src/totp.ts",
-        "tests/contracts/per-element-toy-locks.test.mjs"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "tryUnlock",
+            "kind": "method"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/generated/console.tsx",
+            "name": "tryUnlock",
+            "kind": "method"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/per-element-toy-locks.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "support-tickets": {
-      "state": "implemented",
-      "note": "Implemented 2026-08-23 as app/renderer/src/support-tickets.ts with four controls in the design, filed through App.tsx. The joke desk is played straight -- category, severity nobody honours, a locally generated ticket number, a status that advances and stops at Resolved, a canned reply -- and the resolution opens the application-data folder so the person can delete it themselves. It never deletes anything: `action` is the literal \"open-folder\" rather than a boolean, because a field that could say delete-folder is one somebody eventually sets to it, and an in-app deletion would owe the two-key confirmation gate. One line is never styled by the funny level and states that nothing is sent anywhere, no data is collected and nobody is reading it, because a user waiting for a reply that was never coming is the only genuinely harmful outcome here. A scan refuses any copy naming a real desk or implying a response time. The consequence line restates that the reset clears every toy lock and that a toy lock was never security.",
-      "files": [
-        "app/renderer/src/support-tickets.ts",
-        "app/renderer/src/App.tsx",
-        "tests/ui/support-tickets.test.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/support-tickets.ts",
+            "name": "openTicket",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/support-tickets.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "unlock-ladder": {
-      "state": "partial",
-      "note": "app/renderer/src/unlock-ladder.ts is now imported and wired into the real per-element unlock dialog (App.tsx authVals/tryUnlock/finishLadderGrade): after three consecutive wrong PIN/password/TOTP attempts on a lock, tryUnlock calls ladder.issue() and, for a real dish or sums challenge, reuses the dialog's existing numeric keypad/dots and its mono-font method line (no new markup added, since the compiled design has no bound slot for a dish grid or sums list) to collect and grade a real answer through ladder.grade(). Confirmed reachable in the built app: right-clicking a screen opens 'Lock this element...', which opens the real wizard. A cleared challenge only closes the ladder UI and says the wait is over -- it never touches state.locks or the unlock dialog's own PIN/password/TOTP buffers, so the real credential is still required afterward (rule 1). The module's own 3-per-hour skip budget, single-use graded nonces, and never-refunding-the-attempt-budget rules are enforced by the module itself, unmodified. Two real gaps remain, both because editing the compiled design/generated output was out of scope here: the 'moles' rung has no visual board to render in this build, so it is treated as unreachable and the ladder falls back to 'wait it out' rather than faking a graded round; and because this app's per-element lock has no server-enforced or time-based lockout of its own (unlike the PIN/password it sits beside), 'clearing the wait' here dismisses the ladder UI but does not bypass any actual timed lockout, since none exists to bypass.",
-      "files": [
-        "app/renderer/src/unlock-ladder.ts",
-        "app/renderer/src/App.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/unlock-ladder.ts",
+            "name": "UnlockLadder",
+            "kind": "class"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/unlock-ladder.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "built-in-authenticator": {
-      "state": "partial",
-      "note": "app/renderer/src/totp.ts is now imported and wired into the real per-element lock (App.tsx pairAuth/lockNext/tryUnlock/authVals). pairAuth generates a real random secret with the Web Crypto RNG, computes the real otpauth:// pairing URI (pairingUri), and reveals both as copyable text through the app's real info panel -- never a remote QR service, and never any network call. lockNext refuses to finish a TOTP-including lock until pairAuth has actually run, and stores the real secret (not a placeholder) in the lock record. tryUnlock verifies a real RFC 6238 code via verifyCode (one step of skew) using the app's own numeric keypad, reusing it for a second 'totp' entry phase after any PIN phase completes. Confirmed reachable in the built app via headless CDP: registered a real TOTP secret through the real UI, independently computed the current code from that exact captured secret with totp.ts's own generateCode, typed the six digits back into the running app's real unlock dialog, and the app's own verifyCode accepted it and cleared the lock -- an earlier, stale code was correctly rejected first. Two real gaps remain, both because editing the compiled design/generated output was out of scope here: the QR box next to 'Pair the built-in authenticator' is a static decorative gradient with no bound slot for pixel data (not S(v...) anywhere in it), so the secret is shown as copyable text instead of a scannable image; and there is no confirmation-code re-entry step before the secret is treated as paired, because the 'Password+TOTP' method's wizard panel has no digit-entry control of its own to collect one (the PIN keypad belongs to a different method combination and would corrupt the user's real PIN if reused for this). The secret itself is stored in the same non-durable, non-OS-credential-vault state.locks the PIN and password already were before this change -- a pre-existing gap, not a new one, and still recorded as such.",
-      "files": [
-        "app/renderer/src/totp.ts",
-        "app/renderer/src/App.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/totp.ts",
+            "name": "generateCode",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/totp.ts",
+            "name": "pairingUri",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/built-in-authenticator.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "attention-modes": {
-      "state": "partial",
-      "note": "CORRECTED 2026-08-25: the previous note described the five toggles as though switching them on actually dimmed the interface, honoured motion preferences, or prompted about momentum -- none of that happens. What is real: five controls (att_focus, att_low, att_time, att_one, att_momentum) exist in the design, are off by default and independently toggleable, and App.tsx's setVal interception genuinely persists each one through isAttentionMode/setModeEnabled -- that half of the note was accurate. What is not real: attention-modes.ts also exports modeEnabled() (read a mode back), enabledModes(), presentationFor() (the function that would compute the actual dimming/low-stimulation/time-awareness presentation state), elapsedPhrase(), and momentumPrompt() (the function that would decide whether to show, and for how long to suppress, a momentum nudge). None of these five are imported by App.tsx, and a grep across the renderer finds no caller of any of them outside attention-modes.ts and its own test. So \"Focus dims and never hides\" and \"Momentum respects a declined prompt for half an hour\" describe code that exists and is tested, not behaviour a user can currently observe: flipping any of the five switches persists a boolean and changes nothing else in the running app. Nothing in the copy is medical, scored or judgemental, which the scan genuinely enforces -- that part of the claim stands.",
-      "files": [
-        "app/renderer/src/attention-modes.ts",
-        "app/renderer/src/App.tsx",
-        "tests/ui/attention-modes.test.tsx"
-      ]
+      "status": "implemented-unverified",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/attention-modes.ts",
+            "name": "setModeEnabled",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/attention-modes.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "browser-extension-download-surfaces": {
-      "state": "absent",
-      "note": "This is a desktop console for an Asterisk PBX; there is no browser extension in this repository and no Start-download/Downloading/complete dialog surfaces.",
-      "files": []
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/download-progress-surface.tsx",
+            "name": "DownloadProgressSurface",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/browser-extension-download-surfaces.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "offline-documentation-browser": {
-      "state": "partial",
-      "note": "app/renderer/src/docs-browser.ts implements article lookup/search over the bundled docs, app/renderer/src/generated/docs-bundle.ts (83 articles) is real bundled content, and app/renderer/src/docs-markdown.ts parses each article's body into headings/paragraphs/code/list blocks with resolved inter-article links. The `docs` destination is now a real screen on the App rail (compiled from design/Asterisk Console M3.dc.html, kind:'docs') wired in App.tsx (docsVals) with a real search field, a regex-builder toggle and palette, an article list, a rendered body pane and in-app link navigation. Headlessly driven in the built app (Electron via CDP): the article list shows all 83 titles/excerpts, selecting an article renders its real headings/paragraphs (no raw '#'/'[]' Markdown syntax), an inline `[text](href)` link inside one article's body navigated to the linked article, and a query with no matches shows an honest '0 matches' state. Remaining gap: no promoted screenshot/interaction evidence has been filed under this project's design-parity capture pipeline, so this stays 'partial' rather than 'verified'.",
-      "files": [
-        "app/renderer/src/docs-browser.ts",
-        "app/renderer/src/docs-markdown.ts",
-        "app/renderer/src/generated/docs-bundle.ts",
-        "app/renderer/src/App.tsx",
-        "design/Asterisk Console M3.dc.html"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/docs-browser.ts",
+            "name": "search",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/docs-markdown.ts",
+            "name": "parseMarkdown",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/App.tsx",
+            "name": "docsVals",
+            "kind": "method"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/offline-documentation-browser.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "app-display-name": {
-      "state": "partial",
-      "note": "CORRECTED 2026-08-25: the previous note claimed \"a per-surface split so the chosen name reaches the title bar, About and notifications\" -- that split (display-name.ts's exported nameFor(surface, storage), which is exactly the function that would decide per-surface which name to show) is never called anywhere. What is real: id_name and id_name_reset went into the design and came back through the compiler, App.tsx's setVal interception genuinely validates and persists a rename through setDisplayName/resetDisplayName, and the field is seeded from displayName(storage) on mount (restoreDisplayName, called once) -- the setting round-trips correctly. What is not real: the app/electron/main.ts BrowserWindow is created with a hard-coded `title: 'Material Asterisk'` (line 163) that is never updated from the renderer's stored choice, there is no About screen or notification path that calls nameFor() or displayName() to render the chosen name, and displayName() itself is read back exactly once in the whole renderer -- to seed the settings field it came from. Renaming the console currently changes one settings field and nothing a user would see anywhere else; the title bar, About text and notifications all still say the shipped name. The safety property IS real and independently checked: IDENTITY is a frozen constant with no path from the display name, so a rename cannot orphan the application-data directory -- that half of the claim stands.",
-      "files": [
-        "app/renderer/src/App.tsx",
-        "app/renderer/src/display-name.ts",
-        "app/renderer/src/generated/console.tsx",
-        "tests/ui/display-name.test.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/display-name.ts",
+            "name": "displayName",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/app-display-name.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "guided-forms": {
-      "state": "partial",
-      "note": "app/renderer/src/endpoint-create.ts (WIZARD_CONTROLS, buildEndpointDraft) is imported and wired into App.tsx (line 14, 482, 488) to drive the endpoint-creation wizard with real validated fields and a generated secret. This is a genuine guided form for one flow (new PJSIP endpoint), not a system-wide guided-forms contract.",
-      "files": [
-        "app/renderer/src/endpoint-create.ts",
-        "app/renderer/src/App.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/endpoint-create.ts",
+            "name": "buildEndpointDraft",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/App.tsx",
+            "name": "onboardDeploy",
+            "kind": "method"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/guided-forms.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "bounded-overlays": {
-      "state": "implemented",
-      "note": "Implemented 2026-08-24 as app/renderer/src/bounded-overlays.ts, consumed by App.tsx as of 2026-08-25: a pure placement calculator returning position, constrained size, whether the overlay scrolls internally, and which side of the anchor it landed on, plus a surface check that refuses an overlay declaring no background, border, elevation or shape. Reached without hand-editing the compiled design by overriding App's own setState (boundedOverlaySetState) and showInfo (styledShowInfo) rather than editing console.tsx: every click handler in the compiled design that opens the context menu sets ctxX/ctxY together, in one plain object, as raw `${e.clientX}px`/`${e.clientY}px` with no bound against the window anywhere (`position:absolute; left:${ctxX}; top:${ctxY}` in console.tsx) -- computeOverlayPlacement now clamps that pair into the real window viewport before the compiled shell's real setState ever sees it, treating the click point as a zero-size anchor and the menu's own fixed width plus a generous height estimate as the desired size. lockX/lockY and regexX/regexY copy ctxX/ctxY the moment they open (`lockX:s.ctxX, lockY:s.ctxY`), so they inherit the clamp for free. showInfo's own click-anchored call site (the ctx menu's \"Explain this...\" item) is clamped the same way at the wrapper that already exists to style its copy. 18 tests plus this consumption.",
-      "files": [
-        "app/renderer/src/bounded-overlays.ts",
-        "app/renderer/src/App.tsx",
-        "tests/ui/bounded-overlays.test.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/bounded-overlays.ts",
+            "name": "computeOverlayPlacement",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/bounded-overlays.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "context-menu-shortcuts": {
-      "state": "partial",
-      "note": "Implemented 2026-08-24 as app/renderer/src/menu-shortcuts.ts: a registry that resolves the binding which actually fires a command IN THAT CONTEXT, so a shortcut from another surface is never displayed and one is never inferred from a similarly named command. An item with no binding shows nothing rather than a placeholder, the chord is exposed as a shortcut rather than glued into the label, and two commands sharing a chord in one context is reported as a conflict rather than silently resolved. 17 tests. Its conflict grouping compares context and chord directly rather than joining them into a string key: the first version used a separator that reached the file as a literal NUL. The module is complete and its guards are proven, but NOTHING IMPORTS IT YET -- no surface in the renderer calls it, so today it constrains nothing that ships. Recorded as partial rather than implemented for exactly that reason: a module wired at one end and consumed at neither is the defect this project has shipped a dozen times, and marking it done would be that same claim.",
-      "files": [
-        "app/renderer/src/menu-shortcuts.ts",
-        "tests/ui/menu-shortcuts.test.tsx"
-      ],
-      "blockedBy": "BLOCKED ON THE COMPILED MENUS. The context menus are rendered by the compiled design, which cannot be hand-edited, so displaying a resolved chord on a menu item means the design emitting a shortcut slot the registry can fill. That is a compiler change rather than a wiring change."
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/menu-shortcuts.ts",
+            "name": "formatBinding",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/context-menu-shortcuts.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "long-operation-progress": {
-      "state": "implemented",
-      "note": "Implemented 2026-08-24 as app/renderer/src/long-operation-progress.ts, consumed by App.tsx as of 2026-08-25: weighted phases producing real fractional progress, a re-entry guard that refuses a second start and says it refused, determinate versus indeterminate state distinguishable from stalled, a stall detector, and cancellation reporting partial completion honestly. The earlier blocker was that provisioning is really TWO fixed step sequences (dispatch.ts picks provisioning.provision(true) or provisioning.provisionFromBaseImage() up front, depending on whether this build carries the packaged payload) and one plan cannot describe both without reportProgress throwing on an unrecognised or out-of-order phase. Resolved with two separate phase lists (DEPLOY_PHASES, DEPLOY_PHASES_FROM_BASE_IMAGE) plus firstStepPlan, which reads the very first onProvisionStep call to pick the one the run actually opened -- resetDeployProgress starts against the packaged-payload plan as a placeholder, since which sequence will run is not known before the request, and onProvisionStep swaps in the correct plan on the first step if that guess was wrong, before anything has been banked. A 2-second ticker (deployTicker) recomputes the percentage and stall message while running, since `wsl --import`/the base-image download can run silent for minutes between steps -- a step-boundary-only refresh would never show a stall during the one phase it matters most for. A step name neither plan recognises degrades to plain step text with no percentage rather than throwing at the user. 38 tests plus this consumption.",
-      "files": [
-        "app/renderer/src/long-operation-progress.ts",
-        "app/renderer/src/App.tsx",
-        "tests/ui/long-operation-progress.test.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/long-operation-progress.ts",
+            "name": "createOperation",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/long-operation-progress.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "in-context-recovery": {
-      "state": "implemented",
-      "note": "Implemented 2026-08-24 as app/renderer/src/in-context-recovery.ts, consumed by App on the deploy-failure path -- a failing provisioning step now offers a route out rather than leaving somebody holding an error string. The property that matters is what it refuses: a rejected push has remedies that look fast and destroy commits (force-push, reset, dropping the branch, switching mid-conflict), and those are named as forbidden rather than merely left out, so a caller handing the situation to a coding agent passes the prohibition on rather than only the goal. A refused permission offers no retry, because repeating a refused action changes nothing and reads as the console not having understood the answer. An unrecognised failure says so and shows the full error instead of a cheerful \"Try again\" that fails the same way. The real error is carried through every branch rather than replaced by the summary, since a summary that swallowed it leaves somebody unable to search for what happened. Failures are classified on the reported detail rather than the step name, because the name says what was attempted and the detail says why it did not work.",
-      "files": [
-        "app/renderer/src/in-context-recovery.ts",
-        "app/renderer/src/App.tsx",
-        "tests/ui/in-context-recovery.test.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/in-context-recovery.ts",
+            "name": "recoveryFor",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/in-context-recovery.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "provider-markup-rendering": {
-      "state": "partial",
-      "note": "app/renderer/src/docs-markdown.ts parses bundled documentation body text (headings, paragraphs, fenced code, bullet list items, inline `[text](href)` links) into render-ready blocks, and the `docs` screen (App.tsx docsVals + the compiled `isDocs` template block) renders those blocks as real UI rather than printing raw Markdown source — confirmed by headless capture of the running app. This covers the bundled offline docs only; there is still no renderer for remote-authored text such as release notes or issue bodies.",
-      "files": [
-        "app/renderer/src/docs-markdown.ts",
-        "app/renderer/src/App.tsx"
-      ]
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/docs-markdown.ts",
+            "name": "parseMarkdown",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/App.tsx",
+            "name": "docsVals",
+            "kind": "method"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/provider-markup-rendering.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "forge-publishing": {
-      "state": "partial",
-      "note": "Implemented 2026-08-24 as app/renderer/src/forge-publishing.ts: multi-account sign-in with an active account that keeps single-account callers working, owner selection across a user’s own namespace and the organizations they can create in, route selection between forking and copy-and-push, and a plan that reports every problem at once. No token passes through the module: an account carries only the vault key naming where its token lives, asserted both against the object and against the type declaration -- the object-level check alone missed an optional field added to the interface, which is how that gap was found. With several accounts signed in and none chosen, nothing is active rather than the first being guessed, because guessing is how work lands in somebody else’s namespace and is discovered by a colleague not finding it. A fork preference on a forge that cannot fork becomes a copy and SAYS SO, since a fork has an upstream link and a copy does not.",
-      "blockedBy": "BLOCKED ON THE FORGE TRANSPORT. The module decides what should happen and nothing performs it: there is no code that calls a forge API to create a repository, fork one, or push to a new remote, and no account list for it to read. Real consumption needs the privileged process to own those calls -- the renderer must not hold a token -- exposed the way the provisioning steps now are, plus an account store keyed to the OS credential vault. Until then this is a correct decision it has no way to carry out, and wiring a control to it would produce a publish button that plans and never publishes.",
-      "files": [
-        "app/renderer/src/forge-publishing.ts",
-        "tests/ui/forge-publishing.test.tsx"
-      ]
+      "status": "implemented-unverified",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "control-plane/forge-publishing.ts",
+            "name": "ForgePublisher",
+            "kind": "class"
+          },
+          {
+            "path": "app/renderer/src/App.tsx",
+            "name": "App",
+            "kind": "class"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "control-plane/dispatch.ts",
+            "name": "createControlPlaneDispatcher",
+            "kind": "function"
+          },
+          {
+            "path": "app/electron/main.ts",
+            "name": "createControlPlaneDispatcher",
+            "kind": "import"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/forge-publishing.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "collapsible-filters": {
-      "state": "partial",
-      "note": "Implemented 2026-08-24 as app/renderer/src/collapsible-filters.ts: panel kinds with their default collapsed state (statistics start collapsed, since a view whose controls occupy more space than its content has buried the content), persistence, and the rule that matters most -- a collapsed panel currently EXCLUDING results must say so, because a quietly filtering collapsed row is how somebody comes to believe their data is missing. 30 tests. The module is complete and its guards are proven, but NOTHING IMPORTS IT YET -- no surface in the renderer calls it, so today it constrains nothing that ships. Recorded as partial rather than implemented for exactly that reason: a module wired at one end and consumed at neither is the defect this project has shipped a dozen times, and marking it done would be that same claim.",
-      "files": [
-        "app/renderer/src/collapsible-filters.ts",
-        "tests/ui/collapsible-filters.test.tsx"
-      ],
-      "blockedBy": "BLOCKED ON A CONSUMER. No surface in the console renders a collapsible panel, so the drafted controls would write real storage keys that nothing reads. Real consumption means a screen with a filter row or a statistics panel calling isCollapsed and setCollapsed with its own surface id, and rendering the active-filter summary when a filtering panel is collapsed. The module also needs to export its per-surface storage-key helper, or an enumeration, before any status readback is possible -- today only the prefix is exported, so a caller cannot reconstruct which panels exist."
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/collapsible-filters.ts",
+            "name": "collapsiblePanelState",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": []
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/collapsible-filters.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     },
     "automatic-updates": {
-      "state": "implemented",
-      "note": "app/renderer/src/UpdateBanner.tsx (64 lines) is mounted as its own root in main.tsx (lines 39-41) and control-plane/updater.ts implements the update-check/download/ready-to-restart backend. Genuinely wired: the banner is created and rendered on every boot alongside the main app.",
-      "files": [
-        "app/renderer/src/UpdateBanner.tsx",
-        "app/renderer/src/main.tsx",
-        "control-plane/updater.ts"
-      ]
+      "status": "implemented-unverified",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
+      "implementation": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "control-plane/updater.ts",
+            "name": "resolveLatestUpdate",
+            "kind": "function"
+          },
+          {
+            "path": "app/renderer/src/UpdateBanner.tsx",
+            "name": "UpdateBanner",
+            "kind": "function"
+          }
+        ]
+      },
+      "registration": {
+        "paths": [],
+        "symbols": [
+          {
+            "path": "app/renderer/src/main.tsx",
+            "name": "UpdateBanner",
+            "kind": "mount"
+          }
+        ]
+      },
+      "route": "desktop://console/main",
+      "documentation": {
+        "path": "console/docs/platform/automatic-updates.md",
+        "state": "present"
+      },
+      "localization": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "persistence": {
+        "state": "unverified",
+        "paths": [],
+        "symbols": []
+      },
+      "focusedChecks": {
+        "state": "not-run",
+        "commands": []
+      },
+      "negativeEvidence": {
+        "state": "not-run",
+        "script": "console/scripts/negative-surface-completeness.mjs",
+        "cases": [
+          "whole-feature-disappearance",
+          "whole-page-disappearance",
+          "renamed-symbol",
+          "commented-symbol",
+          "stale-commit",
+          "missing-evidence",
+          "route-only-prose",
+          "fake-success",
+          "sample-data"
+        ]
+      },
+      "builtInteraction": {
+        "state": "not-run",
+        "commit": null,
+        "route": null,
+        "evidence": null
+      },
+      "captures": {
+        "state": "not-run",
+        "currentCommit": null,
+        "paths": []
+      },
+      "designParity": {
+        "state": "not-run",
+        "referenceRoute": null,
+        "builtRoute": "desktop://console/main",
+        "tuple": {
+          "state": null,
+          "theme": null,
+          "viewport": null,
+          "scale": null
+        },
+        "rawCaptures": [],
+        "sideBySide": null,
+        "visualDiff": null
+      }
     }
   }
 }

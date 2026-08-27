@@ -134,6 +134,6 @@ test('there is no lock/unlock mechanism, no state.locks, and no wizard for it', 
 });
 
 test('the registry records per-element-toy-locks as absent, and the code agrees', () => {
-  assert.equal(registry.features['per-element-toy-locks'].state, 'absent',
+  assert.equal(registry.features['per-element-toy-locks'].status, 'absent',
     'no per-element lock/unlock mechanism exists anywhere in site/app.js -- "absent" is the honest state');
 });

@@ -8,10 +8,17 @@ export interface TotpParameters {
   period?: number;
 }
 
+export const TOTP_ALGORITHMS = ['SHA-1', 'SHA-256', 'SHA-512'] as const;
+export type TotpAlgorithm = (typeof TOTP_ALGORITHMS)[number];
+
+export const MAX_BASE32_LENGTH = 512;
+
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
-function normalizeAlgorithm(algorithm: TotpParameters['algorithm']): 'SHA-1' | 'SHA-256' | 'SHA-512' {
-  return algorithm ?? 'SHA-1';
+function normalizeAlgorithm(algorithm: TotpParameters['algorithm']): TotpAlgorithm {
+  const value = algorithm ?? 'SHA-1';
+  if (!TOTP_ALGORITHMS.includes(value)) throw new Error(`unsupported TOTP algorithm: ${value}`);
+  return value;
 }
 
 function normalizeDigits(digits: number | undefined): number {
@@ -34,7 +41,8 @@ function requireSecret(secret: string): string {
   if (!secret || secret.trim().length === 0) {
     throw new Error('secret must not be empty');
   }
-  return secret;
+  if (secret.length > MAX_BASE32_LENGTH) throw new Error(`secret exceeds ${MAX_BASE32_LENGTH} characters`);
+  return secret.trim();
 }
 
 // -------------------------------------------------------------- base32 (RFC 4648)
@@ -44,12 +52,20 @@ export function decodeBase32(value: string): Uint8Array {
   if (cleaned.length === 0) {
     throw new Error('base32 value must not be empty');
   }
+  if (cleaned.length > MAX_BASE32_LENGTH) throw new Error(`base32 value exceeds ${MAX_BASE32_LENGTH} characters`);
+  // Reject lexical corruption before evaluating the encoded shape.  A value such
+  // as `JBSWY3DP1` has both a bad length and a bad character, but naming the
+  // character gives the caller the actionable fact without weakening the
+  // RFC 4648 length check that follows.
+  for (const ch of cleaned) {
+    if (BASE32_ALPHABET.indexOf(ch) === -1) {
+      throw new Error(`invalid base32 character: ${ch}`);
+    }
+  }
+  if ([1, 3, 6].includes(cleaned.length % 8)) throw new Error('base32 value has an invalid encoded length');
   let bits = '';
   for (const ch of cleaned) {
     const index = BASE32_ALPHABET.indexOf(ch);
-    if (index === -1) {
-      throw new Error(`invalid base32 character: ${ch}`);
-    }
     bits += index.toString(2).padStart(5, '0');
   }
   const byteCount = Math.floor(bits.length / 8);
@@ -75,20 +91,24 @@ export function encodeBase32(bytes: Uint8Array): string {
 
 // -------------------------------------------------------------- HOTP/TOTP core
 
-function counterBytes(counter: number): Uint8Array {
+function counterBytes(counter: number | bigint): Uint8Array {
   const bytes = new Uint8Array(8);
-  let value = counter;
+  if (typeof counter === 'number' && (!Number.isSafeInteger(counter) || counter < 0)) {
+    throw new Error('counter must be a non-negative safe integer');
+  }
+  let value = typeof counter === 'bigint' ? counter : BigInt(counter);
+  if (value < 0n || value > 0xffffffffffffffffn) throw new Error('counter is outside the unsigned 64-bit range');
   for (let i = 7; i >= 0; i--) {
-    bytes[i] = value % 256;
-    value = Math.floor(value / 256);
+    bytes[i] = Number(value & 0xffn);
+    value >>= 8n;
   }
   return bytes;
 }
 
 async function hotp(
   secretBytes: Uint8Array,
-  counter: number,
-  algorithm: 'SHA-1' | 'SHA-256' | 'SHA-512',
+  counter: number | bigint,
+  algorithm: TotpAlgorithm,
   digits: number,
 ): Promise<string> {
   const rawKey = secretBytes.buffer.slice(
@@ -110,6 +130,7 @@ async function hotp(
 }
 
 function stepFor(atMs: number, period: number): number {
+  if (!Number.isFinite(atMs) || atMs < 0) throw new Error('timestamp must be finite and non-negative');
   return Math.floor(atMs / 1000 / period);
 }
 
@@ -132,10 +153,15 @@ export async function verifyCode(parameters: TotpParameters, code: string, atMs:
   const bound = Math.max(0, Math.floor(skewSteps));
   for (let delta = -bound; delta <= bound; delta++) {
     const step = currentStep + delta;
+    if (step < 0) continue;
     const candidateMs = step * period * 1000;
     // eslint-disable-next-line no-await-in-loop
     const candidate = await generateCode(parameters, candidateMs);
-    if (candidate === code) {
+    let difference = candidate.length ^ code.length;
+    for (let index = 0; index < candidate.length; index += 1) {
+      difference |= candidate.charCodeAt(index) ^ code.charCodeAt(index);
+    }
+    if (difference === 0) {
       return true;
     }
   }
@@ -157,8 +183,18 @@ export interface PairingRequest {
   parameters: TotpParameters;
 }
 
+function requirePairingLabel(value: string, name: string): string {
+  const trimmed = value.trim();
+  if (trimmed.length < 1 || trimmed.length > 256 || /[\u0000-\u001f\u007f]/u.test(trimmed)) {
+    throw new Error(`${name} must be a printable value between 1 and 256 characters`);
+  }
+  return trimmed;
+}
+
 export function pairingUri(request: PairingRequest): string {
-  const { issuer, account, parameters } = request;
+  const issuer = requirePairingLabel(request.issuer, 'issuer');
+  const account = requirePairingLabel(request.account, 'account');
+  const { parameters } = request;
   const secret = requireSecret(parameters.secret);
   const algorithm = normalizeAlgorithm(parameters.algorithm);
   const digits = normalizeDigits(parameters.digits);
@@ -168,7 +204,7 @@ export function pairingUri(request: PairingRequest): string {
   const query = new URLSearchParams({
     secret,
     issuer,
-    algorithm,
+    algorithm: algorithm.replace('-', ''),
     digits: String(digits),
     period: String(period),
   });
@@ -176,11 +212,12 @@ export function pairingUri(request: PairingRequest): string {
 }
 
 export function parsePairingUri(uri: string): PairingRequest {
+  if (uri.length > 4096) throw new Error('pairing URI exceeds 4096 characters');
   let parsed: URL;
   try {
     parsed = new URL(uri);
   } catch {
-    throw new Error(`invalid pairing URI: ${uri}`);
+    throw new Error('invalid pairing URI');
   }
   if (parsed.protocol !== 'otpauth:') {
     throw new Error(`pairing URI must use the otpauth scheme, got ${parsed.protocol}`);
@@ -203,17 +240,18 @@ export function parsePairingUri(uri: string): PairingRequest {
     throw new Error('pairing URI is missing a secret parameter');
   }
   const issuer = parsed.searchParams.get('issuer') ?? issuerFromLabel;
+  if (issuerFromLabel && parsed.searchParams.has('issuer') && issuer !== issuerFromLabel) {
+    throw new Error('pairing URI issuer does not match its label');
+  }
   const algorithmRaw = (parsed.searchParams.get('algorithm') ?? 'SHA1').toUpperCase().replace('-', '');
-  const algorithm = (algorithmRaw === 'SHA1' ? 'SHA-1' : `SHA-${algorithmRaw.slice(3)}`) as
-    | 'SHA-1'
-    | 'SHA-256'
-    | 'SHA-512';
+  const algorithmCandidate = algorithmRaw === 'SHA1' ? 'SHA-1' : `SHA-${algorithmRaw.slice(3)}`;
+  const algorithm = normalizeAlgorithm(algorithmCandidate as TotpParameters['algorithm']);
   const digitsRaw = parsed.searchParams.get('digits');
   const periodRaw = parsed.searchParams.get('period');
 
-  return {
-    issuer,
-    account,
+  const request = {
+    issuer: requirePairingLabel(issuer, 'issuer'),
+    account: requirePairingLabel(account, 'account'),
     parameters: {
       secret,
       algorithm,
@@ -221,6 +259,10 @@ export function parsePairingUri(uri: string): PairingRequest {
       period: periodRaw ? Number(periodRaw) : 30,
     },
   };
+  requireSecret(request.parameters.secret);
+  normalizeDigits(request.parameters.digits);
+  normalizePeriod(request.parameters.period);
+  return request;
 }
 
 // -------------------------------------------------------------- clock honesty

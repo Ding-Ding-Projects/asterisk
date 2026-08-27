@@ -105,6 +105,6 @@ test('per-article export exists as a real function, initDocumentationExport', ()
 });
 
 test('the registry records offline-documentation-browser as partial', () => {
-  assert.equal(registry.features['offline-documentation-browser'].state, 'partial',
+  assert.equal(registry.features['offline-documentation-browser'].status, 'partial',
     'a real, searchable, embedded catalogue with per-article export exists, but articles render as separate static pages rather than in-page parsed blocks');
 });

@@ -31,6 +31,6 @@ test('no VS Code / external-editor handoff of any kind exists in app.js or the p
 });
 
 test('the registry records external-editor-handoff as absent, and the code agrees', () => {
-  assert.equal(registry.features['external-editor-handoff'].state, 'absent',
+  assert.equal(registry.features['external-editor-handoff'].status, 'absent',
     'no open-in-external-editor / VS Code handoff exists on the site -- "absent" is the honest state');
 });

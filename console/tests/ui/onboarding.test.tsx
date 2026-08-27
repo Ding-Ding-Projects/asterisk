@@ -5,7 +5,7 @@ import { entryValue } from '../../app/renderer/src/configuration.ts';
 
 const EMPTY: OnboardPlanInputs = { pjsip: [], extensions: [], http: [] };
 
-test('super easy on an empty target creates the promised extensions and menu, and never invents TLS', () => {
+test('super easy on an empty target creates the promised extensions and menu, and never invents TLS or hardening policy', () => {
   const plan = buildOnboardPlan({ intent: 'Deploy a new server', phones: 8, menu: true, tls: true, hardened: true }, EMPTY);
 
   const pjsip = plan.documents.find((d) => d.resource.endsWith('pjsip.conf'))!;
@@ -16,6 +16,19 @@ test('super easy on an empty target creates the promised extensions and menu, an
     ['100', '101', '102', '103', '104', '105', '106', '107'],
     'numbering is derived (starts at 100), never guessed at a different base',
   );
+  assert.equal(
+    new Set(pjsip.value.map((section) => section.name)).size,
+    pjsip.value.length,
+    'every generated PJSIP record has one distinct name, so the planner cannot create duplicate sections',
+  );
+  for (const endpoint of endpointSections) {
+    const id = endpoint.name;
+    assert.equal(entryValue(pjsip.value, id, 'aors'), `aor${id}`);
+    assert.ok(
+      pjsip.value.some((section) => section.name === `aor${id}` && entryValue([section], `aor${id}`, 'type') === 'aor'),
+      `endpoint ${id} references exactly one separately named AoR`,
+    );
+  }
 
   // Every extension has a real, distinct, randomly generated secret - never a fixed placeholder.
   const secrets = new Set(plan.newExtensions.map((e) => e.secret));
@@ -33,11 +46,12 @@ test('super easy on an empty target creates the promised extensions and menu, an
   assert.equal(entryValue(http.value, 'general', 'tlsenable'), undefined);
   assert.ok(plan.skipped.some((s) => s.startsWith('TLS: skipped')));
 
-  // Hardened is a fixed, site-neutral boolean and IS written.
-  const global = pjsip.value.find((s) => s.name === 'global')!;
-  assert.equal(entryValue(pjsip.value, 'global', 'allowguest'), 'no');
-  assert.ok(global);
-  assert.ok(plan.summary.some((s) => s.includes('harden')));
+  // Hardening needs target-specific policy. It must never manufacture an unknown
+  // global setting, an ACL, a transport, or a dialplan record from one boolean.
+  assert.equal(entryValue(pjsip.value, 'global', 'allowguest'), undefined);
+  assert.ok(!pjsip.value.some((section) => /^(?:acl|transport|hardening)/u.test(section.name)));
+  assert.ok(plan.skipped.some((s) => s.startsWith('Hardening: skipped') && s.includes('target-specific')));
+  assert.ok(!plan.summary.some((s) => /hardening|harden/u.test(s)));
 
   // The wizard's copy must never claim business hours was written - this module has no
   // function that writes one, and the honest replacement string exists and says so.
@@ -49,7 +63,7 @@ test('numbering continues from what already exists on the target, never overwrit
     pjsip: [
       { name: '100', entries: [{ key: 'type', value: 'endpoint' }] },
       { name: '105', entries: [{ key: 'type', value: 'endpoint' }] },
-      { name: 'global', entries: [{ key: 'allowguest', value: 'yes' }] },
+      { name: 'global', entries: [{ key: 'endpoint_identifier_order', value: 'username,ip' }] },
     ],
     extensions: [],
     http: [],
@@ -58,8 +72,29 @@ test('numbering continues from what already exists on the target, never overwrit
   const pjsip = plan.documents.find((d) => d.resource.endsWith('pjsip.conf'))!;
   const ids = pjsip.value.filter((s) => /^\d+$/u.test(s.name)).map((s) => s.name).sort();
   assert.deepEqual(ids, ['100', '105', '106', '107'], 'new ids start after the highest existing one, and the existing ones survive');
-  // hardened was not requested, so the pre-existing (permissive) global setting is left alone.
-  assert.equal(entryValue(pjsip.value, 'global', 'allowguest'), 'yes');
+  assert.equal(new Set(pjsip.value.map((section) => section.name)).size, pjsip.value.length);
+  // The complete document preserves existing global settings without introducing a
+  // made-up hardening option.
+  assert.equal(entryValue(pjsip.value, 'global', 'endpoint_identifier_order'), 'username,ip');
+  assert.equal(entryValue(pjsip.value, 'global', 'allowguest'), undefined);
+});
+
+test('hardened mode preserves target state and reports target-specific policy as unavailable', () => {
+  const inputs: OnboardPlanInputs = {
+    pjsip: [{ name: 'global', entries: [{ key: 'endpoint_identifier_order', value: 'username,ip' }] }],
+    extensions: [{ name: 'existing-route', entries: [{ key: 'exten', value: '100,1,Hangup()' }] }],
+    http: [{ name: 'general', entries: [{ key: 'bindaddr', value: '127.0.0.1' }] }],
+  };
+  const plan = buildOnboardPlan({ intent: 'Deploy a new server', phones: 0, menu: false, tls: false, hardened: true }, inputs);
+  const pjsip = plan.documents.find((d) => d.resource.endsWith('pjsip.conf'))!;
+  const extensions = plan.documents.find((d) => d.resource.endsWith('extensions.conf'))!;
+  const http = plan.documents.find((d) => d.resource.endsWith('http.conf'))!;
+  assert.deepEqual(pjsip.value, inputs.pjsip);
+  assert.deepEqual(extensions.value, inputs.extensions);
+  assert.deepEqual(http.value, inputs.http);
+  assert.equal(entryValue(pjsip.value, 'global', 'allowguest'), undefined);
+  assert.equal(entryValue(http.value, 'general', 'tlsenable'), undefined);
+  assert.ok(plan.skipped.some((item) => item.startsWith('Hardening: skipped') && item.includes('ACL, transport, and dialplan')));
 });
 
 test('TLS is enabled, without inventing a certificate path, when one is already on the target', () => {

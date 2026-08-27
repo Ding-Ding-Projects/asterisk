@@ -240,8 +240,13 @@ test('the design renders src_add / src_clear and the status readout, and App ans
 
 test('dispatch answers settings.source.fetch through the real fetcher, distinguishing a refusal from a real response', () => {
   assert.match(dispatch, /if \(request\.action === 'settings\.source\.fetch'\) \{/);
+  assert.match(dispatch, /if \(!url\) return \{ ok: false, requestId: request\.requestId, code: 'SOURCE_URL_REQUIRED'/,
+    'the dispatcher no longer rejects a missing URL before constructing a fetch request');
+  assert.match(dispatch, /const settingsSourceFetcher = createSettingsSourceFetcher\(\);/,
+    'the fetch action no longer uses the dispatcher construction seam that restores persisted hosts');
   assert.match(dispatch, /const result = await settingsSourceFetcher\.fetchSource\(/);
-  assert.match(dispatch, /if \(result\.reason !== undefined\) \{/);
+  assert.match(dispatch, /if \(!result\.ok && result\.status === 0\) return \{ ok: false, requestId: request\.requestId, code: 'SOURCE_UNREACHABLE'/,
+    'a transport or policy refusal is no longer returned as a named failed request');
 });
 
 /* --- PIN: the host allowlist that gates every fetch is permanently empty in the real app */
@@ -264,9 +269,9 @@ test('the dispatcher falls back to the persisted allowlist, not to an empty one'
    * What must not be lost is the reason the empty default was right in the first place: a
    * fetcher configured with nothing is not a fetcher configured with no restrictions. So
    * the fallback must still be fail-closed when nothing is persisted either. */
-  assert.match(dispatch, /allowedHosts: options\.allowedSettingsSourceHosts \?\? parseAllowlist\(/,
+  assert.match(dispatch, /const allowedHosts = options\.allowedSettingsSourceHosts\s*\?\? parseAllowlist\(settingsRegistry\(\)\.get\(SETTINGS_SOURCE_ALLOWLIST_KEY\)\);/,
     'the dispatcher no longer falls back to the persisted allowlist');
-  assert.doesNotMatch(dispatch, /allowedHosts: options\.allowedSettingsSourceHosts \?\? \[\],/,
+  assert.doesNotMatch(dispatch, /const allowedHosts = options\.allowedSettingsSourceHosts\s*\?\? \[\];/,
     'the dispatcher is back to defaulting to an empty allowlist, which refuses every source forever');
 });
 

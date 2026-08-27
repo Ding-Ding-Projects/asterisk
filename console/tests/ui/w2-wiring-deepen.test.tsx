@@ -173,8 +173,8 @@ test('the hub screen\'s Record button is declared in the design and its agent-ra
   return Promise.all([source(designUrl), readFile(new URL('../../app/feature-registry.json', import.meta.url), 'utf8')])
     .then(([design, registryRaw]) => {
       assert.match(design, /ctl\('b_build','Record this session',/u, 'b_build is missing from the design');
-      const registry = JSON.parse(registryRaw) as { features: Record<string, { blockedBy?: string; state: string }> };
-      assert.equal(registry.features['status-hub'].state, 'partial',
+      const registry = JSON.parse(registryRaw) as { features: Record<string, { blockedBy?: string; status: string }> };
+      assert.equal(registry.features['status-hub'].status, 'partial',
         'status-hub is no longer partial -- the network transport may have shipped, update this test');
       assert.equal(registry.features['status-hub'].blockedBy, undefined,
         'status-hub carries a blockedBy again despite App.tsx importing it -- this contradicts implementation-blockers.test.mjs');

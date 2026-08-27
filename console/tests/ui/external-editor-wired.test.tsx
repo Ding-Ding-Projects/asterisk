@@ -43,6 +43,24 @@ type PinnedInstance = InstanceType<typeof App> & {
   setVal(control: { id?: string; label?: string; kind?: string }, value: unknown): void;
 };
 
+/** A direct instance has no ReactDOM reconciler. Supply React's mounted update queue
+ * so the test observes both state and force-update paths instead of accepting their
+ * unmounted no-ops or warning output. */
+function withSyncUpdater(instance: PinnedInstance): PinnedInstance {
+  (instance as unknown as { updater: unknown }).updater = {
+    isMounted: () => true,
+    enqueueForceUpdate() {},
+    enqueueReplaceState(publicInstance: PinnedInstance, state: Record<string, unknown>) { publicInstance.state = state; },
+    enqueueSetState(publicInstance: PinnedInstance, partial: unknown) {
+      const patch = typeof partial === 'function'
+        ? (partial as (state: Record<string, unknown>) => Record<string, unknown>)(publicInstance.state)
+        : partial as Record<string, unknown>;
+      publicInstance.state = { ...publicInstance.state, ...patch };
+    },
+  };
+  return instance;
+}
+
 function buildApp(bridge: { editors?: EditorsBridge; localData?: LocalDataBridge } = {}): {
   instance: PinnedInstance;
   fired: { title: string; body: string }[];
@@ -71,20 +89,8 @@ function buildApp(bridge: { editors?: EditorsBridge; localData?: LocalDataBridge
       // tests call the editor/ticket methods directly, synchronously, with no timers
       // or network left running after the test returns.
     }
-    /* `setState` (unlike `fire`/`toast`) is a real prototype method inherited from
-     * `React.Component`, so a subclass method DOES override it correctly -- but the
-     * real implementation is a no-op on a component nothing has mounted (it prints a
-     * console warning and does nothing), which would make `refreshEditorDetection`'s
-     * `this.setState(...)` calls silently vanish. Apply the update the way React
-     * actually would -- merging a plain object, or the result of an updater function
-     * fed the current state -- so the persisted-choice reflection this test exists to
-     * prove is genuinely exercised rather than skipped. */
-    setState(update: unknown) {
-      const patch = typeof update === 'function' ? (update as (state: Record<string, unknown>) => Record<string, unknown>)(this.state) : update;
-      this.state = { ...this.state, ...(patch as Record<string, unknown>) };
-    }
   }
-  const instance = new (Pinned as unknown as new () => PinnedInstance)();
+  const instance = withSyncUpdater(new (Pinned as unknown as new () => PinnedInstance)());
   return { instance, fired, toasted };
 }
 

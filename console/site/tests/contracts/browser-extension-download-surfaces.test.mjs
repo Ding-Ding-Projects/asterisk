@@ -31,6 +31,6 @@ test('no Start-download/Downloading/complete dialog surface exists in app.js', (
 });
 
 test('the registry records browser-extension-download-surfaces as absent, and the code agrees', () => {
-  assert.equal(registry.features['browser-extension-download-surfaces'].state, 'absent',
+  assert.equal(registry.features['browser-extension-download-surfaces'].status, 'absent',
     'this is a static documentation/marketing site; there is no browser extension and no download-capture dialog surfaces -- "absent" is the honest state');
 });

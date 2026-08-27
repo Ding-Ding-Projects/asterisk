@@ -8,7 +8,44 @@
       "sha256": "1177b4137ba5adaa56354ae40f1080c7450e8ae09cecb47da459d1c52ac99f97",
       "archiveRoot": "node-v22.23.2-win-x64",
       "installScope": "user",
-      "purpose": "Build, package, and run Material Asterisk"
+      "purpose": "Build, package, and run the Ding PBX Console"
+    },
+    {
+      "id": "github-cli-win-x64",
+      "version": "2.97.0",
+      "source": "https://github.com/cli/cli/releases/download/v2.97.0/gh_2.97.0_windows_amd64.zip",
+      "sha256": "e2efa10a5d2ce93cac9bc4b676932b62947c0967c01c8f2c3a9cb4437ad358d3",
+      "archiveSha256": "35d7fe05c4dd1411ffda1e73dfc7c6f44b75c936ca51fa6595c657fdc0350cec",
+      "archiveDigestProvenance": {
+        "algorithm": "SHA-256",
+        "verifiedAt": "2026-08-24",
+        "scope": "bootstrap-only",
+        "releaseAsset": "github-release:cli/cli@v2.97.0#gh_2.97.0_windows_amd64.zip",
+        "sources": [
+          {
+            "identity": "github-release:cli/cli@v2.97.0#gh_2.97.0_windows_amd64.zip",
+            "path": "release-asset-sha256",
+            "value": "35d7fe05c4dd1411ffda1e73dfc7c6f44b75c936ca51fa6595c657fdc0350cec"
+          },
+          {
+            "identity": "github-release:cli/cli@v2.97.0#gh_2.97.0_windows_amd64.zip",
+            "path": "release-asset-sha256-corroboration",
+            "value": "35d7fe05c4dd1411ffda1e73dfc7c6f44b75c936ca51fa6595c657fdc0350cec"
+          }
+        ]
+      },
+      "artifact": "bin/gh.exe",
+      "installScope": "bundled",
+      "purpose": "GitHub account discovery, device sign-in, owner reads, and forge publication"
+    },
+    {
+      "id": "forge-conpty-helper",
+      "version": "1",
+      "source": "console/scripts/forge-device-signin.ps1",
+      "sha256": "45693a271cdf4b37c77c8cfd58aeac03a382cd06fbcd5a70515372ceadbc8859",
+      "artifact": "forge/forge-device-signin.ps1",
+      "installScope": "bundled",
+      "purpose": "Bounded native ConPTY host for gh's public device flow"
     }
   ],
   "projectDependencies": {

@@ -237,3 +237,31 @@ test('PIN: enabledModes is never called anywhere App.tsx or the generated shell 
     'App now calls enabledModes -- update this pin and the report if this gap has been closed');
   assert.doesNotMatch(generated, /enabledModes\(/);
 });
+
+test('the attention contract keeps exactly five mode ids and its hand-written wiring and mutation inventories fail closed', () => {
+  assert.deepEqual(attention.ATTENTION_MODES, ['focus', 'lowStimulation', 'timeAwareness', 'oneThing', 'momentum']);
+
+  const focusRegistration = attention.ATTENTION_WIRING.find((row) => row.id === 'focus').controlConstruction.text;
+  const oneFocusRegistration = `'att_focus': 'focus'`;
+  assert.equal(focusRegistration, oneFocusRegistration, 'the focus registration must remain hand-written and exact');
+  assert.equal((oneFocusRegistration.match(new RegExp(focusRegistration, 'g')) ?? []).length, 1);
+  assert.equal((oneFocusRegistration.replace(focusRegistration, '').match(new RegExp(focusRegistration, 'g')) ?? []).length, 0,
+    'the deliberate removal fixture proves a missing registration cannot satisfy the exact boundary');
+
+  const mutationSources = Object.fromEntries(['App.tsx', 'generated/console.tsx'].map((file) => [
+    file === 'App.tsx' ? 'app' : 'generated',
+    attention.ATTENTION_MUTATION_INVENTORY.filter((row) => row.file === file).map((row) => `onUserMutation(${row.argument});`).join('\n'),
+  ]));
+  attention.verifyAttentionMutationInventory(mutationSources);
+  const first = attention.ATTENTION_MUTATION_INVENTORY[0];
+  assert.throws(
+    () => attention.verifyAttentionMutationInventory({ ...mutationSources, app: mutationSources.app.replace(`onUserMutation(${first.argument});`, '') }),
+    /Unlisted|absent/,
+    'removing one listed mutation path must turn the source contract red',
+  );
+  assert.throws(
+    () => attention.verifyAttentionMutationInventory(mutationSources, attention.ATTENTION_MUTATION_INVENTORY.slice(1)),
+    /Unlisted|absent/,
+    'removing one hand-written mutation inventory row must turn the contract red',
+  );
+});

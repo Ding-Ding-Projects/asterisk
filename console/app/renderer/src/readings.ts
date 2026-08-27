@@ -184,9 +184,9 @@ export const TABLE_DESTINATION_READERS: Record<string, boolean> = {
 };
 
 export const READABLE_VIEWS: PbxReadView[] = [
-  'dash', 'live', 'endpoints', 'trunks', 'iaxpeers', 'queues', 'modules',
-  'voicemail', 'confbridge', 'moh', 'codecs', 'security', 'cdr', 'logger', 'ami', 'about', 'cli',
-  'trunkauth', 'restbrowser', 'agiscripts',
+  'dash', 'live', 'endpoints', 'trunks', 'queues', 'modules',
+  'voicemail', 'confbridge', 'moh', 'codecs', 'security', 'cdr', 'logger', 'ami', 'about', 'cli', 'trunkauth',
+  'restbrowser', 'agiscripts',
 ];
 
 export const isReadable = (screen: string): screen is PbxReadView =>

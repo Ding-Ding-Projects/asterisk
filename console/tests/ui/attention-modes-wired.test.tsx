@@ -43,8 +43,10 @@ interface FakeStyleEl {
 
 /** The style elements actually appended to `<head>` by the running App instance --
  *  the real side effect `setReducedMotion` performs, not a description of it. */
-function installFakeDocument(): { elements: FakeStyleEl[] } {
+function installFakeDocument(): { elements: FakeStyleEl[]; attentionTargets: Array<{ dataset: Record<string, string> }> } {
   const elements: FakeStyleEl[] = [];
+  const attentionTargets = [{ dataset: {} }, { dataset: {} }];
+  const lowStimulationClasses = new Set<string>();
   const fakeDocument = {
     createElement: (tag: string) => {
       const el: FakeStyleEl = {
@@ -56,14 +58,16 @@ function installFakeDocument(): { elements: FakeStyleEl[] } {
     },
     head: { appendChild: (el: unknown) => { elements.push(el as FakeStyleEl); } },
     documentElement: { style: { setProperty() { /* unused by this file's cases */ }, fontSize: '' } },
+    body: { classList: { toggle(name: string, enabled: boolean) { if (enabled) lowStimulationClasses.add(name); else lowStimulationClasses.delete(name); } } },
     // App.tsx also reads document.querySelector for the appearance editor's own DOM
     // lookup, unrelated to attention modes -- stubbed so that unrelated path degrades
     // the same way it already does with no document at all, rather than crashing on a
     // document that exists but is missing a method this file never needed.
     querySelector: () => null,
+    querySelectorAll: (selector: string) => selector.includes('.attn-content') ? attentionTargets : [],
   };
   (globalThis as { document?: unknown }).document = fakeDocument;
-  return { elements };
+  return { elements, attentionTargets, lowStimulationClasses };
 }
 
 // window is read by App's constructor (bridge()); document by the reduced-motion path.
@@ -82,7 +86,7 @@ interface FakeStorage {
 }
 
 interface ReactLikeElement {
-  props: { children?: unknown; onClick?: () => void; class?: string; onInput?: (event: { target: { value: string } }) => void };
+  props: { children?: unknown; onClick?: () => void; className?: string; onInput?: (event: { target: { value: string } }) => void };
 }
 
 /** The exact private surface these tests drive -- the same functions the real console
@@ -95,12 +99,33 @@ interface AppShape {
   attentionPresentation(): PresentationState;
   attentionOverlay(): ReactLikeElement | null;
   languageAwareSetVal(control: { id: string }, value: unknown): void;
-  gatedToast(message: string): void;
+  gatedToast(message: string, severity?: 'info' | 'progress' | 'success' | 'warning' | 'error'): void;
+  narratedFire(title: string, body: string, severity?: 'info' | 'progress' | 'success' | 'warning' | 'error' | boolean): void;
   baseToast: (message: string) => void;
+  baseFire: (title: string, body: string) => void;
+  notificationHistory: Array<{ source: string; message: string; severity: string; outcome: string; read: boolean }>;
 }
 
 function buildApp(): AppShape {
-  return new (App as unknown as new (props: unknown) => AppShape)({});
+  return withSyncUpdater(new (App as unknown as new (props: unknown) => AppShape)({}));
+}
+
+/** Direct construction intentionally skips ReactDOM, so supply the same synchronous
+ * updater used by the message wiring Chut. This keeps stateful interactions honest
+ * and prevents React's unmounted-component warning from hiding a dropped update. */
+function withSyncUpdater(instance: AppShape): AppShape {
+  (instance as unknown as { updater: unknown }).updater = {
+    isMounted: () => true,
+    enqueueForceUpdate() {},
+    enqueueReplaceState(publicInstance: AppShape, state: Record<string, unknown>) { publicInstance.state = state; },
+    enqueueSetState(publicInstance: AppShape, partial: unknown) {
+      const next = typeof partial === 'function'
+        ? (partial as (state: Record<string, unknown>) => Record<string, unknown>)(publicInstance.state)
+        : partial as Record<string, unknown>;
+      publicInstance.state = { ...publicInstance.state, ...next };
+    },
+  };
+  return instance;
 }
 
 /** Renders the real `App` (not the bare compiled shell), the same shape
@@ -117,12 +142,12 @@ function renderApp(seed: (storage: FakeStorage) => void, overrides: Record<strin
   return renderToStaticMarkup(createElement(Pinned as never));
 }
 
-/** Depth-first search for the first rendered element carrying a given `class`, so a
+/** Depth-first search for the first rendered element carrying a given `className`, so a
  *  handler (onClick, onInput) can be invoked directly without a real DOM. */
 function findByClass(node: unknown, className: string): ReactLikeElement | undefined {
   if (!node || typeof node !== 'object') return undefined;
   const el = node as ReactLikeElement;
-  if (el.props?.class === className) return el;
+  if (el.props?.className === className) return el;
   const kids = el.props?.children;
   const list = Array.isArray(kids) ? kids : kids !== undefined ? [kids] : [];
   for (const kid of list) {
@@ -159,8 +184,38 @@ test('toggling att_focus through the real control path changes live presentation
   assert.equal(instance.attentionPresentation().dimInactive, false);
   instance.languageAwareSetVal({ id: 'att_focus' }, true);
   assert.equal(instance.attentionPresentation().dimInactive, true);
+  assert.deepEqual(fakeDocument.attentionTargets.map((element) => element.dataset.attentionInactive), ['true', 'true'],
+    'focus did not mark the real operable elements for the reversible stylesheet treatment');
   instance.languageAwareSetVal({ id: 'att_focus' }, false);
   assert.equal(instance.attentionPresentation().dimInactive, false);
+  assert.deepEqual(fakeDocument.attentionTargets.map((element) => element.dataset.attentionInactive), ['false', 'false'],
+    'turning focus off did not restore every operable element');
+});
+
+test('the focus stylesheet de-emphasises only marked inactive controls and restores a focused control', () => {
+  const styles = fs.readFileSync(path.join(process.cwd(), 'app/renderer/src/styles.css'), 'utf8');
+  assert.match(styles, /^\[data-attention-inactive="true"\] \{ opacity: \.55;/m);
+  assert.match(styles, /^\[data-attention-inactive="true"\]:focus,/m);
+  const withoutMarker = styles.replace('[data-attention-inactive="true"] { opacity: .55; transition: opacity 150ms ease; }', '');
+  assert.doesNotMatch(withoutMarker, /^\[data-attention-inactive="true"\] \{ opacity: \.55;/m,
+    'the deliberate marker-removal fixture must turn red before the stylesheet is restored');
+});
+
+test('every real attention switch writes its own exact persisted mode key through the production control path', () => {
+  const instance = buildApp();
+  const controls = [
+    ['att_focus', 'focus'],
+    ['att_low', 'lowStimulation'],
+    ['att_time', 'timeAwareness'],
+    ['att_one', 'oneThing'],
+    ['att_momentum', 'momentum'],
+  ] as const;
+  for (const [id, mode] of controls) {
+    instance.languageAwareSetVal({ id }, true);
+    assert.equal(instance.durableStorage.storage.getItem(`console.attention.${mode}`), 'on', `${id} did not persist its own mode`);
+    instance.languageAwareSetVal({ id }, false);
+    assert.equal(instance.durableStorage.storage.getItem(`console.attention.${mode}`), 'off', `${id} did not persist its own off state`);
+  }
 });
 
 /* --- low stimulation: motion composes, notifications quiet down ------------------- */
@@ -178,6 +233,15 @@ test('turning on low stimulation actually injects the reduced-motion style eleme
   assert.equal(removed.length, 0, 'expected the element removed once nothing still wants reduced motion');
 });
 
+test('low stimulation applies and removes its real body state alongside the live motion treatment', () => {
+  const instance = buildApp();
+  instance.languageAwareSetVal({ id: 'att_low' }, true);
+  assert.equal(fakeDocument.lowStimulationClasses.has('attention-low-stimulation'), true);
+  instance.languageAwareSetVal({ id: 'att_low' }, false);
+  assert.equal(fakeDocument.lowStimulationClasses.has('attention-low-stimulation'), false);
+
+});
+
 test('the Reduced motion switch and low stimulation share one element rather than fighting over it', () => {
   const instance = buildApp();
   instance.languageAwareSetVal({ id: 'p_motion' }, true);
@@ -193,13 +257,17 @@ test('the Reduced motion switch and low stimulation share one element rather tha
   assert.equal(finallyOff.length, 0);
 });
 
-test('an ambient toast is quieted by low stimulation', () => {
+test('low stimulation suppresses an informational toast and records the structured decision', () => {
   const instance = buildApp();
   instance.durableStorage.storage.setItem('console.attention.lowStimulation', 'on');
   let called: string | undefined;
   instance.baseToast = (m: string) => { called = m; };
-  instance.gatedToast('Starting the phone system…');
+  instance.gatedToast('Starting the phone system…', 'info');
   assert.equal(called, undefined, 'expected the ambient toast to be quieted');
+  assert.deepEqual(
+    (({ source, message, severity, outcome, read }) => ({ source, message, severity, outcome, read }))(instance.notificationHistory[0]),
+    { source: 'toast', message: 'Starting the phone system…', severity: 'info', outcome: 'suppressed', read: false },
+  );
 });
 
 test('an ambient toast still shows once low stimulation is off', () => {
@@ -214,6 +282,40 @@ test('an ambient toast still shows once low stimulation is off', () => {
    * the voice it does not lose the fact -- so it asserts both of those instead. */
   assert.ok(called !== undefined, 'the ambient toast was quieted while low stimulation is off');
   assert.match(called, /Starting the phone system/, 'the toast no longer says what it is reporting');
+});
+
+test('low stimulation still delivers warning and error notices, with severity-aware history', () => {
+  const instance = buildApp();
+  instance.durableStorage.storage.setItem('console.attention.lowStimulation', 'on');
+  const delivered: Array<[string, string]> = [];
+  instance.baseFire = (title: string, body: string) => { delivered.push([title, body]); };
+  instance.narratedFire('Warning stays visible', 'A person needs to review this.', 'warning');
+  instance.narratedFire('Error stays visible', 'The operation did not complete.', 'error');
+  assert.equal(delivered.length, 2, 'warning and error notices must remain delivered during low stimulation');
+  assert.deepEqual(instance.notificationHistory.slice(0, 2).map((entry) => [entry.severity, entry.outcome]), [
+    ['error', 'delivered'], ['warning', 'delivered'],
+  ]);
+});
+
+test('low stimulation also suppresses an explicitly informational fired notice and records it', () => {
+  const instance = buildApp();
+  instance.durableStorage.storage.setItem('console.attention.lowStimulation', 'on');
+  let called = false;
+  instance.baseFire = () => { called = true; };
+  instance.narratedFire('Informational notice', 'This is safely quiet.', 'info');
+  assert.equal(called, false, 'an explicit informational fire must not bypass low stimulation');
+  assert.deepEqual(instance.notificationHistory[0].severity, 'info');
+  assert.deepEqual(instance.notificationHistory[0].outcome, 'suppressed');
+});
+
+test('the low-stimulation severity marker turns red when removed and green when restored', () => {
+  const source = fs.readFileSync(path.join(process.cwd(), 'app/renderer/src/App.tsx'), 'utf8');
+  const marker = "severity === 'info' && this.attentionPresentation().quietNotifications";
+  const gatedToast = source.slice(source.indexOf('private gatedToast ='), source.indexOf('private playNotificationSound'));
+  assert.match(gatedToast, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  const removed = gatedToast.replace(marker, 'false');
+  assert.doesNotMatch(removed, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    'the deliberate severity-marker removal must turn red before restoration');
 });
 
 test('low stimulation never dims content -- that is Focus mode\'s field, not this one\'s', () => {

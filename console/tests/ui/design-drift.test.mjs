@@ -76,32 +76,55 @@ async function compare(before, after) {
  * inline link span in both its paragraph and list-item rendering (Enter/Space
  * activation) -- each of those five reuses the same `activateOnEnter` helper in
  * App.tsx rather than a bespoke handler.
+ * The tab-search extension adds eight reachable clicks: three discovery triggers, the
+ * dismiss surface, scope selection, regex toggle, regex-builder launch, and result
+ * activation. Its filter adds one change/input pair. Those fixed contributions are
+ * enumerated below so the expected census remains hand-written rather than inferred.
  */
-test('the compiled renderer reproduces every audited design binding plus the PBX editable-text input', async () => {
-  const sources = await Promise.all(
-    ['console.tsx', 'm3-control.tsx'].map((name) => readFile(new URL(name, generated), 'utf8')),
-  );
-  const joined = sources.join('\n');
+const AUDITED_BINDING_COUNTS = Object.freeze({
+  // The raw compiler emits 227/15/10 for click/change/input. The fixed additions
+  // below are individually audited extension contracts, never derived at runtime.
+  onClick: 212 + 3 + 1 + 6 + 5 + 8,
+  onChange: 10 + 1 + 1 + 1 + 3 + 1,
+  onInput: 10 + 1 + 1,
+  onContextMenu: 9,
+  onDragStart: 4,
+  onDragOver: 4,
+  onDrop: 4,
+  onDragEnd: 4,
+  onMouseDown: 5,
+  onMouseEnter: 1,
+  onMouseLeave: 1,
+  onMouseUp: 1,
+  onKeyDown: 7,
+});
+
+function auditedBindingCounts(joined) {
   const counts = {};
   for (const [, event] of joined.matchAll(/\b(on[A-Z][A-Za-z]*): fn\(/gu)) {
     counts[event] = (counts[event] ?? 0) + 1;
   }
   counts.onKeyDown = (joined.match(/\bonKeyDown: /gu) ?? []).length;
-  assert.deepEqual(counts, {
-    onClick: 212 + 3 + 1 + 6 + 5, // + 5: changelog screen (regex toggle, copy, export, one date preset button, one regex palette token)
-    onChange: 10 + 1 + 1 + 1 + 3, // + 3: changelog screen (from date, to date, search query)
-    onInput: 10 + 1,
-    onContextMenu: 9,
-    onDragStart: 4,
-    onDragOver: 4,
-    onDrop: 4,
-    onDragEnd: 4,
-    onMouseDown: 5,
-    onMouseEnter: 1,
-    onMouseLeave: 1,
-    onMouseUp: 1,
-    onKeyDown: 7, // tablist + tab-group header + commit row + docs result row + 2 docs link spans + suggested-article row
-  });
+  return counts;
+}
+
+function assertAuditedBindingCounts(joined) {
+  assert.deepEqual(auditedBindingCounts(joined), AUDITED_BINDING_COUNTS);
+}
+
+test('the compiled renderer reproduces every audited design binding plus sanctioned extension controls', async () => {
+  const sources = await Promise.all(
+    ['console.tsx', 'm3-control.tsx'].map((name) => readFile(new URL(name, generated), 'utf8')),
+  );
+  const joined = sources.join('\n');
+  assertAuditedBindingCounts(joined);
+
+  /* Exact-source negative proof: losing the reachable tab-search dismiss handler
+   * must make the count Chut red, then the original source restores it green. */
+  const broken = joined.replace('onClick: fn(v.closeTabSearch)', 'onClick: removed(v.closeTabSearch)');
+  assert.notEqual(broken, joined, 'the deliberate tab-search dismissal break did not land');
+  assert.throws(() => assertAuditedBindingCounts(broken));
+  assertAuditedBindingCounts(joined);
 
   const windowControls = sources[0].match(/"data-window-button": ``/gu) ?? [];
   assert.equal(windowControls.length, 3, 'the frameless window controls were not wired');

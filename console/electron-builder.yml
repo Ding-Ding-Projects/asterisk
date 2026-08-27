@@ -6,6 +6,10 @@ files:
   - dist/**/*
   - dist-electron/**/*
   - app/electron/preload.cjs
+  - app/electron/preload-probe.cjs
+  - app/electron/probe-path.cjs
+asarUnpack:
+  - node_modules/keytar/**
 extraResources:
   - from: resources/asterisk-wsl-rootfs.tar
     to: asterisk/asterisk-wsl-rootfs.tar
@@ -13,6 +17,14 @@ extraResources:
     to: asterisk/asterisk-wsl-rootfs.json
   - from: resources/update-manifest.json
     to: update-manifest.json
+  - from: resources/school-mode-provenance.json
+    to: school-mode-provenance.json
+  - from: native-messaging
+    to: native-messaging
+  - from: resources/forge/gh.exe
+    to: forge/gh.exe
+  - from: scripts/forge-device-signin.ps1
+    to: forge/forge-device-signin.ps1
 win:
   target: squirrel
   icon: assets/icon.png

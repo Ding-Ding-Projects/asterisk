@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   parseReleaseTag, resolveLatestUpdate, findDigestForAsset, initialUpdaterState,
-  beganChecking, checkSucceeded, updateFailed, beganDownloading, downloadReady,
+  beganChecking, checkSucceeded, updateFailed, beganDownloading, downloadReady, installerLaunchFailed,
   dismissedForNow, verifyDownload, shouldCheckNow,
   type GitHubRelease, type ResolvedUpdate, type DownloadedFile,
 } from '../../control-plane/updater.js';
@@ -168,6 +168,20 @@ test('state machine: failed never silently reverts to idle, and keeps the reason
   const s = updateFailed(beganChecking(initialUpdaterState(undefined), new Date()), 'network unreachable');
   assert.equal(s.state, 'failed');
   assert.equal(s.lastError, 'network unreachable');
+});
+
+test('installer-start refusal keeps a verified update ready for direct retry', () => {
+  const resolved: ResolvedUpdate = {
+    tag: 'ding-pbx-console-v0.0.9-r1', ordinal: [0, 1, 9, 1], releaseUrl: 'https://example.com',
+    setupAsset: { name: 'Setup.exe', browserDownloadUrl: 'https://example.com/Setup.exe', size: 10 }, shaSumsAsset: undefined,
+  };
+  const ready = downloadReady(checkSucceeded(initialUpdaterState(undefined), resolved), '/privileged/verified/Setup.exe');
+  const refused = installerLaunchFailed({ ...ready, restartPending: true }, 'The installer process refused to start.');
+  assert.equal(refused.state, 'ready');
+  assert.equal(refused.downloadedPath, '/privileged/verified/Setup.exe');
+  assert.equal(refused.restartPending, false);
+  assert.equal(refused.lastError, 'The installer process refused to start.');
+  assert.equal(refused.resolved, resolved, 'a launch refusal must not trigger another update check or download');
 });
 
 test('state machine: beganDownloading with nothing resolved fails rather than pretending to proceed', () => {

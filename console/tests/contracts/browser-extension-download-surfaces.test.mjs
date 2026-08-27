@@ -1,64 +1,76 @@
 /**
- * Contract: browser-extension-download-surfaces. The honest state is "absent" --
- * this is a desktop console for an Asterisk PBX. There is no browser extension in
- * this repository, and no Start-download / Downloading / completion dialog trio
- * anywhere in the renderer.
+ * Contract: a companion extension may submit a handoff, but the desktop owns
+ * the real decision, transfer snapshots, and dedicated result windows. This
+ * deliberately proves no browser-extension package is claimed by this repo.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const read = (p) => readFileSync(resolve(root, p), 'utf8').replace(/\r\n/g, '\n');
-const json = (p) => JSON.parse(read(p));
+const read = (path) => readFileSync(resolve(root, path), 'utf8').replace(/\r\n/g, '\n');
 
-const rendererSrcDir = resolve(root, 'app/renderer/src');
-const rendererFiles = readdirSync(rendererSrcDir).filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'));
-const rendererSource = rendererFiles.map((f) => read(`app/renderer/src/${f}`)).join('\n');
+const contract = read('shared/download-transfer.ts');
+const mount = read('app/renderer/src/download-window-mount.tsx');
+const start = read('app/renderer/src/download-start-surface.tsx');
+const progress = read('app/renderer/src/download-progress-surface.tsx');
+const complete = read('app/renderer/src/download-complete-surface.tsx');
+const preload = read('app/electron/preload.ts');
+const main = read('app/electron/main.ts');
+const transfers = read('control-plane/download-transfer-manager.ts');
+const nativeContract = read('shared/native-messaging.ts');
+const nativeManifest = JSON.parse(read('native-messaging/com.dingdingprojects.asterisk.downloads.json'));
 
-test('the implementation registry carries a row for browser-extension-download-surfaces, marked absent', () => {
-  const registry = json('app/feature-registry.json');
-  const row = registry.features['browser-extension-download-surfaces'];
-  assert.ok(row, 'no browser-extension-download-surfaces row in app/feature-registry.json');
-  assert.equal(row.state, 'absent', 'this project may have grown a browser extension -- re-check this test, not just the registry');
-  assert.deepEqual(row.files, [], 'an absent row should name no implementation files');
+test('registers three dedicated download routes with factual window intents', () => {
+  for (const kind of ['start', 'progress', 'complete']) {
+    assert.match(contract, new RegExp(`kind: '${kind}', route: 'download/${kind}'`), `missing ${kind} registration`);
+    assert.match(contract, new RegExp(`${kind}: \\{\\n    alwaysOnTop: true`), `missing always-on-top ${kind} intent`);
+  }
+  assert.match(contract, /start: \{[^}]*presentation: 'blocking-decision'/, 'Start must remain a real decision surface');
+  assert.match(contract, /complete: \{[^}]*presentation: 'non-blocking-completion'/, 'completion must remain non-blocking');
+  assert.match(mount, /value === 'start' \|\| value === 'progress' \|\| value === 'complete'/, 'dedicated window selector lost a route');
 });
 
-test('there is no manifest.json anywhere in the repository describing a browser extension', () => {
-  const walk = (dir) => {
-    const entries = readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === 'dist' || entry.name === 'release') continue;
-      const full = resolve(dir, entry.name);
-      if (entry.isDirectory()) {
-        const found = walk(full);
-        if (found) return found;
-      } else if (entry.name === 'manifest.json') {
-        const content = readFileSync(full, 'utf8');
-        if (/"manifest_version"/u.test(content)) return full;
-      }
-    }
-    return null;
-  };
-  const found = walk(resolve(root, 'app'));
-  assert.equal(found, null, `a browser-extension manifest was found at ${found} -- the "absent" state needs re-checking`);
+test('start, transfer, and completion surfaces operate against receipts and observed snapshots', () => {
+  assert.match(start, /await client\.start\(handoff\)/, 'confirm must call the transfer boundary');
+  assert.match(start, /await client\.cancelHandoff\(handoff\.handoffId\)/, 'cancel must call the transfer boundary');
+  assert.match(progress, /useDownloadSnapshot\(client, transferId, initialSnapshot\)/, 'progress must read observed snapshots');
+  for (const command of ['pause', 'resume', 'cancel']) {
+    assert.match(progress, new RegExp(`action\\('${command}'\\)`), `${command} must issue its real command`);
+  }
+  assert.match(complete, /snapshot\.status === 'completed'/, 'completion must derive its outcome from a snapshot');
+  assert.doesNotMatch(progress, /setInterval|setTimeout/, 'progress must never manufacture transfer progress locally');
 });
 
-test('no Start download, Downloading, or download-complete dialog surface exists in the renderer', () => {
-  assert.doesNotMatch(rendererSource, /start.?download.?dialog/iu, 'a Start download dialog now exists -- re-check the "absent" state');
-  assert.doesNotMatch(rendererSource, /downloading.?dialog/iu, 'a Downloading dialog now exists -- re-check the "absent" state');
+test('preload and main constrain transfer commands to the dedicated bound windows', () => {
+  for (const method of ['listPendingHandoffs', 'start', 'cancelHandoff', 'command', 'getSnapshot', 'subscribe']) {
+    assert.match(preload, new RegExp(`${method}:`), `preload is missing downloads.${method}`);
+  }
+  assert.match(main, /Only a dedicated bound Start window may start a handoff\./, 'start must reject non-Start windows');
+  assert.match(main, /Only a dedicated bound Start window may cancel its pending handoff\./, 'cancel must reject non-Start windows');
+  assert.match(main, /Only the dedicated bound transfer window may issue this command\./, 'commands must reject unrelated windows');
+  assert.match(main, /alwaysOnTop: true/, 'dedicated Electron windows must honor their intent');
+  assert.match(main, /openDownloadWindow\('complete'/, 'terminal snapshots must open completion');
+  assert.match(main, /openDownloadWindow\('progress'/, 'active snapshots must open progress');
 });
 
-test('the repository is genuinely a desktop console, not a browser extension host', () => {
-  const pkg = json('package.json');
-  assert.notEqual(pkg.main, undefined, 'package.json has no main entry, which is unexpected for an Electron desktop app');
-  assert.doesNotMatch(JSON.stringify(pkg), /browser_action|content_scripts/iu, 'package.json now carries extension-manifest fields');
+test('the authenticated ingress accepts only one bounded extension handoff, never queue or transfer powers', () => {
+  assert.equal(nativeManifest.name, 'com.dingdingprojects.asterisk.downloads');
+  assert.deepEqual(nativeManifest.allowed_origins, ['chrome-extension://dnpkplcgjmipnndmghkhljjoefjhidab/']);
+  assert.match(nativeContract, /type: 'download-handoff'/, 'native ingress must accept only the handoff message type');
+  assert.match(nativeContract, /message\.extensionId === DOWNLOAD_EXTENSION_ID/, 'native ingress must bind the shipped extension identity');
+  assert.match(main, /isNativeDownloadIngressMessage\(envelope\.payload\)/, 'desktop must repeat native ingress validation');
+  assert.match(main, /acceptExtensionHandoff\(envelope\.payload\.handoff/, 'validated ingress must become a receipt-backed handoff');
+  assert.match(transfers, /class DownloadTransferManager/, 'privileged transfer state must live in the control plane');
+  assert.match(transfers, /download-transfers\.json/, 'snapshots must be persisted rather than renderer-only');
 });
 
-test('the documentation article honestly says the surface is not implemented, on both surfaces', () => {
+test('documentation names the real desktop and browser-local boundaries without inventing a shipped extension', () => {
   const doc = read('docs/platform/browser-extension-download-surfaces.md');
-  assert.match(doc, /Desktop application:\*\*\s*Not implemented/u, 'the doc no longer says the desktop console lacks this surface');
-  assert.match(doc, /Documentation website:\*\*\s*Not implemented/u, 'the doc no longer says the site lacks this surface');
+  assert.match(doc, /Desktop application:\*\* Implemented as three explicit routes/, 'documentation lost the desktop routes');
+  assert.match(doc, /companion extension itself is not shipped in this repository/, 'documentation must keep the extension absence honest');
+  assert.match(doc, /Documentation website:\*\* Implemented as a browser-local handoff equivalent/, 'documentation lost the browser-local equivalent');
+  assert.match(doc, /does not receive native-extension handoffs, own the desktop transfer queue, or create always-on-top windows/, 'documentation must preserve site limitations');
 });

@@ -72,6 +72,6 @@ test('the history dialog is reachable from only two of the six published pages, 
 });
 
 test('the registry records non-blocking-notifications as implemented, matching the universal toast surface', () => {
-  assert.equal(registry.features['non-blocking-notifications'].state, 'implemented',
+  assert.equal(registry.features['non-blocking-notifications'].status, 'implemented-unverified',
     'the canonical requirement is a non-blocking toast plus a reviewable history with bulk actions, and both exist -- "implemented" is the honest state, even though the history dialog itself is reachable from only two pages');
 });

@@ -18,8 +18,8 @@ import {
 } from '../../app/renderer/src/personal-vocabulary.ts';
 
 const VALID_ARRAY = JSON.stringify({ version: 1, replacements: [{ from: 'sample-alpha', to: 'sample-beta' }] });
-const VALID_OBJECT = JSON.stringify({ schemaVersion: 1, replacements: { 'sample-alpha': 'sample-beta' } });
-const VALID_TERMS = JSON.stringify({ version: 1, terms: { 'sample-alpha': 'sample-beta' } });
+const applyAtCopyBoundary = (storage: ReturnType<typeof createMemoryStorage>, text: string): string =>
+  applyVocabularyText(storage, { text, boundary: 'user-interface-copy' });
 
 // ---------------------------------------------------------------- absent-control / empty state
 
@@ -33,7 +33,7 @@ test('vocabularyStatus on empty storage reports no file loaded, original wording
 
 test('applyVocabularyText is a no-op with no file loaded', () => {
   const storage = createMemoryStorage();
-  assert.equal(applyVocabularyText(storage, 'sample-alpha here'), 'sample-alpha here');
+  assert.equal(applyAtCopyBoundary(storage, 'sample-alpha here'), 'sample-alpha here');
 });
 
 // ---------------------------------------------------------------- valid load
@@ -47,16 +47,33 @@ test('valid array-form payload is accepted', () => {
   }
 });
 
-test('valid object-map payload (schemaVersion + replacements object) is accepted, matching the site', () => {
-  const result = validateVocabularyPayload(VALID_OBJECT);
-  assert.equal(result.ok, true);
-  if (result.ok) assert.deepEqual(result.file.replacements, [{ from: 'sample-alpha', to: 'sample-beta' }]);
+test('every documented version and replacement representation normalizes to canonical array cache data', () => {
+  for (const payload of [
+    JSON.stringify({ version: 1, replacements: [{ from: 'sample-alpha', to: 'sample-beta' }] }),
+    JSON.stringify({ schemaVersion: 1, replacements: [{ from: 'sample-alpha', to: 'sample-beta' }] }),
+    JSON.stringify({ version: 1, replacements: { 'sample-alpha': 'sample-beta' } }),
+    JSON.stringify({ schemaVersion: 1, replacements: { 'sample-alpha': 'sample-beta' } }),
+    JSON.stringify({ version: 1, terms: { 'sample-alpha': 'sample-beta' } }),
+    JSON.stringify({ schemaVersion: 1, terms: { 'sample-alpha': 'sample-beta' } }),
+  ]) {
+    const result = validateVocabularyPayload(payload);
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.deepEqual(result.file, { version: 1, replacements: [{ from: 'sample-alpha', to: 'sample-beta' }] });
+    }
+  }
 });
 
-test('valid "terms" object-map payload is accepted, matching the site', () => {
-  const result = validateVocabularyPayload(VALID_TERMS);
-  assert.equal(result.ok, true);
-  if (result.ok) assert.deepEqual(result.file.replacements, [{ from: 'sample-alpha', to: 'sample-beta' }]);
+test('conflicting aliases and extra root fields are rejected rather than resolved by precedence', () => {
+  for (const payload of [
+    JSON.stringify({ version: 1, schemaVersion: 1, replacements: [] }),
+    JSON.stringify({ version: 1, replacements: [], terms: {} }),
+    JSON.stringify({ version: 1, replacements: [], extra: true }),
+  ]) {
+    const result = validateVocabularyPayload(payload);
+    assert.equal(result.ok, false);
+    if (!result.ok) assert.match(result.reason, /exactly one|unexpected field/);
+  }
 });
 
 test('loadVocabularyFile caches a valid file and reports the count', () => {
@@ -90,6 +107,22 @@ test('rejects a missing version entirely', () => {
   assert.equal(result.ok, false);
 });
 
+test('rejects duplicate JSON keys before JSON.parse could silently overwrite one', () => {
+  const result = validateVocabularyPayload('{"version":1,"version":1,"replacements":[{"from":"a","to":"b"}]}');
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.match(result.reason, /duplicate keys are not accepted/);
+});
+
+test('rejects unknown entry fields rather than applying a partial envelope', () => {
+  for (const payload of [
+    JSON.stringify({ version: 1, replacements: [{ from: 'a', to: 'b', extra: true }] }),
+  ]) {
+    const result = validateVocabularyPayload(payload);
+    assert.equal(result.ok, false);
+    if (!result.ok) assert.match(result.reason, /unexpected field/);
+  }
+});
+
 // ---------------------------------------------------------------- size bound
 
 test('rejects a payload over the byte-size limit', () => {
@@ -100,7 +133,7 @@ test('rejects a payload over the byte-size limit', () => {
   assert.ok(new TextEncoder().encode(payload).length > MAX_FILE_BYTES, 'fixture must actually exceed the byte bound');
   const result = validateVocabularyPayload(payload);
   assert.equal(result.ok, false);
-  if (!result.ok) assert.match(result.reason, /KiB and the limit is/);
+  if (!result.ok) assert.match(result.reason, /is \d+ bytes and the limit is 65536 bytes/);
 });
 
 // ---------------------------------------------------------------- nesting depth bound
@@ -111,7 +144,7 @@ test('rejects a payload nested past the depth limit', () => {
   const payload = JSON.stringify({ version: 1, replacements: [{ from: 'a', to: 'b' }], extra: nested });
   const result = validateVocabularyPayload(payload);
   assert.equal(result.ok, false);
-  if (!result.ok) assert.match(result.reason, /nests \d+ levels deep/);
+  if (!result.ok) assert.match(result.reason, /nesting exceeds 4 levels/);
 });
 
 test('accepts a payload within the depth limit', () => {
@@ -126,7 +159,7 @@ test('rejects a payload over the max entry count', () => {
   const many = Array.from({ length: MAX_REPLACEMENTS + 1 }, (_, i) => ({ from: `term-${i}`, to: 'x' }));
   const result = validateVocabularyPayload(JSON.stringify({ version: 1, replacements: many }));
   assert.equal(result.ok, false);
-  if (!result.ok) assert.match(result.reason, /the limit is 256/);
+  if (!result.ok) assert.match(result.reason, /must contain 1 to 256 entries/);
 });
 
 test('accepts exactly the max entry count', () => {
@@ -140,13 +173,13 @@ test('accepts exactly the max entry count', () => {
 test('rejects a "from" over the length bound', () => {
   const result = validateVocabularyPayload(JSON.stringify({ version: 1, replacements: [{ from: 'a'.repeat(MAX_FROM_LENGTH + 1), to: 'b' }] }));
   assert.equal(result.ok, false);
-  if (!result.ok) assert.match(result.reason, /"from" is \d+ characters and the limit is 128/);
+  if (!result.ok) assert.match(result.reason, /"from" is 129 characters and must contain 1 to 128 characters/);
 });
 
 test('rejects a "to" over the length bound', () => {
   const result = validateVocabularyPayload(JSON.stringify({ version: 1, replacements: [{ from: 'a', to: 'b'.repeat(MAX_TO_LENGTH + 1) }] }));
   assert.equal(result.ok, false);
-  if (!result.ok) assert.match(result.reason, /"to" is \d+ characters and the limit is 256/);
+  if (!result.ok) assert.match(result.reason, /"to" is 257 characters and the limit is 256/);
 });
 
 test('accepts exactly the from/to length bounds', () => {
@@ -176,7 +209,7 @@ test('rejects duplicate "from" keys in array form', () => {
   const payload = JSON.stringify({ version: 1, replacements: [{ from: 'dup', to: 'a' }, { from: 'dup', to: 'b' }] });
   const result = validateVocabularyPayload(payload);
   assert.equal(result.ok, false);
-  if (!result.ok) assert.match(result.reason, /duplicate keys are not accepted/);
+  if (!result.ok) assert.match(result.reason, /"from" value in replacement 2 is duplicated/);
 });
 
 test('rejects unsafe object keys (__proto__)', () => {
@@ -204,10 +237,10 @@ test('rejects "from" equal to an unsafe key even in array form', () => {
   assert.equal(result.ok, false);
 });
 
-test('rejects replacements that are not an array or object', () => {
+test('rejects a replacement source that is neither an array nor an object map', () => {
   const result = validateVocabularyPayload(JSON.stringify({ version: 1, replacements: 'nope' }));
   assert.equal(result.ok, false);
-  if (!result.ok) assert.match(result.reason, /no replacements/);
+  if (!result.ok) assert.match(result.reason, /"replacements" must be an array/);
 });
 
 test('rejects a replacement item missing "to"', () => {
@@ -233,7 +266,7 @@ test('a rejected file never applies partially — the previous cache is untouche
 
   const after = readVocabularyCache(storage);
   assert.deepEqual(after, before);
-  assert.equal(applyVocabularyText(storage, 'sample-alpha'), 'sample-beta');
+  assert.equal(applyAtCopyBoundary(storage, 'sample-alpha'), 'sample-beta');
 });
 
 // ---------------------------------------------------------------- persistence / cache corruption / clear
@@ -256,7 +289,7 @@ test('a corrupt cache fails closed to original wording and is purged', () => {
   const cached = readVocabularyCache(storage);
   assert.equal(cached, undefined);
   assert.equal(storage.getItem('ding-pbx-vocabulary-cache'), null, 'corrupt cache must be purged, not left to fail again');
-  assert.equal(applyVocabularyText(storage, 'sample-alpha'), 'sample-alpha');
+  assert.equal(applyAtCopyBoundary(storage, 'sample-alpha'), 'sample-alpha');
 });
 
 test('a stale cache (old/unsupported schema) fails closed and is purged', () => {
@@ -270,12 +303,12 @@ test('a stale cache (old/unsupported schema) fails closed and is purged', () => 
 test('clearVocabulary purges the cache and restores original wording immediately', () => {
   const storage = createMemoryStorage();
   loadVocabularyFile(storage, VALID_ARRAY);
-  assert.equal(applyVocabularyText(storage, 'sample-alpha'), 'sample-beta');
+  assert.equal(applyAtCopyBoundary(storage, 'sample-alpha'), 'sample-beta');
   const cleared = clearVocabulary(storage);
   assert.equal(cleared.ok, true);
   assert.equal(cleared.replacementCount, 0);
   assert.equal(storage.getItem('ding-pbx-vocabulary-cache'), null);
-  assert.equal(applyVocabularyText(storage, 'sample-alpha'), 'sample-alpha');
+  assert.equal(applyAtCopyBoundary(storage, 'sample-alpha'), 'sample-alpha');
 });
 
 // ---------------------------------------------------------------- replace (loading a second file)
@@ -283,10 +316,10 @@ test('clearVocabulary purges the cache and restores original wording immediately
 test('loading a second valid file replaces the first (replace state)', () => {
   const storage = createMemoryStorage();
   loadVocabularyFile(storage, VALID_ARRAY);
-  assert.equal(applyVocabularyText(storage, 'sample-alpha'), 'sample-beta');
+  assert.equal(applyAtCopyBoundary(storage, 'sample-alpha'), 'sample-beta');
   const second = JSON.stringify({ version: 1, replacements: [{ from: 'sample-alpha', to: 'sample-gamma' }] });
   loadVocabularyFile(storage, second);
-  assert.equal(applyVocabularyText(storage, 'sample-alpha'), 'sample-gamma');
+  assert.equal(applyAtCopyBoundary(storage, 'sample-alpha'), 'sample-gamma');
 });
 
 // ---------------------------------------------------------------- apply semantics
@@ -301,13 +334,22 @@ test('applyVocabularyText replaces every occurrence, longest term first', () => 
     ],
   });
   loadVocabularyFile(storage, payload);
-  assert.equal(applyVocabularyText(storage, 'a sample term and another sample'), 'a Y and another X');
+  assert.equal(applyAtCopyBoundary(storage, 'a sample term and another sample'), 'a Y and another X');
 });
 
 test('applyVocabularyText leaves unrelated text untouched', () => {
   const storage = createMemoryStorage();
   loadVocabularyFile(storage, VALID_ARRAY);
-  assert.equal(applyVocabularyText(storage, 'nothing to see here'), 'nothing to see here');
+  assert.equal(applyAtCopyBoundary(storage, 'nothing to see here'), 'nothing to see here');
+});
+
+test('applyVocabularyText supports an explicitly classified accessible-name boundary', () => {
+  const storage = createMemoryStorage();
+  loadVocabularyFile(storage, VALID_ARRAY);
+  assert.equal(
+    applyVocabularyText(storage, { text: 'sample-alpha', boundary: 'accessible-name' }),
+    'sample-beta',
+  );
 });
 
 // ---------------------------------------------------------------- no-network guard (structural)

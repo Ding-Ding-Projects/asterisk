@@ -882,8 +882,8 @@ test('the card is findable from the settings search, and its keywords follow the
 test('the site feature registry records it as implemented, and names the files it lives in', () => {
   const row = registry.features['school-mode'];
   assert.ok(row, 'no school-mode row in site/feature-registry.json');
-  assert.equal(row.state, 'implemented');
-  assert.deepEqual([...row.files].sort(), ['site/app.js', 'site/settings.html', 'site/styles.css'].sort());
+  assert.equal(row.status, 'implemented-unverified');
+  assert.deepEqual([...row.implementation.paths].sort(), ['site/app.js', 'site/settings.html', 'site/styles.css'].sort());
   assert.match(row.note, /removed from the document/u, 'the registry note does not record the removal boundary');
   /* The exact claim, not the word. A bare /digest/ needle was satisfied by the note's
    * second, unrelated mention of one, so a planted break that deleted the sentence

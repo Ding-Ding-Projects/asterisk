@@ -325,20 +325,35 @@ test('a summary carrying markup is escaped rather than rendered -- release text 
  * Filtering: date and search compose, and neither overrides the other.
  * ------------------------------------------------------------------ */
 
-test('the date filter is inclusive at both ends and an absent bound leaves that end open', () => {
+test('the real release-date set is preserved, while an isolated fixture proves inclusive multi-day range semantics', () => {
   const api = loadChangelog();
-  const { entries } = api.parseChangelog(REAL_MARKDOWN);
-  const dates = [...new Set(entries.map((entry) => entry.date))].sort();
-  assert.ok(dates.length >= 2, 'the real release history spans fewer than two dates, so a range cannot be exercised');
-  const first = dates[0];
-  const last = dates[dates.length - 1];
+  const { entries: realEntries } = api.parseChangelog(REAL_MARKDOWN);
+  const realDates = [...new Set(realEntries.map((entry) => entry.date))].sort();
+  assert.ok(realDates.length >= 1, 'the real release history has no parseable release date');
+  assert.equal(api.changelogFilterByDate(realEntries, '', '').length, realEntries.length,
+    'an empty range dropped factual release-history entries');
 
-  assert.equal(api.changelogFilterByDate(entries, '', '').length, entries.length, 'an empty range dropped entries');
+  /* The current real tag cadence can put many releases on one calendar day. This is a
+   * deliberately isolated filter input, not a second changelog and not a claim that
+   * these are releases. Its only job is to make both inclusive endpoints observable. */
+  const entries = [
+    { version: 'range-fixture-earlier', date: '2026-02-03', changes: [] },
+    { version: 'range-fixture-middle', date: '2026-02-04', changes: [] },
+    { version: 'range-fixture-later', date: '2026-02-05', changes: [] },
+  ];
+  const first = '2026-02-03';
+  const last = '2026-02-05';
+
+  assert.equal(api.changelogFilterByDate(entries, '', '').length, entries.length, 'an empty range dropped fixture entries');
   assert.ok(api.changelogFilterByDate(entries, first, first).every((entry) => entry.date === first),
     'a single-day range let another day through');
-  assert.ok(api.changelogFilterByDate(entries, first, first).length > 0, 'a single-day range on a real date matched nothing');
+  assert.ok(api.changelogFilterByDate(entries, first, first).length > 0, 'a single-day range on the fixture matched nothing');
   assert.equal(api.changelogFilterByDate(entries, first, last).length, entries.length,
     'the full range dropped an entry, so one of the bounds is exclusive');
+  assert.deepEqual(api.changelogFilterByDate(entries, '', first).map((entry) => entry.date), [first],
+    'an absent lower bound did not leave the lower end open');
+  assert.deepEqual(api.changelogFilterByDate(entries, last, '').map((entry) => entry.date), [last],
+    'an absent upper bound did not leave the upper end open');
   assert.equal(api.changelogFilterByDate(entries, last, first).length, 0, 'a reversed range still matched something');
 });
 
@@ -779,10 +794,10 @@ test('the build refuses to emit a link it has not verified against real git obje
 test('the site feature registry records changelog-viewer as implemented, with a note that says what shipped', () => {
   const row = registry.features['changelog-viewer'];
   assert.ok(row, 'no changelog-viewer row in site/feature-registry.json');
-  assert.equal(row.state, 'implemented',
+  assert.equal(row.status, 'implemented-unverified',
     'a real version list with date filtering, search, commit links and export should read as implemented');
   assert.ok(typeof row.note === 'string' && row.note.length > 200, 'the row records a state with no note explaining it');
-  assert.deepEqual(row.files.slice().sort(), ['site/app.js', 'site/build.mjs', 'site/downloads.html', 'site/styles.css'],
+  assert.deepEqual(row.implementation.paths.slice().sort(), ['site/app.js', 'site/build.mjs', 'site/downloads.html', 'site/styles.css'],
     'the recorded file list has drifted from the files the feature actually lives in');
 });
 

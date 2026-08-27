@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { PbxAdminIntegratedApp } from './PbxAdminIntegratedApp';
 import { UpdateBanner } from './UpdateBanner';
 import { DimSumSurprise } from './DimSumSurprise';
+import { SurfaceMounts } from './surface-mounts';
 import { installHttpBridge, isHostedRuntime } from './bridge/http-bridge';
 import './styles.css';
 
@@ -61,6 +62,14 @@ async function boot() {
   surpriseHost.id = 'dim-sum-surprise-host';
   document.body.appendChild(surpriseHost);
   createRoot(surpriseHost).render(<React.StrictMode><DimSumSurprise /></React.StrictMode>);
+
+  /* Feature routes are real mounted surfaces, not a dormant component export.  The
+   * hash router inside SurfaceMounts keeps the normal generated console intact until
+   * a specific converter, Ollama, docs, changelog, or status route is requested. */
+  const surfacesHost = document.createElement('div');
+  surfacesHost.id = 'surface-mounts-host';
+  document.body.appendChild(surfacesHost);
+  createRoot(surfacesHost).render(<React.StrictMode><SurfaceMounts /></React.StrictMode>);
 }
 
 void boot();

@@ -55,6 +55,6 @@ test('app.js has no tab-strip logic: no panel switching, reordering, pinning, gr
 });
 
 test('the registry records browser-style-tabs as absent, and the code agrees', () => {
-  assert.equal(registry.features['browser-style-tabs'].state, 'absent',
+  assert.equal(registry.features['browser-style-tabs'].status, 'absent',
     'the site is a handful of separately navigated pages with a plain in-page anchor nav; there is no browser-style tab strip, docking, overflow, reordering, pinning, grouping, or the four discovery searches the canonical contract requires -- "absent" is the honest state');
 });

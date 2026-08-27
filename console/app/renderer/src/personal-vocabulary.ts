@@ -1,30 +1,16 @@
 /**
- * Local personal-vocabulary loader.
- *
- * Pure validation and application logic for a user-supplied local JSON file that remaps
- * specific words in the interface to their own preferred terms. No network request of
- * any kind. No bundled mappings, samples, templates, guesses, or defaults ship here —
- * the data exists only after a user supplies a valid file, and clearing it restores
- * original wording immediately.
- *
- * The accepted file shape mirrors the site's loader exactly (`site/app.js`,
- * `loadVocabulary`), because the same real file a user has must load on both surfaces:
- *   - a top-level "version" (or "schemaVersion") equal to 1
- *   - "replacements" as either an array of {"from","to"} objects, or an object mapping
- *     each term to its replacement (also accepted under a "terms" key)
- *
- * Every function here is pure and takes its I/O as arguments, so tests need no
- * filesystem, storage, or network.
+ * Strict local personal-vocabulary loader. No mappings, examples, private values,
+ * source paths, network calls, or telemetry ship in this module.
  */
 
 export const SCHEMA_VERSION = 1;
-export const MAX_FILE_BYTES = 65536;
+export const MAX_FILE_BYTES = 65_536;
 export const MAX_REPLACEMENTS = 256;
 export const MAX_FROM_LENGTH = 128;
 export const MAX_TO_LENGTH = 256;
 export const MAX_NESTING_DEPTH = 4;
 
-/** Object keys that could touch a prototype rather than naming a real replacement. */
+const CACHE_KEY = 'ding-pbx-vocabulary-cache';
 const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 export interface Replacement {
@@ -49,143 +35,240 @@ export interface ValidationFailed {
 
 export type ValidationResult = ValidationOk | ValidationFailed;
 
-function measureDepth(value: unknown, guard = 0): number {
-  if (guard > MAX_NESTING_DEPTH + 2) return guard; // bail out; caller rejects past the bound anyway
-  if (value === null || typeof value !== 'object') return 0;
-  if (Array.isArray(value)) {
-    let max = 0;
-    for (const item of value) max = Math.max(max, measureDepth(item, guard + 1));
-    return 1 + max;
-  }
-  let max = 0;
-  for (const key of Object.keys(value as Record<string, unknown>)) {
-    max = Math.max(max, measureDepth((value as Record<string, unknown>)[key], guard + 1));
-  }
-  return 1 + max;
+class JsonSyntaxError extends Error {}
+class DuplicateJsonKeyError extends Error {}
+
+/** Parse JSON while retaining the duplicate-key information JSON.parse discards. */
+function parseStrictJson(source: string): unknown {
+  let cursor = 0;
+  const skipWhitespace = (): void => {
+    while (cursor < source.length && [' ', '\t', '\r', '\n'].includes(source[cursor]!)) cursor += 1;
+  };
+
+  const parseString = (): string => {
+    const start = cursor;
+    if (source[cursor] !== '"') throw new JsonSyntaxError(`expected a string at character ${cursor + 1}`);
+    cursor += 1;
+    let escaped = false;
+    while (cursor < source.length) {
+      const character = source[cursor]!;
+      cursor += 1;
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (character === '\\') {
+        escaped = true;
+        continue;
+      }
+      if (character === '"') {
+        try {
+          return JSON.parse(source.slice(start, cursor)) as string;
+        } catch (error) {
+          throw new JsonSyntaxError(error instanceof Error ? error.message : String(error));
+        }
+      }
+      if (character.charCodeAt(0) < 0x20) throw new JsonSyntaxError(`unescaped control character at ${cursor}`);
+    }
+    throw new JsonSyntaxError('unterminated string');
+  };
+
+  const parseValue = (depth: number): unknown => {
+    if (depth > MAX_NESTING_DEPTH) throw new JsonSyntaxError(`nesting exceeds ${MAX_NESTING_DEPTH} levels`);
+    skipWhitespace();
+    const character = source[cursor];
+    if (character === '"') return parseString();
+    if (character === '{') {
+      cursor += 1;
+      const result: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+      const seen = new Set<string>();
+      skipWhitespace();
+      if (source[cursor] === '}') { cursor += 1; return result; }
+      while (cursor < source.length) {
+        skipWhitespace();
+        const key = parseString();
+        if (seen.has(key)) throw new DuplicateJsonKeyError(`duplicate object key ${JSON.stringify(key)}`);
+        if (UNSAFE_KEYS.has(key)) throw new JsonSyntaxError(`unsafe object key ${JSON.stringify(key)}`);
+        seen.add(key);
+        skipWhitespace();
+        if (source[cursor] !== ':') throw new JsonSyntaxError(`expected ':' after ${JSON.stringify(key)}`);
+        cursor += 1;
+        result[key] = parseValue(depth + 1);
+        skipWhitespace();
+        if (source[cursor] === '}') { cursor += 1; return result; }
+        if (source[cursor] !== ',') throw new JsonSyntaxError(`expected ',' or '}' at character ${cursor + 1}`);
+        cursor += 1;
+      }
+      throw new JsonSyntaxError('unterminated object');
+    }
+    if (character === '[') {
+      cursor += 1;
+      const result: unknown[] = [];
+      skipWhitespace();
+      if (source[cursor] === ']') { cursor += 1; return result; }
+      while (cursor < source.length) {
+        result.push(parseValue(depth + 1));
+        skipWhitespace();
+        if (source[cursor] === ']') { cursor += 1; return result; }
+        if (source[cursor] !== ',') throw new JsonSyntaxError(`expected ',' or ']' at character ${cursor + 1}`);
+        cursor += 1;
+      }
+      throw new JsonSyntaxError('unterminated array');
+    }
+    const rest = source.slice(cursor);
+    for (const [literal, value] of [['true', true], ['false', false], ['null', null]] as const) {
+      if (rest.startsWith(literal)) { cursor += literal.length; return value; }
+    }
+    const number = rest.match(/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/u)?.[0];
+    if (number) {
+      cursor += number.length;
+      const value = Number(number);
+      if (!Number.isFinite(value)) throw new JsonSyntaxError('number is outside the supported range');
+      return value;
+    }
+    throw new JsonSyntaxError(`unexpected value at character ${cursor + 1}`);
+  };
+
+  const value = parseValue(1);
+  skipWhitespace();
+  if (cursor !== source.length) throw new JsonSyntaxError(`unexpected trailing content at character ${cursor + 1}`);
+  return value;
 }
 
-function hasUnsafeKey(value: unknown): boolean {
-  if (value === null || typeof value !== 'object') return false;
-  if (Array.isArray(value)) return value.some(hasUnsafeKey);
-  for (const key of Object.keys(value as Record<string, unknown>)) {
-    if (UNSAFE_KEYS.has(key)) return true;
-    if (hasUnsafeKey((value as Record<string, unknown>)[key])) return true;
+function exactKeys(value: Record<string, unknown>, allowed: readonly string[], path: string): string | undefined {
+  const expected = new Set(allowed);
+  for (const key of Object.keys(value)) {
+    if (!expected.has(key)) return `${path} contains unexpected field ${JSON.stringify(key)}.`;
   }
-  return false;
+  for (const key of allowed) {
+    if (!Object.prototype.hasOwnProperty.call(value, key)) return `${path} is missing field ${JSON.stringify(key)}.`;
+  }
+  return undefined;
+}
+
+function hasOwn(value: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
 }
 
 /**
- * Validate raw JSON bytes (already decoded to text) against the bounded schema. Never
- * touches the network, storage, or the DOM — a pure function from bytes to a validated
- * file or an exact, human-readable rejection reason.
+ * Normalize the three documented input representations to the one canonical cached
+ * representation. Version and source aliases are mutually exclusive: accepting a
+ * mixture would make the file's meaning depend on precedence rather than its data.
  */
+function normalizeVocabularyRoot(root: Record<string, unknown>): ValidationResult | ValidationFailed {
+  const hasVersion = hasOwn(root, 'version');
+  const hasSchemaVersion = hasOwn(root, 'schemaVersion');
+  if (hasVersion === hasSchemaVersion) {
+    return { ok: false, reason: 'Rejected: declare exactly one of "version" or "schemaVersion".' };
+  }
+  const versionKey = hasVersion ? 'version' : 'schemaVersion';
+  if (root[versionKey] !== SCHEMA_VERSION) {
+    return { ok: false, reason: `Rejected: expected schema version ${SCHEMA_VERSION}, but found ${JSON.stringify(root[versionKey])}.` };
+  }
+
+  const hasReplacements = hasOwn(root, 'replacements');
+  const hasTerms = hasOwn(root, 'terms');
+  if (hasReplacements === hasTerms) {
+    return { ok: false, reason: 'Rejected: declare exactly one of "replacements" or "terms".' };
+  }
+  const sourceKey = hasReplacements ? 'replacements' : 'terms';
+  const rootIssue = exactKeys(root, [versionKey, sourceKey], 'The top level');
+  if (rootIssue) return { ok: false, reason: `Rejected: ${rootIssue}` };
+
+  const source = root[sourceKey];
+  if (Array.isArray(source)) {
+    if (sourceKey === 'terms') {
+      return { ok: false, reason: 'Rejected: "terms" must be an object map of source strings to replacement strings.' };
+    }
+    return { ok: true, file: { version: SCHEMA_VERSION, replacements: source as Replacement[] } };
+  }
+  if (source === null || typeof source !== 'object') {
+    return { ok: false, reason: `Rejected: "${sourceKey}" must be an array of {"from","to"} objects or an object map of source strings to replacement strings.` };
+  }
+  const map = source as Record<string, unknown>;
+  const replacements: Replacement[] = [];
+  for (const from of Object.keys(map)) {
+    if (UNSAFE_KEYS.has(from)) {
+      return { ok: false, reason: `Rejected: "${sourceKey}" contains unsafe source term ${JSON.stringify(from)}.` };
+    }
+    replacements.push({ from, to: map[from] as string });
+  }
+  return { ok: true, file: { version: SCHEMA_VERSION, replacements } };
+}
+
+/** Validate the complete byte payload against one canonical versioned schema. */
 export function validateVocabularyPayload(rawText: string): ValidationResult {
   const byteLength = new TextEncoder().encode(rawText).length;
   if (byteLength > MAX_FILE_BYTES) {
-    return { ok: false, reason: `Rejected: the file is ${Math.ceil(byteLength / 1024)} KiB and the limit is ${MAX_FILE_BYTES / 1024} KiB.` };
+    return { ok: false, reason: `Rejected: the file is ${byteLength} bytes and the limit is ${MAX_FILE_BYTES} bytes.` };
   }
 
-  let raw: unknown;
+  let parsed: unknown;
   try {
-    raw = JSON.parse(rawText);
+    parsed = parseStrictJson(rawText);
   } catch (error) {
-    return { ok: false, reason: `Rejected: not valid JSON (${error instanceof Error ? error.message : String(error)}).` };
+    const message = error instanceof Error ? error.message : String(error);
+    const prefix = error instanceof DuplicateJsonKeyError ? 'duplicate keys are not accepted' : 'not valid JSON';
+    return { ok: false, reason: `Rejected: ${prefix} (${message}).` };
   }
 
-  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
     return { ok: false, reason: 'Rejected: the top level must be a JSON object.' };
   }
-  const root = raw as Record<string, unknown>;
-
-  if (hasUnsafeKey(root)) {
-    return { ok: false, reason: 'Rejected: this file uses an unsafe object key (__proto__, constructor, or prototype).' };
-  }
-
-  const depth = measureDepth(root);
-  if (depth > MAX_NESTING_DEPTH) {
-    return { ok: false, reason: `Rejected: the file nests ${depth} levels deep and the limit is ${MAX_NESTING_DEPTH}.` };
-  }
-
-  // Accept "version" or "schemaVersion", exactly as the site's loader does — the site's
-  // own settings export uses "schemaVersion", so a file this app produced elsewhere must
-  // not be rejected here for spelling its version key the other way.
-  const version = root.version !== undefined ? root.version : root.schemaVersion;
-  if (version !== SCHEMA_VERSION) {
-    return { ok: false, reason: `Rejected: expected schema version ${SCHEMA_VERSION}, but this file declares ${JSON.stringify(version)}. Set "version": ${SCHEMA_VERSION} (or "schemaVersion": ${SCHEMA_VERSION}) at the top level.` };
-  }
-
-  const rawReplacements = root.replacements;
-  let list: unknown[];
-  if (Array.isArray(rawReplacements)) {
-    list = rawReplacements;
-  } else if (rawReplacements !== null && typeof rawReplacements === 'object') {
-    list = Object.entries(rawReplacements as Record<string, unknown>).map(([from, to]) => ({ from, to }));
-  } else if (root.terms !== null && typeof root.terms === 'object' && !Array.isArray(root.terms)) {
-    list = Object.entries(root.terms as Record<string, unknown>).map(([from, to]) => ({ from, to }));
-  } else {
-    return { ok: false, reason: 'Rejected: this file has no replacements. Provide "replacements" as a list of {"from","to"} objects, or as an object mapping each term to its replacement.' };
-  }
-
-  if (list.length > MAX_REPLACEMENTS) {
-    return { ok: false, reason: `Rejected: this file has ${list.length} replacements and the limit is ${MAX_REPLACEMENTS}. Remove ${list.length - MAX_REPLACEMENTS}.` };
+  const normalized = normalizeVocabularyRoot(parsed as Record<string, unknown>);
+  if (!normalized.ok) return normalized;
+  const rawReplacements = normalized.file.replacements;
+  if (rawReplacements.length === 0 || rawReplacements.length > MAX_REPLACEMENTS) {
+    return { ok: false, reason: `Rejected: "replacements" must contain 1 to ${MAX_REPLACEMENTS} entries.` };
   }
 
   const replacements: Replacement[] = [];
   const seen = new Set<string>();
-  for (let index = 0; index < list.length; index += 1) {
-    const item = list[index] as { from?: unknown; to?: unknown } | null;
-    if (!item || typeof item !== 'object') {
-      return { ok: false, reason: `Rejected: replacement ${index + 1} is not valid: expected an object with "from" and "to".` };
+  for (let index = 0; index < rawReplacements.length; index += 1) {
+    const item = rawReplacements[index];
+    if (item === null || typeof item !== 'object' || Array.isArray(item)) {
+      return { ok: false, reason: `Rejected: replacement ${index + 1} must be an object.` };
     }
-    const { from, to } = item;
-    if (typeof from !== 'string') {
-      return { ok: false, reason: `Rejected: replacement ${index + 1} is not valid: "from" is missing or is not a string.` };
+    const entry = item as unknown as Record<string, unknown>;
+    const entryIssue = exactKeys(entry, ['from', 'to'], `Replacement ${index + 1}`);
+    if (entryIssue) return { ok: false, reason: `Rejected: ${entryIssue}` };
+    if (typeof entry.from !== 'string') {
+      return { ok: false, reason: `Rejected: replacement ${index + 1} "from" must be a string.` };
     }
-    if (typeof to !== 'string') {
-      return { ok: false, reason: `Rejected: replacement ${index + 1} is not valid: "to" is missing or is not a string.` };
+    if (entry.from.length === 0 || entry.from.length > MAX_FROM_LENGTH) {
+      return { ok: false, reason: `Rejected: replacement ${index + 1} "from" is ${entry.from.length} characters and must contain 1 to ${MAX_FROM_LENGTH} characters.` };
     }
-    if (from.length === 0 || from.length > MAX_FROM_LENGTH) {
-      return { ok: false, reason: `Rejected: replacement ${index + 1} is not valid: "from" is ${from.length} characters and the limit is ${MAX_FROM_LENGTH}.` };
+    if (typeof entry.to !== 'string') {
+      return { ok: false, reason: `Rejected: replacement ${index + 1} "to" must be a string.` };
     }
-    if (to.length > MAX_TO_LENGTH) {
-      return { ok: false, reason: `Rejected: replacement ${index + 1} is not valid: "to" is ${to.length} characters and the limit is ${MAX_TO_LENGTH}.` };
+    if (entry.to.length > MAX_TO_LENGTH) {
+      return { ok: false, reason: `Rejected: replacement ${index + 1} "to" is ${entry.to.length} characters and the limit is ${MAX_TO_LENGTH}.` };
     }
-    if (UNSAFE_KEYS.has(from)) {
-      return { ok: false, reason: `Rejected: replacement ${index + 1} is not valid: ${JSON.stringify(from)} is not an accepted term.` };
+    if (UNSAFE_KEYS.has(entry.from)) {
+      return { ok: false, reason: `Rejected: replacement ${index + 1} uses an unsafe source term.` };
     }
-    if (seen.has(from)) {
-      return { ok: false, reason: `Rejected: duplicate keys are not accepted; each "from" value must appear once. ${JSON.stringify(from)} appears more than once.` };
+    if (seen.has(entry.from)) {
+      return { ok: false, reason: `Rejected: the "from" value in replacement ${index + 1} is duplicated.` };
     }
-    seen.add(from);
-    replacements.push({ from, to });
+    seen.add(entry.from);
+    replacements.push({ from: entry.from, to: entry.to });
   }
-
   return { ok: true, file: { version: SCHEMA_VERSION, replacements } };
 }
 
-// ---------------------------------------------------------------- cache
-
-const CACHE_KEY = 'ding-pbx-vocabulary-cache';
-
-/** Minimal storage seam so callers can inject `window.localStorage`, an in-memory stub
- *  for tests, or a persisted store bridged from the main process — never assumed. */
 export interface VocabularyStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
   removeItem(key: string): void;
 }
 
-/** Re-validate a cached payload before every load. A cache that is missing, corrupt,
- *  stale, or fails the same bounds as a fresh upload fails closed to original wording —
- *  it is never trusted merely because it was written by this app before. */
+/** Revalidate the cache before every use and purge a stale or corrupt record. */
 export function readVocabularyCache(storage: VocabularyStorage): VocabularyFile | undefined {
   const raw = storage.getItem(CACHE_KEY);
   if (raw === null) return undefined;
   const result = validateVocabularyPayload(raw);
   if (!result.ok) {
-    // A corrupt or now-invalid cache is purged rather than left to fail silently again
-    // on every subsequent load.
-    storage.removeItem(CACHE_KEY);
+    try { storage.removeItem(CACHE_KEY); } catch { /* Original wording remains active. */ }
     return undefined;
   }
   return result.file;
@@ -197,25 +280,33 @@ export interface LoadResult {
   readonly replacementCount: number;
 }
 
-/** Validate an uploaded file's raw text and, only on success, cache it. A rejected file
- *  never applies partially — the previous cache (if any) is left completely untouched. */
+/** A rejected upload leaves the last valid cache unchanged. */
 export function loadVocabularyFile(storage: VocabularyStorage, rawText: string): LoadResult {
   const result = validateVocabularyPayload(rawText);
-  if (!result.ok) {
-    return { ok: false, status: result.reason, replacementCount: 0 };
+  if (!result.ok) return { ok: false, status: result.reason, replacementCount: 0 };
+  try {
+    storage.setItem(CACHE_KEY, JSON.stringify(result.file));
+  } catch (error) {
+    return {
+      ok: false,
+      status: `The validated file was not cached: ${error instanceof Error ? error.message : String(error)}`,
+      replacementCount: 0,
+    };
   }
-  storage.setItem(CACHE_KEY, JSON.stringify(result.file));
   const count = result.file.replacements.length;
-  return {
-    ok: true,
-    status: `Loaded ${count} local replacement${count === 1 ? '' : 's'}. No data was transmitted.`,
-    replacementCount: count,
-  };
+  return { ok: true, status: `Loaded ${count} local replacement${count === 1 ? '' : 's'}. No data was transmitted.`, replacementCount: count };
 }
 
-/** Purge the cache and report the restored (original-wording) state. */
 export function clearVocabulary(storage: VocabularyStorage): LoadResult {
-  storage.removeItem(CACHE_KEY);
+  try {
+    storage.removeItem(CACHE_KEY);
+  } catch (error) {
+    return {
+      ok: false,
+      status: `The local cache was not cleared: ${error instanceof Error ? error.message : String(error)}`,
+      replacementCount: readVocabularyCache(storage)?.replacements.length ?? 0,
+    };
+  }
   return { ok: true, status: 'No file loaded; original wording is active.', replacementCount: 0 };
 }
 
@@ -223,39 +314,47 @@ export function vocabularyStatus(storage: VocabularyStorage): LoadResult {
   const file = readVocabularyCache(storage);
   if (!file) return { ok: true, status: 'No file loaded; original wording is active.', replacementCount: 0 };
   const count = file.replacements.length;
+  return { ok: true, status: `Loaded ${count} local replacement${count === 1 ? '' : 's'}. No data was transmitted.`, replacementCount: count };
+}
+
+export type VocabularyTextBoundary = 'user-interface-copy' | 'accessible-name';
+
+export interface VocabularyTextBoundaryInput {
+  text: string;
+  boundary: VocabularyTextBoundary;
+}
+
+/**
+ * Apply replacements only to an explicitly classified private text boundary. Callers
+ * must never pass commands, URLs, identifiers, code, paths, logs, exports, history,
+ * diagnostics, provider-authored text, or public records through this API.
+ */
+export function applyVocabularyText(storage: VocabularyStorage, input: VocabularyTextBoundaryInput): string {
+  const file = readVocabularyCache(storage);
+  if (!file || file.replacements.length === 0) return input.text;
+  const ordered = [...file.replacements].sort((left, right) => right.from.length - left.from.length);
+  const replacementBySource = new Map(ordered.map((replacement) => [replacement.from, replacement.to]));
+  const escaped = ordered.map((replacement) => replacement.from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  return input.text.replace(new RegExp(escaped.join('|'), 'gu'), (match) => replacementBySource.get(match) ?? match);
+}
+
+export const applyVocabularyTextAtBoundary = applyVocabularyText;
+
+export function createVocabularyTextBoundary(storage: VocabularyStorage): {
+  apply(input: VocabularyTextBoundaryInput): string;
+  status(): LoadResult;
+} {
   return {
-    ok: true,
-    status: `Loaded ${count} local replacement${count === 1 ? '' : 's'}. No data was transmitted.`,
-    replacementCount: count,
+    apply: (input) => applyVocabularyText(storage, input),
+    status: () => vocabularyStatus(storage),
   };
 }
 
-// ---------------------------------------------------------------- apply
-
-/** Apply the active replacements to one piece of user-facing text. Longer `from` terms
- *  are applied first so a short term never shadows a longer one that contains it.
- *  Replacement is exact-substring, applied only at the text boundary — never to
- *  commands, URLs, identifiers, code, or file paths, which callers must keep out of the
- *  text passed here. */
-export function applyVocabularyText(storage: VocabularyStorage, text: string): string {
-  const file = readVocabularyCache(storage);
-  if (!file || file.replacements.length === 0) return text;
-  const ordered = [...file.replacements].sort((a, b) => b.from.length - a.from.length);
-  let result = text;
-  for (const { from, to } of ordered) {
-    result = result.split(from).join(to);
-  }
-  return result;
-}
-
-/** In-memory storage stub for tests and for any host with no persistent store. Never
- *  used as a source of real vocabulary data — it starts and stays empty until a caller
- *  explicitly loads a file into it. */
 export function createMemoryStorage(): VocabularyStorage {
-  const map = new Map<string, string>();
+  const values = new Map<string, string>();
   return {
-    getItem: (key) => (map.has(key) ? map.get(key)! : null),
-    setItem: (key, value) => { map.set(key, value); },
-    removeItem: (key) => { map.delete(key); },
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => { values.set(key, value); },
+    removeItem: (key) => { values.delete(key); },
   };
 }

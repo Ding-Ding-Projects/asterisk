@@ -62,6 +62,7 @@ export type PlanActionKind =
   | "validate"
   | "apply"
   | "postRead"
+  | "runtimeVerify"
   | "rollback"
   | "installPackage"
   | "fetchSource"
