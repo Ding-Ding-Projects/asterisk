@@ -2,11 +2,32 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /** The one section of an evidence document whose table rows must each name a source commit. */
 const CAPTURE_RECORDS_HEADING = '## Capture records';
+
+/* Hand-written on purpose, both of them. A set derived from whatever articles happen to be
+ * on disk would agree with the disk by construction, so a destination or a canonical feature
+ * that lost its article entirely would vanish from the check along with it. */
+const DESTINATION_IDS = [
+  'servers', 'dash', 'live', 'endpoints', 'trunks', 'trunkauth', 'canvas', 'ivr', 'queues',
+  'voicemail', 'confbridge', 'moh', 'codecs', 'cdr', 'ami', 'modules', 'logger', 'security', 'cli',
+  'memory', 'sync', 'skills', 'hub', 'vocab', 'ops', 'secrets',
+  'arcade', 'notifications', 'history', 'customise', 'appearance', 'about',
+];
+const CANONICAL_FEATURE_IDS = [
+  'language-modes', 'funny-levels', 'dialog-emojis', 'school-mode', 'narration', 'scheduled-settings',
+  'external-settings-sources', 'dim-sum-surprise', 'regex-builder', 'non-blocking-notifications', 'status-hub',
+  'material-appearance', 'app-logo-customization', 'local-file-converter', 'ollama-suite-manager', 'browser-style-tabs',
+  'tab-groups-and-searches', 'command-palette', 'destructive-action-confirmation', 'local-version-history', 'changelog-viewer',
+  'external-editor-handoff', 'complete-exports', 'bulk-actions', 'accessibility', 'responsive-sizing',
+  'personal-vocabulary-upload', 'per-element-toy-locks', 'support-tickets', 'unlock-ladder', 'built-in-authenticator',
+  'attention-modes', 'browser-extension-download-surfaces', 'offline-documentation-browser', 'app-display-name',
+  'guided-forms', 'bounded-overlays', 'context-menu-shortcuts', 'long-operation-progress', 'in-context-recovery',
+  'provider-markup-rendering', 'forge-publishing', 'collapsible-filters', 'automatic-updates',
+];
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repo = resolve(root, '..', '..');
@@ -125,14 +146,32 @@ test('contains exactly 32 destination definitions in six declared groups', () =>
     'arcade','notifications','history','customise','appearance','about',
   ]);
 });
-test('provides 78 complete feature articles plus checked evidence records', async () => {
+test('provides 97 complete feature articles plus checked evidence records', async () => {
   const docsRoot=resolve(root,'..','docs'), categories=['pbx','media','data','system','agent','app','platform'];
   const articles=[];
   for(const category of categories)for(const name of await readdir(join(docsRoot,category)))if(name.endsWith('.md')&&name!=='README.md')articles.push(join(docsRoot,category,name));
-  // 32 destination articles (pbx/media/data/system/agent/app) plus 45 platform articles,
-  // plus one more: docs/pbx/iaxpeers.md, the IAX peers screen's own previously missing
-  // documentation article, added alongside the Trunks/IVR deepening pass.
-  assert.equal(articles.length,78);
+  // A bare total is what went stale here, silently, across a merge: it said 78 while the
+  // tree held 101, and the number alone could not say whether 23 articles had arrived or
+  // whether the wrong ones had. So the composition is asserted first and the total second.
+  //
+  // 36 in the destination categories: the 32 canonical destinations plus four articles
+  // that document a seam rather than a screen (iaxpeers, control-provenance,
+  // lifecycle-integrity, status-hub-client).
+  // 61 under platform: the 44 canonical features plus 17 supporting articles.
+  //
+  // Four changelog fragments the same merge filed under agent/ and platform/ moved to
+  // docs/changelog/, which is where the genre already lived and is why they are not in
+  // this total: a fragment is a list of what changed, and forcing "## Behavior" onto it
+  // would distort a document doing its own job -- exactly the reasoning recorded below
+  // for evidence records.
+  const named=(category)=>articles.filter(path=>path.includes(`${sep}${category}${sep}`)).map(path=>path.slice(path.lastIndexOf(sep)+1,-3));
+  const destinationArticles=new Set(['pbx','media','data','system','agent','app'].flatMap(named));
+  for(const id of DESTINATION_IDS)assert.ok(destinationArticles.has(id),`no documentation article for the ${id} destination`);
+  const platformArticles=new Set(named('platform'));
+  for(const id of CANONICAL_FEATURE_IDS)assert.ok(platformArticles.has(id),`no platform article for the ${id} canonical feature`);
+  assert.equal(destinationArticles.size,36);
+  assert.equal(platformArticles.size,61);
+  assert.equal(articles.length,97);
   // An evidence record is a different genre from a feature article: it says what was
   // captured, from which commit, and by what method, and forcing "## Behavior" onto it
   // would distort a document that is doing its job. So it lives in its own category --
@@ -328,8 +367,35 @@ test('build composes deterministic local output without fetches', async () => {
   // made outside a git checkout cannot name its own commit, deliberately writes no manifest
   // rather than one carrying a placeholder, and bakes no identity into app.js -- so that
   // page reports itself unbuilt instead of asking for a file that was never published.
-  const expectedFiles = manifest.buildIdentity.resolved ? 196 : 195;
-  assert.equal(manifest.outputFiles.length, expectedFiles);
+  // The running ledger above stopped here. The feature-integration merges added 36 outputs
+  // in one jump -- whole new documentation categories and a second vendored font set -- and
+  // nobody extended it, so the total said 196 against a tree that published 232 and the
+  // suite had been red on this line ever since. Reconstructing 36 individual provenances
+  // after the fact would be writing a history nobody lived, so the count below stops being
+  // a remembered number and becomes a derived one.
+  //
+  // The docs half is now an invariant rather than a total: one markdown article on disk,
+  // one published HTML page, counted from the disk on every run. That cannot go stale, and
+  // it says something the old number never did -- that no article was dropped on the way
+  // out. The non-docs half stays an exact hand-written list, because those files are fixed
+  // by the build rather than by what happens to be in a folder, and a count derived from
+  // the output would agree with the output by construction.
+  const articleFiles = [];
+  const collectArticles = async (dir) => {
+    for (const entry of await readdir(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) await collectArticles(join(dir, entry.name));
+      else if (entry.name.endsWith('.md')) articleFiles.push(join(dir, entry.name));
+    }
+  };
+  await collectArticles(resolve(root, '..', 'docs'));
+  const publishedDocs = manifest.outputFiles.filter(file => file.path.startsWith('docs/'));
+  assert.equal(publishedDocs.length, articleFiles.length,
+    `${articleFiles.length} markdown articles on disk but ${publishedDocs.length} published pages -- an article is not reaching the built site`);
+  // 9 pages and assets at the root (six HTML pages, app.js, styles.css, social-preview.png),
+  // plus version.json when the build could name its own commit; 51 vendored application
+  // font faces; 32 vendored site font faces; 6 screen captures.
+  const expectedNonDocs = (manifest.buildIdentity.resolved ? 10 : 9) + 51 + 32 + 6;
+  assert.equal(manifest.outputFiles.length - publishedDocs.length, expectedNonDocs);
   assert.equal(
     manifest.outputFiles.some(file => file.path === 'version.json'),
     manifest.buildIdentity.resolved,

@@ -1103,8 +1103,8 @@ test('Export everything states that it does not write the accounts, rather than 
 test('the site feature registry records the feature as implemented, and names its files', () => {
   const row = registry.features['built-in-authenticator'];
   assert.ok(row, 'no built-in-authenticator row in site/feature-registry.json');
-  assert.equal(row.state, 'implemented');
-  assert.deepEqual([...row.files].sort(), ['site/app.js', 'site/settings.html', 'site/styles.css']);
+  assert.equal(row.status, 'implemented-unverified');
+  assert.deepEqual([...row.implementation.paths].sort(), ['site/app.js', 'site/settings.html', 'site/styles.css']);
   assert.match(row.note, /BarcodeDetector/);
   assert.match(row.note, /RFC 6238/);
 });

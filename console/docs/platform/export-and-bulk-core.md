@@ -18,6 +18,12 @@ Each execute and revert call receives a real `AbortSignal` from its own linked `
 
 Undo is exposed only when a confirmed mutation supplies an inverse token or local-history revision and the surface registers a real inverse handler. A notification action cannot manufacture undo support.
 
+## Configuration
+
+Two things are configured per call rather than stored as preferences: the output format, chosen from the thirteen listed above, and the per-item deadline handed to an execute or revert run, which must be a finite positive safe integer and defaults to 30 seconds.
+
+Archive encryption is the configuration this core deliberately refuses to accept. There is no setting for a password, a cipher, or a header-encryption switch, because no bundled verified ZIP or 7z adapter is registered -- offering the setting would describe protection that nothing here provides.
+
 ## Platform integration contract
 
 The renderer does not write files or launch an editor directly. A privileged desktop or hosted adapter must implement the shared `ExportPlatformPort` contract for save, download, clipboard, editor detection, and editor launch. The renderer reports success only after that adapter returns a confirmation receipt with an operation identifier and completion time.

@@ -5,7 +5,9 @@ surface is mounted later by `CONVERTER_SURFACE_REGISTRATION`, which accepts a ty
 `ConverterClient` and keeps the privileged file and control-plane operations outside the
 renderer component.
 
-## User flow
+## Behavior
+
+### User flow
 
 1. Choose a local file through the client-provided native picker.
 2. Read the source bytes through the typed `sniff` method. The surface shows the exact
@@ -23,7 +25,7 @@ renderer component.
 7. Queue one request through `enqueueOne`. Queue records are loaded in bounded pages and
    are never collected into an unbounded renderer array by the surface.
 
-## Search and regex builder
+### Search and regex builder
 
 Every category owns a separate search query and an adjacent anchored regex builder. Plain
 text is the initial mode. The builder exposes guided insertions for literals, character
@@ -32,7 +34,13 @@ pattern, flags, bounded sample text, syntax feedback, matches, capture groups, a
 The query and pattern stay synchronized when regex mode is selected. Invalid patterns and
 oversized samples produce an explicit local error and no match result.
 
-## Queue and failure states
+## Configuration
+
+The surface configures nothing about the machine and everything about the run in front of it: which local file the native picker returned, which adapter from the category catalogue is to be used, where the output goes, and whether an existing destination may be overwritten. Each of those is an explicit choice at the moment it is needed rather than a stored preference.
+
+Two bounds are the surface's own rather than the client's: it loads at most 100 queue records at a time, and every client call carries a deadline. Each category's search keeps its own query and mode, with plain text the initial one.
+
+## Failure modes
 
 The queue uses the backend cursor contract. The surface loads at most 100 records at a
 time, offers refresh and next-page controls, and displays every returned item state and
@@ -67,6 +75,10 @@ validation, and editor launch. The renderer holds only display metadata and the 
 provided by the client. A consumer integration must keep the client methods local and
 bounded, and must not put credentials or source contents in logs, exports, history, or
 telemetry.
+
+## Verification
+
+Nothing described here has been driven in the built application. The surface is proved against its typed client contract and the renderer tests that exercise it, and no further: no native picker has returned a real path in a packaged build, no bundled adapter has converted a real file through this component, and no capture of it exists.
 
 ## Suggested articles
 

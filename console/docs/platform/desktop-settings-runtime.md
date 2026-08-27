@@ -31,6 +31,12 @@ The runtime also exposes `snapshot()`, `reset()`, `provenance(target)`, `setSche
 
 Each scheduled target reports whether its current value came from compiled defaults, validated local storage, a schedule rule, or School-mode suppression. Effective appearance values are part of the snapshot and also remain exposed through `scheduledOverrides` for the separately owned appearance subsystem to consume.
 
+## Configuration
+
+Every value this runtime owns is configured through `update()` against a draft and read back through `snapshot()`; there is no second path that writes settings behind it. The configurable targets are the language mode, both funny levels, the dialog-emoji switch, School mode, narration and its per-language voice, and the scheduled targets.
+
+A scheduled rule carries its own source. `setScheduleSourceState()` is how a privileged reader hands this runtime the current state of an external source, which is the only way an external source reaches a setting -- the runtime itself opens no connection. A Home Assistant rule stores a credential-vault account key and never credential material, because a settings document is exported, restored and version-controlled, and a token in one is a token in all three.
+
 ## Personal vocabulary
 
 The accepted file has one canonical shape: a version of 1 and a `replacements` array containing only `from` and `to` strings. Validation rejects oversized input, excessive nesting, too many entries, unknown fields, unsafe keys, duplicate JSON object keys, duplicate source terms, invalid versions, and bounded-string violations. The cache is revalidated before every application. Invalid uploads never replace the last valid cache, and clearing the cache immediately restores original wording.
@@ -51,6 +57,8 @@ Replacement is available only through an explicitly classified private user-inte
 ## Current integration state
 
 The settings core and public integration functions exist, but the desktop shell does not yet construct the store, subscribe to runtime snapshots, route rendered text through the vocabulary boundary, mount a platform speech engine, or apply appearance overrides. Those seams belong to the application wiring change. Until that wiring lands, these settings do not change the visible desktop interface.
+
+## Verification
 
 This ultra-speed implementation did not run tests, type checking, builds, packaging, UI interaction, or captures. Its behavior remains unverified until the owning integration work runs the repository's local validation and built-artifact evidence paths.
 

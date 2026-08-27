@@ -92,9 +92,16 @@ test('voice enumeration is live and its status source is the effective channel v
 
 test('the mounted notification path is narrated and preserves the styled message plus error priority', () => {
   const src = app();
-  assert.match(src, /private narratedFire = \(title: string, body: string, isError = false\): void => \{/);
+  /* The third parameter used to be a bare `isError = false`. It now carries a severity,
+   * with the old boolean still accepted so the compiled shell's fire(title, body, true)
+   * keeps working. The property this test is named after is unchanged and is what the
+   * needles pin: the narrator speaks the STYLED text, and an error stays an error. */
+  assert.match(src, /^\s*private narratedFire = \($/mu);
+  assert.match(src, /^\s*severityOrLegacyError: NotificationSeverity \| boolean = 'warning',$/mu);
+  assert.match(src, /^\s*\? \(severityOrLegacyError \? 'error' : 'warning'\)$/mu,
+    'the legacy boolean no longer maps to the error severity, so the compiled shell has lost its error priority');
   assert.match(src, /const styled = styledDialog\(/);
-  assert.match(src, /this\.narrator\.enqueue\('notification', styled\.body \? `\$\{styled\.heading\}\. \$\{styled\.body\}` : styled\.heading, \{ isError \}\);/);
+  assert.match(src, /this\.narrator\.enqueue\('notification', styled\.body \? `\$\{styled\.heading\}\. \$\{styled\.body\}` : styled\.heading, \{ isError: severity === 'error' \}\);/);
   assert.match(src, /this\.baseFire\(styled\.heading, styled\.body\);/);
 });
 

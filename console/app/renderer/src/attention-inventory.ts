@@ -12,13 +12,51 @@ export const ATTENTION_WIRING: readonly AttentionWiringRow[] = [
   { id:'time-awareness', control:'att_time', mode:'timeAwareness', designMarker:marker('design',"ctl('att_time','Time awareness','switch',false"), controlConstruction:marker('app',"'att_time': 'timeAwareness'"), durableKey:marker('module',"timeAwareness: 'console.attention.timeAwareness'"), writerMarkers:[marker('app',"control?.id?.startsWith('att_') && typeof value === 'boolean'"), marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);"), marker('app',"this.attentionWrite(`${MODE_SETTING_PREFIX}${mode}`, value ? 'on' : 'off');"), marker('generated',"this.onUserMutation('control:' + (c.id || 'unknown'));" )], setterMarkers:[marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);")], consumerMarkers:[marker('module',"showElapsedTime: modeEnabled(storage, 'timeAwareness'),"), marker('app',"!presentation.showElapsedTime ? null : h('p', { className: 'attn-rail-time' },"), marker('app','Open for'), marker('app','Last change')] },
   { id:'one-thing', control:'att_one', mode:'oneThing', designMarker:marker('design',"ctl('att_one','One thing at a time','switch',false"), controlConstruction:marker('app',"'att_one': 'oneThing'"), durableKey:marker('module',"oneThing: 'console.attention.oneThing'"), writerMarkers:[marker('app',"control?.id?.startsWith('att_') && typeof value === 'boolean'"), marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);"), marker('app',"this.attentionWrite(`${MODE_SETTING_PREFIX}${mode}`, value ? 'on' : 'off');"), marker('generated',"this.onUserMutation('control:' + (c.id || 'unknown'));" )], setterMarkers:[marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);")], consumerMarkers:[marker('module',"showNextAction: modeEnabled(storage, 'oneThing'),"), marker('app',"!presentation.showNextAction ? null : h('div', { className: 'attn-rail-next' },"), marker('app',"value: nextAction(storage),"), marker('app',"setNextAction(storage, event.target.value);")] },
   { id:'momentum', control:'att_momentum', mode:'momentum', designMarker:marker('design',"ctl('att_momentum','Momentum','switch',false"), controlConstruction:marker('app',"'att_momentum': 'momentum'"), durableKey:marker('module',"momentum: 'console.attention.momentum'"), writerMarkers:[marker('app',"control?.id?.startsWith('att_') && typeof value === 'boolean'"), marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);"), marker('app',"this.attentionWrite(`${MODE_SETTING_PREFIX}${mode}`, value ? 'on' : 'off');"), marker('generated',"this.onUserMutation('control:' + (c.id || 'unknown'));" )], setterMarkers:[marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);")], consumerMarkers:[marker('module',"if (!modeEnabled(storage, 'momentum')) return quiet;"), marker('app',"const prompt = momentumPrompt("), marker('app',"onClick: () => { snoozeMomentum(storage); this.forceUpdate(); },"), marker('app',"className: 'attn-rail-momentum-dismiss'")] },
-  { id:'next-action', control:'att_next', mode:null, designMarker:marker('design',"ctl('att_next','Current next action','text',''"), controlConstruction:marker('app',"'att_next': 'nextAction'"), durableKey:marker('module',"nextAction: 'console.attention.nextAction'"), writerMarkers:[marker('app',"onUserMutation = (_source = 'unknown')"), marker('generated',"this.onUserMutation('control:' + (c.id || 'unknown'));" )], setterMarkers:[marker('app',"if (control?.id === 'att_next' && typeof value === 'string') {"), marker('app',"setNextAction(this.durableStorage.storage, value);"), marker('app',"this.attentionWrite(NEXT_ACTION_SETTING_KEY, value.trim().slice(0, NEXT_ACTION_MAX_LENGTH) || null);")], consumerMarkers:[marker('app',"const chosen = nextAction(this.durableStorage.storage);"), marker('app',"action.textContent = chosen ? `Next action: ${chosen}` : 'Next action: none chosen yet.';")] }
+  /* The next action used to be its own design control, `ctl('att_next',...)`, sitting in the
+   * settings screen beside the five switches. It is not there any more and this row went on
+   * naming it, so the wiring check reported a design match of 0 and the whole inventory run
+   * failed -- which is the check working, not drifting.
+   *
+   * Where the field went is the point: it moved out of settings and into the attention rail,
+   * beside the elapsed-time line and the Momentum prompt, which is where the work is. That is
+   * what the canonical contract asks for -- a single, visible, current next action that
+   * survives a context switch -- and a text box on a settings screen was never going to be
+   * visible where the work is. So the row is repointed rather than deleted.
+   *
+   * Its design owner is now the `att_one` switch, because that switch is what decides whether
+   * the rail renders this field at all; the field has no switch of its own. `control` keeps a
+   * distinct identifier -- the six-control uniqueness check needs one -- and names the real
+   * element rather than a design id that no longer resolves. The markers deliberately follow
+   * the durable path the sibling `one-thing` row does not cover: the module's own read, write,
+   * trim and remove, so the two rows are not two copies of one assertion. */
+  { id:'next-action', control:'attn_rail_next', mode:null, designMarker:marker('design',"ctl('att_one','One thing at a time','switch',false"), controlConstruction:marker('app',"className: 'attn-rail-next-input',"), durableKey:marker('module',"nextAction: 'console.attention.nextAction'"), writerMarkers:[marker('app','setNextAction(storage, event.target.value);'), marker('module','export function setNextAction(storage: ModeStorage, value: string): void {')], setterMarkers:[marker('module','if (trimmed) storage.setItem(NEXT_ACTION_SETTING_KEY, trimmed);'), marker('module','else if (storage.removeItem) storage.removeItem(NEXT_ACTION_SETTING_KEY);')], consumerMarkers:[marker('app','value: nextAction(storage),'), marker('app',"'aria-label': 'The one thing you are doing right now',"), marker('module','export function nextAction(storage: ModeStorage | undefined): string {')] }
 ];
 export const ATTENTION_MUTATION_ACTIONS = [
   { action:'set', key:'canvasTool', state:'canvasTool' }, { action:'set', key:'grid', state:'grid' }, { action:'set', key:'snap', state:'snap' }, { action:'set', key:'guides', state:'guides' }, { action:'set', key:'minimap', state:'minimap' }, { action:'set', key:'layer', state:'layer' }, { action:'set', key:'zoom', state:'zoom' }, { action:'set', key:'pinned', state:'pinned' }, { action:'set', key:'dock', state:'dock' }, { action:'set', key:'fullscreen', state:'fullscreen' }, { action:'set', key:'branch', state:'branch' }, { action:'set', key:'sortList', state:'sortList' },
 ] as const;
 export interface AttentionMutationInventoryRow { readonly file:string; readonly line:number; readonly argument:string; readonly occurrence:number; readonly state:string; readonly clockEffect:AttentionClockEffect; }
+/* Every control change in the compiled shell routes through one injected callback, and this
+ * inventory is the fail-closed record of it: every call must be listed and every listed row
+ * must be found, so a mutation that stops recording and a record with nothing behind it are
+ * both loud.
+ *
+ * It held 61 rows until 2026-08-27 and 60 of them named nothing. The feature-integration
+ * merge took an App.tsx and a compiled shell from the lane that records a change at ONE
+ * interception point, while keeping this list from the lane that recorded it at 61 call
+ * sites, so the mutation callback appeared 0 times in App.tsx and once in the compiled shell
+ * against a list expecting 15 and 46. Those 60 are kept below rather than deleted, because they are
+ * the only surviving record of which user actions used to reset the idle clock and no
+ * longer do -- adding a server, creating a lock, saving an appearance preset, dragging a
+ * canvas node. Their line numbers are the ones they had in the tree that carried them and
+ * will not resolve here; they are a record, not an address. */
 export const ATTENTION_MUTATION_INVENTORY: readonly AttentionMutationInventoryRow[] = [
+  { file: 'generated/console.tsx', line: 4647, argument: "'control:' + (c.id || 'unknown')", occurrence: 1, state: 'controlValues', clockEffect: 'recorded' },
+];
+
+/* Named, counted and inert. Restoring one means moving its row up into the inventory above
+ * in the same change that reintroduces its call site, which is why the two lists are pinned
+ * against each other in console/tests/contracts/attention-mutation-inventory.test.mjs. */
+export const ATTENTION_MUTATION_SITES_LOST_IN_INTEGRATION: readonly AttentionMutationInventoryRow[] = [
   { file: 'App.tsx', line: 375, argument: "'attention-history-clear'", occurrence: 1, state: 'noticeHistory', clockEffect: 'recorded' },
   { file: 'App.tsx', line: 899, argument: "'vocabulary-load'", occurrence: 1, state: 'vocabularyCache', clockEffect: 'recorded' },
   { file: 'App.tsx', line: 912, argument: "'vocabulary-clear'", occurrence: 1, state: 'vocabularyCache', clockEffect: 'recorded' },
@@ -35,7 +73,6 @@ export const ATTENTION_MUTATION_INVENTORY: readonly AttentionMutationInventoryRo
   { file: 'App.tsx', line: 2181, argument: "'appearance-reset'", occurrence: 1, state: 'appearance', clockEffect: 'recorded' },
   { file: 'App.tsx', line: 2187, argument: "'appearance-save'", occurrence: 1, state: 'appearance', clockEffect: 'recorded' },
   { file: 'generated/console.tsx', line: 4022, argument: "'set:' + k", occurrence: 1, state: 'generatedUserMutationKey', clockEffect: 'recorded' },
-  { file: 'generated/console.tsx', line: 4045, argument: "'control:' + (c.id || 'unknown')", occurrence: 1, state: 'controlValues', clockEffect: 'recorded' },
   { file: 'generated/console.tsx', line: 4160, argument: "'layout:resize'", occurrence: 1, state: 'dlgSize', clockEffect: 'recorded' },
   { file: 'generated/console.tsx', line: 4167, argument: "'layout:move'", occurrence: 1, state: 'dlgPos', clockEffect: 'recorded' },
   { file: 'generated/console.tsx', line: 4222, argument: "'layout:dock'", occurrence: 1, state: 'dlgDock', clockEffect: 'recorded' },

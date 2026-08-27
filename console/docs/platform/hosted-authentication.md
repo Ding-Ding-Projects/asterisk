@@ -16,6 +16,14 @@ Setup and sign-in surfaces report checking, ready, busy, timeout, unavailable, r
 
 Successful sign-in creates a random, HMAC-signed session identifier in an `HttpOnly`, `SameSite=Strict` cookie. TLS deployments also set `Secure`. Sign-out revokes the current session. The hosted bridge also exposes a revoke-all-sessions action for the signed-in administrator.
 
+## Configuration
+
+There is one account and it is created by the first successful setup request, not by a configuration file: `admin-account.json` holds the username, the scrypt password hash and the creation time, and nothing else. Adding a field to it is not a way to configure anything, because the reader rejects unknown and extra fields outright.
+
+The one deployment switch is `ServerModeOptions.allowInsecureDevelopmentAuth`, and it is deliberately hard to leave on by accident: it is honored only when `NODE_ENV` is exactly `development`, so a production launcher that sets it anyway still gets the refusal. Production launchers and service definitions must not set it.
+
+The remaining values are fixed bounds rather than settings -- 1,024 characters of password, 128 of username, 1,024 live sessions, 4,096 tracked source addresses, and the supported scrypt parameters -- and they are fixed precisely so a modified record cannot ask for unbounded work.
+
 ## Storage and limits
 
 `admin-account.json` uses schema version 1 and contains only the username, scrypt password hash, and creation time. The reader limits file size, rejects unknown or extra fields, validates exact field bounds, and accepts the original unversioned three-field record as schema version 1 for compatibility. A malformed file is corrupt, never missing.

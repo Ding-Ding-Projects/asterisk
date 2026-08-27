@@ -24,6 +24,12 @@ History can be filtered by text, severity, state, and source. Export projection 
 
 Bulk dismissal, deletion, and read-state changes report every changed id and every skipped id with its reason. An empty selection or a selection containing no applicable record fails explicitly.
 
+## Configuration
+
+Each request configures itself rather than reading a stored policy: it names its operation type, its exact target, the affected data, a stable idempotency key, a deadline, and whether cancellation and retry are allowed. Two requests for the same work therefore cannot disagree about whether retry is permitted, because neither is consulting a setting that could have changed between them.
+
+The one genuinely configured policy is quiet hours, and its scope is narrow on purpose: it suppresses presentation, never recording. Warning and error records are outside it entirely and never auto-dismiss.
+
 ## Failure modes and security
 
 - Missing or malformed request identity, target details, affected-data descriptions, or timestamps are refused before dispatch.

@@ -652,6 +652,28 @@ export class App extends Base {
    *  and time awareness's "since anything changed" reading both come from here. */
   private lastChangeAt = Date.now();
 
+  /**
+   * The compiled shell calls this, and until now nothing defined it.
+   *
+   * `console/scripts/extend-pbx-m3.mjs` injects a call to this method into the shell's
+   * `setVal`, inside the `setState` completion callback, passing the control id, and expects
+   * the subclass to supply the method. (The call is not written out here: the mutation
+   * inventory scans this file for that exact spelling, and a sentence about a call is not
+   * a call.) The feature-integration merge took an `App.tsx` from
+   * the lane that records a change in {@link languageAwareSetVal} instead, so the injected
+   * call survived with no receiver and every accepted control change reached
+   * "this.onUserMutation is not a function" from inside a React state callback. Nothing in
+   * the source says so, because one half is generated and the other half is simply absent.
+   *
+   * It deliberately does the same thing {@link languageAwareSetVal} does rather than
+   * something new. Both are real paths to a real change -- the override runs first and the
+   * injected call runs after the state commit -- and the field they write is a "when", so
+   * writing it twice for one change is the same value twice, not a double count.
+   */
+  private onUserMutation = (_source = 'unknown'): void => {
+    this.lastChangeAt = Date.now();
+  };
+
   /** Redraws the attention rail on a slow clock so the elapsed-time reading and a
    *  momentum prompt that has just become due both appear without requiring the user
    *  to touch anything else first. */

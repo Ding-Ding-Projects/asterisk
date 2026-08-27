@@ -243,9 +243,25 @@ export function verifyAttentionWiring(sources: { design: string; app: string; ge
     for (const marker of row.consumerMarkers) exactOwnedMarker(sources, marker, `${row.id} consumer`);
   }
   if (controls.size !== 6) throw new Error('Attention wiring controls are incomplete.');
+  /* This used to look for the literal tuple `{ action:'set', key:'grid', state:'grid' }` in
+   * the compiled shell, and it passed for one reason only: the compiler emitted a copy of
+   * ATTENTION_MUTATION_ACTIONS into the shell, so the check was reading its own list back and
+   * agreeing with it. The table was later factored out into attention-inventory.ts, the shell
+   * stopped carrying the copy, and this could no longer be satisfied by anything -- which is
+   * exactly what a self-referential check looks like the moment the mirror goes away.
+   *
+   * What it asserts now is the mutation itself, which is what the row was always about. The
+   * shell writes it two ways: eight keys as a direct `this.set('<key>', ...)`, and the four
+   * canvas toggles through one mapped `this.set(t.k, ...)` over a `k:'<key>'` list. Both are
+   * accepted, and the mapped call is required to exist before a `k:` entry is allowed to
+   * stand for one -- otherwise `k:'grid'` sitting in a data list nobody calls would satisfy
+   * this exactly as the old copied table did. */
+  const MAPPED_TOGGLE_SETTER = 'this.set(t.k, !s[t.k])';
+  const mappedSetterPresent = sources.generated.split(MAPPED_TOGGLE_SETTER).length - 1 === 1;
   for (const action of ATTENTION_MUTATION_ACTIONS) {
-    const tuple = new RegExp(`action:\\s*['"]${action.action}['"]\\s*,\\s*key:\\s*['"]${action.key}['"]\\s*,\\s*state:\\s*['"]${action.state}['"]`);
-    if (!tuple.test(sources.generated)) {
+    const direct = new RegExp(`this\\.set\\(\\s*['"\`]${action.key}['"\`]`, 'u');
+    const mapped = mappedSetterPresent && new RegExp(`\\bk\\s*:\\s*['"\`]${action.key}['"\`]`, 'u').test(sources.generated);
+    if (!direct.test(sources.generated) && !mapped) {
       throw new Error(`Missing exact mutation action: ${action.action}:${action.key}`);
     }
   }

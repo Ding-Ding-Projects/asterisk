@@ -225,11 +225,18 @@ test('the shell now declares roles and accessible names, so the readers below ar
    * role. It is now a CHOICE, and one nobody has revisited. Pinning the counts keeps that
    * visible instead of letting the harness quietly go on assuming a shell that no longer
    * exists. Revisiting it is on the roadmap; pretending the assumption still holds is not. */
+  /* Moved 32 -> 33 and 26 -> 27 on 2026-08-27, and the way and the why, as this message asks:
+   * UP, by exactly one element. The feature-integration merge brought a Tab search overlay
+   * into the design, and the compiler emitted it with `role: dialog` and its own
+   * `aria-label: Tab search`. One element carrying both attributes is why both counts moved
+   * by one together; a role arriving without a name, or a name without a role, would be the
+   * interesting case and is not this one. Counted from the compiled shell rather than taken
+   * on trust: 15 dialogs where there were 14, every other role unchanged. */
   const ROLE = 'role' + ':';
   const ARIA = 'aria' + '-';
-  assert.equal(shell.split(ROLE).length - 1, 32,
+  assert.equal(shell.split(ROLE).length - 1, 33,
     'the number of declared roles moved; say which way and why rather than editing this number to match');
-  assert.equal(shell.split(ARIA).length - 1, 26,
+  assert.equal(shell.split(ARIA).length - 1, 27,
     'the number of accessible-name attributes moved; say which way and why');
 });
 
@@ -306,15 +313,30 @@ const rendererSources = () => {
  * not a reader; the scan finds the card's own scrim, which contains it.
  */
 test('every modal surface now carries the dialog role, not just the palette card', () => {
-  /* Was exactly one. Fourteen surfaces now declare it, each paired with aria-modal, which is
-   * the accessibility work doing what it was for rather than anything drifting. The count is
-   * pinned so losing one is loud: a dialog that stops announcing itself as a dialog is",
-   * to a screen reader, just an anonymous box of text. */
+  /* Was exactly one. Fifteen surfaces now declare it, which is the accessibility work doing
+   * what it was for rather than anything drifting. The count is pinned so losing one is loud:
+   * a dialog that stops announcing itself as a dialog is, to a screen reader, just an
+   * anonymous box of text.
+   *
+   * Fourteen of the fifteen also declare aria-modal. This used to assert all of them did,
+   * and the feature-integration merge turned that red by adding the Tab search overlay --
+   * correctly. That surface is an anchored popover under the tab strip, absolutely
+   * positioned at top:92px rather than covering anything, so it is a dialog that is
+   * genuinely NOT modal, and aria-modal on it would tell a screen reader the rest of the
+   * page had gone away when it has not. The exception is therefore named and pinned to that
+   * one accessible name rather than the rule being relaxed to a count: a second dialog
+   * quietly losing its aria-modal still turns this red. */
   const dialogs = shell.split('role: `dialog`').length - 1;
   const modal = shell.split('"aria-modal"').length - 1;
-  assert.equal(dialogs, 14, `${dialogs} elements carry the dialog role, not 14`);
-  assert.equal(modal, dialogs,
+  assert.equal(dialogs, 15, `${dialogs} elements carry the dialog role, not 15`);
+  assert.equal(modal, dialogs - 1,
     `${modal} elements declare aria-modal against ${dialogs} dialogs -- a modal dialog that does not say it is modal traps focus without telling anyone`);
+  const NON_MODAL = 'role: `dialog`, "aria-label": `Tab search`';
+  assert.equal(shell.split(NON_MODAL).length - 1, 1,
+    'the Tab search overlay is the one dialog allowed to omit aria-modal, and it is no longer there under that exact name');
+  const attributes = shell.slice(shell.indexOf(NON_MODAL), shell.indexOf(NON_MODAL) + 400);
+  assert.ok(!attributes.includes('aria-modal'),
+    'the Tab search overlay now declares aria-modal, so it is no longer the non-modal exception this test allows for');
 });
 
 /**
