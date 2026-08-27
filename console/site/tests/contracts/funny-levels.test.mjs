@@ -27,7 +27,10 @@ const read = (p) => readFileSync(resolve(root, p), 'utf8');
 /** CRLF is present throughout this source tree; normalise before any line-anchored match. */
 const norm = (s) => s.replace(/\r\n/g, '\n');
 
-const PAGE_NAMES = ['index', 'product', 'documentation', 'downloads', 'status', 'settings'];
+/* Derived from the filesystem, not hand-copied: the six-name literal that used to sit
+ * here excluded converter.html, ollama.html and history.html, so every 'anywhere in
+ * the site' claim below searched two thirds of the site. See ./site-pages.mjs. */
+import { PAGE_NAMES } from './site-pages.mjs';
 const pageText = () => norm(PAGE_NAMES.map((name) => read(`site/${name}.html`)).join('\n'));
 
 /**

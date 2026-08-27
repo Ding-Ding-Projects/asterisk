@@ -79,12 +79,12 @@ const siteStatus = {
   'ollama-suite-manager': 'absent', 'browser-style-tabs': 'absent', 'tab-groups-and-searches': 'absent', 'command-palette': 'partial',
   'destructive-action-confirmation': 'partial', 'local-version-history': 'implemented-unverified', 'changelog-viewer': 'implemented-unverified',
   'external-editor-handoff': 'absent', 'complete-exports': 'implemented-unverified', 'bulk-actions': 'implemented-unverified',
-  accessibility: 'partial', 'responsive-sizing': 'absent', 'personal-vocabulary-upload': 'implemented-unverified',
-  'per-element-toy-locks': 'absent', 'support-tickets': 'absent', 'unlock-ladder': 'absent', 'built-in-authenticator': 'absent',
+  accessibility: 'partial', 'responsive-sizing': 'partial', 'personal-vocabulary-upload': 'implemented-unverified',
+  'per-element-toy-locks': 'absent', 'support-tickets': 'absent', 'unlock-ladder': 'absent', 'built-in-authenticator': 'implemented-unverified',
   'attention-modes': 'implemented-unverified', 'browser-extension-download-surfaces': 'absent',
-  'offline-documentation-browser': 'partial', 'app-display-name': 'implemented-unverified', 'guided-forms': 'absent',
-  'bounded-overlays': 'implemented-unverified', 'context-menu-shortcuts': 'absent', 'long-operation-progress': 'absent',
-  'in-context-recovery': 'absent', 'provider-markup-rendering': 'implemented-unverified', 'forge-publishing': 'absent',
+  'offline-documentation-browser': 'partial', 'app-display-name': 'implemented-unverified', 'guided-forms': 'partial',
+  'bounded-overlays': 'implemented-unverified', 'context-menu-shortcuts': 'implemented-unverified', 'long-operation-progress': 'implemented-unverified',
+  'in-context-recovery': 'implemented-unverified', 'provider-markup-rendering': 'implemented-unverified', 'forge-publishing': 'absent',
   'collapsible-filters': 'implemented-unverified', 'automatic-updates': 'implemented-unverified',
 };
 
@@ -297,7 +297,34 @@ const matrix = {
   negativeRegression: { script: 'console/scripts/negative-surface-completeness.mjs', cases: negativeCases, state: 'not-run-under-yum-leung-cha' },
 };
 
-writeFileSync(resolve(root, 'console/inventories/surface-completeness.json'), `${JSON.stringify(matrix, null, 2)}\n`, 'utf8');
+/* `--check` compares instead of writing, so the three generated files can be gated rather
+ * than merely regenerable. It exists because the site registry had been hand-written back
+ * to schema v1 while this generator still claimed to own it, and nothing anywhere noticed:
+ * the canonical validator refused the file outright and thirty-three site contract
+ * assertions read a `status` key it no longer had.
+ *
+ * What it does NOT catch, said plainly rather than left to be discovered: `rewriteRegistry`
+ * sources each row's `note` from the file it is checking, so a hand-edited note round-trips
+ * and passes. `status` does not -- it comes from the hand-written maps above -- so a status
+ * edited in the JSON alone is caught, which is the drift that actually happened. */
+const CHECK_ONLY = process.argv.includes('--check');
+const differences = [];
+function emit(relativePath, text) {
+  const absolute = resolve(root, relativePath);
+  if (!CHECK_ONLY) {
+    writeFileSync(absolute, text, 'utf8');
+    return;
+  }
+  const onDisk = readFileSync(absolute, 'utf8').replace(/\r\n/g, '\n');
+  if (onDisk === text) return;
+  const onDiskLines = onDisk.split('\n');
+  const wantedLines = text.split('\n');
+  let firstDivergentLine = 0;
+  while (firstDivergentLine < onDiskLines.length && onDiskLines[firstDivergentLine] === wantedLines[firstDivergentLine]) firstDivergentLine += 1;
+  differences.push(`${relativePath}: checked-in file differs from this generator's output at line ${firstDivergentLine + 1}\n    on disk:   ${JSON.stringify(onDiskLines[firstDivergentLine] ?? '<end of file>')}\n    generated: ${JSON.stringify(wantedLines[firstDivergentLine] ?? '<end of file>')}`);
+}
+
+emit('console/inventories/surface-completeness.json', `${JSON.stringify(matrix, null, 2)}\n`);
 
 function readRegistry(relativePath) {
   return JSON.parse(readFileSync(resolve(root, relativePath), 'utf8'));
@@ -342,16 +369,34 @@ function rewriteRegistry(relativePath, surface, statuses) {
           ? 'The converter is mounted at #surface=converter through surface-mounts.tsx and the real control-plane catalog and PDF-capability seam in dispatch.ts. The source picker, queue mutations, and packaged-worker proof remain explicitly unavailable until their privileged handlers are registered; no source, output, or sample value is invented.'
           : 'The Ollama surface is mounted at #surface=ollama through surface-mounts.tsx. Its client returns an honest bridge-not-registered state until the privileged local Ollama dispatcher is registered; no model, health, catalog, pull, chat, or harness value is assumed.';
       } else {
+        /* Corrected 2026-08-27. These two notes used to say the site "exposes"
+         * converter.html and ollama.html and that the converter "is implemented in
+         * site/app.js and converter.html". Measured: `site/app.js` is the only script
+         * either page loads, and the strings "converter" and "ollama" occur in it zero
+         * times, so every control on both pages is decorative. No page links to either,
+         * so neither is reachable. The status stays `absent` -- which is what these rows
+         * already said -- but for the opposite reason to the one previously recorded:
+         * not that the markup is missing, but that nothing implements the markup that
+         * is there. */
         entry.implementation.paths = ['site/app.js', feature.id === 'local-file-converter' ? 'site/converter.html' : 'site/ollama.html'];
-        entry.registration.paths = ['site/app.js'];
+        entry.registration.paths = [];
         entry.note = feature.id === 'local-file-converter'
-          ? 'The documentation site exposes converter.html with categorized local adapters, bounded byte inspection, a paged queue, cancellation, and an adjacent regex builder. This is implemented in site/app.js and converter.html but remains unverified because no build, browser session, or capture ran in this lane.'
-          : 'The documentation site exposes ollama.html as a browser-local loopback surface with explicit endpoint approval, bounded local API reads, pull and chat cancellation, and honest Unknown catalog completeness. It remains unverified because no build, browser session, or capture ran in this lane.';
+          ? 'site/converter.html renders a complete-looking converter -- file picker, adapter catalogue, bounded paged queue, target-format select, cancel control, loss disclosure -- and has no implementation: site/app.js is the only script the page loads and never mentions the converter, so every control there is decorative. No page links to converter.html either, so the surface is unreachable as well as inert. Absent as a feature; the markup exists and is dead.'
+          : 'site/ollama.html renders a complete-looking local Ollama manager -- endpoint approval, verified-model select, pull and chat controls -- and has no implementation: site/app.js is the only script the page loads and mentions neither Ollama nor its local port, so every control there is decorative. No page links to ollama.html either, so the surface is unreachable as well as inert. Absent as a feature; the markup exists and is dead.';
       }
     }
   }
-  writeFileSync(resolve(root, relativePath), `${JSON.stringify(next, null, 2)}\n`, 'utf8');
+  emit(relativePath, `${JSON.stringify(next, null, 2)}\n`);
 }
 
 rewriteRegistry('console/app/feature-registry.json', 'windows-console', desktopStatus);
 rewriteRegistry('console/site/feature-registry.json', 'pages-site', siteStatus);
+
+if (CHECK_ONLY) {
+  if (differences.length > 0) {
+    for (const difference of differences) console.error(`FAIL: ${difference}`);
+    console.error(`FAIL: ${differences.length} of 3 generated inventory files are out of step. Run \`node scripts/generate-completeness-matrix.mjs\` and review the diff.`);
+    process.exit(1);
+  }
+  console.log('PASS: the completeness matrix and both feature registries match this generator byte for byte.');
+}
