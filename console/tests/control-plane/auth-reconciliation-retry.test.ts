@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 
 import { createAuthLockRuntime, type AuthLockVault } from '../../control-plane/auth-lock-runtime.js';
+import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
 import type { ProcessExecutor } from '../../control-plane/executor.js';
 
 class MutableVault implements AuthLockVault {
@@ -61,5 +62,25 @@ test('concurrent retries serialize, retain failures, and expose structured block
     assert.equal(second.locks.status, 'pending-removal-failed');
     assert.deepEqual(first.authenticator.affectedIds, ['auth-pending']);
     assert.deepEqual(second.locks.affectedIds, ['lock-pending']);
+  });
+});
+
+test('dispatcher keeps blocked authenticator removal identities and reconciliation structured', async () => {
+  await withRuntime(async (_runtime, vault, directory) => {
+    const dispatcher = createControlPlaneDispatcher({ userDataPath: directory, resourcesPath: directory, hosted: false, authLockVault: vault });
+    const response = await dispatcher.controlPlaneRequest({ requestId: 'auth-removal-reconciliation', action: 'authenticator.remove', payload: { id: 'auth-pending' } });
+    assert.equal(response.ok, true);
+    assert.deepEqual(response.data, {
+      status: 'blocked',
+      message: 'Pending removals remain until the credential vault is available. Affected entries: auth-pending.',
+      recoverable: true,
+      affectedIds: ['auth-pending'],
+      reconciliation: {
+        status: 'pending-vault-unavailable',
+        affectedIds: ['auth-pending'],
+        warning: 'Pending removals remain until the credential vault is available.',
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 100));
   });
 });

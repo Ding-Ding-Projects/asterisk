@@ -25,7 +25,17 @@ test('auth reconciliation keeps exact typed receipts and blocks unresolved mutat
   assert.match(dispatchSource, /reconciliation\.status !== 'reconciled'/);
   assert.match(dispatchSource, /blockedToyLockRemovalByReconciliation\(reconciliation\)/);
   assert.match(fs.readFileSync(path.join(root, 'app/renderer/src/surface-mounts.tsx'), 'utf8'), /status: 'recoverable'/);
+  const authenticatorContracts = fs.readFileSync(path.join(root, 'shared/authenticator.ts'), 'utf8');
+  assert.match(authenticatorContracts, /status: 'blocked'; message: string; recoverable: true; affectedIds: ReadonlyArray<string>; reconciliation: AuthenticatorReconciliationReceipt/);
+  assert.match(dispatchSource, /affectedIds: reconciliation\.affectedIds, reconciliation \} satisfies AuthenticatorRemovalReceipt/);
   assert.doesNotMatch(dispatchSource, /const reconciliation = .* as \{ status\?/u);
+});
+
+test('BREAK CHECK -- removing blocked authenticator removal identities while preserving prose turns this guard red', () => {
+  const structuredDispatch = /status: 'blocked', message: `\$\{reconciliation\.warning\} Affected entries: \$\{reconciliation\.affectedIds\.join\(', '\) \|\| 'unresolved state'\}\.`, recoverable: true, affectedIds: reconciliation\.affectedIds, reconciliation/u;
+  assert.match(dispatchSource, structuredDispatch);
+  const withoutStructuredIdentity = dispatchSource.replace('affectedIds: reconciliation.affectedIds, reconciliation } satisfies AuthenticatorRemovalReceipt', '} satisfies AuthenticatorRemovalReceipt');
+  assert.doesNotMatch(withoutStructuredIdentity, structuredDispatch);
 });
 
 test('renderer-facing reconciliation runs a fresh serialized in-place pass', () => {

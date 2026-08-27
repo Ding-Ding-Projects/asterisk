@@ -42,6 +42,7 @@ import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../
 import { createAuthLockRuntime, type AuthLockVault } from './auth-lock-runtime.js';
 import type { HistorySnapshotProtector } from '../shared/history.js';
 import type { HistoryRestoreReceipt } from '../shared/history.js';
+import type { AuthenticatorRemovalReceipt } from '../shared/authenticator.js';
 import type { ToyLockCreateReceipt, ToyLockCredentialReference, ToyLockRelockReceipt, ToyLockRemovalReceipt, ToyLockUnlockReceipt } from '../shared/locks.js';
 import type { LockStoreResult } from './lock-store.js';
 
@@ -975,7 +976,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         return { ok: true, requestId: request.requestId, data: await authLocks.authenticator.confirmAndArm(id, code, Date.now(), 1) };
       }
       if (request.action === 'authenticator.remove') {
-        const reconciliation = (await authLocks.awaitReconciliation()).authenticator; if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: { status: 'pending', message: `${reconciliation.warning} Affected entries: ${reconciliation.affectedIds.join(', ') || 'unresolved state'}.`, recoverable: true } };
+        const reconciliation = (await authLocks.awaitReconciliation()).authenticator; if (reconciliation.status !== 'reconciled') return { ok: true, requestId: request.requestId, data: { status: 'blocked', message: `${reconciliation.warning} Affected entries: ${reconciliation.affectedIds.join(', ') || 'unresolved state'}.`, recoverable: true, affectedIds: reconciliation.affectedIds, reconciliation } satisfies AuthenticatorRemovalReceipt };
         const id = typeof request.payload?.id === 'string' ? request.payload.id : '';
         return { ok: true, requestId: request.requestId, data: await authLocks.authenticator.remove(id) };
       }

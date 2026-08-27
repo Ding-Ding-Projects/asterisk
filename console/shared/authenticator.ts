@@ -47,6 +47,8 @@ export type AuthenticatorReconciliationReceipt =
 export type AuthenticatorRemovalReceipt =
   | { status: 'removed'; value: undefined }
   | { status: 'pending'; message: string; recoverable: true }
+  /** A blocked removal keeps exact identities and typed reconciliation state out of prose parsing. */
+  | { status: 'blocked'; message: string; recoverable: true; affectedIds: ReadonlyArray<string>; reconciliation: AuthenticatorReconciliationReceipt }
   | { status: 'rolledBack'; message: string; recoverable: true }
   | { status: 'recoverable'; message: string; recoverable: true };
 
