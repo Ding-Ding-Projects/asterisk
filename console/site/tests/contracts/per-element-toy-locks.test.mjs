@@ -37,7 +37,12 @@ test('the site feature registry carries a row for per-element-toy-locks', () => 
  * lock and is allowed to exist -- it has its own contract in school-mode.test.mjs. A
  * word in neither bucket means some third mechanism arrived under a name nobody here
  * chose, which is exactly what this scan is cheap enough to be worth keeping for. */
-const UNRELATED_LOCK_WORDS = ['blocks', 'block', 'rendermarkdownblock'];
+/* `authclocknote` joined the unrelated bucket on 2026-08-26 with the built-in
+ * authenticator: it is the sentence saying this page cannot tell you your CLOCK is
+ * wrong, and the substring is the tail of that word rather than anything to do with
+ * locking a control. Worth naming rather than widening the pattern -- a scan that
+ * stopped matching "clock" would also stop matching a real `clockLock`. */
+const UNRELATED_LOCK_WORDS = ['blocks', 'block', 'rendermarkdownblock', 'authclocknote'];
 const RESTRICTED_PRESENTATION_LOCK_WORDS = [
   'lock', 'locked', 'lockout', 'clock',
   'unlock', 'unlockcontrols', 'unlockschoolmode', 'schoolunlockverdict',

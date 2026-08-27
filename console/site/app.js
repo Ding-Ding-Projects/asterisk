@@ -658,6 +658,23 @@
   // exact wording this page already shipped, so nothing changes for anyone who never
   // touches the sliders.
   const COPY = {
+    /* Voice moves with the slider; three facts never do. Every one of the eight
+     * variants says that the secrets stay in this browser and nothing is sent
+     * anywhere, that every code is computed on this page from the secret the reader
+     * registered, and that clearing this site's storage deletes them with no way
+     * back. A variant that dropped any of the three would be describing a different,
+     * and considerably less careful, feature. */
+    authenticatorDesc:{en:[
+      'Keeps one-time-code accounts for other services in this browser and shows their codes here. The secrets stay in this browser and nothing is sent anywhere. Every code is computed on this page from the secret you registered. Clearing this site’s storage deletes them, and nothing here can give a secret back.',
+      'Keeps one-time-code accounts for other services in this browser and shows their codes here — the secrets stay in this browser and nothing is sent anywhere. Every code is computed on this page from the secret you registered. Clearing this site’s storage deletes them, and nothing here can give a secret back.',
+      'Holds the one-time-code accounts other services handed you, right here in this browser, and keeps their codes ticking over. The secrets stay in this browser and nothing is sent anywhere. Every code is worked out on this page from the secret you registered. Clear this site’s storage and they are gone — nothing here can give a secret back.',
+      'Your one-time-code accounts, kept in this browser and nowhere else, with their codes turning over on screen. The secrets stay in this browser and nothing is sent anywhere, to anyone, ever. Every code is computed on this page from the secret you registered — no server is consulted, and none is asked politely either. Clear this site’s storage and the lot vanishes: nothing here can give a secret back, and it will not pretend otherwise.'
+    ],zh:[
+      '將其他服務嘅一次性密碼帳戶存喺呢個瀏覽器，並且喺呢度顯示佢哋嘅驗證碼。密鑰淨係留喺呢個瀏覽器，唔會送去任何地方。每一個驗證碼都係喺呢版用你登記嗰個密鑰計出嚟。清除呢個網站嘅儲存空間就會刪除晒佢哋，而呢度冇任何嘢可以將密鑰還返畀你。',
+      '將其他服務嘅一次性密碼帳戶存喺呢個瀏覽器，喺呢度顯示佢哋嘅驗證碼 —— 密鑰淨係留喺呢個瀏覽器，唔會送去任何地方。每個驗證碼都係喺呢版用你登記嗰個密鑰計出嚟。清除呢個網站嘅儲存空間就會刪除晒佢哋，而呢度冇任何嘢可以將密鑰還返畀你。',
+      '其他服務畀你嗰啲一次性密碼帳戶，全部收埋喺呢個瀏覽器度，驗證碼就喺呢度跳。密鑰淨係留喺呢個瀏覽器，唔會送去任何地方。每個驗證碼都係喺呢版用你登記嗰個密鑰計出嚟。清咗呢個網站嘅儲存空間就冇晒 —— 呢度冇任何嘢可以將密鑰還返畀你。',
+      '你嘅一次性密碼帳戶，淨係收喺呢個瀏覽器，冇第二個地方，驗證碼喺螢幕上面一路跳。密鑰淨係留喺呢個瀏覽器，唔會送去任何地方、畀任何人。每個驗證碼都係喺呢版用你登記嗰個密鑰計出嚟 —— 唔會問任何伺服器，連客氣噉問一句都冇。清咗呢個網站嘅儲存空間就一鋪清袋：呢度冇任何嘢可以將密鑰還返畀你，佢亦都唔會扮嘢話做得到。'
+    ]},
     /* Voice moves with the slider; every fact in a recovery region sits in a
      * sibling of this line, so nothing here can carry one. What each level says
      * is the same thing: this is what this page can do about it, from here. */
@@ -1977,7 +1994,10 @@
     {id:'history-dialog',within:'.dialog-heading',glyph:'🕘'},
     {id:'reset-confirm-dialog',within:'.dialog-heading',glyph:'⚠️'},
     {id:'export-everything-dialog',within:'.dialog-heading',glyph:'📦'},
-    {id:'notif-confirm',within:'',glyph:'⚠️'}
+    {id:'authenticator-dialog',within:'.dialog-heading',glyph:'🔑'},
+    {id:'auth-secrets-dialog',within:'.dialog-heading',glyph:'⚠️'},
+    {id:'notif-confirm',within:'',glyph:'⚠️'},
+    {id:'auth-confirm',within:'',glyph:'⚠️'}
   ];
   // One glyph for every message box, because a message box carries arbitrary text
   // and choosing a glyph from that text would be inventing a meaning for it.
@@ -3887,7 +3907,750 @@
     renderExportEverything();
   }
 
-  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);el('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);el('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));el('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);if($('dialog-emojis'))$('dialog-emojis').onchange=event=>update('dialogEmojis',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState();recordHistory('attention-changed','attention.currentTask changed.')};$('settings-reset').onclick=()=>{const dialog=$('reset-confirm-dialog');if(!dialog)return;resetConfirmFields();dialog.showModal()};$('settings-export').onclick=()=>{download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state,restrictedPresentation:schoolExportSummary()},null,2));notify('Settings exported',applyVocabularyText('Exported the local settings on this page as ding-pbx-page-settings.json. Uploaded personal vocabulary was omitted.'),{category:'export',en:'Exported the local settings on this page. Uploaded personal vocabulary was omitted.',zh:'已經匯出呢版嘅本地設定，上載嘅個人詞彙冇包埋。'});};el('vocabulary-file').onchange=loadVocabulary;el('vocabulary-clear').onclick=clearVocabulary;initDisplayName();initNarration();initSchool();$('logo-file').onchange=loadLogo;$('logo-clear').onclick=clearLogo;if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));initResetConfirm();initHistory()}
+  // ============================================================================
+  // Built-in authenticator -- RFC 6238 codes, computed on this page, for accounts
+  // the reader registers themselves.
+  //
+  // Direction is the thing most easily got backwards here, so it is stated first.
+  // There are two authenticator-shaped jobs and this surface does exactly one:
+  //
+  //   pairing OUT -- an application that owns a one-time-code factor of its own
+  //     generates a secret and shows a QR code for a phone to scan. This page owns
+  //     no such factor: nothing here is protected by a one-time code, so there is
+  //     no secret of ours to hand out and no QR of ours to draw. Generating one
+  //     would mean inventing a factor nobody can use.
+  //   pairing IN -- the reader brings a secret some OTHER service issued and keeps
+  //     it here. That is this surface. The routes it owes are the ones that avoid
+  //     retyping a base32 string by hand.
+  //
+  // Reading a QR is therefore a DECODE, and it is done by the browser's own
+  // BarcodeDetector rather than by a decoder written here. Where a browser has
+  // none -- and several do not -- the control is absent and the reason is named.
+  // A scan button that cannot scan is worse than no scan button, because the
+  // person who presses it concludes their code is unreadable rather than that
+  // their browser is.
+  //
+  // Everything is local, and three properties hold it that way. No request is made
+  // from anywhere in this block. Secrets live in their own storage key, so no
+  // settings snapshot, no history entry and no ordinary export can carry one --
+  // which is checkable rather than promised, because `state` is what those three
+  // serialize and secrets are not in it. And clearing this site's storage removes
+  // them for good: nothing here can give a secret back, exactly as nothing here
+  // sent one anywhere.
+  // ============================================================================
+  const AUTH_KEY='ding-pbx-pages-authenticator-v1';
+  const AUTH_BASE32_ALPHABET='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  const AUTH_ALGORITHMS=['SHA-1','SHA-256','SHA-512'];
+  const AUTH_ENTRY_LIMIT=64;
+  const AUTH_LABEL_MAX=64;
+  const AUTH_SECRET_MAX=128;
+  const AUTH_PERIOD_MAX=300;
+  // One step either side, matching the desktop renderer's own verification window.
+  // Wider would accept a code long after the person reading it has moved on;
+  // narrower refuses an honest cross-check taken a second before the boundary.
+  const AUTH_SKEW_STEPS=1;
+
+  /** The clock every code and countdown is taken from, in one place so a test can hold it still. */
+  function authNow(){return Date.now()}
+
+  // ------------------------------------------------------------------ RFC 4648 base32
+  //
+  // Ported from `app/renderer/src/totp.ts` rather than reinvented, so a secret that
+  // works in the desktop application works here and vice versa. Strict on input: an
+  // unknown character is refused rather than skipped, because skipping one silently
+  // produces a different secret from the one the reader was given and the only
+  // symptom is codes that are never accepted anywhere.
+  function authDecodeBase32(value){
+    const cleaned=String(value||'').replace(/\s+/g,'').replace(/=+$/g,'').toUpperCase();
+    if(cleaned.length===0)throw new Error('The secret is empty.');
+    let bits='';
+    for(const character of cleaned){
+      const index=AUTH_BASE32_ALPHABET.indexOf(character);
+      if(index===-1)throw new Error(`The secret contains a character that is not base32: ${character}`);
+      bits+=index.toString(2).padStart(5,'0');
+    }
+    const byteCount=Math.floor(bits.length/8);
+    if(byteCount===0)throw new Error('The secret is too short to hold a single byte.');
+    const bytes=new Uint8Array(byteCount);
+    for(let i=0;i<byteCount;i+=1)bytes[i]=parseInt(bits.slice(i*8,i*8+8),2);
+    return bytes;
+  }
+  function authEncodeBase32(bytes){
+    let bits='';
+    for(const byte of bytes)bits+=byte.toString(2).padStart(8,'0');
+    let out='';
+    for(let i=0;i<bits.length;i+=5)out+=AUTH_BASE32_ALPHABET[parseInt(bits.slice(i,i+5).padEnd(5,'0'),2)];
+    return out;
+  }
+  /** Base32 in groups of four, which is how every service prints one and how a person reads one back. */
+  function authGroupSecret(secret){return String(secret||'').replace(/\s+/g,'').toUpperCase().replace(/(.{4})(?=.)/g,'$1 ')}
+
+  // ------------------------------------------------------------------ parameters
+  //
+  // An unsupported value is refused rather than replaced with a default. A pasted
+  // link naming an algorithm this page cannot compute is the case that matters:
+  // quietly treating it as SHA-1 stores an entry that generates confident, wrong
+  // codes forever, and nothing on screen would say why they are refused.
+  function authNormaliseAlgorithm(algorithm){
+    const raw=String(algorithm==null||algorithm===''?'SHA-1':algorithm).toUpperCase().replace(/[\s_-]/g,'');
+    const mapped=raw==='SHA1'?'SHA-1':raw==='SHA256'?'SHA-256':raw==='SHA512'?'SHA-512':'';
+    if(!mapped)throw new Error(`This page can compute SHA-1, SHA-256 and SHA-512 codes; the link asks for ${String(algorithm)}.`);
+    return mapped;
+  }
+  function authNormaliseDigits(digits){
+    const value=Number(digits==null||digits===''?6:digits);
+    if(!Number.isInteger(value)||value<6||value>8)throw new Error(`A code has between 6 and 8 digits; this one asks for ${String(digits)}.`);
+    return value;
+  }
+  function authNormalisePeriod(period){
+    const value=Number(period==null||period===''?30:period);
+    if(!Number.isInteger(value)||value<1||value>AUTH_PERIOD_MAX)throw new Error(`A code lasts between 1 and ${AUTH_PERIOD_MAX} seconds; this one asks for ${String(period)}.`);
+    return value;
+  }
+
+  // ------------------------------------------------------------------ HOTP/TOTP
+  function authCounterBytes(counter){
+    const bytes=new Uint8Array(8);
+    let value=counter;
+    for(let i=7;i>=0;i-=1){bytes[i]=value%256;value=Math.floor(value/256)}
+    return bytes;
+  }
+  function authRawBuffer(bytes){return bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)}
+  async function authHotp(secretBytes,counter,algorithm,digits){
+    const key=await crypto.subtle.importKey('raw',authRawBuffer(secretBytes),{name:'HMAC',hash:algorithm},false,['sign']);
+    const signature=new Uint8Array(await crypto.subtle.sign('HMAC',key,authRawBuffer(authCounterBytes(counter))));
+    const offset=signature[signature.length-1]&0x0f;
+    const binCode=((signature[offset]&0x7f)<<24)|((signature[offset+1]&0xff)<<16)|((signature[offset+2]&0xff)<<8)|(signature[offset+3]&0xff);
+    return String(binCode%10**digits).padStart(digits,'0');
+  }
+  function authStepFor(atMs,period){return Math.floor(atMs/1000/period)}
+  async function authGenerateCode(parameters,atMs){
+    const algorithm=authNormaliseAlgorithm(parameters.algorithm);
+    const digits=authNormaliseDigits(parameters.digits);
+    const period=authNormalisePeriod(parameters.period);
+    return authHotp(authDecodeBase32(parameters.secret),authStepFor(atMs,period),algorithm,digits);
+  }
+  async function authVerifyCode(parameters,code,atMs,skewSteps=0){
+    const digits=authNormaliseDigits(parameters.digits);
+    if(typeof code!=='string'||code.length!==digits||!/^\d+$/.test(code))return false;
+    const period=authNormalisePeriod(parameters.period);
+    const current=authStepFor(atMs,period);
+    const bound=Math.max(0,Math.floor(skewSteps));
+    for(let delta=-bound;delta<=bound;delta+=1){
+      // eslint-disable-next-line no-await-in-loop
+      const candidate=await authGenerateCode(parameters,(current+delta)*period*1000);
+      if(candidate===code)return true;
+    }
+    return false;
+  }
+  function authSecondsRemaining(period,atMs){
+    const normalised=authNormalisePeriod(period);
+    const elapsed=(atMs/1000)%normalised;
+    const remaining=normalised-elapsed;
+    return remaining===normalised?normalised:Math.ceil(remaining);
+  }
+
+  // ------------------------------------------------------------------ otpauth:// links
+  function authPairingUri(entry){
+    const algorithm=authNormaliseAlgorithm(entry.algorithm);
+    const digits=authNormaliseDigits(entry.digits);
+    const period=authNormalisePeriod(entry.period);
+    const secret=String(entry.secret||'').replace(/\s+/g,'').toUpperCase();
+    authDecodeBase32(secret);
+    const issuer=String(entry.issuer||'');
+    const account=String(entry.account||'');
+    const label=issuer?`${encodeURIComponent(issuer)}:${encodeURIComponent(account)}`:encodeURIComponent(account);
+    const query=new URLSearchParams({secret,algorithm:algorithm.replace('-',''),digits:String(digits),period:String(period)});
+    if(issuer)query.set('issuer',issuer);
+    return `otpauth://totp/${label}?${query.toString()}`;
+  }
+  function authParsePairingUri(uri){
+    let parsed;
+    try{parsed=new URL(String(uri||'').trim())}catch{throw new Error('That is not a link this page can read. An authenticator link starts with otpauth://totp/.')}
+    if(parsed.protocol!=='otpauth:')throw new Error(`An authenticator link uses the otpauth scheme; this one uses ${parsed.protocol.replace(':','')}.`);
+    if(parsed.host!=='totp')throw new Error(`This page keeps time-based accounts only; that link is for ${parsed.host}.`);
+    const label=decodeURIComponent(parsed.pathname.replace(/^\//,''));
+    const colon=label.indexOf(':');
+    const issuerFromLabel=colon===-1?'':label.slice(0,colon);
+    const account=colon===-1?label:label.slice(colon+1);
+    const secret=parsed.searchParams.get('secret');
+    if(!secret)throw new Error('That link carries no secret, so there is nothing to compute a code from.');
+    return {
+      issuer:(parsed.searchParams.get('issuer')??issuerFromLabel).slice(0,AUTH_LABEL_MAX),
+      account:account.slice(0,AUTH_LABEL_MAX),
+      secret:secret.replace(/\s+/g,'').toUpperCase().slice(0,AUTH_SECRET_MAX),
+      algorithm:authNormaliseAlgorithm(parsed.searchParams.get('algorithm')),
+      digits:authNormaliseDigits(parsed.searchParams.get('digits')),
+      period:authNormalisePeriod(parsed.searchParams.get('period')),
+    };
+  }
+
+  // ------------------------------------------------------------------ the clock
+  //
+  // The desktop application can say a machine's clock is skewed far enough that its
+  // codes will be refused everywhere. This page cannot, and the reason is worth
+  // stating rather than leaving as a silence: knowing the true time needs an outside
+  // source, and this feature makes no request at all. So it says what a skewed clock
+  // looks like from the reader's side instead of inventing a measurement.
+  function authClockNote(){
+    return 'Codes come from this computer’s own clock. Nothing here asks the network what the time is, so this page cannot tell you the clock is wrong — if every code from every account is refused, a clock that has drifted is the first thing to check.';
+  }
+
+  // ------------------------------------------------------------------ the store
+  //
+  // Its own storage key, deliberately. `state` is what the settings snapshot, every
+  // local-history entry and the redacted settings export all serialize, so keeping
+  // secrets out of `state` is what makes "no history entry carries a secret" a fact
+  // about the code rather than a promise about future edits.
+  function authNormaliseEntry(raw){
+    if(!raw||typeof raw!=='object')return null;
+    try{
+      const secret=String(raw.secret||'').replace(/\s+/g,'').toUpperCase().slice(0,AUTH_SECRET_MAX);
+      authDecodeBase32(secret);
+      return {
+        id:String(raw.id||`a${authNow()}-${authIdSeq++}`),
+        issuer:String(raw.issuer||'').slice(0,AUTH_LABEL_MAX),
+        account:String(raw.account||'').slice(0,AUTH_LABEL_MAX),
+        secret,
+        algorithm:authNormaliseAlgorithm(raw.algorithm),
+        digits:authNormaliseDigits(raw.digits),
+        period:authNormalisePeriod(raw.period),
+        added:Number.isFinite(Number(raw.added))?Number(raw.added):0,
+      };
+    }catch{return null}
+  }
+  function authLoadEntries(){
+    try{
+      const raw=JSON.parse(localStorage.getItem(AUTH_KEY)||'[]');
+      if(!Array.isArray(raw))return {entries:[],dropped:0};
+      const entries=[];
+      let dropped=0;
+      for(const item of raw.slice(0,AUTH_ENTRY_LIMIT)){
+        const entry=authNormaliseEntry(item);
+        if(entry)entries.push(entry);else dropped+=1;
+      }
+      return {entries,dropped:dropped+Math.max(0,raw.length-AUTH_ENTRY_LIMIT)};
+    }catch{return {entries:[],dropped:0}}
+  }
+  let authLoaded=authLoadEntries();
+  let authEntries=authLoaded.entries;
+  let authDroppedOnLoad=authLoaded.dropped;
+  /* Through the one guarded writer, like every other store on this page. A browser
+   * out of room refuses the write, and an account the reader just added would
+   * otherwise vanish at the next load with nothing having said so. */
+  function authSaveEntries(){return reportWrite('your authenticator accounts',writeLocal(AUTH_KEY,JSON.stringify(authEntries)))}
+  function authEntryTitle(entry){return entry.issuer&&entry.account?`${entry.issuer} · ${entry.account}`:entry.issuer||entry.account||'Unnamed account'}
+  function authEntryMeta(entry){return `${entry.algorithm} · ${entry.digits} digits · ${entry.period}s`}
+  /** What a redacted export and the settings export both say about this store. */
+  function authExportSummary(){return {accounts:authEntries.length,secrets:'omitted',storedSeparatelyIn:AUTH_KEY}}
+  function authExportRows(ids){
+    const wanted=ids instanceof Set?ids:new Set(ids||[]);
+    return authEntries.filter(entry=>wanted.has(entry.id)).map(entry=>({
+      issuer:entry.issuer,account:entry.account,algorithm:entry.algorithm,
+      digits:entry.digits,period:entry.period,secret:'omitted',
+    }));
+  }
+
+  // ------------------------------------------------------------------ the draft
+  let authDraft={issuer:'',account:'',secret:'',algorithm:'SHA-1',digits:6,period:30,source:'manual'};
+  let authSelection={anchor:undefined,selected:new Set()};
+  let authOrder=[];
+  let authTickSeq=0;
+  let authIdSeq=0;
+  let authLastCodes=new Map();
+  let authCameraStream=null;
+
+  /**
+   * The one refusal reason for a draft, or undefined when it is savable.
+   *
+   * Pure, so the dialog's status line and the save path cannot come to disagree
+   * about whether an entry is acceptable -- both ask this.
+   */
+  function authDraftProblem(draft){
+    if(authEntries.length>=AUTH_ENTRY_LIMIT)return `This page keeps at most ${AUTH_ENTRY_LIMIT} accounts, and it already has that many. Remove one first.`;
+    if(!String(draft.issuer||'').trim()&&!String(draft.account||'').trim())return 'Give the account a service name, a user name, or both, so you can tell its code from the others.';
+    try{
+      authNormaliseAlgorithm(draft.algorithm);
+      authNormaliseDigits(draft.digits);
+      authNormalisePeriod(draft.period);
+    }catch(error){return error.message}
+    try{authDecodeBase32(draft.secret)}catch(error){return error.message}
+    const secret=String(draft.secret||'').replace(/\s+/g,'').toUpperCase();
+    if(authEntries.some(entry=>entry.secret===secret))return 'This page already keeps an account with that exact secret. Adding it twice would show you the same code under two names.';
+    return undefined;
+  }
+  /**
+   * Saving is gated on a code this page actually computed from the secret.
+   *
+   * The canonical contract asks a newly paired factor to be confirmed with one live
+   * code, because a mis-scanned secret is otherwise found at the next sign-in. That
+   * shape belongs to pairing OUT, where a second device has to prove it received the
+   * secret correctly. Pairing IN has no second device, so the equivalent that is
+   * genuinely worth having is this: the entry is refused unless this page has
+   * successfully produced a code from the secret, which catches a truncated or
+   * mistyped base32 string at the moment it is entered rather than at the next login.
+   *
+   * The optional cross-check is the rest of it, and it is offered rather than
+   * required because most people pairing a new account have nothing to check
+   * against yet. Where a code IS supplied it must match, and skipping says exactly
+   * what was not checked.
+   */
+  async function authPrepareDraft(draft,crossCheckCode,atMs){
+    const problem=authDraftProblem(draft);
+    if(problem)return {ok:false,reason:problem};
+    let code;
+    try{code=await authGenerateCode(draft,atMs)}
+    catch(error){return {ok:false,reason:`This page could not compute a code from that secret: ${error.message}`}}
+    const supplied=String(crossCheckCode||'').replace(/\s+/g,'');
+    if(!supplied)return {ok:true,code,crossChecked:false,note:'Saved without a cross-check. Nothing has confirmed that this secret is the one the service issued — only that a code can be computed from it.'};
+    const matches=await authVerifyCode(draft,supplied,atMs,AUTH_SKEW_STEPS);
+    if(!matches)return {ok:false,reason:`That code does not match the one this page computes from the secret${supplied.length===authNormaliseDigits(draft.digits)?'':`, and it is ${supplied.length} digits rather than ${authNormaliseDigits(draft.digits)}`}. Check the secret rather than the code.`};
+    return {ok:true,code,crossChecked:true,note:'Cross-checked against a code you supplied, so the secret is the one that service is using.'};
+  }
+
+  // ------------------------------------------------------------------ reading a QR
+  //
+  // The browser's own detector, or nothing. `BarcodeDetector` ships in some browsers
+  // and not others, and there is no polyfill here that would not be a QR decoder
+  // written from a specification this repository has no way to check itself against.
+  // So each route reports the exact capability it needs and disappears when the
+  // browser lacks it.
+  function authDetectorAvailable(){return typeof globalThis.BarcodeDetector==='function'}
+  function authCameraAvailable(){return authDetectorAvailable()&&typeof navigator!=='undefined'&&Boolean(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)}
+  function authClipboardAvailable(){return authDetectorAvailable()&&typeof navigator!=='undefined'&&Boolean(navigator.clipboard&&navigator.clipboard.read)}
+  function authCapabilityNote(){
+    if(!authDetectorAvailable())return 'This browser reports no barcode detector, so the three reading routes — an image file, the clipboard, and the camera — are not offered here. Paste the otpauth:// link or type the secret instead. Nothing is missing from the account itself: a typed secret and a scanned one are the same secret.';
+    const routes=['an image file'];
+    if(authClipboardAvailable())routes.push('the clipboard');
+    if(authCameraAvailable())routes.push('the camera');
+    const missing=[];
+    if(!authClipboardAvailable())missing.push('the clipboard');
+    if(!authCameraAvailable())missing.push('the camera');
+    return `This browser can read a QR code from ${routes.join(', ')}.${missing.length?` It offers no access to ${missing.join(' or ')}, so ${missing.length===1?'that route is':'those routes are'} not shown.`:''} Every read happens in this browser; the picture is never uploaded.`;
+  }
+  async function authDetectPairingUri(source){
+    if(!authDetectorAvailable())throw new Error('This browser reports no barcode detector.');
+    const detector=new globalThis.BarcodeDetector({formats:['qr_code']});
+    const found=await detector.detect(source);
+    const values=(found||[]).map(item=>String(item&&item.rawValue||'')).filter(Boolean);
+    if(!values.length)throw new Error('No QR code was found in that picture.');
+    const link=values.find(value=>value.toLowerCase().startsWith('otpauth://'));
+    if(!link)throw new Error(`A QR code was read, but it is not an authenticator link: it says ${values[0].slice(0,40)}…`);
+    return authParsePairingUri(link);
+  }
+
+  // ------------------------------------------------------------------ rendering
+  function authMatchingEntries(query){
+    return authEntries.filter(entry=>matchText(`${entry.issuer} ${entry.account} ${entry.algorithm}`,query,'authenticator-search'));
+  }
+  function authStatusLine(){
+    if(!authEntries.length)return authDroppedOnLoad?`No accounts are kept in this browser. ${authDroppedOnLoad} stored record${authDroppedOnLoad===1?' was':'s were'} unreadable and left out rather than shown as an account that cannot produce a code.`:'No accounts are kept in this browser yet.';
+    const suffix=authDroppedOnLoad?` ${authDroppedOnLoad} stored record${authDroppedOnLoad===1?' was':'s were'} unreadable and left out.`:'';
+    return `${authEntries.length} account${authEntries.length===1?'':'s'} kept in this browser only.${suffix}`;
+  }
+  function authRenderList(query=''){
+    const list=$('authenticator-list');
+    if(!list)return;
+    const matches=authMatchingEntries(query);
+    authOrder=matches.map(entry=>entry.id);
+    list.innerHTML=matches.length?matches.map(entry=>{
+      const selected=authSelection.selected.has(entry.id);
+      return `<article class="auth-entry" data-auth-id="${escapeHtml(entry.id)}">`
+        +`<label class="auth-select"><input type="checkbox" ${selected?'checked':''} aria-label="Select ${escapeHtml(authEntryTitle(entry))}"></label>`
+        +`<div class="auth-entry-main"><strong>${escapeHtml(authEntryTitle(entry))}</strong>`
+        +`<output class="auth-code mono" data-auth-code="${escapeHtml(entry.id)}">${'—'}</output>`
+        +`<p class="auth-meta mono" data-auth-meta="${escapeHtml(entry.id)}">${escapeHtml(authEntryMeta(entry))}</p></div>`
+        +`<div class="auth-entry-actions">`
+        +`<button type="button" class="text-button" data-auth-copy="${escapeHtml(entry.id)}">Copy code</button>`
+        +`<button type="button" class="text-button" data-auth-move="up" data-auth-id-move="${escapeHtml(entry.id)}">Move up</button>`
+        +`<button type="button" class="text-button" data-auth-move="down" data-auth-id-move="${escapeHtml(entry.id)}">Move down</button>`
+        +`<button type="button" class="danger-button" data-auth-remove="${escapeHtml(entry.id)}">Remove</button>`
+        +`</div></article>`;
+    }).join(''):`<p class="empty-state">${escapeHtml(authEntries.length?'No account matches this search.':'No accounts yet. Add one with an otpauth:// link, a QR code, or the secret the service showed you.')}</p>`;
+    if($('authenticator-status'))$('authenticator-status').textContent=authStatusLine();
+    if($('authenticator-clock-note'))$('authenticator-clock-note').textContent=authClockNote();
+    if($('authenticator-capability'))$('authenticator-capability').textContent=authCapabilityNote();
+    authUpdateSelectionUI();
+    authUpdateExportFormats();
+    applyVocabulary();
+  }
+  /**
+   * Codes and countdowns, written into the rows that already exist.
+   *
+   * Deliberately not a re-render. Rebuilding the list once a second would take the
+   * focus ring off whatever the reader had reached with the keyboard, and reset a
+   * half-made selection, every single second.
+   */
+  async function authTick(){
+    const list=$('authenticator-list');
+    if(!list)return;
+    const sequence=++authTickSeq;
+    const atMs=authNow();
+    const changed=[];
+    for(const entry of authEntries){
+      const codeCell=list.querySelector(`[data-auth-code="${entry.id}"]`);
+      if(!codeCell)continue;
+      let code='';
+      let next='';
+      try{
+        // eslint-disable-next-line no-await-in-loop
+        code=await authGenerateCode(entry,atMs);
+        // eslint-disable-next-line no-await-in-loop
+        next=await authGenerateCode(entry,(authStepFor(atMs,entry.period)+1)*entry.period*1000);
+      }catch{code='';next=''}
+      if(sequence!==authTickSeq)return;
+      const metaCell=list.querySelector(`[data-auth-meta="${entry.id}"]`);
+      if(code){
+        codeCell.textContent=authGroupCode(code);
+        if(metaCell)metaCell.textContent=`${authEntryMeta(entry)} · ${authSecondsRemaining(entry.period,atMs)}s left · next ${authGroupCode(next)}`;
+        if(authLastCodes.get(entry.id)!==code){changed.push(entry);authLastCodes.set(entry.id,code)}
+      }else{
+        codeCell.textContent='—';
+        if(metaCell)metaCell.textContent=`${authEntryMeta(entry)} · no code: this browser refused the secret`;
+      }
+    }
+    authAnnounce(changed);
+  }
+  /** A code is read in groups, not as one run of digits. */
+  function authGroupCode(code){const text=String(code||'');const half=Math.ceil(text.length/2);return `${text.slice(0,half)} ${text.slice(half)}`.trim()}
+  /**
+   * Announce a code CHANGE, never the countdown.
+   *
+   * A live region tied to the seconds would speak once a second forever, which is
+   * the fastest way to make a screen reader unusable on this page.
+   */
+  function authAnnounce(changed){
+    const region=$('authenticator-announcer');
+    if(!region||!changed.length)return;
+    region.textContent=changed.length===1
+      ?`New code for ${authEntryTitle(changed[0])}.`
+      :`New codes for ${changed.length} accounts.`;
+  }
+  function authUpdateSelectionUI(){
+    const list=$('authenticator-list');
+    if(list)for(const row of list.querySelectorAll('.auth-entry')){
+      const box=row.querySelector('input[type="checkbox"]');
+      if(box)box.checked=authSelection.selected.has(row.dataset.authId);
+    }
+    if($('auth-selection-status'))$('auth-selection-status').textContent=authSelection.selected.size?`${authSelection.selected.size} selected of ${authEntries.length}.`:'';
+  }
+  function authUpdateExportFormats(){
+    const select=$('auth-export-format');
+    if(!select)return;
+    const rows=authExportRows(authSelection.selected);
+    const formats=suitableFormats(rows.length?rows:[{issuer:'',account:'',algorithm:'',digits:0,period:0,secret:''}]);
+    const previous=select.value;
+    select.innerHTML=formats.map(format=>`<option value="${format}">${format.toUpperCase()}</option>`).join('');
+    if(formats.includes(previous))select.value=previous;
+    if($('auth-export-loss')){
+      $('auth-export-loss').textContent=rows.length
+        ?`${describeLoss(rows,select.value||formats[0]).join(' ')} Secrets are omitted from this file: every row carries the account and its parameters, and the word omitted where the secret would be.`.trim()
+        :'Select one or more accounts to export. Whatever is written, the secrets are left out of it.';
+    }
+  }
+
+  // ------------------------------------------------------------------ the draft dialog
+  function authReadDraftFields(){
+    return {
+      issuer:($('auth-issuer')?.value||'').slice(0,AUTH_LABEL_MAX),
+      account:($('auth-account')?.value||'').slice(0,AUTH_LABEL_MAX),
+      secret:($('auth-secret')?.value||'').replace(/\s+/g,'').toUpperCase().slice(0,AUTH_SECRET_MAX),
+      algorithm:$('auth-algorithm')?.value||'SHA-1',
+      digits:Number($('auth-digits')?.value||6),
+      period:Number($('auth-period')?.value||30),
+      source:authDraft.source,
+    };
+  }
+  function authWriteDraftFields(draft){
+    authDraft={...authDraft,...draft};
+    if($('auth-issuer'))$('auth-issuer').value=authDraft.issuer;
+    if($('auth-account'))$('auth-account').value=authDraft.account;
+    if($('auth-secret'))$('auth-secret').value=authDraft.secret;
+    if($('auth-algorithm'))$('auth-algorithm').value=authDraft.algorithm;
+    if($('auth-digits'))$('auth-digits').value=String(authDraft.digits);
+    if($('auth-period'))$('auth-period').value=String(authDraft.period);
+    authRenderDraftStatus();
+  }
+  function authRenderDraftStatus(){
+    const status=$('auth-draft-status');
+    if(!status)return;
+    const draft=authReadDraftFields();
+    const problem=authDraftProblem(draft);
+    status.textContent=problem
+      ?problem
+      :`Ready to save ${authEntryTitle(draft)} — ${authEntryMeta(draft)}. It is kept in this browser and nowhere else.`;
+    const save=$('auth-save');
+    if(save)save.disabled=Boolean(problem);
+  }
+  /** The secret is hidden until the reader asks for it, on every open. */
+  function authResetDraft(){
+    authDraft={issuer:'',account:'',secret:'',algorithm:'SHA-1',digits:6,period:30,source:'manual'};
+    authWriteDraftFields(authDraft);
+    if($('auth-uri'))$('auth-uri').value='';
+    if($('auth-cross-check'))$('auth-cross-check').value='';
+    if($('auth-secret'))$('auth-secret').type='password';
+    if($('auth-secret-reveal'))$('auth-secret-reveal').textContent='Show the secret';
+    if($('auth-read-status'))$('auth-read-status').textContent='';
+    authStopCamera();
+  }
+  function authApplyReadResult(parsed,source,described){
+    authDraft={...authDraft,source};
+    authWriteDraftFields({...parsed,source});
+    if($('auth-read-status'))$('auth-read-status').textContent=`${described} The secret is filled in and stays hidden until you ask to see it.`;
+  }
+  async function authSaveDraft(){
+    const draft=authReadDraftFields();
+    const verdict=await authPrepareDraft(draft,$('auth-cross-check')?.value||'',authNow());
+    const status=$('auth-draft-status');
+    if(!verdict.ok){
+      if(status)status.textContent=verdict.reason;
+      return verdict;
+    }
+    const entry=authNormaliseEntry({...draft,added:authNow()});
+    if(!entry){
+      if(status)status.textContent='That account could not be stored in the shape this page keeps.';
+      return {ok:false,reason:'normalisation refused the draft'};
+    }
+    authEntries=[...authEntries,entry];
+    authSaveEntries();
+    recordHistory('authenticator-account-added',`An authenticator account was added: ${authEntryTitle(entry)} (${authEntryMeta(entry)}). The secret is not in this entry.`);
+    notify('Authenticator account added',applyVocabularyText(`${authEntryTitle(entry)} is now kept in this browser. ${verdict.note}`),{category:'setting',en:`${authEntryTitle(entry)} is now kept in this browser.`,zh:`${authEntryTitle(entry)} 而家淨係存喺呢個瀏覽器度。`});
+    $('authenticator-dialog')?.close();
+    authResetDraft();
+    authRenderList($('authenticator-search')?.value||'');
+    authTick();
+    return verdict;
+  }
+
+  // ------------------------------------------------------------------ camera
+  async function authStartCamera(){
+    const video=$('auth-camera');
+    if(!video||!authCameraAvailable())return;
+    try{
+      authCameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+      video.srcObject=authCameraStream;
+      video.hidden=false;
+      if(video.play)await video.play();
+      if($('auth-read-status'))$('auth-read-status').textContent='The camera is on. Hold the QR code in front of it.';
+      authScanCamera();
+    }catch(error){
+      if($('auth-read-status'))$('auth-read-status').textContent=`The camera did not start: ${error&&error.message?error.message:'no reason was given'}. Paste the link or type the secret instead.`;
+      authStopCamera();
+    }
+  }
+  async function authScanCamera(){
+    const video=$('auth-camera');
+    if(!video||!authCameraStream)return;
+    try{
+      const parsed=await authDetectPairingUri(video);
+      authStopCamera();
+      authApplyReadResult(parsed,'camera','Read from the camera.');
+      return;
+    }catch{/* nothing in this frame yet -- keep looking rather than reporting a failure */}
+    if(authCameraStream)setTimeout(authScanCamera,400);
+  }
+  function authStopCamera(){
+    const video=$('auth-camera');
+    if(authCameraStream){for(const track of authCameraStream.getTracks())track.stop()}
+    authCameraStream=null;
+    if(video){video.hidden=true;video.srcObject=null}
+  }
+
+  // ------------------------------------------------------------------ removal and secrets
+  function authRemoveEntries(ids){
+    const wanted=new Set(ids);
+    const removed=authEntries.filter(entry=>wanted.has(entry.id));
+    if(!removed.length)return 0;
+    authEntries=authEntries.filter(entry=>!wanted.has(entry.id));
+    authSaveEntries();
+    for(const entry of removed)authLastCodes.delete(entry.id);
+    authSelection={anchor:undefined,selected:new Set()};
+    recordHistory('authenticator-account-removed',`${removed.length} authenticator account${removed.length===1?'':'s'} removed from this browser: ${removed.map(authEntryTitle).join(', ')}. Removing one deletes its secret; nothing here can give it back.`);
+    notify('Authenticator accounts removed',applyVocabularyText(`${removed.length} account${removed.length===1?'':'s'} removed. Their secrets are gone from this browser and cannot be recovered here.`),{category:'setting',en:`${removed.length} authenticator account${removed.length===1?'':'s'} removed from this browser.`,zh:`已經喺呢個瀏覽器度移除咗 ${removed.length} 個驗證器帳戶。`});
+    authRenderList($('authenticator-search')?.value||'');
+    return removed.length;
+  }
+  function authMoveEntry(id,direction){
+    const index=authEntries.findIndex(entry=>entry.id===id);
+    const target=index+(direction==='up'?-1:1);
+    if(index===-1||target<0||target>=authEntries.length)return false;
+    const next=[...authEntries];
+    [next[index],next[target]]=[next[target],next[index]];
+    authEntries=next;
+    authSaveEntries();
+    authRenderList($('authenticator-search')?.value||'');
+    authTick();
+    return true;
+  }
+  /**
+   * The only route that writes a usable secret to a file, and it is gated exactly
+   * like every other irreversible action on this page: two independent keys and a
+   * full-travel slider. The wording says what the file is rather than what it is
+   * called, because a person who opens it later has to know it is a credential.
+   */
+  function authSecretsExportRows(){
+    return authEntries.map(entry=>({
+      issuer:entry.issuer,account:entry.account,algorithm:entry.algorithm,
+      digits:entry.digits,period:entry.period,secret:entry.secret,link:authPairingUri(entry),
+    }));
+  }
+  function authSecretsFields(){
+    if($('auth-secrets-key-1'))$('auth-secrets-key-1').checked=false;
+    if($('auth-secrets-key-2'))$('auth-secrets-key-2').checked=false;
+    const slider=$('auth-secrets-slider');
+    if(slider){slider.value='0';slider.disabled=true}
+    if($('auth-secrets-slider-status'))$('auth-secrets-slider-status').textContent='0%';
+  }
+  function authSecretsReady(){return Boolean($('auth-secrets-key-1')?.checked&&$('auth-secrets-key-2')?.checked)}
+  function authUpdateSecretsSlider(){
+    const slider=$('auth-secrets-slider');
+    if(!slider)return;
+    slider.disabled=!authSecretsReady();
+    if(slider.disabled){slider.value='0';if($('auth-secrets-slider-status'))$('auth-secrets-slider-status').textContent='0%'}
+  }
+  function authPerformSecretsExport(){
+    const rows=authSecretsExportRows();
+    if(!rows.length)return 0;
+    download('ding-pbx-authenticator-secrets.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',warning:'Every row below carries a usable authenticator secret in the clear. Anyone holding this file can generate the same codes you can.',accounts:rows},null,2),'application/json');
+    recordHistory('authenticator-secrets-exported',`${rows.length} authenticator secret${rows.length===1?'':'s'} were written to a file in the clear. This entry names the count and no secret.`);
+    notify('Authenticator secrets exported',applyVocabularyText(`Wrote ${rows.length} usable secret${rows.length===1?'':'s'} to a file. Treat that file as a credential.`),{category:'export',en:`Wrote ${rows.length} usable authenticator secret${rows.length===1?'':'s'} to a file.`,zh:`已經將 ${rows.length} 個可以用嘅驗證器密鑰寫咗入檔案，請當佢係憑證咁保管。`});
+    return rows.length;
+  }
+
+  function initAuthenticator(){
+    const card=$('authenticator-card');
+    if(!card)return;
+    if($('authenticator-clock-note'))$('authenticator-clock-note').textContent=authClockNote();
+    if($('authenticator-capability'))$('authenticator-capability').textContent=authCapabilityNote();
+    // Routes the browser cannot perform are removed rather than disabled, so nothing
+    // on screen offers a scan it would refuse.
+    if(!authDetectorAvailable()&&$('auth-qr-file-row'))$('auth-qr-file-row').hidden=true;
+    if(!authClipboardAvailable()&&$('auth-qr-clipboard'))$('auth-qr-clipboard').hidden=true;
+    if(!authCameraAvailable()&&$('auth-qr-camera'))$('auth-qr-camera').hidden=true;
+
+    $('authenticator-add')?.addEventListener('click',()=>{
+      const dialog=$('authenticator-dialog');
+      if(!dialog)return;
+      authResetDraft();
+      dialog.showModal();
+    });
+    $('authenticator-dialog')?.addEventListener('close',()=>{authStopCamera();$('authenticator-add')?.focus()});
+    for(const id of ['auth-issuer','auth-account','auth-secret','auth-algorithm','auth-digits','auth-period']){
+      $(id)?.addEventListener('input',authRenderDraftStatus);
+      $(id)?.addEventListener('change',authRenderDraftStatus);
+    }
+    $('auth-secret-reveal')?.addEventListener('click',()=>{
+      const field=$('auth-secret');
+      if(!field)return;
+      const hidden=field.type==='password';
+      field.type=hidden?'text':'password';
+      $('auth-secret-reveal').textContent=hidden?'Hide the secret':'Show the secret';
+    });
+    $('auth-uri-apply')?.addEventListener('click',()=>{
+      const raw=$('auth-uri')?.value||'';
+      try{authApplyReadResult(authParsePairingUri(raw),'uri','Read from the link you pasted.')}
+      catch(error){if($('auth-read-status'))$('auth-read-status').textContent=error.message}
+    });
+    $('auth-qr-file')?.addEventListener('change',async event=>{
+      const file=event.target.files&&event.target.files[0];
+      if(!file)return;
+      try{
+        const bitmap=await createImageBitmap(file);
+        authApplyReadResult(await authDetectPairingUri(bitmap),'image','Read from the picture you chose.');
+      }catch(error){if($('auth-read-status'))$('auth-read-status').textContent=`That picture could not be read: ${error.message}`}
+      event.target.value='';
+    });
+    $('auth-qr-clipboard')?.addEventListener('click',async()=>{
+      try{
+        const items=await navigator.clipboard.read();
+        for(const item of items){
+          const type=item.types.find(candidate=>candidate.startsWith('image/'));
+          if(!type)continue;
+          const bitmap=await createImageBitmap(await item.getType(type));
+          authApplyReadResult(await authDetectPairingUri(bitmap),'clipboard','Read from the picture on your clipboard.');
+          return;
+        }
+        if($('auth-read-status'))$('auth-read-status').textContent='There is no picture on the clipboard to read.';
+      }catch(error){if($('auth-read-status'))$('auth-read-status').textContent=`The clipboard could not be read: ${error&&error.message?error.message:'the browser refused'}.`}
+    });
+    $('auth-qr-camera')?.addEventListener('click',authStartCamera);
+    $('auth-camera-stop')?.addEventListener('click',authStopCamera);
+    $('auth-save')?.addEventListener('click',()=>{authSaveDraft()});
+
+    $('authenticator-search')?.addEventListener('input',event=>authRenderList(event.target.value));
+    $('authenticator-list')?.addEventListener('click',event=>{
+      const remove=event.target.closest('[data-auth-remove]');
+      if(remove){authRemoveEntries([remove.dataset.authRemove]);return}
+      const move=event.target.closest('[data-auth-move]');
+      if(move){authMoveEntry(move.dataset.authIdMove,move.dataset.authMove);return}
+      const copy=event.target.closest('[data-auth-copy]');
+      if(copy){
+        const cell=$('authenticator-list')?.querySelector(`[data-auth-code="${copy.dataset.authCopy}"]`);
+        const code=(cell?.textContent||'').replace(/\s+/g,'');
+        if(code&&code!=='—'&&navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(code);
+        return;
+      }
+      const row=event.target.closest('.auth-entry[data-auth-id]');
+      if(!row)return;
+      const isCheckbox=event.target.matches('input[type="checkbox"]');
+      authSelection=bulkClick(authSelection,row.dataset.authId,{shift:event.shiftKey,ctrl:event.ctrlKey||event.metaKey||isCheckbox},authOrder);
+      authUpdateSelectionUI();authUpdateExportFormats();
+    });
+    $('auth-select-page')?.addEventListener('click',()=>{
+      const result=bulkSelectAll(authSelection,'page',authOrder,authOrder);
+      authSelection=result.state;authUpdateSelectionUI();authUpdateExportFormats();
+      if($('auth-selection-status'))$('auth-selection-status').textContent=`Selected ${result.count} on this page.`;
+    });
+    $('auth-select-matches')?.addEventListener('click',()=>{
+      const result=bulkSelectAll(authSelection,'matches',authOrder,authOrder);
+      authSelection=result.state;authUpdateSelectionUI();authUpdateExportFormats();
+      if($('auth-selection-status'))$('auth-selection-status').textContent=`Selected ${result.count} matching accounts.`;
+    });
+    $('auth-select-none')?.addEventListener('click',()=>{authSelection={anchor:authSelection.anchor,selected:new Set()};authUpdateSelectionUI();authUpdateExportFormats()});
+    $('auth-export-format')?.addEventListener('change',authUpdateExportFormats);
+    $('auth-export-selected')?.addEventListener('click',()=>{
+      const rows=authExportRows(authSelection.selected);
+      if(!rows.length)return;
+      const format=$('auth-export-format').value||'json';
+      download(exportFilename('ding-pbx-authenticator-accounts',format,`${rows.length}-selected`),exportRows({rows,format,table:'account'}),EXPORT_MIME[format]);
+      notify('Authenticator accounts exported',applyVocabularyText(`Exported ${rows.length} account${rows.length===1?'':'s'} as ${format.toUpperCase()}, with every secret left out.`),{category:'export',en:`Exported ${rows.length} authenticator account${rows.length===1?'':'s'} without their secrets.`,zh:`已經匯出 ${rows.length} 個驗證器帳戶，密鑰冇包埋。`});
+    });
+    $('auth-remove-selected')?.addEventListener('click',()=>{
+      const plan=planBulk('Remove',[...authSelection.selected],()=>true,{destructive:true});
+      if(!plan.selected.length)return;
+      const box=$('auth-confirm');
+      if(!box)return;
+      if($('auth-confirm-text'))$('auth-confirm-text').textContent=`${summariseBulk(plan)} Each removal deletes that account's secret from this browser, and nothing here can give it back.`;
+      box.hidden=false;
+    });
+    $('auth-confirm-cancel')?.addEventListener('click',()=>{if($('auth-confirm'))$('auth-confirm').hidden=true});
+    $('auth-confirm-yes')?.addEventListener('click',()=>{
+      authRemoveEntries([...authSelection.selected]);
+      if($('auth-confirm'))$('auth-confirm').hidden=true;
+    });
+    $('auth-export-secrets')?.addEventListener('click',()=>{
+      const dialog=$('auth-secrets-dialog');
+      if(!dialog||!authEntries.length)return;
+      authSecretsFields();
+      if($('auth-secrets-count'))$('auth-secrets-count').textContent=`${authEntries.length} account${authEntries.length===1?'':'s'} would be written, each with a usable secret in the clear.`;
+      dialog.showModal();
+    });
+    $('auth-secrets-key-1')?.addEventListener('change',authUpdateSecretsSlider);
+    $('auth-secrets-key-2')?.addEventListener('change',authUpdateSecretsSlider);
+    $('auth-secrets-slider')?.addEventListener('input',event=>{
+      const value=Number(event.target.value);
+      if($('auth-secrets-slider-status'))$('auth-secrets-slider-status').textContent=`${value}%`;
+      if(value>=100&&authSecretsReady()){authPerformSecretsExport();$('auth-secrets-dialog')?.close()}
+    });
+    $('auth-secrets-cancel')?.addEventListener('click',()=>$('auth-secrets-dialog')?.close('cancel'));
+    $('auth-secrets-dialog')?.addEventListener('close',()=>{authSecretsFields();$('auth-export-secrets')?.focus()});
+
+    authRenderList('');
+    authTick();
+    setInterval(authTick,1000);
+  }
+
+  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);el('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);el('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));el('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);if($('dialog-emojis'))$('dialog-emojis').onchange=event=>update('dialogEmojis',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState();recordHistory('attention-changed','attention.currentTask changed.')};$('settings-reset').onclick=()=>{const dialog=$('reset-confirm-dialog');if(!dialog)return;resetConfirmFields();dialog.showModal()};$('settings-export').onclick=()=>{download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state,restrictedPresentation:schoolExportSummary(),authenticator:authExportSummary()},null,2));notify('Settings exported',applyVocabularyText('Exported the local settings on this page as ding-pbx-page-settings.json. Uploaded personal vocabulary was omitted.'),{category:'export',en:'Exported the local settings on this page. Uploaded personal vocabulary was omitted.',zh:'已經匯出呢版嘅本地設定，上載嘅個人詞彙冇包埋。'});};el('vocabulary-file').onchange=loadVocabulary;el('vocabulary-clear').onclick=clearVocabulary;initDisplayName();initNarration();initSchool();$('logo-file').onchange=loadLogo;$('logo-clear').onclick=clearLogo;if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));initResetConfirm();initHistory()}
   /* One writer for every vocabulary rejection, so the rule below holds for all of them
    * rather than for whichever branch somebody remembered.
    *
@@ -4374,6 +5137,6 @@
     sync();
   }
 
-  function init(){ensureAttentionUI();initSchoolWatch();ensureContextMenuUI();applyState();initContextMenu();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initUpdates();initExportEverything();initTimeAwareness();initMomentum();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
+  function init(){ensureAttentionUI();initSchoolWatch();ensureContextMenuUI();applyState();initContextMenu();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initUpdates();initExportEverything();initTimeAwareness();initMomentum();initAuthenticator();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
   init();
 })();

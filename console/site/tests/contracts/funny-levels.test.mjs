@@ -87,8 +87,8 @@ test('the COPY table defines a genuine four-level voice for both languages, on e
    * the feature they describe is switched on -- that mode forces English -- and they are
    * required all the same, because the card is read by somebody deciding whether to turn
    * it on, which is a state in which every language mode is still available. */
-  assert.equal(Object.keys(table).length, 20,
-    `expected exactly 20 COPY keys, found ${Object.keys(table).length} -- update this pin if a message was deliberately added or removed`);
+  assert.equal(Object.keys(table).length, 21,
+    `expected exactly 21 COPY keys, found ${Object.keys(table).length} -- update this pin if a message was deliberately added or removed`);
   for (const [key, counts] of Object.entries(table)) {
     assert.equal(counts.enCount, 4, `${key}: expected 4 English funny-level variants (Plain/Mild/Playful/Maximum), found ${counts.enCount}`);
     assert.equal(counts.zhCount, 4, `${key}: expected 4 Cantonese funny-level variants, found ${counts.zhCount}`);
@@ -174,8 +174,8 @@ test('the funny sliders reach only a small, explicitly wired subset of the six p
   const html = pageText();
   const wiredKeys = new Set([...html.matchAll(/data-copy="(\w+)"/g)].map((m) => m[1]));
   assert.deepEqual([...wiredKeys].sort(),
-    ['changelogDesc', 'dialogEmojisDesc', 'displayNameDesc', 'exportEverythingDesc', 'heroLede',
-      'motionDesc', 'narrationDesc', 'schoolDesc', 'themeDesc', 'updatesDesc'],
+    ['authenticatorDesc', 'changelogDesc', 'dialogEmojisDesc', 'displayNameDesc', 'exportEverythingDesc',
+      'heroLede', 'motionDesc', 'narrationDesc', 'schoolDesc', 'themeDesc', 'updatesDesc'],
     'the set of markup-wired funny-level strings changed -- if it grew, the "partial" classification may need revisiting');
   const totalKeys = Object.keys(copyTable()).length;
   assert.ok(wiredKeys.size < totalKeys,

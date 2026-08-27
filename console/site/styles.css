@@ -805,3 +805,27 @@ a.changelog-commit:hover,a.changelog-commit:focus-visible{color:var(--primary)}
 .context-menu-count{margin:0;font-size:.72rem;color:var(--muted)}
 .context-menu-foot{margin:0;padding-top:6px;border-top:1px solid var(--outline-variant);font-size:.72rem;line-height:1.45;color:var(--muted-2)}
 @media(prefers-reduced-motion:reduce){.context-menu{transition:none}}
+
+/* Built-in authenticator. The code is the thing a person came to read, so it is the
+ * largest text in the row and it is monospaced, because grouped digits that shift
+ * width every second are harder to read back than they look. The countdown lives in
+ * the meta line as words rather than as a bar: a colour or a shrinking shape is not
+ * readable to everyone, and a number of seconds is. */
+.auth-list{display:flex;flex-direction:column;gap:8px;width:100%}
+.auth-entry{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid var(--outline-variant);border-radius:var(--radius-sm);background:var(--surface-0)}
+.auth-select{flex:none;display:flex;align-items:center;min-height:var(--touch)}
+.auth-select input[type="checkbox"]{width:22px;height:22px}
+.auth-entry-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px}
+.auth-entry-main strong{font-size:.92rem;overflow-wrap:anywhere}
+.auth-code{font-family:var(--font-mono);font-size:1.5rem;font-weight:700;letter-spacing:.08em;color:var(--primary)}
+.auth-meta{margin:0;font-size:.74rem;color:var(--muted-2);overflow-wrap:anywhere}
+.auth-entry-actions{flex:none;display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;max-width:min(100%,320px)}
+#auth-camera{width:min(320px,100%);margin-top:10px;border-radius:var(--radius-sm);background:var(--surface-2)}
+#auth-camera[hidden]{display:none}
+#authenticator-dialog fieldset{margin:12px 0;padding:12px;border:1px solid var(--outline-variant);border-radius:var(--radius-sm)}
+#authenticator-dialog legend{padding:0 6px;font-size:.74rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted-2)}
+#authenticator-dialog label{display:block;margin-top:10px;font-size:.78rem;color:var(--muted-2)}
+#authenticator-dialog input:not([type="file"]),#authenticator-dialog select{width:100%}
+#authenticator-dialog .inline-controls input:not([type="file"]){flex:1 1 auto;min-width:0}
+/* Narrow screens: the action column stops competing with the code for width. */
+@media(max-width:620px){.auth-entry{flex-wrap:wrap}.auth-entry-actions{max-width:100%;justify-content:flex-start}}

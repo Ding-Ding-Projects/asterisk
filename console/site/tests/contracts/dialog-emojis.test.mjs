@@ -54,7 +54,14 @@ const DECORATED_IDS = [
    * not reach, which is exactly the silent gap the "every dialog" wording exists to
    * refuse -- so the arrival of a dialog is meant to move this list. */
   'export-everything-dialog',
+  /* Joined on 2026-08-26 by the built-in authenticator: its add-account dialog, the
+   * separately confirmed secrets export, and the inline removal confirmation. That last
+   * one is a message box rather than a dialog and decorates itself rather than a
+   * heading, exactly as the notification confirmation already did. */
+  'authenticator-dialog',
+  'auth-secrets-dialog',
   'notif-confirm',
+  'auth-confirm',
 ];
 
 /* ------------------------------------------------------------------ *
@@ -225,11 +232,15 @@ function loadDialogEmojis({ present = DECORATED_IDS, toasts = 0, dialogEmojis = 
   // eslint-disable-line no-new-func -- deliberately re-running the real extracted source
   const api = new Function('document', '$', 'all', 'state', body)(doc, $, all, state);
 
-  const hostOf = (element) => (
-    element.className === 'toast' || element.id === 'notif-confirm'
-      ? element
-      : element.querySelector('.dialog-heading')
-  );
+  /* Reads the table's own `within` rather than a hand-kept list of which surfaces
+   * decorate themselves. The hand-kept version threw a TypeError the first time a
+   * second such surface arrived, which reads as a broken test rather than as a
+   * surface this helper had not been told about. */
+  const hostOf = (element) => {
+    if (element.className === 'toast') return element;
+    const entry = api.DIALOG_EMOJI_DECORATIONS.find((candidate) => candidate.id === element.id);
+    return entry && entry.within === '' ? element : element.querySelector(entry ? entry.within : '.dialog-heading');
+  };
   const decorationOf = (element) => {
     const first = hostOf(element)?.firstElementChild ?? null;
     return first && first.className === api.DIALOG_EMOJI_CLASS ? first : null;
@@ -335,13 +346,24 @@ test('a page that does not carry a given dialog is simply skipped, not crashed o
  * The boundary: where a glyph may never go.
  * ------------------------------------------------------------------ */
 
+/**
+ * The decorated surfaces that carry a heading, derived from the real table rather
+ * than named here.
+ *
+ * A surface whose entry has an empty `within` decorates ITSELF -- it is a message
+ * box rather than a dialog, and it has no heading for a glyph to sit outside of. That
+ * used to be one hard-coded id, which is fine right up until a second such surface
+ * arrives and the rule below starts failing on a surface it was never about.
+ */
+const headingDecorated = (h) => h.DIALOG_EMOJI_DECORATIONS.filter((entry) => entry.within !== '').map((entry) => entry.id);
+
 test('the decoration sits outside the heading a dialog is labelled by, so no accessible name contains it', () => {
   /* Every one of these dialogs is `aria-labelledby` its own <h2>. A glyph inside that
    * heading would enter the dialog's accessible name and be read aloud on open, which is
    * exactly the noise the canonical boundary exists to prevent. */
   const h = loadDialogEmojis({ dialogEmojis: true });
   h.applyDialogEmojis();
-  for (const id of DECORATED_IDS.filter((x) => x !== 'notif-confirm')) {
+  for (const id of headingDecorated(h)) {
     const title = h.hostOf(h.dialogs[id]).children.find((c) => c.tag === 'h2');
     assert.ok(title, `${id} lost its heading element`);
     assert.equal(title.children.length, 0, `${id} now nests a decoration inside the heading it is labelled by`);
@@ -350,7 +372,7 @@ test('the decoration sits outside the heading a dialog is labelled by, so no acc
 });
 
 test('every decorated dialog really is labelled by its own heading, which is why the rule above matters', () => {
-  for (const id of DECORATED_IDS.filter((x) => x !== 'notif-confirm')) {
+  for (const id of headingDecorated(loadDialogEmojis())) {
     const at = settings.indexOf(`id="${id}"`);
     assert.notEqual(at, -1, `${id} is not on the settings page, so its labelling cannot be checked here`);
     const opening = settings.slice(settings.lastIndexOf('<', at), settings.indexOf('>', at) + 1);
