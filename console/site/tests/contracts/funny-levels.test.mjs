@@ -87,8 +87,16 @@ test('the COPY table defines a genuine four-level voice for both languages, on e
    * the feature they describe is switched on -- that mode forces English -- and they are
    * required all the same, because the card is read by somebody deciding whether to turn
    * it on, which is a state in which every language mode is still available. */
-  assert.equal(Object.keys(table).length, 21,
-    `expected exactly 21 COPY keys, found ${Object.keys(table).length} -- update this pin if a message was deliberately added or removed`);
+  /* Then 21 -> 23 on 2026-08-26, when the Support Tickets desk landed with two keys:
+   * `supportDesc` for the card, and `supportFirstResponse` for the canned answer written
+   * into a new ticket's own update list. The second one is worth a sentence, because it
+   * is the first key here whose output is STORED rather than re-rendered: a ticket keeps
+   * the wording it was answered in, so moving the slider afterwards does not go back and
+   * rewrite an answer somebody has already read. Two strings on that surface deliberately
+   * have no key at all and never will -- SUPPORT_DISCLOSURE and SUPPORT_SEVERITY_NOTE are
+   * plain constants, because a disclosure a funny level can rewrite is not a disclosure. */
+  assert.equal(Object.keys(table).length, 23,
+    `expected exactly 23 COPY keys, found ${Object.keys(table).length} -- update this pin if a message was deliberately added or removed`);
   for (const [key, counts] of Object.entries(table)) {
     assert.equal(counts.enCount, 4, `${key}: expected 4 English funny-level variants (Plain/Mild/Playful/Maximum), found ${counts.enCount}`);
     assert.equal(counts.zhCount, 4, `${key}: expected 4 Cantonese funny-level variants, found ${counts.zhCount}`);
@@ -173,9 +181,12 @@ test('the funny sliders reach only a small, explicitly wired subset of the six p
    * level. Adding a hook to them would be a defect rather than progress. */
   const html = pageText();
   const wiredKeys = new Set([...html.matchAll(/data-copy="(\w+)"/g)].map((m) => m[1]));
+  /* `supportDesc` joined on 2026-08-26 with the ticket desk, built with its description
+   * wired to the sliders from the start like every card before it. Twelve of twenty-three
+   * keys is still nowhere near the whole page, so the classification does not change. */
   assert.deepEqual([...wiredKeys].sort(),
     ['authenticatorDesc', 'changelogDesc', 'dialogEmojisDesc', 'displayNameDesc', 'exportEverythingDesc',
-      'heroLede', 'motionDesc', 'narrationDesc', 'schoolDesc', 'themeDesc', 'updatesDesc'],
+      'heroLede', 'motionDesc', 'narrationDesc', 'schoolDesc', 'supportDesc', 'themeDesc', 'updatesDesc'],
     'the set of markup-wired funny-level strings changed -- if it grew, the "partial" classification may need revisiting');
   const totalKeys = Object.keys(copyTable()).length;
   assert.ok(wiredKeys.size < totalKeys,

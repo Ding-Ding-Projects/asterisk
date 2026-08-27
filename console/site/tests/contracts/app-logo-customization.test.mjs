@@ -49,8 +49,16 @@ test('the accepted file is stored locally with an honest "no data transmitted" s
   /* Through `writeLocal` since in-context recovery landed, which is the one writer every
    * store on this page now goes through so a browser refusing the write is reported
    * rather than thrown past. The property this pins is unchanged and is still exact: the
-   * accepted image goes to that one local key and nowhere else. */
+   * accepted image goes to that one local key and nowhere else.
+   *
+   * The same key is ALSO declared as a named constant, because the ticket desk's recovery
+   * panel derives the keys this page writes from those declarations rather than restating
+   * them. That makes the literal here and the constant there two spellings of one value,
+   * so both are pinned: a constant renamed to point somewhere else would leave that panel
+   * naming a key nothing writes, and the assertion above would not notice. */
   assert.match(app, /writeLocal\('ding-pbx-logo-cache',dataUrl\)/u, 'the logo cache is no longer stored in localStorage');
+  assert.match(app, /^ {2}const LOGO_CACHE_KEY = 'ding-pbx-logo-cache';$/mu,
+    'LOGO_CACHE_KEY no longer names the documented logo cache key, so it and the literal written above have come apart');
   assert.match(app, /function writeLocal\(key,value\)\{\s*try\{localStorage\.setItem\(key,String\(value\)\)/u,
     'writeLocal no longer writes to localStorage, so the line above no longer proves the image is stored locally');
   assert.match(app, /No data was transmitted\./u, 'the local-only disclosure copy no longer appears');

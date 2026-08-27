@@ -83,8 +83,43 @@ test('the site holds exactly one credential record, and it is keyed by nothing -
    * needs a credential per element, which means a map or a key built from the element.
    * Every storage key here is a fixed literal, and every credential read goes through
    * the one record's own `.secret` rather than a lookup. */
-  const keys = [...app.matchAll(/localStorage\.(?:getItem|setItem|removeItem)\('([^']+)'\)/gu)].map((m) => m[1]);
-  assert.ok(keys.length > 0, 'no localStorage keys were found at all, so this would pass vacuously');
+  /* Widened on 2026-08-26 because it had gone VACUOUS, which is exactly what the tripwire
+   * on the next line was written to catch, and duly did. Two keys became named constants
+   * when the ticket desk landed -- its recovery panel derives the key list from these
+   * declarations rather than restating it -- and the old pattern recognised only a quoted
+   * literal at the call site, so it matched nothing at all. "Matched nothing" reads
+   * exactly like "found nothing wrong". Every argument is collected now, whatever its
+   * spelling, and each must be either a quoted literal or an ALL-CAPS constant declared
+   * in this same file with a fixed literal value. That is the property this test was
+   * always about: a key fixed at authoring time cannot have been derived from an element.
+   *
+   * Widened again at the merge that brought this branch together with in-context recovery,
+   * for the same reason and with the same failure mode waiting. That change left exactly
+   * ONE direct `localStorage.setItem` in the file -- the generic one inside `writeLocal`,
+   * whose argument is the parameter `key` -- and routed every real store through it. Read
+   * only the direct calls and this test would see one uninteresting parameter and none of
+   * the keys that actually get written, which is vacuous in the same way as before. So the
+   * guarded writer's own call sites are collected too, and its parameter is skipped by
+   * name: `key` is the writer's argument, never a key. A per-element record would still
+   * have to show up as a template, a lookup or a computed expression at one of these call
+   * sites, and every one of those still fails. */
+  const args = [
+    ...[...app.matchAll(/localStorage\.(?:getItem|setItem|removeItem)\(([^,)]+)/gu)].map((m) => m[1].trim()),
+    ...[...app.matchAll(/\bwriteLocal\(([^,)]+)/gu)].map((m) => m[1].trim()),
+  ].filter((arg) => arg !== 'key');
+  assert.ok(args.length > 0, 'no storage calls were found at all, so this would pass vacuously');
+  assert.ok((app.match(/\bwriteLocal\(/gu) || []).length > 1,
+    'nothing calls writeLocal any more, so this scan is reading only the direct calls and has gone half-blind again');
+  const keys = [];
+  for (const arg of args) {
+    if (/^'[^']+'$/u.test(arg)) { keys.push(arg.slice(1, -1)); continue; }
+    assert.match(arg, /^[A-Z][A-Z0-9_]*$/u,
+      `a storage key is now the expression ${JSON.stringify(arg)} rather than a literal or a named constant -- a per-element keyed record may exist`);
+    const declared = app.match(new RegExp(`^ {2}const ${arg} ?= ?'([^']+)';$`, 'mu'));
+    assert.ok(declared, `${arg} is used as a storage key but is not declared in site/app.js with a fixed literal value`);
+    keys.push(declared[1]);
+  }
+  assert.ok(keys.length > 0, 'no storage keys were resolved at all, so this would pass vacuously');
   const built = [...app.matchAll(/localStorage\.(?:getItem|setItem|removeItem)\(`([^`]*)`\)/gu)];
   assert.deepEqual(built.map((m) => m[0]), [],
     'a storage key is now built from a template rather than being a fixed literal -- a per-element keyed record may exist');

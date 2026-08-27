@@ -116,14 +116,18 @@ test('summariseBulk reports "nothing selected" honestly rather than a misleading
   assert.equal(summariseBulk(plan), 'Dismiss: nothing selected.');
 });
 
-test('the bulk model is wired to exactly two real surfaces: the notification history panel and the authenticator account list', () => {
-  /* The count moved on 2026-08-26, when the built-in authenticator became the second
-   * surface with a list somebody would want to act on in bulk. It is pinned rather than
-   * left open because the interesting failure is the opposite one: a THIRD list arriving
-   * with its own hand-rolled selection instead of this shared model, which reads as
-   * working and diverges the first time one of them is fixed. */
+test('the bulk model is wired to exactly three real surfaces: the notification history panel, the authenticator account list and the ticket desk', () => {
+  /* One surface until 2026-08-26, when the built-in authenticator made it two and the
+   * Support Tickets desk made it three on the same day. The counts are pinned exactly
+   * rather than left open because the interesting failure is a FOURTH list arriving with
+   * its own hand-rolled selection instead of this shared model, which reads as working
+   * and diverges the first time one of them is fixed. The desk's bulk action is Close
+   * rather than Dismiss or Remove and is deliberately NOT destructive -- a closed ticket
+   * can be reopened and every earlier update stays in its list -- which is why it needs
+   * no two-key gate and why summariseBulk ends its sentence with a full stop rather than
+   * "This cannot be undone." */
   const src = norm(read('site/app.js'));
-  for (const [name, expectedCalls] of [['bulkClick', 2], ['bulkSelectAll', 4], ['planBulk', 2], ['summariseBulk', 2]]) {
+  for (const [name, expectedCalls] of [['bulkClick', 3], ['bulkSelectAll', 6], ['planBulk', 3], ['summariseBulk', 3]]) {
     const total = src.split(`${name}(`).length - 1;
     const def = src.split(`function ${name}(`).length - 1;
     assert.equal(def, 1, `expected exactly one definition of ${name}`);
@@ -152,6 +156,18 @@ test('the bulk model is wired to exactly two real surfaces: the notification his
   const authBody = src.slice(authStart, j);
   for (const call of ['bulkClick(authSelection', "bulkSelectAll(authSelection,'page'", "bulkSelectAll(authSelection,'matches'", "planBulk('Remove'"]) {
     assert.ok(authBody.includes(call), `initAuthenticator() no longer calls ${call} -- the bulk model may be disconnected from the authenticator list`);
+  }
+
+  const deskStart = src.indexOf('function initSupport(){');
+  assert.ok(deskStart !== -1, 'initSupport() not found');
+  let deskDepth = 0, k = src.indexOf('{', deskStart);
+  for (; k < src.length; k += 1) {
+    if (src[k] === '{') deskDepth += 1;
+    else if (src[k] === '}') { deskDepth -= 1; if (deskDepth === 0) { k += 1; break; } }
+  }
+  const deskBody = src.slice(deskStart, k);
+  for (const call of ['bulkClick(supportSelection', "bulkSelectAll(supportSelection,'page'", "bulkSelectAll(supportSelection,'matches'", "planBulk('Close'"]) {
+    assert.ok(deskBody.includes(call), `initSupport() no longer calls ${call} -- the bulk model may be disconnected from the ticket desk`);
   }
 });
 
