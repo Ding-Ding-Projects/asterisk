@@ -18,6 +18,17 @@ Each execute and revert call receives a real `AbortSignal` from its own linked `
 
 Undo is exposed only when a confirmed mutation supplies an inverse token or local-history revision and the surface registers a real inverse handler. A notification action cannot manufacture undo support.
 
+## Configuration
+
+There is no settings file and no build flag here. What a caller chooses, it chooses per call:
+
+- **The output format**, from the thirteen listed above. It is a choice rather than a preference because a format is only offered for a dataset it can carry faithfully; the same collection can leave TOML or SQL unavailable while leaving JSON available, and the reason travels with the unavailable one.
+- **The per-item deadline**, a finite positive safe integer of milliseconds, defaulting to 30 seconds when a caller does not pass one.
+- **The `AbortSignal`** a caller may pass to cancel a run it started.
+- **The `ExportPlatformPort` adapter**, supplied by the host rather than by this layer. It is what decides whether saving, clipboard, editor detection and editor launch are available at all, so on a host that supplies none of them every one of those actions is a disabled action carrying its exact reason.
+
+Two things are deliberately not configurable, and both would be worth less than nothing if they were. Archive encryption accepts no settings, because no verified archive adapter is registered and a setting would imply one. Undo cannot be turned on by a caller: it appears when a confirmed mutation actually returned an inverse token or a local-history revision, and never because a surface asked for an undo button.
+
 ## Platform integration contract
 
 The renderer does not write files or launch an editor directly. A privileged desktop or hosted adapter must implement the shared `ExportPlatformPort` contract for save, download, clipboard, editor detection, and editor launch. The renderer reports success only after that adapter returns a confirmation receipt with an operation identifier and completion time.

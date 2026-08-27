@@ -18,6 +18,14 @@ Wide-gamut input reports when its displayed sRGB result was clipped. The origina
 
 Rainbow is a discriminated marker, not a color string and not a palette entry. One global speed level maps to one duration shared by every mounted rainbow surface. Reduced motion resolves the marker to one stable hue and disables the animation.
 
+## Configuration
+
+Nothing here is configured by a file or a build flag. Everything this core holds is a runtime value a person sets from an appearance surface, and the model is what those surfaces read and write.
+
+What the host supplies rather than the reader: the storage adapter that persistence uses, and the capability records below. Both are constructor inputs, so a test or a non-browser host can mount the whole model without local storage and without pretending a capability exists.
+
+What the reader sets, at the scopes resolution uses: a global default, a global interaction state, an element default, and an element interaction state — one property at a time, through a draft that changes nothing until it is applied. Named presets are the way a whole set of those values is kept and re-applied, and rainbow speed is one global level rather than a per-surface duration, so every rainbow surface turns together.
+
 ## Persistence and import
 
 The local store uses schema version 2 and a caller-provided storage adapter. The browser adapter can use local storage, while tests or non-browser hosts can supply another adapter without changing the model. Reads revalidate the complete stored document. Writes serialize and validate the complete next model before replacing the prior stored value. A rejected import applies nothing.

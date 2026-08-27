@@ -10,6 +10,14 @@ The coordinator refuses duplicate submissions while the same idempotency key is 
 
 Bulk and multi-step work returns per-item outcomes. A partial result names what succeeded, failed, was skipped, or was cancelled. Its retry action exists only when the request provides a distinct idempotency key for the unfinished work, so retry cannot replay or repeat effects that already landed. Failure, cancellation, timeout, refusal, unavailable capability, and disabled capability stay distinct so the interface can offer an accurate next action.
 
+## Configuration
+
+Per request, by the caller submitting it: the operation type, the exact target, the affected data, the idempotency key, the deadline, and whether cancellation and retry are allowed at all. Cancellation and retry are request properties rather than global settings on purpose — an operation that cannot safely be repeated must be able to say so at the moment it is submitted, and no preference elsewhere can overrule it.
+
+Per host: the persistence adapter the notification store writes through, and the quiet-hours policy. Quiet hours change presentation only; a suppressed notification is still recorded, so a policy can never cost a reader the history of what happened while they were not being interrupted.
+
+Not configurable: the five severities, the deterministic stacking order, and the rule that warning and error records do not auto-dismiss. Nor can a surface configure Retry or Undo into existence — both appear only when a terminal receipt actually supplied a retry reference or a real inverse operation, which is what separates an action that will work from a button that looks like one.
+
 ## Notification history
 
 Notifications have stable ids and one of five severities: information, progress, success, warning, or error. Active notifications have deterministic stacking order. Dismissing one removes it from the active stack but keeps it in history. Deleting one removes it from history and is a separate command.

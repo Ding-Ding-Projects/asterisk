@@ -224,12 +224,26 @@ test('the shell now declares roles and accessible names, so the readers below ar
    * harness below falls through to textContent, and that was FORCED when nothing carried a
    * role. It is now a CHOICE, and one nobody has revisited. Pinning the counts keeps that
    * visible instead of letting the harness quietly go on assuming a shell that no longer
-   * exists. Revisiting it is on the roadmap; pretending the assumption still holds is not. */
+   * exists. Revisiting it is on the roadmap; pretending the assumption still holds is not.
+   *
+   * 32 -> 33 roles and 26 -> 28 aria- attributes, and the message above asks which way and
+   * why, so: the Tab search overlay arrived. It is injected by scripts/extend-pbx-m3.mjs
+   * rather than written in the design, which is why the design source still holds 14
+   * role="dialog" elements while the compiled shell holds 15. That one element accounts for
+   * the whole role delta.
+   *
+   * The aria delta is two, and only one of them arrived with the overlay. The overlay
+   * brought its own aria-label. The second is a repair made in the same pass that corrected
+   * these numbers: it carried role="dialog" and no aria-modal, alone among the fifteen, while
+   * rendering a full-viewport click-to-close scrim underneath itself. The test below pins
+   * aria-modal against the dialog count for exactly that reason and caught it. Both numbers
+   * moved upward because a surface was added and then announced properly, not because the
+   * shell lost anything. */
   const ROLE = 'role' + ':';
   const ARIA = 'aria' + '-';
-  assert.equal(shell.split(ROLE).length - 1, 32,
+  assert.equal(shell.split(ROLE).length - 1, 33,
     'the number of declared roles moved; say which way and why rather than editing this number to match');
-  assert.equal(shell.split(ARIA).length - 1, 26,
+  assert.equal(shell.split(ARIA).length - 1, 28,
     'the number of accessible-name attributes moved; say which way and why');
 });
 
@@ -306,13 +320,22 @@ const rendererSources = () => {
  * not a reader; the scan finds the card's own scrim, which contains it.
  */
 test('every modal surface now carries the dialog role, not just the palette card', () => {
-  /* Was exactly one. Fourteen surfaces now declare it, each paired with aria-modal, which is
+  /* Was exactly one. Fifteen surfaces now declare it, each paired with aria-modal, which is
    * the accessibility work doing what it was for rather than anything drifting. The count is
-   * pinned so losing one is loud: a dialog that stops announcing itself as a dialog is",
-   * to a screen reader, just an anonymous box of text. */
+   * pinned so losing one is loud: a dialog that stops announcing itself as a dialog is,
+   * to a screen reader, just an anonymous box of text.
+   *
+   * The fifteenth is the Tab search overlay, and the pairing assertion below is why it is
+   * worth having both numbers rather than one. That overlay reached this tree declaring the
+   * dialog role and NOT aria-modal -- the only one of the fifteen missing it -- while
+   * rendering a full-viewport scrim that closes it on click. Nothing looked wrong: it is a
+   * real dialog with a real accessible name, and a screen reader would simply have gone on
+   * offering the fourteen screens behind it as though they were still reachable. The second
+   * assertion caught it, the attribute was added in scripts/extend-pbx-m3.mjs where that
+   * overlay is injected, and the shell was recompiled. Fifteen and fifteen. */
   const dialogs = shell.split('role: `dialog`').length - 1;
   const modal = shell.split('"aria-modal"').length - 1;
-  assert.equal(dialogs, 14, `${dialogs} elements carry the dialog role, not 14`);
+  assert.equal(dialogs, 15, `${dialogs} elements carry the dialog role, not 15`);
   assert.equal(modal, dialogs,
     `${modal} elements declare aria-modal against ${dialogs} dialogs -- a modal dialog that does not say it is modal traps focus without telling anyone`);
 });

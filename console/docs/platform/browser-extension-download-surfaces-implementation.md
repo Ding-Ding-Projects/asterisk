@@ -1,5 +1,7 @@
 # Browser-extension download transfer surfaces
 
+## Behavior
+
 This implementation adds three mount-ready renderer surfaces for a browser-extension handoff:
 
 1. **Start download** is a blocking decision surface. It names the file, source, destination, and known size. Nothing starts until `DownloadTransferClient.start()` accepts the typed handoff. Cancel uses `cancelHandoff()` and reports the receipt.
@@ -18,9 +20,29 @@ The dedicated `Ding-PBX-Console-NativeMessagingHost.exe` submits a bounded hando
 
 Language and funny-copy selection remain host-owned: labels are ordinary strings in these mount-ready components, so a future host can pass localized or funny-level copy without changing transfer facts such as bytes, timestamps, URLs, paths, status, or error codes. Unsaved-work state is required in the handoff and remains visible on the Start surface; no transfer action discards it.
 
-## Failure and verification boundaries
+## Configuration
 
-The transfer manager stores `download-transfers.json` beneath the installation data directory, strictly validates every persisted snapshot field before accepting it, and reconciles interrupted queued, downloading, and paused states at startup. It streams the HTTPS response into a unique adjacent temporary file, validates the byte total, records the exact complete size and SHA-256 digest, then uses the shared bounded Windows rename helper to publish atomically. A body interruption is distinct from a full-body publication failure. A complete temporary file remains available for retry publication only after its recorded size and digest are revalidated, without requesting Range at EOF. Header, body-idle, and total deadlines have distinct timeout codes. Pause and resume use HTTP Range with a recorded ETag or Last-Modified validator, and controls remain disabled with the exact reason when the server cannot resume. Cancel, discard, and non-resumable failure remove temporary files unless a resumable partial or publication-pending state is retained. A missing first snapshot is shown as a waiting state. A rejected command, deadline, non-retryable error, cancellation, and partial result stay visible and are not converted into success. This lane intentionally did not run tests, builds, runtime interaction, or captures, so built-artifact evidence remains pending.
+Almost nothing here is a preference, and the few things that are get chosen once, by an installer or by the person accepting a handoff, rather than sitting in an editable file.
+
+Set at registration time by `register-native-host.ps1`: the absolute manifest and broker paths written for Chrome and Edge, the allowlisted extension origin the host may speak for, and the current-user challenge configuration. That script verifies each regular file's SHA-256 and the resulting ACL before it returns a receipt, so "configuring" this feature is an operation that either produces a verified registration or fails.
+
+Chosen per download, by the person at the Start surface: whether the transfer begins at all, and the destination it goes to. The handoff arriving from the extension proposes a file name, an HTTPS source, a destination, a timestamp, an unsaved-work state and optionally a known byte total; nothing about it is trusted as configuration, and `isExtensionDownloadHandoff()` rejects a malformed or unbounded one before a transfer client ever sees it.
+
+Not configurable, and each for a reason worth keeping: the requirement that the source be HTTPS; the pipe's protected descriptor allowing only the current user and `SYSTEM`; the cap on active slots; the header, body-idle and total deadlines; and the rule that resume may only ask for a Range when the temporary file's size equals the recorded acknowledged byte count **exactly**. That last one is a setting somebody would eventually want to relax, and relaxing it is how a resumed download silently corrupts a file, so it is written down here rather than left to be discovered as an inconvenience.
+
+Hosted mode has no configuration at all: it returns an explicit unavailable receipt, because a hosted page cannot accept a desktop extension handoff.
+
+## Failure modes
+
+The transfer manager stores `download-transfers.json` beneath the installation data directory, strictly validates every persisted snapshot field before accepting it, and reconciles interrupted queued, downloading, and paused states at startup. It streams the HTTPS response into a unique adjacent temporary file, validates the byte total, records the exact complete size and SHA-256 digest, then uses the shared bounded Windows rename helper to publish atomically. A body interruption is distinct from a full-body publication failure. A complete temporary file remains available for retry publication only after its recorded size and digest are revalidated, without requesting Range at EOF. Header, body-idle, and total deadlines have distinct timeout codes. Pause and resume use HTTP Range with a recorded ETag or Last-Modified validator, and controls remain disabled with the exact reason when the server cannot resume. Cancel, discard, and non-resumable failure remove temporary files unless a resumable partial or publication-pending state is retained. A missing first snapshot is shown as a waiting state. A rejected command, deadline, non-retryable error, cancellation, and partial result stay visible and are not converted into success.
+
+## Verification
+
+The lane that wrote all of the above intentionally ran no tests, no builds, no runtime interaction and no captures, so every paragraph on this page describes code that has been written and not watched. The three surfaces have never been opened, no extension has ever handed anything to them, and no file has been published by the native helper on any machine.
+
+The site's own feature registry records `browser-extension-download-surfaces` as `absent` for a different and simpler reason, and the two should not be confused: this repository contains no browser extension at all, so on that surface there is nothing to drive rather than something undriven.
+
+`console/tests/contracts/browser-extension-download-surfaces.test.mjs` exists and reads the shared contracts as source text. Like every source contract, it can show that a rule is written down; it cannot show that the rule holds when a real transfer runs.
 
 ## Suggested articles
 

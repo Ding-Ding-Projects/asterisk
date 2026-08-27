@@ -16,6 +16,19 @@ Setup and sign-in surfaces report checking, ready, busy, timeout, unavailable, r
 
 Successful sign-in creates a random, HMAC-signed session identifier in an `HttpOnly`, `SameSite=Strict` cookie. TLS deployments also set `Secure`. Sign-out revokes the current session. The hosted bridge also exposes a revoke-all-sessions action for the signed-in administrator.
 
+## Configuration
+
+There is no administrator-editable settings file for this. The account is created once through first-run setup, and everything else is either a deployment decision or a fixed bound.
+
+What a deployment chooses:
+
+- **The listener and its transport.** TLS, or plain HTTP bound to loopback. Those are the only two arrangements in which a password may be created or presented; a plain HTTP listener on a non-loopback address refuses both, as the transport policy below sets out.
+- **`ServerModeOptions.allowInsecureDevelopmentAuth`**, and only ever in development. It is honoured when `NODE_ENV` is exactly `development` and ignored otherwise, so it cannot be turned on by a production launcher that sets it by mistake. Production launchers and service definitions must not set it at all.
+
+What is not configurable, deliberately: the scrypt parameters, salt size and derived-key size a stored hash may use; the 1,024-character password and 128-character username input limits; the 1,024-session and 4,096-address table caps; the cookie's `HttpOnly` and `SameSite=Strict` attributes; and the fields `admin-account.json` may contain. A record that asks for different scrypt parameters is refused before any work is done rather than honoured as configuration, which is the point: an attacker who can write that file must not be able to choose how expensive verifying it is.
+
+The only credential input is the administrator's own password at setup and sign-in. Nothing here reads an environment variable holding a secret, and the signing key is generated rather than supplied.
+
 ## Storage and limits
 
 `admin-account.json` uses schema version 1 and contains only the username, scrypt password hash, and creation time. The reader limits file size, rejects unknown or extra fields, validates exact field bounds, and accepts the original unversioned three-field record as schema version 1 for compatibility. A malformed file is corrupt, never missing.

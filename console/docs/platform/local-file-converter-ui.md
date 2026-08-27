@@ -5,7 +5,15 @@ surface is mounted later by `CONVERTER_SURFACE_REGISTRATION`, which accepts a ty
 `ConverterClient` and keeps the privileged file and control-plane operations outside the
 renderer component.
 
-## User flow
+## Behavior
+
+The surface holds display metadata and one loaded page of the queue, and nothing else. Every
+fact it shows — the detected format, the adapter catalog, whether a destination already
+exists, how far a conversion has got — arrives from the typed client, and the surface renders
+what arrived rather than filling a gap. That is why it can be read as a report: a number on
+this screen was returned by something that measured it.
+
+The user flow is:
 
 1. Choose a local file through the client-provided native picker.
 2. Read the source bytes through the typed `sniff` method. The surface shows the exact
@@ -23,6 +31,25 @@ renderer component.
 7. Queue one request through `enqueueOne`. Queue records are loaded in bounded pages and
    are never collected into an unbounded renderer array by the surface.
 
+## Configuration
+
+Nothing about this surface is configured by a file. What varies is what the mounted client
+supplies, and what the person operating it chooses.
+
+`CONVERTER_SURFACE_REGISTRATION` takes one typed `ConverterClient`, and the methods that
+client does or does not expose are what decide which controls are live. A client with no
+`runPdfOperation` leaves the PDF commands disabled with that exact reason rather than absent;
+a client with no destination picker leaves the text field as the way to give a path; a client
+with no editor-launch method leaves the Visual Studio Code handoff disabled and says so. The
+surface never hides a control because its client cannot perform it.
+
+Per conversion, the person chooses the source file, the adapter, an absolute destination path,
+and whether an existing destination may be overwritten — and that last one is asked of the
+client rather than assumed, so the answer is a real observation of the filesystem.
+
+Two bounds are fixed rather than settings: at most 100 queue records are loaded at a time, and
+every client call carries a deadline.
+
 ## Search and regex builder
 
 Every category owns a separate search query and an adjacent anchored regex builder. Plain
@@ -32,7 +59,7 @@ pattern, flags, bounded sample text, syntax feedback, matches, capture groups, a
 The query and pattern stay synchronized when regex mode is selected. Invalid patterns and
 oversized samples produce an explicit local error and no match result.
 
-## Queue and failure states
+## Failure modes and queue states
 
 The queue uses the backend cursor contract. The surface loads at most 100 records at a
 time, offers refresh and next-page controls, and displays every returned item state and
@@ -67,6 +94,19 @@ validation, and editor launch. The renderer holds only display metadata and the 
 provided by the client. A consumer integration must keep the client methods local and
 bounded, and must not put credentials or source contents in logs, exports, history, or
 telemetry.
+
+## Verification
+
+`ConverterSurface` and `CONVERTER_SURFACE_REGISTRATION` exist as typed contracts and are not
+mounted by the desktop shell, so nothing on this page has been operated in a running
+application. No packaged build has been driven to it, no capture has been taken of it, and the
+client it describes has no production implementation in this tree — the honest reading of
+every paragraph above is "this is what the surface does when a client is supplied", not "this
+is what a reader saw".
+
+The backend half is documented separately in [Local file converter](local-file-converter.md),
+which carries its own verification boundary, and the site's browser-local equivalent is
+recorded there too, including the fact that its page is committed but not published.
 
 ## Suggested articles
 

@@ -90,11 +90,20 @@ test('voice enumeration is live and its status source is the effective channel v
   assert.match(src, /resolveVoiceStatus\(language, this\.narration\.channels\[language\]\.voiceId, this\.voices\)/);
 });
 
+/* The third parameter used to be a bare `isError = false`, and this test used to pin
+ * that exact single-line signature. It is now a NotificationSeverity that still accepts
+ * the compiled shell's legacy boolean, so pinning the old spelling was pinning a
+ * signature the implementation had deliberately replaced -- the assertion went red
+ * while the property it exists to prove was intact. What that property actually is:
+ * the mounted path narrates, it narrates the STYLED text rather than the raw title and
+ * body, and error priority survives the trip. All three are pinned below against what
+ * the code now says, and the severity derivation is pinned exactly rather than loosely,
+ * so narrating everything as an error -- or as none -- still fails here. */
 test('the mounted notification path is narrated and preserves the styled message plus error priority', () => {
   const src = app();
-  assert.match(src, /private narratedFire = \(title: string, body: string, isError = false\): void => \{/);
+  assert.match(src, /private narratedFire = \(\n\s+title: string,\n\s+body: string,\n\s+severityOrLegacyError: NotificationSeverity \| boolean = 'warning',\n\s+\): void => \{/);
   assert.match(src, /const styled = styledDialog\(/);
-  assert.match(src, /this\.narrator\.enqueue\('notification', styled\.body \? `\$\{styled\.heading\}\. \$\{styled\.body\}` : styled\.heading, \{ isError \}\);/);
+  assert.match(src, /this\.narrator\.enqueue\('notification', styled\.body \? `\$\{styled\.heading\}\. \$\{styled\.body\}` : styled\.heading, \{ isError: severity === 'error' \}\);/);
   assert.match(src, /this\.baseFire\(styled\.heading, styled\.body\);/);
 });
 

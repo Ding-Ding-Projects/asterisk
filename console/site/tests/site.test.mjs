@@ -125,14 +125,31 @@ test('contains exactly 32 destination definitions in six declared groups', () =>
     'arcade','notifications','history','customise','appearance','about',
   ]);
 });
-test('provides 78 complete feature articles plus checked evidence records', async () => {
+test('provides 97 complete feature articles plus checked evidence records', async () => {
   const docsRoot=resolve(root,'..','docs'), categories=['pbx','media','data','system','agent','app','platform'];
   const articles=[];
   for(const category of categories)for(const name of await readdir(join(docsRoot,category)))if(name.endsWith('.md')&&name!=='README.md')articles.push(join(docsRoot,category,name));
-  // 32 destination articles (pbx/media/data/system/agent/app) plus 45 platform articles,
-  // plus one more: docs/pbx/iaxpeers.md, the IAX peers screen's own previously missing
-  // documentation article, added alongside the Trunks/IVR deepening pass.
-  assert.equal(articles.length,78);
+  // 97 = one article for each of the 32 canonical destinations, plus 4 further
+  // non-platform articles, plus 61 platform articles.
+  //
+  // The four extra non-platform ones are named rather than left as an arithmetic
+  // remainder, because "32 and a few others" is how a stray file gets absorbed into a
+  // count nobody re-derives: docs/pbx/control-provenance.md, docs/pbx/iaxpeers.md,
+  // docs/agent/status-hub-client.md and docs/app/lifecycle-integrity.md. Each documents
+  // something real that is not one of the 32 screens.
+  //
+  // This pin read 78 and had gone stale, and correcting it turned up why the number is
+  // worth keeping exact. An integration merge had brought 23 further articles in at once.
+  // 17 of them did not satisfy the five-heading contract this test asserts below, and four
+  // were not articles at all -- they were changelog fragments, filed into docs/agent and
+  // docs/platform where every file is required to be an article. Those four now live in
+  // docs/changelog-fragments beside the others, which is why 101 files under these seven
+  // categories became 97.
+  //
+  // Kept exact rather than relaxed to ">= 78". A floor would have absorbed all 23 in
+  // silence, and the 17 incomplete ones with them -- noticing exactly that is the whole
+  // reason the assertion is here.
+  assert.equal(articles.length,97);
   // An evidence record is a different genre from a feature article: it says what was
   // captured, from which commit, and by what method, and forcing "## Behavior" onto it
   // would distort a document that is doing its job. So it lives in its own category --
@@ -328,7 +345,31 @@ test('build composes deterministic local output without fetches', async () => {
   // made outside a git checkout cannot name its own commit, deliberately writes no manifest
   // rather than one carrying a placeholder, and bakes no identity into app.js -- so that
   // page reports itself unbuilt instead of asking for a file that was never published.
-  const expectedFiles = manifest.buildIdentity.resolved ? 196 : 195;
+  //
+  // 232 from 2026-08-27. This is the one entry in the ledger above that is a CORRECTION
+  // rather than an increment, so it does not follow the "N from date, for one article"
+  // shape the others do: the pin had read 196 while the build emitted 232, because an
+  // integration merge brought 23 further documentation articles in at once and nobody
+  // re-derived the number afterwards. Adding a delta to a figure that was already wrong
+  // would have produced a second wrong figure, so this one is re-derived from the build
+  // itself and its whole composition is written down instead:
+  //
+  //     133  docs/*.html      one page per .md under docs/, and there are exactly 133
+  //      79  assets/*.woff2   the locally vendored type and icon faces
+  //       2  assets/*.css     2  assets/*.json
+  //       6  screens/*.png    the committed capture set the pages embed
+  //      10  root             index/product/documentation/downloads/status/settings.html,
+  //                           app.js, styles.css, social-preview.png, version.json
+  //     ---
+  //     232
+  //
+  // The docs figure is the one that moves, and it moves for a real reason every time: this
+  // build emits exactly one HTML page per Markdown article, so `find docs -name '*.md' | wc -l`
+  // is the arithmetic behind it and a changed count here means an article arrived or left.
+  //
+  // Still exact, and still conditional on version.json rather than widened to a floor, for
+  // the reason the paragraph above gives.
+  const expectedFiles = manifest.buildIdentity.resolved ? 232 : 231;
   assert.equal(manifest.outputFiles.length, expectedFiles);
   assert.equal(
     manifest.outputFiles.some(file => file.path === 'version.json'),
