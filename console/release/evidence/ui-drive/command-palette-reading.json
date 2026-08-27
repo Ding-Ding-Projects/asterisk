@@ -1,0 +1,562 @@
+{
+  "schemaVersion": 1,
+  "reading": "command-palette",
+  "commit": "f20a66f7388979d627203fd913c153d8f8d4a001",
+  "harnessUncommitted": true,
+  "artifact": "console/dist/squirrel-windows/win-unpacked/Ding PBX Console.exe",
+  "artifactSha256": "32511fb65bed7c74b535be060ee244ea10367187cfb7989d5aebe110e8ee0582",
+  "verification": "inspected-real-packaged-artifact",
+  "launch": {
+    "method": "Lowlevel hidden Windows desktop",
+    "isolatedProfile": "a task-scoped --user-data-dir created for this run only",
+    "driver": "loopback Chrome DevTools Protocol, exactly one page target verified before any evaluation"
+  },
+  "query": "language",
+  "phases": {
+    "beforeChord": {
+      "state": {
+        "elements": 443,
+        "inputs": 0,
+        "overlays": 0,
+        "dialogRoleElements": 0,
+        "heading": "Dashboard",
+        "onboardingVisible": false,
+        "updateBanner": "Downloading update (0.1.264)…"
+      },
+      "panel": {
+        "panelFound": false,
+        "observedPanelControls": [],
+        "panelControlReadings": [],
+        "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+        "candidatesConsidered": 0
+      }
+    },
+    "chordOpened": {
+      "state": {
+        "elements": 3097,
+        "inputs": 1,
+        "overlays": 1,
+        "dialogRoleElements": 1,
+        "heading": "Dashboard",
+        "onboardingVisible": false,
+        "updateBanner": "Downloading update (0.1.264)…"
+      },
+      "panel": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "Deploy & servers Deploy a server",
+          "What will happen Deploy & servers · Host the console here",
+          "Install the console on this machine Deploy & servers · Host the console here",
+          "Connection type Deploy & servers · Route",
+          "Host Deploy & servers · Route",
+          "Container Deploy & servers · Route",
+          "SSH user Deploy & servers · Route",
+          "SSH port Deploy & servers · Route",
+          "Strict host key checking Deploy & servers · Route",
+          "Interface Deploy & servers · Manager interface",
+          "Manager port Deploy & servers · Manager interface",
+          "TLS Deploy & servers · Manager interface",
+          "Forward through the SSH tunnel Deploy & servers · Manager interface",
+          "Reconnect automatically Deploy & servers · Manager interface",
+          "Open read-only Deploy & servers · Manager interface",
+          "Status Deploy & servers · Phone system",
+          "Start Deploy & servers · Phone system",
+          "Stop Deploy & servers · Phone system",
+          "Restart Deploy & servers · Phone system",
+          "Dashboard Destination",
+          "Live channels Destination",
+          "Spy mode Live channels · Monitor defaults",
+          "Recording format Live channels · Monitor defaults",
+          "Beep on record start Live channels · Monitor defaults",
+          "Keep recordings for Live channels · Monitor defaults",
+          "Endpoints PJSIP endpoints",
+          "Transport Endpoints · Identity",
+          "Dialplan context Endpoints · Identity",
+          "Trust inbound identity Endpoints · Identity",
+          "Display name Endpoints · Identity",
+          "Outbound caller ID number Endpoints · Identity",
+          "direct_media Endpoints · Media & NAT",
+          "rtp_symmetric Endpoints · Media & NAT",
+          "force_rport Endpoints · Media & NAT",
+          "rewrite_contact Endpoints · Media & NAT",
+          "ice_support Endpoints · Media & NAT",
+          "media_encryption Endpoints · Media & NAT",
+          "dtmf_mode Endpoints · Media & NAT",
+          "max_contacts Endpoints · Registration & AOR",
+          "remove_existing Endpoints · Registration & AOR",
+          "qualify_frequency Endpoints · Registration & AOR",
+          "Registration expiry Endpoints · Registration & AOR",
+          "Allowed codecs Endpoints · Registration & AOR",
+          "max_audio_streams Endpoints · Media streams",
+          "max_video_streams Endpoints · Media streams",
+          "media_encryption_optimistic Endpoints · Media streams",
+          "timers Endpoints · Session timers",
+          "timers_min_se Endpoints · Session timers",
+          "timers_sess_expires Endpoints · Session timers",
+          "rtp_timeout Endpoints · Timeouts & device state",
+          "rtp_timeout_hold Endpoints · Timeouts & device state",
+          "device_state_busy_at Endpoints · Timeouts & device state",
+          "refer_blind_progress Endpoints · Timeouts & device state",
+          "aggregate_mwi Endpoints · MWI",
+          "mwi_subscribe_replaces_unsolicited Endpoints · MWI",
+          "outbound_proxy Endpoints · Outbound",
+          "outbound_auth Endpoints · Outbound",
+          "mailboxes Endpoints · Voicemail",
+          "voicemail_extension Endpoints · Voicemail"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "Deploy & servers Deploy a server",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "What will happen Deploy & servers · Host the console here",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Install the console on this machine Deploy & servers · Host the console here",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Connection type Deploy & servers · Route",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Host Deploy & servers · Route",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Container Deploy & servers · Route",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "SSH user Deploy & servers · Route",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "SSH port Deploy & servers · Route",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Strict host key checking Deploy & servers · Route",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Interface Deploy & servers · Manager interface",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Manager port Deploy & servers · Manager interface",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "TLS Deploy & servers · Manager interface",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Forward through the SSH tunnel Deploy & servers · Manager interface",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Reconnect automatically Deploy & servers · Manager interface",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Open read-only Deploy & servers · Manager interface",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Status Deploy & servers · Phone system",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Start Deploy & servers · Phone system",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Stop Deploy & servers · Phone system",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Restart Deploy & servers · Phone system",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Dashboard Destination",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Live channels Destination",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Spy mode Live channels · Monitor defaults",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Recording format Live channels · Monitor defaults",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Beep on record start Live channels · Monitor defaults",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Keep recordings for Live channels · Monitor defaults",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Endpoints PJSIP endpoints",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Transport Endpoints · Identity",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Dialplan context Endpoints · Identity",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Trust inbound identity Endpoints · Identity",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Display name Endpoints · Identity",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Outbound caller ID number Endpoints · Identity",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "direct_media Endpoints · Media & NAT",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "rtp_symmetric Endpoints · Media & NAT",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "force_rport Endpoints · Media & NAT",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "rewrite_contact Endpoints · Media & NAT",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "ice_support Endpoints · Media & NAT",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "media_encryption Endpoints · Media & NAT",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "dtmf_mode Endpoints · Media & NAT",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "max_contacts Endpoints · Registration & AOR",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "remove_existing Endpoints · Registration & AOR",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "qualify_frequency Endpoints · Registration & AOR",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Registration expiry Endpoints · Registration & AOR",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Allowed codecs Endpoints · Registration & AOR",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "max_audio_streams Endpoints · Media streams",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "max_video_streams Endpoints · Media streams",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "media_encryption_optimistic Endpoints · Media streams",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "timers Endpoints · Session timers",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "timers_min_se Endpoints · Session timers",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "timers_sess_expires Endpoints · Session timers",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "rtp_timeout Endpoints · Timeouts & device state",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "rtp_timeout_hold Endpoints · Timeouts & device state",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "device_state_busy_at Endpoints · Timeouts & device state",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "refer_blind_progress Endpoints · Timeouts & device state",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "aggregate_mwi Endpoints · MWI",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "mwi_subscribe_replaces_unsolicited Endpoints · MWI",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "outbound_proxy Endpoints · Outbound",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "outbound_auth Endpoints · Outbound",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "mailboxes Endpoints · Voicemail",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "voicemail_extension Endpoints · Voicemail",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "candidatesConsidered": 1
+      },
+      "chord": "Ctrl+Shift+F dispatched as a real key event, not by calling the application toggle"
+    },
+    "queryTyped": {
+      "state": {
+        "elements": 478,
+        "inputs": 1,
+        "overlays": 1,
+        "dialogRoleElements": 1,
+        "heading": "Dashboard",
+        "onboardingVisible": false,
+        "updateBanner": "Downloading update (0.1.264)…"
+      },
+      "panel": {
+        "panelFound": true,
+        "panelZIndex": 1000,
+        "panelRect": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 922
+        },
+        "panelHeading": "",
+        "panelInputs": 1,
+        "coversViewport": true,
+        "observedPanelControls": [
+          "Find a screen or a setting",
+          "language Hardware trunks · Signalling & routing",
+          "Language Customise everything · Language",
+          "Languages Destination",
+          "Prompt language IVR menus · Menu behaviour",
+          "documentation_language Directories & identity · System identity",
+          "defaultlanguage Directories & identity · System identity",
+          "Narrated language Customise everything · Narration",
+          "Sound Languages Destination",
+          "Directories & identity Destination",
+          "Unlock School mode Customise everything · School mode"
+        ],
+        "panelControlReadings": [
+          {
+            "label": "Find a screen or a setting",
+            "source": "aria-label",
+            "disabled": false
+          },
+          {
+            "label": "language Hardware trunks · Signalling & routing",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Language Customise everything · Language",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Languages Destination",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Prompt language IVR menus · Menu behaviour",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "documentation_language Directories & identity · System identity",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "defaultlanguage Directories & identity · System identity",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Narrated language Customise everything · Narration",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Sound Languages Destination",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Directories & identity Destination",
+            "source": "text",
+            "disabled": false
+          },
+          {
+            "label": "Unlock School mode Customise everything · School mode",
+            "source": "text",
+            "disabled": false
+          }
+        ],
+        "candidatesConsidered": 1
+      },
+      "typed": {
+        "fieldValue": "language",
+        "hint": "10 of 883. Arrow keys to move, Enter to go, Escape to close.",
+        "rowCount": 10,
+        "firstRowLabel": "language",
+        "firstRowContext": "Hardware trunks · Signalling & routing"
+      }
+    },
+    "resultActivated": {
+      "state": {
+        "elements": 641,
+        "inputs": 0,
+        "overlays": 0,
+        "dialogRoleElements": 0,
+        "heading": "Hardware trunks (DAHDI)",
+        "onboardingVisible": false,
+        "updateBanner": "Downloading update (0.1.264)…"
+      },
+      "panel": {
+        "panelFound": false,
+        "observedPanelControls": [],
+        "panelControlReadings": [],
+        "whyNoPanel": "no visible overlay above the z-index floor held an operable control",
+        "candidatesConsidered": 0
+      },
+      "focus": {
+        "focused": "button",
+        "focusedControlId": "da_language",
+        "focusedName": "info"
+      }
+    }
+  },
+  "captures": {
+    "paletteOpen": {
+      "capture": "console/release/captures/ui-drive/palette-open-filtered.png",
+      "captureSha256": "c66058b85c742853103b6ea769013191700c9e01108bea44e066069a1a98ae7e",
+      "captureBytes": 268891
+    },
+    "afterActivation": {
+      "capture": "console/release/captures/ui-drive/palette-after-activation.png",
+      "captureSha256": "59e7e5b33918e43220724827ece75d684b1978b874a030908d61ef05d5be52db",
+      "captureBytes": 317394
+    }
+  }
+}

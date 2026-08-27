@@ -1,5 +1,5 @@
 appId: org.dingdingprojects.dingpbxconsole
-productName: Ding PBX Console
+productName: Material Asterisk
 directories:
   output: dist/squirrel-windows
 files:
@@ -32,5 +32,5 @@ win:
   signAndEditExecutable: false
 forceCodeSigning: false
 squirrelWindows:
-  artifactName: Ding-PBX-Console-Setup.${ext}
+  artifactName: Material-Asterisk-Setup.${ext}
   iconUrl: https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/ffa7f362830eed405e52e891ef8516df8715da6c/console/assets/icon.png

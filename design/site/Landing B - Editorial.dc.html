@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+body{margin:0;background:#0A0B0D;color:#F2F0EA;font-family:'Schibsted Grotesk',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#F2F0EA;text-decoration:none}a:hover{color:#4DE3FF}
+::selection{background:#4DE3FF;color:#0A0B0D}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#0A0B0D">
+  <header style="display:flex;align-items:baseline;justify-content:space-between;padding:28px clamp(24px,5vw,72px);border-bottom:1px solid #1D2026">
+    <a href="#top" style="font-family:'Instrument Serif',serif;font-size:24px;letter-spacing:-.01em">Ding <em style="color:#4DE3FF">PBX</em> Console</a>
+    <nav style="display:flex;gap:32px;font-size:14px;color:#9AA0A8">
+      <a href="#safety" style="color:#9AA0A8">Safety</a>
+      <a href="#runtime" style="color:#9AA0A8">Runtime</a>
+      <a href="#ledger" style="color:#9AA0A8">The ledger</a>
+      <a href="#download" style="color:#9AA0A8">Download</a>
+      <a href="https://github.com/Ding-Ding-Projects/asterisk" style="color:#F2F0EA;border-bottom:1px solid #4DE3FF;padding-bottom:2px">GitHub ↗</a>
+    </nav>
+  </header>
+
+  <section id="top" style="padding:clamp(64px,9vw,120px) clamp(24px,5vw,72px) 64px;max-width:1200px;margin:0 auto">
+    <p style="margin:0 0 28px;font-family:'Spline Sans Mono',monospace;font-size:13px;color:#4DE3FF;letter-spacing:.08em">A WINDOWS DESKTOP CONSOLE FOR ASTERISK</p>
+    <h1 style="margin:0;font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(56px,8.5vw,108px);line-height:1.0;letter-spacing:-.02em;text-wrap:balance">The telephone exchange,<br><em style="color:#4DE3FF">finally legible.</em></h1>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;margin-top:48px;align-items:end">
+      <p style="margin:0;font-size:19px;line-height:1.65;color:#B4BAC2;max-width:52ch">One place to observe and configure an Asterisk PBX — dialplan, endpoints, trunks, queues, voicemail, security. It carries its own Ubuntu runtime so a PBX exists out of the box, and it never, under any route, opens a shell on your exchange.</p>
+      <div style="display:flex;gap:16px;justify-content:flex-end;align-items:center">
+        <a href="#download" style="background:#4DE3FF;color:#0A0B0D;font-weight:600;padding:16px 32px;border-radius:999px;font-size:15px" style-hover="background:#8FEEFF;color:#0A0B0D">Get the installer</a>
+        <a href="#safety" style="border:1px solid #2A2E36;padding:15px 32px;border-radius:999px;font-size:15px" style-hover="border-color:#4DE3FF;color:#4DE3FF">How it stays safe</a>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:0 clamp(24px,5vw,72px);max-width:1200px;margin:0 auto">
+    <div style="position:relative;border-radius:20px;overflow:hidden;border:1px solid #1D2026;aspect-ratio:21/10">
+      <image-slot id="shot-b" shape="rect" placeholder="Drop a real console screenshot — none are fabricated for this page"></image-slot>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:14px;font-family:'Spline Sans Mono',monospace;font-size:12px;color:#5E646C">
+      <span>FIG. 1 — CONSOLE OVERVIEW, AWAITING A REAL CAPTURE</span>
+      <span>NOTHING ON THIS PAGE IS INVENTED</span>
+    </div>
+  </section>
+
+  <section style="max-width:1200px;margin:0 auto;padding:72px clamp(24px,5vw,72px);display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid #1D2026">
+    <div style="padding-right:32px"><div style="font-family:'Instrument Serif',serif;font-size:56px;line-height:1">32</div><p style="margin:8px 0 0;color:#9AA0A8;font-size:14px;line-height:1.5">destinations across six navigation rails</p></div>
+    <div style="padding:0 32px;border-left:1px solid #1D2026"><div style="font-family:'Instrument Serif',serif;font-size:56px;line-height:1">63</div><p style="margin:8px 0 0;color:#9AA0A8;font-size:14px;line-height:1.5">read-only commands, verified against Asterisk's source</p></div>
+    <div style="padding:0 32px;border-left:1px solid #1D2026"><div style="font-family:'Instrument Serif',serif;font-size:56px;line-height:1">41</div><p style="margin:8px 0 0;color:#9AA0A8;font-size:14px;line-height:1.5">writable config resources, transactional only</p></div>
+    <div style="padding-left:32px;border-left:1px solid #1D2026"><div style="font-family:'Instrument Serif',serif;font-size:56px;line-height:1">82</div><p style="margin:8px 0 0;color:#9AA0A8;font-size:14px;line-height:1.5">documentation articles bundled offline in the installer</p></div>
+  </section>
+
+  <section id="safety" style="max-width:1200px;margin:0 auto;padding:96px clamp(24px,5vw,72px)">
+    <h2 style="margin:0;font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(36px,4.5vw,56px);letter-spacing:-.01em;max-width:22ch;line-height:1.08">Nothing reaches your exchange through an open shell.</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;margin-top:56px">
+      <div>
+        <p style="margin:0;font-size:17px;line-height:1.7;color:#B4BAC2">Whether the target is the bundled WSL distribution, a Docker container, or a remote host over SSH, every action travels the same bounded control plane: an allowlist of read-only commands for observation, an allowlist of configuration resources for change. There is no free-text command execution, and no path that lets the interface construct an arbitrary shell invocation.</p>
+        <p style="margin:20px 0 0;font-size:17px;line-height:1.7;color:#B4BAC2">Every destructive or write action passes one confirmation flow that calls the underlying action and reports its real outcome — including refusals — rather than announcing success unconditionally.</p>
+      </div>
+      <div style="border-left:1px solid #2A2E36;padding-left:40px">
+        <p style="margin:0 0 20px;font-family:'Spline Sans Mono',monospace;font-size:12px;color:#5E646C;letter-spacing:.08em">ANATOMY OF A WRITE</p>
+        <div style="display:grid;gap:0">
+          <div style="display:flex;gap:20px;padding:12px 0;border-bottom:1px solid #1D2026;align-items:baseline"><span style="font-family:'Spline Sans Mono',monospace;color:#4DE3FF;font-size:13px">i.</span><span style="font-size:16px">Backup the file as it stands</span></div>
+          <div style="display:flex;gap:20px;padding:12px 0;border-bottom:1px solid #1D2026;align-items:baseline"><span style="font-family:'Spline Sans Mono',monospace;color:#4DE3FF;font-size:13px">ii.</span><span style="font-size:16px">Stage the change out of band</span></div>
+          <div style="display:flex;gap:20px;padding:12px 0;border-bottom:1px solid #1D2026;align-items:baseline"><span style="font-family:'Spline Sans Mono',monospace;color:#4DE3FF;font-size:13px">iii.</span><span style="font-size:16px">Validate before anything moves</span></div>
+          <div style="display:flex;gap:20px;padding:12px 0;border-bottom:1px solid #1D2026;align-items:baseline"><span style="font-family:'Spline Sans Mono',monospace;color:#4DE3FF;font-size:13px">iv.</span><span style="font-size:16px">Apply</span></div>
+          <div style="display:flex;gap:20px;padding:12px 0;border-bottom:1px solid #1D2026;align-items:baseline"><span style="font-family:'Spline Sans Mono',monospace;color:#4DE3FF;font-size:13px">v.</span><span style="font-size:16px">Read back what landed</span></div>
+          <div style="display:flex;gap:20px;padding:12px 0;align-items:baseline"><span style="font-family:'Spline Sans Mono',monospace;color:#4DE3FF;font-size:13px">vi.</span><span style="font-size:16px">Compare — mismatch rolls back automatically</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="runtime" style="border-top:1px solid #1D2026;border-bottom:1px solid #1D2026;background:#0D0F12">
+    <div style="max-width:1200px;margin:0 auto;padding:96px clamp(24px,5vw,72px);display:grid;grid-template-columns:.9fr 1.1fr;gap:64px">
+      <div>
+        <h2 style="margin:0;font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(32px,4vw,48px);letter-spacing:-.01em;line-height:1.1">It brings its own exchange.</h2>
+        <p style="margin:24px 0 0;font-size:17px;line-height:1.7;color:#B4BAC2">The installer carries a complete Ubuntu 24.04 root filesystem, built from this exact repository commit, with Asterisk and every runtime library already compiled in — verified by checking the closure of dynamic-library dependencies, not just a successful compile.</p>
+        <p style="margin:20px 0 0;font-size:17px;line-height:1.7;color:#B4BAC2">The console creates, verifies, stops, and removes its own WSL distribution — and it refuses to import over an existing one or remove one it did not create. Both refusals were exercised against a real Windows machine, not a scripted stand-in.</p>
+      </div>
+      <div style="display:grid;gap:12px;align-content:center">
+        <div style="display:grid;grid-template-columns:120px 1fr;gap:24px;padding:24px;border:1px solid #22252B;border-radius:14px;background:#0A0B0D"><span style="font-family:'Spline Sans Mono',monospace;font-size:12px;color:#4DE3FF;letter-spacing:.06em">BUNDLED</span><div><strong style="font-size:16px">WSL 2 Ubuntu on Windows</strong><p style="margin:6px 0 0;color:#9AA0A8;font-size:14px;line-height:1.55">The default target — managed end-to-end from App → Deploy &amp; servers.</p></div></div>
+        <div style="display:grid;grid-template-columns:120px 1fr;gap:24px;padding:24px;border:1px solid #22252B;border-radius:14px;background:#0A0B0D"><span style="font-family:'Spline Sans Mono',monospace;font-size:12px;color:#5E646C;letter-spacing:.06em">LOCAL</span><div><strong style="font-size:16px">Docker container</strong><p style="margin:6px 0 0;color:#9AA0A8;font-size:14px;line-height:1.55">Discovered by project label on the same machine.</p></div></div>
+        <div style="display:grid;grid-template-columns:120px 1fr;gap:24px;padding:24px;border:1px solid #22252B;border-radius:14px;background:#0A0B0D"><span style="font-family:'Spline Sans Mono',monospace;font-size:12px;color:#5E646C;letter-spacing:.06em">REMOTE</span><div><strong style="font-size:16px">Debian or Ubuntu over SSH</strong><p style="margin:6px 0 0;color:#9AA0A8;font-size:14px;line-height:1.55">Scoped trust-on-first-use host keys; same bounded control plane.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ledger" style="max-width:1200px;margin:0 auto;padding:96px clamp(24px,5vw,72px)">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:32px;flex-wrap:wrap">
+      <h2 style="margin:0;font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(32px,4vw,48px);letter-spacing:-.01em">The ledger</h2>
+      <p style="margin:0;font-family:'Spline Sans Mono',monospace;font-size:12px;color:#5E646C;letter-spacing:.08em">WHAT IS TRUE, IN BOTH DIRECTIONS</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;margin-top:48px">
+      <div>
+        <p style="margin:0 0 18px;font-size:14px;font-weight:600;color:#4DE3FF;letter-spacing:.04em">HOLDS TODAY</p>
+        <ul style="margin:0;padding:0;list-style:none;display:grid;gap:14px;font-size:16px;line-height:1.6;color:#D6DAE0">
+          <li style="border-bottom:1px solid #1D2026;padding-bottom:14px">791 of 794 tests pass — renderer 424/424, control plane 345/348, inventory 12/12, static site 10/10.</li>
+          <li style="border-bottom:1px solid #1D2026;padding-bottom:14px">The shipped renderer is byte-identical to a fresh compile of the checked-in design reference; a drift test fails the build otherwise.</li>
+          <li style="border-bottom:1px solid #1D2026;padding-bottom:14px">No sample or invented data anywhere: an unread surface stays empty with a stated reason, an unread cell renders as an em dash.</li>
+          <li>This static site makes zero runtime requests and carries no analytics.</li>
+        </ul>
+      </div>
+      <div>
+        <p style="margin:0 0 18px;font-size:14px;font-weight:600;color:#F0A8A0;letter-spacing:.04em">NOT DONE YET</p>
+        <ul style="margin:0;padding:0;list-style:none;display:grid;gap:14px;font-size:16px;line-height:1.6;color:#D6DAE0">
+          <li style="border-bottom:1px solid #1D2026;padding-bottom:14px">Nothing has been written to a real Asterisk exchange — every write path is proved only against a disposable test distribution.</li>
+          <li style="border-bottom:1px solid #1D2026;padding-bottom:14px">16 of 32 destinations show live data; 48 of 130 bound controls are deliberately unwired, counted per screen.</li>
+          <li style="border-bottom:1px solid #1D2026;padding-bottom:14px">The desktop interface has no accessibility attributes yet.</li>
+          <li>ACL editing, sound prompts, TLS certificates, hardware trunks, fax, STIR/SHAKEN — open, in ROADMAP.md.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="download" style="border-top:1px solid #1D2026">
+    <div style="max-width:1200px;margin:0 auto;padding:96px clamp(24px,5vw,72px);text-align:center">
+      <h2 style="margin:0;font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(36px,5vw,64px);letter-spacing:-.01em">Unsigned, <em style="color:#4DE3FF">on purpose.</em></h2>
+      <p style="margin:24px auto 0;font-size:17px;line-height:1.7;color:#B4BAC2;max-width:62ch">Code signing is out of scope by policy, so Windows shows an unknown-publisher warning when you run the installer. Expected — not tampering. Verify the SHA-256 against SHA256SUMS.txt on the same release for independent confirmation.</p>
+      <div style="display:flex;gap:16px;justify-content:center;margin-top:36px">
+        <a href="https://github.com/Ding-Ding-Projects/asterisk/releases/latest" style="background:#4DE3FF;color:#0A0B0D;font-weight:600;padding:16px 36px;border-radius:999px;font-size:15px" style-hover="background:#8FEEFF;color:#0A0B0D">Latest release ↗</a>
+        <a href="https://github.com/Ding-Ding-Projects/asterisk" style="border:1px solid #2A2E36;padding:15px 36px;border-radius:999px;font-size:15px" style-hover="border-color:#4DE3FF;color:#4DE3FF">Read the source ↗</a>
+      </div>
+    </div>
+  </section>
+
+  <footer style="border-top:1px solid #1D2026">
+    <div style="max-width:1200px;margin:0 auto;padding:40px clamp(24px,5vw,72px);display:flex;justify-content:space-between;gap:32px;flex-wrap:wrap;align-items:baseline">
+      <p style="margin:0;color:#9AA0A8;font-size:14px;line-height:1.6;max-width:64ch">A fork of the <a href="https://www.asterisk.org/" style="color:#F2F0EA;border-bottom:1px solid #2A2E36">Asterisk</a> Open Source PBX project, GPL v2. Material Asterisk is additive software — it does not replace, relicense, or claim authorship of Asterisk. The full upstream tree remains at the repository root.</p>
+      <span style="font-family:'Spline Sans Mono',monospace;font-size:12px;color:#5E646C">NO ANALYTICS · NO RUNTIME FETCHES</span>
+    </div>
+  </footer>
+</div>
+</x-dc>
+</body>
+</html>

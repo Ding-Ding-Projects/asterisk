@@ -53,13 +53,19 @@ export function decodeBase32(value: string): Uint8Array {
     throw new Error('base32 value must not be empty');
   }
   if (cleaned.length > MAX_BASE32_LENGTH) throw new Error(`base32 value exceeds ${MAX_BASE32_LENGTH} characters`);
+  // Reject lexical corruption before evaluating the encoded shape.  A value such
+  // as `JBSWY3DP1` has both a bad length and a bad character, but naming the
+  // character gives the caller the actionable fact without weakening the
+  // RFC 4648 length check that follows.
+  for (const ch of cleaned) {
+    if (BASE32_ALPHABET.indexOf(ch) === -1) {
+      throw new Error(`invalid base32 character: ${ch}`);
+    }
+  }
   if ([1, 3, 6].includes(cleaned.length % 8)) throw new Error('base32 value has an invalid encoded length');
   let bits = '';
   for (const ch of cleaned) {
     const index = BASE32_ALPHABET.indexOf(ch);
-    if (index === -1) {
-      throw new Error(`invalid base32 character: ${ch}`);
-    }
     bits += index.toString(2).padStart(5, '0');
   }
   const byteCount = Math.floor(bits.length / 8);

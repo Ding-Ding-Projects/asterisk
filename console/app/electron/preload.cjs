@@ -6,6 +6,7 @@ const api = Object.freeze({
     minimize: () => ipcRenderer.send('window:minimize'),
     toggleMaximize: () => ipcRenderer.send('window:toggle-maximize'),
     close: () => ipcRenderer.send('window:close'),
+    setTitle: title => ipcRenderer.send('window:set-title', title),
   }),
   dialog: Object.freeze({
     pickFolder: () => ipcRenderer.invoke('dialog:pick-folder'),
@@ -17,6 +18,36 @@ const api = Object.freeze({
     setCredential: value => ipcRenderer.invoke('school:set-credential', value),
     verifyCredential: value => ipcRenderer.invoke('school:verify-credential', value),
     recoveryPath: () => ipcRenderer.invoke('school:recovery-path'),
+  }),
+  provisioning: Object.freeze({
+    onStep: listener => {
+      const handler = (_event, step) => listener(step);
+      ipcRenderer.on('provision:step', handler);
+      return () => ipcRenderer.removeListener('provision:step', handler);
+    },
+  }),
+  accessibility: Object.freeze({
+    isScreenReaderActive: () => ipcRenderer.invoke('accessibility:screen-reader'),
+    onChange: listener => {
+      const handler = (_event, active) => listener(active);
+      ipcRenderer.on('accessibility:changed', handler);
+      return () => ipcRenderer.removeListener('accessibility:changed', handler);
+    },
+  }),
+  editors: Object.freeze({
+    detect: () => ipcRenderer.invoke('editors:detect'),
+    open: target => ipcRenderer.invoke('editors:open', target),
+  }),
+  localData: Object.freeze({
+    path: () => ipcRenderer.invoke('local-data:path'),
+    openFolder: () => ipcRenderer.invoke('local-data:open-folder'),
+  }),
+  deepLink: Object.freeze({
+    onDestination: listener => {
+      const handler = (_event, route) => listener(route);
+      ipcRenderer.on('deep-link:destination', handler);
+      return () => ipcRenderer.removeListener('deep-link:destination', handler);
+    },
   }),
   statusHub: Object.freeze({ baseUrl: process.env.STATUS_HUB_URL }),
   nativeHost: Object.freeze({

@@ -243,14 +243,14 @@ function capability(
 
 /** Detect capabilities without invoking permission prompts or claiming an operation succeeded. */
 export function detectAppearanceCapabilities(environment: {
-  readonly window?: Window & Record<string, unknown>;
+  readonly window?: Window & typeof globalThis & { queryLocalFonts?: unknown; EyeDropper?: unknown };
   readonly navigator?: Navigator;
   readonly css?: typeof CSS;
   readonly variableFontAxes?: boolean;
   readonly safeLogoDecode?: boolean;
   readonly safeLogoCrop?: boolean;
 } = {}): AppearanceCapabilityRecord[] {
-  const runtimeWindow = environment.window ?? (typeof window === 'undefined' ? undefined : window as Window & Record<string, unknown>);
+  const runtimeWindow = environment.window ?? (typeof window === 'undefined' ? undefined : window as Window & typeof globalThis & { queryLocalFonts?: unknown; EyeDropper?: unknown });
   const runtimeNavigator = environment.navigator ?? (typeof navigator === 'undefined' ? undefined : navigator);
   const runtimeCss = environment.css ?? (typeof CSS === 'undefined' ? undefined : CSS);
   const queryLocalFonts = runtimeWindow?.queryLocalFonts;
@@ -298,7 +298,9 @@ export async function writeAppearanceClipboard(
   const writeText = runtimeNavigator?.clipboard?.writeText;
   if (typeof writeText !== 'function') return { ok: false, reason: 'Clipboard write is unavailable in this runtime.' };
   try {
-    await writeText.call(runtimeNavigator.clipboard, text);
+    const clipboard = runtimeNavigator?.clipboard;
+    if (!clipboard) return { ok: false, reason: 'Clipboard write is unavailable in this runtime.' };
+    await writeText.call(clipboard, text);
     return { ok: true, value: undefined };
   } catch (error) {
     return { ok: false, reason: error instanceof Error ? error.message : String(error) };
@@ -315,9 +317,9 @@ interface EyeDropperConstructorLike {
 
 /** Success is returned only with the actual value supplied by the platform eyedropper. */
 export async function pickAppearanceColour(
-  runtimeWindow: (Window & Record<string, unknown>) | undefined = typeof window === 'undefined'
+  runtimeWindow: (Window & typeof globalThis & { queryLocalFonts?: unknown; EyeDropper?: unknown }) | undefined = typeof window === 'undefined'
     ? undefined
-    : window as Window & Record<string, unknown>,
+    : window as Window & typeof globalThis & { queryLocalFonts?: unknown; EyeDropper?: unknown },
 ): Promise<AppearanceRuntimeActionResult<string>> {
   const Constructor = runtimeWindow?.EyeDropper as EyeDropperConstructorLike | undefined;
   if (typeof Constructor !== 'function') return { ok: false, reason: 'The EyeDropper API is unavailable in this runtime.' };
@@ -349,9 +351,9 @@ export interface InstalledFontRecord {
 
 /** Returns only real platform records and reports refusal or absence explicitly. */
 export async function enumerateInstalledFonts(
-  runtimeWindow: (Window & Record<string, unknown>) | undefined = typeof window === 'undefined'
+  runtimeWindow: (Window & typeof globalThis & { queryLocalFonts?: unknown; EyeDropper?: unknown }) | undefined = typeof window === 'undefined'
     ? undefined
-    : window as Window & Record<string, unknown>,
+    : window as Window & typeof globalThis & { queryLocalFonts?: unknown; EyeDropper?: unknown },
 ): Promise<AppearanceRuntimeActionResult<ReadonlyArray<InstalledFontRecord>>> {
   const queryLocalFonts = runtimeWindow?.queryLocalFonts as QueryLocalFontsLike | undefined;
   if (typeof queryLocalFonts !== 'function') {

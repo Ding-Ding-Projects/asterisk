@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0B0E13;font-family:'Archivo',sans-serif;-webkit-font-smoothing:antialiased}
+a{text-decoration:none;color:inherit}a:hover{color:#FFB224}
+::selection{background:#FFB224;color:#0B0E13}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes toastin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes dotpulse{0%,100%{opacity:1}50%{opacity:.45}}
+</style>
+</helmet>
+<div style="{{ rootStyle }}" onContextMenu="{{ onCtx }}" onClick="{{ onRootClick }}">
+<div style="{{ contentStyle }}">
+  <header style="position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg,#0B0E13) 94%,transparent);backdrop-filter:blur(10px);border-bottom:var(--bw,2px) solid var(--line,#1C2230)">
+    <div style="max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:20px;height:64px;padding:0 28px">
+      <a href="Landing C - Blueprint.dc.html" style="display:flex;align-items:center;gap:11px;font-weight:800;font-size:15px;letter-spacing:-.01em;color:var(--ink,#E6E9EF)">
+        <span style="width:28px;height:28px;border:2px solid var(--acc,#FFB224);color:var(--acc,#FFB224);display:grid;place-items:center;font-family:var(--mono,monospace);font-size:12px;font-weight:600">◨</span>
+        DING PBX CONSOLE
+      </a>
+      <nav style="display:flex;gap:20px;margin-left:auto;font-family:var(--mono,monospace);font-size:12px">
+        <a href="Landing C - Blueprint.dc.html" style="color:var(--dim,#7C8698)" style-hover="color:var(--acc,#FFB224)">/home</a>
+        <a href="Docs C - Blueprint.dc.html" style="color:var(--dim,#7C8698)" style-hover="color:var(--acc,#FFB224)">/guide</a>
+        <a href="#/docs" style="color:{{ navDocsColor }}" style-hover="color:var(--acc,#FFB224)">/docs</a>
+        <a href="#/settings" style="color:{{ navSettingsColor }}" style-hover="color:var(--acc,#FFB224)">/appearance</a>
+      </nav>
+      <button onClick="{{ openPalette }}" style="display:inline-flex;align-items:center;gap:10px;background:var(--panel,#0E1219);border:1px solid var(--line2,#33405A);color:var(--dim,#7C8698);font-family:var(--mono,monospace);font-size:11px;padding:8px 14px;cursor:pointer" style-hover="border-color:var(--acc,#FFB224);color:var(--acc,#FFB224)">SEARCH <span style="border:1px solid var(--line,#1C2230);padding:2px 6px;font-size:10px">CTRL+SHIFT+F</span></button>
+      <button onClick="{{ openNotif }}" style="position:relative;background:none;border:1px solid var(--line2,#33405A);color:var(--dim,#7C8698);width:34px;height:34px;cursor:pointer;font-size:14px;display:grid;place-items:center" style-hover="border-color:var(--acc,#FFB224);color:var(--acc,#FFB224)">◉<span style="position:absolute;top:-7px;right:-7px;background:var(--acc,#FFB224);color:var(--accink,#0B0E13);font-family:var(--mono,monospace);font-size:10px;font-weight:600;min-width:16px;height:16px;display:grid;place-items:center;padding:0 3px">{{ notifCount }}</span></button>
+    </div>
+  </header>
+
+  <sc-if value="{{ viewDocs }}" hint-placeholder-val="{{ true }}">
+    <main style="max-width:1280px;margin:0 auto;padding:52px 28px 90px">
+      <div style="animation:rise var(--risedur,.6s) both">
+        <div style="font-family:var(--mono,monospace);font-size:12px;color:var(--acc,#FFB224);letter-spacing:.1em">/DOCUMENTATION</div>
+        <h1 style="margin:12px 0 0;font-size:calc(clamp(34px,4.5vw,52px)*var(--fs,1));font-weight:var(--hw,800);letter-spacing:-.03em;color:var(--ink,#E6E9EF)">Every feature. Its own page.</h1>
+        <p style="margin:14px 0 0;color:var(--mut,#9AA4B4);font-size:calc(16px*var(--fs,1));line-height:1.65;max-width:var(--measure,74ch)">{{ docCount }} articles across {{ catCount }} categories, all written on this site — the installed application carries the same set offline. The only link that leaves this site is the installer download.</p>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:30px;flex-wrap:wrap;animation:rise var(--risedur,.6s) .08s both">
+        <div style="flex:1;min-width:280px;display:flex;border:var(--bw,2px) solid var(--line,#1C2230);background:var(--panel,#0E1219)">
+          <input ref="{{ searchRef }}" value="{{ q }}" onChange="{{ onQ }}" placeholder="{{ searchPlaceholder }}" aria-label="Search documentation" style="flex:1;background:none;border:0;outline:none;color:var(--ink,#E6E9EF);font-family:var(--mono,monospace);font-size:14px;padding:13px 18px"></input>
+          <button onClick="{{ toggleMode }}" title="Toggle plain / regex matching" style="background:none;border:0;border-left:1px solid var(--line,#1C2230);color:{{ modeColor }};font-family:var(--mono,monospace);font-size:11px;padding:0 14px;cursor:pointer" style-hover="color:var(--acc,#FFB224)">{{ modeLabel }}</button>
+          <button onClick="{{ openRegexDocs }}" title="Build a regular expression for this search field" style="background:none;border:0;border-left:1px solid var(--line,#1C2230);color:var(--acc,#FFB224);font-family:var(--mono,monospace);font-size:14px;padding:0 16px;cursor:pointer" style-hover="background:var(--panel2,#141925)">.*</button>
+        </div>
+        <span style="font-family:var(--mono,monospace);font-size:12px;color:var(--faint,#5C6470)">{{ resultLabel }}</span>
+      </div>
+      <sc-if value="{{ regexNote }}" hint-placeholder-val="{{ false }}">
+        <p style="margin:10px 0 0;font-family:var(--mono,monospace);font-size:12px;color:var(--acc,#FFB224)">regex mode: /{{ qPattern }}/{{ qFlags }} — plain text stays the default; toggle MODE to leave</p>
+      </sc-if>
+      <sc-for list="{{ cats }}" as="cat" hint-placeholder-count="4">
+        <section style="margin-top:44px">
+          <div style="display:flex;align-items:baseline;gap:14px;border-bottom:var(--bw,2px) solid var(--line,#1C2230);padding-bottom:10px">
+            <h2 style="margin:0;font-size:calc(20px*var(--fs,1));font-weight:var(--hw,800);letter-spacing:-.02em;color:var(--ink,#E6E9EF)">{{ cat.label }}</h2>
+            <span style="font-family:var(--mono,monospace);font-size:11px;color:var(--acc,#FFB224)">{{ cat.count }}</span>
+            <span style="font-size:13px;color:var(--faint,#5C6470)">{{ cat.blurb }}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:calc(var(--gap,14px) - 4px);margin-top:calc(var(--gap,14px) + 2px)">
+            <sc-for list="{{ cat.articles }}" as="art" hint-placeholder-count="4">
+              <a href="{{ art.href }}" style="display:block;border:var(--bw,2px) solid var(--line,#1C2230);background:var(--panel,#0E1219);padding:var(--gap,16px);border-radius:var(--radius,0px);transition:border-color .15s,transform .15s;color:var(--ink,#E6E9EF)" style-hover="border-color:var(--acc,#FFB224);transform:translateY(-2px);color:var(--ink,#E6E9EF)">
+                <div style="font-family:var(--mono,monospace);font-size:10px;color:var(--faint,#5C6470);letter-spacing:.08em">{{ art.tag }}</div>
+                <div style="font-weight:700;font-size:calc(15px*var(--fs,1));margin:8px 0 6px;letter-spacing:-.01em;line-height:1.3">{{ art.title }}</div>
+                <div style="font-size:12.5px;color:var(--dim,#7C8698);line-height:1.55">{{ art.desc }}</div>
+              </a>
+            </sc-for>
+          </div>
+        </section>
+      </sc-for>
+      <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:56px;border:var(--bw,2px) dashed var(--line2,#33405A);padding:40px;text-align:center">
+          <div style="font-family:var(--mono,monospace);font-size:12px;color:var(--acc,#FFB224);letter-spacing:.1em">NO MATCHES</div>
+          <p style="margin:12px auto 0;color:var(--mut,#9AA4B4);font-size:14px;max-width:50ch;line-height:1.6">No article title, slug, category, or summary matches this query. This list stays honestly empty rather than padding itself.</p>
+        </div>
+      </sc-if>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{ viewArticle }}" hint-placeholder-val="{{ false }}">
+    <main style="max-width:900px;margin:0 auto;padding:44px 28px 90px">
+      <div style="display:flex;align-items:center;gap:10px;font-family:var(--mono,monospace);font-size:12px;color:var(--faint,#5C6470);animation:rise var(--risedur,.5s) both">
+        <a href="#/docs" style="color:var(--dim,#7C8698)" style-hover="color:var(--acc,#FFB224)">/docs</a><span>/</span>
+        <span style="color:var(--acc,#FFB224)">{{ artCatLabel }}</span><span>/</span><span>{{ artSlug }}</span>
+      </div>
+      <h1 style="margin:20px 0 0;font-size:calc(clamp(30px,4vw,44px)*var(--fs,1));font-weight:var(--hw,800);letter-spacing:-.03em;line-height:1.08;color:var(--ink,#E6E9EF);animation:rise var(--risedur,.5s) .06s both">{{ artTitle }}</h1>
+      <div style="margin-top:26px;animation:rise var(--risedur,.5s) .12s both">{{ artBody }}</div>
+      <sc-if value="{{ artLoading }}" hint-placeholder-val="{{ true }}">
+        <p style="font-family:var(--mono,monospace);font-size:13px;color:var(--faint,#5C6470)">reading article…</p>
+      </sc-if>
+      <div style="display:flex;justify-content:space-between;gap:14px;margin-top:52px;border-top:var(--bw,2px) solid var(--line,#1C2230);padding-top:20px;font-size:14px">
+        <sc-if value="{{ hasPrev }}" hint-placeholder-val="{{ false }}"><a href="{{ prevHref }}" style="color:var(--dim,#7C8698);max-width:45%" style-hover="color:var(--acc,#FFB224)">← {{ prevTitle }}</a></sc-if>
+        <sc-if value="{{ hasNext }}" hint-placeholder-val="{{ false }}"><a href="{{ nextHref }}" style="color:var(--dim,#7C8698);margin-left:auto;text-align:right;max-width:45%" style-hover="color:var(--acc,#FFB224)">{{ nextTitle }} →</a></sc-if>
+      </div>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{ viewSettings }}" hint-placeholder-val="{{ false }}">
+    <main style="max-width:1280px;margin:0 auto;padding:52px 28px 90px">
+      <div style="animation:rise var(--risedur,.6s) both">
+        <div style="font-family:var(--mono,monospace);font-size:12px;color:var(--acc,#FFB224);letter-spacing:.1em">/APPEARANCE</div>
+        <h1 style="margin:12px 0 0;font-size:calc(clamp(34px,4.5vw,52px)*var(--fs,1));font-weight:var(--hw,800);letter-spacing:-.03em;color:var(--ink,#E6E9EF)">The appearance editor.</h1>
+        <p style="margin:14px 0 0;color:var(--mut,#9AA4B4);font-size:calc(16px*var(--fs,1));line-height:1.65;max-width:var(--measure,74ch)">Theme, continuous color, full typography, layout geometry, and image-grade effects — every control applies live to this whole site and persists locally. Nothing leaves your browser.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:34px;align-items:start">
+        <div style="display:grid;gap:14px">
+          <section style="border:var(--bw,2px) solid var(--line,#1C2230);background:var(--panel,#0E1219);padding:24px">
+            <div style="font-family:var(--mono,monospace);font-size:11px;color:var(--acc,#FFB224);letter-spacing:.1em;margin-bottom:14px">THEME</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-for list="{{ themeOpts }}" as="t" hint-placeholder-count="3">
+                <button onClick="{{ t.pick }}" style="border:2px solid {{ t.border }};background:{{ t.bg }};color:{{ t.fg }};font-weight:600;font-size:13px;padding:10px 20px;cursor:pointer">{{ t.label }}</button>
+              </sc-for>
+            </div>
+            <div style="font-family:var(--mono,monospace);font-size:11px;color:var(--acc,#FFB224);letter-spacing:.1em;margin:22px 0 12px">DENSITY</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-for list="{{ densityOpts }}" as="t" hint-placeholder-count="3">
+                <button onClick="{{ t.pick }}" style="border:2px solid {{ t.border }};background:{{ t.bg }};color:{{ t.fg }};font-weight:600;font-size:13px;padding:10px 20px;cursor:pointer">{{ t.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:22px">
+              <label style="display:grid;gap:8px;font-family:var(--mono,monospace);font-size:11px;color:var(--faint,#5C6470)">CORNER RADIUS — {{ radiusLabel }}<input type="range" min="0" max="20" step="1" value="{{ sRadius }}" onChange="{{ onRadius }}" style="accent-color:var(--acc,#FFB224)"></input></label>
+              <label style="display:grid;gap:8px;font-family:var(--mono,monospace);font-size:11px;color:var(--faint,#5C6470)">BORDER WEIGHT — {{ bwLabel }}<input type="range" min="1" max="3" step="1" value="{{ sBw }}" onChange="{{ onBw }}" style="accent-color:var(--acc,#FFB224)"></input></label>
+            </div>
+            <label style="display:flex;gap:10px;align-items:center;margin-top:18px;font-size:13px;color:var(--mut,#9AA4B4)"><input type="checkbox" checked="{{ sGrid }}" onChange="{{ onGrid }}" style="accent-color:var(--acc,#FFB224);width:16px;height:16px"></input> Blueprint grid background</label>
+            <label style="display:flex;gap:10px;align-items:center;margin-top:10px;font-size:13px;color:var(--mut,#9AA4B4)"><input type="checkbox" checked="{{ sMotion }}" onChange="{{ onMotion }}" style="accent-color:var(--acc,#FFB224);width:16px;height:16px"></input> Entrance motion (off = reduced motion)</label>
+          </section>
+          <section style="border:var(--bw,2px) solid var(--line,#1C2230);background:var(--panel,#0E1219);padding:24px">
+            <div style="font-family:var(--mono,monospace);font-size:11px;color:var(--acc,#FFB224);letter-spacing:.1em;margin-bottom:14px">ACCENT COLOR — CONTINUOUS PICKER</div>
+            <div style="display:flex;gap:16px;align-items:center">
+              <div style="width:74px;height:74px;border:2px solid var(--line2,#33405A);background:{{ accCss }};flex:none"></div>
+              <div style="flex:1;display:grid;gap:10px">
+                <label style="display:grid;gap:5px;font-family:var(--mono,monospace);font-size:10px;color:var(--faint,#5C6470)">HUE {{ accHLabel }}<input type="range" min="0" max="360" step="1" value="{{ accH }}" onChange="{{ onAccH }}" style="accent-color:var(--acc,#FFB224)"></input></label>
+                <label style="display:grid;gap:5px;font-family:var(--mono,monospace);font-size:10px;color:var(--faint,#5C6470)">SATURATION {{ accSLabel }}<input type="range" min="0" max="100" step="1" value="{{ accS }}" onChange="{{ onAccS }}" style="accent-color:var(--acc,#FFB224)"></input></label>
+                <label style="display:grid;gap:5px;font-family:var(--mono,monospace);font-size:10px;color:var(--faint,#5C6470)">LIGHTNESS {{ accLLabel }}<input type="range" min="20" max="85" step="1" value="{{ accL }}" onChange="{{ onAccL }}" style="accent-color:var(--acc,#FFB224)"></input></label>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 14px;margin-top:16px;font-family:var(--mono,monospace);font-size:12px;align-items:center">
+              <span style="color:var(--faint,#5C6470)">HEX</span><input value="{{ accHex }}" onChange="{{ onAccHex }}" style="background:var(--panel2,#141925);border:1px solid var(--line,#1C2230);color:var(--ink,#E6E9EF);font-family:var(--mono,monospace);font-size:12px;padding:7px 10px;outline:none;max-width:130px"></input>
+              <span style="color:var(--faint,#5C6470)">RGB</span><span style="color:var(--mut,#9AA4B4)">{{ accRgb }}</span>
+              <span style="color:var(--faint,#5C6470)">HSL</span><span style="color:var(--mut,#9AA4B4)">{{ accHsl }}</span>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:16px">
+              <sc-for list="{{ swatches }}" as="sw" hint-placeholder-count="5">
+                <button onClick="{{ sw.pick }}" title="{{ sw.name }}" style="width:30px;height:30px;border:2px solid var(--line2,#33405A);background:{{ sw.css }};cursor:pointer" style-hover="border-color:var(--ink,#E6E9EF)"></button>
+              </sc-for>
+            </div>
+          </section>
+          <section style="border:var(--bw,2px) solid var(--line,#1C2230);background:var(--panel,#0E1219);padding:24px">
+            <div style="font-family:var(--mono,monospace);font-size:11px;color:var(--acc,#FFB224);letter-spacing:.1em;margin-bottom:14px">TYPOGRAPHY</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <label style="display:grid;gap:7px;font-family:var(--mono,monospace);font-size:10px;color:var(--faint,#5C6470)">BODY FACE
+                <select value="{{ sFontBody }}" onChange="{{ onFontBody }}" style="background:var(--panel2,#141925);border:1px solid var(--line,#1C2230);color:var(--ink,#E6E9EF);font-size:13px;padding:9px 10px;outline:none">
+                  <option value="Archivo">Archivo (default)</option>
+                  <option value="Space Grotesk">Space Grotesk</option>
+                  <option value="Newsreader">Newsreader (serif)</option>
+                  <option value="Georgia">Georgia (system serif)</option>
+                  <option value="system-ui">System UI</option>
+                </select></label>
+              <label style="display:grid;gap:7px;font-family:var(--mono,monospace);font-size:10px;color:var(--faint,#5C6470)">MONO FACE
+                <select value="{{ sFontMono }}" onChange="{{ onFontMono }}" style="background:var(--panel2,#141925);border:1px solid var(--line,#1C2230);color:var(--ink,#E6E9EF);font-size:13px;padding:9px 10px;outline:none">
+                  <option value="IBM Plex Mono">IBM Plex Mono (default)</option>
+                  <option value="Consolas">Consolas</option>
+                  <option value="Cascadia Mono">Cascadia Mono</option>
+                  <option value="Courier New">Courier New</option>
+                </select></label>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px">
+              <label style="display:grid;gap:8px;font-family:var(--mono,monospace);font-size:11px;color:var(--faint,#5C6470)">TEXT SCALE — {{ fsLabel }}<input type="range" min="0.85" max="1.35" step="0.01" value="{{ sFs }}" onChange="{{ onFs }}" style="accent-color:var(--acc,#FFB224)"></input></label>
+              <label style="display:grid;gap:8px;font-family:var(--mono,monospace);font-size:11px;color:var(--faint,#5C6470)">LINE HEIGHT — {{ lhLabel }}<input type="range" min="1.35" max="2.1" step="0.05" value="{{ sLh }}" onChange="{{ onLh }}" style="accent-color:var(--acc,#FFB224)"></input></label>
+              <label style="display:grid;gap:8px;font-family:var(--mono,monospace);font-size:11px;color:var(--faint,#5C6470)">LETTER SPACING — {{ lsLabel }}<input type="range" min="-0.02" max="0.1" step="0.005" value="{{ sLs }}" onChange="{{ onLs }}" style="accent-color:var(--acc,#FFB224)"></input></label>
+              <label style="display:grid;gap:8px;font-family:var(--mono,monospace);font-size:11px;color:var(--faint,#5C6470)">HEADING WEIGHT — {{ hwLabel }}<input type="range" min="500" max="900" step="50" value="{{ sHw }}" onChange="{{ onHw }}" style="accent-color:var(--acc,#FFB224)"></input></label>
+              <label style="display:grid;gap:8px;font-family:var(--mono,monospace);font-size:11px;color:var(--faint,#5C6470)">READING MEASURE — {{ measureLabel }}<input type="range" min="55" max="95" step="1" value="{{ sMeasure }}" onChange="{{ onMeasure }}" style="accent-color:var(--acc,#FFB224)"></input></label>
+            </div>
+          </section>
+          <section style="border:var(--bw,2px) solid var(--line,#1C2230);background:var(--panel,#0E1219);padding:24px">
+            <div style="font-family:var(--mono,monospace);font-size:11px;color:var(--acc,#FFB224);letter-spacing:.1em;margin-bottom:14px">EFFECTS — IMAGE-GRADE ADJUSTMENTS</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+              <label style="display:grid;gap:8px;font-family:var(--mono,monospace);font-size:11px;color:var(--faint,#5C6470)">BRIGHTNESS — {{ brightLabel }}<input type="range" min="60" max="140" step="1" value="{{ sBright }}" onChange="{{ onBright }}" style="accent-color:var(--acc,#FFB224)"></input></label>
+              <label style="display:grid;gap:8px;font-family:var(--mono,monospace);font-size:11px;color:var(--faint,#5C6470)">CONTRAST — {{ contrastLabel }}<input type="range" min="60" max="140" step="1" value="{{ sContrast }}" onChange="{{ onContrast }}" style="accent-color:var(--acc,#FFB224)"></input></label>
+              <label style="display:grid;gap:8px;font-family:var(--mono,monospace);font-size:11px;color:var(--faint,#5C6470)">SATURATION — {{ satLabel }}<input type="range" min="0" max="200" step="1" value="{{ sSat }}" onChange="{{ onSat }}" style="accent-color:var(--acc,#FFB224)"></input></label>
+              <label style="display:grid;gap:8px;font-family:var(--mono,monospace);font-size:11px;color:var(--faint,#5C6470)">HUE ROTATE — {{ hueLabel }}<input type="range" min="0" max="360" step="1" value="{{ sHue }}" onChange="{{ onHue }}" style="accent-color:var(--acc,#FFB224)"></input></label>
+              <label style="display:grid;gap:8px;font-family:var(--mono,monospace);font-size:11px;color:var(--faint,#5C6470)">SEPIA — {{ sepiaLabel }}<input type="range" min="0" max="100" step="1" value="{{ sSepia }}" onChange="{{ onSepia }}" style="accent-color:var(--acc,#FFB224)"></input></label>
+            </div>
+            <label style="display:flex;gap:10px;align-items:center;margin-top:18px;font-size:13px;color:var(--mut,#9AA4B4)"><input type="checkbox" checked="{{ sScan }}" onChange="{{ onScan }}" style="accent-color:var(--acc,#FFB224);width:16px;height:16px"></input> CRT scanline overlay</label>
+            <button onClick="{{ resetEffects }}" style="margin-top:16px;border:1px solid var(--line2,#33405A);background:none;color:var(--dim,#7C8698);font-family:var(--mono,monospace);font-size:11px;padding:8px 14px;cursor:pointer" style-hover="border-color:var(--acc,#FFB224);color:var(--acc,#FFB224)">RESET EFFECTS ONLY</button>
+          </section>
+        </div>
+        <div style="display:grid;gap:14px;position:sticky;top:84px">
+          <section style="border:var(--bw,2px) solid var(--acc,#FFB224);background:var(--panel,#0E1219);padding:24px">
+            <div style="font-family:var(--mono,monospace);font-size:11px;color:var(--acc,#FFB224);letter-spacing:.1em;margin-bottom:14px">LIVE PREVIEW — THIS IS THE REAL SITE STYLE</div>
+            <div style="border:var(--bw,2px) solid var(--line,#1C2230);background:var(--bg,#0B0E13);padding:var(--gap,16px);border-radius:var(--radius,0px)">
+              <div style="font-family:var(--mono,monospace);font-size:10px;color:var(--faint,#5C6470);letter-spacing:.08em">PLATFORM</div>
+              <div style="font-weight:var(--hw,800);font-size:calc(17px*var(--fs,1));margin:8px 0 6px;color:var(--ink,#E6E9EF)">Sample article card</div>
+              <p style="margin:0 0 12px;font-size:calc(13px*var(--fs,1));color:var(--mut,#9AA4B4);line-height:var(--lh,1.6)">Body copy renders at your chosen face, scale, spacing and measure. <a href="#/docs" style="color:var(--acc,#FFB224)">A link looks like this.</a></p>
+              <code style="font-family:var(--mono,monospace);font-size:12px;background:var(--panel2,#141925);border:1px solid var(--line,#1C2230);padding:2px 8px;color:var(--ink,#E6E9EF)">core show channels</code>
+              <div style="display:flex;gap:8px;margin-top:14px">
+                <button style="background:var(--acc,#FFB224);color:var(--accink,#0B0E13);border:0;font-weight:700;font-size:12px;padding:9px 16px;border-radius:var(--radius,0px);cursor:pointer">Primary</button>
+                <button style="background:none;color:var(--mut,#9AA4B4);border:2px solid var(--line2,#33405A);font-weight:600;font-size:12px;padding:7px 16px;border-radius:var(--radius,0px);cursor:pointer">Ghost</button>
+              </div>
+            </div>
+          </section>
+          <section style="border:var(--bw,2px) solid var(--line,#1C2230);background:var(--panel,#0E1219);padding:24px">
+            <div style="font-family:var(--mono,monospace);font-size:11px;color:var(--acc,#FFB224);letter-spacing:.1em;margin-bottom:14px">PRESETS</div>
+            <div style="display:flex;gap:8px">
+              <input value="{{ presetName }}" onChange="{{ onPresetName }}" placeholder="Preset name" style="flex:1;background:var(--panel2,#141925);border:1px solid var(--line,#1C2230);color:var(--ink,#E6E9EF);font-size:13px;padding:9px 12px;outline:none"></input>
+              <button onClick="{{ savePreset }}" style="background:var(--acc,#FFB224);color:var(--accink,#0B0E13);border:0;font-weight:700;font-size:12px;padding:0 18px;cursor:pointer">SAVE</button>
+            </div>
+            <div style="display:grid;gap:6px;margin-top:14px">
+              <sc-for list="{{ presetRows }}" as="p" hint-placeholder-count="1">
+                <div style="display:flex;align-items:center;gap:10px;border:1px solid var(--line,#1C2230);padding:8px 12px">
+                  <span style="flex:1;font-size:13px;color:var(--ink,#E6E9EF)">{{ p.name }}</span>
+                  <button onClick="{{ p.apply }}" style="background:none;border:1px solid var(--line2,#33405A);color:var(--acc,#FFB224);font-family:var(--mono,monospace);font-size:10px;padding:5px 10px;cursor:pointer">APPLY</button>
+                  <button onClick="{{ p.del }}" style="background:none;border:1px solid var(--line,#1C2230);color:var(--bad,#F0A8A0);font-family:var(--mono,monospace);font-size:10px;padding:5px 10px;cursor:pointer">DELETE</button>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ noPresets }}" hint-placeholder-val="{{ true }}"><p style="margin:12px 0 0;font-size:12px;color:var(--faint,#5C6470)">No saved presets yet — the list stays empty rather than showing samples.</p></sc-if>
+            <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+              <button onClick="{{ exportSettings }}" style="border:1px solid var(--line2,#33405A);background:none;color:var(--dim,#7C8698);font-family:var(--mono,monospace);font-size:11px;padding:8px 14px;cursor:pointer" style-hover="border-color:var(--acc,#FFB224);color:var(--acc,#FFB224)">EXPORT JSON</button>
+              <label style="border:1px solid var(--line2,#33405A);color:var(--dim,#7C8698);font-family:var(--mono,monospace);font-size:11px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center" style-hover="border-color:var(--acc,#FFB224);color:var(--acc,#FFB224)">IMPORT JSON<input type="file" accept=".json,application/json" onChange="{{ importSettings }}" style="display:none"></input></label>
+              <button onClick="{{ resetAll }}" style="border:1px solid {{ resetBorder }};background:none;color:{{ resetColor }};font-family:var(--mono,monospace);font-size:11px;padding:8px 14px;cursor:pointer">{{ resetLabel }}</button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </sc-if>
+
+  <footer style="border-top:var(--bw,2px) solid var(--line,#1C2230)">
+    <div style="max-width:1280px;margin:0 auto;padding:30px 28px;display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;font-family:var(--mono,monospace);font-size:12px;color:var(--faint,#5C6470)">
+      <span>DING PBX CONSOLE — DOCUMENTATION LIVES HERE, NOT BEHIND A LINK · NO ANALYTICS</span>
+      <span style="display:flex;gap:18px">
+        <a href="Landing C - Blueprint.dc.html" style="color:var(--dim,#7C8698)" style-hover="color:var(--acc,#FFB224)">/home</a>
+        <a href="Landing C - Blueprint.dc.html#download" style="color:var(--dim,#7C8698)" style-hover="color:var(--acc,#FFB224)">/download</a>
+      </span>
+    </div>
+  </footer>
+</div>
+
+<sc-if value="{{ scanOn }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;pointer-events:none;z-index:200;background:repeating-linear-gradient(0deg,rgba(0,0,0,.13) 0 1px,transparent 1px 3px)"></div>
+</sc-if>
+
+<sc-if value="{{ paletteOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeOverlays }}" style="position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);display:grid;place-items:start center;padding-top:12vh">
+    <div onClick="{{ swallow }}" style="width:min(640px,92vw);border:2px solid var(--acc,#FFB224);background:var(--panel,#0E1219);animation:rise .18s both">
+      <div style="display:flex;border-bottom:1px solid var(--line,#1C2230)">
+        <input ref="{{ paletteRef }}" value="{{ pq }}" onChange="{{ onPq }}" placeholder="Type to search every page and article…" aria-label="Command palette search" style="flex:1;background:none;border:0;outline:none;color:var(--ink,#E6E9EF);font-family:var(--mono,monospace);font-size:15px;padding:16px 20px"></input>
+        <button onClick="{{ openRegexPalette }}" title="Build a regular expression for the palette" style="background:none;border:0;border-left:1px solid var(--line,#1C2230);color:var(--acc,#FFB224);font-family:var(--mono,monospace);font-size:14px;padding:0 18px;cursor:pointer">.*</button>
+      </div>
+      <div style="max-height:46vh;overflow:auto">
+        <sc-for list="{{ paletteResults }}" as="r" hint-placeholder-count="5">
+          <button onClick="{{ r.go }}" style="display:flex;width:100%;align-items:center;gap:12px;background:{{ r.bg }};border:0;border-bottom:1px solid var(--line,#1C2230);padding:12px 20px;cursor:pointer;text-align:left" style-hover="background:var(--panel2,#141925)">
+            <span style="font-family:var(--mono,monospace);font-size:10px;color:var(--acc,#FFB224);border:1px solid var(--line2,#33405A);padding:3px 8px;min-width:52px;text-align:center">{{ r.tag }}</span>
+            <span style="flex:1;font-size:14px;color:var(--ink,#E6E9EF)">{{ r.title }}</span>
+            <span style="font-family:var(--mono,monospace);font-size:11px;color:var(--faint,#5C6470)">{{ r.hint }}</span>
+          </button>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:16px;padding:10px 20px;font-family:var(--mono,monospace);font-size:10px;color:var(--faint,#5C6470)"><span>↑↓ NAVIGATE</span><span>ENTER OPEN</span><span>ESC CLOSE</span><span style="margin-left:auto">{{ paletteCount }} RESULTS</span></div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ regexOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeOverlays }}" style="position:fixed;inset:0;z-index:310;background:rgba(0,0,0,.55);display:grid;place-items:center;padding:20px">
+    <div onClick="{{ swallow }}" style="width:min(680px,94vw);max-height:88vh;overflow:auto;border:2px solid var(--acc,#FFB224);background:var(--panel,#0E1219);padding:26px;animation:rise .18s both">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:14px">
+        <div style="font-family:var(--mono,monospace);font-size:12px;color:var(--acc,#FFB224);letter-spacing:.1em">REGEX BUILDER</div>
+        <button onClick="{{ closeOverlays }}" style="background:none;border:0;color:var(--faint,#5C6470);font-size:18px;cursor:pointer" style-hover="color:var(--acc,#FFB224)">×</button>
+      </div>
+      <p style="margin:8px 0 18px;font-family:var(--mono,monospace);font-size:12px;color:var(--faint,#5C6470)">Attached to: {{ regexTargetLabel }}</p>
+      <label style="display:grid;gap:7px;font-family:var(--mono,monospace);font-size:11px;color:var(--faint,#5C6470)">PATTERN
+        <input value="{{ rxPattern }}" onChange="{{ onRxPattern }}" spellCheck="false" style="background:var(--panel2,#141925);border:1px solid var(--line2,#33405A);color:var(--acc,#FFB224);font-family:var(--mono,monospace);font-size:15px;padding:11px 14px;outline:none"></input>
+      </label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+        <sc-for list="{{ rxInserts }}" as="b" hint-placeholder-count="6">
+          <button onClick="{{ b.ins }}" style="border:1px solid var(--line2,#33405A);background:none;color:var(--mut,#9AA4B4);font-family:var(--mono,monospace);font-size:11px;padding:7px 12px;cursor:pointer" style-hover="border-color:var(--acc,#FFB224);color:var(--acc,#FFB224)">{{ b.label }}</button>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:22px;margin-top:16px;font-size:13px;color:var(--mut,#9AA4B4)">
+        <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" checked="{{ rxI }}" onChange="{{ toggleRxI }}" style="accent-color:var(--acc,#FFB224)"></input> i — ignore case</label>
+        <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" checked="{{ rxM }}" onChange="{{ toggleRxM }}" style="accent-color:var(--acc,#FFB224)"></input> m — multiline</label>
+        <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" checked="{{ rxU }}" onChange="{{ toggleRxU }}" style="accent-color:var(--acc,#FFB224)"></input> u — unicode</label>
+      </div>
+      <label style="display:grid;gap:7px;font-family:var(--mono,monospace);font-size:11px;color:var(--faint,#5C6470);margin-top:16px">SAMPLE TEXT — LIVE MATCHES BELOW
+        <textarea value="{{ rxSample }}" onChange="{{ onRxSample }}" rows="4" spellCheck="false" style="background:var(--panel2,#141925);border:1px solid var(--line,#1C2230);color:var(--ink,#E6E9EF);font-family:var(--mono,monospace);font-size:13px;padding:11px 14px;outline:none;resize:vertical"></textarea>
+      </label>
+      <p style="margin:14px 0 0;font-family:var(--mono,monospace);font-size:12px;color:{{ rxFeedbackColor }}" role="status">{{ rxFeedback }}</p>
+      <div style="display:grid;gap:4px;margin-top:8px;max-height:120px;overflow:auto">
+        <sc-for list="{{ rxHits }}" as="h" hint-placeholder-count="0">
+          <div style="display:flex;gap:12px;font-family:var(--mono,monospace);font-size:12px;border:1px solid var(--line,#1C2230);padding:6px 10px"><span style="color:var(--acc,#FFB224)">{{ h.match }}</span><span style="color:var(--faint,#5C6470);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ h.line }}</span></div>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button onClick="{{ applyRegex }}" style="background:var(--acc,#FFB224);color:var(--accink,#0B0E13);border:0;font-weight:700;font-size:13px;padding:11px 24px;cursor:pointer">APPLY TO FIELD</button>
+        <button onClick="{{ closeOverlays }}" style="background:none;border:2px solid var(--line2,#33405A);color:var(--mut,#9AA4B4);font-weight:600;font-size:13px;padding:9px 24px;cursor:pointer">CANCEL</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ notifOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeOverlays }}" style="position:fixed;inset:0;z-index:305;background:rgba(0,0,0,.55);display:grid;place-items:start end;padding:80px 24px">
+    <div onClick="{{ swallow }}" style="width:min(460px,92vw);border:2px solid var(--line2,#33405A);background:var(--panel,#0E1219);animation:rise .18s both">
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line,#1C2230)">
+        <span style="font-family:var(--mono,monospace);font-size:12px;color:var(--acc,#FFB224);letter-spacing:.1em">NOTIFICATIONS</span>
+        <button onClick="{{ closeOverlays }}" style="margin-left:auto;background:none;border:0;color:var(--faint,#5C6470);font-size:16px;cursor:pointer" style-hover="color:var(--acc,#FFB224)">×</button>
+      </div>
+      <div style="display:flex;border-bottom:1px solid var(--line,#1C2230)">
+        <input value="{{ nq }}" onChange="{{ onNq }}" placeholder="Search notifications…" aria-label="Search notifications" style="flex:1;background:none;border:0;outline:none;color:var(--ink,#E6E9EF);font-family:var(--mono,monospace);font-size:13px;padding:11px 18px"></input>
+        <button onClick="{{ openRegexNotif }}" title="Build a regular expression for notification search" style="background:none;border:0;border-left:1px solid var(--line,#1C2230);color:var(--acc,#FFB224);font-family:var(--mono,monospace);font-size:13px;padding:0 16px;cursor:pointer">.*</button>
+      </div>
+      <div style="max-height:40vh;overflow:auto">
+        <sc-for list="{{ notifRows }}" as="n" hint-placeholder-count="1">
+          <div style="display:flex;gap:12px;align-items:baseline;padding:11px 18px;border-bottom:1px solid var(--line,#1C2230)">
+            <span style="font-family:var(--mono,monospace);font-size:10px;color:var(--faint,#5C6470);min-width:56px">{{ n.time }}</span>
+            <span style="flex:1;font-size:13px;color:var(--mut,#9AA4B4);line-height:1.5">{{ n.msg }}</span>
+            <button onClick="{{ n.dismiss }}" style="background:none;border:0;color:var(--faint,#5C6470);cursor:pointer;font-size:13px" style-hover="color:var(--bad,#F0A8A0)">×</button>
+          </div>
+        </sc-for>
+      </div>
+      <sc-if value="{{ notifEmpty }}" hint-placeholder-val="{{ true }}"><p style="margin:0;padding:18px;font-size:12px;color:var(--faint,#5C6470)">Nothing yet. Actions on this site report here — honestly, including refusals.</p></sc-if>
+      <div style="display:flex;gap:10px;padding:12px 18px">
+        <button onClick="{{ exportNotifs }}" style="border:1px solid var(--line2,#33405A);background:none;color:var(--dim,#7C8698);font-family:var(--mono,monospace);font-size:10px;padding:7px 12px;cursor:pointer" style-hover="border-color:var(--acc,#FFB224);color:var(--acc,#FFB224)">EXPORT JSON</button>
+        <button onClick="{{ clearNotifs }}" style="margin-left:auto;border:1px solid var(--line,#1C2230);background:none;color:{{ clearNotifColor }};font-family:var(--mono,monospace);font-size:10px;padding:7px 12px;cursor:pointer">{{ clearNotifLabel }}</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ ctxOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="{{ ctxStyle }}" onClick="{{ swallow }}">
+    <sc-for list="{{ ctxItems }}" as="it" hint-placeholder-count="6">
+      <sc-if value="{{ it.isSep }}" hint-placeholder-val="{{ false }}"><div style="border-top:1px solid var(--line,#1C2230);margin:5px 0"></div></sc-if>
+      <sc-if value="{{ it.isItem }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ it.run }}" style="display:flex;width:100%;align-items:center;gap:26px;background:none;border:0;padding:9px 16px;cursor:pointer;text-align:left" style-hover="background:var(--panel2,#141925)">
+          <span style="flex:1;font-size:13px;color:var(--ink,#E6E9EF)">{{ it.label }}</span>
+          <span aria-keyshortcuts="{{ it.combo }}" style="font-family:var(--mono,monospace);font-size:10px;color:var(--faint,#5C6470)">{{ it.combo }}</span>
+        </button>
+      </sc-if>
+    </sc-for>
+  </div>
+</sc-if>
+
+<sc-if value="{{ aeOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="{{ aeStyle }}" onClick="{{ swallow }}" onContextMenu="{{ swallow }}">
+    <div onPointerDown="{{ aeDragStart }}" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line,#1C2230);cursor:grab;user-select:none;position:sticky;top:0;background:var(--panel,#0E1219);z-index:2">
+      <span style="font-family:var(--mono,monospace);font-size:11px;color:var(--acc,#FFB224);letter-spacing:.1em">APPEARANCE</span>
+      <span style="font-family:var(--mono,monospace);font-size:10px;color:var(--faint,#5C6470);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">{{ aeLabel }}</span>
+      <button onClick="{{ closeAE }}" style="background:none;border:0;color:var(--faint,#5C6470);font-size:16px;cursor:pointer;padding:0 2px" style-hover="color:var(--acc,#FFB224)">×</button>
+    </div>
+    <div style="display:flex;border-bottom:1px solid var(--line,#1C2230);position:sticky;top:41px;background:var(--panel,#0E1219);z-index:2">
+      <sc-for list="{{ aeTabs }}" as="tb" hint-placeholder-count="5">
+        <button onClick="{{ tb.pick }}" style="flex:1;background:{{ tb.bg }};color:{{ tb.fg }};border:0;font-family:var(--mono,monospace);font-size:10px;letter-spacing:.08em;padding:9px 0;cursor:pointer">{{ tb.label }}</button>
+      </sc-for>
+    </div>
+    <div style="padding:14px 16px;display:grid;gap:13px">
+      <sc-for list="{{ aeControls }}" as="c" hint-placeholder-count="8">
+        <sc-if value="{{ c.isSwatch }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:12px;font-family:var(--mono,monospace);font-size:10px;color:var(--faint,#5C6470)"><span style="width:26px;height:26px;border:1px solid var(--line2,#33405A);background:{{ c.css }};background-image:repeating-conic-gradient(rgba(128,128,128,.18) 0 25%,transparent 0 50%);background-size:100%,10px 10px;flex:none"></span>{{ c.label }}</div>
+        </sc-if>
+        <sc-if value="{{ c.isRange }}" hint-placeholder-val="{{ true }}">
+          <label style="display:grid;gap:6px;font-family:var(--mono,monospace);font-size:10px;color:var(--faint,#5C6470)">{{ c.label }}<input type="range" min="{{ c.min }}" max="{{ c.max }}" step="{{ c.step }}" value="{{ c.value }}" onChange="{{ c.on }}" style="accent-color:var(--acc,#FFB224)"></input></label>
+        </sc-if>
+        <sc-if value="{{ c.isSelect }}" hint-placeholder-val="{{ false }}">
+          <label style="display:grid;gap:6px;font-family:var(--mono,monospace);font-size:10px;color:var(--faint,#5C6470)">{{ c.label }}
+            <select value="{{ c.value }}" onChange="{{ c.on }}" style="background:var(--panel2,#141925);border:1px solid var(--line,#1C2230);color:var(--ink,#E6E9EF);font-size:13px;padding:8px 10px;outline:none">
+              <sc-for list="{{ c.opts }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.label }}</option></sc-for>
+            </select>
+          </label>
+        </sc-if>
+        <sc-if value="{{ c.isToggle }}" hint-placeholder-val="{{ false }}">
+          <label style="display:flex;gap:10px;align-items:center;font-size:13px;color:var(--mut,#9AA4B4)"><input type="checkbox" checked="{{ c.checked }}" onChange="{{ c.on }}" style="accent-color:var(--acc,#FFB224);width:15px;height:15px"></input> {{ c.label }}</label>
+        </sc-if>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--line,#1C2230);position:sticky;bottom:0;background:var(--panel,#0E1219)">
+      <button onClick="{{ aeCopyCss }}" style="border:1px solid var(--line2,#33405A);background:none;color:var(--dim,#7C8698);font-family:var(--mono,monospace);font-size:10px;padding:7px 11px;cursor:pointer" style-hover="border-color:var(--acc,#FFB224);color:var(--acc,#FFB224)">COPY CSS</button>
+      <button onClick="{{ aeResetEl }}" style="border:1px solid var(--line2,#33405A);background:none;color:var(--dim,#7C8698);font-family:var(--mono,monospace);font-size:10px;padding:7px 11px;cursor:pointer" style-hover="border-color:var(--acc,#FFB224);color:var(--acc,#FFB224)">RESET ELEMENT</button>
+      <button onClick="{{ aeResetAll }}" style="border:1px solid var(--line,#1C2230);background:none;color:{{ aeResetAllColor }};font-family:var(--mono,monospace);font-size:10px;padding:7px 11px;cursor:pointer">{{ aeResetAllLabel }}</button>
+      <span style="flex-basis:100%;font-family:var(--mono,monospace);font-size:9px;color:var(--faint,#5C6470);line-height:1.6">EDITS APPLY LIVE TO THIS ELEMENT ONLY AND PERSIST LOCALLY BY ITS ADDRESS ON THIS PAGE. DRAG THE HEADER TO MOVE.</span>
+    </div>
+  </div>
+</sc-if>
+
+<div style="position:fixed;left:20px;bottom:20px;z-index:400;display:grid;gap:8px;pointer-events:none">
+  <sc-for list="{{ toasts }}" as="t" hint-placeholder-count="0">
+    <div style="border:1px solid var(--acc,#FFB224);background:var(--panel,#0E1219);color:var(--ink,#E6E9EF);font-family:var(--mono,monospace);font-size:12px;padding:11px 16px;animation:toastin .2s both;max-width:340px">{{ t.msg }}</div>
+  </sc-for>
+</div>
+
+<div style="position:fixed;bottom:20px;right:20px;z-index:100;display:flex;border:1px solid var(--line2,#33405A);background:color-mix(in srgb,var(--bg,#0B0E13) 90%,transparent);backdrop-filter:blur(8px);font-family:var(--mono,monospace);font-size:12px">
+  <a href="Landing A - Spec Sheet.dc.html" style="padding:9px 13px;color:var(--dim,#7C8698);min-height:0" style-hover="color:var(--acc,#FFB224)">A</a>
+  <a href="Landing B - Editorial.dc.html" style="padding:9px 13px;color:var(--dim,#7C8698);border-left:1px solid var(--line,#1C2230);min-height:0" style-hover="color:var(--acc,#FFB224)">B</a>
+  <a href="Landing C - Blueprint.dc.html" style="padding:9px 13px;color:var(--accink,#0B0E13);background:var(--acc,#FFB224);border-left:1px solid var(--line,#1C2230);font-weight:600;min-height:0">C</a>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    route: { view: 'docs', cat: '', slug: '' },
+    loaded: false,
+    q: '', qMode: 'plain', qFlags: 'i',
+    pq: '', pqMode: 'plain', pqFlags: 'i', paletteOpen: false, paletteIdx: 0,
+    nq: '', nqMode: 'plain', nqFlags: 'i', notifOpen: false, confirmClearNotifs: false,
+    rx: { open: false, target: '', pattern: '', i: true, m: false, u: true, sample: 'Dashboard\nDialplan canvas\ncore show channels\nRegex builder' },
+    ctx: { open: false, x: 0, y: 0, items: [] },
+    notifs: [], toasts: [],
+    s: null, presets: [], presetName: '', confirmReset: false,
+    ae: { open: false, x: 120, y: 120, key: '', label: '', tab: 'text', vals: null, base: null }, confirmAeReset: false,
+  };
+  DEFAULTS = { theme: 'dark', accH: 38, accS: 100, accL: 57, fontBody: 'Archivo', fontMono: 'IBM Plex Mono', fs: 1, lh: 1.7, ls: 0, hw: 800, measure: 74, density: 'cozy', radius: 0, bw: 2, bright: 100, contrast: 100, sat: 100, hue: 0, sepia: 0, scan: false, grid: true, motion: true };
+  PALETTES = {
+    dark: { bg: '#0B0E13', panel: '#0E1219', panel2: '#141925', line: '#1C2230', line2: '#33405A', ink: '#E6E9EF', mut: '#9AA4B4', dim: '#7C8698', faint: '#5C6470', good: '#7ED98F', bad: '#F0A8A0', gridLine: '#141925' },
+    light: { bg: '#F5F3EC', panel: '#FDFCF8', panel2: '#EDEAE0', line: '#D9D3C4', line2: '#AFA68E', ink: '#1B1E24', mut: '#4A5160', dim: '#6A7180', faint: '#8B92A0', good: '#1E7B45', bad: '#B3362B', gridLine: '#E7E3D6' },
+    contrast: { bg: '#000000', panel: '#000000', panel2: '#121212', line: '#3A3A3A', line2: '#FFFFFF', ink: '#FFFFFF', mut: '#EDEDED', dim: '#CFCFCF', faint: '#A8A8A8', good: '#00FF9C', bad: '#FF8A80', gridLine: '#161616' },
+  };
+  BINDINGS = [
+    { id: 'palette', label: 'Command palette', combo: 'Ctrl+Shift+F' },
+    { id: 'slash', label: 'Search documentation', combo: '/' },
+    { id: 'settings', label: 'Appearance editor', combo: 'Ctrl+Shift+A' },
+    { id: 'theme', label: 'Toggle dark / light', combo: 'Ctrl+Shift+D' },
+    { id: 'notif', label: 'Notification history', combo: 'Ctrl+Shift+N' },
+    { id: 'copy', label: 'Copy link to this page', combo: 'Ctrl+Shift+C' },
+    { id: 'top', label: 'Back to top', combo: 'Home' },
+    { id: 'prev', label: 'Previous article', combo: 'Alt+ArrowLeft' },
+    { id: 'next', label: 'Next article', combo: 'Alt+ArrowRight' },
+  ];
+  searchRef = React.createRef(); paletteRef = React.createRef();
+  cache = {}; lib = null; aeEl = null; ctxTargetEl = null; aeEdits = {}; aePrev = {};
+
+  componentDidMount() {
+    try { const raw = localStorage.getItem('ding-site-appearance-v1'); if (raw) this.setState({ s: { ...this.DEFAULTS, ...JSON.parse(raw) } }); } catch (e) {}
+    try { const pr = localStorage.getItem('ding-site-presets-v1'); if (pr) this.setState({ presets: JSON.parse(pr) }); } catch (e) {}
+    try { const ae = localStorage.getItem('ding-ae-v1'); if (ae) this.aeEdits = JSON.parse(ae); } catch (e) {}
+    if (!this.state.s) this.setState({ s: { ...this.DEFAULTS } });
+    this.onHash = () => this.parseRoute();
+    window.addEventListener('hashchange', this.onHash);
+    if (!location.hash || location.hash === '#') location.replace('#/docs'); else this.parseRoute();
+    this.onKey = (e) => this.handleKey(e);
+    window.addEventListener('keydown', this.onKey);
+    import('./docs-lib.js').then(async (lib) => {
+      this.lib = lib;
+      await Promise.all(lib.DOCS.map(async (d) => {
+        try {
+          const res = await fetch(d.path); const md = await res.text();
+          const { title, html } = lib.mdToHtml(md, d.cat);
+          const desc = (md.split(/\r?\n/).find(l => l.trim() && !l.startsWith('#')) || '').slice(0, 130);
+          this.cache[d.cat + '/' + d.slug] = { title: title || lib.slugTitle(d.slug), html, desc };
+        } catch (e) { this.cache[d.cat + '/' + d.slug] = { title: lib.slugTitle(d.slug), html: '<p style="color:var(--bad,#F0A8A0)">This article failed to load — stated plainly instead of faked.</p>', desc: '' }; }
+      }));
+      this.setState({ loaded: true });
+      setTimeout(() => this.applyStored(), 250);
+    });
+  }
+  componentWillUnmount() { window.removeEventListener('hashchange', this.onHash); window.removeEventListener('keydown', this.onKey); }
+
+  parseRoute() {
+    const h = (location.hash || '#/docs').replace(/^#\/?/, '');
+    const p = h.split('/');
+    if (p[0] === 'settings') this.setState({ route: { view: 'settings', cat: '', slug: '' } });
+    else if (p[0] === 'docs' && p[1] && p[2]) this.setState({ route: { view: 'article', cat: p[1], slug: p[2] } });
+    else this.setState({ route: { view: 'docs', cat: '', slug: '' } });
+    window.scrollTo(0, 0);
+    this.closeAll(false);
+    setTimeout(() => this.applyStored(), 350);
+  }
+  nav(hash) { location.hash = hash; }
+  closeAll(keepCtx) { this.setState({ paletteOpen: false, notifOpen: false, rx: { ...this.state.rx, open: false }, ae: { ...this.state.ae, open: false }, ctx: keepCtx ? this.state.ctx : { ...this.state.ctx, open: false } }); }
+
+  handleKey(e) {
+    const tag = (e.target.tagName || '').toLowerCase();
+    const typing = tag === 'input' || tag === 'textarea' || tag === 'select';
+    if (e.key === 'Escape') { this.closeAll(false); return; }
+    if (this.state.paletteOpen) {
+      const res = this.paletteList();
+      if (e.key === 'ArrowDown') { e.preventDefault(); this.setState({ paletteIdx: Math.min(this.state.paletteIdx + 1, res.length - 1) }); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); this.setState({ paletteIdx: Math.max(this.state.paletteIdx - 1, 0) }); return; }
+      if (e.key === 'Enter') { e.preventDefault(); const r = res[this.state.paletteIdx]; if (r) r.action(); return; }
+    }
+    const combo = (e.ctrlKey || e.metaKey ? 'Ctrl+' : '') + (e.shiftKey ? 'Shift+' : '') + (e.altKey ? 'Alt+' : '') + (e.key.length === 1 ? e.key.toUpperCase() : e.key);
+    const map = { 'Ctrl+Shift+F': 'palette', 'Ctrl+Shift+A': 'settings', 'Ctrl+Shift+D': 'theme', 'Ctrl+Shift+N': 'notif', 'Ctrl+Shift+C': 'copy', 'Alt+ArrowLeft': 'prev', 'Alt+ArrowRight': 'next' };
+    if (map[combo]) { e.preventDefault(); this.runBinding(map[combo]); return; }
+    if (!typing && e.key === '/') { e.preventDefault(); this.runBinding('slash'); }
+    if (!typing && e.key === 'Home') { this.runBinding('top'); }
+  }
+
+  runBinding(id) {
+    const adj = this.adjacent();
+    const acts = {
+      palette: () => { this.setState({ paletteOpen: true, pq: '', paletteIdx: 0 }); setTimeout(() => this.paletteRef.current && this.paletteRef.current.focus(), 30); },
+      slash: () => { if (this.state.route.view !== 'docs') this.nav('/docs'); setTimeout(() => this.searchRef.current && this.searchRef.current.focus(), 60); },
+      settings: () => this.nav('/settings'),
+      theme: () => this.setS({ theme: this.state.s.theme === 'light' ? 'dark' : 'light' }, 'Theme: ' + (this.state.s.theme === 'light' ? 'dark' : 'light')),
+      notif: () => this.setState({ notifOpen: true }),
+      copy: () => { navigator.clipboard.writeText(location.href).then(() => this.notify('Link copied to clipboard')).catch(() => this.notify('Clipboard refused the write — link not copied')); },
+      top: () => window.scrollTo({ top: 0, behavior: this.state.s.motion ? 'smooth' : 'auto' }),
+      prev: () => { if (adj.prev) this.nav(`/docs/${adj.prev.cat}/${adj.prev.slug}`); else this.notify('Already at the first article'); },
+      next: () => { if (adj.next) this.nav(`/docs/${adj.next.cat}/${adj.next.slug}`); else this.notify('Already at the last article'); },
+    };
+    if (acts[id]) acts[id]();
+  }
+
+  adjacent() {
+    if (!this.lib || this.state.route.view !== 'article') return {};
+    const list = this.lib.DOCS; const i = list.findIndex(d => d.cat === this.state.route.cat && d.slug === this.state.route.slug);
+    return { prev: i > 0 ? list[i - 1] : null, next: i >= 0 && i < list.length - 1 ? list[i + 1] : null };
+  }
+
+  notify(msg) {
+    const id = Date.now() + Math.random();
+    const time = new Date().toTimeString().slice(0, 8);
+    this.setState({ toasts: [...this.state.toasts, { id, msg }], notifs: [{ id, time, msg }, ...this.state.notifs].slice(0, 100) });
+    setTimeout(() => this.setState({ toasts: this.state.toasts.filter(t => t.id !== id) }), 3500);
+  }
+
+  setS(patch, note) {
+    const s = { ...this.state.s, ...patch };
+    this.setState({ s });
+    try { localStorage.setItem('ding-site-appearance-v1', JSON.stringify(s)); } catch (e) { this.notify('Appearance change failed to persist (storage refused) — kept for this session only'); }
+    if (note) this.notify(note);
+  }
+
+  hslToRgb(h, s, l) {
+    s /= 100; l /= 100; const k = n => (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return [f(0), f(8), f(4)].map(v => Math.round(v * 255));
+  }
+  rgbToHex(r, g, b) { return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase(); }
+  hexToHsl(hex) {
+    const m = hex.replace('#', '').match(/^([0-9a-f]{6})$/i); if (!m) return null;
+    const n = parseInt(m[1], 16); let r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let h = 0, s = 0;
+    if (mx !== mn) { const d = mx - mn; s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
+      h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; }
+    return [Math.round(h), Math.round(s * 100), Math.round(l * 100)];
+  }
+
+  match(text, q, mode, flags) {
+    if (!q) return true;
+    if (mode === 'regex' && this.lib) { const { re } = this.lib.buildRegex(q, flags); return re ? re.test(text) : false; }
+    return text.toLowerCase().includes(q.toLowerCase());
+  }
+
+  paletteList() {
+    const out = [];
+    const q = this.state.pq, mode = this.state.pqMode, flags = this.state.pqFlags;
+    const pages = [
+      { tag: 'PAGE', title: 'Documentation index', hint: '#/docs', action: () => { this.nav('/docs'); this.closeAll(false); } },
+      { tag: 'PAGE', title: 'Appearance editor', hint: '#/settings', action: () => { this.nav('/settings'); this.closeAll(false); } },
+      { tag: 'PAGE', title: 'Landing page', hint: '/home', action: () => { location.href = 'Landing C - Blueprint.dc.html'; } },
+      { tag: 'PAGE', title: 'Guide — install, safety model, roadmap', hint: '/guide', action: () => { location.href = 'Docs C - Blueprint.dc.html'; } },
+      { tag: 'ACT', title: 'Toggle dark / light theme', hint: 'Ctrl+Shift+D', action: () => { this.runBinding('theme'); this.closeAll(false); } },
+      { tag: 'ACT', title: 'Copy link to this page', hint: 'Ctrl+Shift+C', action: () => { this.runBinding('copy'); this.closeAll(false); } },
+    ].filter(p => this.match(p.title, q, mode, flags));
+    out.push(...pages);
+    if (this.lib) {
+      for (const d of this.lib.DOCS) {
+        const c = this.cache[d.cat + '/' + d.slug];
+        const title = c ? c.title : this.lib.slugTitle(d.slug);
+        if (this.match(`${title} ${d.slug} ${d.cat}`, q, mode, flags)) out.push({ tag: d.cat.toUpperCase().slice(0, 8), title, hint: d.slug, action: () => { this.nav(`/docs/${d.cat}/${d.slug}`); this.closeAll(false); } });
+        if (out.length > 60) break;
+      }
+    }
+    return out;
+  }
+
+  openRegex(target) {
+    const cur = target === 'docs' ? this.state.q : target === 'palette' ? this.state.pq : this.state.nq;
+    const curMode = target === 'docs' ? this.state.qMode : target === 'palette' ? this.state.pqMode : this.state.nqMode;
+    this.setState({ rx: { ...this.state.rx, open: true, target, pattern: curMode === 'regex' ? cur : '' } });
+  }
+
+  buildCtx(e) {
+    const a = e.target.closest && e.target.closest('a');
+    const sel = String(window.getSelection && window.getSelection() || '');
+    const items = [];
+    items.push({ label: 'Edit appearance…', combo: 'Right-click', run: () => this.openAE(e.clientX, e.clientY) });
+    items.push({ sep: true });
+    if (a && a.href) {
+      items.push({ label: 'Open link', combo: '', run: () => { if (a.getAttribute('href').startsWith('#')) location.hash = a.getAttribute('href'); else location.href = a.href; } });
+      items.push({ label: 'Copy link address', combo: '', run: () => navigator.clipboard.writeText(a.href).then(() => this.notify('Link address copied')) });
+      items.push({ sep: true });
+    }
+    if (sel) { items.push({ label: 'Copy selection', combo: 'Ctrl+C', run: () => navigator.clipboard.writeText(sel).then(() => this.notify('Selection copied')) }); items.push({ sep: true }); }
+    for (const b of this.BINDINGS) items.push({ label: b.label, combo: b.combo, run: () => this.runBinding(b.id) });
+    return items;
+  }
+
+  cssPath(el) {
+    const p = [];
+    while (el && el.nodeType === 1 && el.tagName !== 'BODY' && el.tagName !== 'HTML') {
+      let i = 1, s = el;
+      while (s.previousElementSibling) { s = s.previousElementSibling; i++; }
+      p.unshift(el.tagName.toLowerCase() + ':nth-child(' + i + ')');
+      el = el.parentElement;
+    }
+    return 'body>' + p.join('>');
+  }
+  parseCol(str) {
+    const m = String(str).match(/rgba?\(([\d.]+)[, ]+([\d.]+)[, ]+([\d.]+)(?:[,/ ]+([\d.]+))?\)/);
+    if (!m) return { h: 38, s: 100, l: 57, a: 100 };
+    const r = +m[1] / 255, g = +m[2] / 255, b = +m[3] / 255, al = m[4] === undefined ? 1 : +m[4];
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let h = 0, s = 0;
+    if (mx !== mn) { const d = mx - mn; s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
+      h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; }
+    return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100), a: Math.round(al * 100) };
+  }
+  openAE(x, y) {
+    let el = this.ctxTargetEl; if (!el || el.nodeType !== 1) { this.notify('No element under the pointer — nothing to edit'); return; }
+    this.aeEl = el;
+    const cs = getComputedStyle(el);
+    const col = this.parseCol(cs.color), bg = this.parseCol(cs.backgroundColor), bc = this.parseCol(cs.borderTopColor);
+    const bgA = /rgba?\(.*(?:, ?0\)|\/ ?0\))/.test(cs.backgroundColor) ? 0 : bg.a;
+    const fs = parseFloat(cs.fontSize) || 14;
+    const vals = {
+      ff: 'inherit', fs: Math.round(fs), fw: +cs.fontWeight || 400, italic: cs.fontStyle === 'italic',
+      deco: cs.textDecorationLine && cs.textDecorationLine !== 'none' ? cs.textDecorationLine.split(' ')[0] : 'none',
+      ttrans: cs.textTransform === 'none' ? 'none' : cs.textTransform, align: 'inherit',
+      lsp: Math.round((parseFloat(cs.letterSpacing) || 0) * 2) / 2, wsp: Math.round(parseFloat(cs.wordSpacing) || 0),
+      lh: Math.min(2.6, Math.max(.9, Math.round((cs.lineHeight === 'normal' ? 1.5 : parseFloat(cs.lineHeight) / fs) * 20) / 20)),
+      ch: col.h, cs: col.s, cl: col.l, tshadow: 'none',
+      bgOn: bgA > 0, bgH: bg.h, bgS: bg.s, bgL: bg.l, bgA: bgA > 0 ? bgA : 100,
+      bw: Math.round(parseFloat(cs.borderTopWidth) || 0), bstyle: cs.borderTopStyle || 'none', bh: bc.h, bs: bc.s, bl: bc.l,
+      radius: Math.round(parseFloat(cs.borderTopLeftRadius) || 0), opacity: Math.round((parseFloat(cs.opacity) || 1) * 100),
+      pad: Math.round(parseFloat(cs.paddingTop) || 0), marg: Math.round(parseFloat(cs.marginTop) || 0), maxw: 0, disp: 'inherit',
+      blur: 0, bright: 100, contr: 100, sat: 100, hue: 0, gray: 0, sepia: 0, invert: 0, bblur: 0, shadow: 'none',
+      scale: 100, rot: 0, tx: 0, ty: 0, skew: 0, trans: 'none', cursor: 'default',
+    };
+    const key = location.hash + '::' + this.cssPath(el);
+    const txt = (el.textContent || '').trim().slice(0, 34);
+    const label = '<' + el.tagName.toLowerCase() + '>' + (txt ? ' “' + txt + (txt.length >= 34 ? '…' : '') + '”' : '');
+    const ax = Math.min(x + 12, window.innerWidth - 400), ay = Math.min(y + 12, Math.max(20, window.innerHeight - 560));
+    this.setState({ ae: { open: true, x: Math.max(10, ax), y: Math.max(10, ay), key, label, tab: 'text', vals, base: { ...vals } }, ctx: { ...this.state.ctx, open: false } });
+  }
+  diffProps(v, b) {
+    const props = {}; const chg = (...ks) => ks.some(k => v[k] !== b[k]);
+    if (chg('ff') && v.ff !== 'inherit') props['font-family'] = v.ff === 'system-ui' ? 'system-ui' : "'" + v.ff + "'," + (v.ff === 'IBM Plex Mono' ? 'monospace' : 'sans-serif');
+    if (chg('fs')) props['font-size'] = v.fs + 'px';
+    if (chg('fw')) props['font-weight'] = String(v.fw);
+    if (chg('italic')) props['font-style'] = v.italic ? 'italic' : 'normal';
+    if (chg('deco')) props['text-decoration-line'] = v.deco;
+    if (chg('ttrans')) props['text-transform'] = v.ttrans;
+    if (chg('align') && v.align !== 'inherit') props['text-align'] = v.align;
+    if (chg('lsp')) props['letter-spacing'] = v.lsp + 'px';
+    if (chg('wsp')) props['word-spacing'] = v.wsp + 'px';
+    if (chg('lh')) props['line-height'] = String(v.lh);
+    if (chg('ch', 'cs', 'cl')) props['color'] = `hsl(${v.ch} ${v.cs}% ${v.cl}%)`;
+    if (chg('tshadow')) props['text-shadow'] = { none: 'none', soft: '0 2px 8px rgba(0,0,0,.6)', hard: '2px 2px 0 rgba(0,0,0,.9)', glow: `0 0 14px hsl(${v.ch} ${v.cs}% ${v.cl}% / .9)` }[v.tshadow];
+    if (chg('bgOn', 'bgH', 'bgS', 'bgL', 'bgA')) props['background-color'] = v.bgOn ? `hsl(${v.bgH} ${v.bgS}% ${v.bgL}% / ${v.bgA / 100})` : 'transparent';
+    if (chg('bw')) props['border-width'] = v.bw + 'px';
+    if (chg('bstyle')) props['border-style'] = v.bstyle;
+    if (chg('bh', 'bs', 'bl')) props['border-color'] = `hsl(${v.bh} ${v.bs}% ${v.bl}%)`;
+    if (chg('radius')) props['border-radius'] = v.radius + 'px';
+    if (chg('opacity')) props['opacity'] = String(v.opacity / 100);
+    if (chg('pad')) props['padding'] = v.pad + 'px';
+    if (chg('marg')) props['margin'] = v.marg + 'px';
+    if (chg('maxw')) props['max-width'] = v.maxw ? v.maxw + 'px' : 'none';
+    if (chg('disp') && v.disp !== 'inherit') props['display'] = v.disp;
+    if (chg('blur', 'bright', 'contr', 'sat', 'hue', 'gray', 'sepia', 'invert')) {
+      const f = [];
+      if (v.blur) f.push(`blur(${v.blur}px)`); if (v.bright !== 100) f.push(`brightness(${v.bright}%)`);
+      if (v.contr !== 100) f.push(`contrast(${v.contr}%)`); if (v.sat !== 100) f.push(`saturate(${v.sat}%)`);
+      if (v.hue) f.push(`hue-rotate(${v.hue}deg)`); if (v.gray) f.push(`grayscale(${v.gray}%)`);
+      if (v.sepia) f.push(`sepia(${v.sepia}%)`); if (v.invert) f.push(`invert(${v.invert}%)`);
+      props['filter'] = f.length ? f.join(' ') : 'none';
+    }
+    if (chg('bblur')) props['backdrop-filter'] = v.bblur ? `blur(${v.bblur}px)` : 'none';
+    if (chg('shadow')) props['box-shadow'] = { none: 'none', soft: '0 10px 30px rgba(0,0,0,.45)', hard: '6px 6px 0 rgba(0,0,0,.85)', glow: `0 0 24px hsl(${v.bgH} ${v.bgS}% ${v.bgL}% / .55)`, inset: 'inset 0 0 0 2px currentColor' }[v.shadow];
+    if (chg('scale', 'rot', 'tx', 'ty', 'skew')) {
+      const t = [];
+      if (v.tx || v.ty) t.push(`translate(${v.tx}px,${v.ty}px)`); if (v.scale !== 100) t.push(`scale(${v.scale / 100})`);
+      if (v.rot) t.push(`rotate(${v.rot}deg)`); if (v.skew) t.push(`skewX(${v.skew}deg)`);
+      props['transform'] = t.length ? t.join(' ') : 'none';
+    }
+    if (chg('trans')) props['transition'] = { none: 'none', smooth: 'all .2s ease', springy: 'all .4s cubic-bezier(.34,1.56,.64,1)' }[v.trans];
+    if (chg('cursor') && v.cursor !== 'default') props['cursor'] = v.cursor;
+    return props;
+  }
+  aeApply(vals) {
+    const ae = this.state.ae;
+    const el = (this.aeEl && this.aeEl.isConnected) ? this.aeEl : document.querySelector(ae.key.split('::')[1] || '');
+    if (!el) { this.notify('Element left the page — edits kept but not shown'); return; }
+    const props = this.diffProps(vals, ae.base);
+    const prev = this.aePrev[ae.key] || {};
+    for (const k of Object.keys(prev)) if (!(k in props)) el.style.removeProperty(k);
+    for (const k of Object.keys(props)) el.style.setProperty(k, props[k], 'important');
+    this.aePrev[ae.key] = props;
+    if (Object.keys(props).length) this.aeEdits[ae.key] = { label: ae.label, props };
+    else delete this.aeEdits[ae.key];
+    try { localStorage.setItem('ding-ae-v1', JSON.stringify(this.aeEdits)); } catch (e) {}
+  }
+  aeSet(k, val) {
+    const vals = { ...this.state.ae.vals, [k]: val };
+    this.setState({ ae: { ...this.state.ae, vals } });
+    this.aeApply(vals);
+  }
+  applyStored() {
+    const prefix = location.hash + '::';
+    for (const key of Object.keys(this.aeEdits)) {
+      if (!key.startsWith(prefix)) continue;
+      const el = document.querySelector(key.slice(prefix.length));
+      if (!el) continue;
+      const props = this.aeEdits[key].props;
+      for (const k of Object.keys(props)) el.style.setProperty(k, props[k], 'important');
+      this.aePrev[key] = props;
+    }
+  }
+  download(name, obj) {
+    const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+
+  renderVals() {
+    const st = this.state; const s = st.s || this.DEFAULTS;
+    const P = this.PALETTES[s.theme] || this.PALETTES.dark;
+    const [ar, ag, ab] = this.hslToRgb(s.accH, s.accS, s.accL);
+    const accCss = `hsl(${s.accH} ${s.accS}% ${s.accL}%)`;
+    const accInk = s.accL > 58 || s.theme === 'contrast' ? '#0B0E13' : '#FFFFFF';
+    const gapMap = { compact: 11, cozy: 16, spacious: 24 };
+    const gap = gapMap[s.density] || 16;
+    const gridBg = s.grid ? `background-image:linear-gradient(${P.gridLine} 1px,transparent 1px),linear-gradient(90deg,${P.gridLine} 1px,transparent 1px);background-size:48px 48px;` : '';
+    const rootStyle = `--bg:${P.bg};--panel:${P.panel};--panel2:${P.panel2};--line:${P.line};--line2:${P.line2};--ink:${P.ink};--mut:${P.mut};--dim:${P.dim};--faint:${P.faint};--good:${P.good};--bad:${P.bad};--acc:${accCss};--accink:${accInk};--mono:'${s.fontMono}',monospace;--fs:${s.fs};--lh:${s.lh};--hw:${s.hw};--measure:${s.measure}ch;--gap:${gap}px;--radius:${s.radius}px;--bw:${s.bw}px;--risedur:${s.motion ? '.6s' : '0s'};${gridBg}background-color:${P.bg};color:${P.ink};font-family:'${s.fontBody}',sans-serif;line-height:${s.lh};letter-spacing:${s.ls}em;min-height:100vh`;
+    const fx = [];
+    if (s.bright !== 100) fx.push(`brightness(${s.bright}%)`);
+    if (s.contrast !== 100) fx.push(`contrast(${s.contrast}%)`);
+    if (s.sat !== 100) fx.push(`saturate(${s.sat}%)`);
+    if (s.hue !== 0) fx.push(`hue-rotate(${s.hue}deg)`);
+    if (s.sepia !== 0) fx.push(`sepia(${s.sepia}%)`);
+    const contentStyle = (fx.length ? `filter:${fx.join(' ')};` : '') + 'min-height:100vh;display:flex;flex-direction:column';
+
+    const view = st.route.view;
+    const cats = []; let shown = 0, total = 0;
+    if (this.lib) {
+      for (const c of this.lib.CATS) {
+        const docs = this.lib.DOCS.filter(d => d.cat === c.id);
+        total += docs.length;
+        const arts = docs.map(d => {
+          const cc = this.cache[d.cat + '/' + d.slug] || {};
+          return { slug: d.slug, cat: d.cat, title: cc.title || this.lib.slugTitle(d.slug), desc: cc.desc || '', tag: `${d.cat}/${d.slug}`, href: `#/docs/${d.cat}/${d.slug}` };
+        }).filter(a => this.match(`${a.title} ${a.slug} ${a.cat} ${a.desc}`, st.q, st.qMode, st.qFlags));
+        shown += arts.length;
+        if (arts.length) cats.push({ ...c, count: `${arts.length}${st.q ? '/' + docs.length : ''}`, articles: arts });
+      }
+    }
+
+    let art = { title: '', body: null, loading: true, catLabel: '' };
+    const adj = this.adjacent();
+    if (view === 'article') {
+      const cc = this.cache[st.route.cat + '/' + st.route.slug];
+      const cm = this.lib && this.lib.CATS.find(c => c.id === st.route.cat);
+      art.catLabel = cm ? cm.label : st.route.cat;
+      if (cc) { art.title = cc.title; art.loading = false; art.body = React.createElement('div', { dangerouslySetInnerHTML: { __html: cc.html } }); }
+      else if (st.loaded) { art.title = 'Not found'; art.loading = false; art.body = React.createElement('p', { style: { color: P.bad } }, 'No article exists at this address.'); }
+    }
+
+    const mkOpt = (opts, cur, key, noteFmt) => opts.map(o => ({
+      label: o.label, pick: () => this.setS({ [key]: o.v }, noteFmt ? noteFmt(o.label) : null),
+      border: o.v === cur ? 'var(--acc)' : P.line2, bg: o.v === cur ? accCss : 'transparent', fg: o.v === cur ? accInk : P.mut,
+    }));
+
+    const rxFlags = (st.rx.i ? 'i' : '') + (st.rx.m ? 'm' : '') + (st.rx.u ? 'u' : '');
+    let rxFeedback = 'Enter a pattern.', rxHits = [], rxOk = false;
+    if (this.lib && st.rx.pattern) {
+      const { re, error } = this.lib.buildRegex(st.rx.pattern, rxFlags);
+      if (error) rxFeedback = error;
+      else { rxOk = true; rxHits = this.lib.testSample(re, st.rx.sample); rxFeedback = rxHits.length ? `${rxHits.length} matching line${rxHits.length > 1 ? 's' : ''} in the sample.` : 'Valid pattern — no matches in the sample.'; }
+    }
+    const insToks = [['Starts with', '^'], ['Ends with', '$'], ['Any char', '.'], ['Group ( )', '()'], ['Class [a-z]', '[a-z]'], ['Digit \\d', '\\d'], ['Word \\w', '\\w'], ['Either |', '|'], ['One or more +', '+'], ['Optional ?', '?']];
+
+    const notifRows = st.notifs.filter(n => this.match(n.msg, st.nq, st.nqMode, st.nqFlags)).map(n => ({ ...n, dismiss: () => this.setState({ notifs: st.notifs.filter(x => x.id !== n.id) }) }));
+
+    const pres = this.paletteList().map((r, i) => ({ ...r, go: r.action, bg: i === st.paletteIdx ? P.panel2 : 'transparent' }));
+
+    const swDefs = [['Amber', 38, 100, 57], ['Phosphor', 140, 78, 62], ['Cyan', 190, 92, 62], ['Magenta', 320, 85, 64], ['Signal red', 4, 90, 62]];
+
+    return {
+      rootStyle, contentStyle,
+      onCtx: (e) => { e.preventDefault(); this.ctxTargetEl = e.target; const items = this.buildCtx(e); const x = Math.min(e.clientX, window.innerWidth - 300), y = Math.min(e.clientY, window.innerHeight - items.length * 36 - 30); this.setState({ ctx: { open: true, x, y, items } }); },
+      onRootClick: () => { if (st.ctx.open) this.setState({ ctx: { ...st.ctx, open: false } }); },
+      swallow: (e) => e.stopPropagation(),
+      closeOverlays: () => this.closeAll(false),
+      navDocsColor: view !== 'settings' ? accCss : P.dim, navSettingsColor: view === 'settings' ? accCss : P.dim,
+      notifCount: st.notifs.length,
+      openPalette: () => this.runBinding('palette'), openNotif: () => this.setState({ notifOpen: true }),
+
+      viewDocs: view === 'docs', viewArticle: view === 'article', viewSettings: view === 'settings',
+      docCount: total || 86, catCount: this.lib ? this.lib.CATS.length : 10,
+      q: st.q, onQ: (e) => this.setState({ q: e.target.value }),
+      searchPlaceholder: st.loaded ? `Search ${total} articles…  ( / )` : 'Loading articles…',
+      toggleMode: () => this.setState({ qMode: st.qMode === 'plain' ? 'regex' : 'plain' }),
+      modeLabel: st.qMode.toUpperCase(), modeColor: st.qMode === 'regex' ? accCss : P.faint,
+      openRegexDocs: () => this.openRegex('docs'),
+      regexNote: st.qMode === 'regex' && !!st.q, qPattern: st.q, qFlags: st.qFlags,
+      resultLabel: st.loaded ? `${shown} / ${total} articles` : 'reading…',
+      cats, noResults: st.loaded && shown === 0,
+      searchRef: this.searchRef, paletteRef: this.paletteRef,
+
+      artTitle: art.title, artBody: art.body, artLoading: art.loading && view === 'article',
+      artCatLabel: art.catLabel, artSlug: st.route.slug,
+      hasPrev: !!adj.prev, hasNext: !!adj.next,
+      prevHref: adj.prev ? `#/docs/${adj.prev.cat}/${adj.prev.slug}` : '#', nextHref: adj.next ? `#/docs/${adj.next.cat}/${adj.next.slug}` : '#',
+      prevTitle: adj.prev ? (this.cache[adj.prev.cat + '/' + adj.prev.slug] || {}).title || adj.prev.slug : '',
+      nextTitle: adj.next ? (this.cache[adj.next.cat + '/' + adj.next.slug] || {}).title || adj.next.slug : '',
+
+      themeOpts: mkOpt([{ label: 'Dark', v: 'dark' }, { label: 'Light', v: 'light' }, { label: 'High contrast', v: 'contrast' }], s.theme, 'theme', l => 'Theme: ' + l),
+      densityOpts: mkOpt([{ label: 'Compact', v: 'compact' }, { label: 'Cozy', v: 'cozy' }, { label: 'Spacious', v: 'spacious' }], s.density, 'density'),
+      sRadius: s.radius, onRadius: (e) => this.setS({ radius: +e.target.value }), radiusLabel: s.radius + 'PX',
+      sBw: s.bw, onBw: (e) => this.setS({ bw: +e.target.value }), bwLabel: s.bw + 'PX',
+      sGrid: s.grid, onGrid: (e) => this.setS({ grid: e.target.checked }),
+      sMotion: s.motion, onMotion: (e) => this.setS({ motion: e.target.checked }, e.target.checked ? 'Motion on' : 'Reduced motion — entrances disabled'),
+      accH: s.accH, accS: s.accS, accL: s.accL, accCss,
+      accHLabel: s.accH + '°', accSLabel: s.accS + '%', accLLabel: s.accL + '%',
+      onAccH: (e) => this.setS({ accH: +e.target.value }), onAccS: (e) => this.setS({ accS: +e.target.value }), onAccL: (e) => this.setS({ accL: +e.target.value }),
+      accHex: this.rgbToHex(ar, ag, ab),
+      onAccHex: (e) => { const h = this.hexToHsl(e.target.value); if (h) this.setS({ accH: h[0], accS: h[1], accL: h[2] }); else this.notify('Not a valid 6-digit hex color — value refused'); },
+      accRgb: `rgb(${ar} ${ag} ${ab})`, accHsl: `hsl(${s.accH} ${s.accS}% ${s.accL}%)`,
+      swatches: swDefs.map(([name, h, sa, l]) => ({ name, css: `hsl(${h} ${sa}% ${l}%)`, pick: () => this.setS({ accH: h, accS: sa, accL: l }, 'Accent: ' + name) })),
+      sFontBody: s.fontBody, onFontBody: (e) => this.setS({ fontBody: e.target.value }),
+      sFontMono: s.fontMono, onFontMono: (e) => this.setS({ fontMono: e.target.value }),
+      sFs: s.fs, onFs: (e) => this.setS({ fs: +e.target.value }), fsLabel: Math.round(s.fs * 100) + '%',
+      sLh: s.lh, onLh: (e) => this.setS({ lh: +e.target.value }), lhLabel: s.lh.toFixed(2),
+      sLs: s.ls, onLs: (e) => this.setS({ ls: +e.target.value }), lsLabel: s.ls.toFixed(3) + 'EM',
+      sHw: s.hw, onHw: (e) => this.setS({ hw: +e.target.value }), hwLabel: String(s.hw),
+      sMeasure: s.measure, onMeasure: (e) => this.setS({ measure: +e.target.value }), measureLabel: s.measure + 'CH',
+      sBright: s.bright, onBright: (e) => this.setS({ bright: +e.target.value }), brightLabel: s.bright + '%',
+      sContrast: s.contrast, onContrast: (e) => this.setS({ contrast: +e.target.value }), contrastLabel: s.contrast + '%',
+      sSat: s.sat, onSat: (e) => this.setS({ sat: +e.target.value }), satLabel: s.sat + '%',
+      sHue: s.hue, onHue: (e) => this.setS({ hue: +e.target.value }), hueLabel: s.hue + '°',
+      sSepia: s.sepia, onSepia: (e) => this.setS({ sepia: +e.target.value }), sepiaLabel: s.sepia + '%',
+      sScan: s.scan, onScan: (e) => this.setS({ scan: e.target.checked }), scanOn: s.scan,
+      resetEffects: () => this.setS({ bright: 100, contrast: 100, sat: 100, hue: 0, sepia: 0, scan: false }, 'Effects reset'),
+      presetName: st.presetName, onPresetName: (e) => this.setState({ presetName: e.target.value }),
+      savePreset: () => {
+        const name = st.presetName.trim(); if (!name) { this.notify('A preset needs a name — nothing saved'); return; }
+        const presets = [...st.presets.filter(p => p.name !== name), { name, s: { ...s } }];
+        this.setState({ presets, presetName: '' }); try { localStorage.setItem('ding-site-presets-v1', JSON.stringify(presets)); } catch (e) {}
+        this.notify(`Preset “${name}” saved`);
+      },
+      presetRows: st.presets.map(p => ({
+        name: p.name,
+        apply: () => this.setS({ ...p.s }, `Preset “${p.name}” applied`),
+        del: () => { const presets = st.presets.filter(x => x.name !== p.name); this.setState({ presets }); try { localStorage.setItem('ding-site-presets-v1', JSON.stringify(presets)); } catch (e) {} this.notify(`Preset “${p.name}” deleted`); },
+      })),
+      noPresets: st.presets.length === 0,
+      exportSettings: () => { this.download('ding-site-appearance.json', { settings: s, presets: st.presets }); this.notify('Appearance exported as JSON'); },
+      importSettings: (e) => {
+        const f = e.target.files && e.target.files[0]; if (!f) return;
+        const rd = new FileReader();
+        rd.onload = () => { try { const j = JSON.parse(rd.result); if (j.settings) this.setS({ ...this.DEFAULTS, ...j.settings }, 'Appearance imported'); if (Array.isArray(j.presets)) { this.setState({ presets: j.presets }); localStorage.setItem('ding-site-presets-v1', JSON.stringify(j.presets)); } if (!j.settings && !j.presets) this.notify('File held no settings — nothing applied'); } catch (err) { this.notify('Import refused: not valid JSON'); } };
+        rd.readAsText(f); e.target.value = '';
+      },
+      resetAll: () => {
+        if (!st.confirmReset) { this.setState({ confirmReset: true }); setTimeout(() => this.setState({ confirmReset: false }), 3000); return; }
+        this.setState({ confirmReset: false }); this.setS({ ...this.DEFAULTS }, 'Appearance reset to defaults');
+      },
+      resetLabel: st.confirmReset ? 'CONFIRM RESET — CANNOT BE UNDONE' : 'RESET ALL',
+      resetBorder: st.confirmReset ? P.bad : P.line2, resetColor: st.confirmReset ? P.bad : P.dim,
+
+      paletteOpen: st.paletteOpen, pq: st.pq, onPq: (e) => this.setState({ pq: e.target.value, paletteIdx: 0 }),
+      paletteResults: pres, paletteCount: pres.length,
+      openRegexPalette: () => this.openRegex('palette'),
+
+      regexOpen: st.rx.open, regexTargetLabel: st.rx.target === 'docs' ? 'Documentation search' : st.rx.target === 'palette' ? 'Command palette search' : 'Notification search',
+      rxPattern: st.rx.pattern, onRxPattern: (e) => this.setState({ rx: { ...st.rx, pattern: e.target.value } }),
+      rxI: st.rx.i, rxM: st.rx.m, rxU: st.rx.u,
+      toggleRxI: (e) => this.setState({ rx: { ...st.rx, i: e.target.checked } }),
+      toggleRxM: (e) => this.setState({ rx: { ...st.rx, m: e.target.checked } }),
+      toggleRxU: (e) => this.setState({ rx: { ...st.rx, u: e.target.checked } }),
+      rxSample: st.rx.sample, onRxSample: (e) => this.setState({ rx: { ...st.rx, sample: e.target.value } }),
+      rxInserts: insToks.map(([label, tok]) => ({ label, ins: () => this.setState({ rx: { ...st.rx, pattern: st.rx.pattern + tok } }) })),
+      rxFeedback, rxFeedbackColor: rxOk ? P.good : (st.rx.pattern ? P.bad : P.faint), rxHits,
+      applyRegex: () => {
+        if (!rxOk) { this.notify('Pattern refused — fix it before applying'); return; }
+        const t = st.rx.target;
+        if (t === 'docs') this.setState({ q: st.rx.pattern, qMode: 'regex', qFlags: rxFlags });
+        if (t === 'palette') this.setState({ pq: st.rx.pattern, pqMode: 'regex', pqFlags: rxFlags });
+        if (t === 'notif') this.setState({ nq: st.rx.pattern, nqMode: 'regex', nqFlags: rxFlags });
+        this.setState({ rx: { ...st.rx, open: false } });
+        this.notify(`Regex applied to ${st.rx.target} search: /${st.rx.pattern}/${rxFlags}`);
+      },
+
+      notifOpen: st.notifOpen, nq: st.nq, onNq: (e) => this.setState({ nq: e.target.value }),
+      openRegexNotif: () => this.openRegex('notif'),
+      notifRows, notifEmpty: notifRows.length === 0,
+      exportNotifs: () => { this.download('notifications.json', st.notifs); this.notify('Notification history exported'); },
+      clearNotifs: () => {
+        if (!st.confirmClearNotifs) { this.setState({ confirmClearNotifs: true }); setTimeout(() => this.setState({ confirmClearNotifs: false }), 3000); return; }
+        this.setState({ notifs: [], confirmClearNotifs: false });
+      },
+      clearNotifLabel: st.confirmClearNotifs ? 'CONFIRM — CANNOT BE UNDONE' : 'CLEAR ALL',
+      clearNotifColor: st.confirmClearNotifs ? P.bad : P.faint,
+
+      ctxOpen: st.ctx.open,
+      ctxStyle: `position:fixed;left:${st.ctx.x}px;top:${st.ctx.y}px;z-index:350;min-width:270px;border:1px solid var(--line2,#33405A);background:var(--panel,#0E1219);box-shadow:0 18px 50px rgba(0,0,0,.5);padding:5px 0;animation:rise .12s both`,
+      ctxItems: st.ctx.items.map(it => ({ ...it, isSep: !!it.sep, isItem: !it.sep, run: it.run ? () => { it.run(); this.setState({ ctx: { ...st.ctx, open: false } }); } : () => {} })),
+
+      toasts: st.toasts,
+      ...this.aeVals(P, accCss, accInk),
+    };
+  }
+
+  aeVals(P, accCss, accInk) {
+    const st = this.state, ae = st.ae, v = ae.vals || {};
+    if (!ae.open) return { aeOpen: false };
+    const mkR = (label, key, min, max, step, unit) => ({ isRange: true, id: key, label: label + ' — ' + v[key] + (unit || ''), min, max, step: step || 1, value: v[key], on: (e) => this.aeSet(key, +e.target.value) });
+    const mkSel = (label, key, opts) => ({ isSelect: true, id: key, label, value: v[key], on: (e) => this.aeSet(key, e.target.value), opts: opts.map(o => ({ v: o[0], label: o[1] })) });
+    const mkT = (label, key) => ({ isToggle: true, id: key, label, checked: v[key], on: (e) => this.aeSet(key, e.target.checked) });
+    const sw = (label, css) => ({ isSwatch: true, id: label, label, css });
+    const TABS = {
+      text: [
+        sw('TEXT COLOR', `hsl(${v.ch} ${v.cs}% ${v.cl}%)`),
+        mkR('HUE', 'ch', 0, 360, 1, '°'), mkR('SATURATION', 'cs', 0, 100, 1, '%'), mkR('LIGHTNESS', 'cl', 0, 100, 1, '%'),
+        mkSel('FONT FACE', 'ff', [['inherit', 'Inherit'], ['Archivo', 'Archivo'], ['Space Grotesk', 'Space Grotesk'], ['Newsreader', 'Newsreader (serif)'], ['Georgia', 'Georgia'], ['IBM Plex Mono', 'IBM Plex Mono'], ['system-ui', 'System UI']]),
+        mkR('SIZE', 'fs', 8, 72, 1, 'PX'), mkR('WEIGHT', 'fw', 100, 900, 50, ''),
+        mkT('Italic', 'italic'),
+        mkSel('DECORATION', 'deco', [['none', 'None'], ['underline', 'Underline'], ['line-through', 'Strike'], ['overline', 'Overline']]),
+        mkSel('CASE', 'ttrans', [['none', 'As written'], ['uppercase', 'UPPERCASE'], ['lowercase', 'lowercase'], ['capitalize', 'Capitalize']]),
+        mkSel('ALIGN', 'align', [['inherit', 'Inherit'], ['left', 'Left'], ['center', 'Center'], ['right', 'Right'], ['justify', 'Justify']]),
+        mkR('LETTER SPACING', 'lsp', -2, 12, .5, 'PX'), mkR('WORD SPACING', 'wsp', 0, 24, 1, 'PX'), mkR('LINE HEIGHT', 'lh', .9, 2.6, .05, ''),
+        mkSel('TEXT SHADOW', 'tshadow', [['none', 'None'], ['soft', 'Soft'], ['hard', 'Hard offset'], ['glow', 'Glow (text color)']]),
+      ],
+      fill: [
+        mkT('Paint a background', 'bgOn'),
+        sw('BACKGROUND', v.bgOn ? `hsl(${v.bgH} ${v.bgS}% ${v.bgL}% / ${v.bgA / 100})` : 'transparent'),
+        mkR('BG HUE', 'bgH', 0, 360, 1, '°'), mkR('BG SATURATION', 'bgS', 0, 100, 1, '%'), mkR('BG LIGHTNESS', 'bgL', 0, 100, 1, '%'), mkR('BG ALPHA', 'bgA', 0, 100, 1, '%'),
+        mkR('BORDER WIDTH', 'bw', 0, 8, 1, 'PX'),
+        mkSel('BORDER STYLE', 'bstyle', [['none', 'None'], ['solid', 'Solid'], ['dashed', 'Dashed'], ['dotted', 'Dotted'], ['double', 'Double']]),
+        sw('BORDER COLOR', `hsl(${v.bh} ${v.bs}% ${v.bl}%)`),
+        mkR('BORDER HUE', 'bh', 0, 360, 1, '°'), mkR('BORDER SAT', 'bs', 0, 100, 1, '%'), mkR('BORDER LIGHT', 'bl', 0, 100, 1, '%'),
+        mkR('CORNER RADIUS', 'radius', 0, 48, 1, 'PX'), mkR('OPACITY', 'opacity', 0, 100, 1, '%'),
+      ],
+      space: [
+        mkR('PADDING', 'pad', 0, 64, 1, 'PX'), mkR('MARGIN', 'marg', -24, 64, 1, 'PX'),
+        mkR('MAX WIDTH (0 = AUTO)', 'maxw', 0, 1200, 10, 'PX'),
+        mkSel('DISPLAY', 'disp', [['inherit', 'Inherit'], ['block', 'Block'], ['inline-block', 'Inline block'], ['flex', 'Flex'], ['none', 'Hidden (none)']]),
+      ],
+      fx: [
+        mkR('BLUR', 'blur', 0, 12, .5, 'PX'), mkR('BRIGHTNESS', 'bright', 40, 200, 1, '%'), mkR('CONTRAST', 'contr', 40, 200, 1, '%'),
+        mkR('SATURATE', 'sat', 0, 300, 1, '%'), mkR('HUE ROTATE', 'hue', 0, 360, 1, '°'), mkR('GRAYSCALE', 'gray', 0, 100, 1, '%'),
+        mkR('SEPIA', 'sepia', 0, 100, 1, '%'), mkR('INVERT', 'invert', 0, 100, 1, '%'), mkR('BACKDROP BLUR', 'bblur', 0, 20, 1, 'PX'),
+        mkSel('BOX SHADOW', 'shadow', [['none', 'None'], ['soft', 'Soft'], ['hard', 'Hard offset'], ['glow', 'Glow (bg color)'], ['inset', 'Inset outline']]),
+      ],
+      move: [
+        mkR('SCALE', 'scale', 50, 200, 1, '%'), mkR('ROTATE', 'rot', -180, 180, 1, '°'),
+        mkR('TRANSLATE X', 'tx', -120, 120, 1, 'PX'), mkR('TRANSLATE Y', 'ty', -120, 120, 1, 'PX'), mkR('SKEW X', 'skew', -30, 30, 1, '°'),
+        mkSel('TRANSITION', 'trans', [['none', 'None'], ['smooth', 'Smooth .2s'], ['springy', 'Springy .4s']]),
+        mkSel('CURSOR', 'cursor', [['default', 'Default'], ['pointer', 'Pointer'], ['crosshair', 'Crosshair'], ['grab', 'Grab'], ['not-allowed', 'Not allowed']]),
+      ],
+    };
+    const editCount = Object.keys(this.aeEdits).length;
+    return {
+      aeOpen: true,
+      aeStyle: `position:fixed;left:${ae.x}px;top:${ae.y}px;z-index:360;width:380px;max-height:76vh;overflow:auto;border:2px solid var(--acc,#FFB224);background:var(--panel,#0E1219);box-shadow:0 24px 70px rgba(0,0,0,.6);animation:rise .14s both`,
+      aeLabel: ae.label,
+      closeAE: () => this.setState({ ae: { ...ae, open: false } }),
+      aeDragStart: (e) => {
+        e.preventDefault();
+        const sx = e.clientX - ae.x, sy = e.clientY - ae.y;
+        const mv = (ev) => this.setState({ ae: { ...this.state.ae, x: Math.max(4, Math.min(ev.clientX - sx, window.innerWidth - 200)), y: Math.max(4, Math.min(ev.clientY - sy, window.innerHeight - 100)) } });
+        const up = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
+        window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
+      },
+      aeTabs: [['text', 'TEXT'], ['fill', 'FILL'], ['space', 'SPACE'], ['fx', 'FX'], ['move', 'MOVE']].map(([id, label]) => ({
+        label, pick: () => this.setState({ ae: { ...ae, tab: id } }),
+        bg: ae.tab === id ? accCss : 'transparent', fg: ae.tab === id ? accInk : P.dim,
+      })),
+      aeControls: TABS[ae.tab] || [],
+      aeCopyCss: () => {
+        const props = this.diffProps(v, ae.base);
+        const sel = ae.key.split('::')[1];
+        const css = sel + ' {\n' + Object.entries(props).map(([k, val]) => `  ${k}: ${val} !important;`).join('\n') + '\n}';
+        navigator.clipboard.writeText(css).then(() => this.notify('Element CSS copied')).catch(() => this.notify('Clipboard refused the write'));
+      },
+      aeResetEl: () => {
+        const el = (this.aeEl && this.aeEl.isConnected) ? this.aeEl : document.querySelector(ae.key.split('::')[1] || '');
+        const prev = this.aePrev[ae.key] || (this.aeEdits[ae.key] || {}).props || {};
+        if (el) for (const k of Object.keys(prev)) el.style.removeProperty(k);
+        delete this.aeEdits[ae.key]; delete this.aePrev[ae.key];
+        try { localStorage.setItem('ding-ae-v1', JSON.stringify(this.aeEdits)); } catch (e) {}
+        this.setState({ ae: { ...ae, vals: { ...ae.base } } });
+        this.notify('Element restored to its designed appearance');
+      },
+      aeResetAll: () => {
+        if (!st.confirmAeReset) { this.setState({ confirmAeReset: true }); setTimeout(() => this.setState({ confirmAeReset: false }), 3000); return; }
+        for (const key of Object.keys(this.aeEdits)) {
+          const el = document.querySelector(key.split('::')[1] || '');
+          if (el) for (const k of Object.keys(this.aeEdits[key].props)) el.style.removeProperty(k);
+        }
+        this.aeEdits = {}; this.aePrev = {};
+        try { localStorage.setItem('ding-ae-v1', '{}'); } catch (e) {}
+        this.setState({ confirmAeReset: false, ae: { ...ae, vals: { ...ae.base } } });
+        this.notify('All element edits cleared');
+      },
+      aeResetAllLabel: st.confirmAeReset ? 'CONFIRM — CANNOT BE UNDONE' : `RESET ALL EDITED (${editCount})`,
+      aeResetAllColor: st.confirmAeReset ? P.bad : P.faint,
+    };
+  }
+}
+</script>
+</body>
+</html>

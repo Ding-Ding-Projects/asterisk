@@ -1,0 +1,1 @@
+No such command 'dahdi show channels' (type 'core show help dahdi show' for other possible commands)

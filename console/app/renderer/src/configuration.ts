@@ -12,12 +12,6 @@
  * same. Anything unread says so.
  */
 
-import {
-  CONFIGURATION_RESOURCES,
-  configurationResourcesForScreen,
-  type ConfigurationResourceDescriptor,
-} from '../../../shared/configuration-resources';
-
 /** One `[section]` and its `key = value` lines, as the transport parses them. */
 export interface ConfigSection {
   name: string;
@@ -28,41 +22,39 @@ export type ConfigValue = ReadonlyArray<ConfigSection>;
 
 export interface ConfigReading {
   resource: string;
-  state: 'read' | 'missing' | 'unparseable' | 'unavailable';
+  state: 'read' | 'unavailable';
   value?: ConfigValue;
   reason?: string;
   observedAt: string;
-  lastAttemptAt?: string;
-  lastSuccessAt?: string;
-  staleReason?: string;
 }
-
-export type ConfigScreenReadings = ReadonlyArray<ConfigReading>;
 
 /** Absolute paths are what the control plane allowlists; screens name a bare file. */
 export const CONFIG_DIRECTORY = '/etc/asterisk';
 
+/**
+ * The shape of a real Asterisk configuration filename: letters, digits, underscore, dash
+ * and dots, ending in `.conf`. Nothing else.
+ *
+ * Ending in `.conf` and carrying no path separator used to be the whole test, and two
+ * screens slipped a *display label* through it: `cdr.conf · cel.conf`, two filenames joined
+ * for the reader's benefit. It ends in `.conf`, it has no separator, so it was accepted and
+ * turned into a path that no target could ever have. The screen then read nothing, forever,
+ * and reported no error -- which is precisely the "one status reading" that looked like a
+ * thin feature and was actually a broken one.
+ *
+ * A name is refused here rather than at the transport, because a refusal at the transport
+ * arrives as a failed read of a plausible-looking path, and a refusal here says the
+ * declaration itself is wrong.
+ */
+const CONF_FILENAME = /^[a-z0-9][a-z0-9_.-]*\.conf$/iu;
+
 export function resourceForFile(file: unknown): string | undefined {
-  if (typeof file !== 'string' || !/^[a-z0-9_]+[.]conf$/iu.test(file)) return undefined;
-  /* A screen's declared file is a bare name by construction. Refusing anything with a
-   * separator keeps a malformed design entry from ever becoming a path. */
-  if (file.includes('/') || file.includes('\\') || file.includes('..')) return undefined;
-  const candidate = `${CONFIG_DIRECTORY}/${file}`;
-  return Object.values(CONFIGURATION_RESOURCES).some((descriptor) => descriptor.resource === candidate)
-    ? candidate
-    : undefined;
-}
-
-/** Screen resources come from the hand-written registry, never from display text. */
-export function resourcesForScreen(screen: string): ReadonlyArray<ConfigurationResourceDescriptor> {
-  return configurationResourcesForScreen(screen);
-}
-
-export function readingForResource(
-  readings: ConfigScreenReadings | undefined,
-  resource: string,
-): ConfigReading | undefined {
-  return readings?.find((reading) => reading.resource === resource);
+  if (typeof file !== 'string') return undefined;
+  /* Rejects a separator and a parent reference by construction: neither is in the set. It
+   * also rejects whitespace, which is what a compound display label always carries. */
+  if (!CONF_FILENAME.test(file)) return undefined;
+  if (file.includes('..')) return undefined;
+  return `${CONFIG_DIRECTORY}/${file}`;
 }
 
 /** Reads one value out of a parsed file: first match wins, as Asterisk itself reads. */
@@ -79,12 +71,6 @@ export function entryCount(value: ConfigValue | undefined): number {
   return (value ?? []).reduce((total, section) => total + section.entries.length, 0);
 }
 
-function isConfigScreenReadings(
-  reading: ConfigReading | ConfigScreenReadings,
-): reading is ConfigScreenReadings {
-  return Array.isArray(reading);
-}
-
 /**
  * A one-line summary a screen can show beside its controls.
  *
@@ -93,16 +79,10 @@ function isConfigScreenReadings(
  * mapped to a real key, and saying otherwise here would be the same untruth the
  * confirmation dialog used to tell.
  */
-export function configSummary(reading: ConfigReading | ConfigScreenReadings | undefined, connected: boolean): string {
+export function configSummary(reading: ConfigReading | undefined, connected: boolean): string {
   if (!connected) return 'No target is connected, so this file has not been read.';
   if (!reading) return 'Reading…';
-  if (isConfigScreenReadings(reading)) {
-    if (reading.length === 0) return 'No configuration resource is declared for this screen.';
-    return reading.map((item) => configSummary(item, connected)).join(' ');
-  }
   if (reading.state !== 'read') {
-    if (reading.state === 'missing') return reading.reason ?? `${reading.resource} is not present on this target.`;
-    if (reading.state === 'unparseable') return reading.reason ?? `${reading.resource} could not be parsed safely.`;
     return reading.reason ?? `${reading.resource} could not be read.`;
   }
   const sections = sectionNames(reading.value);

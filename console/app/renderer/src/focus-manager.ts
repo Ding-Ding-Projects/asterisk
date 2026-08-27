@@ -111,10 +111,10 @@ function elementPath(root: FocusRoot, target: Element): number[] {
   const path: number[] = [];
   let current: Node | null = target;
   while (current && current !== root) {
-    const parent = current.parentNode;
-    if (!parent || !('children' in parent)) return [];
-    path.unshift(Array.prototype.indexOf.call(parent.children, current) as number);
-    current = parent;
+    const ancestor: Node | null = current.parentNode;
+    if (!ancestor || !('children' in ancestor)) return [];
+    path.unshift(Array.prototype.indexOf.call(ancestor.children, current) as number);
+    current = ancestor;
   }
   return current === root ? path : [];
 }
@@ -173,9 +173,10 @@ const FOCUSABLE_SELECTOR = [
 
 /** Focus the first usable target in DOM order, optionally preferring an explicit element. */
 export function focusFirst(scope: FocusRoot, preferred?: HTMLElement | null): HTMLElement | null {
-  if (isProgrammaticallyFocusable(preferred ?? null)) {
-    preferred.focus({ preventScroll: true });
-    return preferred;
+  if (preferred && isProgrammaticallyFocusable(preferred)) {
+    const focusTarget: HTMLElement = preferred;
+    focusTarget.focus({ preventScroll: true });
+    return focusTarget;
   }
   const target = Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).find(isProgrammaticallyFocusable) ?? null;
   target?.focus({ preventScroll: true });

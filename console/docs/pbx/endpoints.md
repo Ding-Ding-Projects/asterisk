@@ -76,6 +76,30 @@ How many devices may share this identity and how often Asterisk pokes them.
 - **Registration expiry** (`e_expiry`) — a slider control, default `3600`.
 - **Allowed codecs** (`e_codecs`) — a order control, default `opus`, `g722`, `ulaw`, `alaw`.
 
+## What the table's Transport and Codecs columns read
+
+The two columns come from the endpoint's own parameter table, which Asterisk prints for
+`pjsip show endpoint <id>` and for nothing else. The plural `pjsip show endpoints` listing
+carries neither value, so the console runs one further read per endpoint.
+
+- **Transport** is the endpoint's configured `transport=`. An endpoint that sets none shows
+  `—`: transports are matched from the inbound connection unless one is pinned, so there is
+  genuinely no per-endpoint value to report. An endpoint pinned to a transport the target
+  does not have still shows the name it is pinned to, which is the case worth seeing — the
+  plural listing omits that row entirely and made the misconfiguration look like an
+  ordinary blank.
+- **Codecs** is the endpoint's configured `allow=` list, in Asterisk's own preference
+  order. An endpoint configured to allow nothing reads `none allowed`, which is a real
+  answer and not the same thing as never having looked.
+- When the parameter table could not be read for a particular endpoint, the column falls
+  back to the codec negotiated on a live channel and says so — `ulaw (in use)`. That is a
+  different reading: one codec on one call, rather than the list the endpoint offers. It is
+  labelled so the two can never be mistaken for each other.
+
+One view reads the parameter table for at most **100 endpoints**, six at a time, because
+each one is a separate command against the target. Anything past that shows `—` in both
+columns rather than a value nobody read.
+
 ## Failure modes and security
 
 Every row reflects a real object in pjsip.conf; nothing is invented to fill the table. Rows can fail to load, fail to save, or drift from the running configuration, and each of those is a distinct state rather than a blank screen. The transport must already exist as a section in pjsip.conf. Selecting TLS without a certificate configured means the endpoint simply never registers, with a message that does not obviously say so. Putting a desk phone in from-external is the classic toll-fraud opening. If a compromised phone lands in a context that can dial out, it will. With direct media you cannot record, cannot monitor, and mid-call transfers get fragile. Almost every deployment that needs features leaves it off. Combined with rewrite_contact it also fixes most NAT audio problems, which is why the pair is usually enabled together.

@@ -1,0 +1,1870 @@
+{
+  "generatedAt": "2026-08-25T23:43:47.777Z",
+  "side": "built",
+  "target": "console/dist built renderer under Electron on an off-screen Windows desktop",
+  "tuple": {
+    "state": "default",
+    "theme": "dark",
+    "width": 1440,
+    "height": 1000,
+    "scale": 1
+  },
+  "measurements": {
+    "dash": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "live": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "endpoints": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "trunks": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "trunkauth": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "canvas": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "ivr": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "queues": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "voicemail": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "confbridge": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "moh": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "codecs": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "cdr": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "ami": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "modules": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "logger": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "security": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "cli": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "memory": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "sync": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "skills": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "hub": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "vocab": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "ops": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "secrets": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "servers": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "arcade": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "notifications": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "history": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "customise": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "appearance": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    },
+    "about": {
+      "shell": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1000
+      },
+      "areas": {
+        "brandCell": {
+          "x": 0,
+          "y": 0,
+          "width": 161,
+          "height": 40
+        },
+        "menuCell": {
+          "x": 161,
+          "y": 0,
+          "width": 386,
+          "height": 40
+        },
+        "commandCell": {
+          "x": 546,
+          "y": 0,
+          "width": 525,
+          "height": 40
+        },
+        "statusCell": {
+          "x": 1072,
+          "y": 0,
+          "width": 368,
+          "height": 40
+        },
+        "tabStrip": {
+          "x": 0,
+          "y": 40,
+          "width": 1440,
+          "height": 38
+        },
+        "rail": {
+          "x": 0,
+          "y": 78,
+          "width": 88,
+          "height": 922
+        },
+        "sectionList": {
+          "x": 88,
+          "y": 78,
+          "width": 268,
+          "height": 922
+        },
+        "contentPane": {
+          "x": 356,
+          "y": 78,
+          "width": 1084,
+          "height": 922
+        }
+      }
+    }
+  }
+}

@@ -1,21 +1,33 @@
+<#
+.SYNOPSIS
+    Compiles Asterisk from this checkout in a container and exports the root filesystem.
+
+.DESCRIPTION
+    This is the fallback/compile producer of console/resources/asterisk-wsl-rootfs.tar.
+    It is what build-asterisk-wsl-bundle-from-image.ps1 falls back to when no published
+    image is available for the exact commit being built, and it is what CI's own
+    build-asterisk-runtime job still calls directly, because that job's entire purpose
+    is to do the one real compile a commit needs.
+
+    When DING_PBX_PUBLISH_ASTERISK_IMAGE=1 is set, this script also best-effort
+    publishes the image it just compiled - tagged and digest-pinned by the exact source
+    commit - so a later run (a contributor's machine, a re-run of this workflow, this
+    script's own sibling) can pull and export instead of recompiling. Publication never
+    fails this build: this script's job is to produce a correct rootfs, and a missing or
+    invalid registry credential is not a defect in the rootfs.
+#>
 [CmdletBinding()]
 param([switch]$Force)
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'asterisk-wsl-rootfs-common.ps1')
+
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
 $resourceRoot = Join-Path $repoRoot 'console\resources'
 $bundlePath = Join-Path $resourceRoot 'asterisk-wsl-rootfs.tar'
 $provenancePath = Join-Path $resourceRoot 'asterisk-wsl-rootfs.json'
 $dockerfile = Join-Path $PSScriptRoot 'asterisk-wsl-runtime.Dockerfile'
 $sourceCommit = (& git -C $repoRoot rev-parse HEAD).Trim()
-$baseDigest = 'sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517'
-
-function Get-Sha256([string]$Path) {
-    $stream = [System.IO.File]::OpenRead($Path)
-    $algorithm = [System.Security.Cryptography.SHA256]::Create()
-    try { return ([System.BitConverter]::ToString($algorithm.ComputeHash($stream))).Replace('-', '').ToLowerInvariant() }
-    finally { $algorithm.Dispose(); $stream.Dispose() }
-}
 
 if (-not $Force -and (Test-Path -LiteralPath $bundlePath) -and (Test-Path -LiteralPath $provenancePath)) {
     $existing = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
@@ -44,48 +56,28 @@ try {
     $containerCreated = $true
     docker export --output $temporary $container
     if ($LASTEXITCODE -ne 0) { throw "docker export exited $LASTEXITCODE" }
-    # Resolve tar explicitly rather than through PATH. GNU tar - which Git for Windows
-    # puts on PATH - reads a leading drive letter as an rsh host specification, so
-    # `tar -tf C:\path` tries to contact a machine called "C" and lists nothing:
-    #   /usr/bin/tar: Cannot connect to C: resolve failed
-    # It exits without a usable listing, every required-entry check then fails, and the
-    # error blames the rootfs for something that is wrong with the listing. Windows ships
-    # bsdtar at System32, which reads drive letters correctly.
-    # Only on Windows. This script also runs under PowerShell on Linux, where
-    # $env:SystemRoot is null - Join-Path then fails outright with "Cannot bind argument
-    # to parameter 'Path' because it is null", which is how this check first broke the
-    # build after being added to fix the Windows case. The drive-letter problem does not
-    # exist off Windows, so there tar on PATH is simply correct.
-    $tar = 'tar'
-    if ($env:SystemRoot) {
-        $windowsTar = Join-Path $env:SystemRoot 'System32\tar.exe'
-        if (Test-Path -LiteralPath $windowsTar) { $tar = $windowsTar }
-    }
-    $entries = @(& $tar -tf $temporary)
-    # A listing that came back empty is a broken listing, not an empty archive. Say which,
-    # or the next person spends an afternoon looking for a file that was always there.
-    if ($entries.Count -eq 0) {
-        throw "Listing the exported rootfs produced no entries using '$tar'. The archive is $((Get-Item -LiteralPath $temporary).Length) bytes, so this is a listing failure rather than an empty archive."
-    }
-    # docker export writes bare paths, but other producers prefix them with './'. Accept
-    # either rather than failing on a cosmetic difference in how the archive was written.
-    $normalised = [System.Collections.Generic.HashSet[string]]::new()
-    foreach ($entry in $entries) { [void]$normalised.Add(($entry -replace '^\./', '').TrimEnd('/')) }
-    foreach ($required in @('usr/sbin/asterisk','usr/share/ding-pbx/bundle-manifest.json','etc/wsl.conf','etc/systemd/system/asterisk.service')) {
-        if (-not $normalised.Contains($required)) { throw "Bundled rootfs is missing $required (listed $($entries.Count) entries)" }
-    }
-    if (-not ($entries | Where-Object { $_ -like 'usr/lib/asterisk/modules/*.so' } | Select-Object -First 1)) { throw 'Bundled rootfs contains no Asterisk modules.' }
+    $entries = Get-AsteriskRootfsTarEntries -Path $temporary
+    Test-AsteriskRootfsTarEntries -Entries $entries
     if (Test-Path -LiteralPath $bundlePath) { Remove-Item -LiteralPath $bundlePath -Force }
     Move-Item -LiteralPath $temporary -Destination $bundlePath
-    $file = Get-Item -LiteralPath $bundlePath
-    $provenance = [ordered]@{
-        schemaVersion = 1; sourceCommit = $sourceCommit; baseImage = 'ubuntu:24.04'; baseDigest = $baseDigest
-        runtime = 'wsl2-linux-amd64'; sha256 = Get-Sha256 $bundlePath; bytes = $file.Length
-        generatedAt = [DateTimeOffset]::UtcNow.ToString('o')
-        contents = @('complete Ubuntu root filesystem','Asterisk executable and modules','all apt-installed runtime libraries','systemd unit','WSL configuration','sample Asterisk configuration')
+
+    $publication = [ordered]@{ published = $false; ref = $null; digest = $null; reason = 'not-attempted' }
+    if ($env:DING_PBX_PUBLISH_ASTERISK_IMAGE -eq '1') {
+        $owner = Get-AsteriskImageRepositoryOwner -RepoRoot $repoRoot
+        $registry = Get-AsteriskImageRegistry
+        $target = Resolve-AsteriskImageReference -Registry $registry -Owner $owner -SourceCommit $sourceCommit
+        $publication = Publish-AsteriskRuntimeImage -LocalImage $image -TargetImage $target -RegistryHost $registry -User $env:DING_PBX_REGISTRY_USER -Token $env:DING_PBX_REGISTRY_TOKEN
     }
+
+    $provenance = New-AsteriskRootfsProvenance -SourceCommit $sourceCommit -BundlePath $bundlePath -SourceMethod 'compiled' -ImageRef $publication.ref -ImageDigest $publication.digest
     [System.IO.File]::WriteAllText($provenancePath, ($provenance | ConvertTo-Json -Depth 4), [System.Text.UTF8Encoding]::new($false))
-    Write-Host ("Created {0} ({1} bytes, sha256:{2})." -f $bundlePath,$file.Length,$provenance.sha256)
+    $file = Get-Item -LiteralPath $bundlePath
+    Write-Host ("Created {0} ({1} bytes, sha256:{2})." -f $bundlePath, $file.Length, $provenance.sha256)
+    if ($publication.published) {
+        Write-Host "Published the compiled image as $($publication.ref) ($($publication.digest))."
+    } elseif ($env:DING_PBX_PUBLISH_ASTERISK_IMAGE -eq '1') {
+        Write-Warning "Image publication was requested but did not succeed: $($publication.reason). The rootfs itself is still correct; provenance records it as compiled with no published image."
+    }
 } finally {
     if ($containerCreated) { docker rm --force $container | Out-Null }
     if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force }

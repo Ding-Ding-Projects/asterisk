@@ -6,6 +6,7 @@ import type { CommandRequest, CommandResult, ProcessExecutor } from "./executor.
 import { redactText } from "./redaction.js";
 import { atomicWriteFileSync } from "./atomic-file.js";
 import { FORGE_CONPTY_HELPER_SHA256, FORGE_GH_SHA256 } from "./generated-forge-digests.js";
+export { FORGE_CONPTY_HELPER_SHA256, FORGE_GH_SHA256 } from "./generated-forge-digests.js";
 
 export const FORGE_SCHEMA_VERSION = 1 as const;
 export const FORGE_PROVIDERS = ["github", "gitlab"] as const;

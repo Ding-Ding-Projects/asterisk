@@ -25,9 +25,27 @@ export interface SettingsSnapshotStore {
   write(snapshot: Record<string, string>): void;
 }
 
-export type SettingsWriteResult =
-  | { ok: true }
-  | { ok: false; code: 'SETTINGS_WRITE_FAILED' | 'SETTINGS_REMOVE_FAILED'; message: string };
+/**
+ * Parses a settings snapshot out of raw JSON text, tolerating anything that is not
+ * exactly the shape this store writes -- missing, truncated, or holding a non-string
+ * value -- by dropping the offending parts rather than throwing. Shared by every reader
+ * of `settings.json` (`dispatch.ts`'s `FileSettingsStore`, and any privileged code that
+ * only ever needs a one-off read, such as `editor-launch.ts`'s launch path) so there is
+ * exactly one place that decides what counts as a valid settings file.
+ */
+export function parseSettingsSnapshot(raw: string): Record<string, string> | undefined {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined;
+    const out: Record<string, string> = {};
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof value === 'string') out[key] = value;
+    }
+    return out;
+  } catch {
+    return undefined;
+  }
+}
 
 /** A store that keeps nothing -- the default for tests and any host with no persistent
  *  backing. Never a source of real data; it starts and stays empty. */
@@ -68,28 +86,14 @@ export class SettingsRegistry {
     return this.values.get(key);
   }
 
-  set(key: string, value: string): SettingsWriteResult {
-    const previous = new Map(this.values);
+  set(key: string, value: string): void {
     this.values.set(key, value);
-    try {
-      this.store.write(this.snapshot());
-      return { ok: true };
-    } catch (error) {
-      this.values = previous;
-      return { ok: false, code: 'SETTINGS_WRITE_FAILED', message: error instanceof Error ? error.message : 'Could not persist the setting.' };
-    }
+    this.store.write(this.snapshot());
   }
 
-  remove(key: string): SettingsWriteResult {
-    if (!this.values.has(key)) return { ok: true };
-    const previous = new Map(this.values);
+  remove(key: string): void {
+    if (!this.values.has(key)) return;
     this.values.delete(key);
-    try {
-      this.store.write(this.snapshot());
-      return { ok: true };
-    } catch (error) {
-      this.values = previous;
-      return { ok: false, code: 'SETTINGS_REMOVE_FAILED', message: error instanceof Error ? error.message : 'Could not remove the setting.' };
-    }
+    this.store.write(this.snapshot());
   }
 }

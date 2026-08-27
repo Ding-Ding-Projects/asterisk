@@ -302,7 +302,8 @@ async function renameWithRetry(source: string, destination: string, signal?: Abo
       return;
     } catch (error) {
       lastError = error;
-      if (!isNodeError(error) || !["EPERM", "EACCES", "EBUSY"].includes(error.code)) throw error;
+      const code = isNodeError(error) ? error.code : undefined;
+      if (code !== "EPERM" && code !== "EACCES" && code !== "EBUSY") throw error;
     }
   }
   throw lastError;

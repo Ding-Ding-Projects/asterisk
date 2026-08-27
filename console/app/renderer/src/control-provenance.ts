@@ -113,9 +113,6 @@ export function buildControlProvenance<TBinding extends ControlBindingContract>(
         value: draft.value,
         draftedAt: draft.updatedAt,
         observedAt: reading?.observedAt,
-        lastAttemptAt: reading?.lastAttemptAt,
-        lastSuccessAt: reading?.lastSuccessAt,
-        staleReason: reading?.staleReason,
         disabledReason: disabledReasonFor('local-draft', binding.writerCapability),
       };
       continue;
@@ -145,16 +142,11 @@ export function buildControlProvenance<TBinding extends ControlBindingContract>(
     }
 
     if (reading.state !== 'read') {
-      const state: ControlProvenanceState = reading.state === 'missing' ? 'missing'
-        : reading.state === 'unparseable' ? 'unparseable'
-          : 'unavailable';
+      const state: ControlProvenanceState = 'unavailable';
       result[control] = {
         ...common,
         state,
         observedAt: reading.observedAt,
-        lastAttemptAt: reading.lastAttemptAt,
-        lastSuccessAt: reading.lastSuccessAt,
-        staleReason: reading.staleReason,
         disabledReason: disabledReasonFor(state, binding.writerCapability, reading.reason),
       };
       continue;
@@ -167,9 +159,6 @@ export function buildControlProvenance<TBinding extends ControlBindingContract>(
         ...common,
         state: 'missing',
         observedAt: reading.observedAt,
-        lastAttemptAt: reading.lastAttemptAt,
-        lastSuccessAt: reading.lastSuccessAt,
-        staleReason: reading.staleReason,
         disabledReason: disabledReasonFor('missing', binding.writerCapability),
       };
       continue;
@@ -182,9 +171,6 @@ export function buildControlProvenance<TBinding extends ControlBindingContract>(
         state: 'unparseable',
         rawValue: entry.value,
         observedAt: reading.observedAt,
-        lastAttemptAt: reading.lastAttemptAt,
-        lastSuccessAt: reading.lastSuccessAt,
-        staleReason: reading.staleReason,
         disabledReason: disabledReasonFor('unparseable', binding.writerCapability),
       };
       continue;
@@ -196,9 +182,6 @@ export function buildControlProvenance<TBinding extends ControlBindingContract>(
       value: parsed,
       rawValue: entry.value,
       observedAt: reading.observedAt,
-      lastAttemptAt: reading.lastAttemptAt,
-      lastSuccessAt: reading.lastSuccessAt,
-      staleReason: reading.staleReason,
       disabledReason: disabledReasonFor('read', binding.writerCapability),
     };
   }

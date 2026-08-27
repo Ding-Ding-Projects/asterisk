@@ -4,6 +4,12 @@
 
 Every sync run, its attestation and its backup. A failed attestation blocks the next write until it is acknowledged here. It is backed by `agent-memory-sync`. The rail badge on this destination currently reads `ok`. It lives on the Agent rail, under the Agent global memory group: Memory, sync, skills, hub sessions and the emission guard.
 
+## What this screen reads
+
+Nothing, because there is nothing to synchronise: this console keeps no agent-memory corpus (see [Memory console](memory.md)). With no run to record there is no run history, no backup and no attestation, so the table is empty rather than listing runs that never happened.
+
+The schedule controls below are this console's own preferences and are stored locally. They describe no run, because there is none.
+
 ## Configuration
 
 ### Schedule

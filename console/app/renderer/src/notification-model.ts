@@ -47,7 +47,7 @@ export function validateNotificationInput(input: NotificationInput): string | un
       if (!action.retry.priorOperationId.trim() || !action.retry.operationType.trim() || !action.retry.idempotencyKey.trim()) {
         return `Retry action ${action.actionId} has an incomplete operation reference.`;
       }
-    } else {
+    } else if (action.kind === 'undo') {
       if (!action.undo.target.targetType.trim() || !action.undo.target.targetId.trim()) {
         return `Undo action ${action.actionId} has an incomplete target reference.`;
       }
@@ -273,7 +273,7 @@ export function notificationInputFromReceipt(receipt: OperationReceipt<unknown>)
     });
   }
   const title = invalidSuccessClaim
-    ? `${receipt.target.label} returned an invalid success receipt`
+    ? 'The operation returned an invalid success receipt'
     : receipt.outcome === 'succeeded'
       ? `${receipt.target.label} completed`
       : receipt.outcome === 'partial'

@@ -1,4 +1,4 @@
-import type { ControlPlaneAction } from './control-plane';
+import type { ControlPlaneAction } from './control-plane.js';
 
 export type ConfigurationParserId = 'asterisk-ini';
 

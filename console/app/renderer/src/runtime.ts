@@ -89,6 +89,20 @@ export function canRecoverRuntime(runtime: RuntimeStatus | undefined): boolean {
   return runtime?.status?.state === 'unusable';
 }
 
+/**
+ * Whether the managed distribution is registered at all, and so has something for
+ * `wsl.exe --terminate` to actually stop.
+ *
+ * Both a working runtime (`ready`) and one that is registered but not answering
+ * (`unusable`) qualify: terminating a WSL instance does not require Asterisk to be
+ * answering inside it, and a stuck instance is exactly the case someone most wants to
+ * be able to stop. Every other state has no distribution to terminate.
+ */
+export function canStopRuntime(runtime: RuntimeStatus | undefined): boolean {
+  const state = runtime?.status?.state;
+  return state === 'ready' || state === 'unusable';
+}
+
 /** A short label for the managed runtime, for a status line beside the target. */
 export function runtimeLabel(runtime: RuntimeStatus | undefined): string {
   const status = runtime?.status;

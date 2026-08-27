@@ -137,9 +137,16 @@ export class DownloadTransferManager implements DownloadTransferClient {
   }
 
   subscribeGlobal(listener: SnapshotListener): () => void { this.listeners.add(listener); return () => this.listeners.delete(listener); }
+  subscribe(transferId: string, listener: SnapshotListener): () => void {
+    const scoped: SnapshotListener = (snapshot) => { if (snapshot.transferId === transferId) listener(snapshot); };
+    this.listeners.add(scoped);
+    const current = this.snapshots.get(transferId);
+    if (current) listener(current);
+    return () => this.listeners.delete(scoped);
+  }
   setSecureTempHelperPath(path: string | undefined): void { this.secureTempHelperPath = path; }
   listHandoffs(): ExtensionDownloadHandoff[] { return [...this.handoffs.values()]; }
-  listPendingHandoffs(): ExtensionDownloadHandoff[] { return this.pendingQueue.map((handoffId) => this.handoffs.get(handoffId)).filter((handoff): handoff is ExtensionDownloadHandoff => Boolean(handoff) && !this.getLatestSnapshot(handoff.handoffId)); }
+  listPendingHandoffs(): ExtensionDownloadHandoff[] { return this.pendingQueue.map((handoffId) => this.handoffs.get(handoffId)).filter((handoff): handoff is ExtensionDownloadHandoff => handoff !== undefined && !this.getLatestSnapshot(handoff.handoffId)); }
   nextPendingHandoff(): ExtensionDownloadHandoff | undefined { return this.listPendingHandoffs()[0]; }
   getSnapshot(transferId: string): DownloadTransferSnapshot | undefined { return this.snapshots.get(transferId); }
   getLatestSnapshot(handoffId?: string): DownloadTransferSnapshot | undefined { return [...this.snapshots.values()].filter(snapshot => !handoffId || snapshot.handoffId === handoffId).at(-1); }
@@ -216,7 +223,8 @@ export class DownloadTransferManager implements DownloadTransferClient {
 
   async start(handoff: ExtensionDownloadHandoff): Promise<DownloadTransferReceipt> {
     const at = observedAt();
-    if (!isExtensionDownloadHandoff(handoff)) return this.receipt('start', handoff?.handoffId ?? '', false, at, 'DOWNLOAD_HANDOFF_INVALID', 'The extension handoff failed its bounded validation.');
+    const candidate: unknown = handoff;
+    if (!isExtensionDownloadHandoff(candidate)) return this.receipt('start', '', false, at, 'DOWNLOAD_HANDOFF_INVALID', 'The extension handoff failed its bounded validation.');
     const recorded = this.handoffs.get(handoff.handoffId);
     if (!recorded) return this.receipt('start', handoff.handoffId, false, at, 'DOWNLOAD_HANDOFF_NOT_FOUND', 'The extension handoff was not recorded by the privileged boundary.');
     if (!sameHandoff(recorded, handoff)) return this.receipt('start', handoff.handoffId, false, at, 'DOWNLOAD_HANDOFF_MISMATCH', 'The transfer request does not match the originally recorded extension handoff.');

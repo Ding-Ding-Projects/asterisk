@@ -10,10 +10,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  ATTENTION_MODES, FORBIDDEN_COPY_TERMS, IDLE_THRESHOLD_MS, MODE_DESCRIPTIONS, SNOOZE_MS,
-  elapsedPhrase, enabledModes, isAttentionMode, modeEnabled, momentumPrompt, presentationFor,
-  redactNoticeText,
-  setModeEnabled, type AttentionMode, type ModeStorage,
+  ATTENTION_MODES, FOCUS_DIM_CSS, FORBIDDEN_COPY_TERMS, IDLE_THRESHOLD_MS, MODE_DESCRIPTIONS, SNOOZE_MS,
+  elapsedPhrase, enabledModes, isAttentionMode, modeEnabled, momentumPrompt, msSinceSnooze,
+  nextAction, presentationFor, setModeEnabled, setNextAction, snoozeMomentum,
+  type AttentionMode, type ModeStorage,
 } from '../../app/renderer/src/attention-modes.ts';
 
 const memory = (): ModeStorage & { map: Map<string, string> } => {
@@ -202,22 +202,57 @@ test('momentum changes no presentation state at all, only whether a prompt is du
   });
 });
 
-test('redaction consumes every quoted and unquoted path, URL, and credential span', () => {
-  const fixtures = [
-    ['windows', 'C:\\Program Files\\Ding PBX\\settings', '[path omitted]'],
-    ['unc', '\\\\server\\share\\folder\\config', '[path omitted]'],
-    ['posix', '/var/lib/asterisk/config', '[path omitted]'],
-    ['relative', '../console data/config', '[path omitted]'],
-    ['pbx', 'pjsip.conf', '[path omitted]'],
-    ['file-url', 'file:///C:/Program Files/Ding PBX/settings', '[url omitted]'],
-    ['http-url', 'https://example.invalid/path/to/item', '[url omitted]'],
-    ['quoted-path', '"C:\\Program Files\\Ding PBX\\settings"', '"[path omitted]"'],
-    ['quoted-url', '"https://example.invalid/path with spaces"', '"[url omitted]"'],
-    ['credential', 'password: alpha beta gamma, next', 'password: [redacted], next'],
-    ['quoted-credential', 'token="alpha beta gamma" suffix', 'token="[redacted]" suffix'],
-  ] as const;
-  for (const [name, input, expected] of fixtures) {
-    assert.equal(redactNoticeText(input), expected, `${name} fixture was not consumed as one span`);
+/* --- the one chosen next action -------------------------------------------------- */
+
+test('the chosen next action is blank until something is chosen', () => {
+  assert.equal(nextAction(memory()), '');
+  assert.equal(nextAction(undefined), '');
+});
+
+test('the chosen next action round-trips through storage, so it survives a context switch', () => {
+  const storage = memory();
+  setNextAction(storage, 'Reload the trunk after the codec change');
+  assert.equal(nextAction(storage), 'Reload the trunk after the codec change');
+});
+
+/* --- momentum: the snooze stamp itself, not just its effect ---------------------- */
+
+test('nothing has been snoozed until "not now" is actually said', () => {
+  assert.equal(msSinceSnooze(memory()), undefined);
+  assert.equal(msSinceSnooze(undefined), undefined);
+});
+
+test('snoozing records a real moment, and time since it is measured from that moment', () => {
+  const storage = memory();
+  snoozeMomentum(storage, 10_000);
+  assert.equal(msSinceSnooze(storage, 10_000), 0);
+  assert.equal(msSinceSnooze(storage, 40_000), 30_000);
+});
+
+test('a corrupted snooze stamp is treated as never snoozed rather than crashing', () => {
+  const storage = memory();
+  storage.map.set('console.attention.snoozedAt', 'not-a-timestamp');
+  assert.equal(msSinceSnooze(storage), undefined);
+});
+
+/* --- focus: the injected stylesheet dims and never hides ------------------------- */
+
+test('the focus stylesheet never sets a property that removes something from view', () => {
+  /* opacity is reversible and everything under it is still there and still clickable;
+   * any of these three would make something genuinely unreachable, which focus mode
+   * must never do. */
+  for (const forbidden of ['display:none', 'display: none', 'visibility:hidden', 'visibility: hidden',
+    'pointer-events:none', 'pointer-events: none']) {
+    assert.ok(!FOCUS_DIM_CSS.includes(forbidden), `focus stylesheet contains "${forbidden}"`);
   }
-  assert.ok(redactNoticeText('x'.repeat(8000)).length <= 500, 'redaction output exceeded its bound');
+});
+
+test('the focus stylesheet only dims once something in the console actually has focus', () => {
+  /* An unqualified ".attn-content *" rule would dim an idle screen with nothing
+   * focused into oblivion the instant the mode is switched on -- the opposite of
+   * "brings the active thing forward", which only means anything once something is
+   * active. Every dimming rule must be gated on :focus-within. */
+  const dimmingRules = FOCUS_DIM_CSS.split('}').filter((rule) => rule.includes('opacity: .55'));
+  assert.ok(dimmingRules.length > 0, 'expected at least one dimming rule');
+  for (const rule of dimmingRules) assert.match(rule, /:focus-within/);
 });

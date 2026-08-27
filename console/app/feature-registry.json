@@ -4,11 +4,17 @@
   "canonicalMatrix": "console/inventories/surface-completeness.json",
   "features": {
     "language-modes": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/text-boundary.ts",
+            "name": "setLanguageMode",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -75,11 +81,17 @@
       }
     },
     "funny-levels": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/funny-levels.ts",
+            "name": "setFunnyLevel",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -146,11 +158,17 @@
       }
     },
     "dialog-emojis": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/dialog-emojis.ts",
+            "name": "setEmojisEnabled",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -217,11 +235,17 @@
       }
     },
     "school-mode": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/school-mode.ts",
+            "name": "activateSchoolMode",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -289,7 +313,7 @@
     },
     "narration": {
       "status": "partial",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [
@@ -370,11 +394,17 @@
       }
     },
     "scheduled-settings": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/scheduled-settings.ts",
+            "name": "loadRules",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -441,11 +471,17 @@
       }
     },
     "external-settings-sources": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/external-settings-sources.ts",
+            "name": "applyResponse",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -512,11 +548,17 @@
       }
     },
     "dim-sum-surprise": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/DimSumSurprise.tsx",
+            "name": "DimSumSurprise",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -584,7 +626,7 @@
     },
     "regex-builder": {
       "status": "partial",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [
@@ -661,7 +703,7 @@
     },
     "non-blocking-notifications": {
       "status": "partial",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [
@@ -748,11 +790,20 @@
       }
     },
     "status-hub": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "The desktop Status hub screen records only this window's observed configuration reads. App.tsx builds a bounded SessionReport from real config readings, validates it, stores the explicitly constructed payload in memory, re-renders the table, and tells the user that nothing was sent anywhere. The record is deliberately volatile and this local-only path has no authenticated Hub transport, registration receipt, reply delivery, built-artifact interaction, or capture evidence.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": [
+          "app/renderer/src/App.tsx",
+          "app/renderer/src/status-hub-client.ts"
+        ],
+        "symbols": [
+          {
+            "path": "app/renderer/src/status-hub-client.ts",
+            "name": "buildPayload",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -820,7 +871,7 @@
     },
     "material-appearance": {
       "status": "partial",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [
@@ -901,11 +952,17 @@
       }
     },
     "app-logo-customization": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/logo-customization.ts",
+            "name": "acceptLogo",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -1151,7 +1208,7 @@
     },
     "browser-style-tabs": {
       "status": "implemented-unverified",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [
@@ -1239,7 +1296,7 @@
     },
     "tab-groups-and-searches": {
       "status": "partial",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [
@@ -1322,7 +1379,7 @@
     },
     "command-palette": {
       "status": "partial",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [
@@ -1404,7 +1461,7 @@
     },
     "destructive-action-confirmation": {
       "status": "implemented-unverified",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [
@@ -1491,11 +1548,17 @@
       }
     },
     "local-version-history": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/local-history-screen.ts",
+            "name": "registerLocalHistoryScreen",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -1563,7 +1626,7 @@
     },
     "changelog-viewer": {
       "status": "partial",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [
@@ -1650,11 +1713,17 @@
       }
     },
     "external-editor-handoff": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "control-plane/editor-launch.ts",
+            "name": "detectInstalledEditors",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -1722,7 +1791,7 @@
     },
     "complete-exports": {
       "status": "partial",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [
@@ -1799,7 +1868,7 @@
     },
     "bulk-actions": {
       "status": "partial",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [
@@ -1886,11 +1955,17 @@
       }
     },
     "accessibility": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/accessibility-contract.ts",
+            "name": "meetsTargetSize",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -1958,10 +2033,16 @@
     },
     "responsive-sizing": {
       "status": "partial",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/runtime.ts",
+            "name": "runtimeHint",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -2029,7 +2110,7 @@
     },
     "personal-vocabulary-upload": {
       "status": "partial",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [
@@ -2117,7 +2198,7 @@
     },
     "per-element-toy-locks": {
       "status": "partial",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [
@@ -2199,11 +2280,17 @@
       }
     },
     "support-tickets": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/support-tickets.ts",
+            "name": "openTicket",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -2271,7 +2358,7 @@
     },
     "unlock-ladder": {
       "status": "partial",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [
@@ -2348,7 +2435,7 @@
     },
     "built-in-authenticator": {
       "status": "partial",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [
@@ -2430,10 +2517,16 @@
     },
     "attention-modes": {
       "status": "implemented-unverified",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/attention-modes.ts",
+            "name": "setModeEnabled",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -2500,11 +2593,17 @@
       }
     },
     "browser-extension-download-surfaces": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/download-progress-surface.tsx",
+            "name": "DownloadProgressSurface",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -2572,7 +2671,7 @@
     },
     "offline-documentation-browser": {
       "status": "partial",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [
@@ -2659,11 +2758,17 @@
       }
     },
     "app-display-name": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/display-name.ts",
+            "name": "displayName",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -2731,7 +2836,7 @@
     },
     "guided-forms": {
       "status": "partial",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [
@@ -2813,11 +2918,17 @@
       }
     },
     "bounded-overlays": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/bounded-overlays.ts",
+            "name": "computeOverlayPlacement",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -2884,11 +2995,17 @@
       }
     },
     "context-menu-shortcuts": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/menu-shortcuts.ts",
+            "name": "formatBinding",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -2955,11 +3072,17 @@
       }
     },
     "long-operation-progress": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/long-operation-progress.ts",
+            "name": "createOperation",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -3026,11 +3149,17 @@
       }
     },
     "in-context-recovery": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/in-context-recovery.ts",
+            "name": "recoveryFor",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -3098,7 +3227,7 @@
     },
     "provider-markup-rendering": {
       "status": "partial",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [
@@ -3181,7 +3310,7 @@
     },
     "forge-publishing": {
       "status": "implemented-unverified",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [
@@ -3192,8 +3321,8 @@
           },
           {
             "path": "app/renderer/src/App.tsx",
-            "name": "forgeLoad",
-            "kind": "method"
+            "name": "App",
+            "kind": "class"
           }
         ]
       },
@@ -3273,11 +3402,17 @@
       }
     },
     "collapsible-filters": {
-      "status": "absent",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "status": "partial",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "app/renderer/src/collapsible-filters.ts",
+            "name": "collapsiblePanelState",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
         "paths": [],
@@ -3345,7 +3480,7 @@
     },
     "automatic-updates": {
       "status": "implemented-unverified",
-      "note": "No implementation is recorded for this canonical requirement.",
+      "note": "Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.",
       "implementation": {
         "paths": [],
         "symbols": [

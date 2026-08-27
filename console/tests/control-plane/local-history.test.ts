@@ -305,3 +305,112 @@ test("negative regression: no command this class issues ever rewrites history", 
     cleanup(dir);
   }
 });
+
+test("branch reads the real HEAD ref, even before the first commit", async () => {
+  const { dir, history } = makeHistory();
+  try {
+    await history.initialize();
+    const branch = await history.branch();
+    // Whatever the local git default is (master or main), it must be a real,
+    // non-empty ref name -- never a guessed literal.
+    assert.ok(branch.length > 0);
+    assert.doesNotMatch(branch, /\s/u, "a branch name must not contain whitespace");
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("diff reports the real file and the real +/- lines for the first commit", async () => {
+  const { dir, history } = makeHistory();
+  try {
+    await history.initialize();
+    const commit = await history.record({ action: "created", payload: { a: 1 }, subject: "record one" });
+    const diff = await history.diff(commit.id);
+    assert.deepEqual(diff.files, ["records/record-one.json"]);
+    const additions = diff.lines.filter((line) => line.sign === "+").map((line) => line.text);
+    assert.ok(additions.some((line) => line.includes('"a": 1')), `expected an added line with the real payload, got ${JSON.stringify(diff.lines)}`);
+    assert.ok(diff.lines.every((line) => line.sign !== "-"), "a root commit has nothing to delete");
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("diff reports both the removed and the added line across an edit", async () => {
+  const { dir, history } = makeHistory();
+  try {
+    await history.initialize();
+    await history.record({ action: "created", payload: { a: 1 }, subject: "record one" });
+    const second = await history.record({ action: "updated", payload: { a: 2 }, subject: "record one" });
+    const diff = await history.diff(second.id);
+    assert.deepEqual(diff.files, ["records/record-one.json"]);
+    assert.ok(diff.lines.some((line) => line.sign === "-" && line.text.includes('"a": 1')));
+    assert.ok(diff.lines.some((line) => line.sign === "+" && line.text.includes('"a": 2')));
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("diff of a bad commit id is refused before any command runs", async () => {
+  const { dir, executor, history } = makeHistory();
+  try {
+    await assert.rejects(() => history.diff("not-a-real-commit-id"), /not a 40-character commit id/u);
+    assert.equal(executor.calls.length, 0, "it ran a command for a commit id it should have refused");
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("compareFiles reports the real file two arbitrary commits differ on", async () => {
+  const { dir, history } = makeHistory();
+  try {
+    await history.initialize();
+    const first = await history.record({ action: "created", payload: { a: 1 }, subject: "record one" });
+    const second = await history.record({ action: "updated", payload: { a: 2 }, subject: "record one" });
+    const files = await history.compareFiles(first.id, second.id);
+    assert.deepEqual(files, ["records/record-one.json"]);
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("compareFiles also reports a file that only exists on one side, real tree-to-tree behaviour and not a guess", async () => {
+  const { dir, history } = makeHistory();
+  try {
+    await history.initialize();
+    const first = await history.record({ action: "created", payload: { a: 1 }, subject: "record one" });
+    await history.record({ action: "created", payload: { z: 9 }, subject: "record two" });
+    const third = await history.record({ action: "updated", payload: { a: 2 }, subject: "record one" });
+    // record-two.json exists on the "third" side and not on the "first" side, so a
+    // real tree-to-tree `git diff` reports it as differing too -- not merely the file
+    // that was edited between them.
+    const files = await history.compareFiles(first.id, third.id);
+    assert.deepEqual(files, ["records/record-one.json", "records/record-two.json"]);
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("compareFiles of two identical commits reports no differing files", async () => {
+  const { dir, history } = makeHistory();
+  try {
+    await history.initialize();
+    const commit = await history.record({ action: "created", payload: { a: 1 }, subject: "record one" });
+    const files = await history.compareFiles(commit.id, commit.id);
+    assert.deepEqual(files, []);
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("compareFiles of a bad commit id is refused before any command runs", async () => {
+  const { dir, executor, history } = makeHistory();
+  try {
+    await history.initialize();
+    const commit = await history.record({ action: "created", payload: { a: 1 }, subject: "record one" });
+    executor.calls.length = 0;
+    await assert.rejects(() => history.compareFiles(commit.id, "not-a-real-commit-id"), /not a 40-character commit id/u);
+    assert.equal(executor.calls.length, 0, "it ran a command for a commit id it should have refused");
+  } finally {
+    cleanup(dir);
+  }
+});

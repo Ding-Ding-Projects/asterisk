@@ -140,7 +140,31 @@ export function validateFeatureRegistry(data, { surface, root, currentCommit } =
 
 const destinationIds = ['dash', 'live', 'endpoints', 'trunks', 'trunkauth', 'canvas', 'ivr', 'queues', 'voicemail', 'confbridge', 'moh', 'codecs', 'cdr', 'ami', 'modules', 'logger', 'security', 'cli', 'memory', 'sync', 'skills', 'hub', 'vocab', 'ops', 'secrets', 'servers', 'arcade', 'notifications', 'history', 'customise', 'appearance', 'about'];
 const transientStates = ['appearOpen', 'ceremonyOpen', 'ctxOpen', 'infoOpen', 'lockOpen', 'onboardOpen', 'paletteOpen', 'regexOpen', 'renameOpen', 'subOpen', 'sureOpen', 'tabColourOpen', 'tabFilterOpen', 'toastOpen', 'tourOpen', 'unlockOpen', 'wizardOpen'];
-const parityTemplateKeys = ['referenceRoute', 'builtRoute', 'referenceCapture', 'builtCapture', 'sideBySide', 'visualDiff', 'materialAudit'];
+// This is deliberately hand-written rather than inferred from the inventory. A template that
+// disappears from both the JSON and a discovery-based validator would otherwise disappear from
+// the Chut with it. Region-ledger and chrome-parity records are independent evidence artifacts,
+// so both belong in the exact nine-key contract.
+const parityTemplateKeys = ['referenceRoute', 'builtRoute', 'referenceCapture', 'builtCapture', 'sideBySide', 'visualDiff', 'regionLedger', 'chromeParity', 'materialAudit'];
+// This is an evidence claim, not a free-form note. Keep the exact hand-written schema and
+// values here so removing a field from the JSON cannot also remove it from the contract.
+const compiledEvidenceFields = ['method', 'test', 'coverage'];
+const compiledEvidenceExpected = {
+  method: 'compile-then-render: console/scripts/compile-design.mjs compiles design/Asterisk Console M3.dc.html and design/M3 Control.dc.html into app/renderer/src/generated/{console.tsx,m3-control.tsx,design-styles.css,design-manifest.json}, which console/app/renderer/src/App.tsx subclasses directly rather than a hand-matched reimplementation.',
+  test: 'console/tests/ui/design-parity.test.tsx',
+  coverage: 'Renders all 32 destinations from the generated design model and asserts each one\'s design title, description, owning source file (Expert mode), its control groups (including the design M3 control\'s slider/stepper/order affordances), Beginner-mode plain wording, and all 17 transient-state overlay families.',
+};
+// The chrome bar is an explicit human judgement about every shell region. Neither its areas
+// nor their roles may be inferred from a capture, because a missing region would then vanish
+// from the very comparison that is supposed to notice it.
+const chromeParityBarFields = ['what', 'tolerance', 'whyToleranceIsZero', 'minimumComparedFraction', 'whyThereIsAMinimum', 'howRegionsAreObtained', 'howExclusionsCombine', 'areaRoleJudgement', 'areas'];
+const chromeParityAreaRoles = {
+  brandCell: 'chrome', menuCell: 'chrome', commandCell: 'data', statusCell: 'chrome',
+  tabStrip: 'chrome', rail: 'chrome', sectionList: 'chrome', contentPane: 'data',
+};
+// Each audited destination is a durable record, not a three-column rail listing. These
+// explicit fields preserve the capture tuple's final routes and the actual built capture that
+// belongs to the row, so a generator or later verifier has no permission to infer them anew.
+const destinationRecordFields = ['rail', 'id', 'status', 'referenceRoute', 'builtRoute', 'builtCapture'];
 const exactRails = { pbx: 8, media: 4, data: 2, system: 4, agent: 7, app: 7 };
 const exactBindings = { total: 265, click: 212, change: 10, input: 10, contextmenu: 9, dragstart: 4, dragover: 4, drop: 4, dragend: 4, mousedown: 5, mouseenter: 1, mouseleave: 1, mouseup: 1 };
 
@@ -149,6 +173,23 @@ export function validateParityInventory(data, { allowUnverified = false } = {}) 
   if (data.sourceArchive?.sha256 !== '9A4284745A745C18A18B0A23D2A2F5851A79F9B6EFCBC5EE30EDCD69CEA2863F') throw new Error('design parity inventory: source archive SHA-256 drift');
   if (data.sourceArchive?.verification !== 'independent-authoritative-audit') throw new Error('design parity inventory: source verification label drift');
   exactKeys(data.evidenceTemplates, parityTemplateKeys, 'design parity evidenceTemplates');
+  exactKeys(data.compiledEvidence, compiledEvidenceFields, 'design parity compiledEvidence');
+  for (const field of compiledEvidenceFields) {
+    if (data.compiledEvidence[field] !== compiledEvidenceExpected[field]) throw new Error(`design parity compiledEvidence.${field} drift`);
+  }
+  exactKeys(data.chromeParityBar, chromeParityBarFields, 'design parity chromeParityBar');
+  if (data.chromeParityBar.tolerance !== 0) throw new Error('design parity chromeParityBar tolerance must remain exact zero');
+  if (data.chromeParityBar.minimumComparedFraction !== 0.25) throw new Error('design parity chromeParityBar compared-fraction floor drift');
+  for (const field of ['what', 'whyToleranceIsZero', 'whyThereIsAMinimum', 'howRegionsAreObtained', 'howExclusionsCombine', 'areaRoleJudgement']) {
+    if (typeof data.chromeParityBar[field] !== 'string' || data.chromeParityBar[field].length === 0) throw new Error(`design parity chromeParityBar.${field} must be non-empty`);
+  }
+  exactSet(Object.keys(data.chromeParityBar.areas ?? {}), Object.keys(chromeParityAreaRoles), 'design parity chrome area identifiers');
+  for (const [area, role] of Object.entries(chromeParityAreaRoles)) {
+    const declaration = data.chromeParityBar.areas[area];
+    exactKeys(declaration, ['role', 'why'], `design parity chrome area '${area}'`);
+    if (declaration.role !== role) throw new Error(`design parity chrome area '${area}' role drift`);
+    if (typeof declaration.why !== 'string' || declaration.why.length === 0) throw new Error(`design parity chrome area '${area}' rationale must be non-empty`);
+  }
   if (data.auditBaseline?.destinationCount !== 32) throw new Error('design parity inventory: destination count must be 32');
   exactSet(Object.keys(data.auditBaseline?.railCounts ?? {}), Object.keys(exactRails), 'rail identifiers');
   for (const [rail, count] of Object.entries(exactRails)) if (data.auditBaseline.railCounts[rail] !== count) throw new Error(`design parity inventory: rail '${rail}' count drift`);
@@ -159,7 +200,15 @@ export function validateParityInventory(data, { allowUnverified = false } = {}) 
   if (data.auditBaseline.distinctExpressionCount !== 168 || data.auditBaseline.controlCount !== 479 || data.auditBaseline.transientStateFamilyCount !== 17) throw new Error('design parity inventory: audit baseline drift');
   if (!Array.isArray(data.destinations)) throw new Error('design parity inventory: destinations array required');
   exactSet(data.destinations.map((destination) => destination.id), destinationIds, 'destination identifiers');
-  for (const destination of data.destinations) { exactKeys(destination, ['rail', 'id', 'status'], `destination ${destination.id} fields`); if (!(destination.rail in exactRails)) throw new Error(`destination ${destination.id}: invalid rail`); if (!['verified', 'compiled', 'unverified'].includes(destination.status)) throw new Error(`destination ${destination.id}: invalid status`); if (!allowUnverified && destination.status !== 'verified') throw new Error(`destination ${destination.id}: evidence remains ${destination.status}`); }
+  for (const destination of data.destinations) {
+    exactKeys(destination, destinationRecordFields, `destination ${destination.id} fields`);
+    if (!(destination.rail in exactRails)) throw new Error(`destination ${destination.id}: invalid rail`);
+    if (!['verified', 'compiled', 'unverified'].includes(destination.status)) throw new Error(`destination ${destination.id}: invalid status`);
+    for (const field of ['referenceRoute', 'builtRoute', 'builtCapture']) {
+      if (typeof destination[field] !== 'string' || destination[field].length === 0) throw new Error(`destination ${destination.id}: ${field} must be a non-empty string`);
+    }
+    if (!allowUnverified && destination.status !== 'verified') throw new Error(`destination ${destination.id}: evidence remains ${destination.status}`);
+  }
   exactSet(data.transientStateFamilies ?? [], transientStates, 'transient-state identifiers');
   return { destinations: data.destinations.length, transientStates: data.transientStateFamilies.length };
 }

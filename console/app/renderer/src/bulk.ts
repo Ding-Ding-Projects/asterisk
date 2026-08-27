@@ -437,3 +437,33 @@ export async function undoBulkAction<T extends SelectionItem>(
   }
   return { status: 'complete', outcomes };
 }
+
+// --------------------------------------------------------------- bulk delete ceremony
+
+/**
+ * Recovers the selected ids from the confirmation ceremony the bulk "Delete" action
+ * opens, so a confirmed delete can be routed back into `planBulk`/`summarise` instead
+ * of sending a raw command straight to the target.
+ *
+ * The bulk Delete button (see App.tsx's `bulkActions`) opens its ceremony with an exact
+ * title/command pair -- `Delete ${sel.length} objects` / `delete ${sel.join(' ')}` -- so
+ * this recognises that exact shape and nothing else. A single row's own "Delete <name>"
+ * ceremony (opened from a row's context menu, gated by `areYouSure` instead) uses a
+ * title with no " objects" suffix and must never match here: the two go through
+ * separate confirmation gates and this must not blur them together. Requiring the id
+ * count parsed from the command to equal the count parsed from the title is the extra
+ * check that keeps a coincidental "Delete <n> objects" title from a completely
+ * unrelated ceremony from being treated as a bulk delete.
+ */
+export function parseBulkDeleteCeremony(title: string, command: string): string[] | undefined {
+  const titleMatch = /^Delete (\d+) objects$/.exec(title);
+  if (!titleMatch) return undefined;
+  const expectedCount = Number(titleMatch[1]);
+
+  const commandMatch = /^delete (.+)$/.exec(command);
+  if (!commandMatch) return undefined;
+  const ids = commandMatch[1].split(' ').filter((id) => id.length > 0);
+
+  if (ids.length !== expectedCount) return undefined;
+  return ids;
+}

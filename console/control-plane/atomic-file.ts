@@ -18,6 +18,7 @@
  * rather than a bare `writeFileSync`.
  */
 import { writeFileSync, renameSync, mkdirSync, unlinkSync } from 'node:fs';
+import { unlink } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 const TRANSIENT_CODES = new Set(['EPERM', 'EACCES', 'EBUSY']);

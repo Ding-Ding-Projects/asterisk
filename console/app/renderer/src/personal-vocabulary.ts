@@ -146,6 +146,56 @@ function exactKeys(value: Record<string, unknown>, allowed: readonly string[], p
   return undefined;
 }
 
+function hasOwn(value: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+/**
+ * Normalize the three documented input representations to the one canonical cached
+ * representation. Version and source aliases are mutually exclusive: accepting a
+ * mixture would make the file's meaning depend on precedence rather than its data.
+ */
+function normalizeVocabularyRoot(root: Record<string, unknown>): ValidationResult | ValidationFailed {
+  const hasVersion = hasOwn(root, 'version');
+  const hasSchemaVersion = hasOwn(root, 'schemaVersion');
+  if (hasVersion === hasSchemaVersion) {
+    return { ok: false, reason: 'Rejected: declare exactly one of "version" or "schemaVersion".' };
+  }
+  const versionKey = hasVersion ? 'version' : 'schemaVersion';
+  if (root[versionKey] !== SCHEMA_VERSION) {
+    return { ok: false, reason: `Rejected: expected schema version ${SCHEMA_VERSION}, but found ${JSON.stringify(root[versionKey])}.` };
+  }
+
+  const hasReplacements = hasOwn(root, 'replacements');
+  const hasTerms = hasOwn(root, 'terms');
+  if (hasReplacements === hasTerms) {
+    return { ok: false, reason: 'Rejected: declare exactly one of "replacements" or "terms".' };
+  }
+  const sourceKey = hasReplacements ? 'replacements' : 'terms';
+  const rootIssue = exactKeys(root, [versionKey, sourceKey], 'The top level');
+  if (rootIssue) return { ok: false, reason: `Rejected: ${rootIssue}` };
+
+  const source = root[sourceKey];
+  if (Array.isArray(source)) {
+    if (sourceKey === 'terms') {
+      return { ok: false, reason: 'Rejected: "terms" must be an object map of source strings to replacement strings.' };
+    }
+    return { ok: true, file: { version: SCHEMA_VERSION, replacements: source as Replacement[] } };
+  }
+  if (source === null || typeof source !== 'object') {
+    return { ok: false, reason: `Rejected: "${sourceKey}" must be an array of {"from","to"} objects or an object map of source strings to replacement strings.` };
+  }
+  const map = source as Record<string, unknown>;
+  const replacements: Replacement[] = [];
+  for (const from of Object.keys(map)) {
+    if (UNSAFE_KEYS.has(from)) {
+      return { ok: false, reason: `Rejected: "${sourceKey}" contains unsafe source term ${JSON.stringify(from)}.` };
+    }
+    replacements.push({ from, to: map[from] as string });
+  }
+  return { ok: true, file: { version: SCHEMA_VERSION, replacements } };
+}
+
 /** Validate the complete byte payload against one canonical versioned schema. */
 export function validateVocabularyPayload(rawText: string): ValidationResult {
   const byteLength = new TextEncoder().encode(rawText).length;
@@ -165,34 +215,34 @@ export function validateVocabularyPayload(rawText: string): ValidationResult {
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
     return { ok: false, reason: 'Rejected: the top level must be a JSON object.' };
   }
-  const root = parsed as Record<string, unknown>;
-  const rootIssue = exactKeys(root, ['version', 'replacements'], 'The top level');
-  if (rootIssue) return { ok: false, reason: `Rejected: ${rootIssue}` };
-  if (root.version !== SCHEMA_VERSION) {
-    return { ok: false, reason: `Rejected: expected schema version ${SCHEMA_VERSION}, but found ${JSON.stringify(root.version)}.` };
-  }
-  if (!Array.isArray(root.replacements)) {
-    return { ok: false, reason: 'Rejected: "replacements" must be an array of {"from","to"} objects.' };
-  }
-  if (root.replacements.length === 0 || root.replacements.length > MAX_REPLACEMENTS) {
+  const normalized = normalizeVocabularyRoot(parsed as Record<string, unknown>);
+  if (!normalized.ok) return normalized;
+  const rawReplacements = normalized.file.replacements;
+  if (rawReplacements.length === 0 || rawReplacements.length > MAX_REPLACEMENTS) {
     return { ok: false, reason: `Rejected: "replacements" must contain 1 to ${MAX_REPLACEMENTS} entries.` };
   }
 
   const replacements: Replacement[] = [];
   const seen = new Set<string>();
-  for (let index = 0; index < root.replacements.length; index += 1) {
-    const item = root.replacements[index];
+  for (let index = 0; index < rawReplacements.length; index += 1) {
+    const item = rawReplacements[index];
     if (item === null || typeof item !== 'object' || Array.isArray(item)) {
       return { ok: false, reason: `Rejected: replacement ${index + 1} must be an object.` };
     }
-    const entry = item as Record<string, unknown>;
+    const entry = item as unknown as Record<string, unknown>;
     const entryIssue = exactKeys(entry, ['from', 'to'], `Replacement ${index + 1}`);
     if (entryIssue) return { ok: false, reason: `Rejected: ${entryIssue}` };
-    if (typeof entry.from !== 'string' || entry.from.length === 0 || entry.from.length > MAX_FROM_LENGTH) {
-      return { ok: false, reason: `Rejected: replacement ${index + 1} has an invalid "from" value.` };
+    if (typeof entry.from !== 'string') {
+      return { ok: false, reason: `Rejected: replacement ${index + 1} "from" must be a string.` };
     }
-    if (typeof entry.to !== 'string' || entry.to.length > MAX_TO_LENGTH) {
-      return { ok: false, reason: `Rejected: replacement ${index + 1} has an invalid "to" value.` };
+    if (entry.from.length === 0 || entry.from.length > MAX_FROM_LENGTH) {
+      return { ok: false, reason: `Rejected: replacement ${index + 1} "from" is ${entry.from.length} characters and must contain 1 to ${MAX_FROM_LENGTH} characters.` };
+    }
+    if (typeof entry.to !== 'string') {
+      return { ok: false, reason: `Rejected: replacement ${index + 1} "to" must be a string.` };
+    }
+    if (entry.to.length > MAX_TO_LENGTH) {
+      return { ok: false, reason: `Rejected: replacement ${index + 1} "to" is ${entry.to.length} characters and the limit is ${MAX_TO_LENGTH}.` };
     }
     if (UNSAFE_KEYS.has(entry.from)) {
       return { ok: false, reason: `Rejected: replacement ${index + 1} uses an unsafe source term.` };

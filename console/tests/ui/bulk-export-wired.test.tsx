@@ -18,27 +18,30 @@ const appSource = fs.readFileSync(path.join(process.cwd(), 'app/renderer/src/App
 
 test('App.tsx imports the real export engine, not a decorative placeholder', () => {
   assert.match(appSource, /from '\.\/export';?/);
-  assert.match(appSource, /\bexportRows\(/, 'expected a real call to exportRows(...), not just an import');
+  assert.match(appSource, /\bprepareExport\(/, 'expected the canonical prepared export artifact, not hand-assembled bytes');
   assert.match(appSource, /\bsuitableFormats\(/, 'expected exportRows to be fed a format suitableFormats actually approved');
-  assert.match(appSource, /\bdescribeLoss\(/, 'expected the console to state what a chosen format loses, per the export contract');
-  assert.match(appSource, /\bexportFilename\(/, 'expected a real exportFilename(...) call, not a hand-written filename string');
+  assert.match(appSource, /artifact\.disclosures/, 'expected the prepared artifact disclosures to reach the completion message');
+  assert.match(appSource, /artifact\.content/, 'expected the Blob to use canonical prepared content');
+  assert.match(appSource, /artifact\.mediaType/, 'expected the Blob to use canonical prepared media type');
+  assert.match(appSource, /artifact\.filename/, 'expected the download to use canonical prepared filename');
+  assert.doesNotMatch(appSource, /type:\s*'text\/plain;charset=utf-8'/, 'a hard-coded text/plain Blob loses the chosen export format');
 });
 
 test('App.tsx imports the real bulk-selection engine, not a decorative placeholder', () => {
   assert.match(appSource, /from '\.\/bulk';?/);
-  assert.match(appSource, /\bplanBulk\(/, 'expected a real planBulk(...) call building a reviewable plan');
-  assert.match(appSource, /\bbulkSummarise\(/, 'expected the plan to be summarised into the message shown before acting');
-  assert.match(appSource, /\bbulkClick\(/, 'expected row selection to go through bulk.ts click(), not ad-hoc array splicing');
-  assert.match(appSource, /\bbulkSelectAll\(/, 'expected select-all to go through bulk.ts selectAll()');
-  assert.match(appSource, /\bbulkInvert\(/, 'expected an inverse-selection action wired to bulk.ts invert()');
+  assert.match(appSource, /\bplanBulkAction\(/, 'expected a real planBulkAction(...) call building a reviewable plan');
+  assert.match(appSource, /\bplan\.affected\.map/, 'expected the reviewable plan to determine the rows exported');
+  assert.match(appSource, /\btoggleSelection\(/, 'expected row selection to use the shared selection model, not ad-hoc array splicing');
+  assert.match(appSource, /\bselectPage\(/, 'expected select-all to use the shared selection model');
+  assert.match(appSource, /\binvertSelection\(/, 'expected an inverse-selection action wired to the shared selection model');
 });
 
 test('the Export bulk action downloads the selected rows as a real file, never the whole table silently', () => {
   assert.match(appSource, /plan\.affected\.map/, 'expected the export to be built from the plan\'s affected rows (the selection), not tbl.rows unconditionally');
-  assert.match(appSource, /a\.download\s*=\s*filename/, 'expected a real browser download triggered from the computed filename');
+  assert.match(appSource, /a\.download\s*=\s*artifact\.filename/, 'expected a real browser download triggered from the prepared filename');
 });
 
-test('BREAK CHECK -- deleting the export call from the source is what this guard actually catches', () => {
-  const withoutExportRows = appSource.replace(/\bexportRows\(/g, 'exportRowsRENAMED(');
-  assert.doesNotMatch(withoutExportRows, /\bexportRows\(/);
+test('BREAK CHECK -- deleting the prepared export call from the source is what this guard catches', () => {
+  const withoutPrepareExport = appSource.replace(/\bprepareExport\(/g, 'prepareExportRENAMED(');
+  assert.doesNotMatch(withoutPrepareExport, /\bprepareExport\(/);
 });

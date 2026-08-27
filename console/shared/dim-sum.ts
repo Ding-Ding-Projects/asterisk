@@ -163,10 +163,10 @@ function validateEntry(value: unknown, index: number): DimSumCacheEntry | string
   const proof = image.decodeProof;
   if (!isRecord(proof) || !exactKeys(proof, ['validated', 'static', 'mimeType', 'width', 'height', 'checkedAt'])) return `entry ${index + 1} has incomplete decode proof`;
   if (proof.validated !== true || proof.static !== true || proof.mimeType !== mimeType) return `entry ${index + 1} has an untrusted decode proof`;
-  if (!Number.isSafeInteger(proof.width) || proof.width < 1 || proof.width > DIM_SUM_CACHE_MAX_IMAGE_DIMENSION || !Number.isSafeInteger(proof.height) || proof.height < 1 || proof.height > DIM_SUM_CACHE_MAX_IMAGE_DIMENSION) return `entry ${index + 1} has an invalid decoded image size`;
+  const width = proof.width;
+  const height = proof.height;
+  if (typeof width !== 'number' || !Number.isSafeInteger(width) || width < 1 || width > DIM_SUM_CACHE_MAX_IMAGE_DIMENSION || typeof height !== 'number' || !Number.isSafeInteger(height) || height < 1 || height > DIM_SUM_CACHE_MAX_IMAGE_DIMENSION) return `entry ${index + 1} has an invalid decoded image size`;
   if (!isIsoDate(proof.checkedAt)) return `entry ${index + 1} has an invalid decode-proof timestamp`;
-  const width = proof.width as number;
-  const height = proof.height as number;
   const checkedAt = proof.checkedAt;
 
   return {

@@ -15,13 +15,18 @@ import { WslProvisioning, MANAGED_DISTRIBUTION } from './wsl-provisioning.js';
 import { AsteriskService } from './asterisk-service.js';
 import {
   parseVoicemailUsers, parseVoicemailZones, parseConfbridgeList, parseMohClasses, parseCodecs,
-  parseTranslations, parseAclRules, parseManagerSettings, parseManagerUsers, parseAriApps,
-  parseCdrStatus, parseLoggerChannels, parseSysinfo, parseUptime,
+  parseTranslations, parseAclRules, parseManagerSettings, parseManagerUsers, parseAriApps, parseAriUsers,
+  parseBridges, parseApplications,
+  parseCdrStatus, parseLoggerChannels, parseSysinfo, parseUptime, parseMediaCacheItems,
 } from './asterisk-parsers.js';
-import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory, MediaLibrary, LocalHistory } from './index.js';
+import { DIALPLAN_FILE_RESOURCE, compareDialplanToFile, parseExtensionsConfSections } from './dialplan-divergence.js';
+import { WslConfigTransport, CONFIGURABLE_RESOURCES, StructuredConfigPlanner, ConfigTransaction, ConfigHistory, MediaLibrary, LocalHistory, agiReferences } from './index.js';
+import { AgiLibrary, DEFAULT_AGI_DIRECTORY } from './agi-library.js';
 import { ServerInventory, SettingsRegistry } from './index.js';
 import type { ServerInventoryStore, SettingsSnapshotStore } from './index.js';
 import { atomicWriteFileSync } from './atomic-file.js';
+import { SettingsSourceFetcher } from './settings-source-fetcher.js';
+import { parseAllowlist, SETTINGS_SOURCE_ALLOWLIST_KEY } from './settings-source-allowlist.js';
 import type { ServerInventorySnapshot } from './server-inventory.js';
 import type { RawConfigReader } from './wsl-config-transport.js';
 import { ConverterRegistry } from './converter-registry.js';
@@ -40,8 +45,9 @@ import { createStatusHubClient, createVaultReference, type StatusHubClient } fro
 import type { StatusHubCredentialReferences, StatusHubProjectRegistrationRequest } from '../shared/status-hub.js';
 import type { ConverterRequest, ConverterSniffResult } from '../shared/converter.js';
 import { FORGE_CONPTY_HELPER_SHA256, FORGE_GH_SHA256, FileForgeStateStore, ForgePublisher } from './forge-publishing.js';
-import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery } from './index.js';
-import type { ChangePlan, ReadOnlyCommand, TargetProfile } from './index.js';
+import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery, isAllowedCommandLine } from './index.js';
+import type { ChangePlan, ReadOnlyCommand, ReadOnlyCommandLine, TargetProfile, ConfigValue } from './index.js';
+import { isAllowlistedWriteCommand } from './write-commands.js';
 import type { ControlPlaneRequest, ControlPlaneResponse, PbxReadView } from '../shared/control-plane.js';
 
 /**
@@ -62,6 +68,7 @@ const CONTROL_PLANE_ACTIONS = new Set<string>([
   'daemon.status', 'daemon.start', 'daemon.stop', 'daemon.restart',
   'history.list', 'history.restore', 'media.list', 'media.upload', 'media.remove',
   'local-history.list', 'local-history.record', 'local-history.restore',
+  'settings.snapshot', 'settings.write', 'settings.remove', 'settings.source.fetch',
   'converter.catalog', 'converter.pdf-capabilities', 'converter.sniff',
   'converter.queue.create', 'converter.queue.enqueue-one', 'converter.queue.page',
   'converter.queue.start', 'converter.queue.pause', 'converter.queue.resume', 'converter.queue.cancel',
@@ -72,6 +79,16 @@ const CONTROL_PLANE_ACTIONS = new Set<string>([
   'status-hub.register', 'status-hub.project', 'status-hub.sessions', 'status-hub.session', 'status-hub.replies', 'status-hub.answer',
   'dim-sum.cache.read',
 ]);
+
+/** The endpoint view combines the list with bounded per-endpoint configuration evidence. */
+export async function readEndpointsView(readings: AsteriskReadings, target: TargetProfile) {
+  const [endpoints, contacts, registrations, channelStats] = await Promise.all([
+    readings.endpoints(target), readings.contacts(target), readings.registrations(target), readings.channelStats(target),
+  ]);
+  const endpointIds = endpoints.result.state === 'available' ? (endpoints.result.value ?? []).map((endpoint) => endpoint.id) : [];
+  const endpointDetails = await readings.endpointDetails(target, endpointIds);
+  return { endpoints, contacts, registrations, channelStats, endpointDetails };
+}
 
 function validateRequestSchema(request: ControlPlaneRequest): string | undefined {
   if (!request || typeof request !== 'object') return 'The request body must be an object.';
@@ -104,11 +121,12 @@ export interface ControlPlaneDispatcherOptions {
   converterPickDestination?: () => Promise<string | undefined>;
   statusHubBaseUrl?: string;
   statusHubCredentials?: StatusHubCredentialReferences;
+  allowedSettingsSourceHosts?: readonly string[];
+  readSettingsSourceToken?: (credentialKey: string) => Promise<string | undefined>;
 }
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
   const { userDataPath, resourcesPath, hosted } = options;
-  const processExecutor = new NodeProcessExecutor({ allowedExecutables: ['wsl.exe', 'docker'] });
   const converterRegistry = ConverterRegistry.create();
   const ollamaClient = new OllamaClient();
   const ollamaStore = new OllamaStore(join(userDataPath, 'ollama-state.json'));
@@ -198,6 +216,16 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     rawRead: rawConfigRead,
   });
 
+  async function readDialplanDivergence(target: TargetProfile, dialplan: Awaited<ReturnType<DialplanReadings['graph']>>) {
+    const transport = configTransport(target);
+    const text = await transport.readText(DIALPLAN_FILE_RESOURCE);
+    return {
+      state: 'available' as const,
+      observedAt: new Date().toISOString(),
+      value: compareDialplanToFile(dialplan.contexts ?? [], parseExtensionsConfSections(text), dialplan.contextsReported),
+    };
+  }
+
   const serviceFor = (target: TargetProfile) => new AsteriskService({
     executor: processExecutor,
     distribution: target.wslDistribution!,
@@ -230,19 +258,50 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       return { channels, endpoints, queues, uptime };
     }
     if (view === 'live') return { channels: await readings.channels(target) };
-    if (view === 'endpoints') {
-      // Registrations are read here too (not only for `trunks`) so the endpoint
-      // reachability graph can draw the outbound-registration edge for an endpoint
-      // that is also a trunk identity, exactly as `pjsip show registrations` reports it.
-      const [endpoints, contacts, registrations] = await Promise.all([
-        readings.endpoints(target), readings.contacts(target), readings.registrations(target),
-      ]);
-      return { endpoints, contacts, registrations };
-    }
+    if (view === 'endpoints') return await readEndpointsView(readings, target);
     if (view === 'trunks') return { registrations: await readings.registrations(target) };
+    if (view === 'trunkauth') {
+      const [auths, registrations] = await Promise.all([
+        readings.auths(target), readings.registrations(target),
+      ]);
+      return { auths, registrations };
+    }
     if (view === 'queues') return { queues: await readings.queues(target) };
-    if (view === 'canvas') return { dialplan: await dialplanReadings.graph(target) };
+    if (view === 'canvas') {
+      const dialplan = await dialplanReadings.graph(target);
+      return { dialplan, dialplanFile: await readDialplanDivergence(target, dialplan) };
+    }
     if (view === 'modules') return { modules: await readings.modules(target) };
+    if (view === 'restbrowser') {
+      const read = async <T>(command: ReadOnlyCommand, parse: (text: string) => T) => {
+        const reading = await readings.raw(target, command);
+        return reading.result.state === 'available'
+          ? { command, result: { ...reading.result, value: parse(String(reading.result.value ?? '')) } }
+          : { command, result: reading.result };
+      };
+      const [channels, bridges, applications, ariApps, ariUsers] = await Promise.all([
+        readings.channels(target),
+        read('bridge show all', parseBridges),
+        read('core show applications', parseApplications),
+        read('ari show apps', parseAriApps),
+        read('ari show users', parseAriUsers),
+      ]);
+      return { channels, bridges, applications, ariApps, ariUsers };
+    }
+    if (view === 'agiscripts') {
+      const transport = configTransport(target);
+      const [dialplan, asteriskConf] = await Promise.all([
+        dialplanReadings.graph(target),
+        transport.read('/etc/asterisk/asterisk.conf').catch((): ConfigValue => []),
+      ]);
+      const directories = asteriskConf.find((section) => section.name === 'directories');
+      const astagidir = directories?.entries.find((entry) => entry.key === 'astagidir')?.value?.trim() || DEFAULT_AGI_DIRECTORY;
+      const files = await new AgiLibrary({ executor: processExecutor, distribution: target.wslDistribution! }).list(astagidir);
+      const references = dialplan.result.state === 'available' && dialplan.result.value
+        ? agiReferences(dialplan.result.value)
+        : [];
+      return { dialplan, astagidir, files, references };
+    }
 
     const parsed = await parsedView(target, view);
     if (parsed) return parsed;
@@ -256,6 +315,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         ? { command, result: { ...reading.result, value: parse(String(reading.result.value ?? '')) } }
         : { command, result: reading.result };
     };
+    const readHere = read;
 
     if (view === 'voicemail') {
       const [users, zones] = await Promise.all([
@@ -265,7 +325,13 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       return { voicemailUsers: users, voicemailZones: zones };
     }
     if (view === 'confbridge') return { rooms: await read('confbridge list', parseConfbridgeList) };
-    if (view === 'moh') return { mohClasses: await read('moh show classes', parseMohClasses) };
+    if (view === 'moh') {
+      const [mohClasses, mediaCache] = await Promise.all([
+        read('moh show classes', parseMohClasses),
+        readHere('media cache show all', parseMediaCacheItems),
+      ]);
+      return { mohClasses, mediaCache };
+    }
     if (view === 'codecs') {
       const [codecs, translations] = await Promise.all([
         read('core show codecs', parseCodecs),
@@ -389,7 +455,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       try {
         const parsed = JSON.parse(readFileSync(this.path, 'utf8')) as Partial<ServerInventorySnapshot>;
         if (parsed.schemaVersion === undefined && Array.isArray(parsed.servers)) {
-          return { schemaVersion: 1, servers: parsed.servers, activeServerId: parsed.activeServerId };
+          return { schemaVersion: 1 as const, servers: parsed.servers, activeServerId: parsed.activeServerId };
         }
         return parsed as ServerInventorySnapshot;
       } catch (error) {
@@ -480,6 +546,12 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       cachedSettingsRegistry = new SettingsRegistry(new FileSettingsStore(path));
     }
     return cachedSettingsRegistry;
+  }
+
+  function createSettingsSourceFetcher(): SettingsSourceFetcher {
+    const allowedHosts = options.allowedSettingsSourceHosts
+      ?? parseAllowlist(settingsRegistry().get(SETTINGS_SOURCE_ALLOWLIST_KEY));
+    return new SettingsSourceFetcher({ allowedHosts, readToken: options.readSettingsSourceToken });
   }
 
   async function runTargetCli(target: TargetProfile, command: string): Promise<string> {
@@ -770,8 +842,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         if (!key) return { ok: false, requestId: request.requestId, code: 'SETTING_KEY_REQUIRED', message: 'A settings key is required.' };
         if (typeof payload?.value !== 'string') return { ok: false, requestId: request.requestId, code: 'SETTING_VALUE_REQUIRED', message: 'A settings value must be a string.' };
         try {
-          const result = settingsRegistry().set(key, payload.value);
-          if (!result.ok) return { ok: false, requestId: request.requestId, code: result.code, message: result.message };
+          settingsRegistry().set(key, payload.value);
           return { ok: true, requestId: request.requestId, data: { key } };
         } catch (error) {
           return { ok: false, requestId: request.requestId, code: 'SETTING_WRITE_FAILED', message: error instanceof Error ? error.message : 'Could not persist the setting.' };
@@ -782,12 +853,20 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         const key = payload?.key?.trim();
         if (!key) return { ok: false, requestId: request.requestId, code: 'SETTING_KEY_REQUIRED', message: 'A settings key is required.' };
         try {
-          const result = settingsRegistry().remove(key);
-          if (!result.ok) return { ok: false, requestId: request.requestId, code: result.code, message: result.message };
+          settingsRegistry().remove(key);
           return { ok: true, requestId: request.requestId, data: { key } };
         } catch (error) {
           return { ok: false, requestId: request.requestId, code: 'SETTING_REMOVE_FAILED', message: error instanceof Error ? error.message : 'Could not remove the setting.' };
         }
+      }
+      if (request.action === 'settings.source.fetch') {
+        const url = typeof request.payload?.url === 'string' ? request.payload.url : '';
+        if (!url) return { ok: false, requestId: request.requestId, code: 'SOURCE_URL_REQUIRED', message: 'A settings source URL is required.' };
+        const credentialKey = typeof request.payload?.credentialKey === 'string' ? request.payload.credentialKey : undefined;
+        const settingsSourceFetcher = createSettingsSourceFetcher();
+        const result = await settingsSourceFetcher.fetchSource({ url, credentialKey });
+        if (!result.ok && result.status === 0) return { ok: false, requestId: request.requestId, code: 'SOURCE_UNREACHABLE', message: result.reason ?? 'The settings source could not be reached.' };
+        return { ok: true, requestId: request.requestId, data: result };
       }
       if (hosted && request.action.startsWith('forge.')) {
         return { ok: false, requestId: request.requestId, code: 'FORGE_UNSUPPORTED_HOSTED', message: `"${request.action}" is available only in the desktop application because it uses the local provider sign-in store and local git checkout.` };
@@ -918,11 +997,15 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       if (request.action === 'pbx.command') {
         const command = typeof request.payload?.command === 'string' ? request.payload.command.trim() : '';
         if (!command) return { ok: false, requestId: request.requestId, code: 'COMMAND_REQUIRED', message: 'No command was supplied.' };
-        if (!(READ_ONLY_COMMANDS as ReadonlyArray<string>).includes(command)) {
-          return { ok: false, requestId: request.requestId, code: 'COMMAND_NOT_ALLOWLISTED', message: `"${command}" is not in the read-only command allowlist, so it was not run.` };
+        const readOnly = isAllowedCommandLine(command);
+        const write = !readOnly && isAllowlistedWriteCommand(command);
+        if (!readOnly && !write) {
+          return { ok: false, requestId: request.requestId, code: 'COMMAND_NOT_ALLOWLISTED', message: `"${command}" is not in the command allowlist, so it was not run.` };
         }
         const target = await resolveTarget(request.serverId);
-        const result = await cliGateway.run(target, command as ReadOnlyCommand);
+        const result = readOnly
+          ? await cliGateway.run(target, command as ReadOnlyCommandLine)
+          : await cliGateway.runUnchecked(target, command);
         if (result.status !== 'succeeded') {
           return { ok: false, requestId: request.requestId, code: 'COMMAND_FAILED', message: result.stderr.trim() || `The command exited with ${result.exitCode}.` };
         }
@@ -973,11 +1056,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           return { ok: true, requestId: request.requestId, data: { plan: publicPlan, result: { status: 'applied', message: 'Nothing to change; the target already matches.' } } };
         }
 
-        const result = await new ConfigTransaction(
-          transport,
-          () => new Date(),
-          async (runtimePlan) => await reloadAndVerifyRuntime(target, runtimePlan),
-        ).apply(plan);
+        const result = await new ConfigTransaction(transport, () => new Date()).apply(plan);
         return {
           ok: result.status === 'applied',
           requestId: request.requestId,

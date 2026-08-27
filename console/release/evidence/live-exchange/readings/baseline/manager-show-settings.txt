@@ -1,0 +1,18 @@
+
+Global Settings:
+----------------
+  Manager (AMI):             No             
+  Web Manager (AMI/HTTP):    No             
+  TCP Bindaddress:           Disabled       
+  HTTP Timeout (seconds):    60             
+  TLS Enable:                No             
+  TLS Bindaddress:           Disabled       
+  TLS Certfile:              asterisk.pem   
+  TLS Privatekey:                           
+  TLS Cipher:                               
+  Allow multiple login:      Yes            
+  Display connects:          Yes            
+  Timestamp events:          No             
+  Channel vars:              
+  Disabled events:           
+  Debug:                     No             

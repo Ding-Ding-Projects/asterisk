@@ -1,0 +1,12 @@
+
+FAX Statistics:
+---------------
+
+Current Sessions     : 0
+Reserved Sessions    : 0
+Transmit Attempts    : 0
+Receive Attempts     : 0
+Completed FAXes      : 0
+Failed FAXes         : 0
+
+

@@ -5,6 +5,7 @@ import {
   buildDialplanGraph,
   parseDialplanExtensions,
   parseDialplanGraph,
+  agiReferences,
 } from "../../control-plane/dialplan-graph.ts";
 
 // Fixtures mirror main/pbx.c's show_dialplan_helper() / show_dialplan_helper_extension_output()
@@ -106,4 +107,71 @@ test("ignores hint priorities and unrelated CLI chatter", () => {
   const extensions = parseDialplanExtensions(stdout);
   assert.equal(extensions.length, 1);
   assert.equal(extensions[0].steps.length, 1);
+});
+
+// ---------------------------------------------------------------- agiReferences
+
+test("agiReferences finds a local script name across AGI, EAGI and DeadAGI", () => {
+  const stdout = [
+    "[ Context 'from-internal' created by 'pbx_config' ]",
+    "  '2000'          =>          1. AGI(lookup.agi,${EXTEN})                [pbx_config]",
+    "  '2001'          =>          1. EAGI(record.agi)                       [pbx_config]",
+    "  '2002'          =>          1. DeadAGI(cleanup.agi)                   [pbx_config]",
+    "",
+  ].join("\n");
+  const graph = parseDialplanGraph(stdout);
+  const refs = agiReferences(graph);
+  assert.deepEqual(refs.map((r) => [r.app, r.script, r.kind]), [
+    ["AGI", "lookup.agi", "local"],
+    ["EAGI", "record.agi", "local"],
+    ["DeadAGI", "cleanup.agi", "local"],
+  ]);
+  assert.equal(refs[0].context, "from-internal");
+  assert.equal(refs[0].extension, "2000");
+  assert.equal(refs[0].priority, 1);
+});
+
+test("agiReferences classifies a FastAGI URI as network, not a local script", () => {
+  const stdout = [
+    "[ Context 'from-internal' created by 'pbx_config' ]",
+    "  '2000'          =>          1. AGI(agi://127.0.0.1/awesome-script)     [pbx_config]",
+    "  '2001'          =>          1. AGI(hagi://agi.example.com/foo.agi)     [pbx_config]",
+    "",
+  ].join("\n");
+  const refs = agiReferences(parseDialplanGraph(stdout));
+  assert.deepEqual(refs.map((r) => r.kind), ["network", "network"]);
+});
+
+test("agiReferences classifies agi:async as async, not a local script", () => {
+  const stdout = [
+    "[ Context 'from-internal' created by 'pbx_config' ]",
+    "  '2000'          =>          1. AGI(agi:async)                         [pbx_config]",
+    "",
+  ].join("\n");
+  const refs = agiReferences(parseDialplanGraph(stdout));
+  assert.deepEqual(refs, [{ context: "from-internal", extension: "2000", priority: 1, app: "AGI", script: "agi:async", kind: "async" }]);
+});
+
+test("agiReferences strips one layer of quotes and stops at the first comma", () => {
+  const stdout = [
+    "[ Context 'from-internal' created by 'pbx_config' ]",
+    '  \'2000\'          =>          1. AGI("my script.agi",${EXTEN})           [pbx_config]',
+    "",
+  ].join("\n");
+  const refs = agiReferences(parseDialplanGraph(stdout));
+  assert.equal(refs[0].script, "my script.agi");
+  assert.equal(refs[0].kind, "local");
+});
+
+test("agiReferences ignores every non-AGI application", () => {
+  const stdout = [
+    "[ Context 'from-internal' created by 'pbx_config' ]",
+    "  '2000'          =>          1. Dial(PJSIP/1001,20)                     [pbx_config]",
+    "",
+  ].join("\n");
+  assert.deepEqual(agiReferences(parseDialplanGraph(stdout)), []);
+});
+
+test("agiReferences returns empty for an empty graph", () => {
+  assert.deepEqual(agiReferences({ nodes: [], edges: [] }), []);
 });

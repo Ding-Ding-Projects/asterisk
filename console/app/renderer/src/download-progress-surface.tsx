@@ -67,7 +67,7 @@ export function DownloadProgressSurface({ client, transferId, initialSnapshot, o
       {commandError && <p className="download-surface__error" role="alert">{commandError}</p>}
       {snapshot.cleanupCompleted === false && snapshot.cleanupError && <p className="download-surface__error" role="alert">Temporary-file cleanup needs attention: {snapshot.cleanupError.message}</p>}
       <div className="download-actions" aria-label="Transfer controls">
-        {(snapshot.status === 'downloading' || snapshot.canPause) && <button type="button" className="download-button" disabled={commandState.pending || !snapshot.canPause} title={snapshot.resumeDisabledReason}>Pause</button>}
+        {(snapshot.status === 'downloading' || snapshot.canPause) && <button type="button" className="download-button" disabled={commandState.pending || !snapshot.canPause} title={snapshot.resumeDisabledReason} onClick={() => action('pause')}>Pause</button>}
         {(snapshot.status === 'paused' || snapshot.status === 'partial' || snapshot.canResume) && <button type="button" className="download-button" disabled={commandState.pending || !snapshot.canResume} title={snapshot.resumeDisabledReason} onClick={() => action('resume')}>Resume</button>}
         {snapshot.canRetry && <button type="button" className="download-button" disabled={commandState.pending} onClick={() => action('retry')}>Retry</button>}
         {(snapshot.status === 'failed' || snapshot.status === 'partial' || snapshot.status === 'cancelled') && <button type="button" className="download-button" disabled={commandState.pending} onClick={() => action('discard')}>Discard</button>}

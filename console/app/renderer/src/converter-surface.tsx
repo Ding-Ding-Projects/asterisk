@@ -391,8 +391,9 @@ function RegexBuilder({ id, state, onChange }: { id: string; state: ConverterReg
 }
 
 function AdapterRow({ adapter, selected, onSelect }: { adapter: ConverterAdapter; selected: boolean; onSelect: (id: string) => void }) {
-  const unavailable = adapter.availability.state === 'unavailable';
-  return <article className={`converter-adapter-row ${selected ? 'is-selected' : ''} ${unavailable ? 'is-unavailable' : ''}`}><div className="converter-adapter-main"><div><h3>{adapter.label}</h3><code>{adapter.id}</code></div><span className={`converter-state-chip ${unavailable ? 'is-unavailable' : 'is-enabled'}`}>{unavailable ? 'Unavailable' : 'Enabled'}</span></div><p>{adapterText(adapter)}</p>{unavailable ? <div className="converter-disabled-reason" aria-disabled="true"><b>Disabled until bundled proof exists</b><span>Missing dependency: {adapter.availability.missingDependency}</span><small>{adapter.availability.reason}</small></div> : <button type="button" className="converter-secondary" aria-pressed={selected} onClick={() => onSelect(adapter.id)}>{selected ? 'Selected adapter' : 'Use this adapter'}</button>}</article>;
+  const unavailableAvailability = adapter.availability.state === 'unavailable' ? adapter.availability : undefined;
+  const unavailable = unavailableAvailability !== undefined;
+  return <article className={`converter-adapter-row ${selected ? 'is-selected' : ''} ${unavailable ? 'is-unavailable' : ''}`}><div className="converter-adapter-main"><div><h3>{adapter.label}</h3><code>{adapter.id}</code></div><span className={`converter-state-chip ${unavailable ? 'is-unavailable' : 'is-enabled'}`}>{unavailable ? 'Unavailable' : 'Enabled'}</span></div><p>{adapterText(adapter)}</p>{unavailableAvailability ? <div className="converter-disabled-reason" aria-disabled="true"><b>Disabled until bundled proof exists</b><span>Missing dependency: {unavailableAvailability.missingDependency}</span><small>{unavailableAvailability.reason}</small></div> : <button type="button" className="converter-secondary" aria-pressed={selected} onClick={() => onSelect(adapter.id)}>{selected ? 'Selected adapter' : 'Use this adapter'}</button>}</article>;
 }
 
 function QueueState({ queue }: { queue?: ConverterSurfaceState['queue'] }) {

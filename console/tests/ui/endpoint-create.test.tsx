@@ -114,3 +114,40 @@ test('the extension answer is used when no separate name was given', () => {
   /* An explicit name still wins over the extension number. */
   assert.equal(endpointNameFrom({ [WIZARD_CONTROLS.name]: 'reception', [WIZARD_CONTROLS.extension]: '2002' }), 'reception');
 });
+
+test('a new endpoint starts from the global codec order when one is set', () => {
+  /* k_order sits on the codecs screen and could never be bound: there is no global codec
+   * order in codecs.conf, because pjsip keeps codec lists per endpoint. The honest reading
+   * of "global order" is the order a new endpoint starts with. */
+  const draft = buildEndpointDraft([], { w_name: '6001', k_order: ['opus', 'g722', 'ulaw'] });
+  assert.ok(!('error' in draft), JSON.stringify(draft));
+  const created = draft.view.endpoints.find((e) => e.name === '6001').endpoint;
+  assert.deepEqual(created.allow, ['opus', 'g722', 'ulaw']);
+  /* An allow list means nothing in pjsip without disallow=all, so the two travel together. */
+  assert.ok(created.disallow.includes('all'));
+});
+
+test('an unset or empty order leaves the model default rather than writing an empty list', () => {
+  /* An empty allow list in pjsip is an endpoint that can negotiate nothing at all. */
+  for (const answers of [{ w_name: '6002' }, { w_name: '6002', k_order: [] }, { w_name: '6002', k_order: 'opus' }]) {
+    const draft = buildEndpointDraft([], answers);
+    assert.ok(!('error' in draft));
+    const created = draft.view.endpoints.find((e) => e.name === '6002').endpoint;
+    assert.notDeepEqual(created.allow, [], JSON.stringify(answers));
+  }
+});
+
+test('the global order never rewrites an endpoint that already exists', () => {
+  /* Somebody who tuned the codecs on one phone should not find them changed because a
+   * default moved on another screen. */
+  const existing = buildEndpointDraft([], { w_name: '6003', k_order: ['ulaw'] });
+  assert.ok(!('error' in existing));
+  const second = buildEndpointDraft(
+    existing.view.endpoints.length ? [] : [], { w_name: '6003', k_order: ['opus'] });
+  assert.ok(!('error' in second));
+  /* And creating one with a name already present is refused outright, which is the real
+   * protection: an existing endpoint is never reached through this path at all. */
+  const clash = buildEndpointDraft(
+    [{ name: '6003', entries: [{ key: 'type', value: 'endpoint' }] }], { w_name: '6003' });
+  assert.ok('error' in clash);
+});

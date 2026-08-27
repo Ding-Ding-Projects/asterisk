@@ -10,8 +10,9 @@
  * exists on the target (highest numbered endpoint plus one, or 100 if there is none);
  * a secret is generated at random rather than guessed; TLS is only turned on when a
  * certificate is already present on the target, because a certificate path cannot be
- * invented. The safety choice is reported but does not write an unrelated channel-driver
- * option into PJSIP. Business hours has no real value to derive from a single
+ * invented. Hardening needs target-specific ACL, transport, and dialplan policy, so
+ * the wizard reports that boundary instead of inventing a configuration option.
+ * Business hours has no real value to derive from a single
  * yes/no switch, so this module does not write a schedule - see `ONBOARD_HOURS_NOTE`.
  */
 import { CONFIG_DIRECTORY, entryValue, type ConfigSection, type ConfigValue } from './configuration';
@@ -127,7 +128,13 @@ export function buildOnboardPlan(answers: OnboardAnswers, inputs: OnboardPlanInp
         { key: 'disallow', value: 'all' },
         { key: 'allow', value: 'ulaw,alaw' },
         { key: 'auth', value: `auth${id}` },
-        { key: 'aors', value: id },
+        // PJSIP configuration sections are named records.  An endpoint and its AoR
+        // must therefore not both occupy the numeric extension record: doing so
+        // creates two records with the same name, which is ambiguous to a complete
+        // document planner and makes the wizard appear to have created extensions
+        // twice.  Keep the dialable extension id for the endpoint and give the AoR
+        // its own stable, derived record name.
+        { key: 'aors', value: `aor${id}` },
       ],
     });
     pjsip = withTypedSection(pjsip, {
@@ -140,7 +147,7 @@ export function buildOnboardPlan(answers: OnboardAnswers, inputs: OnboardPlanInp
       ],
     });
     pjsip = withTypedSection(pjsip, {
-      name: id,
+      name: `aor${id}`,
       entries: [
         { key: 'type', value: 'aor' },
         { key: 'max_contacts', value: '1' },
@@ -190,7 +197,7 @@ export function buildOnboardPlan(answers: OnboardAnswers, inputs: OnboardPlanInp
 
   if (answers.hardened) {
     skipped.push(
-      'Hardening: no generic setting was written. PJSIP access control needs target-specific endpoint, ACL, transport, and dialplan policy.',
+      'Hardening: skipped - target-specific endpoint, ACL, transport, and dialplan policy must be read and selected explicitly.',
     );
   }
 

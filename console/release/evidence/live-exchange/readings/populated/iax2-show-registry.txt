@@ -1,0 +1,3 @@
+Host                                           dnsmgr  Username    Perceived                                      Refresh  State
+127.0.0.1:4569                                 N       ding-live-  <Unregistered>                                      60  Rejected
+1 IAX2 registrations.

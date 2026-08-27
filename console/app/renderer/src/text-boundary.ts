@@ -29,6 +29,7 @@
 import { createElement, type ReactNode } from 'react';
 
 import { applyVocabularyText, type VocabularyStorage } from './personal-vocabulary';
+import { funnyLevel, styleFunnyText, type CopyLanguage } from './funny-levels';
 export {
   clampFunnyLevel,
   DEFAULT_FUNNY_LEVELS,
@@ -114,8 +115,13 @@ export function localizeText(text: string): string {
 /** The full boundary: language mode, then personal vocabulary over the result. */
 export function transformText(text: string): string {
   const localized = localizeText(text);
-  const renamed = schoolModeNameProvider ? schoolModeNameProvider(localized) : localized;
-  return vocabulary ? applyVocabularyText(vocabulary, renamed) : renamed;
+  const language: CopyLanguage = mode === 'yue' ? 'yue' : 'en';
+  /* Voice styling happens before vocabulary.  Vocabulary is the user's final local
+   * naming choice, while unknown/technical literals remain untouched by the no-op
+   * factual styler above. */
+  const styled = styleFunnyText(localized, language, funnyLevel(vocabulary, language));
+  const renamed = schoolModeNameProvider ? schoolModeNameProvider(styled) : styled;
+  return vocabulary ? applyVocabularyText(vocabulary, { text: renamed, boundary: 'user-interface-copy' }) : renamed;
 }
 
 export interface LocalizedEventText {
@@ -169,7 +175,9 @@ function localizeProps(props: Record<string, unknown> | null | undefined): Recor
     const next = transformText(value);
     if (next === value) continue;
     copy ??= { ...props };
-    copy[attribute] = next;
+    copy[attribute] = vocabulary
+      ? applyVocabularyText(vocabulary, { text: next, boundary: 'accessible-name' })
+      : next;
   }
   return copy ?? props;
 }

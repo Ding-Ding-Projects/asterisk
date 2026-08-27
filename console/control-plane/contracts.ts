@@ -111,6 +111,19 @@ export interface ApplyResult {
   completedActions: ReadonlyArray<string>;
   failedAction?: string;
   rollbackAttempted: boolean;
+  /**
+   * One backup handle per resource the apply actually changed, in the order they were
+   * applied.
+   *
+   * The transaction has always taken these, and always used them to roll back a FAILED
+   * apply -- it simply never handed them out, so a caller who changed their mind after a
+   * SUCCESSFUL one had nowhere to go. The only way to undo a good change was to take a
+   * second backup before applying, which left two copies on the target for every edit.
+   *
+   * Reverse this list to undo, exactly as the internal failure path does: a later resource
+   * may depend on an earlier one.
+   */
+  backups?: ReadonlyArray<{ resource: string; handle: string }>;
   rollbackSucceeded?: boolean;
   message: string;
 }

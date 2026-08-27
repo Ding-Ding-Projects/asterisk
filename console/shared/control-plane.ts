@@ -1,4 +1,5 @@
 import type { DownloadSurfaceKind, DownloadTransferClient, DownloadTransferSnapshot, ExtensionDownloadHandoff } from './download-transfer.js';
+import type { DestinationRoute } from './destination-route.js';
 
 export interface NativeHostStatus {
   state: 'ready' | 'starting' | 'unavailable' | 'error';
@@ -38,6 +39,7 @@ export type ControlPlaneAction =
    * `control-plane/settings-store.ts`. The renderer's own `localStorage` is in-memory
    * only for a `file://` origin and never survives a relaunch. */
   | 'settings.snapshot' | 'settings.write' | 'settings.remove'
+  | 'settings.source.fetch'
   /* Local converter catalog and capability evidence. The queue and file-picker actions
    * use the same namespace so the renderer cannot invent a parallel transport. */
   | 'converter.catalog' | 'converter.pdf-capabilities' | 'converter.sniff'
@@ -64,7 +66,8 @@ export type PbxReadView =
   | 'dash' | 'live' | 'endpoints' | 'trunks' | 'queues' | 'modules' | 'canvas'
   /* Destinations that previously had no reader and stayed empty for want of one. */
   | 'voicemail' | 'confbridge' | 'moh' | 'codecs' | 'security' | 'cdr' | 'logger' | 'ami'
-  | 'about' | 'cli';
+  | 'about' | 'cli' | 'trunkauth'
+  | 'restbrowser' | 'agiscripts';
 
 export interface ControlPlaneRequest {
   requestId: string;
@@ -107,7 +110,7 @@ export interface UpdaterRestartResult {
 
 export interface DingDesktopApi {
   platform: string;
-  window: { minimize(): void; toggleMaximize(): void; close(): void };
+  window: { minimize(): void; toggleMaximize(): void; close(): void; setTitle(title: string): void };
   dialog: { pickFolder(): Promise<string | undefined> };
   controlPlane: { request(request: ControlPlaneRequest): Promise<ControlPlaneResponse> };
   school: {
@@ -115,6 +118,14 @@ export interface DingDesktopApi {
     verifyCredential(value: string): Promise<{ ok: boolean; reason?: string }>;
     recoveryPath(): Promise<{ ok: boolean; path?: string; reason?: string }>;
   };
+  provisioning?: { onStep(listener: (step: ProvisionStepForRenderer) => void): () => void };
+  accessibility?: { isScreenReaderActive(): Promise<boolean>; onChange(listener: (active: boolean) => void): () => void };
+  editors?: {
+    detect(): Promise<ReadonlyArray<{ id: string; resolved: string }>>;
+    open(target: { kind: 'file' | 'folder'; path: string }): Promise<{ ok: true } | { ok: false; message: string; downloadUrl?: string }>;
+  };
+  localData?: { path(): Promise<string>; openFolder(): Promise<{ ok: true } | { ok: false; reason: string }> };
+  deepLink?: { onDestination(listener: (route: DestinationRoute) => void): () => void };
   statusHub: { baseUrl?: string };
   nativeHost: {
     getStatus(): Promise<NativeHostStatus>;
@@ -149,5 +160,7 @@ export interface DingDesktopApi {
     onStatus(listener: (status: UpdaterStatusForRenderer) => void): () => void;
   };
 }
+
+export interface ProvisionStepForRenderer { name: string; ok: boolean; detail: string }
 
 declare global { interface Window { dingDesktop?: DingDesktopApi } }

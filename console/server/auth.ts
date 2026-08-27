@@ -343,6 +343,10 @@ export function createAdminAccount(store: AccountStore, username: string, passwo
   return record;
 }
 
+export function hasAdminAccount(store: AccountStore): boolean {
+  return store.readState().state === 'valid';
+}
+
 export function loadOrCreateSigningKey(path: string): Buffer {
   if (existsSync(path)) {
     const metadata = statSync(path);

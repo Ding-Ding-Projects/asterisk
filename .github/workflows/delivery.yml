@@ -8,6 +8,7 @@ on:
 permissions:
   actions: read
   contents: write
+  packages: write
 
 jobs:
   build-asterisk-runtime:
@@ -18,9 +19,69 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Build the complete Ubuntu root filesystem
+      - name: Build the complete Ubuntu root filesystem, and best-effort publish it
         shell: pwsh
+        env:
+          # This is the one compile CI still always does: build-asterisk-wsl-bundle.ps1
+          # compiles Asterisk from this exact commit as it always has. What is new is
+          # DING_PBX_PUBLISH_ASTERISK_IMAGE=1, which makes the script also push the
+          # image it just built, tagged and digest-pinned by this exact commit, so a
+          # later run (build-asterisk-wsl-bundle-from-image.ps1 on a contributor's
+          # machine, a re-run of this same workflow) can pull and export it instead of
+          # recompiling. Publication is best-effort: Publish-AsteriskRuntimeImage never
+          # throws, so a missing or refused registry credential cannot fail this job -
+          # the rootfs this job exists to produce is unaffected either way, and the
+          # provenance and evidence steps below record honestly whether it happened.
+          DING_PBX_PUBLISH_ASTERISK_IMAGE: '1'
+          DING_PBX_ASTERISK_IMAGE_REGISTRY: ghcr.io
+          DING_PBX_ASTERISK_IMAGE_REPOSITORY: ${{ github.repository }}
+          DING_PBX_REGISTRY_USER: ${{ github.actor }}
+          # Deliberately the workflow token, not the personal-access-token chain the API
+          # calls elsewhere use. Login with that chain succeeds and the push is then
+          # refused with "the token provided does not match expected scopes", because the
+          # token it picks carries no package-write scope. The workflow token does, because
+          # this workflow declares packages: write above -- so here the ephemeral token is
+          # the more capable of the two, which is the opposite of the usual reason for that
+          # chain. Login succeeding is not permission; it only proves the credential parsed.
+          DING_PBX_REGISTRY_TOKEN: ${{ github.token }}
         run: ./console/scripts/build-asterisk-wsl-bundle.ps1
+
+      - name: Record image publication evidence
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path evidence | Out-Null
+          $provenancePath = 'console/resources/asterisk-wsl-rootfs.json'
+          $record = [ordered]@{
+            runId = '${{ github.run_id }}'
+            commit = '${{ github.sha }}'
+            status = '${{ job.status }}'
+            provenanceFound = (Test-Path -LiteralPath $provenancePath)
+          }
+          if ($record.provenanceFound) {
+            $provenance = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
+            $record.sourceMethod = $provenance.sourceMethod
+            $record.imageRef = $provenance.imageRef
+            $record.imageDigest = $provenance.imageDigest
+            $record.published = [bool]$provenance.imageDigest
+          }
+          $record | ConvertTo-Json | Set-Content -Encoding utf8 evidence/asterisk-image-publication.json
+          if ($record.provenanceFound -and $record.published) {
+            Write-Host "Published: $($record.imageRef) ($($record.imageDigest))."
+          } else {
+            Write-Warning 'The Asterisk runtime image was not published on this run; the rootfs was still produced by a local compile. See evidence/asterisk-image-publication.json.'
+          }
+
+      - name: Upload image publication evidence
+        if: ${{ always() }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: asterisk-image-publication-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evidence/asterisk-image-publication.json
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Upload the pinned WSL runtime for Windows packaging
         uses: actions/upload-artifact@v4
         with:
@@ -185,6 +246,21 @@ jobs:
           name: ding-pbx-console-${{ github.run_id }}-${{ github.run_attempt }}
           path: downloaded
 
+      # The root filesystem itself, attached to the release. A release asset is a plain
+      # HTTPS download that needs no container engine and no registry credential, which
+      # is the whole reason it is here: the registry push has been refused for lack of a
+      # package-write scope on every release so far, so the pull route it feeds has never
+      # had anything to pull. This one works for anybody who can see the repository.
+      #
+      # It costs about 315 MB on top of an already large release. That is the trade, and
+      # it is stated rather than hidden: a contributor skips a four-minute compile and a
+      # container engine they may not have.
+      - name: Take the pinned runtime for the release
+        uses: actions/download-artifact@v4
+        with:
+          name: asterisk-wsl-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+          path: downloaded-runtime
+
       - name: Publish and verify one non-draft release
         id: publish
         shell: powershell
@@ -194,6 +270,24 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $tag = $env:DING_PBX_RELEASE_TAG
           $staging = Resolve-Path 'downloaded/release-staging'
+
+          # Attach the root filesystem and the provenance that describes it, so a
+          # contributor can obtain the payload for this exact commit with an ordinary
+          # download. Both or neither: a tar with no provenance cannot be checked against
+          # anything, and a provenance with no tar describes something nobody has.
+          $runtimeTar = Join-Path $PWD 'downloaded-runtime/asterisk-wsl-rootfs.tar'
+          $runtimeJson = Join-Path $PWD 'downloaded-runtime/asterisk-wsl-rootfs.json'
+          if ((Test-Path -LiteralPath $runtimeTar) -and (Test-Path -LiteralPath $runtimeJson)) {
+            $recorded = ([System.IO.File]::ReadAllText($runtimeJson, [System.Text.Encoding]::UTF8) | ConvertFrom-Json)
+            $measured = (Get-FileHash -Algorithm SHA256 -LiteralPath $runtimeTar).Hash.ToLowerInvariant()
+            if ($recorded.sha256 -ne $measured) { throw "The runtime payload does not match its own recorded digest; refusing to publish it." }
+            if ($recorded.sourceCommit -ne $env:GITHUB_SHA) { throw "The runtime payload was built from $($recorded.sourceCommit), not from this commit; refusing to publish it." }
+            Copy-Item $runtimeTar -Destination $staging -Force
+            Copy-Item $runtimeJson -Destination $staging -Force
+            Write-Host "Attached the pinned root filesystem ($measured) to this release."
+          } else {
+            Write-Host "No runtime payload was produced for this run; the release ships without it."
+          }
           $setup = @(Get-ChildItem $staging -File -Filter '*Setup.exe')
           $releases = @(Get-ChildItem $staging -File -Filter 'RELEASES')
           $full = @(Get-ChildItem $staging -File -Filter '*-full.nupkg')
@@ -216,15 +310,70 @@ jobs:
           if ($releaseProbeExit -eq 0) { throw "Release tag $tag already exists; tags are immutable and never recycled." }
           if ($releaseProbeExit -ne 1) { throw "Release uniqueness probe exited $releaseProbeExit." }
 
+          # Dim sum code name and photo, resolved from the public catalogue at release time.
+          # Best effort by contract: a release is never blocked, delayed or renamed because
+          # the catalogue is unreachable, so every path below ends with a message rather than
+          # a throw. Nothing is vendored -- the photo is fetched now and attached to this
+          # release, because copying catalogue images into this repository is forbidden and a
+          # second copy is a second authority that will eventually disagree with the first.
+          $dimSum = $null
+          $previousPreference = $ErrorActionPreference
+          try {
+            $ErrorActionPreference = 'Continue'
+            # The release notes are the ledger. Reading names back from published releases
+            # keeps the record auditable without committing a file, which matters because a
+            # release workflow that commits is a release workflow that triggers itself.
+            $usedPath = Join-Path $PWD 'used-code-names.txt'
+            $bodies = @()
+            foreach ($previousTag in (gh release list --limit 200 --json tagName --jq '.[].tagName' 2>$null)) {
+              $bodies += (gh release view $previousTag --json body --jq .body 2>$null)
+            }
+            [System.IO.File]::WriteAllText($usedPath, ($bodies -join "`n"), (New-Object System.Text.UTF8Encoding $false))
+            $dimSumPath = Join-Path $PWD 'dim-sum.json'
+            node '${{ github.workspace }}/console/scripts/dim-sum-code-name.mjs' --used-from $usedPath --out $dimSumPath 2>$null
+            if (Test-Path $dimSumPath) {
+              # Read as UTF-8 explicitly. This step runs under Windows PowerShell, whose
+              # Get-Content defaults to the ANSI code page, so the dish name came back
+              # double-encoded and the published notes carried mojibake where the
+              # Traditional Chinese should have been. Naming the encoding removes the
+              # dependency on which edition happens to run the step.
+              $record = [System.IO.File]::ReadAllText($dimSumPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+              if ($record.resolved) {
+                $photo = Join-Path $staging $record.asset
+                Invoke-WebRequest -Uri $record.url -OutFile $photo -MaximumRedirection 5
+                # Judge it by the file, not by the call: assert it decodes as a PNG rather
+                # than trusting a 200 that may have carried an error page.
+                if ((Test-Path $photo) -and ((Get-Item $photo).Length -gt 1024)) {
+                  $signature = [System.IO.File]::ReadAllBytes($photo)[0..3]
+                  if ($signature[0] -eq 0x89 -and $signature[1] -eq 0x50 -and $signature[2] -eq 0x4E -and $signature[3] -eq 0x47) {
+                    $dimSum = $record
+                  } else {
+                    Remove-Item $photo -Force
+                    Write-Host 'Dim sum photo did not decode as a PNG; shipping without it.'
+                  }
+                } else {
+                  Write-Host 'Dim sum photo did not download; shipping without it.'
+                }
+              } else {
+                Write-Host "No dim sum code name resolved: $($record.reason)"
+              }
+            }
+          } catch {
+            Write-Host "Dim sum resolution failed, shipping without it: $($_.Exception.Message)"
+          } finally {
+            $ErrorActionPreference = $previousPreference
+          }
+
           $started = [DateTimeOffset]::Parse('${{ needs.resolve-runner.outputs.workflow-started }}')
           $notes = @()
-          $notes += '# Ding PBX Console'
+          $notes += '# Material Asterisk'
           $notes += ''
           $notes += '> [!WARNING]'
           $notes += '> These Squirrel.Windows artifacts are intentionally unsigned. Windows may show an unknown-publisher or SmartScreen warning.'
           $notes += ''
           $notes += "- Target commit: ``${{ github.sha }}``"
           $notes += '- Automated checks: none. GitHub Actions builds, packages, publishes, and attaches evidence only.'
+          if ($dimSum) { $notes += "- Code name: **$($dimSum.codeName)** (``$($dimSum.id)``)" }
           $notes += "- Workflow started: ``$($started.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'))``"
           $notes += '- Workflow completed: pending final publication timestamp'
           $notes += '- Workflow duration: pending final publication timestamp'
@@ -234,22 +383,30 @@ jobs:
           $notes += Get-Content (Join-Path $staging 'SHA256SUMS.txt')
           $notes += '```'
           $notes += ''
+          if ($dimSum) {
+            $photoUrl = "https://github.com/${{ github.repository }}/releases/download/$tag/$($dimSum.asset)"
+            $notes += '## Code name'
+            $notes += "![$($dimSum.alt)]($photoUrl)"
+            $notes += ''
+            $notes += "**$($dimSum.codeName)** -- from the public dim sum catalogue, volume ``$($dimSum.volume)``, attached here as ``$($dimSum.asset)``. The software is serious; the release still gets one steamer basket."
+            $notes += ''
+          }
           $notes += '## Project line count'
-          $notes += Get-Content -Raw (Join-Path $staging 'line-count.md')
+          $notes += [System.IO.File]::ReadAllText((Join-Path $staging 'line-count.md'), [System.Text.Encoding]::UTF8)
           $notesPath = Join-Path $PWD 'release-notes.md'
-          $notes -join "`n" | Set-Content -Encoding utf8 $notesPath
+          [System.IO.File]::WriteAllText($notesPath, ($notes -join "`n"), (New-Object System.Text.UTF8Encoding $false))
 
           $assets = Get-ChildItem $staging -File | ForEach-Object FullName
-          gh release create $tag @assets --target '${{ github.sha }}' --title "Ding PBX Console $tag" --notes-file $notesPath --verify-tag=false
+          gh release create $tag @assets --target '${{ github.sha }}' --title "Material Asterisk $tag" --notes-file $notesPath --verify-tag=false
           if ($LASTEXITCODE -ne 0) { throw "gh release create exited $LASTEXITCODE" }
 
           $completed = [DateTimeOffset]::UtcNow
           $duration = $completed - $started
           $durationText = '{0:00}:{1:00}:{2:00}' -f [Math]::Floor($duration.TotalHours),$duration.Minutes,$duration.Seconds
-          $body = Get-Content -Raw $notesPath
+          $body = [System.IO.File]::ReadAllText($notesPath, [System.Text.Encoding]::UTF8)
           $body = $body.Replace('- Workflow completed: pending final publication timestamp', "- Workflow completed: ``$($completed.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'))``")
           $body = $body.Replace('- Workflow duration: pending final publication timestamp', "- Workflow duration: ``$durationText``")
-          $body | Set-Content -Encoding utf8 $notesPath
+          [System.IO.File]::WriteAllText($notesPath, $body, (New-Object System.Text.UTF8Encoding $false))
           gh release edit $tag --notes-file $notesPath
           if ($LASTEXITCODE -ne 0) { throw "gh release edit exited $LASTEXITCODE" }
 

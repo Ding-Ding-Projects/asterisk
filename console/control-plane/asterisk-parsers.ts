@@ -68,13 +68,95 @@ export interface ManagerUser {
   username: string;
 }
 
+/**
+ * `manager show users` prints one `"%s\n"` per user and a `"%d manager users
+ * configured.\n"` trailer counted from the same traversal (`main/manager.c`
+ * `handle_showmanagers`), so `total` and `users.length` agree unless this parser lost a
+ * line -- a username that is nothing but hyphens reads as the CLI's own separator rule,
+ * for instance, and there is no way to tell the two apart from the bytes.
+ *
+ * There is deliberately no `dropped` list here, unlike `VoicemailUsersResult` below: this
+ * parser cannot name the line it lost, because the only lines it discards are ones it
+ * cannot distinguish from the report's own furniture. `total` is the honest signal, and a
+ * caller that renders `users` without comparing the two shows a shortened list that reads
+ * exactly like a complete one.
+ */
 export interface ManagerUsersResult {
   users: ManagerUser[];
+  /** The count the target printed in its own trailer, when it printed one. */
   total?: number;
+}
+
+/**
+ * `voicemail show users` output, plus everything needed to tell a short list from a
+ * complete one.
+ *
+ * `total` is the count the target itself printed in its trailer. `dropped` is every data
+ * line this parser refused to turn into a row -- see `parseVoicemailUsers` for why it
+ * refuses rather than guessing. Both exist so a caller can say a row is missing; a caller
+ * that renders `users` alone renders an incomplete table indistinguishable from a
+ * complete one, which is exactly what the Voicemail screen used to do.
+ */
+export interface VoicemailUsersResult {
+  users: VoicemailUser[];
+  /** The count the target printed in its own trailer, when it printed one. */
+  total?: number;
+  /** Every data line this parser declined, verbatim, in the order the target printed them. */
+  dropped: string[];
+}
+
+/**
+ * One item in the target's media cache: a URI Asterisk fetched and the local file it
+ * stored the result in.
+ *
+ * This is not the same thing as a prompt in `/var/lib/asterisk/sounds` or a music-on-hold
+ * directory, and a surface that shows it must say so. Both of those are files an operator
+ * put on the target; a media cache item is one Asterisk fetched itself, at run time, from a
+ * URI a dialplan asked it to play.
+ */
+export interface MediaCacheItem {
+  /** The URI, exactly as the target printed it, with the format's own padding removed. */
+  uri: string;
+  /** The local file the target stored it in, absent when the target printed that field blank. */
+  localFile?: string;
+}
+
+/**
+ * `media cache show all` output.
+ *
+ * There is no `total` here and there deliberately is not one: unlike `voicemail show users`
+ * and `manager show users`, this command prints no trailer count, so the only count anyone
+ * has is the number of rows this parser produced. A caller must not report a shortfall
+ * against a total that was never printed.
+ */
+export interface MediaCacheResult {
+  items: MediaCacheItem[];
+  /** Every line after the separator this parser declined, verbatim. See `parseMediaCacheItems`. */
+  dropped: string[];
 }
 
 export interface AriApp {
   name: string;
+}
+
+export interface AriUser {
+  username: string;
+  readOnly: boolean;
+  hasAcl: boolean;
+}
+
+export interface Bridge {
+  id: string;
+  name: string;
+  channels: number;
+  bridgeType: string;
+  technology: string;
+  duration: string;
+}
+
+export interface DialplanApplication {
+  name: string;
+  synopsis: string;
 }
 
 export interface CdrBackend {
@@ -116,8 +198,9 @@ export interface Uptime {
  * header `Context Mbox User Zone NewMsg`, data row same widths, trailing
  * `"%d voicemail users configured.\n"`.
  */
-export function parseVoicemailUsers(stdout: string): { users: VoicemailUser[]; total?: number } {
+export function parseVoicemailUsers(stdout: string): VoicemailUsersResult {
   const users: VoicemailUser[] = [];
+  const dropped: string[] = [];
   let total: number | undefined;
   // The fixed-width printf format means a Zone left blank (the common case) prints as
   // pure whitespace, not an omitted field, so a token-based regex requiring a non-blank
@@ -135,16 +218,89 @@ export function parseVoicemailUsers(stdout: string): { users: VoicemailUser[]; t
       total = Number.parseInt(totalMatch[1], 10);
       continue;
     }
-    if (line.length < 54 || line[10] !== " " || line[16] !== " " || line[42] !== " " || line[53] !== " ") continue;
+    /* Every line this loop declines from here down is recorded rather than discarded. The
+     * drop itself is still the right call -- see above -- but a caller cannot say a row is
+     * missing from a list that never mentions the row it lost, and the Voicemail screen
+     * spent its whole life rendering the short list as though it were the whole one. */
+    if (line.length < 54 || line[10] !== " " || line[16] !== " " || line[42] !== " " || line[53] !== " ") {
+      dropped.push(line);
+      continue;
+    }
     const context = line.slice(0, 10).trim();
     const mailbox = line.slice(11, 16).trim();
     const fullName = line.slice(17, 42).trim();
     const zone = line.slice(43, 53).trim();
     const newMessages = Number.parseInt(line.slice(54).trim(), 10);
-    if (!context || !mailbox) continue;
+    if (!context || !mailbox) {
+      dropped.push(line);
+      continue;
+    }
     users.push({ context, mailbox, fullName, zone, newMessages: Number.isFinite(newMessages) ? newMessages : undefined });
   }
-  return { users, total };
+  return { users, total, dropped };
+}
+
+/**
+ * `main/media_cache.c` `media_cache_handle_show_all`.
+ *
+ *   line 490  `ast_cli(a->fd, "URI\n\tLocal File\n");`
+ *   line 491  `ast_cli(a->fd, "---------------\n");`
+ *   line 463  `#define FORMAT_ROW "%-40s\n\t%-40s\n"`
+ *   line 467  `ast_cli(a->fd, FORMAT_ROW, ast_sorcery_object_get_id(bucket_file), bucket_file->path);`
+ *
+ * So one item is **two lines**: the URI, then a tab and the local file. Both are padded to
+ * 40 with `%-40s`, which pads and never truncates -- there is no precision on either
+ * conversion. That is the whole difference between this parser and `parseVoicemailUsers`
+ * above, and it is why this one has no fixed column offsets to slice by and no row it has
+ * to refuse: the field ends at the newline, not at a column, so a URI of any length
+ * survives. Verified against a live target, which printed a 78-character URI in full and
+ * with no padding at all beside a 32-character one padded out to 40.
+ *
+ * Items begin **after** the `---------------` separator, and this parser will not start
+ * without it. Pairing tab-continuation lines from the top of the output instead would turn
+ * the header itself -- `URI` followed by `\tLocal File` -- into an item whose URI is the
+ * word `URI`, which is an invented row, and a truncated capture is exactly when that would
+ * happen. No separator means no items, and the reason is recorded rather than assumed.
+ */
+export function parseMediaCacheItems(stdout: string): MediaCacheResult {
+  const items: MediaCacheItem[] = [];
+  const dropped: string[] = [];
+  /* Not the shared `lines()` helper, deliberately: it discards every whitespace-only line,
+   * and a continuation line here is a tab followed by `%-40s` over an empty
+   * `bucket_file->path` -- which is a tab and forty spaces, and trims to nothing. Dropping
+   * it would take the item's URI down with it, turning "the target printed no local file"
+   * into "the parser could not read this row", which are different facts. Blank lines that
+   * are *not* continuations are still skipped, including the empty final element the
+   * trailing newline leaves behind. */
+  const all = stdout.replace(/\r\n/gu, "\n").split("\n");
+  const separator = all.findIndex((line) => /^-{3,}\s*$/u.test(line));
+  if (separator === -1) return { items, dropped };
+
+  for (let index = separator + 1; index < all.length; index += 1) {
+    const line = all[index];
+    if (!line.startsWith("\t") && line.trim().length === 0) continue;
+    /* A continuation line reached on its own is one whose URI line never arrived, so it
+     * names a local file this parser cannot attribute to any URI. Recorded, not discarded:
+     * a caller that renders the items alone would show a short list reading exactly like a
+     * complete one, which is the defect the voicemail reading above was repaired for. */
+    if (line.startsWith("\t")) {
+      dropped.push(line);
+      continue;
+    }
+    const uri = line.trimEnd();
+    const next = all[index + 1];
+    if (next === undefined || !next.startsWith("\t")) {
+      dropped.push(line);
+      continue;
+    }
+    index += 1;
+    /* `%-40s` right-pads, so trailing spaces belong to the format and not to the value. A
+     * leading space would belong to the value, and is kept -- only the tab the format
+     * itself writes is removed. */
+    const localFile = next.slice(1).trimEnd();
+    items.push({ uri, localFile: localFile.length > 0 ? localFile : undefined });
+  }
+  return { items, dropped };
 }
 
 /**
@@ -351,6 +507,67 @@ export function parseManagerUsers(stdout: string): ManagerUsersResult {
   return { users, total };
 }
 
+/** One row of `manager show connected` -- see `parseManagerConnections` below for the
+ *  exact format string. `fileDescriptor` is the identifier `manager kick session`
+ *  actually takes; it is not the username, and it is not stable across a reconnect. */
+export interface ManagerConnection {
+  username: string;
+  ipAddress: string;
+  startEpochSeconds: number;
+  elapsedSeconds: number;
+  fileDescriptor: number;
+  httpCount: number;
+  readPerms: number;
+  writePerms: number;
+}
+
+export interface ManagerConnectionsResult {
+  connections: ManagerConnection[];
+  /** The count the target printed in its own trailer, when it printed one. */
+  total?: number;
+}
+
+/**
+ * `main/manager.c` `handle_showmanconn`: header row printed with `HSMCONN_FORMAT1`
+ * (`"  %-15.15s  %-55.55s  %-10.10s  %-10.10s  %-8.8s  %-8.8s  %-10.10s  %-10.10s\n"`)
+ * naming the columns "Username", "IP Address", "Start", "Elapsed", "FileDes", "HttpCnt",
+ * "ReadPerms", "WritePerms"; one data row per session in the same eight columns with
+ * `HSMCONN_FORMAT2` (the last six as `%d`); trailer `"%d users connected.\n"`. Columns
+ * are split on runs of two or more spaces rather than by fixed width, the same shape
+ * `parseAriUsers` below already uses, because the format string pads every field to its
+ * own width and a short value (a two-digit file descriptor, say) leaves far more than
+ * two spaces before the next column starts.
+ */
+export function parseManagerConnections(stdout: string): ManagerConnectionsResult {
+  const connections: ManagerConnection[] = [];
+  let total: number | undefined;
+  for (const line of lines(stdout)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (/^Username\s+IP Address\s+Start\s+Elapsed\s+FileDes\s+HttpCnt\s+ReadPerms\s+WritePerms$/u.test(trimmed)) continue;
+    const totalMatch = /^(\d+)\s+users connected\.?$/u.exec(trimmed);
+    if (totalMatch) {
+      total = Number.parseInt(totalMatch[1], 10);
+      continue;
+    }
+    const cols = trimmed.split(/\s{2,}/u);
+    if (cols.length !== 8) continue;
+    const [username, ipAddress, start, elapsed, fd, httpCount, readPerms, writePerms] = cols;
+    if (![start, elapsed, fd, httpCount, readPerms, writePerms].every((value) => /^-?\d+$/u.test(value))) continue;
+    connections.push({
+      username,
+      ipAddress,
+      startEpochSeconds: Number.parseInt(start, 10),
+      elapsedSeconds: Number.parseInt(elapsed, 10),
+      fileDescriptor: Number.parseInt(fd, 10),
+      httpCount: Number.parseInt(httpCount, 10),
+      readPerms: Number.parseInt(readPerms, 10),
+      writePerms: Number.parseInt(writePerms, 10),
+    });
+  }
+  return { connections, total };
+}
+
 /**
  * `res/ari/cli.c` `ari_show_apps`: `"Application Name         \n"` then a `=`
  * separator, then one registered application name per line (`"%s\n"`).
@@ -362,6 +579,79 @@ export function parseAriApps(stdout: string): AriApp[] {
     if (/^=+$/u.test(line.trim())) continue;
     if (/^Unable to retrieve/u.test(line)) continue;
     rows.push({ name: line.trim() });
+  }
+  return rows;
+}
+
+/**
+ * `res/ari/cli.c` `ari_show_users` (line 112): header `"r/o?  ACL?  Username\n"`
+ * (line 111), separator `"----  ----  --------\n"`, then `show_users_cb` (line 80)
+ * `"%-4s  %-4s  %s\n"` with `AST_CLI_YESNO` for the first two columns -- "Yes" or
+ * "No", never anything else, so the fixed 4-char field never overflows.
+ */
+export function parseAriUsers(stdout: string): AriUser[] {
+  const rows: AriUser[] = [];
+  for (const line of lines(stdout)) {
+    if (/^r\/o\?\s+ACL\?\s+Username\s*$/u.test(line)) continue;
+    if (/^-+\s+-+\s+-+$/u.test(line.trim())) continue;
+    const match = /^(Yes|No)\s+(Yes|No)\s+(\S.*)$/u.exec(line.trim());
+    if (!match) continue;
+    rows.push({ readOnly: match[1] === "Yes", hasAcl: match[2] === "Yes", username: match[3].trim() });
+  }
+  return rows;
+}
+
+/**
+ * `main/bridge.c` `handle_bridge_show_all`: `FORMAT_HDR`/`FORMAT_ROW` (lines
+ * 5247-5248) `"%-36s %-36s %5s %-15s %-15s %s\n"`, header row printed at line 5264
+ * (`"Bridge-ID", "Name", "Chans", "Type", "Technology", "Duration"`), one data row per
+ * live bridge at line 5273. There is no "no bridges" message -- the header prints
+ * unconditionally and simply has nothing under it when the container is empty.
+ *
+ * Sliced by the format's own column offsets, the same defence
+ * `parseVoicemailUsers` above uses: a name or id that overruns its fixed field shifts
+ * every separator position that follows it, and that row is dropped rather than
+ * misassigned to the wrong column.
+ */
+export function parseBridges(stdout: string): Bridge[] {
+  const rows: Bridge[] = [];
+  for (const line of lines(stdout)) {
+    if (line.startsWith("Bridge-ID")) continue;
+    if (
+      line.length < 112
+      || line[36] !== " " || line[73] !== " " || line[79] !== " "
+      || line[95] !== " " || line[111] !== " "
+    ) continue;
+    const id = line.slice(0, 36).trim();
+    const name = line.slice(37, 73).trim();
+    const channels = Number.parseInt(line.slice(74, 79).trim(), 10);
+    const bridgeType = line.slice(80, 95).trim();
+    const technology = line.slice(96, 111).trim();
+    const duration = line.slice(112).trim();
+    if (!id) continue;
+    rows.push({ id, name, channels: Number.isFinite(channels) ? channels : 0, bridgeType, technology, duration });
+  }
+  return rows;
+}
+
+/**
+ * `main/pbx_app.c` `handle_show_applications` (no-argument form): banner
+ * `"    -= Registered Asterisk Applications =-\n"` (line 359), one
+ * `"  %20s: %s\n"` row per registered application (line 390, name right-justified to
+ * 20 -- the literal `": "` immediately follows the padded field, with no space between
+ * the name itself and the colon), trailing `"    -= %d Applications Registered =-\n"`
+ * (line 394). When nothing is registered at all, prints only
+ * `"There are no registered applications\n"` (line 345) and nothing else. Matched by
+ * the first colon rather than a fixed offset, because an application name is never
+ * longer than its field in this checkout's own module set but the format does not
+ * guarantee that, and `%20s` does not truncate a longer name -- only pad a shorter one.
+ */
+export function parseApplications(stdout: string): DialplanApplication[] {
+  const rows: DialplanApplication[] = [];
+  for (const line of lines(stdout)) {
+    const match = /^ {2}\s*(\S+):\s(.*)$/u.exec(line);
+    if (!match) continue;
+    rows.push({ name: match[1], synopsis: match[2].trim() });
   }
   return rows;
 }

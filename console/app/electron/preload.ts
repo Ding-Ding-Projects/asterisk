@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { ControlPlaneRequest, ControlPlaneResponse, DingDesktopApi, NativeHostStatus, UpdaterStatusForRenderer, UpdaterRestartResult } from '../../shared/control-plane.js';
 import type { DownloadCommand, DownloadSurfaceKind, DownloadTransferReceipt, DownloadTransferSnapshot, ExtensionDownloadHandoff } from '../../shared/download-transfer.js';
+import type { DestinationRoute } from '../../shared/destination-route.js';
 
 const api: DingDesktopApi = {
   platform: process.platform,
@@ -8,6 +9,7 @@ const api: DingDesktopApi = {
     minimize: () => ipcRenderer.send('window:minimize'),
     toggleMaximize: () => ipcRenderer.send('window:toggle-maximize'),
     close: () => ipcRenderer.send('window:close'),
+    setTitle: (title: string) => ipcRenderer.send('window:set-title', title),
   },
   dialog: {
     pickFolder: () => ipcRenderer.invoke('dialog:pick-folder') as Promise<string | undefined>,
@@ -19,6 +21,26 @@ const api: DingDesktopApi = {
     setCredential: (value: string) => ipcRenderer.invoke('school:set-credential', value) as Promise<{ ok: boolean; reason?: string }>,
     verifyCredential: (value: string) => ipcRenderer.invoke('school:verify-credential', value) as Promise<{ ok: boolean; reason?: string }>,
     recoveryPath: () => ipcRenderer.invoke('school:recovery-path') as Promise<{ ok: boolean; path?: string; reason?: string }>,
+  },
+  provisioning: { onStep: (listener) => { const handler = (_event: Electron.IpcRendererEvent, step: { name: string; ok: boolean; detail: string }) => listener(step); ipcRenderer.on('provision:step', handler); return () => ipcRenderer.removeListener('provision:step', handler); } },
+  accessibility: {
+    isScreenReaderActive: () => ipcRenderer.invoke('accessibility:screen-reader') as Promise<boolean>,
+    onChange: (listener) => { const handler = (_event: Electron.IpcRendererEvent, active: boolean) => listener(active); ipcRenderer.on('accessibility:changed', handler); return () => ipcRenderer.removeListener('accessibility:changed', handler); },
+  },
+  editors: {
+    detect: () => ipcRenderer.invoke('editors:detect') as ReturnType<NonNullable<DingDesktopApi['editors']>['detect']>,
+    open: (target) => ipcRenderer.invoke('editors:open', target) as ReturnType<NonNullable<DingDesktopApi['editors']>['open']>,
+  },
+  localData: {
+    path: () => ipcRenderer.invoke('local-data:path') as ReturnType<NonNullable<DingDesktopApi['localData']>['path']>,
+    openFolder: () => ipcRenderer.invoke('local-data:open-folder') as ReturnType<NonNullable<DingDesktopApi['localData']>['openFolder']>,
+  },
+  deepLink: {
+    onDestination: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, route: DestinationRoute) => listener(route);
+      ipcRenderer.on('deep-link:destination', handler);
+      return () => ipcRenderer.removeListener('deep-link:destination', handler);
+    },
   },
   statusHub: { baseUrl: process.env.STATUS_HUB_URL },
   nativeHost: {

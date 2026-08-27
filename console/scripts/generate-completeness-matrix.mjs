@@ -56,36 +56,36 @@ const featureDocs = new Set([
 ]);
 
 const desktopStatus = {
-  'language-modes': 'absent', 'funny-levels': 'absent', 'dialog-emojis': 'absent', 'school-mode': 'absent',
-  narration: 'partial', 'scheduled-settings': 'absent', 'external-settings-sources': 'absent', 'dim-sum-surprise': 'absent',
-  'regex-builder': 'partial', 'non-blocking-notifications': 'partial', 'status-hub': 'absent', 'material-appearance': 'partial',
-  'app-logo-customization': 'absent', 'local-file-converter': 'implemented-unverified', 'ollama-suite-manager': 'implemented-unverified',
+  'language-modes': 'partial', 'funny-levels': 'partial', 'dialog-emojis': 'partial', 'school-mode': 'partial',
+  narration: 'partial', 'scheduled-settings': 'partial', 'external-settings-sources': 'partial', 'dim-sum-surprise': 'partial',
+  'regex-builder': 'partial', 'non-blocking-notifications': 'partial', 'status-hub': 'partial', 'material-appearance': 'partial',
+  'app-logo-customization': 'partial', 'local-file-converter': 'implemented-unverified', 'ollama-suite-manager': 'implemented-unverified',
   'browser-style-tabs': 'implemented-unverified', 'tab-groups-and-searches': 'partial', 'command-palette': 'partial',
-  'destructive-action-confirmation': 'implemented-unverified', 'local-version-history': 'absent', 'changelog-viewer': 'partial',
-  'external-editor-handoff': 'absent', 'complete-exports': 'partial', 'bulk-actions': 'partial', 'accessibility': 'absent',
+  'destructive-action-confirmation': 'implemented-unverified', 'local-version-history': 'partial', 'changelog-viewer': 'partial',
+  'external-editor-handoff': 'partial', 'complete-exports': 'partial', 'bulk-actions': 'partial', 'accessibility': 'partial',
   'responsive-sizing': 'partial', 'personal-vocabulary-upload': 'partial', 'per-element-toy-locks': 'partial',
-  'support-tickets': 'absent', 'unlock-ladder': 'partial', 'built-in-authenticator': 'partial', 'attention-modes': 'implemented-unverified',
-  'browser-extension-download-surfaces': 'absent', 'offline-documentation-browser': 'partial', 'app-display-name': 'absent',
-  'guided-forms': 'partial', 'bounded-overlays': 'absent', 'context-menu-shortcuts': 'absent', 'long-operation-progress': 'absent',
-  'in-context-recovery': 'absent', 'provider-markup-rendering': 'partial', 'forge-publishing': 'implemented-unverified',
-  'collapsible-filters': 'absent', 'automatic-updates': 'implemented-unverified',
+  'support-tickets': 'partial', 'unlock-ladder': 'partial', 'built-in-authenticator': 'partial', 'attention-modes': 'implemented-unverified',
+  'browser-extension-download-surfaces': 'partial', 'offline-documentation-browser': 'partial', 'app-display-name': 'partial',
+  'guided-forms': 'partial', 'bounded-overlays': 'partial', 'context-menu-shortcuts': 'partial', 'long-operation-progress': 'partial',
+  'in-context-recovery': 'partial', 'provider-markup-rendering': 'partial', 'forge-publishing': 'implemented-unverified',
+  'collapsible-filters': 'partial', 'automatic-updates': 'implemented-unverified',
 };
 
 const siteStatus = {
-  'language-modes': 'partial', 'funny-levels': 'partial', 'dialog-emojis': 'absent', 'school-mode': 'absent',
-  narration: 'absent', 'scheduled-settings': 'partial', 'external-settings-sources': 'absent', 'dim-sum-surprise': 'absent',
+  'language-modes': 'partial', 'funny-levels': 'partial', 'dialog-emojis': 'implemented-unverified', 'school-mode': 'implemented-unverified',
+  narration: 'implemented-unverified', 'scheduled-settings': 'partial', 'external-settings-sources': 'absent', 'dim-sum-surprise': 'absent',
   'regex-builder': 'implemented-unverified', 'non-blocking-notifications': 'implemented-unverified', 'status-hub': 'absent',
-  'material-appearance': 'partial', 'app-logo-customization': 'partial', 'local-file-converter': 'implemented-unverified',
-  'ollama-suite-manager': 'implemented-unverified', 'browser-style-tabs': 'absent', 'tab-groups-and-searches': 'absent', 'command-palette': 'partial',
-  'destructive-action-confirmation': 'partial', 'local-version-history': 'absent', 'changelog-viewer': 'absent',
+  'material-appearance': 'partial', 'app-logo-customization': 'partial', 'local-file-converter': 'absent',
+  'ollama-suite-manager': 'absent', 'browser-style-tabs': 'absent', 'tab-groups-and-searches': 'absent', 'command-palette': 'partial',
+  'destructive-action-confirmation': 'partial', 'local-version-history': 'implemented-unverified', 'changelog-viewer': 'implemented-unverified',
   'external-editor-handoff': 'absent', 'complete-exports': 'implemented-unverified', 'bulk-actions': 'implemented-unverified',
   accessibility: 'partial', 'responsive-sizing': 'absent', 'personal-vocabulary-upload': 'implemented-unverified',
   'per-element-toy-locks': 'absent', 'support-tickets': 'absent', 'unlock-ladder': 'absent', 'built-in-authenticator': 'absent',
   'attention-modes': 'implemented-unverified', 'browser-extension-download-surfaces': 'absent',
-  'offline-documentation-browser': 'partial', 'app-display-name': 'absent', 'guided-forms': 'absent',
+  'offline-documentation-browser': 'partial', 'app-display-name': 'implemented-unverified', 'guided-forms': 'absent',
   'bounded-overlays': 'implemented-unverified', 'context-menu-shortcuts': 'absent', 'long-operation-progress': 'absent',
-  'in-context-recovery': 'absent', 'provider-markup-rendering': 'absent', 'forge-publishing': 'absent',
-  'collapsible-filters': 'implemented-unverified', 'automatic-updates': 'absent',
+  'in-context-recovery': 'absent', 'provider-markup-rendering': 'implemented-unverified', 'forge-publishing': 'absent',
+  'collapsible-filters': 'implemented-unverified', 'automatic-updates': 'implemented-unverified',
 };
 
 const desktopDestinations = ['dash', 'live', 'endpoints', 'trunks', 'trunkauth', 'canvas', 'ivr', 'queues', 'voicemail', 'confbridge', 'moh', 'codecs', 'cdr', 'ami', 'modules', 'logger', 'security', 'cli', 'memory', 'sync', 'skills', 'hub', 'vocab', 'ops', 'secrets', 'servers', 'arcade', 'notifications', 'history', 'customise', 'appearance', 'about'];
@@ -130,6 +130,17 @@ const negativeCases = [
 /* These are exact owner symbols, not substring hints. A symbol is recorded only
  * when the source audit named the declaration or registration that owns it. */
 const implementationSymbols = {
+  'language-modes': [{ path: 'app/renderer/src/text-boundary.ts', name: 'setLanguageMode', kind: 'function' }],
+  'funny-levels': [{ path: 'app/renderer/src/funny-levels.ts', name: 'setFunnyLevel', kind: 'function' }],
+  'dialog-emojis': [{ path: 'app/renderer/src/dialog-emojis.ts', name: 'setEmojisEnabled', kind: 'function' }],
+  'school-mode': [{ path: 'app/renderer/src/school-mode.ts', name: 'activateSchoolMode', kind: 'function' }],
+  'scheduled-settings': [{ path: 'app/renderer/src/scheduled-settings.ts', name: 'loadRules', kind: 'function' }],
+  'external-settings-sources': [{ path: 'app/renderer/src/external-settings-sources.ts', name: 'applyResponse', kind: 'function' }],
+  'dim-sum-surprise': [{ path: 'app/renderer/src/DimSumSurprise.tsx', name: 'DimSumSurprise', kind: 'function' }],
+  'status-hub': [{ path: 'app/renderer/src/status-hub-client.ts', name: 'buildPayload', kind: 'function' }],
+  'app-logo-customization': [{ path: 'app/renderer/src/logo-customization.ts', name: 'acceptLogo', kind: 'function' }],
+  'attention-modes': [{ path: 'app/renderer/src/attention-modes.ts', name: 'setModeEnabled', kind: 'function' }],
+  'responsive-sizing': [{ path: 'app/renderer/src/runtime.ts', name: 'runtimeHint', kind: 'function' }],
   'local-file-converter': [{ path: 'app/renderer/src/surface-mounts.tsx', name: 'ConverterSurface', kind: 'mount' }],
   'ollama-suite-manager': [{ path: 'app/renderer/src/surface-mounts.tsx', name: 'OllamaSuite', kind: 'mount' }],
   narration: [{ path: 'app/renderer/src/narration.ts', name: 'Narrator', kind: 'class' }, { path: 'app/renderer/src/narration.ts', name: 'resolveVoiceStatus', kind: 'function' }],
@@ -141,6 +152,10 @@ const implementationSymbols = {
   'command-palette': [{ path: 'app/renderer/src/catalog.ts', name: 'destinations', kind: 'const' }, { path: 'app/renderer/src/catalog.ts', name: 'findDestination', kind: 'function' }],
   'destructive-action-confirmation': [{ path: 'app/renderer/src/ceremony.ts', name: 'runCeremonyCommand', kind: 'function' }, { path: 'app/renderer/src/generated/console.tsx', name: 'areYouSure', kind: 'method' }],
   'changelog-viewer': [{ path: 'app/renderer/src/changelog.ts', name: 'parseChangelog', kind: 'function' }, { path: 'app/renderer/src/changelog.ts', name: 'filterAndSearch', kind: 'function' }],
+  'local-version-history': [{ path: 'app/renderer/src/local-history-screen.ts', name: 'registerLocalHistoryScreen', kind: 'function' }],
+  'external-editor-handoff': [{ path: 'control-plane/editor-launch.ts', name: 'detectInstalledEditors', kind: 'function' }],
+  'support-tickets': [{ path: 'app/renderer/src/support-tickets.ts', name: 'openTicket', kind: 'function' }],
+  accessibility: [{ path: 'app/renderer/src/accessibility-contract.ts', name: 'meetsTargetSize', kind: 'function' }],
   'complete-exports': [{ path: 'app/renderer/src/export.ts', name: 'prepareExport', kind: 'function' }],
   'bulk-actions': [{ path: 'app/renderer/src/bulk.ts', name: 'unsupportedBulkAction', kind: 'function' }, { path: 'app/renderer/src/bulk.ts', name: 'planBulkAction', kind: 'function' }],
   'personal-vocabulary-upload': [{ path: 'app/renderer/src/personal-vocabulary.ts', name: 'loadVocabularyFile', kind: 'function' }, { path: 'app/renderer/src/personal-vocabulary.ts', name: 'clearVocabulary', kind: 'function' }],
@@ -149,9 +164,16 @@ const implementationSymbols = {
   'built-in-authenticator': [{ path: 'app/renderer/src/totp.ts', name: 'generateCode', kind: 'function' }, { path: 'app/renderer/src/totp.ts', name: 'pairingUri', kind: 'function' }],
   'offline-documentation-browser': [{ path: 'app/renderer/src/docs-browser.ts', name: 'search', kind: 'function' }, { path: 'app/renderer/src/docs-markdown.ts', name: 'parseMarkdown', kind: 'function' }],
   'guided-forms': [{ path: 'app/renderer/src/endpoint-create.ts', name: 'buildEndpointDraft', kind: 'function' }],
+  'browser-extension-download-surfaces': [{ path: 'app/renderer/src/download-progress-surface.tsx', name: 'DownloadProgressSurface', kind: 'function' }],
+  'app-display-name': [{ path: 'app/renderer/src/display-name.ts', name: 'displayName', kind: 'function' }],
+  'bounded-overlays': [{ path: 'app/renderer/src/bounded-overlays.ts', name: 'computeOverlayPlacement', kind: 'function' }],
+  'context-menu-shortcuts': [{ path: 'app/renderer/src/menu-shortcuts.ts', name: 'formatBinding', kind: 'function' }],
+  'long-operation-progress': [{ path: 'app/renderer/src/long-operation-progress.ts', name: 'createOperation', kind: 'function' }],
+  'in-context-recovery': [{ path: 'app/renderer/src/in-context-recovery.ts', name: 'recoveryFor', kind: 'function' }],
+  'collapsible-filters': [{ path: 'app/renderer/src/collapsible-filters.ts', name: 'collapsiblePanelState', kind: 'function' }],
   'provider-markup-rendering': [{ path: 'app/renderer/src/docs-markdown.ts', name: 'parseMarkdown', kind: 'function' }],
   'automatic-updates': [{ path: 'control-plane/updater.ts', name: 'resolveLatestUpdate', kind: 'function' }, { path: 'app/renderer/src/UpdateBanner.tsx', name: 'UpdateBanner', kind: 'function' }],
-  'forge-publishing': [{ path: 'control-plane/forge-publishing.ts', name: 'ForgePublisher', kind: 'class' }, { path: 'app/renderer/src/App.tsx', name: 'forgeLoad', kind: 'method' }],
+  'forge-publishing': [{ path: 'control-plane/forge-publishing.ts', name: 'ForgePublisher', kind: 'class' }, { path: 'app/renderer/src/App.tsx', name: 'App', kind: 'class' }],
 };
 
 const registrationSymbols = {
@@ -171,23 +193,29 @@ const registrationSymbols = {
 };
 
 const siteImplementationSymbols = {
-  'local-file-converter': [{ path: 'site/app.js', name: 'initConverter', kind: 'function' }],
-  'ollama-suite-manager': [{ path: 'site/app.js', name: 'initOllama', kind: 'function' }],
   'language-modes': [{ path: 'site/app.js', name: 'applyLanguage', kind: 'function' }],
   'funny-levels': [{ path: 'site/app.js', name: 'copyLevel', kind: 'function' }],
   'scheduled-settings': [{ path: 'site/app.js', name: 'initSettings', kind: 'function' }],
   'regex-builder': [{ path: 'site/app.js', name: 'openRegex', kind: 'function' }, { path: 'site/app.js', name: 'applyRegex', kind: 'function' }],
   'non-blocking-notifications': [{ path: 'site/app.js', name: 'notify', kind: 'function' }, { path: 'site/app.js', name: 'renderNotifications', kind: 'function' }],
   'material-appearance': [{ path: 'site/app.js', name: 'applyState', kind: 'function' }, { path: 'site/app.js', name: 'initColourTranslator', kind: 'function' }],
-  'app-logo-customization': [{ path: 'site/app.js', name: 'applyLogo', kind: 'function' }, { path: 'site/app.js', name: 'loadLogoFromInput', kind: 'function' }],
+  'app-logo-customization': [{ path: 'site/app.js', name: 'applyLogo', kind: 'function' }, { path: 'site/app.js', name: 'loadLogo', kind: 'function' }],
   'command-palette': [{ path: 'site/app.js', name: 'openPalette', kind: 'function' }],
   'complete-exports': [{ path: 'site/app.js', name: 'exportRows', kind: 'function' }],
   'bulk-actions': [{ path: 'site/app.js', name: 'bulkClick', kind: 'function' }, { path: 'site/app.js', name: 'bulkSelectAll', kind: 'function' }],
   accessibility: [{ path: 'site/app.js', name: 'initNavigation', kind: 'function' }],
-  'personal-vocabulary-upload': [{ path: 'site/app.js', name: 'loadVocabularyFromInput', kind: 'function' }],
+  'personal-vocabulary-upload': [{ path: 'site/app.js', name: 'loadVocabulary', kind: 'function' }],
   'attention-modes': [{ path: 'site/app.js', name: 'updateAttention', kind: 'function' }],
   'offline-documentation-browser': [{ path: 'site/app.js', name: 'renderDestinations', kind: 'function' }],
-  'bounded-overlays': [{ path: 'site/app.js', name: 'initCollapsibles', kind: 'function' }],
+  'app-display-name': [{ path: 'site/app.js', name: 'applyDisplayName', kind: 'function' }],
+  'automatic-updates': [{ path: 'site/app.js', name: 'initUpdates', kind: 'function' }],
+  'changelog-viewer': [{ path: 'site/app.js', name: 'initChangelog', kind: 'function' }],
+  'dialog-emojis': [{ path: 'site/app.js', name: 'applyDialogEmojis', kind: 'function' }],
+  'local-version-history': [{ path: 'site/app.js', name: 'recordHistory', kind: 'function' }, { path: 'site/app.js', name: 'restoreHistoryEntry', kind: 'function' }],
+  narration: [{ path: 'site/app.js', name: 'applyNarration', kind: 'function' }, { path: 'site/app.js', name: 'pumpNarration', kind: 'function' }],
+  'provider-markup-rendering': [{ path: 'site/app.js', name: 'renderMarkdownBlock', kind: 'function' }],
+  'school-mode': [{ path: 'site/app.js', name: 'applySchoolMode', kind: 'function' }],
+  'bounded-overlays': [{ path: 'site/app.js', name: 'openRegex', kind: 'function' }, { path: 'site/app.js', name: 'openPalette', kind: 'function' }],
   'collapsible-filters': [{ path: 'site/app.js', name: 'updateFilterStatus', kind: 'function' }],
 };
 const siteRegistrationSymbols = {
@@ -200,6 +228,14 @@ const siteRegistrationSymbols = {
   'complete-exports': [{ path: 'site/app.js', name: 'init', kind: 'function' }], 'bulk-actions': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
   accessibility: [{ path: 'site/app.js', name: 'init', kind: 'function' }], 'personal-vocabulary-upload': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
   'attention-modes': [{ path: 'site/app.js', name: 'init', kind: 'function' }], 'offline-documentation-browser': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
+  'app-display-name': [{ path: 'site/app.js', name: 'initSettings', kind: 'function' }],
+  'automatic-updates': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
+  'changelog-viewer': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
+  'dialog-emojis': [{ path: 'site/app.js', name: 'initSettings', kind: 'function' }],
+  'local-version-history': [{ path: 'site/app.js', name: 'initSettings', kind: 'function' }],
+  narration: [{ path: 'site/app.js', name: 'initSettings', kind: 'function' }],
+  'provider-markup-rendering': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
+  'school-mode': [{ path: 'site/app.js', name: 'initSettings', kind: 'function' }],
   'bounded-overlays': [{ path: 'site/app.js', name: 'init', kind: 'function' }], 'collapsible-filters': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
 };
 
@@ -276,7 +312,11 @@ function rewriteRegistry(relativePath, surface, statuses) {
     const paths = Array.isArray(source.files) ? source.files : Array.isArray(source.implementation?.paths) ? source.implementation.paths : [];
     next.features[feature.id] = {
       status,
-      note: typeof source.note === 'string' ? source.note.replaceAll(String.fromCharCode(0x2014), '-') : 'No implementation is recorded for this canonical requirement.',
+      note: typeof source.note === 'string' && !source.note.startsWith('No implementation is recorded')
+        ? source.note.replaceAll(String.fromCharCode(0x2014), '-')
+        : (status === 'absent'
+          ? 'No source implementation or registration seam is recorded for this canonical requirement.'
+          : 'Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.'),
       implementation: { paths, symbols: symbolsForSurface({ registry: surface === 'pages-site' ? 'site' : 'desktop' }, feature.id) },
       registration: { paths: [], symbols: symbolsForSurface({ registry: surface === 'pages-site' ? 'site' : 'desktop' }, feature.id, true) },
       route: surface === 'windows-console' ? 'desktop://console/main' : 'https://ding-ding-projects.github.io/asterisk/',

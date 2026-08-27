@@ -32,3 +32,44 @@ console/scripts/iso/meta-data   text eol=lf
 # batch file, so these are pinned the other way rather than left to chance.
 *.bat           text eol=crlf
 *.cmd           text eol=crlf
+
+# Capture evidence. The completeness inventory records a SHA-256 for every capture and
+# a contract test re-hashes the file on disk, so a normalising rewrite would not merely
+# annoy someone -- it would invalidate the evidence and read as tampering. Git detects
+# PNG as binary by itself; this states it, for the same reason the generated renderer is
+# pinned rather than left to chance: an implicit rule is one nobody can see stop applying.
+console/release/captures/**/*.png   binary
+
+# Generated design-parity data. Both files are re-derived byte for byte by their
+# generators and compared with a --check freshness gate wired into `npm test`. The
+# generators write LF, so on a checkout that translates to CRLF the gate reports the
+# file stale when nothing about it has changed -- proven here: identical content passed
+# as LF and failed as CRLF, which would turn a fresh Windows clone red for a reason no
+# diff can show. Pinning is what makes the gate mean what it says.
+console/design-reference/*.generated.json   text eol=lf
+
+# The website design reference. Its files are exported from the design tool with LF, so a
+# checkout that translates line endings makes every one of them differ from a fresh export
+# by exactly its own line count -- which reads as a changed design when nothing changed at
+# all. Measured: all nine overlapping files were byte-identical once normalised.
+design/site/**   text eol=lf
+console/release/captures/ui-drive/**/*.png   binary
+
+# The React runtime vendored for the design-parity capture harness. Its bytes are checked
+# against the sha384 subresource-integrity hashes design/support.js itself declares, by
+# `vendor-design-react-host.mjs --check`, which npm test runs. A checkout that translated its
+# line endings would change those bytes and turn that gate red on a fresh Windows clone with
+# nothing wrong with the file -- the same failure the generated parity data is pinned against,
+# except here the mismatch reads as a tampered dependency rather than a stale generator.
+console/design-reference/vendor/*   binary
+
+# Live Asterisk CLI captures. These are the exact bytes a Linux Asterisk printed, and
+# `live-readings.mjs --check` re-hashes every one of them and re-runs the production parser
+# over it. A checkout that translated them to CRLF would change every recorded hash and shift
+# every fixed-width column the voicemail and IAX2 parsers slice by, so the gate would go red
+# on a fresh Windows clone with nothing wrong with the evidence -- and a reader would have no
+# way to tell that from tampering. Pinned for the same reason the parity data above is.
+console/release/evidence/live-exchange/readings/**   text eol=lf
+# These files preserve verbatim fixed-width CLI output, including padded columns and final blank
+# output lines. Their recorded lengths and SHA-256 values bind those bytes independently.
+console/release/evidence/live-exchange/readings/**   whitespace=-trailing-space,-blank-at-eof

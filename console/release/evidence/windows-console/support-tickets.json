@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "commit": "d50822fbb689304fe4f52292c0457c51f9ef4f83",
+  "artifact": "console/dist/squirrel-windows/win-unpacked/Ding PBX Console.exe",
+  "artifactSha256": "bd9640b366240712a9953805be4589de71b0b7e5095dd81d1e0c834ec27a30ef",
+  "capture": "console/release/captures/windows-console/support-tickets.png",
+  "captureSha256": "37f2c7d1fa442a6da06e077e06d731d093657f903df99b60edb22d7dc73303d9",
+  "captureBytes": 48222,
+  "viewport": {
+    "width": 1440,
+    "height": 922,
+    "dpi": 144,
+    "scale": 1.5
+  },
+  "launch": {
+    "method": "Lowlevel hidden Windows desktop",
+    "desktop": "DingPBXEvidence",
+    "windowTitle": "Ding PBX Console",
+    "windowClass": "Chrome_WidgetWin_1",
+    "topLevelWindowsOnDesktop": 14,
+    "windowSelectedBy": "exact class Chrome_WidgetWin_1 with a non-empty title and non-zero size",
+    "isolatedProfile": "a task-scoped --user-data-dir created for this run only",
+    "driver": "loopback Chrome DevTools Protocol, exactly one page target verified before any evaluation"
+  },
+  "interaction": {
+    "route": "App > tuneApp > Customise everything > palette search 'support ticket' > Support Tickets section",
+    "action": "opened the command palette with Ctrl+Shift+F, typed 'support ticket', clicked the 'Category' result",
+    "observedTarget": "Category",
+    "domBeforeClick": {
+      "elements": 1451,
+      "inputs": 19
+    },
+    "domAfterClick": {
+      "elements": 1451,
+      "inputs": 19
+    },
+    "observedPanelControls": [],
+    "anchoredToOriginatingField": false
+  },
+  "contractPoints": [
+    "a Support Tickets section carries Category (Locked out of an element / Forgotten PIN or password / Lost my authenticator / Something else), Severity (Low / Normal / High / Catastrophic), a What happened free-text field, and an Open a ticket toggle",
+    "the Category options themselves prove two sibling features exist elsewhere in this build: an element-level lock (Locked out of an element) and a built-in authenticator (Lost my authenticator), even though a direct palette search for those terms did not surface a settings row for either",
+    "Severity defaults to Normal and Category defaults to Forgotten PIN or password, both real single-select radio groups"
+  ],
+  "notInterrogatedHere": [
+    "the actual ticket list, its local storage, and the resolution action that opens the application-data folder",
+    "reaching this same route from the unlock prompt Forgotten your password link and from Help",
+    "whether the resolution step genuinely refuses to delete anything itself and only opens the folder",
+    "the plain-language no-network disclosure text, which sits in the section header above this cropped frame and was captured separately in an earlier attempt"
+  ],
+  "privacy": "no user desktop, cursor, foreground application or personal data is present; the application ran on an off-screen desktop under a throwaway profile",
+  "verification": "inspected-real-packaged-artifact"
+}

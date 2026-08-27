@@ -1,0 +1,5 @@
+Context    Mbox  User                      Zone       NewMsg
+default    1234  Example Mailbox                           0
+myaliases  1234@devices                                           0
+other      1234  Company2 User                             0
+3 voicemail users configured.

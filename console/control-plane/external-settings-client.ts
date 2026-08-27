@@ -56,7 +56,7 @@ export interface ExternalSettingsFetchResponse {
   readonly url: string;
   readonly headers: { get(name: string): string | null };
   readonly body: ReadableStream<Uint8Array> | null;
-  readonly text(): Promise<string>;
+  text(): Promise<string>;
 }
 
 export type ExternalSettingsFetch = (

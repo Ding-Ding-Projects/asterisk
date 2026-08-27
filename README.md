@@ -1,16 +1,16 @@
-# Ding PBX Console
+# Material Asterisk
 
-**Ding PBX Console** is a Windows desktop application for administering [Asterisk](https://www.asterisk.org/) PBX installations. It talks to a target over an allowlisted, no-shell control plane, carries its own Ubuntu WSL runtime so a target exists out of the box, and covers 32 destinations across dialplan, endpoints, trunks, queues, voicemail, security, and system administration.
+**Material Asterisk** is a Windows desktop application for administering [Asterisk](https://www.asterisk.org/) PBX installations. It talks to a target over an allowlisted, no-shell control plane, carries its own Ubuntu WSL runtime so a target exists out of the box, and covers 32 destinations across dialplan, endpoints, trunks, queues, voicemail, security, and system administration.
 
 Install: download the latest unsigned Windows installer from the [Releases page](https://github.com/Ding-Ding-Projects/asterisk/releases/latest) and run it — it will show an unknown-publisher warning (see [Installers are unsigned](#installers-are-unsigned)).
 Documentation and downloads: **https://ding-ding-projects.github.io/asterisk/**
 
-**Contents:** [What it is](#what-ding-pbx-console-is) · [Reaching a PBX](#reaching-a-pbx) · [Build and installer scripts](#build-and-installer-scripts) · [The bundled WSL runtime](#the-bundled-wsl-runtime) · [Safety model](#the-control-planes-safety-model) · [Testing](#testing) · [Documentation](#documentation) · [Contributing](#contributing) · [What is not done yet](#what-is-not-done-yet) · [This is a fork of Asterisk](#this-is-a-fork-of-asterisk) · [How long this would take a person](#how-long-this-would-take-a-person-to-write)
+**Contents:** [What it is](#what-ding-pbx-console-is) · [What it looks like](#what-it-looks-like) · [Reaching a PBX](#reaching-a-pbx) · [Build and installer scripts](#build-and-installer-scripts) · [The bundled WSL runtime](#the-bundled-wsl-runtime) · [Safety model](#the-control-planes-safety-model) · [Testing](#testing) · [Documentation](#documentation) · [Contributing](#contributing) · [What is not done yet](#what-is-not-done-yet) · [This is a fork of Asterisk](#this-is-a-fork-of-asterisk) · [How long this would take a person](#how-long-this-would-take-a-person-to-write)
 
 ---
 
 <details>
-<summary><strong>What Ding PBX Console is</strong></summary>
+<summary><strong>What Material Asterisk is</strong></summary>
 
 A Windows desktop application, built with Electron and a compiled design system, that gives an administrator one place to observe and configure an Asterisk PBX: channels, endpoints, trunks, registrations, queues, contacts, modules, dialplan (drawn from the target's own `dialplan show` output), voicemail, conferences, music on hold, codecs, access control, call records, logging, and the AMI/REST surface.
 
@@ -135,13 +135,183 @@ Stated plainly, from `ROADMAP.md` and `HANDOFF.md`:
 </summary>
 </details>
 
+## What it looks like
+
+Every image below is a capture of the real built application, driven on an off-screen desktop so no visible desktop was ever recorded. Each was decoded and sampled before being committed, and each carries its own digest in `console/release/captures/gallery/gallery.json`.
+
+> [!NOTE]
+> The tables are empty in most of these because the console was pointed at a freshly provisioned target with no calls, no endpoints and no queues. That is the product working as designed: an empty table is the truth of the running system, and a populated demonstration would not be.
+
+<details>
+<summary><strong>Dashboard</strong></summary>
+
+![Dashboard in Material Asterisk. Live counters read from the running system rather than a configuration file: active channels, endpoints up, queues waiting and uptime, each labelled with the command it came from.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/00-dashboard.png)
+
+Live counters read from the running system rather than a configuration file: active channels, endpoints up, queues waiting and uptime, each labelled with the command it came from.
+
+</details>
+
+<details>
+<summary><strong>Confirmation credits</strong></summary>
+
+![Confirmation credits in Material Asterisk. The arcade. Credits earned here skip one confirmation ceremony -- but never one above the danger line, because some mistakes deserve friction.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/01-confirmation-credits.png)
+
+The arcade. Credits earned here skip one confirmation ceremony -- but never one above the danger line, because some mistakes deserve friction.
+
+</details>
+
+<details>
+<summary><strong>Voicemail boxes</strong></summary>
+
+![Voicemail boxes in Material Asterisk. Mailboxes as the target reports them.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/02-voicemail-boxes.png)
+
+Mailboxes as the target reports them.
+
+</details>
+
+<details>
+<summary><strong>Call records</strong></summary>
+
+![Call records in Material Asterisk. Call detail and channel event logging, with the tracked events and applications each backend records.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/03-call-records.png)
+
+Call detail and channel event logging, with the tracked events and applications each backend records.
+
+</details>
+
+<details>
+<summary><strong>Modules</strong></summary>
+
+![Modules in Material Asterisk. Loaded modules and their state.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/04-modules.png)
+
+Loaded modules and their state.
+
+</details>
+
+<details>
+<summary><strong>Memory console</strong></summary>
+
+![Memory console in Material Asterisk. The agent-facing surface, deliberately empty of any private corpus.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/05-memory-console.png)
+
+The agent-facing surface, deliberately empty of any private corpus.
+
+</details>
+
+<details>
+<summary><strong>Deploy a server</strong></summary>
+
+![Deploy a server in Material Asterisk. Creating, verifying, stopping and removing the console own bundled distribution. It refuses to touch any distribution it did not create.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/06-deploy-a-server.png)
+
+Creating, verifying, stopping and removing the console own bundled distribution. It refuses to touch any distribution it did not create.
+
+</details>
+
+<details>
+<summary><strong>Live channels</strong></summary>
+
+![Live channels in Material Asterisk. Calls in flight, refreshed continuously, empty when nothing is up.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/drive-live-channels.png)
+
+Calls in flight, refreshed continuously, empty when nothing is up.
+
+> Taken during the interaction drive, so a panel is open over part of the screen.
+
+</details>
+
+<details>
+<summary><strong>PJSIP endpoints</strong></summary>
+
+![PJSIP endpoints in Material Asterisk. One row per endpoint, read from the target rather than invented. An empty table is honest; a made-up one is not.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/drive-pjsip-endpoints.png)
+
+One row per endpoint, read from the target rather than invented. An empty table is honest; a made-up one is not.
+
+> Taken during the interaction drive, so a panel is open over part of the screen.
+
+</details>
+
+<details>
+<summary><strong>Trunks & registrations</strong></summary>
+
+![Trunks & registrations in Material Asterisk. Outbound trunks and their registration state, read from the same source the dashboard counts.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/drive-trunks-registrations.png)
+
+Outbound trunks and their registration state, read from the same source the dashboard counts.
+
+> Taken during the interaction drive, so a panel is open over part of the screen.
+
+</details>
+
+<details>
+<summary><strong>Trunk authentication</strong></summary>
+
+![Trunk authentication in Material Asterisk. Authentication sections as the target actually has them.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/drive-trunk-authentication.png)
+
+Authentication sections as the target actually has them.
+
+> Taken during the interaction drive, so a panel is open over part of the screen.
+
+</details>
+
+<details>
+<summary><strong>Feature codes</strong></summary>
+
+![Feature codes in Material Asterisk. Transfer, pickup and recording codes from features.conf, and parking from res_parking.conf where Asterisk 12 moved it.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/drive-feature-codes.png)
+
+Transfer, pickup and recording codes from features.conf, and parking from res_parking.conf where Asterisk 12 moved it.
+
+> Taken during the interaction drive, so a panel is open over part of the screen.
+
+</details>
+
+<details>
+<summary><strong>IAX peers</strong></summary>
+
+![IAX peers in Material Asterisk. IAX2 peers, currently a reading surface rather than an editing one.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/drive-iax-peers.png)
+
+IAX2 peers, currently a reading surface rather than an editing one.
+
+> Taken during the interaction drive, so a panel is open over part of the screen.
+
+</details>
+
+<details>
+<summary><strong>Dialplan canvas</strong></summary>
+
+![Dialplan canvas in Material Asterisk. The dialplan drawn from the target own output, with a step inspector and the connections between contexts.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/drive-dialplan-canvas.png)
+
+The dialplan drawn from the target own output, with a step inspector and the connections between contexts.
+
+> Taken during the interaction drive, so a panel is open over part of the screen.
+
+</details>
+
+<details>
+<summary><strong>IVR menus</strong></summary>
+
+![IVR menus in Material Asterisk. Menu structure and the prompts each option plays.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/drive-ivr-menus.png)
+
+Menu structure and the prompts each option plays.
+
+> Taken during the interaction drive, so a panel is open over part of the screen.
+
+</details>
+
+<details>
+<summary><strong>Queues & agents</strong></summary>
+
+![Queues & agents in Material Asterisk. Queue membership and agent state.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/drive-queues-agents.png)
+
+Queue membership and agent state.
+
+> Taken during the interaction drive, so a panel is open over part of the screen.
+
+</details>
+
+---
 ## Installers are unsigned
 
 Every published Windows installer is **deliberately unsigned** — code signing is out of scope for this project by policy — so Windows will show an unknown-publisher warning (SmartScreen) when you run it. This is expected and does not indicate tampering; verify the SHA-256 against the `SHA256SUMS.txt` asset on the same release if you want independent confirmation.
 
 ## This is a fork of Asterisk
 
-**This repository is a fork of the [Asterisk](https://www.asterisk.org/) Open Source PBX project**, licensed under the GNU General Public License version 2. Ding PBX Console is additive software built on top of this checkout to administer Asterisk; it does not replace, relicense, or claim authorship of Asterisk itself. The full, unmodified upstream Asterisk source tree and build system remain at the repository root exactly as they do in any Asterisk checkout.
+**This repository is a fork of the [Asterisk](https://www.asterisk.org/) Open Source PBX project**, licensed under the GNU General Public License version 2. Material Asterisk is additive software built on top of this checkout to administer Asterisk; it does not replace, relicense, or claim authorship of Asterisk itself. The full, unmodified upstream Asterisk source tree and build system remain at the repository root exactly as they do in any Asterisk checkout.
 
 - Upstream project: **https://www.asterisk.org/** — source, downloads, and documentation for Asterisk itself.
 - License: see [`LICENSE`](LICENSE) and [`COPYING`](COPYING).

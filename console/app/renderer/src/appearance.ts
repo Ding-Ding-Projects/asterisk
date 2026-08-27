@@ -234,8 +234,21 @@ function validatePropertyValue(property: AppearanceProperty, value: string): Val
       return { ok: true };
     }
     case 'radius':
+    case 'padding': {
+      /* These two are genuinely per-side in CSS, and the editor exposes them that way:
+       * four corner sliders for radius, four edge sliders for padding. So the value may be
+       * the ordinary one-to-four length shorthand as well as a single length. Every part is
+       * still bounded individually -- the shorthand widens the shape, never the range. */
+      const parts = value.split(/\s+/).filter((part) => part.length > 0);
+      if (parts.length < 1 || parts.length > 4 || !parts.every((part) => isNonNegativeLength(part, 512))) {
+        return {
+          ok: false,
+          reason: `${property} must be one to four non-negative bounded lengths [0, 512], got '${value}'`,
+        };
+      }
+      return { ok: true };
+    }
     case 'borderWidth':
-    case 'padding':
     case 'gap': {
       if (!isNonNegativeLength(value, 512)) {
         return { ok: false, reason: `${property} must be a non-negative bounded length [0, 512], got '${value}'` };

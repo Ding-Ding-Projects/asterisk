@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
@@ -12,6 +13,7 @@ import {
   outline,
   resolveLink,
   search,
+  searchBounded,
   suggested,
 } from '../../app/renderer/src/docs-browser.ts';
 import type { DocsArticle, DocsBundle } from '../../app/renderer/src/generated/docs-bundle.ts';
@@ -89,26 +91,36 @@ test('the excerpt contains the match', () => {
   assert.equal(hit.excerpt.toLowerCase().includes('narrator voice'), true);
 });
 
-test('regex search is opt-in only', () => {
+test('regex search is opt-in only and uses the bounded asynchronous evaluator', async () => {
   const b = bundle([article({ id: 'a', category: 'app', title: 'foo123bar', body: 'no match here' })]);
   const plain = search(b, 'foo\\d+bar');
   assert.equal(plain.matches.length, 0);
-  const regex = search(b, 'foo\\d+bar', { regex: true });
-  assert.equal(regex.ok, true);
-  assert.equal(regex.matches.length, 1);
+  const regex = await searchBounded(b, 'foo\\d+bar', { regex: true });
+  // Node has no browser Worker. The worker-only API must fail closed here rather
+  // than evaluating a user pattern on this test process's main thread.
+  assert.equal(regex.ok, false);
+  assert.match(regex.error ?? '', /isolated regular-expression search is unavailable/iu);
 });
 
-test('an invalid regex is reported, not thrown', () => {
+test('an invalid regex is reported by the bounded evaluator, not thrown', async () => {
   const b = bundle([article({ id: 'a', category: 'app', title: 'Anything' })]);
-  const result = search(b, '(unclosed', { regex: true });
+  const result = await searchBounded(b, '(unclosed', { regex: true });
   assert.equal(result.ok, false);
   assert.ok(result.error);
   assert.deepEqual(result.matches, []);
 });
 
-test('search never throws on a hostile pattern', () => {
+test('bounded search never throws on a hostile pattern', async () => {
   const b = bundle([article({ id: 'a', category: 'app', title: 'a'.repeat(50), body: 'a'.repeat(5000) })]);
-  assert.doesNotThrow(() => search(b, '(a+)+$', { regex: true }));
+  await assert.doesNotReject(() => searchBounded(b, '(a+)+$', { regex: true }));
+});
+
+test('App routes regex documentation searches through the bounded API and drops stale worker replies', () => {
+  const app = readFileSync(join(consoleRoot, 'app', 'renderer', 'src', 'App.tsx'), 'utf8');
+  assert.match(app, /docsSearchBounded\(DOCS_BUNDLE, query, \{ regex: true, flags, signal: abort\.signal \}\)/u);
+  assert.match(app, /generation !== this\.docsSearchGeneration \|\| abort\.signal\.aborted/u);
+  assert.match(app, /setDocsQuery: this\.updateDocsQuery/u);
+  assert.match(app, /toggleDocsRegex: this\.toggleDocsRegex/u);
 });
 
 test('empty query returns no matches without error', () => {
@@ -218,7 +230,32 @@ test('a single-article bundle does not throw across the module', () => {
 
 test('the real generator bundles exactly as many articles as .md files exist on disk', () => {
   const generatorPath = join(consoleRoot, 'scripts', 'bundle-docs.mjs');
-  execFileSync(process.execPath, [generatorPath], { cwd: consoleRoot, stdio: 'pipe' });
+
+  /* Into a scratch file, never over the shipped bundle. Regenerating in place made this test
+   * unable to fail -- it overwrote the file and then read its own output back -- and left the
+   * working tree dirty for whoever ran the suite next. Whether the *committed* bundle matches the
+   * tree is a separate question, and tests/ui/docs-drift.test.mjs is what asks it. */
+  const scratchDir = mkdtempSync(join(tmpdir(), 'ding-docs-count-'));
+  const scratchFile = join(scratchDir, 'docs-bundle.ts');
+  try {
+    execFileSync(process.execPath, [generatorPath], {
+      cwd: consoleRoot,
+      stdio: 'pipe',
+      env: { ...process.env, DING_DOCS_OUT_FILE: scratchFile },
+    });
+
+    const contents = readFileSync(scratchFile, 'utf8');
+    const match = contents.match(/"articleCount":\s*(\d+)/);
+    assert.ok(match, 'generated bundle must record its articleCount');
+    const bundledCount = Number(match[1]);
+
+    const realCount = countMarkdown(join(consoleRoot, 'docs'));
+
+    assert.equal(bundledCount, realCount);
+    assert.ok(realCount > 0);
+  } finally {
+    rmSync(scratchDir, { recursive: true, force: true });
+  }
 
   function countMarkdown(dir: string): number {
     let count = 0;
@@ -230,15 +267,4 @@ test('the real generator bundles exactly as many articles as .md files exist on 
     }
     return count;
   }
-
-  const realCount = countMarkdown(join(consoleRoot, 'docs'));
-
-  const bundlePath = join(consoleRoot, 'app', 'renderer', 'src', 'generated', 'docs-bundle.ts');
-  const contents = readFileSync(bundlePath, 'utf8');
-  const match = contents.match(/"articleCount":\s*(\d+)/);
-  assert.ok(match, 'generated bundle must record its articleCount');
-  const bundledCount = Number(match[1]);
-
-  assert.equal(bundledCount, realCount);
-  assert.ok(realCount > 0);
 });

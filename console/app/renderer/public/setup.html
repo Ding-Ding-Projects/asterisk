@@ -3,183 +3,62 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Administrator setup | Ding PBX Console</title>
+<title>First-run setup — Material Asterisk</title>
 <style>
-  :root { color-scheme: dark; font-family: Roboto, system-ui, sans-serif; background: #101510; color: #e6efe6; }
-  * { box-sizing: border-box; }
-  body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px; }
-  main { width: min(100%, 480px); background: #182018; border: 1px solid #405044; border-radius: 24px; padding: 32px; box-shadow: 0 12px 32px #0008; }
-  h1 { margin: 0 0 8px; font-size: 1.5rem; line-height: 1.25; }
-  p { line-height: 1.5; }
-  #status { min-height: 48px; margin: 0 0 12px; color: #c4d6c5; }
-  form[hidden], [hidden] { display: none !important; }
-  fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
-  label { display: block; margin: 16px 0 6px; font-size: 0.9rem; font-weight: 600; }
-  input { width: 100%; min-height: 48px; padding: 12px 14px; border: 1px solid #718574; border-radius: 12px; background: #0d120d; color: inherit; font: inherit; }
-  input:focus-visible, button:focus-visible { outline: 3px solid #8bd6a0; outline-offset: 3px; }
-  button { min-height: 48px; padding: 10px 18px; border: 0; border-radius: 999px; background: #7bd892; color: #09210e; font: inherit; font-weight: 700; cursor: pointer; }
-  button:disabled { opacity: 0.55; cursor: wait; }
-  form button { width: 100%; margin-top: 24px; }
-  #retry { width: auto; margin-top: 8px; }
-  #message { min-height: 24px; margin: 14px 0 0; color: #ffb4ab; }
-  #warning, #recovery { margin-top: 18px; padding: 14px; border-radius: 16px; }
-  #warning { background: #3a321c; color: #f2d781; }
-  #recovery { background: #3a2020; color: #ffd9d5; }
-  @media (max-width: 520px) { body { padding: 0; } main { min-height: 100vh; border: 0; border-radius: 0; padding: 24px; } }
+  body { font-family: system-ui, sans-serif; background: #101510; color: #e6efe6; display: flex;
+    align-items: center; justify-content: center; height: 100vh; margin: 0; }
+  form { background: #182018; padding: 2rem; border-radius: 8px; width: 360px; }
+  h1 { font-size: 1.1rem; margin: 0 0 0.25rem; }
+  p { font-size: 0.8rem; color: #9fb39f; margin: 0 0 1rem; }
+  label { display: block; margin: 0.75rem 0 0.25rem; font-size: 0.85rem; }
+  input { width: 100%; box-sizing: border-box; padding: 0.5rem; border-radius: 4px; border: 1px solid #345; background: #0d120d; color: inherit; }
+  button { margin-top: 1.25rem; width: 100%; padding: 0.6rem; border-radius: 4px; border: none; background: #3a8a4c; color: white; font-weight: 600; cursor: pointer; }
+  button:disabled { opacity: 0.6; cursor: default; }
+  #message { min-height: 1.4em; margin-top: 0.75rem; font-size: 0.85rem; color: #ff9d9d; }
 </style>
 </head>
 <body>
-<main aria-labelledby="title">
-  <h1 id="title">Create the administrator account</h1>
-  <p id="status" role="status" aria-live="polite">Checking whether setup is available.</p>
-  <button id="retry" type="button" hidden>Retry</button>
-  <section id="recovery" role="alert" hidden></section>
-  <form id="setup" hidden novalidate>
-    <p>Setup is available only when no account record exists. The password is hashed with scrypt and is never returned by the server.</p>
-    <fieldset id="fields" disabled>
-      <label for="username">Username</label>
-      <input id="username" name="username" autocomplete="username" maxlength="128" required />
-      <label for="password">Password</label>
-      <input id="password" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="1024" required />
-      <button id="submit" type="submit">Create account</button>
-    </fieldset>
-    <p id="message" role="alert" aria-live="assertive"></p>
-  </form>
-  <aside id="warning" hidden></aside>
-</main>
+<form id="setup">
+  <h1>Create the administrator account</h1>
+  <p>This runs once, the first time the server starts. Choose a password of at least 12 characters — it is
+     hashed with scrypt and never stored or shown again.</p>
+  <label for="username">Username</label>
+  <input id="username" name="username" autocomplete="username" required />
+  <label for="password">Password</label>
+  <input id="password" name="password" type="password" autocomplete="new-password" minlength="12" required />
+  <button type="submit">Create account</button>
+  <div id="message" role="alert"></div>
+</form>
 <script>
-(() => {
-  'use strict';
-  const REQUEST_TIMEOUT_MS = 8000;
+(async function () {
+  const sessionRes = await fetch('/api/session', { credentials: 'same-origin' }).catch(() => undefined);
+  const session = sessionRes && sessionRes.ok ? await sessionRes.json() : undefined;
+  if (session && !session.needsSetup) { window.location.assign('/login.html'); return; }
+
   const form = document.getElementById('setup');
-  const fields = document.getElementById('fields');
-  const submit = document.getElementById('submit');
-  const status = document.getElementById('status');
   const message = document.getElementById('message');
-  const warning = document.getElementById('warning');
-  const recovery = document.getElementById('recovery');
-  const retry = document.getElementById('retry');
-
-  async function requestJson(path, options = {}) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    try {
-      const response = await fetch(path, { ...options, credentials: 'same-origin', signal: controller.signal });
-      let body = {};
-      try { body = await response.json(); } catch { body = {}; }
-      return { response, body };
-    } catch (error) {
-      if (error && error.name === 'AbortError') throw new Error('TIMEOUT');
-      throw new Error('UNAVAILABLE');
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-
-  function setBusy(busy, text) {
-    form.setAttribute('aria-busy', String(busy));
-    fields.disabled = busy;
-    submit.textContent = busy ? 'Creating account...' : 'Create account';
-    if (text) status.textContent = text;
-  }
-
-  function showProblem(text, options = {}) {
-    form.hidden = options.hideForm !== false;
-    fields.disabled = true;
-    status.textContent = text;
-    retry.hidden = !options.retry;
-    recovery.hidden = !options.recovery;
-    recovery.textContent = options.recovery || '';
-  }
-
-  async function checkStatus() {
-    retry.hidden = true;
-    recovery.hidden = true;
-    form.hidden = true;
-    status.textContent = 'Checking whether setup is available.';
-    try {
-      const { response, body } = await requestJson('/api/setup');
-      if (!response.ok) {
-        showProblem(body.message || 'The server refused the setup status request.', { retry: true });
-        return;
-      }
-      if (body.accountState === 'valid') {
-        window.location.assign('/login.html');
-        return;
-      }
-      if (body.accountState === 'corrupt') {
-        showProblem('Setup is disabled because an existing account record needs recovery.', {
-          retry: true,
-          recovery: body.recoveryMessage || 'Restore the administrator account record from a trusted backup, then restart the server.',
-        });
-        return;
-      }
-      if (!body.authTransportAllowed) {
-        showProblem('Account creation was refused because this exposed connection is using plain HTTP.', { retry: true });
-        warning.hidden = false;
-        warning.textContent = body.plainHttpWarning || 'Use HTTPS, then retry.';
-        return;
-      }
-      warning.hidden = !body.plainHttpWarning;
-      warning.textContent = body.plainHttpWarning || '';
-      form.hidden = false;
-      fields.disabled = false;
-      status.textContent = 'No account record exists. Setup is ready.';
-      document.getElementById('username').focus();
-    } catch (error) {
-      const timedOut = error instanceof Error && error.message === 'TIMEOUT';
-      showProblem(
-        timedOut ? 'The server did not answer before the 8-second timeout.' : 'The server is unavailable. Account creation has not started.',
-        { retry: true },
-      );
-    }
-  }
-
-  retry.addEventListener('click', () => { void checkStatus(); });
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     message.textContent = '';
-    setBusy(true, 'Creating the administrator account.');
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const button = form.querySelector('button');
+    button.disabled = true;
     try {
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
-      const { response, body } = await requestJson('/api/setup', {
-        method: 'POST',
+      const res = await fetch('/api/setup', {
+        method: 'POST', credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
-      if (response.ok) {
-        status.textContent = 'Account created. Opening sign-in.';
-        window.location.assign('/login.html');
-        return;
-      }
-      if (body.error === 'ALREADY_SET_UP') {
-        window.location.assign('/login.html');
-        return;
-      }
-      if (body.error === 'ACCOUNT_STORE_CORRUPT') {
-        showProblem('Setup is disabled because account storage needs recovery.', { retry: true, recovery: body.message });
-        return;
-      }
-      if (body.error === 'INSECURE_AUTH_TRANSPORT') {
-        showProblem('Account creation was refused because this exposed connection is using plain HTTP.', { retry: true });
-        warning.hidden = false;
-        warning.textContent = body.message || 'Use HTTPS, then retry.';
-        return;
-      }
-      message.textContent = body.message || 'The server refused account creation.';
-      status.textContent = 'Account creation was refused.';
-    } catch (error) {
-      const timedOut = error instanceof Error && error.message === 'TIMEOUT';
-      message.textContent = timedOut ? 'Account creation timed out after 8 seconds. Check account status before retrying.' : 'The server became unavailable. Check account status before retrying.';
-      retry.hidden = false;
-      status.textContent = timedOut ? 'Account creation timed out.' : 'The server is unavailable.';
+      const data = await res.json();
+      if (res.ok) { window.location.assign('/login.html'); return; }
+      message.textContent = data.message || 'Could not create the account.';
+    } catch {
+      message.textContent = 'Could not reach the server.';
     } finally {
-      if (!form.hidden) setBusy(false);
+      button.disabled = false;
     }
   });
-
-  void checkStatus();
 })();
 </script>
 </body>

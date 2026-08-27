@@ -46,6 +46,8 @@ const converterClient: ConverterClient = {
 
 const unavailableOllamaResponse = <T,>(operation: string): Promise<BackendResponse<T>> => Promise.resolve({
   ok: false,
+  requestId: crypto.randomUUID(),
+  observedAt: new Date().toISOString(),
   error: {
     code: 'bridge-not-registered',
     message: `Ollama ${operation} is not registered in the privileged bridge. The surface stays empty until a real local response is available.`,
@@ -85,11 +87,10 @@ async function readOllamaSnapshot(): Promise<BackendResponse<OllamaSuiteSnapshot
       blobSizeBytes: item.sizeBytes,
       installed: true,
       running: running.has(item.name) || running.has(item.model),
-      mode: 'plain' as const,
-      pattern: '',
-      flags: 'i',
-      sample: '',
-      limits: { maxPatternCharacters: 512, maxSampleCharacters: 4096, timeoutMs: 75, maxMatches: 200 },
+      capabilities: [],
+      fit: { verdict: 'unknown' as const, assessedAt: data.observedAt, summary: 'The dispatcher did not supply enough hardware metadata for a fit verdict.', assumptions: [], evidence: [] },
+      metadataComplete: false,
+      metadataGaps: ['The dispatcher did not supply catalog metadata for this installed tag.'],
     }));
     return {
       ok: true,

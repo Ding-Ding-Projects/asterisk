@@ -4,6 +4,12 @@
 
 The private vocabulary dictionary and the emission guard that blocks a forbidden term before it can leave the process. It is backed by `vocabulary-dictionary.json`. The rail badge on this destination currently reads `lock`. It lives on the Agent rail, under the Agent global memory group: Memory, sync, skills, hub sessions and the emission guard.
 
+## What this screen reads
+
+The real loaded state of the dictionary you upload from this machine, in words — whether one is loaded and how many replacements it is applying to the interface.
+
+The terms themselves are deliberately **not** listed in the table. Every table in this console can be selected, copied and exported to a file, and a private vocabulary term must never reach an export or the clipboard. So the dictionary stays in this machine's own local cache, is applied to the interface, and is reported here as a count rather than as rows. That is a decision, not an omission.
+
 ## Configuration
 
 ### Emission guard

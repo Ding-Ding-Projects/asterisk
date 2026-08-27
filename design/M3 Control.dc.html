@@ -7,412 +7,211 @@
 </head>
 <body>
 <x-dc>
-<div role="group" aria-labelledby="{{ labelId }}" aria-describedby="{{ describedBy }}" aria-disabled="{{ isDisabled }}" data-control-kind="{{ ctl.kind }}" style="display:flex; flex-direction:column; gap:10px; min-width:0; max-width:100%;">
-  <div style="display:flex; align-items:center; gap:8px; min-width:0; flex-wrap:wrap;">
-    <sc-if value="{{ labelForInput }}" hint-placeholder-val="{{ true }}">
-      <label id="{{ labelId }}" for="{{ primaryId }}" style="font-size:12.5px; font-weight:500; color:#C4CBC2; min-width:0; overflow-wrap:anywhere;">{{ ctl.label }}</label>
-    </sc-if>
-    <sc-if value="{{ labelForGroup }}" hint-placeholder-val="{{ true }}">
-      <span id="{{ labelId }}" style="font-size:12.5px; font-weight:500; color:#C4CBC2; min-width:0; overflow-wrap:anywhere;">{{ ctl.label }}</span>
-    </sc-if>
+<div data-ctl="{{ ctl.rawKey }}" style="display:flex; flex-direction:column; gap:8px; min-width:0;">
+  <div style="display:flex; align-items:center; gap:7px;">
+    <span style="font-size:12.5px; font-weight:500; color:#C4CBC2;">{{ ctl.label }}</span>
     <sc-if value="{{ ctl.showKey }}" hint-placeholder-val="{{ true }}">
-      <span style="font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394; background:#141A15; border-radius:5px; padding:3px 7px; flex:0 0 auto; overflow-wrap:anywhere;">{{ ctl.rawKey }}</span>
+      <span style="font-family:'Roboto Mono',monospace; font-size:10.5px; color:#8FA394; background:#141A15; border-radius:5px; padding:2px 6px; flex:0 0 auto;">{{ ctl.rawKey }}</span>
     </sc-if>
-    <sc-if value="{{ showInfoAction }}" hint-placeholder-val="{{ true }}">
-      <button type="button" onClick="{{ ctl.onInfo }}" aria-label="Explain {{ ctl.label }}" title="Explain this setting" style="min-width:48px; min-height:48px; border-radius:24px; background:#262B26; border:1px solid #414942; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto; outline-offset:3px;" style-hover="background:#005230; border-color:#82D9A5;"><span class="msym" aria-hidden="true" style="font-size:19px;">info</span></button>
-    </sc-if>
-    <sc-if value="{{ showWizardAction }}" hint-placeholder-val="{{ true }}">
-      <button type="button" onClick="{{ ctl.onWizard }}" aria-label="Open guided setup for {{ ctl.label }}" title="Walk me through this setting" style="min-width:48px; min-height:48px; border-radius:24px; background:#262B26; border:1px solid #414942; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto; outline-offset:3px;" style-hover="background:#005230; border-color:#82D9A5;"><span class="msym" aria-hidden="true" style="font-size:19px;">auto_fix_high</span></button>
-    </sc-if>
-    <div style="flex:1; min-width:0;"></div>
+    <button onClick="{{ ctl.onInfo }}" title="Explain this setting" style="width:24px; height:24px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#005230;"><span class="msym" style="font-size:14px;">info</span></button>
+    <button onClick="{{ ctl.onWizard }}" title="Walk me through this setting" style="width:24px; height:24px; border-radius:50%; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#005230;"><span class="msym" style="font-size:14px;">auto_fix_high</span></button>
+    <div style="flex:1;"></div>
     <sc-if value="{{ isSlider }}" hint-placeholder-val="{{ true }}">
-      <output for="{{ primaryId }}" style="font-family:'Roboto Mono',monospace; font-size:12.5px; color:#82D9A5; overflow-wrap:anywhere;">{{ sliderDisplay }}</output>
+      <span style="font-family:'Roboto Mono',monospace; font-size:12.5px; color:#82D9A5;">{{ ctl.display }}</span>
     </sc-if>
   </div>
 
-  <sc-if value="{{ showProvenance }}" hint-placeholder-val="{{ true }}">
-    <div id="{{ provenanceId }}" role="note" style="display:flex; align-items:flex-start; gap:8px; background:#141A15; border-left:3px solid #82D9A5; border-radius:8px; padding:9px 12px; color:#C4CBC2; font-size:11.5px; line-height:1.45; overflow-wrap:anywhere;">
-      <span class="msym" aria-hidden="true" style="font-size:16px; color:#82D9A5; flex:0 0 auto;">database</span>
-      <span>{{ provenanceText }}</span>
-    </div>
-  </sc-if>
-
-  <sc-if value="{{ showDisabledReason }}" hint-placeholder-val="{{ true }}">
-    <div id="{{ disabledReasonId }}" role="status" aria-live="polite" style="display:flex; align-items:flex-start; gap:8px; background:#2B1716; border:1px solid #633B38; border-radius:8px; padding:9px 12px; color:#FFB4AB; font-size:11.5px; line-height:1.45; overflow-wrap:anywhere;">
-      <span class="msym" aria-hidden="true" style="font-size:16px; flex:0 0 auto;">block</span>
-      <span>{{ disabledReasonText }}</span>
-    </div>
-  </sc-if>
-
   <sc-if value="{{ isSwitch }}" hint-placeholder-val="{{ true }}">
-    <button type="button" role="switch" aria-checked="{{ switchChecked }}" aria-labelledby="{{ labelId }}" aria-describedby="{{ describedBy }}" disabled="{{ switchDisabled }}" onClick="{{ switchAction }}" style="display:flex; align-items:center; gap:12px; align-self:flex-start; max-width:100%; min-height:48px; background:transparent; border:1px solid transparent; border-radius:24px; padding:7px 10px; cursor:pointer; color:#C4CBC2; outline-offset:3px;" style-hover="background:#262B26; border-color:#414942;">
-      <sc-if value="{{ switchChecked }}" hint-placeholder-val="{{ true }}">
-        <span aria-hidden="true" style="width:52px; height:32px; border-radius:16px; background:#82D9A5; display:flex; align-items:center; justify-content:flex-end; padding:0 4px; flex:0 0 auto;"><span style="width:24px; height:24px; border-radius:50%; background:#00391F; display:flex; align-items:center; justify-content:center;"><span class="msym" style="font-size:16px; color:#82D9A5;">check</span></span></span>
+    <button onClick="{{ ctl.toggle }}" style="display:flex; align-items:center; gap:12px; background:transparent; border:0; padding:0; cursor:pointer;">
+      <sc-if value="{{ ctl.on }}" hint-placeholder-val="{{ true }}">
+        <span style="width:52px; height:32px; border-radius:16px; background:#82D9A5; display:flex; align-items:center; justify-content:flex-end; padding:0 4px;"><span style="width:24px; height:24px; border-radius:50%; background:#00391F; display:flex; align-items:center; justify-content:center;"><span class="msym" style="font-size:16px; color:#82D9A5;">check</span></span></span>
         <span style="font-size:12.5px; color:#9FF7C4;">On</span>
       </sc-if>
-      <sc-if value="{{ switchUnchecked }}" hint-placeholder-val="{{ true }}">
-        <span aria-hidden="true" style="width:52px; height:32px; border-radius:16px; background:#262B26; border:2px solid #414942; display:flex; align-items:center; justify-content:flex-start; padding:0 5px; flex:0 0 auto;"><span style="width:16px; height:16px; border-radius:50%; background:#8B938C;"></span></span>
+      <sc-if value="{{ ctl.off }}">
+        <span style="width:52px; height:32px; border-radius:16px; background:#262B26; border:2px solid #414942; display:flex; align-items:center; justify-content:flex-start; padding:0 5px;"><span style="width:16px; height:16px; border-radius:50%; background:#8B938C;"></span></span>
         <span style="font-size:12.5px; color:#9AA39B;">Off</span>
       </sc-if>
     </button>
   </sc-if>
 
-  <sc-if value="{{ isAction }}" hint-placeholder-val="{{ true }}">
-    <button type="button" onClick="{{ actionHandler }}" disabled="{{ actionDisabled }}" aria-disabled="{{ actionDisabled }}" aria-describedby="{{ describedBy }}" style="min-height:48px; align-self:flex-start; max-width:100%; background:#82D9A5; color:#00391F; border:0; border-radius:999px; padding:10px 18px; font-family:Roboto,sans-serif; font-size:12.5px; font-weight:600; cursor:pointer; overflow-wrap:anywhere; outline-offset:3px;" style-hover="background:#9FF7C4;">{{ actionLabel }}</button>
-  </sc-if>
-
-  <sc-if value="{{ isSegmented }}" hint-placeholder-val="{{ true }}">
-    <div role="radiogroup" aria-labelledby="{{ labelId }}" aria-describedby="{{ describedBy }}" style="display:flex; border:1px solid #414942; border-radius:18px; overflow:hidden; align-self:flex-start; max-width:100%; flex-wrap:wrap;">
-      <sc-for list="{{ choices }}" as="o" hint-placeholder-count="3">
-        <button type="button" role="radio" aria-checked="{{ o.selected }}" aria-label="{{ o.accessibleLabel }}" disabled="{{ o.disabled }}" tabindex="{{ o.tabIndex }}" onClick="{{ o.pickSafe }}" style="display:flex; align-items:center; justify-content:center; gap:6px; min-width:48px; min-height:48px; max-width:100%; background:{{ o.bg }}; color:{{ o.fg }}; border:0; border-left:1px solid #414942; padding:9px 15px; font-family:Roboto,sans-serif; font-size:12.5px; font-weight:500; cursor:pointer; overflow-wrap:anywhere; outline-offset:-4px;" style-hover="background:#262B26; color:#DFE4DC;">
-          <sc-if value="{{ o.selected }}" hint-placeholder-val="{{ true }}"><span class="msym" aria-hidden="true" style="font-size:16px;">check</span></sc-if>
-          <span>{{ o.label }}</span>
-        </button>
+  <sc-if value="{{ isSegmented }}">
+    <div style="display:flex; border:1px solid #414942; border-radius:999px; overflow:hidden; align-self:flex-start; max-width:100%; flex-wrap:nowrap;">
+      <sc-for list="{{ ctl.options }}" as="o" hint-placeholder-count="3">
+        <sc-if value="{{ o.on }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ o.pick }}" style="display:flex; align-items:center; gap:5px; background:#005230; color:#9FF7C4; border:0; padding:8px 15px; font-family:Roboto,sans-serif; font-size:12.5px; font-weight:500; cursor:pointer; white-space:nowrap;"><span class="msym" style="font-size:15px;">check</span>{{ o.label }}</button>
+        </sc-if>
+        <sc-if value="{{ o.off }}">
+          <button onClick="{{ o.pick }}" style="background:transparent; color:#C4CBC2; border:0; border-left:1px solid #414942; padding:8px 15px; font-family:Roboto,sans-serif; font-size:12.5px; cursor:pointer; white-space:nowrap;" style-hover="background:#262B26;">{{ o.label }}</button>
+        </sc-if>
       </sc-for>
     </div>
   </sc-if>
 
-  <sc-if value="{{ isSegNarrow }}" hint-placeholder-val="{{ true }}">
-    <div role="radiogroup" aria-labelledby="{{ labelId }}" aria-describedby="{{ describedBy }}" style="display:flex; flex-direction:column; gap:6px; width:100%; min-width:0;">
-      <sc-for list="{{ choices }}" as="o" hint-placeholder-count="3">
-        <button type="button" role="radio" aria-checked="{{ o.selected }}" aria-label="{{ o.accessibleLabel }}" disabled="{{ o.disabled }}" tabindex="{{ o.tabIndex }}" onClick="{{ o.pickSafe }}" style="display:flex; align-items:center; gap:8px; width:100%; min-height:48px; background:{{ o.bg }}; color:{{ o.fg }}; border:1px solid #414942; border-radius:10px; padding:9px 12px; font-family:Roboto,sans-serif; font-size:12.5px; font-weight:500; cursor:pointer; text-align:left; overflow-wrap:anywhere; outline-offset:3px;" style-hover="background:#262B26; border-color:#82D9A5;">
-          <span class="msym" aria-hidden="true" style="font-size:17px;">{{ o.radioIcon }}</span>
-          <span>{{ o.label }}</span>
-        </button>
+  <sc-if value="{{ isSegNarrow }}">
+    <div style="display:flex; flex-direction:column; gap:4px;">
+      <sc-for list="{{ ctl.options }}" as="o" hint-placeholder-count="3">
+        <sc-if value="{{ o.on }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ o.pick }}" style="display:flex; align-items:center; gap:8px; width:100%; background:#005230; color:#9FF7C4; border:0; border-radius:10px; padding:9px 12px; font-family:Roboto,sans-serif; font-size:12.5px; font-weight:500; cursor:pointer; text-align:left;"><span class="msym" style="font-size:16px;">radio_button_checked</span>{{ o.label }}</button>
+        </sc-if>
+        <sc-if value="{{ o.off }}">
+          <button onClick="{{ o.pick }}" style="display:flex; align-items:center; gap:8px; width:100%; background:transparent; color:#C4CBC2; border:1px solid #414942; border-radius:10px; padding:9px 12px; font-family:Roboto,sans-serif; font-size:12.5px; cursor:pointer; text-align:left;" style-hover="background:#262B26;"><span class="msym" style="font-size:16px; color:#778078;">radio_button_unchecked</span>{{ o.label }}</button>
+        </sc-if>
       </sc-for>
     </div>
   </sc-if>
 
-  <sc-if value="{{ isSelect }}" hint-placeholder-val="{{ true }}">
-    <div style="display:flex; flex-direction:column; gap:8px; min-width:0; max-width:100%;">
-      <div role="search" aria-label="Filter choices for {{ ctl.label }}" style="display:flex; align-items:stretch; gap:6px; min-width:0; max-width:100%; flex-wrap:wrap;">
-        <input id="{{ searchId }}" type="search" value="{{ filterQuery }}" onChange="{{ onFilterInput }}" onInput="{{ onFilterInput }}" aria-label="Filter {{ ctl.label }} choices" aria-describedby="{{ filterStatusId }}" placeholder="Filter choices" autocomplete="off" spellcheck="false" disabled="{{ isDisabled }}" style="flex:1 1 180px; min-width:0; min-height:48px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:13px; outline-offset:3px;" />
-        <button type="button" onClick="{{ toggleRegex }}" aria-expanded="{{ regexOpen }}" aria-controls="{{ regexPanelId }}" aria-label="Open anchored regex builder for {{ ctl.label }} choices" title="Regex builder" disabled="{{ isDisabled }}" style="min-width:48px; min-height:48px; border-radius:10px; background:#262B26; border:1px solid #414942; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; outline-offset:3px;" style-hover="background:#005230; border-color:#82D9A5;"><span class="msym" aria-hidden="true" style="font-size:20px;">data_object</span></button>
-      </div>
-      <div id="{{ filterStatusId }}" role="status" aria-live="polite" style="font-size:11.5px; color:{{ filterStatusColor }}; overflow-wrap:anywhere;">{{ filterStatus }}</div>
-      <sc-if value="{{ regexOpen }}" hint-placeholder-val="{{ true }}">
-        <div id="{{ regexPanelId }}" role="region" aria-label="Regex builder for {{ ctl.label }} choices" style="align-self:flex-start; width:min(100%,520px); max-height:70vh; overflow:auto; background:#20271F; border:1px solid #414942; border-radius:14px; padding:12px; box-shadow:0 8px 24px rgba(0,0,0,.45); display:flex; flex-direction:column; gap:10px;">
-          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-            <button type="button" role="switch" aria-checked="{{ regexEnabled }}" onClick="{{ toggleRegexMode }}" style="min-height:48px; background:#262B26; border:1px solid #414942; border-radius:999px; color:#C4CBC2; padding:9px 14px; cursor:pointer; outline-offset:3px;" style-hover="background:#005230; border-color:#82D9A5;">Use regex filter: {{ regexModeLabel }}</button>
-            <span style="font-size:11.5px; color:#8FA394;">Engine: {{ regexEngine }}</span>
-          </div>
-          <label for="{{ regexInputId }}" style="font-size:11.5px; color:#C4CBC2;">Pattern</label>
-          <input id="{{ regexInputId }}" type="text" value="{{ filterQuery }}" onChange="{{ onFilterInput }}" onInput="{{ onFilterInput }}" aria-invalid="{{ regexInvalid }}" aria-describedby="{{ filterStatusId }}" placeholder="Type a pattern" autocomplete="off" spellcheck="false" style="width:100%; min-height:48px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:13px; outline-offset:3px;" />
-          <div role="group" aria-label="Regex flags" style="display:flex; flex-wrap:wrap; gap:6px;">
-            <sc-for list="{{ regexFlags }}" as="f" hint-placeholder-count="4">
-              <button type="button" aria-pressed="{{ f.on }}" onClick="{{ f.toggle }}" style="min-width:48px; min-height:48px; background:{{ f.bg }}; border:1px solid #414942; border-radius:10px; color:{{ f.fg }}; padding:8px 12px; font-family:'Roboto Mono',monospace; cursor:pointer; outline-offset:3px;" style-hover="border-color:#82D9A5;">{{ f.label }}</button>
-            </sc-for>
-          </div>
-          <div style="font-size:11.5px; color:#8FA394; line-height:1.45;">The filter is local to this picker. Plain text remains the default. Invalid patterns match nothing and do not change the current value.</div>
-        </div>
-      </sc-if>
-      <div role="listbox" aria-labelledby="{{ labelId }}" aria-describedby="{{ describedBy }}" style="display:flex; flex-wrap:wrap; gap:6px; max-width:100%;">
-        <sc-for list="{{ filteredChoices }}" as="o" hint-placeholder-count="4">
-          <button type="button" role="option" aria-selected="{{ o.selected }}" aria-label="{{ o.accessibleLabel }}" disabled="{{ o.disabled }}" onClick="{{ o.pickSafe }}" style="display:flex; align-items:center; justify-content:center; gap:6px; min-width:48px; min-height:48px; max-width:100%; background:{{ o.bg }}; border:1px solid #414942; border-radius:10px; padding:8px 13px; color:{{ o.fg }}; font-family:'Roboto Mono',monospace; font-size:12px; font-weight:500; cursor:pointer; overflow-wrap:anywhere; outline-offset:3px;" style-hover="background:#262B26; border-color:#82D9A5;">
-            <sc-if value="{{ o.selected }}" hint-placeholder-val="{{ true }}"><span class="msym" aria-hidden="true" style="font-size:15px;">check</span></sc-if>
-            <span>{{ o.label }}</span>
-          </button>
-        </sc-for>
-      </div>
-      <sc-if value="{{ noFilteredChoices }}" hint-placeholder-val="{{ true }}"><div role="status" style="min-height:48px; display:flex; align-items:center; color:#9AA39B; font-size:12px;">No choices match this filter.</div></sc-if>
-    </div>
-  </sc-if>
-
-  <sc-if value="{{ isChips }}" hint-placeholder-val="{{ true }}">
-    <div role="group" aria-labelledby="{{ labelId }}" aria-describedby="{{ describedBy }}" style="display:flex; flex-wrap:wrap; gap:6px; max-width:100%;">
-      <sc-for list="{{ choices }}" as="o" hint-placeholder-count="5">
-        <button type="button" aria-pressed="{{ o.selected }}" aria-label="{{ o.accessibleLabel }}" disabled="{{ o.disabled }}" onClick="{{ o.pickSafe }}" style="display:flex; align-items:center; justify-content:center; gap:6px; min-width:48px; min-height:48px; max-width:100%; background:{{ o.chipBg }}; border:1px solid #414942; border-radius:10px; padding:8px 12px; color:{{ o.fg }}; font-family:Roboto,sans-serif; font-size:12px; font-weight:500; cursor:pointer; overflow-wrap:anywhere; outline-offset:3px;" style-hover="background:#262B26; border-color:#82D9A5;">
-          <sc-if value="{{ o.selected }}" hint-placeholder-val="{{ true }}"><span class="msym" aria-hidden="true" style="font-size:15px;">check</span></sc-if>
-          <span>{{ o.label }}</span>
-        </button>
+  <sc-if value="{{ isSelect }}">
+    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+      <sc-for list="{{ ctl.options }}" as="o" hint-placeholder-count="4">
+        <sc-if value="{{ o.on }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ o.pick }}" style="display:flex; align-items:center; gap:5px; background:#005230; border:0; border-radius:8px; padding:7px 13px; color:#9FF7C4; font-family:'Roboto Mono',monospace; font-size:12px; font-weight:500; cursor:pointer;"><span class="msym" style="font-size:14px;">check</span>{{ o.label }}</button>
+        </sc-if>
+        <sc-if value="{{ o.off }}">
+          <button onClick="{{ o.pick }}" style="background:transparent; border:1px solid #414942; border-radius:8px; padding:7px 13px; color:#C4CBC2; font-family:'Roboto Mono',monospace; font-size:12px; cursor:pointer;" style-hover="background:#262B26;">{{ o.label }}</button>
+        </sc-if>
       </sc-for>
     </div>
   </sc-if>
 
-  <sc-if value="{{ isStepper }}" hint-placeholder-val="{{ true }}">
-    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; max-width:100%;">
-      <button type="button" onClick="{{ decreaseAction }}" disabled="{{ decreaseDisabled }}" aria-label="Decrease {{ ctl.label }}" style="min-width:48px; min-height:48px; border-radius:24px; background:#262B26; border:1px solid #414942; color:#C4CBC2; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto; outline-offset:3px;" style-hover="background:#005230; color:#9FF7C4; border-color:#82D9A5;"><span class="msym" aria-hidden="true" style="font-size:20px;">remove</span></button>
-      <input id="{{ primaryId }}" type="number" inputmode="decimal" min="{{ ctl.min }}" max="{{ ctl.max }}" step="{{ stepVal }}" value="{{ numText }}" onChange="{{ onNumInput }}" onInput="{{ onNumInput }}" aria-valuemin="{{ ctl.min }}" aria-valuemax="{{ ctl.max }}" aria-valuenow="{{ ctl.value }}" aria-describedby="{{ describedBy }}" disabled="{{ numberDisabled }}" style="width:96px; max-width:100%; min-height:48px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:8px 10px; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:17px; text-align:center; outline-offset:3px;" />
-      <button type="button" onClick="{{ increaseAction }}" disabled="{{ increaseDisabled }}" aria-label="Increase {{ ctl.label }}" style="min-width:48px; min-height:48px; border-radius:24px; background:#262B26; border:1px solid #414942; color:#C4CBC2; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto; outline-offset:3px;" style-hover="background:#005230; color:#9FF7C4; border-color:#82D9A5;"><span class="msym" aria-hidden="true" style="font-size:20px;">add</span></button>
-      <button type="button" onClick="{{ togglePad }}" disabled="{{ numberDisabled }}" aria-expanded="{{ padOpen }}" aria-controls="{{ padId }}" aria-label="Open number pad for {{ ctl.label }}" title="Number pad" style="min-width:48px; min-height:48px; border-radius:10px; background:#262B26; border:1px solid #414942; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto; outline-offset:3px;" style-hover="background:#005230; border-color:#82D9A5;"><span class="msym" aria-hidden="true" style="font-size:19px;">dialpad</span></button>
-      <span style="font-size:12px; color:#8FA394; overflow-wrap:anywhere;">{{ rangeLabel }}</span>
+  <sc-if value="{{ isChips }}">
+    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+      <sc-for list="{{ ctl.options }}" as="o" hint-placeholder-count="5">
+        <sc-if value="{{ o.on }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ o.pick }}" style="display:flex; align-items:center; gap:5px; background:#1B4D33; border:1px solid #1B4D33; border-radius:8px; padding:6px 12px; color:#9FF7C4; font-family:Roboto,sans-serif; font-size:12px; font-weight:500; cursor:pointer;"><span class="msym" style="font-size:14px;">check</span>{{ o.label }}</button>
+        </sc-if>
+        <sc-if value="{{ o.off }}">
+          <button onClick="{{ o.pick }}" style="background:transparent; border:1px solid #414942; border-radius:8px; padding:6px 12px; color:#9AA39B; font-family:Roboto,sans-serif; font-size:12px; cursor:pointer;" style-hover="background:#262B26; color:#C4CBC2;">{{ o.label }}</button>
+        </sc-if>
+      </sc-for>
     </div>
   </sc-if>
 
-  <sc-if value="{{ isSlider }}" hint-placeholder-val="{{ true }}">
-    <div style="display:grid; grid-template-columns:minmax(120px,1fr) minmax(84px,110px) 48px; align-items:center; gap:8px; max-width:100%;">
-      <input id="{{ primaryId }}" type="range" min="{{ ctl.min }}" max="{{ ctl.max }}" step="{{ stepVal }}" value="{{ ctl.value }}" onInput="{{ sliderAction }}" onChange="{{ sliderAction }}" aria-valuemin="{{ ctl.min }}" aria-valuemax="{{ ctl.max }}" aria-valuenow="{{ ctl.value }}" aria-valuetext="{{ sliderDisplay }}" aria-describedby="{{ describedBy }}" disabled="{{ sliderDisabled }}" style="width:100%; min-width:0; min-height:48px; outline-offset:3px;" />
-      <input id="{{ numberId }}" type="number" inputmode="decimal" min="{{ ctl.min }}" max="{{ ctl.max }}" step="{{ stepVal }}" value="{{ numText }}" onChange="{{ onNumInput }}" onInput="{{ onNumInput }}" aria-label="Exact value for {{ ctl.label }}" aria-describedby="{{ describedBy }}" disabled="{{ numberDisabled }}" style="width:100%; min-width:0; min-height:48px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:8px 9px; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:13px; text-align:center; outline-offset:3px;" />
-      <button type="button" onClick="{{ togglePad }}" disabled="{{ numberDisabled }}" aria-expanded="{{ padOpen }}" aria-controls="{{ padId }}" aria-label="Open number pad for {{ ctl.label }}" title="Number pad" style="width:48px; height:48px; border-radius:10px; background:#262B26; border:1px solid #414942; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; outline-offset:3px;" style-hover="background:#005230; border-color:#82D9A5;"><span class="msym" aria-hidden="true" style="font-size:18px;">dialpad</span></button>
+  <sc-if value="{{ isStepper }}">
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <button onClick="{{ ctl.dec }}" style="width:36px; height:36px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#005230; color:#9FF7C4;"><span class="msym" style="font-size:20px;">remove</span></button>
+      <input type="text" inputmode="numeric" value="{{ numText }}" onChange="{{ onNumInput }}" onInput="{{ onNumInput }}" style="width:74px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:7px 8px; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:18px; text-align:center; outline:none;" />
+      <button onClick="{{ ctl.inc }}" style="width:36px; height:36px; border-radius:50%; background:#262B26; border:0; color:#C4CBC2; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#005230; color:#9FF7C4;"><span class="msym" style="font-size:20px;">add</span></button>
+      <button onClick="{{ togglePad }}" title="Number pad" style="width:36px; height:36px; border-radius:10px; background:#262B26; border:0; color:#82D9A5; cursor:pointer; display:flex; align-items:center; justify-content:center; flex:0 0 auto;" style-hover="background:#005230;"><span class="msym" style="font-size:19px;">dialpad</span></button>
+      <span style="font-size:12px; color:#778078;">{{ rangeLabel }}</span>
     </div>
   </sc-if>
 
-  <sc-if value="{{ padOpen }}" hint-placeholder-val="{{ true }}">
-    <div id="{{ padId }}" role="dialog" aria-modal="false" aria-label="Number pad for {{ ctl.label }}" style="width:min(100%,360px); background:#0C110D; border:1px solid #414942; border-radius:14px; padding:12px;">
-      <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+  <sc-if value="{{ isSlider }}">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <input type="range" min="{{ ctl.min }}" max="{{ ctl.max }}" step="{{ stepVal }}" value="{{ ctl.value }}" onInput="{{ ctl.onSlide }}" onChange="{{ ctl.onSlide }}" style="flex:1; height:22px; min-width:0;" />
+      <input type="text" inputmode="numeric" value="{{ numText }}" onChange="{{ onNumInput }}" onInput="{{ onNumInput }}" style="width:68px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:6px 8px; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:13.5px; text-align:center; outline:none; flex:0 0 auto;" />
+      <button onClick="{{ togglePad }}" title="Number pad" style="width:32px; height:32px; border-radius:9px; background:#262B26; border:0; color:#82D9A5; cursor:pointer; flex:0 0 auto;" style-hover="background:#005230;"><span class="msym" style="font-size:17px;">dialpad</span></button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ padOpen }}">
+    <div style="background:#0C110D; border:1px solid #333B34; border-radius:14px; padding:12px; margin-top:4px;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
         <span style="font-family:'Roboto Mono',monospace; font-size:11px; letter-spacing:1px; color:#8FA394; text-transform:uppercase;">Number pad</span>
         <div style="flex:1;"></div>
-        <output aria-live="polite" style="font-family:'Roboto Mono',monospace; font-size:16px; color:#9FF7C4; overflow-wrap:anywhere;">{{ padValue }}</output>
+        <span style="font-family:'Roboto Mono',monospace; font-size:16px; color:#9FF7C4;">{{ padValue }}</span>
       </div>
-      <div style="display:grid; grid-template-columns:repeat(3,minmax(48px,1fr)); gap:6px;">
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px;">
         <sc-for list="{{ padKeys }}" as="k" hint-placeholder-count="12">
-          <button type="button" onClick="{{ k.press }}" aria-label="{{ k.accessibleLabel }}" style="min-width:48px; min-height:48px; border-radius:10px; background:linear-gradient(#20281F,#171D18); border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:17px; cursor:pointer; box-shadow:0 2px 0 #0C110D; outline-offset:3px;" style-active="transform:translateY(2px); box-shadow:none;" style-hover="background:#005230; color:#9FF7C4;">{{ k.label }}</button>
+          <button onClick="{{ k.press }}" style="height:44px; border-radius:10px; background:linear-gradient(#20281F,#171D18); border:1px solid #414942; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:17px; cursor:pointer; box-shadow:0 2px 0 #0C110D;" style-active="transform:translateY(2px); box-shadow:none;" style-hover="background:#005230; color:#9FF7C4;">{{ k.label }}</button>
         </sc-for>
       </div>
-      <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
-        <button type="button" onClick="{{ padClear }}" style="flex:1 1 100px; min-height:48px; border-radius:10px; background:#262B26; border:1px solid #414942; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer; outline-offset:3px;">Clear</button>
-        <button type="button" onClick="{{ padApply }}" disabled="{{ padApplyDisabled }}" style="flex:2 1 160px; min-height:48px; border-radius:10px; background:#82D9A5; border:0; color:#00391F; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; outline-offset:3px;">Set {{ padValue }}</button>
+      <div style="display:flex; gap:6px; margin-top:8px;">
+        <button onClick="{{ padClear }}" style="flex:1; height:36px; border-radius:10px; background:#262B26; border:0; color:#C4CBC2; font:inherit; font-size:12.5px; cursor:pointer;">Clear</button>
+        <button onClick="{{ padApply }}" style="flex:2; height:36px; border-radius:10px; background:#82D9A5; border:0; color:#00391F; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;">Set {{ padValue }}</button>
       </div>
     </div>
   </sc-if>
 
-  <sc-if value="{{ isOrder }}" hint-placeholder-val="{{ true }}">
-    <div style="display:flex; flex-direction:column; gap:8px; min-width:0; max-width:100%;">
-      <ol aria-labelledby="{{ labelId }}" aria-describedby="{{ describedBy }}" style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; min-width:0;">
-        <sc-for list="{{ dragItems }}" as="i" hint-placeholder-count="3">
-          <li draggable="{{ i.draggable }}" aria-current="{{ i.current }}" aria-posinset="{{ i.position }}" aria-setsize="{{ orderSize }}" onDragStart="{{ i.onDragStart }}" onDragOver="{{ i.onDragOver }}" onDrop="{{ i.onDrop }}" onDragEnd="{{ i.onDragEnd }}" style="display:flex; align-items:center; gap:8px; min-height:48px; min-width:0; background:{{ i.bg }}; border:1px solid #333B34; border-radius:10px; padding:5px 6px 5px 12px; cursor:{{ i.cursor }};">
-            <span class="msym" aria-hidden="true" style="font-size:18px; color:#778078; flex:0 0 auto;">drag_indicator</span>
-            <span style="flex:1; min-width:0; font-family:'Roboto Mono',monospace; font-size:12.5px; color:#DFE4DC; overflow-wrap:anywhere;">{{ i.label }}</span>
-            <button type="button" onClick="{{ i.upSafe }}" disabled="{{ i.upDisabled }}" aria-label="Move {{ i.label }} up" style="min-width:48px; min-height:48px; border-radius:24px; background:transparent; border:1px solid transparent; color:#9AA39B; cursor:pointer; outline-offset:3px;" style-hover="background:#262B26; border-color:#414942; color:#82D9A5;"><span class="msym" aria-hidden="true" style="font-size:17px;">arrow_upward</span></button>
-            <button type="button" onClick="{{ i.downSafe }}" disabled="{{ i.downDisabled }}" aria-label="Move {{ i.label }} down" style="min-width:48px; min-height:48px; border-radius:24px; background:transparent; border:1px solid transparent; color:#9AA39B; cursor:pointer; outline-offset:3px;" style-hover="background:#262B26; border-color:#414942; color:#82D9A5;"><span class="msym" aria-hidden="true" style="font-size:17px;">arrow_downward</span></button>
-            <button type="button" onClick="{{ i.dropSafe }}" disabled="{{ i.dropDisabled }}" aria-label="Remove {{ i.label }}" style="min-width:48px; min-height:48px; border-radius:24px; background:transparent; border:1px solid transparent; color:#9AA39B; cursor:pointer; outline-offset:3px;" style-hover="background:#93000A; color:#fff;"><span class="msym" aria-hidden="true" style="font-size:17px;">close</span></button>
-          </li>
-        </sc-for>
-      </ol>
-      <div role="group" aria-label="Available items for {{ ctl.label }}" style="display:flex; flex-wrap:wrap; gap:6px;">
-        <sc-for list="{{ poolItems }}" as="p" hint-placeholder-count="2">
-          <button type="button" onClick="{{ p.addSafe }}" disabled="{{ p.disabled }}" aria-label="Add {{ p.label }}" style="display:flex; align-items:center; justify-content:center; gap:5px; min-width:48px; min-height:48px; max-width:100%; background:transparent; border:1px dashed #414942; border-radius:10px; padding:8px 12px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer; overflow-wrap:anywhere; outline-offset:3px;" style-hover="border-color:#82D9A5; color:#9FF7C4;"><span class="msym" aria-hidden="true" style="font-size:15px;">add</span>{{ p.label }}</button>
+  <sc-if value="{{ isOrder }}">
+    <div style="display:flex; flex-direction:column; gap:5px;">
+      <sc-for list="{{ dragItems }}" as="i" hint-placeholder-count="3">
+        <div draggable="true" onDragStart="{{ i.onDragStart }}" onDragOver="{{ i.onDragOver }}" onDrop="{{ i.onDrop }}" onDragEnd="{{ i.onDragEnd }}" style="display:flex; align-items:center; gap:8px; background:{{ i.bg }}; border-radius:10px; padding:7px 8px 7px 12px; cursor:grab; transition:background .12s;">
+          <span class="msym" style="font-size:17px; color:#778078;">drag_indicator</span>
+          <span style="flex:1; font-family:'Roboto Mono',monospace; font-size:12.5px; color:#DFE4DC;">{{ i.label }}</span>
+          <button onClick="{{ i.up }}" style="width:26px; height:26px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;" style-hover="background:#262B26; color:#82D9A5;"><span class="msym" style="font-size:16px;">arrow_upward</span></button>
+          <button onClick="{{ i.down }}" style="width:26px; height:26px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;" style-hover="background:#262B26; color:#82D9A5;"><span class="msym" style="font-size:16px;">arrow_downward</span></button>
+          <button onClick="{{ i.drop }}" style="width:26px; height:26px; border-radius:50%; background:transparent; border:0; color:#9AA39B; cursor:pointer;" style-hover="background:#93000A; color:#fff;"><span class="msym" style="font-size:16px;">close</span></button>
+        </div>
+      </sc-for>
+      <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:2px;">
+        <sc-for list="{{ ctl.pool }}" as="p" hint-placeholder-count="2">
+          <button onClick="{{ p.add }}" style="display:flex; align-items:center; gap:4px; background:transparent; border:1px dashed #414942; border-radius:8px; padding:5px 11px; color:#9AA39B; font-family:'Roboto Mono',monospace; font-size:11.5px; cursor:pointer;" style-hover="border-color:#82D9A5; color:#9FF7C4;"><span class="msym" style="font-size:14px;">add</span>{{ p.label }}</button>
         </sc-for>
       </div>
     </div>
   </sc-if>
 
-  <sc-if value="{{ isTextLike }}" hint-placeholder-val="{{ true }}">
-    <div style="display:flex; flex-direction:column; gap:7px; min-width:0; max-width:100%;">
-      <div style="display:flex; align-items:stretch; gap:8px; min-width:0; max-width:100%; flex-wrap:wrap;">
-        <input id="{{ primaryId }}" type="text" value="{{ textValue }}" onChange="{{ onTextInput }}" onInput="{{ onTextInput }}" readonly="{{ textReadOnly }}" disabled="{{ textDisabled }}" aria-readonly="{{ textReadOnly }}" aria-describedby="{{ describedBy }}" placeholder="{{ textPlaceholder }}" autocomplete="{{ textAutocomplete }}" spellcheck="{{ textSpellcheck }}" style="flex:1 1 180px; min-width:0; min-height:48px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:10px 12px; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:13.5px; outline-offset:3px;" />
-        <sc-if value="{{ showBrowseButton }}" hint-placeholder-val="{{ true }}">
-          <button type="button" onClick="{{ browseAction }}" disabled="{{ browseDisabled }}" aria-disabled="{{ browseDisabled }}" aria-describedby="{{ browseCapabilityId }}" style="min-height:48px; max-width:100%; background:#262B26; border:1px solid #414942; border-radius:10px; color:#82D9A5; padding:9px 14px; font:inherit; font-size:12.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; overflow-wrap:anywhere; outline-offset:3px;" style-hover="background:#005230; border-color:#82D9A5;"><span class="msym" aria-hidden="true" style="font-size:18px;">folder_open</span>{{ browseLabel }}</button>
-        </sc-if>
-      </div>
-      <sc-if value="{{ showBrowseCapability }}" hint-placeholder-val="{{ true }}">
-        <div id="{{ browseCapabilityId }}" role="note" style="font-size:11.5px; color:{{ browseCapabilityColor }}; line-height:1.45; overflow-wrap:anywhere;">{{ browseCapabilityText }}</div>
-      </sc-if>
+  <sc-if value="{{ isText }}">
+    <div style="display:flex; align-items:center; gap:10px; background:#141A15; border:1px solid #414942; border-radius:10px; padding:10px 14px;">
+      <span class="msym" style="font-size:17px; color:#82D9A5;">keyboard</span>
+      <span style="flex:1; font-family:'Roboto Mono',monospace; font-size:13.5px; color:#DFE4DC;">{{ ctl.display }}</span>
+      <span style="font-size:11px; color:#778078;">only free-text field</span>
     </div>
   </sc-if>
 
-  <sc-if value="{{ isFile }}" hint-placeholder-val="{{ true }}">
-    <div style="display:flex; flex-direction:column; gap:8px; min-width:0; max-width:100%;">
-      <input id="{{ primaryId }}" type="file" accept="{{ ctl.accept }}" aria-describedby="{{ describedBy }}" onChange="{{ filePickAction }}" disabled="{{ fileDisabled }}" style="width:100%; min-height:48px; background:#141A15; border:1px dashed #414942; border-radius:10px; padding:9px 12px; color:#DFE4DC; font-family:'Roboto Mono',monospace; font-size:12.5px; outline-offset:3px;" />
-      <div role="status" aria-live="polite" style="font-size:11.5px; color:#C4CBC2; overflow-wrap:anywhere;">{{ fileStatus }}</div>
-      <sc-if value="{{ showFileClear }}" hint-placeholder-val="{{ true }}">
-        <button type="button" onClick="{{ fileClearAction }}" disabled="{{ fileClearDisabled }}" style="align-self:flex-start; min-height:48px; max-width:100%; display:flex; align-items:center; justify-content:center; gap:7px; background:transparent; border:1px solid #414942; border-radius:10px; padding:9px 14px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer; overflow-wrap:anywhere; outline-offset:3px;" style-hover="background:#262B26; color:#FFB4AB;"><span class="msym" aria-hidden="true" style="font-size:16px;">close</span>Clear loaded file</button>
+  <sc-if value="{{ isFile }}">
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <label style="position:relative; display:flex; align-items:center; gap:10px; background:#141A15; border:1px dashed #414942; border-radius:10px; padding:10px 14px; cursor:pointer; min-height:44px;" style-hover="border-color:#82D9A5;">
+        <span class="msym" style="font-size:18px; color:#82D9A5;">upload_file</span>
+        <span style="flex:1; font-family:'Roboto Mono',monospace; font-size:12.5px; color:#DFE4DC; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ ctl.fileName }}</span>
+        <span style="font-size:11px; color:#82D9A5; font-weight:500;">Choose file</span>
+        <input type="file" accept="{{ ctl.accept }}" aria-label="{{ ctl.label }}" onChange="{{ ctl.onPick }}" style="position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;" />
+      </label>
+      <sc-if value="{{ ctl.hasFile }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ ctl.onClear }}" style="align-self:flex-start; display:flex; align-items:center; gap:6px; background:transparent; border:1px solid #414942; border-radius:8px; padding:6px 12px; color:#C4CBC2; font:inherit; font-size:12px; cursor:pointer;" style-hover="background:#262B26; color:#FFB4AB;"><span class="msym" style="font-size:15px;">close</span>Clear loaded file</button>
       </sc-if>
     </div>
   </sc-if>
 </div>
-</x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:560,&quot;height&quot;:420},&quot;ctl&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;}}">
-class Component extends DCLogic {
-  state = { dragFrom:-1, over:-1, padOpen:false, padBuf:'', filterQuery:'', regexOpen:false, regexEnabled:false, regexFlags:['i'] };
 
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:120},&quot;ctl&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;}}">
+class Component extends DCLogic {
+  state = { dragFrom:-1, over:-1, padOpen:false, padBuf:'' };
   renderVals() {
     const c = this.props.ctl || {};
     const st = this.state;
-    const kind = String(c.kind || 'unsupported');
-    const key = String(c.domId || c.id || c.label || 'control').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'control';
-    const rootId = 'm3-control-' + key;
-    const labelId = rootId + '-label';
-    const primaryId = rootId + '-input';
-    const numberId = rootId + '-number';
-    const provenanceId = rootId + '-provenance';
-    const disabledReasonId = rootId + '-disabled-reason';
-    const browseCapabilityId = rootId + '-browse-capability';
-    const searchId = rootId + '-filter';
-    const filterStatusId = rootId + '-filter-status';
-    const regexPanelId = rootId + '-regex-builder';
-    const regexInputId = rootId + '-regex-pattern';
-    const padId = rootId + '-number-pad';
-
-    const targetBacked = c.targetBacked === true || !!c.target;
-    const provenanceText = c.provenance ? String(c.provenance) : (targetBacked ? 'Source provenance was not provided.' : '');
-    const missingProvenance = targetBacked && !c.provenance;
-    const unsupportedReason = c.unsupportedReason ? String(c.unsupportedReason) : '';
-    const explicitDisabledReason = c.disabledReason ? String(c.disabledReason) : '';
-    const baseDisabledReason = unsupportedReason || explicitDisabledReason || (missingProvenance ? 'This target-backed value is disabled until its source provenance is available.' : '');
-    const baseDisabled = c.disabled === true || !!unsupportedReason || !!explicitDisabledReason || missingProvenance;
-
-    const isSwitch = kind === 'switch';
-    const isAction = kind === 'action' || c.actionControl === true || !!c.action;
-    const isSegmented = kind === 'segmented' && !c.narrow && !isAction;
-    const isSegNarrow = kind === 'segmented' && !!c.narrow && !isAction;
-    const isSelect = (kind === 'select' || kind === 'picker') && !isAction;
-    const isChips = kind === 'chips';
-    const isStepper = kind === 'stepper';
-    const isSlider = kind === 'slider';
-    const isOrder = kind === 'order';
-    const isTextLike = kind === 'text' || kind === 'path';
-    const isFile = kind === 'file';
-    const labelForInput = isStepper || isSlider || isTextLike || isFile;
-    const labelForGroup = !labelForInput;
-
-    const actionFn = typeof c.onAction === 'function' ? c.onAction : (typeof c.run === 'function' ? c.run : (typeof c.activate === 'function' ? c.activate : null));
-    const actionDisabled = baseDisabled || !actionFn;
-    const actionDisabledReason = isAction && !actionFn ? 'This action is unavailable because no action handler was supplied.' : '';
-    const switchFn = typeof c.toggle === 'function' ? c.toggle : (typeof c.set === 'function' ? () => c.set(!c.value) : null);
-    const switchDisabled = baseDisabled || !switchFn;
-    const switchDisabledReason = isSwitch && !switchFn ? 'This switch is unavailable because no value handler was supplied.' : '';
-
-    const numberSetter = typeof c.set === 'function' ? c.set : null;
-    const sliderFn = typeof c.onSlide === 'function' ? c.onSlide : null;
-    const numberDisabled = baseDisabled || !numberSetter;
-    const sliderDisabled = baseDisabled || (!sliderFn && !numberSetter);
-    const numberDisabledReason = (isStepper || isSlider) && !numberSetter ? 'This numeric value is unavailable because no value handler was supplied.' : '';
-
-    const textEditable = c.editable === true;
-    const textSetter = typeof c.set === 'function' ? c.set : null;
-    const textReadOnly = !textEditable;
-    const textDisabled = baseDisabled || (textEditable && !textSetter);
-    const textDisabledReason = isTextLike && textEditable && !textSetter ? 'This text value is marked editable, but no value handler was supplied.' : '';
-
-    const browseContract = c.browseCapability ? String(c.browseCapability) : '';
-    const browseFn = typeof c.onBrowse === 'function' ? c.onBrowse : null;
-    const showBrowseButton = kind === 'path' || !!browseContract || !!browseFn;
-    const browseSupported = c.browseSupported !== false && !!browseFn;
-    const browseDisabled = baseDisabled || !browseSupported;
-    const browseReason = c.browseDisabledReason ? String(c.browseDisabledReason) : (!browseContract && kind === 'path' ? 'Browse capability metadata was not supplied.' : (!browseFn && showBrowseButton ? 'No browse handler is available for this field.' : ''));
-    const browseCapabilityText = browseReason || (browseContract ? 'Browse capability: ' + browseContract + '.' : '');
-
-    const filePickFn = typeof c.onPick === 'function' ? c.onPick : null;
-    const fileClearFn = typeof c.onClear === 'function' ? c.onClear : null;
-    const fileDisabled = baseDisabled || !filePickFn;
-    const fileDisabledReason = isFile && !filePickFn ? 'File selection is unavailable because no file handler was supplied.' : '';
-    const showFileClear = !!c.hasFile;
-    const fileClearDisabled = baseDisabled || !fileClearFn;
-    const fileClearDisabledReason = isFile && !!c.hasFile && !fileClearFn ? 'The loaded file cannot be cleared because no clear handler was supplied.' : '';
-
-    const disabledReasonText = baseDisabledReason || actionDisabledReason || switchDisabledReason || numberDisabledReason || textDisabledReason || fileDisabledReason || fileClearDisabledReason;
-    const isDisabled = baseDisabled || !!actionDisabledReason || !!switchDisabledReason || !!numberDisabledReason || !!textDisabledReason || !!fileDisabledReason;
-    const showProvenance = !!provenanceText;
-    const showDisabledReason = !!disabledReasonText;
-    const describedBy = [showProvenance ? provenanceId : '', showDisabledReason ? disabledReasonId : '', showBrowseButton && browseCapabilityText ? browseCapabilityId : ''].filter(Boolean).join(' ') || undefined;
-
-    const safe = (fn) => () => { if (!baseDisabled && typeof fn === 'function') fn(); };
-    const choices = (c.options || []).map((option, index) => {
-      const selected = option.on === true || option.selected === true || option.value === c.value || option.label === c.value;
-      const pickFn = typeof option.pick === 'function' ? option.pick : null;
-      const disabled = baseDisabled || option.disabled === true || !pickFn;
-      return Object.assign({}, option, {
-        label:String(option.label === undefined ? '' : option.label), selected, disabled,
-        tabIndex:selected || index === 0 ? 0 : -1, pickSafe:safe(pickFn),
-        accessibleLabel:String(option.label === undefined ? '' : option.label) + (selected ? ', selected' : ', not selected') + (disabled ? ', unavailable' : ''),
-        bg:selected ? '#005230' : 'transparent', chipBg:selected ? '#1B4D33' : 'transparent',
-        fg:selected ? '#9FF7C4' : '#C4CBC2', radioIcon:selected ? 'radio_button_checked' : 'radio_button_unchecked'
-      });
-    });
-
-    const flags = st.regexFlags || [];
-    const filterQuery = st.filterQuery || '';
-    let regex = null;
-    let regexInvalid = false;
-    if (st.regexEnabled && filterQuery) {
-      try { regex = new RegExp(filterQuery, flags.filter(flag => flag !== 'g').join('')); }
-      catch (error) { regexInvalid = true; }
-    }
-    const filteredChoices = regexInvalid ? [] : choices.filter(option => {
-      if (!filterQuery) return true;
-      if (st.regexEnabled) return regex ? regex.test(option.label) : true;
-      return option.label.toLocaleLowerCase().indexOf(filterQuery.toLocaleLowerCase()) >= 0;
-    });
-    const filterStatus = regexInvalid ? 'Pattern is invalid. No choices are shown.' : (filteredChoices.length + ' of ' + choices.length + ' choices shown.');
-
-    const clamp = (value) => {
-      let number = parseFloat(value);
-      if (isNaN(number)) return c.value;
-      if (c.min !== undefined) number = Math.max(Number(c.min), number);
-      if (c.max !== undefined) number = Math.min(Number(c.max), number);
-      return number;
+    const items = (c.items || []).map((it, i) => Object.assign({}, it, {
+      dragging: st.dragFrom === i,
+      dropTarget: st.over === i && st.dragFrom !== i && st.dragFrom >= 0,
+      bg: st.dragFrom === i ? '#005230' : (st.over === i && st.dragFrom >= 0 && st.dragFrom !== i ? '#22321F' : '#141A15'),
+      onDragStart: () => this.setState({ dragFrom:i }),
+      onDragOver: (e) => { e.preventDefault(); if (st.over !== i) this.setState({ over:i }); },
+      onDrop: (e) => { e.preventDefault(); if (st.dragFrom >= 0 && st.dragFrom !== i && c.move) c.move(st.dragFrom, i); this.setState({ dragFrom:-1, over:-1 }); },
+      onDragEnd: () => this.setState({ dragFrom:-1, over:-1 })
+    }));
+    const clamp = (n) => {
+      let x = parseFloat(n);
+      if (isNaN(x)) return c.value;
+      if (c.min !== undefined) x = Math.max(c.min, x);
+      if (c.max !== undefined) x = Math.min(c.max, x);
+      return x;
     };
-    const onNumInput = (event) => {
-      if (numberDisabled || !numberSetter) return;
-      const raw = String(event.target.value || '').replace(/[^0-9.\-]/g, '');
-      if (raw === '' || raw === '-' || raw === '.' || raw === '-.') return;
-      numberSetter(clamp(raw));
-    };
-    const sliderAction = (event) => {
-      if (sliderDisabled) return;
-      if (sliderFn) sliderFn(event);
-      else if (numberSetter) numberSetter(clamp(event.target.value));
-    };
-
-    const canMove = !baseDisabled && typeof c.move === 'function';
-    const orderItems = c.items || [];
-    const dragItems = orderItems.map((item, index) => {
-      const upFn = typeof item.up === 'function' ? item.up : null;
-      const downFn = typeof item.down === 'function' ? item.down : null;
-      const dropFn = typeof item.drop === 'function' ? item.drop : null;
-      return Object.assign({}, item, {
-        label:String(item.label === undefined ? '' : item.label), position:index + 1,
-        current:st.dragFrom === index ? 'true' : 'false', draggable:canMove, cursor:canMove ? 'grab' : 'default',
-        bg:st.dragFrom === index ? '#005230' : (st.over === index && st.dragFrom >= 0 && st.dragFrom !== index ? '#22321F' : '#141A15'),
-        upDisabled:baseDisabled || index === 0 || !upFn, downDisabled:baseDisabled || index === orderItems.length - 1 || !downFn,
-        dropDisabled:baseDisabled || !dropFn, upSafe:safe(upFn), downSafe:safe(downFn), dropSafe:safe(dropFn),
-        onDragStart:() => { if (canMove) this.setState({ dragFrom:index }); },
-        onDragOver:(event) => { if (!canMove) return; event.preventDefault(); if (st.over !== index) this.setState({ over:index }); },
-        onDrop:(event) => { if (!canMove) return; event.preventDefault(); if (st.dragFrom >= 0 && st.dragFrom !== index) c.move(st.dragFrom, index); this.setState({ dragFrom:-1, over:-1 }); },
-        onDragEnd:() => this.setState({ dragFrom:-1, over:-1 })
-      });
-    });
-    const poolItems = (c.pool || []).map(item => {
-      const addFn = typeof item.add === 'function' ? item.add : null;
-      return Object.assign({}, item, { disabled:baseDisabled || !addFn, addSafe:safe(addFn) });
-    });
-
     return {
-      ctl:c, labelId, primaryId, numberId, provenanceId, disabledReasonId, browseCapabilityId, searchId, filterStatusId, regexPanelId, regexInputId, padId,
-      describedBy, labelForInput, labelForGroup,
-      showInfoAction:typeof c.onInfo === 'function', showWizardAction:typeof c.onWizard === 'function',
-      showProvenance, provenanceText, showDisabledReason, disabledReasonText, isDisabled,
-      isSwitch, switchChecked:!!c.value || c.on === true, switchUnchecked:!(!!c.value || c.on === true), switchDisabled, switchAction:safe(switchFn),
-      isAction, actionLabel:String(c.actionLabel || c.label || 'Run action'), actionDisabled,
-      actionHandler:() => { if (!actionDisabled && actionFn) actionFn(c); },
-      isSegmented, isSegNarrow, isSelect, isChips, choices, filteredChoices, noFilteredChoices:filteredChoices.length === 0,
-      filterQuery, onFilterInput:(event) => this.setState({ filterQuery:String(event.target.value || '') }),
-      filterStatus, filterStatusColor:regexInvalid ? '#FFB4AB' : '#8FA394', regexOpen:st.regexOpen,
-      toggleRegex:() => this.setState(value => ({ regexOpen:!value.regexOpen })), regexEnabled:st.regexEnabled,
-      regexModeLabel:st.regexEnabled ? 'on' : 'off', toggleRegexMode:() => this.setState(value => ({ regexEnabled:!value.regexEnabled })),
-      regexInvalid, regexEngine:String(c.regexEngine || 'JavaScript RegExp'),
-      regexFlags:['i','m','s','u'].map(flag => {
-        const on = flags.indexOf(flag) >= 0;
-        return { label:flag, on, bg:on ? '#005230' : '#262B26', fg:on ? '#9FF7C4' : '#C4CBC2',
-          toggle:() => this.setState(value => ({ regexFlags:on ? value.regexFlags.filter(item => item !== flag) : value.regexFlags.concat([flag]) })) };
-      }),
-      isStepper, isSlider, stepVal:c.step || 1,
-      rangeLabel:c.min !== undefined && c.max !== undefined ? String(c.min) + ' to ' + String(c.max) : '',
-      numText:String(c.value === undefined ? '' : c.value), onNumInput,
-      decreaseDisabled:baseDisabled || (typeof c.dec !== 'function' && !numberSetter), increaseDisabled:baseDisabled || (typeof c.inc !== 'function' && !numberSetter),
-      decreaseAction:() => { if (baseDisabled) return; if (typeof c.dec === 'function') c.dec(); else if (numberSetter) numberSetter(clamp(Number(c.value) - Number(c.step || 1))); },
-      increaseAction:() => { if (baseDisabled) return; if (typeof c.inc === 'function') c.inc(); else if (numberSetter) numberSetter(clamp(Number(c.value) + Number(c.step || 1))); },
-      numberDisabled, sliderDisabled, sliderAction,
-      sliderDisplay:String(c.display === undefined ? c.value === undefined ? '' : c.value : c.display),
-      padOpen:st.padOpen, padValue:st.padBuf || String(c.value === undefined ? '' : c.value),
-      togglePad:() => { if (!numberDisabled) this.setState(value => ({ padOpen:!value.padOpen, padBuf:'' })); },
-      padKeys:['1','2','3','4','5','6','7','8','9','.','0','⌫'].map(character => ({
-        label:character, accessibleLabel:character === '⌫' ? 'Backspace' : (character === '.' ? 'Decimal point' : character),
-        press:() => this.setState(value => ({ padBuf:character === '⌫' ? value.padBuf.slice(0, -1) : (value.padBuf + character).slice(0, 16) }))
-      })),
-      padClear:() => this.setState({ padBuf:'' }), padApplyDisabled:numberDisabled || !st.padBuf,
-      padApply:() => { const value = this.state.padBuf; if (value && numberSetter && !numberDisabled) numberSetter(clamp(value)); this.setState({ padOpen:false, padBuf:'' }); },
-      isOrder, orderSize:orderItems.length, dragItems, poolItems,
-      isTextLike, textValue:String(c.value === undefined ? c.display === undefined ? '' : c.display : c.value), textReadOnly, textDisabled,
-      onTextInput:(event) => { if (!textDisabled && textEditable && textSetter) textSetter(event.target.value); },
-      textPlaceholder:String(c.placeholder || ''), textAutocomplete:String(c.autocomplete || 'off'), textSpellcheck:c.spellcheck === true,
-      showBrowseButton, browseDisabled, browseAction:() => { if (!browseDisabled && browseFn) browseFn(c); },
-      browseLabel:String(c.browseLabel || 'Browse'), showBrowseCapability:showBrowseButton, browseCapabilityText,
-      browseCapabilityColor:browseReason ? '#FFB4AB' : '#8FA394',
-      isFile, fileDisabled, filePickAction:(event) => { if (!fileDisabled && filePickFn) filePickFn(event); },
-      fileStatus:String(c.fileName || c.value || 'No file chosen.'), showFileClear, fileClearDisabled,
-      fileClearAction:() => { if (!fileClearDisabled && fileClearFn) fileClearFn(); }
+      numText: String(c.value),
+      onNumInput: (e) => { const raw = (e.target.value || '').replace(/[^0-9.\-]/g, ''); if (c.set) c.set(clamp(raw)); },
+      padOpen: st.padOpen,
+      padValue: st.padBuf || String(c.value),
+      togglePad: () => this.setState(s2 => ({ padOpen:!s2.padOpen, padBuf:'' })),
+      padKeys: ['1','2','3','4','5','6','7','8','9','.','0','⌫'].map(k => ({ label:k, press:() => this.setState(s2 => ({
+        padBuf: k === '⌫' ? s2.padBuf.slice(0, -1) : (s2.padBuf + k).slice(0, 9)
+      })) })),
+      padClear: () => this.setState({ padBuf:'' }),
+      padApply: () => { const b = this.state.padBuf; if (b && c.set) c.set(clamp(b)); this.setState({ padOpen:false, padBuf:'' }); },
+      dragItems: items,
+      isSwitch: c.kind === 'switch',
+      isSegmented: c.kind === 'segmented' && !c.narrow,
+      isSegNarrow: c.kind === 'segmented' && !!c.narrow,
+      isSelect: c.kind === 'select',
+      isChips: c.kind === 'chips',
+      isStepper: c.kind === 'stepper',
+      isSlider: c.kind === 'slider',
+      isOrder: c.kind === 'order',
+      isText: c.kind === 'text',
+      isFile: c.kind === 'file',
+      stepVal: c.step || 1,
+      rangeLabel: (c.min !== undefined ? c.min + '–' + c.max : '')
     };
   }
 }

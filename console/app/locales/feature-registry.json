@@ -9,17 +9,18 @@
   ],
   "features": {
     "language-modes": {
-      "state": "localized",
+      "state": "partial",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
       "labels": [
         "Customise everything",
         "Language"
       ],
       "localizedLabels": [
-        "Customise everything",
+        "Customise everything"
+      ],
+      "untranslatedLabels": [
         "Language"
       ],
-      "untranslatedLabels": [],
       "note": "Every listed label has a Cantonese entry."
     },
     "funny-levels": {

@@ -96,7 +96,7 @@ export const DEFAULT_LOGO_CROP: LogoCropModel = Object.freeze({
   crop: { x: 0, y: 0, width: 1, height: 1 },
   focalPoint: { x: 0.5, y: 0.5 },
   safeArea: { top: 0.08, right: 0.08, bottom: 0.08, left: 0.08 },
-  background: { kind: 'transparent' },
+  background: { kind: 'transparent' as const },
 });
 
 export interface LogoSourceMetadata {

@@ -1,0 +1,173 @@
+{
+  "generatedAt": "2026-08-26T01:14:04.818Z",
+  "generatedBy": "console/scripts/design-parity-statuscell-text.mjs --reproduce",
+  "tuple": {
+    "state": "default",
+    "theme": "dark",
+    "width": 1440,
+    "height": 1000,
+    "scale": 1
+  },
+  "reproducedOn": "dash",
+  "whyOneDestinationIsEnough": "statusCell differs by the same 555 pixels in the same three column runs on all 32 audited destinations, so one witness carries the measurement and the check stage re-derives the count on every one of them anyway.",
+  "differingPixelsPerDestination": 555,
+  "columnRuns": [
+    {
+      "from": 1088,
+      "to": 1098
+    },
+    {
+      "from": 1106,
+      "to": 1154
+    },
+    {
+      "from": 1180,
+      "to": 1214
+    }
+  ],
+  "whatEachColumnRunIs": {
+    "1088-1098": "the active button's Material Symbols `check` glyph",
+    "1106-1154": "the active button's `Beginner` label",
+    "1180-1214": "the inactive button's `Expert` label"
+  },
+  "cause": "App.tsx's appearance system writes its own default font-weight 500 onto the shell root at startup, so every element that inherits its weight renders one step heavier than the design draws it. `Expert` is the only text in this cell that inherits; at 500 it measures 0.359375px wider, which widens the picker by the same amount, and because the status group is packed against the right edge of the strip the picker's left edge and everything inside it moves left by exactly that fraction.",
+  "sourceAnchors": [
+    "weight: str('ap_weight', '500')",
+    "root.style.setProperty('font-weight', weightVal)"
+  ],
+  "appearanceDefaultsApplied": [
+    {
+      "property": "color",
+      "value": "hsl(148 54% 68%)",
+      "sourceOf": "num('ap_hue', 148) / num('ap_sat', 54) / num('ap_light', 68)"
+    },
+    {
+      "property": "font-family",
+      "value": "Roboto,sans-serif",
+      "sourceOf": "str('ap_family', 'Roboto')"
+    },
+    {
+      "property": "font-weight",
+      "value": "500",
+      "sourceOf": "str('ap_weight', '500')"
+    },
+    {
+      "property": "font-size",
+      "value": "14px",
+      "sourceOf": "num('ap_size', 14)"
+    }
+  ],
+  "measurements": {
+    "asDesigned": {
+      "picker": {
+        "x": 1072.09375,
+        "width": 156.078125,
+        "right": 1228.171875
+      },
+      "activeButton": {
+        "x": 1073.09375,
+        "width": 93.90625,
+        "right": 1167
+      },
+      "inactiveButton": {
+        "x": 1167,
+        "width": 60.171875,
+        "right": 1227.171875
+      },
+      "checkGlyph": {
+        "x": 1086.09375,
+        "width": 15,
+        "right": 1101.09375
+      },
+      "creditsPill": {
+        "x": 1236.171875,
+        "width": 49.828125,
+        "right": 1286
+      },
+      "beginnerLabel": {
+        "x": 1106.09375,
+        "width": 47.90625,
+        "right": 1154
+      },
+      "expertLabel": {
+        "x": 1180,
+        "width": 34.171875,
+        "right": 1214.171875
+      },
+      "computedWeight": {
+        "active": "500",
+        "inactive": "400",
+        "picker": "400"
+      }
+    },
+    "withAppearanceDefaults": {
+      "picker": {
+        "x": 1071.734375,
+        "width": 156.4375,
+        "right": 1228.171875
+      },
+      "activeButton": {
+        "x": 1072.734375,
+        "width": 93.90625,
+        "right": 1166.640625
+      },
+      "inactiveButton": {
+        "x": 1166.640625,
+        "width": 60.53125,
+        "right": 1227.171875
+      },
+      "checkGlyph": {
+        "x": 1085.734375,
+        "width": 15,
+        "right": 1100.734375
+      },
+      "creditsPill": {
+        "x": 1236.171875,
+        "width": 49.828125,
+        "right": 1286
+      },
+      "beginnerLabel": {
+        "x": 1105.734375,
+        "width": 47.90625,
+        "right": 1153.640625
+      },
+      "expertLabel": {
+        "x": 1179.640625,
+        "width": 34.53125,
+        "right": 1214.171875
+      },
+      "computedWeight": {
+        "active": "500",
+        "inactive": "500",
+        "picker": "500"
+      }
+    }
+  },
+  "frames": {
+    "asDesigned": {
+      "path": "console/release/captures/parity/statuscell-text/dash-design-as-designed.png",
+      "bytes": 150648
+    },
+    "withAppearanceDefaults": {
+      "path": "console/release/captures/parity/statuscell-text/dash-design-with-appearance-defaults.png",
+      "bytes": 151311
+    }
+  },
+  "target": "design/Asterisk Console M3.dc.html served by design-parity-server.mjs as the top-level document, under Electron on an off-screen Windows desktop",
+  "interceptedRequests": {
+    "server": 17,
+    "font-stylesheet": 2,
+    "font-face": 0,
+    "blocked": 0
+  },
+  "blockedUrls": [],
+  "reachedTheNetwork": "no",
+  "falsified": [
+    "the capture harness's <iframe> inside a `transform: scale(1)` wrapper: rendering the same design wrapped and unwrapped in one session gives zero differing pixels in statusCell",
+    "the DOM shape: replacing the design runtime's `<span class=\"sc-interp\">` wrappers with bare text nodes, as the compiled renderer emits, changes no rectangle and no pixel"
+  ],
+  "notClaimed": [
+    "nothing is repaired here. The default is still 500 and the built application still renders every inheriting weight one step heavier than the design.",
+    "this measures statusCell. The same default reaches every inheriting weight in the frame, and how much of the other areas it accounts for is not measured here."
+  ]
+}

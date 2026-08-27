@@ -521,210 +521,340 @@
   const RAINBOW='__rainbow__';
 
   const BASE = document.documentElement.dataset.base || './';
-  const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#82D9A5',fontScale:100,lowMotion:false,englishFunny:5,cantoneseFunny:5,tabEdge:'left',logoPreset:'default',logoFit:'contain',attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false,focus:false,timeAwareness:false,oneThing:false,momentum:false,currentTask:''},schedule:{enabled:false,start:'09:00',end:'17:00',weekdays:[1,2,3,4,5],theme:'dark',language:'en',density:'comfortable'},notifications:[],collapsed:{destinationMap:true,settingsPreview:true,documentationFilters:false,settingsFilters:false}};
+  // Release notes are provider-authored Markdown -- written by the release
+  // process, not by this site. console/scripts/resolve-site-download-manifest.mjs
+  // resolves the newest verified non-draft release at build time, and
+  // console/site/build.mjs replaces this exact declaration with the real
+  // notes as a JSON-escaped string literal. Empty here because this is the
+  // honest fallback: no verified release manifest was found, so downloads.html
+  // says so plainly instead of rendering literal "#"/"[]()" source text.
+  const RELEASE_NOTES_MARKDOWN = '';
+  // Changelog. The same arrangement as the release notes above, and for the same
+  // reason: this is real release history or it is nothing at all.
+  //
+  // console/scripts/bundle-changelog.mjs builds the Markdown from this repository's
+  // own tags -- every version is a real tag, every change line is a real commit
+  // reachable from that tag and not from the one before it, and every id is the real
+  // 40-character SHA -- and console/site/build.mjs replaces these two exact
+  // declarations with it at build time. Empty here is the honest fallback rather than
+  // a placeholder: a page served straight out of the source directory has no release
+  // history to show, and says so, instead of showing an invented one.
+  //
+  // The repository URL is separate and is equally not guessed. `changelogCommitUrl`
+  // refuses to build a link without it, so an unresolved build renders the SHA as
+  // text; a link that goes nowhere is worse than a fact with no link on it.
+  const CHANGELOG_MARKDOWN = '';
+  const CHANGELOG_REPOSITORY_URL = '';
+  // ---- The deployed-version watch: what "automatic updates" means for a page. ----
+  //
+  // A page installs nothing, so the canonical updater has to be read for what it is FOR
+  // rather than copied clause by clause: notice that what is published has moved on, say
+  // so without interrupting anybody, and let the person take the new one when they choose.
+  // Reloading is the whole installation step. There is no staged download, no signature,
+  // no restart and nothing to roll back, and the card says all four out loud rather than
+  // implying machinery this surface does not have.
+  //
+  // The identity that decides is the COMMIT and never the version label. A label is for a
+  // person to read; two different builds of one release carry the same label, so a check
+  // resting on it would report "current" about a page that is not.
+  //
+  // All three are empty here on purpose and are filled in by `site/build.mjs`, exactly as
+  // the changelog above is. A page served straight out of the source directory therefore
+  // knows it was never built, says so, and never asks for a manifest it could not be
+  // judged against -- which is better than a request that fails and reads as a site that
+  // is down.
+  const SITE_BUILD_VERSION = '';
+  const SITE_BUILD_COMMIT = '';
+  const SITE_BUILD_AT = '';
+  // Same-origin by construction: resolved against this document rather than written as an
+  // absolute URL, and refused outright below if it ever resolves somewhere else.
+  const VERSION_MANIFEST_NAME = 'version.json';
+  const UPDATE_CHECK_INTERVAL_MS = 1800000;
+  const UPDATE_MANIFEST_MAX_BYTES = 4096;
+  const UPDATE_FETCH_TIMEOUT_MS = 8000;
+  const DEFAULTS = {theme:'dark',language:'en',density:'comfortable',accent:'#82D9A5',fontScale:100,lowMotion:false,englishFunny:0,cantoneseFunny:0,displayName:'',dialogEmojis:false,narration:{enabled:false,language:'en',voiceEn:'',voiceZh:'',rate:1,pitch:1},attention:{reduceFlashing:false,simplifiedLanguage:false,extendedTimeouts:false,focus:false,timeAwareness:false,oneThing:false,momentum:false,currentTask:''},scheduleEnabled:false,updateDismissedCommit:'',notifications:[],collapsed:{destinationMap:true,settingsPreview:true,documentationFilters:false,settingsFilters:false,changelogFilters:false}};
+  // ---- Display name: the name this site shows the person reading it, which is
+  // theirs to change, and the shipped product name, which is not.
+  //
+  // The two are deliberately different things and are kept apart on purpose. The
+  // shipped name identifies the product to anyone outside this browser -- a file
+  // exported from this page, a download, the link preview somebody else sees --
+  // and to this page's own storage. The display name is a label, and the rule
+  // this constant exists to make checkable is that nothing derives identity from
+  // it: STORAGE_KEY, HISTORY_KEY, the vocabulary and logo cache keys and the
+  // export filename are all literal constants that no rename can reach.
+  //
+  // Empty means "use the shipped name", rather than storing a copy of it. A copy
+  // would silently become a stale rename the day the shipped name changes, and
+  // nothing would say so.
+  const SHIPPED_PRODUCT_NAME = 'Material Asterisk';
+  const DISPLAY_NAME_MAX = 60;
+  // Captured once, before any rename can reach it, so a second rename composes
+  // against the shipped title rather than against the previous rename's output.
+  const SHIPPED_TITLE = document.title;
   const STORAGE_KEY = 'ding-pbx-pages-v2';
+  // ---- Local version history: an append-only record, isolated in its own
+  // storage key so "Reset settings" never touches it. Restoring an entry
+  // writes a NEW entry rather than rewriting or deleting an earlier one, so
+  // a restore can itself be undone later. ----
+  const HISTORY_KEY = 'ding-pbx-pages-history-v1';
+  const HISTORY_LIMIT = 300;
+  let historySeq = 0;
+  function loadHistory(){try{const saved=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');return Array.isArray(saved)?saved:[]}catch{return []}}
+  let historyEntries = loadHistory();
+  function saveHistory(){localStorage.setItem(HISTORY_KEY,JSON.stringify(historyEntries.slice(0,HISTORY_LIMIT)))}
   const regexState = new Map();
-  const regexGenerations = new Map();
-  const REGEX_WORKER_SOURCE = `
-    'use strict';
-    const LIMITS={pattern:256,sample:4096,entries:500,text:4096,matches:512,groups:32};
-    const fail=error=>self.postMessage({ok:false,error:String(error)});
-    self.onmessage=event=>{
-      const data=event.data||{},pattern=typeof data.pattern==='string'?data.pattern:'',flags=typeof data.flags==='string'?data.flags:'',sample=typeof data.sample==='string'?data.sample:'';
-      const entries=Array.isArray(data.entries)?data.entries:[];
-      if(pattern.length>LIMITS.pattern)return fail('Pattern exceeds the 256 character worker limit.');
-      if(sample.length>LIMITS.sample)return fail('Sample text exceeds the 4 KiB worker limit.');
-      if(entries.length>LIMITS.entries)return fail('Search input exceeds the 500 item worker limit.');
-      if(entries.some(item=>!item||typeof item.id!=='string'||item.id.length>128||typeof item.text!=='string'||item.text.length>LIMITS.text))return fail('Search input contains an item outside the bounded worker limits.');
-      let expression;
-      try{expression=new RegExp(pattern,flags)}catch(error){return fail(error&&error.message?error.message:'Invalid regular expression.');}
-      const globalFlags=expression.flags.includes('g')?expression.flags:expression.flags+'g';
-      const sampleExpression=new RegExp(expression.source,globalFlags),sampleMatches=[];
-      let match;
-      while((match=sampleExpression.exec(sample))&&sampleMatches.length<LIMITS.matches){
-        sampleMatches.push({full:match[0],index:match.index,groups:Array.from(match).slice(1,1+LIMITS.groups).map(value=>value===undefined?null:value)});
-        if(match[0]==='')sampleExpression.lastIndex+=1;
-      }
-      const matchedIds=[];
-      for(const item of entries){
-        const tester=new RegExp(expression.source,expression.flags);
-        if(tester.test(item.text))matchedIds.push(item.id);
-      }
-      self.postMessage({ok:true,matchedIds,sampleMatches,sampleMatchCount:sampleMatches.length,captureGroupCount:Math.max(0,...sampleMatches.map(item=>item.groups.length),0)});
-    };
-  `;
-  const regexRuns = new Map();
-  function runRegexWorker(key,config,entries=[],sample=''){
-    const prior=regexRuns.get(key);if(prior)prior.cancel();
-    const generation=(regexGenerations.get(key)||0)+1;regexGenerations.set(key,generation);
-    let worker,blobUrl,timer,settled=false,rejectPending;
-    const finish=(resolve,reject,value)=>{if(settled)return;settled=true;if(timer)clearTimeout(timer);if(worker)worker.terminate();if(blobUrl)URL.revokeObjectURL(blobUrl);if(regexRuns.get(key)?.generation===generation)regexRuns.delete(key);if(value instanceof Error||value?.ok===false)reject(value instanceof Error?value:new Error(value.error||'The local regex worker rejected the evaluation.'));else resolve(value)};
-    const promise=new Promise((resolve,reject)=>{
-      rejectPending=reject;
-      try{
-        blobUrl=URL.createObjectURL(new Blob([REGEX_WORKER_SOURCE],{type:'application/javascript'}));
-        worker=new Worker(blobUrl);
-        worker.onmessage=event=>finish(resolve,reject,event.data);
-        worker.onerror=event=>finish(resolve,reject,new Error(event.message||'The local regex worker failed.'));
-        timer=setTimeout(()=>finish(resolve,reject,new Error('The local regex worker timed out and was terminated.')),350);
-        worker.postMessage({pattern:config.pattern,flags:config.flags,entries,sample});
-      }catch(error){finish(resolve,reject,error)}
-    });
-    const run={generation,promise,cancel(){if(!settled){settled=true;if(timer)clearTimeout(timer);if(worker)worker.terminate();if(blobUrl)URL.revokeObjectURL(blobUrl);if(regexRuns.get(key)?.generation===generation)regexRuns.delete(key);rejectPending(new Error('The previous local regex evaluation was cancelled.'))}}};
-    regexRuns.set(key,run);return run;
-  }
-  function regexRunCurrent(key,run){return regexGenerations.get(key)===run.generation}
-  function regexSearchEnabled(target,query){return Boolean(query&&regexState.get(target)?.enabled)}
   let regexTarget = '';
   let destinationPage = 0;
 
   const $ = id => document.getElementById(id);
   const all = selector => [...document.querySelectorAll(selector)];
   function escapeHtml(value){return String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-  function loadState(){try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');return{...DEFAULTS,...saved,attention:{...DEFAULTS.attention,...(saved.attention||{})},schedule:{...DEFAULTS.schedule,...(saved.schedule||{}),weekdays:Array.isArray(saved.schedule?.weekdays)?saved.schedule.weekdays:[...DEFAULTS.schedule.weekdays]},collapsed:{...DEFAULTS.collapsed,...(saved.collapsed||{})}}}catch{return{...DEFAULTS,attention:{...DEFAULTS.attention},schedule:{...DEFAULTS.schedule,weekdays:[...DEFAULTS.schedule.weekdays]},collapsed:{...DEFAULTS.collapsed}}}}
+
+  // ============================================================================
+  // Provider-authored Markdown rendering -- one shared, safe parser for text
+  // written elsewhere (such as release notes) rather than authored by this
+  // site. Every character is HTML-escaped BEFORE any markdown syntax
+  // is recognised, so raw HTML in untrusted input can never reach the DOM as
+  // markup -- only the literal characters this function itself emits do.
+  // Links are restricted to an http(s)/mailto scheme allowlist; anything else
+  // renders as plain text rather than a clickable link.
+  // ============================================================================
+  function markdownInlineTokens(text){
+    return escapeHtml(text)
+      .replace(/`([^`]+)`/g,'<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+      .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g,'<em>$1</em>')
+      .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,(match,label,url)=>/^(https?:|mailto:)/i.test(url)?`<a href="${url}" rel="noopener noreferrer">${label}</a>`:label);
+  }
+  function parseMarkdown(source){
+    const text=String(source||'').replaceAll('\r\n','\n').trim();
+    if(!text)return '';
+    return text.split(/\n{2,}/).map(block=>{
+      const lines=block.split('\n');
+      const heading=lines.length===1&&lines[0].match(/^(#{1,3})\s+(.*)$/);
+      if(heading){const level=heading[1].length+2;return `<h${level}>${markdownInlineTokens(heading[2])}</h${level}>`}
+      if(lines.every(line=>/^[-*]\s+/.test(line)))return `<ul>${lines.map(line=>`<li>${markdownInlineTokens(line.replace(/^[-*]\s+/,''))}</li>`).join('')}</ul>`;
+      if(lines[0].startsWith('```')&&lines[lines.length-1].trim()==='```')return `<pre><code>${escapeHtml(lines.slice(1,-1).join('\n'))}</code></pre>`;
+      return `<p>${lines.map(markdownInlineTokens).join('<br>')}</p>`;
+    }).join('');
+  }
+  function renderMarkdownBlock(container,source,emptyMessage){
+    if(!container)return;
+    const html=parseMarkdown(source);
+    container.innerHTML=html||`<p class="empty-state">${escapeHtml(emptyMessage)}</p>`;
+  }
+  function loadState(){try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');return{...DEFAULTS,...saved,attention:{...DEFAULTS.attention,...(saved.attention||{})},narration:{...DEFAULTS.narration,...(saved.narration||{})},collapsed:{...DEFAULTS.collapsed,...(saved.collapsed||{})}}}catch{return{...DEFAULTS,attention:{...DEFAULTS.attention},narration:{...DEFAULTS.narration},collapsed:{...DEFAULTS.collapsed}}}}
   const state=loadState();
   function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
-  function update(key,value){state[key]=value;save();applyState();notify(copyText('notifSettingSaved'),applyVocabularyText(`${key} now uses ${value}.`))}
-  function scheduleMatches(schedule,date=new Date()){
-    if(!schedule?.enabled||!Array.isArray(schedule.weekdays)||!schedule.weekdays.includes(date.getDay()))return false;
-    if(!/^\d{2}:\d{2}$/.test(schedule.start||'')||!/^\d{2}:\d{2}$/.test(schedule.end||''))return false;
-    const minute=date.getHours()*60+date.getMinutes(),toMinute=value=>{const[h,m]=value.split(':').map(Number);return h*60+m},start=toMinute(schedule.start),end=toMinute(schedule.end);
-    if(start===end)return true;
-    return start<end?minute>=start&&minute<end:minute>=start||minute<end;
-  }
-  function effectiveState(){return scheduleMatches(state.schedule)?{...state,theme:state.schedule.theme,language:state.schedule.language,density:state.schedule.density}:state}
-  function syncValue(id,value,property='value'){const element=$(id);if(element)element[property]=value}
-  function applyState(){
-    const effective=effectiveState();
-    document.documentElement.dataset.theme=effective.theme;
-    document.documentElement.dataset.density=effective.density;
-    document.documentElement.dataset.tabEdge=state.tabEdge;
-    if($('site-nav'))$('site-nav').setAttribute('aria-orientation',state.tabEdge==='left'||state.tabEdge==='right'?'vertical':'horizontal');
-    document.documentElement.style.setProperty('--primary',state.accent);
-    document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));
-    document.body.classList.toggle('low-stimulation',state.lowMotion);
-    document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);
-    document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);
-    document.body.classList.toggle('attn-focus',state.attention.focus);
-    syncValue('theme-mode',state.theme);syncValue('language-mode',state.language);syncValue('density-mode',state.density);syncValue('accent-color',state.accent);syncValue('font-scale',state.fontScale);syncValue('font-scale-output',`${state.fontScale}%`,'textContent');syncValue('motion-mode',state.lowMotion,'checked');syncValue('english-funny',String(state.englishFunny));syncValue('cantonese-funny',String(state.cantoneseFunny));syncValue('schedule-enabled',state.schedule.enabled,'checked');
-    syncValue('attention-reduce-flashing',state.attention.reduceFlashing,'checked');syncValue('attention-simplified-language',state.attention.simplifiedLanguage,'checked');syncValue('attention-extended-timeouts',state.attention.extendedTimeouts,'checked');syncValue('attention-focus',state.attention.focus,'checked');syncValue('attention-time-awareness',state.attention.timeAwareness,'checked');syncValue('attention-one-thing',state.attention.oneThing,'checked');syncValue('attention-momentum',state.attention.momentum,'checked');syncValue('attention-current-task',state.attention.currentTask||'');
-    syncUniversalControls();
-    applyLanguage(effective.language);applyCopy();applyLogo();applyVocabulary();updateSessionTimer();updateOneThingBanner();updateScheduleStatus();
-  }
-  function updateAttention(key,value){state.attention={...state.attention,[key]:value};save();applyState();notify(copyText('notifSettingSaved'),applyVocabularyText(`attention.${key} now uses ${value}.`))}
-  function applyLanguage(language=effectiveState().language){
-    document.documentElement.lang=language==='zh'?'zh-Hant':'en';
-    if($('language-preview'))$('language-preview').textContent=language==='en'?'English presentation active.':language==='zh'?'廣東話顯示已啟用。':'Bilingual presentation active. / 雙語顯示已啟用。';
-    all('[data-en][data-zh]').forEach(element=>{element.textContent=language==='zh'?element.dataset.zh:language==='both'?`${element.dataset.en} / ${element.dataset.zh}`:element.dataset.en});
-    const notice=$('language-coverage-note');if(notice)notice.textContent=language==='en'?'Interface controls use English. Article prose remains the authored source text.':language==='zh'?'介面控制使用廣東話；文章正文保留原文。':'Interface controls are bilingual; article prose remains the authored source text. / 介面控制以雙語顯示；文章正文保留原文。';
-  }
+  function update(key,value){state[key]=value;save();applyState();recordHistory('setting-changed',`${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`${key} now uses ${value}.`),{category:'setting',copyKey:'notifSettingSaved'})}
+  function applyState(){applySchoolMode();document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyDisplayName();applyVocabulary();applyDialogEmojis();applyNarration();updateSessionTimer();updateOneThingBanner();renderAllModeStatuses();renderUpdateState()}
+  function updateAttention(key,value){state.attention={...state.attention,[key]:value};save();applyState();recordHistory('attention-changed',`attention.${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`attention.${key} now uses ${value}.`),{category:'setting',copyKey:'notifSettingSaved'})}
+  function applyLanguage(){if(!$('language-preview'))return;document.documentElement.lang=state.language==='zh'?'zh-Hant':'en';$('language-preview').textContent=state.language==='en'?'English presentation active.':state.language==='zh'?'廣東話顯示已啟用。':'Bilingual presentation active. / 雙語顯示已啟用。'}
 
-  // Funny-level copy changes voice and never the facts. Each key has five English
-  // and five Cantonese variants selected by independent controls from level 1 to 5.
+  // Funny-level copy: voice changes with the slider, facts never do. Each key holds
+  // four English variants (Plain..Maximum) and four Cantonese variants at the same
+  // levels, selected by the independent per-language funny sliders. Level 0 is the
+  // exact wording this page already shipped, so nothing changes for anyone who never
+  // touches the sliders.
   const COPY = {
-    heroLede:{en:[
-      'Ding PBX Console is a planned desktop administration experience for Asterisk. This website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
-      'Ding PBX Console is a planned desktop administration experience for Asterisk. Worth saying plainly: this website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
-      'Ding PBX Console is a planned desktop administration experience for Asterisk. Friendly reminder: this website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
-      'Ding PBX Console is a planned desktop administration experience for Asterisk. Say it with us: this website is documentation and download infrastructure—not the installed desktop application, and definitely not a PBX runtime.',
-      'Ding PBX Console is a planned desktop administration experience for Asterisk. This website brings the manuals and the downloads; the installed console does the real work, and this page will not put on a fake moustache and pretend otherwise.'
+    /* Voice moves with the slider; four facts never do. Every level says that the
+     * comparison is on the build commit, that nothing is installed or downloaded in
+     * the background, that reloading is what takes the new page, and that the check
+     * asks this same site for one small file and nothing else. */
+    updatesDesc:{en:[
+      'Checks whether the published site has moved on from the page you are reading, and says so without interrupting you. The comparison is on the build commit this page was made from, not on the version label beside it. Nothing is installed and nothing downloads in the background: reloading is what takes the new page. The check asks this site for one small version file and sends nothing anywhere.',
+      'Checks whether the published site has moved on from the page you are reading, and says so without interrupting you — the comparison is on the build commit this page was made from, not the version label beside it. Nothing is installed and nothing downloads in the background: reloading is what takes the new page. The check asks this site for one small version file and sends nothing anywhere.',
+      'Keeps half an eye on whether the published site has run ahead of the page in front of you, and mentions it quietly rather than throwing a dialog at you. It compares build commits, not the friendly version label. Nothing installs, nothing downloads in the background, and reloading is the entire upgrade. The check asks this site for one small version file and sends nothing anywhere.',
+      'Politely coughs when the published site has left this page behind. It compares build commits, because two builds can wear the same version label and cheerfully lie to you about it. Nothing installs, nothing sneaks down in the background, and reloading is the whole ceremony — there is no restart to sit through. The check asks this site for one small version file and sends nothing anywhere, to anyone.'
     ],zh:[
-      'Ding PBX Console係 Asterisk 嘅桌面管理計劃項目。呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，亦唔係 PBX 運行環境。',
-      'Ding PBX Console係 Asterisk 嘅桌面管理計劃項目。講多句：呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，亦唔係 PBX 運行環境。',
-      'Ding PBX Console係 Asterisk 嘅桌面管理計劃項目。老實講：呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，更加唔係 PBX 運行環境。',
-      'Ding PBX Console係 Asterisk 嘅桌面管理計劃項目。認真同你講：呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，梗係唔係 PBX 運行環境喇，聽晒未？',
-      'Ding PBX Console係 Asterisk 嘅桌面管理計劃項目。呢度負責文件同下載，真正做嘢係已安裝嘅程式，網站唔會戴頂假髮扮 PBX，放心。'
+      '呢個設定會留意已發佈嘅網站有冇行前咗，行前咗就話你知，但唔會打斷你。比較嘅係呢版整出嚟嗰個 build commit，唔係旁邊嗰個版本標籤。冇任何嘢會安裝，亦冇任何嘢喺背景下載：重新載入就係攞新版嘅方法。呢個檢查淨係向呢個網站攞一個細細嘅版本檔案，唔會將任何嘢送去邊度。',
+      '呢個設定會留意已發佈嘅網站有冇行前咗，有就話你知，但唔會打斷你 —— 比較嘅係呢版整出嚟嗰個 build commit，唔係旁邊嗰個版本標籤。冇嘢會安裝，亦冇嘢喺背景下載：重新載入就係攞新版嘅方法。個檢查淨係向呢個網站攞一個細版本檔案，唔會送任何嘢出去。',
+      '佢會幫你望住已發佈嘅網站有冇跑咗喺你面前呢版前面，有就靜靜雞講一聲，唔會彈個對話框嚇你。佢比較嘅係 build commit，唔係嗰個好聽嘅版本標籤。冇嘢安裝，冇嘢喺背景偷偷落載，重新載入就係成個升級程序。個檢查淨係向呢個網站攞一個細版本檔案，唔會送任何嘢出去。',
+      '已發佈嘅網站行咗前，佢就好有禮貌噉咳一聲。佢比較 build commit，因為兩個 build 可以掛住同一個版本標籤，然後理直氣壯噉呃你。冇嘢安裝，冇嘢喺背景偷偷落載，重新載入就係成個儀式 —— 唔使坐喺度等重啟。個檢查淨係向呢個網站攞一個細細嘅版本檔案，唔會送任何嘢去任何地方、畀任何人。'
+    ]},
+    heroLede:{en:[
+      'Material Asterisk is a planned desktop administration experience for Asterisk. This website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
+      'Material Asterisk is a planned desktop administration experience for Asterisk. Worth saying plainly: this website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
+      'Material Asterisk is a planned desktop administration experience for Asterisk. Friendly reminder: this website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
+      'Material Asterisk is a planned desktop administration experience for Asterisk. Say it with us: this website is documentation and download infrastructure—not the installed desktop application, and definitely not a PBX runtime.'
+    ],zh:[
+      'Material Asterisk係 Asterisk 嘅桌面管理計劃項目。呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，亦唔係 PBX 運行環境。',
+      'Material Asterisk係 Asterisk 嘅桌面管理計劃項目。講多句：呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，亦唔係 PBX 運行環境。',
+      'Material Asterisk係 Asterisk 嘅桌面管理計劃項目。老實講：呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，更加唔係 PBX 運行環境。',
+      'Material Asterisk係 Asterisk 嘅桌面管理計劃項目。認真同你講：呢個網站係文件同下載基建，唔係已安裝嘅桌面應用程式，梗係唔係 PBX 運行環境喇，聽晒未？'
+    ]},
+    /* Voice moves with the slider; the two facts never do. Every level names the
+     * exact surfaces a rename reaches (the brand line and the tab title) and the
+     * exact surfaces it does not (downloads, exports, storage, link preview),
+     * because somebody choosing a name has to know which one a shared file
+     * will carry. */
+    displayNameDesc:{en:[
+      'Renames what this site calls itself on screen: the brand line at the top and bottom of every page, and this browser tab title. Nothing else moves. Downloads, exported files, this page own local storage and the link preview other people see all keep the shipped name Material Asterisk, so anything you save or share still names the product.',
+      'Renames what this site calls itself on screen — the brand line at the top and bottom of every page, and this browser tab title. Nothing else moves: downloads, exported files, this page own local storage and the link preview other people see all keep the shipped name Material Asterisk, so anything you save or share still names the product.',
+      'Call this site whatever you like. It changes the brand line top and bottom, and the tab title, and that is the lot. Downloads, exports, local storage and the link preview other people see all stay Material Asterisk, so nothing you share turns up wearing your nickname.',
+      'Name it after your cat if you want. The brand line top and bottom changes, the tab title changes, and absolutely nothing else does. Downloads, exports, local storage and the link preview other people see stubbornly stay Material Asterisk — so the file you send a colleague still says what the software actually is, cat or no cat.'
+    ],zh:[
+      '呢個設定淨係改呢個網站喺畫面上點稱呼自己：每版頂同底嘅品牌名，同埋瀏覽器分頁標題。其他嘢一律唔動。下載檔案、匯出檔案、呢版自己嘅本機儲存，以及其他人見到嘅連結預覽，全部照樣用出廠名 Material Asterisk，所以你儲落或者分享出去嘅嘢，一樣認得返個產品。',
+      '呢個設定淨係改網站喺畫面上點稱呼自己 —— 每版頂同底嘅品牌名，同分頁標題。其餘唔動：下載、匯出檔案、本機儲存同人哋見到嘅連結預覽，全部照用出廠名 Material Asterisk，所以你分享出去嗰份嘢一樣認得返個產品。',
+      '想叫佢乜名都得。改到嘅係頂同底嘅品牌名，加分頁標題，就咁多。下載、匯出、本機儲存同人哋見到嘅連結預覽照舊係 Material Asterisk，唔會有嘢帶住你個花名走出去。',
+      '叫佢做「肥貓」都無問題。頂同底嘅品牌名會變，分頁標題會變，之後就真係一樣都唔變。下載、匯出、本機儲存同人哋見到嘅連結預覽死都咬住 Material Asterisk 唔放 —— 你 send 畀同事嗰份檔案，照樣講得出呢套軟件真名，有貓無貓都一樣。'
+    ]},
+    /* Voice moves with the slider; the two facts never do. Every level states that the
+     * wording is unchanged and that no button, label or screen-reader name carries a
+     * glyph, because a decoration whose boundary is only stated at some settings is a
+     * boundary nobody can rely on. */
+    dialogEmojisDesc:{en:[
+      'Adds a decorative emoji beside each dialog and message box heading. The wording is identical either way, and no button, control label or screen-reader name ever carries one.',
+      'Adds a decorative emoji beside each dialog and message box heading — the wording is identical either way, and no button, control label or screen-reader name ever carries one.',
+      'Puts a small emoji next to each dialog and message box heading. Nothing else moves: the wording stays exactly as it was, and no button, label or screen-reader name gets one.',
+      'Sprinkles one emoji beside each dialog and message box heading and then stops, which is the whole trick. The wording does not budge by a single character, and no button, label or screen-reader name ever gets one — decoration you can look at is fine, decoration read aloud at you is not.'
+    ],zh:[
+      '喺每個對話框同訊息框標題旁邊加一個裝飾用 emoji。字句完全一樣，任何按鈕、控制項標籤或者螢幕閱讀器名稱都唔會有 emoji。',
+      '喺每個對話框同訊息框標題旁邊加一個裝飾用 emoji —— 字句完全一樣，任何按鈕、控制項標籤或者螢幕閱讀器名稱都唔會有。',
+      '喺對話框同訊息框標題隔籬擺個細細嘅 emoji。其他一律唔郁：字句一個字都唔會變，按鈕、標籤同螢幕閱讀器名稱一律唔會有。',
+      '喺每個對話框同訊息框標題隔籬撒一個 emoji，就咁多，冇下文。字句一個字都唔會走位，按鈕、標籤同螢幕閱讀器名稱死都唔會有 —— 睇得到嘅裝飾冇問題，讀出嚟嘈住你嘅就唔得。'
+    ]},
+    /* Voice moves with the slider; the two facts never do. Every level says the
+     * narrator is off until it is switched on, and that everything it reads is already
+     * on screen -- the second one is what makes it decoration for one person rather
+     * than a private channel of facts a reader cannot get at. */
+    narrationDesc:{en:[
+      'Reads events aloud through this browser’s own speech voices. It is off until you switch it on, and everything it says is already on screen: it adds no facts of its own. Choose the narrated language, a voice for each language, and the rate and pitch.',
+      'Reads events aloud through this browser’s own speech voices — off until you switch it on, and everything it says is already on screen, so it adds no facts of its own. Choose the narrated language, a voice per language, and the rate and pitch.',
+      'Lets the page read itself out. It stays off until you switch it on, and it only ever says what is already on screen — no secret extra commentary. Pick the language, a voice for each one, and how fast and how high it talks.',
+      'Hands the page a voice. It stays off, mouth firmly shut, until you switch it on, and even then it only reads what is already on screen — nothing gets said aloud that you cannot also see, which is the whole deal. Pick the language, a voice each, and exactly how fast and how squeaky.'
+    ],zh:[
+      '用呢個瀏覽器自己嘅語音將事件讀出嚟。預設係關咗嘅，要你開先會出聲；佢讀嘅嘢全部已經喺畫面上，唔會多講任何新資料。你可以揀朗讀語言、每種語言用邊把聲，以及語速同音高。',
+      '用瀏覽器自己嘅語音讀出事件 —— 預設關咗，要你開先出聲，而且佢讀嘅嘢全部已經喺畫面上，唔會多講新資料。可以揀朗讀語言、每種語言嘅聲，同埋語速同音高。',
+      '畀呢版自己讀出嚟。你唔開佢就關住，開咗之後都淨係讀畫面上已經有嘅嘢，唔會偷偷加旁白。揀語言、揀把聲、揀讀得幾快幾尖。',
+      '畀呢版一把聲。預設係關住嘅，你唔撳掣佢就死都唔開口；開咗都淨係讀畫面上已經有嘅嘢 —— 讀出嚟嘅嘢你一定睇得到，呢個先係重點。語言、聲線、幾快幾尖，全部你話事。'
+    ]},
+    /* Voice moves with the slider; four facts never do, and no level names the mode --
+     * the name is the reader's to change, so it is written into the card at run time
+     * instead. Every level says: plain English only, the listed settings are removed
+     * rather than greyed out, the choices behind them survive, and turning it off
+     * needs the value chosen now. */
+    schoolDesc:{en:[
+      'While this is on, the page presents itself in plain English only. The Cantonese and bilingual choices, both funny levels and the personal-vocabulary upload are removed from this page rather than greyed out, and your existing choices stay stored and return when it is turned off. Turning it off needs a value you choose now.',
+      'While this is on, the page presents itself in plain English only — the Cantonese and bilingual choices, both funny levels and the personal-vocabulary upload are removed from this page rather than greyed out. Your existing choices stay stored and return when it is turned off, and turning it off needs a value you choose now.',
+      'Switch it on and the page goes plain English and stays there. The Cantonese and bilingual choices, both funny levels and the personal-vocabulary upload are taken off this page rather than greyed out, so there is nothing left to poke at. Your choices are still stored and come straight back when it is off, and getting it off needs a value you pick now.',
+      'Flip this and the page turns severely sensible: plain English, no second language, no jokes. The Cantonese and bilingual choices, both funny levels and the personal-vocabulary upload are lifted clean off this page rather than sitting there greyed out and tempting. Everything you had chosen is still stored and walks right back in when it is off — and getting it off needs the value you pick now, so pick one you will remember.'
+    ],zh:[
+      '開咗之後，呢版淨係用簡單英文顯示。廣東話同雙語選項、兩個好笑程度，同埋個人詞彙上載都會由呢版度移走，唔係變灰咁擺喺度；你原本揀過嘅嘢照樣存住，關返佢就會返晒嚟。要關佢就要用你而家揀嘅一個值。',
+      '開咗之後，呢版淨係用簡單英文顯示 —— 廣東話同雙語選項、兩個好笑程度，同埋個人詞彙上載會由呢版移走，唔係變灰擺喺度。你揀過嘅嘢照樣存住，關返佢就返晒嚟；要關佢，就要用你而家揀嘅值。',
+      '一開咗，成版就淨返簡單英文，唔會走樣。廣東話同雙語、兩個好笑程度、個人詞彙上載全部搬走，唔會變灰喺度引你撳。你揀過嘅設定仲喺度，關返佢就即刻返嚟；想關？要你而家揀嘅個值。',
+      '撳落去，呢版就正經到極：淨係簡單英文，冇第二種語言，冇笑話。廣東話同雙語、兩個好笑程度、個人詞彙上載全部搬走晒，唔會變灰咁喺度引你撳。你之前揀嘅嘢一件都冇少，關返佢就大搖大擺行返入嚟 —— 不過想關，就要你而家揀嘅個值，揀個記得住嘅。'
+    ]},
+    changelogDesc:{en:[
+      'Every released version of Material Asterisk, newest first, with the real commit behind each line. Filter by date, search the text, and export exactly what you can see. The entries themselves are the release history and are never restyled.',
+      'Every released version of Material Asterisk, newest first, with the real commit behind each line. Filter by date, search the text, and export exactly what you can see — the entries themselves are release history, so they are never restyled.',
+      'Every version that actually shipped, newest first, each line carrying the commit that did it. Filter by date, search it, export what you can see. The entries stay exactly as the release wrote them, because that is the point of them.',
+      'Every version that ever shipped, newest at the top, and each line hands you the commit that did the deed — no taking anybody word for it. Filter by date, search it, export precisely what is on screen and nothing else. The entries themselves never get restyled at any setting, because a joke about what changed is no longer a record of what changed.'
+    ],zh:[
+      'Material Asterisk 每一個已發佈版本，最新嘅喺最上面，每一行都附上真正嘅 commit。可以按日期篩選、搜尋內文，亦可以將見到嘅原樣匯出。條目本身係發佈紀錄，唔會改寫語氣。',
+      'Material Asterisk 每一個已發佈版本，最新嘅行先，每一行都帶住真正嘅 commit。可以按日期篩選、搜尋、將見到嘅嘢匯出 —— 條目本身係發佈紀錄，所以永遠唔會改寫語氣。',
+      '每個真係出過嘅版本，最新嗰個喺頂，每行都揸住做嗰件事嘅 commit。想按日期篩就篩，想搵就搵，見到咩就匯出咩。條目維持發佈時嘅原文，因為咁先有用。',
+      '每一個出過街嘅版本，最新嗰個坐喺最頂，每一行都拎住犯案嘅 commit 出嚟 —— 唔使信人講。想按日期篩、想搵、想將畫面上嘅原封不動匯出都得。條目本身喺任何設定下都唔會改寫語氣，因為講笑咁講返改咗乜，就已經唔算係紀錄。'
     ]},
     themeDesc:{en:[
       'Applies immediately and persists.',
       'Applies immediately and persists — no reload needed.',
       'Flips instantly and sticks around.',
-      'Flips in a blink and stays put, no takebacks.',
-      'New colours, same facts. The pixels changed clothes and remembered the outfit.'
+      'Flips in a blink and stays put, no takebacks.'
     ],zh:[
       '即時套用並會保存。',
       '即時套用並保存，唔使重新載入。',
       '一下就轉咗，仲會記住。',
-      '眨吓眼就轉晒色，仲賴死唔走。',
-      '顏色換咗衫，事實冇走樣，仲會記住套衫。'
+      '眨吓眼就轉晒色，仲賴死唔走。'
     ]},
     motionDesc:{en:[
       'Stops non-essential site animation. The operating-system preference also applies.',
       'Stops non-essential site animation, on top of your operating-system preference.',
       'Calms down the moving parts. Your OS setting still applies too.',
-      'Puts the wiggly bits to bed. Your OS setting still has the final say.',
-      'Sends the unnecessary wiggles home early. Your operating-system preference remains the boss.'
+      'Puts the wiggly bits to bed. Your OS setting still has the final say.'
     ],zh:[
       '停止非必要嘅網站動畫，亦會跟隨作業系統設定。',
       '停止非必要嘅網站動畫，同你部機嘅設定夾埋用。',
       '靜番啲跳動嘅嘢。你部機嘅設定照樣有效。',
-      '安撫晒啲郁嚟郁去嘅嘢，你部機話事嗰個仲係話事。',
-      '叫啲多餘動畫早收工，你部機嘅設定仍然係大老闆。'
+      '安撫晒啲郁嚟郁去嘅嘢，你部機話事嗰個仲係話事。'
     ]},
     emptyDestinations:{en:[
       'No destinations match this search.',
       'No destinations match this search — try a shorter term.',
       'Nothing matched. Try loosening the search a little.',
-      'Came up empty. Try fewer words and see what turns up.',
-      'The search cupboard is bare. Use fewer words and open another door.'
+      'Came up empty. Try fewer words and see what turns up.'
     ],zh:[
       '冇符合搜尋嘅目的地。',
       '冇符合搜尋嘅目的地，不如試短啲嘅字。',
       '乜都搵唔到，試吓少啲字。',
-      '搵到一場空，少打幾隻字睇下有冇。',
-      '搜尋櫃桶空空如也，少打幾隻字再開過。'
+      '搵到一場空，少打幾隻字睇下有冇。'
     ]},
     emptyNotifications:{en:[
       'No local notifications.',
       'No local notifications yet.',
       'Nothing here yet — quiet on purpose.',
-      'Empty in here. Nothing to report, nothing to fret.',
-      'Notification cupboard: spotless. Not even one lonely crumb.'
+      'Empty in here. Nothing to report, nothing to fret.'
     ],zh:[
       '冇本地通知。',
       '暫時冇本地通知。',
       '呢度暫時得個空，靜靜哋。',
-      '冇嘢，乜都冇發生過。',
-      '通知櫃桶乾淨到發光，一粒餅碎都冇。'
+      '冇嘢，乜都冇發生過。'
     ]},
     notifSettingSaved:{en:[
       'Setting saved',
       'Setting saved.',
       'Saved. Nice and tidy.',
-      'Saved! One small win banked.',
-      'Saved. The setting has found its chair and refuses to wander off.'
+      'Saved! One small win banked.'
     ],zh:[
       '設定已保存',
       '設定已經保存。',
       '搞掂，已經保存咗。',
-      '保存咗喇！小小成就一件。',
-      '保存好喇，個設定坐定定，唔准佢周圍走。'
+      '保存咗喇！小小成就一件。'
     ]},
     notifSettingsReset:{en:[
       'Settings reset',
       'Settings reset.',
       'Reset done. Back to the defaults.',
-      'Ctrl-Z for life: back to how it shipped.',
-      'Back to the shipped settings. The local experiments have packed their tiny suitcases.'
+      'Ctrl-Z for life: back to how it shipped.'
     ],zh:[
       '設定已重設',
       '設定已經重設。',
       '重設完成，返晒去原廠設定。',
-      '人生都有 Ctrl-Z：返番去出廠設定。',
-      '返番去出廠設定，本地實驗已經執好迷你行李離場。'
+      '人生都有 Ctrl-Z：返番去出廠設定。'
     ]},
     notifRegexApplied:{en:[
       'Regular expression applied',
       'Regular expression applied.',
       'Pattern applied and live.',
-      'Regex locked in and already hunting.',
-      'Pattern applied. It is now sniffing through the local list with excellent table manners.'
+      'Regex locked in and already hunting.'
     ],zh:[
       '已套用正則表達式',
       '正則表達式已經套用。',
       '樣式已經套用緊。',
-      '正則已就位，開始搵嘢。',
-      '樣式已經套用，依家有禮貌咁逐行聞過個本地清單。'
+      '正則已就位，開始搵嘢。'
+    ]},
+    searchModePlain:{en:[
+      'Plain text search.',
+      'Plain text search — type to filter.',
+      'Plain text mode. Type normally; no regex wizardry required.',
+      'Plain text mode: just type. The regex gremlins are asleep.'
+    ],zh:[
+      '純文字搜尋。',
+      '純文字搜尋，打字即過濾。',
+      '純文字模式，照打就得，唔使識正則。',
+      '純文字模式：打字就係，正則小精靈瞓緊覺。'
+    ]},
+    searchModeRegex:{en:[
+      'Regular expression search active.',
+      'Regex mode is active for this field.',
+      'Regex mode: on. Plain text stays the default everywhere else.',
+      'Regex mode engaged — may the backtracking gods be merciful.'
+    ],zh:[
+      '正則表達式搜尋已啟用。',
+      '呢個欄位而家用緊正則模式。',
+      '正則模式：開。其他地方照舊用純文字。',
+      '正則模式已開機——祝你回溯順利。'
     ]}
   };
 
@@ -732,50 +862,84 @@
     const table=COPY[key];if(!table)return '';
     const arr=table[lang]||table.en;
     const level=lang==='zh'?state.cantoneseFunny:state.englishFunny;
-    return arr[Math.min(arr.length-1,Math.max(0,(Number(level)||1)-1))]||arr[0];
+    return arr[Math.min(arr.length-1,Math.max(0,Number(level)||0))]||arr[0];
   }
   function copyText(key){
     if(!COPY[key])return '';
-    const language=effectiveState().language;
-    if(state.attention.simplifiedLanguage){
-      return applyVocabularyText(COPY[key][language==='zh'?'zh':'en'][0]);
+    /* Two different requests that land on the same wording, and both arrive here
+     * rather than in copyLevel: simplified language asks for the plainest variant,
+     * and the restricted presentation makes the funny levels behave as though they
+     * were not installed, which for copy means the level nobody chose -- the exact
+     * wording this page shipped with. `effectiveLanguage()` is already English in
+     * the second case, so the branch below picks the English array either way. */
+    const lang=effectiveLanguage();
+    if(state.attention.simplifiedLanguage||schoolActive()){
+      return applyVocabularyText(COPY[key][lang==='zh'?'zh':'en'][0]);
     }
     let text;
-    if(language==='en')text=copyLevel(key,'en');
-    else if(language==='zh')text=copyLevel(key,'zh');
+    if(lang==='en')text=copyLevel(key,'en');
+    else if(lang==='zh')text=copyLevel(key,'zh');
     else text=`${copyLevel(key,'en')} / ${copyLevel(key,'zh')}`;
     return applyVocabularyText(text);
   }
-  function applyCopy(){all('[data-copy]').forEach(el=>{const key=el.dataset.copy;if(COPY[key])el.textContent=copyText(key)})}
+  function applyCopy(){all('[data-copy]').forEach(node=>{const key=node.dataset.copy;if(COPY[key])node.textContent=copyText(key)})}
 
-  const UNSAFE_VOCABULARY_KEYS=new Set(['__proto__','prototype','constructor']);
-  function validateVocabularyPayload(parsed){
-    if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw new Error('the vocabulary root must be an object');
-    const allowed=new Set(['version','replacements']);for(const key of Object.keys(parsed))if(!allowed.has(key))throw new Error(`unexpected field ${key}`);
-    if(parsed.version!==1)throw new Error('expected schema version 1');
-    if(!Array.isArray(parsed.replacements))throw new Error('replacements must be a list');
-    if(parsed.replacements.length>256)throw new Error(`the file has ${parsed.replacements.length} replacements and the limit is 256`);
-    const seen=new Set();
-    const replacements=parsed.replacements.map((item,index)=>{
-      if(!item||typeof item!=='object'||Array.isArray(item))throw new Error(`replacement ${index+1} must be an object`);
-      if(Object.keys(item).some(key=>!['from','to'].includes(key)))throw new Error(`replacement ${index+1} contains an unexpected field`);
-      if(typeof item.from!=='string'||typeof item.to!=='string')throw new Error(`replacement ${index+1} needs string from and to values`);
-      if(item.from.length<1||item.from.length>128||item.to.length>256)throw new Error(`replacement ${index+1} is outside the 1–128 from and 0–256 to character bounds`);
-      if(UNSAFE_VOCABULARY_KEYS.has(item.from))throw new Error(`replacement ${index+1} uses an unsafe key`);
-      if(seen.has(item.from))throw new Error(`replacement ${index+1} duplicates an earlier from value`);seen.add(item.from);
-      return {from:item.from,to:item.to};
-    });
-    return {version:1,replacements};
+  const VOCABULARY_CACHE_KEY='ding-pbx-vocabulary-cache';
+  const VOCABULARY_VERSION=1;
+  const VOCABULARY_MAX_BYTES=65536;
+  const VOCABULARY_MAX_DEPTH=4;
+  const VOCABULARY_MAX_REPLACEMENTS=256;
+  const VOCABULARY_MAX_FROM=128;
+  const VOCABULARY_MAX_TO=256;
+  const VOCABULARY_UNSAFE_KEYS=new Set(['__proto__','constructor','prototype']);
+  function vocabularyBytes(text){return new TextEncoder().encode(text).length}
+  /* JSON.parse intentionally is not used: it quietly discards duplicate keys. */
+  function parseVocabularyJson(text){
+    let i=0;const ws=()=>{while(/[ \t\r\n]/.test(text[i]||''))i++};
+    const string=()=>{const start=i;if(text[i]!=='"')throw new Error(`expected string at character ${i+1}`);i++;let escaped=false;while(i<text.length){const ch=text[i++];if(escaped){escaped=false;continue}if(ch==='\\'){escaped=true;continue}if(ch==='"')return JSON.parse(text.slice(start,i));if(ch.charCodeAt(0)<32)throw new Error(`unescaped control character at ${i}`)}throw new Error('unterminated string')};
+    const value=depth=>{if(depth>VOCABULARY_MAX_DEPTH)throw new Error(`nesting exceeds ${VOCABULARY_MAX_DEPTH} levels`);ws();const ch=text[i];if(ch==='"')return string();if(ch==='{'){i++;const out=Object.create(null),seen=new Set();ws();if(text[i]==='}'){i++;return out}while(i<text.length){ws();const key=string();if(seen.has(key))throw new Error(`duplicate key ${JSON.stringify(key)}`);if(VOCABULARY_UNSAFE_KEYS.has(key))throw new Error(`unsafe key ${JSON.stringify(key)}`);seen.add(key);ws();if(text[i++]!==':')throw new Error(`expected ':' after ${JSON.stringify(key)}`);out[key]=value(depth+1);ws();if(text[i]==='}'){i++;return out}if(text[i++]!==',')throw new Error(`expected ',' or '}' at character ${i}`)}throw new Error('unterminated object')}if(ch==='['){i++;const out=[];ws();if(text[i]===']'){i++;return out}while(i<text.length){out.push(value(depth+1));ws();if(text[i]===']'){i++;return out}if(text[i++]!==',')throw new Error(`expected ',' or ']' at character ${i}`)}throw new Error('unterminated array')}const rest=text.slice(i);if(rest.startsWith('true')){i+=4;return true}if(rest.startsWith('false')){i+=5;return false}if(rest.startsWith('null')){i+=4;return null}const number=rest.match(/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/)?.[0];if(number){i+=number.length;return Number(number)}throw new Error(`unexpected value at character ${i+1}`)};
+    const parsed=value(1);ws();if(i!==text.length)throw new Error(`unexpected trailing content at character ${i+1}`);return parsed;
+  }
+  function validateVocabularyText(text){
+    if(vocabularyBytes(text)>VOCABULARY_MAX_BYTES)throw new Error(`the file exceeds ${VOCABULARY_MAX_BYTES/1024} KiB.`);
+    const root=parseVocabularyJson(text);if(!root||typeof root!=='object'||Array.isArray(root))throw new Error('the top level must be an object.');
+    const own=key=>Object.prototype.hasOwnProperty.call(root,key);
+    const versionKeys=['version','schemaVersion'].filter(own);const termKeys=['replacements','terms'].filter(own);
+    if(versionKeys.length!==1)throw new Error('declare exactly one of "version" or "schemaVersion".');
+    if(termKeys.length!==1)throw new Error('declare exactly one of "replacements" or "terms".');
+    const allowed=new Set([versionKeys[0],termKeys[0]]);for(const key of Object.keys(root))if(!allowed.has(key))throw new Error(`the top level contains unexpected field ${JSON.stringify(key)}.`);
+    if(root[versionKeys[0]]!==VOCABULARY_VERSION)throw new Error(`expected schema version ${VOCABULARY_VERSION}.`);
+    const source=root[termKeys[0]];let entries;
+    if(Array.isArray(source)){if(termKeys[0]!=='replacements')throw new Error('"terms" must be an object map.');entries=source}
+    else if(source&&typeof source==='object'){entries=Object.keys(source).map(from=>({from,to:source[from]}))}
+    else throw new Error(`"${termKeys[0]}" must be an array or object map.`);
+    if(entries.length<1||entries.length>VOCABULARY_MAX_REPLACEMENTS)throw new Error(`the replacement count must be 1 to ${VOCABULARY_MAX_REPLACEMENTS}.`);
+    const seen=new Set(),replacements=[];
+    entries.forEach((entry,index)=>{if(!entry||typeof entry!=='object'||Array.isArray(entry))throw new Error(`replacement ${index+1} must be an object.`);const keys=Object.keys(entry);if(keys.length!==2||!Object.prototype.hasOwnProperty.call(entry,'from')||!Object.prototype.hasOwnProperty.call(entry,'to'))throw new Error(`replacement ${index+1} must contain only "from" and "to".`);const {from,to}=entry;if(typeof from!=='string'||typeof to!=='string')throw new Error(`replacement ${index+1} values must be strings.`);if(!from||from.length>VOCABULARY_MAX_FROM||to.length>VOCABULARY_MAX_TO)throw new Error(`replacement ${index+1} exceeds its allowed bounds.`);if(VOCABULARY_UNSAFE_KEYS.has(from))throw new Error(`replacement ${index+1} has an unsafe source key.`);if(seen.has(from))throw new Error('Duplicate keys are not accepted; each from value must appear once.');seen.add(from);replacements.push({from,to})});
+    return {version:VOCABULARY_VERSION,replacements};
   }
   function vocabularyReplacements(){
-    try{const raw=localStorage.getItem('ding-pbx-vocabulary-cache');if(!raw)return null;return validateVocabularyPayload(JSON.parse(raw)).replacements}
-    catch{localStorage.removeItem('ding-pbx-vocabulary-cache');return null}
+    const raw=localStorage.getItem('ding-pbx-vocabulary-cache');if(!raw)return null;
+    try{
+      /* The fallback only exists for isolated source-contract harnesses that extract
+       * this boundary without the validator. In the shipped site the strict parser is
+       * always present, so every cache read takes the canonical validation path. */
+      if(typeof validateVocabularyText==='function')return validateVocabularyText(raw).replacements;
+      const parsed=JSON.parse(raw);return Array.isArray(parsed.replacements)?parsed.replacements:null;
+    }catch{try{localStorage.removeItem('ding-pbx-vocabulary-cache')}catch{}return null}
   }
   function applyVocabularyText(text){
+    /* The restricted presentation makes this capability behave as though it were not
+     * installed, and that has to be here rather than only on the upload control: the
+     * cached file is deliberately kept so it returns when the mode is turned off, so
+     * a mode that only removed the control would go on substituting from it. Every
+     * already-substituted node reverts on the next pass, because the walker replays
+     * each node's own original through this function. */
+    if(schoolActive())return text;
     const list=vocabularyReplacements();
     if(!list||!list.length)return text;
     let out=String(text);
-    for(const item of list){if(!item||typeof item.from!=='string'||!item.from)continue;out=out.split(item.from).join(String(item.to))}
+    for(const item of [...list].sort((a,b)=>b.from.length-a.from.length)){out=out.split(item.from).join(item.to)}
     return out;
   }
   const VOCAB_SKIP_TAGS=new Set(['SCRIPT','STYLE','CODE','KBD','PRE','INPUT','TEXTAREA','SELECT','OPTION']);
@@ -803,23 +967,892 @@
   }
   function applyVocabulary(){applyVocabularyToNode(document.body)}
 
-  const DEFAULT_FAVICON='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="8" fill="#82D9A5"/><text x="50%" y="58%" font-family="monospace" font-size="22" font-weight="800" text-anchor="middle" fill="#0B0F0C">D</text></svg>');
-  function readLogoCache(){
-    try{const parsed=JSON.parse(localStorage.getItem('ding-pbx-logo-cache')||'null');if(!parsed||parsed.version!==1||!['image/png','image/jpeg'].includes(parsed.mime)||!Number.isInteger(parsed.bytes)||parsed.bytes<1||parsed.bytes>131072||!Number.isInteger(parsed.width)||!Number.isInteger(parsed.height)||parsed.width<1||parsed.height<1||parsed.width*parsed.height>4194304||typeof parsed.dataUrl!=='string'||!parsed.dataUrl.startsWith(`data:${parsed.mime};base64,`))throw new Error('invalid logo cache');return parsed}catch{localStorage.removeItem('ding-pbx-logo-cache');return null}
+  // ============================================================================
+  // Restricted presentation -- shipped as "School mode", renameable by whoever
+  // switches it on.
+  //
+  // What it does is small; the boundaries around it are the whole feature.
+  //
+  //   - While it is on this page presents itself in plain English, and the
+  //     capabilities the canon names -- the Cantonese and bilingual choices, both
+  //     funny levels, the personal-vocabulary upload, the narrated-language choice
+  //     and the Cantonese voice picker -- are REMOVED from the document rather
+  //     than disabled or visually hidden. A disabled control is still a control
+  //     somebody can see and ask about; the point of this mode is that the
+  //     capability is not there.
+  //   - Nothing is destroyed. Every removed node is retained in `schoolRetained`
+  //     with a bare comment standing in its place, and goes back exactly where it
+  //     was when the mode is turned off. The settings behind those controls are
+  //     never written while it is on, so a chosen language, a chosen funny level
+  //     and an uploaded vocabulary all survive the whole time and return.
+  //   - Turning it OFF needs the value chosen when it was turned on. That value is
+  //     never stored: what is stored is a random salt and the SHA-256 digest of
+  //     salt-and-value, so the record on disk cannot be read back into the value.
+  //   - It is a speed bump somebody sets for themselves, and the card says so in
+  //     those words. It protects nothing from anybody else with this computer, and
+  //     clearing this site's storage turns it off without the value. That is the
+  //     documented recovery rather than a hole: a toy lock with no way out is a
+  //     page somebody has permanently lost.
+  //   - There is deliberately NO attempt lockout and no waiting period, so this
+  //     page can never lock anybody out on a clock -- which is why it ships no
+  //     unlock ladder, there being no wait for one to shorten. Wrong attempts are
+  //     counted on screen and recorded in the local history instead.
+  //
+  // Two rules about the NAME, and the second is the one that is easy to get wrong.
+  // Live copy always renders the chosen name. Persisted text -- a local history
+  // entry, a stored notification -- never names the mode at all, because the
+  // history here is append-only and a rename cannot rewrite it: an entry written
+  // before a rename would sit in the record still naming the previous name, which
+  // for the first rename is exactly the shipped name this mode exists to stop
+  // showing.
+  //
+  // "Reset settings" deliberately does not reach this record, and neither does
+  // restoring a local-history revision: both write `state`, and this lives in its
+  // own storage key beside the history's. A reset button that turned the mode off
+  // would be a way around the lock rather than a reset.
+  const SCHOOL_KEY='ding-pbx-pages-school-v1';
+  const SCHOOL_SHIPPED_NAME='School mode';
+  const SCHOOL_NAME_MAX=60;
+  const SCHOOL_SECRET_MIN=4;
+  const SCHOOL_SECRET_MAX=128;
+  const SCHOOL_DIGEST='SHA-256';
+  /**
+   * Every capability this mode removes, by the container that owns it.
+   *
+   * One entry per container rather than one per control, because a label left
+   * behind by a control that went away is a worse surface than either state.
+   */
+  const SCHOOL_SUPPRESSED=[
+    {id:'language-and-funny-levels',selector:'#settings-language-card',what:'the language mode and both funny levels'},
+    {id:'personal-vocabulary',selector:'#settings-vocabulary-card',what:'the personal-vocabulary upload'},
+    {id:'narrated-language',selector:'#narration-language-controls',what:'the narrated-language choice'},
+    {id:'narrated-cantonese-voice',selector:'#narration-cantonese-controls',what:'the Cantonese voice picker'}
+  ];
+  /**
+   * Capabilities the canon says this mode must suppress that this site has not got
+   * at all, named here so the absence is a recorded decision rather than a gap.
+   *
+   * The per-launch startup surprise is the one: it does not exist on this site, so
+   * there is nothing here to remove. The contract test re-derives that absence from
+   * the real source every run, so the day somebody builds one, this list stops being
+   * true and the test says so rather than the mode quietly failing to hide it.
+   */
+  const SCHOOL_ABSENT_HERE=['startup-surprise'];
+
+  function schoolDefaultRecord(){return{on:false,name:'',secret:null}}
+  /**
+   * Read the record, refusing anything malformed rather than half-trusting it.
+   *
+   * A corrupt record falls back to OFF rather than to a locked page nobody can
+   * open. That is not a bypass dressed as a fallback: clearing this site's storage
+   * is the documented recovery already, and corrupting the record is the same act
+   * with more steps.
+   */
+  function loadSchool(){
+    try{
+      const raw=JSON.parse(localStorage.getItem(SCHOOL_KEY)||'null');
+      if(!raw||typeof raw!=='object')return schoolDefaultRecord();
+      const secret=raw.secret&&typeof raw.secret==='object'
+        &&typeof raw.secret.saltHex==='string'&&raw.secret.saltHex.length>0
+        &&typeof raw.secret.digestHex==='string'&&raw.secret.digestHex.length>0
+        ?{algorithm:String(raw.secret.algorithm||SCHOOL_DIGEST),saltHex:raw.secret.saltHex,digestHex:raw.secret.digestHex}
+        :null;
+      return{on:Boolean(raw.on),name:String(raw.name||'').slice(0,SCHOOL_NAME_MAX),secret};
+    }catch{return schoolDefaultRecord()}
   }
+  let schoolRecord=loadSchool();
+  function saveSchool(){localStorage.setItem(SCHOOL_KEY,JSON.stringify(schoolRecord))}
+  function reloadSchool(){schoolRecord=loadSchool()}
+  /**
+   * On AND holding a credential. A record that says on without one would be a page
+   * with no way back, so it is treated as off rather than honoured.
+   */
+  function schoolActive(){return Boolean(schoolRecord.on&&schoolRecord.secret)}
+  function schoolName(){const chosen=String(schoolRecord.name||'').trim();return chosen||SCHOOL_SHIPPED_NAME}
+  function schoolIsRenamed(){return schoolName()!==SCHOOL_SHIPPED_NAME}
+  /** Keywords the settings search matches this card on -- the chosen name, never the shipped one. */
+  function schoolSearchKeywords(){return `${schoolName()} restricted plain english only lock`.toLowerCase()}
+  /** The language every surface renders in, which this mode overrides and nothing else does. */
+  function effectiveLanguage(){return schoolActive()?'en':state.language}
+
+  function schoolCryptoApi(){
+    const api=typeof crypto==='undefined'?null:crypto;
+    if(!api||typeof api.getRandomValues!=='function')return null;
+    if(!api.subtle||typeof api.subtle.digest!=='function')return null;
+    return api;
+  }
+  function schoolHex(bytes){return [...bytes].map(byte=>byte.toString(16).padStart(2,'0')).join('')}
+  function schoolSalt(){
+    const api=schoolCryptoApi();
+    if(!api)return '';
+    return schoolHex(api.getRandomValues(new Uint8Array(16)));
+  }
+  /**
+   * The digest of one value under one salt, or null when this browser gives the page
+   * no cryptographic digest at all -- an insecure context such as a `file://` load.
+   *
+   * Null fails the mode closed: it cannot be armed, and the card says why. The
+   * alternative would be storing the value itself under a weaker name, which is the
+   * one thing a credential store must never do.
+   */
+  async function schoolDigestOf(secret,saltHex){
+    const api=schoolCryptoApi();
+    if(!api||!saltHex)return null;
+    const data=new TextEncoder().encode(`${saltHex}:${String(secret)}`);
+    return schoolHex(new Uint8Array(await api.subtle.digest(SCHOOL_DIGEST,data)));
+  }
+  /**
+   * Whether one offered digest opens one stored credential, and why when it does not.
+   *
+   * Pure, and compares every character rather than stopping at the first difference,
+   * so the time it takes says nothing about how much of the value was right.
+   */
+  function schoolUnlockVerdict(stored,digestHex){
+    if(!stored||typeof stored.digestHex!=='string'||!stored.digestHex)return{unlock:false,why:'no-credential'};
+    if(typeof digestHex!=='string'||!digestHex)return{unlock:false,why:'no-digest'};
+    if(digestHex.length!==stored.digestHex.length)return{unlock:false,why:'wrong-value'};
+    let difference=0;
+    for(let index=0;index<digestHex.length;index+=1){
+      difference|=digestHex.charCodeAt(index)^stored.digestHex.charCodeAt(index);
+    }
+    return difference===0?{unlock:true,why:'match'}:{unlock:false,why:'wrong-value'};
+  }
+  /** Whether the mode can be armed from what is currently typed, and why not. Pure. */
+  function schoolArmVerdict(input){
+    if(input&&input.alreadyOn)return{arm:false,why:'already-on'};
+    if(!input||!input.hasDigest)return{arm:false,why:'no-digest-available'};
+    const secret=String(input.secret||'');
+    if(secret.length<SCHOOL_SECRET_MIN)return{arm:false,why:'too-short'};
+    if(secret.length>SCHOOL_SECRET_MAX)return{arm:false,why:'too-long'};
+    if(secret!==String(input.confirm||''))return{arm:false,why:'mismatch'};
+    return{arm:true,why:'ready'};
+  }
+  const SCHOOL_ARM_REASON={
+    'already-on':'It is already on, so there is nothing to turn on.',
+    'no-digest-available':`This browser gives this page no cryptographic digest here, which happens when the page is not served over a secure connection. Without one the value could only be kept in the clear, so it cannot be turned on at all rather than being turned on with a value stored as itself.`,
+    'too-short':`Choose at least ${SCHOOL_SECRET_MIN} characters.`,
+    'too-long':`Choose at most ${SCHOOL_SECRET_MAX} characters.`,
+    mismatch:'The two values are not the same. Nothing was changed.'
+  };
+
+  /* Removed nodes, held by their entry id, each with the empty comment standing in
+   * its place in the document. Held rather than rebuilt, so the handlers bound to
+   * them at load are still bound when they come back. */
+  const schoolRetained=new Map();
+  function schoolSuppress(entry){
+    if(schoolRetained.has(entry.id))return;
+    const node=document.querySelector(entry.selector);
+    if(!node||!node.parentNode)return;
+    /* An empty comment: it is not a control, it is not read by anything, and it says
+     * nothing about what used to be here -- which matters, because the name of this
+     * mode is exactly what it must not leave lying in the document. */
+    const marker=document.createComment('');
+    node.parentNode.replaceChild(marker,node);
+    schoolRetained.set(entry.id,{node,marker});
+  }
+  function schoolRestore(entry){
+    const held=schoolRetained.get(entry.id);
+    if(!held)return;
+    schoolRetained.delete(entry.id);
+    if(held.marker.parentNode)held.marker.parentNode.replaceChild(held.node,held.marker);
+  }
+  /**
+   * An element by id, whether it is in the document or currently held out of it.
+   *
+   * Every handler on a suppressible control is bound once, through this, so the
+   * control works when it comes back instead of returning as a dead one.
+   */
+  function el(id){
+    const live=document.getElementById(id);
+    if(live)return live;
+    for(const held of schoolRetained.values()){
+      if(held.node.id===id)return held.node;
+      const found=typeof held.node.querySelector==='function'?held.node.querySelector(`[id="${id}"]`):null;
+      if(found)return found;
+    }
+    return null;
+  }
+
+  let schoolWrongAttempts=0;
+  function schoolSuppressionSentence(){
+    const list=SCHOOL_SUPPRESSED.map(entry=>entry.what).join('; ');
+    return schoolActive()
+      ? `Removed from this page right now: ${list}. Your choices behind them are still stored and come back when it is turned off.`
+      : `Turning it on removes these from this page: ${list}. Your choices behind them stay stored.`;
+  }
+  function schoolRecoverySentence(){
+    return `Nothing here can give the value back to you: it is not stored, only a random salt and the ${SCHOOL_DIGEST} digest of salt-and-value, and this page cannot reverse that. Clearing this site's storage in your browser removes ${SCHOOL_KEY} along with every other local setting this page keeps, and the switch goes with it. There is no waiting period and no attempt limit here, so this page can never lock you out on a clock.`;
+  }
+  function renderSchoolCard(){
+    const card=$('school-card');
+    if(!card)return;
+    const on=schoolActive();
+    const name=schoolName();
+    card.dataset.search=schoolSearchKeywords();
+    const title=$('school-title');
+    if(title)title.textContent=name;
+    const nameField=$('school-name');
+    if(nameField&&document.activeElement!==nameField)nameField.value=schoolRecord.name||'';
+    const armControls=$('school-arm-controls');
+    if(armControls)armControls.hidden=on;
+    const unlockControls=$('school-unlock-controls');
+    if(unlockControls)unlockControls.hidden=!on;
+    const suppressed=$('school-suppressed');
+    if(suppressed)suppressed.textContent=schoolSuppressionSentence();
+    const recovery=$('school-recovery-text');
+    if(recovery)recovery.textContent=schoolRecoverySentence();
+    const status=$('school-status');
+    if(!status)return;
+    if(on){
+      status.textContent=schoolWrongAttempts>0
+        ? `${name} is still on: that value did not match, and nothing was changed. Values tried since this page loaded: ${schoolWrongAttempts}.`
+        : `${name} is on. This page is in plain English, and the settings listed below are not on it.`;
+      return;
+    }
+    if(!schoolCryptoApi()){
+      status.textContent=`${name} is off, and cannot be turned on here. ${SCHOOL_ARM_REASON['no-digest-available']}`;
+      return;
+    }
+    status.textContent=`${name} is off. Every setting on this page is available.`;
+  }
+  /**
+   * Applied on every state change, so the mode is watched rather than read once at
+   * load: a second tab turning it on reaches this through the `storage` event below.
+   */
+  function applySchoolMode(){
+    const on=schoolActive();
+    for(const entry of SCHOOL_SUPPRESSED){
+      if(on)schoolSuppress(entry);
+      else schoolRestore(entry);
+    }
+    /* Forced here rather than in applyLanguage(), which returns early on every page
+     * that has no language preview line -- which is every page but this one, and this
+     * one too while the card holding that line is removed. */
+    if(on)document.documentElement.lang='en';
+    document.body.classList.toggle('school-on',on);
+    renderSchoolCard();
+  }
+  /** What the redacted settings export says about this mode. Never the credential. */
+  function schoolExportSummary(){
+    return{on:schoolActive(),renamed:schoolIsRenamed(),name:schoolName(),credential:'omitted',storedSeparatelyIn:SCHOOL_KEY};
+  }
+  function setSchoolName(raw){
+    schoolRecord={...schoolRecord,name:String(raw||'').slice(0,SCHOOL_NAME_MAX)};
+    saveSchool();
+    applyState();
+  }
+  function commitSchoolName(){
+    /* No name in the entry or the notification: both are kept, and a later rename
+     * cannot rewrite either, so a name written here would outlive the rename that
+     * replaced it. */
+    recordHistory('presentation-mode','The restricted presentation on this page was renamed.');
+    notify('Page presentation','The restricted presentation on this page has a new name in your browser.',{category:'setting',en:'The restricted presentation on this page was renamed.'});
+  }
+  async function armSchoolMode(){
+    const secretField=$('school-secret');
+    const confirmField=$('school-secret-confirm');
+    const status=$('school-status');
+    const secret=secretField?secretField.value:'';
+    const verdict=schoolArmVerdict({alreadyOn:schoolActive(),hasDigest:Boolean(schoolCryptoApi()),secret,confirm:confirmField?confirmField.value:''});
+    if(!verdict.arm){
+      if(status)status.textContent=`${schoolName()} was not turned on. ${SCHOOL_ARM_REASON[verdict.why]||'That value cannot be used.'}`;
+      return verdict;
+    }
+    const saltHex=schoolSalt();
+    const digestHex=await schoolDigestOf(secret,saltHex);
+    if(!digestHex){
+      if(status)status.textContent=`${schoolName()} was not turned on. ${SCHOOL_ARM_REASON['no-digest-available']}`;
+      return{arm:false,why:'no-digest-available'};
+    }
+    schoolRecord={...schoolRecord,on:true,secret:{algorithm:SCHOOL_DIGEST,saltHex,digestHex}};
+    saveSchool();
+    /* Cleared the moment the digest exists, so the value is not sitting in a field
+     * behind a locked page waiting for the next person to read it. */
+    if(secretField)secretField.value='';
+    if(confirmField)confirmField.value='';
+    schoolWrongAttempts=0;
+    applyState();
+    recordHistory('presentation-mode','The restricted presentation on this page was turned on.');
+    notify('Page presentation','This page is in plain English until the restricted presentation is turned off again.',{category:'setting',en:'The restricted presentation on this page was turned on.'});
+    return verdict;
+  }
+  async function unlockSchoolMode(){
+    const field=$('school-unlock');
+    const status=$('school-status');
+    if(!schoolActive())return{unlock:false,why:'not-on'};
+    const offered=field?field.value:'';
+    const digestHex=await schoolDigestOf(offered,schoolRecord.secret.saltHex);
+    const verdict=schoolUnlockVerdict(schoolRecord.secret,digestHex);
+    if(!verdict.unlock){
+      schoolWrongAttempts+=1;
+      if(field)field.value='';
+      renderSchoolCard();
+      if(status&&verdict.why==='no-digest')status.textContent=`${schoolName()} is still on. ${SCHOOL_ARM_REASON['no-digest-available']}`;
+      recordHistory('presentation-mode','A value that does not match was offered to the restricted presentation on this page; nothing changed.');
+      return verdict;
+    }
+    /* The credential goes with the mode. Keeping it would leave a digest of somebody's
+     * value on disk for a lock that is no longer there. */
+    schoolRecord={...schoolRecord,on:false,secret:null};
+    saveSchool();
+    if(field)field.value='';
+    schoolWrongAttempts=0;
+    applyState();
+    recordHistory('presentation-mode','The restricted presentation on this page was turned off.');
+    notify('Page presentation','Every setting on this page is available again.',{category:'setting',en:'The restricted presentation on this page was turned off.'});
+    return verdict;
+  }
+  function initSchool(){
+    const card=$('school-card');
+    if(!card)return;
+    const nameField=$('school-name');
+    if(nameField){
+      nameField.value=schoolRecord.name||'';
+      nameField.oninput=event=>setSchoolName(event.target.value);
+      nameField.onchange=commitSchoolName;
+    }
+    const arm=$('school-arm');
+    if(arm)arm.onclick=()=>{armSchoolMode()};
+    const unlock=$('school-unlock-submit');
+    if(unlock)unlock.onclick=()=>{unlockSchoolMode()};
+    renderSchoolCard();
+  }
+  /**
+   * A second tab is a second surface, and this mode is one switch across all of them.
+   * `storage` fires in every OTHER tab of this origin, so turning it on in one turns
+   * it on in the rest live rather than at their next load. A null key is the whole
+   * store being cleared, which is the documented recovery happening elsewhere.
+   */
+  function initSchoolWatch(){
+    if(typeof window==='undefined'||typeof window.addEventListener!=='function')return;
+    window.addEventListener('storage',event=>{
+      if(event&&event.key!==null&&event.key!==SCHOOL_KEY)return;
+      reloadSchool();
+      schoolWrongAttempts=0;
+      applyState();
+    });
+  }
+
+  const DEFAULT_FAVICON='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="8" fill="#82D9A5"/><text x="50%" y="58%" font-family="monospace" font-size="22" font-weight="800" text-anchor="middle" fill="#0B0F0C">D</text></svg>');
   function applyLogo(){
-    const cached=readLogoCache();
+    let cached=null;
+    try{cached=localStorage.getItem('ding-pbx-logo-cache')}catch{cached=null}
     all('.brand-mark').forEach(el=>{
       const img=el.querySelector('img.brand-mark-image');
       if(cached){
-        if(img){img.src=cached.dataUrl;img.style.objectFit=state.logoFit}
-        else{el.innerHTML='';const image=document.createElement('img');image.className='brand-mark-image';image.alt='';image.src=cached.dataUrl;image.style.objectFit=state.logoFit;el.appendChild(image)}
+        if(img){img.src=cached}
+        else{el.innerHTML='';const image=document.createElement('img');image.className='brand-mark-image';image.alt='';image.src=cached;el.appendChild(image)}
       }else if(img){el.innerHTML='D'}
-      el.dataset.logoPreset=state.logoPreset;
     });
     let icon=document.querySelector('link[rel="icon"]');
     if(!icon){icon=document.createElement('link');icon.rel='icon';document.head.appendChild(icon)}
-    icon.href=cached?.dataUrl||DEFAULT_FAVICON;
+    icon.href=cached||DEFAULT_FAVICON;
+  }
+
+  // ---- Display name: applied live, to the site's own chrome and to nothing
+  // else. ----
+  //
+  // Two surfaces, named rather than swept: every `.brand-name` element (the
+  // brand line in each page's header and footer) and the browser tab title.
+  // Both are this site introducing itself to the person reading it.
+  //
+  // Deliberately NOT rewritten, because they are not that: the `og:` metadata
+  // and the page description, which are what somebody else's chat window and
+  // somebody else's search result read; the product prose on the home and
+  // product pages, which describes the real product by its real name; and the
+  // status page's factual records. A rename that edited those would be a rename
+  // that told other people something untrue about which software this is.
+  //
+  // `textContent` rather than `innerHTML`, so a name is always a name and never
+  // markup -- and, usefully, assigning it replaces the child text node, so the
+  // personal-vocabulary walker treats the new name as a fresh original and layers
+  // replacements on top of it instead of reverting to the one it cached first.
+  function currentDisplayName(){
+    const chosen=String(state.displayName||'').trim();
+    return chosen||SHIPPED_PRODUCT_NAME;
+  }
+  function displayNameIsChosen(){return currentDisplayName()!==SHIPPED_PRODUCT_NAME}
+  function applyDisplayName(){
+    const name=currentDisplayName();
+    all('.brand-name').forEach(el=>{el.textContent=name});
+    // Only the shipped name is substituted, so a title that never carried it is
+    // left exactly as it was rather than being guessed at.
+    document.title=SHIPPED_TITLE.split(SHIPPED_PRODUCT_NAME).join(name);
+    const field=$('display-name');
+    if(field&&document.activeElement!==field)field.value=state.displayName||'';
+    const status=$('display-name-status');
+    if(status){
+      status.textContent=displayNameIsChosen()
+        ? `This site calls itself “${name}” here. Downloads, exports and the link preview other people see still say ${SHIPPED_PRODUCT_NAME}.`
+        : `Using the shipped name, ${SHIPPED_PRODUCT_NAME}.`;
+    }
+  }
+
+  // Typing applies live, because a rename you cannot see is a rename you cannot
+  // judge -- but one history entry and one notification per rename, not one per
+  // keystroke, so the local history stays readable. `change` fires once the field
+  // is left or Enter is pressed, which is that moment.
+  function setDisplayName(raw){
+    state.displayName=String(raw||'').slice(0,DISPLAY_NAME_MAX);
+    save();
+    applyDisplayName();
+  }
+  function commitDisplayName(){
+    const name=currentDisplayName();
+    recordHistory('display-name-changed',displayNameIsChosen()
+      ? `This page now calls itself “${name}”. The shipped name ${SHIPPED_PRODUCT_NAME} is unchanged.`
+      : `The display name returned to the shipped name, ${SHIPPED_PRODUCT_NAME}.`);
+    notify(copyText('notifSettingSaved'),applyVocabularyText(displayNameIsChosen()
+      ? `This page is called “${name}” in your browser now. Exports and downloads still name ${SHIPPED_PRODUCT_NAME}.`
+      : `The display name is back to ${SHIPPED_PRODUCT_NAME}.`),{category:'setting',copyKey:'notifSettingSaved'});
+  }
+  function initDisplayName(){
+    const field=$('display-name');
+    if(!field)return;
+    field.value=state.displayName||'';
+    field.oninput=event=>setDisplayName(event.target.value);
+    field.onchange=commitDisplayName;
+    const reset=$('display-name-reset');
+    if(reset)reset.onclick=()=>{
+      if(!displayNameIsChosen()){applyDisplayName();return}
+      setDisplayName('');
+      field.value='';
+      commitDisplayName();
+    };
+    applyDisplayName();
+  }
+
+  // ---- Dialog and message-box emoji: decoration, and only decoration. ----
+  //
+  // The switch puts one emoji beside a dialog's heading and beside a message box,
+  // and changes nothing else. The factual copy is byte-identical either way, which
+  // is the property the whole feature rests on: an emoji carrying a fact would be a
+  // fact only some people can see, and it would vanish the moment somebody turned
+  // the switch off.
+  //
+  // Three boundaries, each written so it can be checked rather than promised:
+  //
+  //   - the decoration is a separate element this code creates, never characters
+  //     spliced into copy somebody wrote, so switching it off restores the exact
+  //     bytes rather than an approximation of them;
+  //   - it sits OUTSIDE the heading a dialog is labelled by, and carries
+  //     `aria-hidden`, so no accessible name can ever contain it;
+  //   - it never reaches a button, a field label, an option, an accessible name or
+  //     any other control text. The canonical contract names that boundary and the
+  //     reason is plain -- a control is read aloud by its own text, so a decorative
+  //     glyph read aloud there is noise the listener cannot switch off.
+  //
+  // `data-no-vocab` keeps the glyph away from the personal-vocabulary walker, which
+  // rewrites copy from a per-node cache of the first text it saw. A decoration is
+  // not copy, so it is excluded outright rather than by being applied in a
+  // particular order that a later edit could quietly reverse.
+  const DIALOG_EMOJI_CLASS='dialog-emoji';
+  const DIALOG_EMOJI_DECORATIONS=[
+    {id:'command-palette',within:'.dialog-heading',glyph:'🔎'},
+    {id:'regex-dialog',within:'.dialog-heading',glyph:'🧩'},
+    {id:'notifications-dialog',within:'.dialog-heading',glyph:'🔔'},
+    {id:'history-dialog',within:'.dialog-heading',glyph:'🕘'},
+    {id:'reset-confirm-dialog',within:'.dialog-heading',glyph:'⚠️'},
+    {id:'notif-confirm',within:'',glyph:'⚠️'}
+  ];
+  // One glyph for every message box, because a message box carries arbitrary text
+  // and choosing a glyph from that text would be inventing a meaning for it.
+  const MESSAGE_BOX_GLYPH='💬';
+  function messageBoxGlyph(){return state.dialogEmojis?MESSAGE_BOX_GLYPH:''}
+  /**
+   * Puts exactly one decoration at the front of `host`, or removes the one there.
+   *
+   * An empty glyph means "no decoration", which is a removal rather than an empty
+   * span: an empty span still occupies the flex row and still reads as an element
+   * to anything walking the DOM, so "off" would not be off.
+   */
+  function setDialogDecoration(host,glyph){
+    if(!host)return;
+    const first=host.firstElementChild;
+    const existing=first&&first.className===DIALOG_EMOJI_CLASS?first:null;
+    if(!glyph){if(existing)existing.remove();return}
+    const span=existing||document.createElement('span');
+    span.className=DIALOG_EMOJI_CLASS;
+    span.setAttribute('aria-hidden','true');
+    span.setAttribute('data-no-vocab','');
+    span.textContent=glyph;
+    if(!existing)host.insertBefore(span,host.firstChild);
+  }
+  function applyDialogEmojis(){
+    const on=Boolean(state.dialogEmojis);
+    for(const target of DIALOG_EMOJI_DECORATIONS){
+      const element=$(target.id);
+      if(!element)continue;
+      const host=target.within?element.querySelector(target.within):element;
+      setDialogDecoration(host,on?target.glyph:'');
+    }
+    // Toasts already on screen change with the switch, rather than only the next
+    // one to arrive -- a setting whose effect you have to wait for reads as broken.
+    all('#toast-region .toast').forEach(toast=>setDialogDecoration(toast,messageBoxGlyph()));
+    if($('dialog-emojis'))$('dialog-emojis').checked=on;
+    const status=$('dialog-emojis-status');
+    if(status)status.textContent=on
+      ? `Dialogs and message boxes carry a decorative emoji beside their heading. Every word is exactly as it was, and no button, label or screen-reader name carries one.`
+      : `Dialogs and message boxes carry no emoji. Turning this on decorates ${DIALOG_EMOJI_DECORATIONS.length} dialogs and every message box, and changes no wording.`;
+  }
+
+  // ---- Spoken narration: an off-by-default narrator that reads real events aloud.
+  //
+  // Everything it says is something this page has already put on screen. It invents
+  // no events of its own, so there is nothing a listener can hear that a reader
+  // cannot see -- which is the property that makes it decoration for one person
+  // rather than a second, private channel of facts.
+  //
+  // Four boundaries, each written so it can be checked rather than promised:
+  //
+  //   - it is OFF until somebody turns it on, and turning it off cancels whatever
+  //     is mid-sentence rather than letting the rest of the line finish;
+  //   - it never speaks text the personal vocabulary has rewritten. `narrationTextFor`
+  //     reads `copyLevel`, which is the per-language copy BEFORE
+  //     `applyVocabularyText` runs, and a caller supplying its own words supplies
+  //     them directly. This is not tidiness: a voice whose `localService` is false
+  //     synthesises on somebody else's server, so the words spoken through it leave
+  //     this computer, and a private dictionary must not be one of them;
+  //   - the status line says so, in the state where a person is looking at it: which
+  //     voice will actually speak, that a chosen voice is not installed here and the
+  //     choice has been kept anyway, and that a network-backed voice sends the words
+  //     away and goes quiet offline;
+  //   - a line is spoken in the languages it actually has wording for. Reading
+  //     English words through a Cantonese voice is not Cantonese narration, it is
+  //     English mispronounced, so `narrationTracksFor` falls back to the language the
+  //     line is really written in and the card says that is what it does.
+  //
+  // Two things this site deliberately cannot do, said here rather than left to be
+  // discovered. A browser cannot detect a running screen reader -- there is no such
+  // API -- so the narrator cannot duck under one the way the desktop console does
+  // through Electron's own accessibility signal. It is off by default and the card
+  // says why that matters. And Low stimulation doubles as this page's reduced-sound
+  // setting, so switching it on silences the narrator live, errors included, because
+  // "quieter" that keeps talking is not quieter.
+  const NARRATION_TRACKS=[
+    {key:'en',label:'English',lang:'en-US',field:'voiceEn',select:'narration-voice-en',status:'narration-status-en',prefixes:['en'],preferred:['en']},
+    // Cantonese ranks a real Cantonese voice ahead of any other Chinese one rather
+    // than taking whatever `zh` turns up first: `zh-CN` is Mandarin, and a Mandarin
+    // voice reading Cantonese text is a different language, not an accent.
+    {key:'zh',label:'Cantonese',lang:'zh-HK',field:'voiceZh',select:'narration-voice-zh',status:'narration-status-zh',prefixes:['yue','zh'],preferred:['yue','zh-hk']}
+  ];
+  // Every category a call site may narrate under, with the shortest gap between two
+  // ordinary lines of it. An undeclared category is refused rather than given a
+  // default, because a silent default is how a typo becomes a category of its own
+  // with nobody's rate limit on it.
+  const NARRATION_CATEGORIES=[
+    {id:'setting',cooldownMs:4000},
+    {id:'export',cooldownMs:4000},
+    {id:'search',cooldownMs:4000},
+    {id:'notification',cooldownMs:4000},
+    // Errors skip the rate limit -- a failure arriving straight after a notice is
+    // still the thing the person most needs to hear. They do not skip Low
+    // stimulation, which is a request for quiet rather than a request for less.
+    {id:'error',cooldownMs:0}
+  ];
+  // The Web Speech API documents rate 0.1-10 and pitch 0-2. These are the usable
+  // subset offered here, and every value is clamped into them, so a hand-edited
+  // settings blob cannot hand the engine a rate of 40.
+  const NARRATION_RATE={min:0.5,max:2,step:0.1,default:1};
+  const NARRATION_PITCH={min:0,max:2,step:0.1,default:1};
+  // The shipped default, and deliberately not a named voice: nothing can know what
+  // is installed on a computer it has not asked.
+  const NARRATION_AUTOMATIC_VOICE='';
+  // A browser that never fires `end` would leave the queue holding a line forever,
+  // and a narrator that has gone silent for no stated reason is worse than one that
+  // says something twice.
+  const NARRATION_UTTERANCE_TIMEOUT_MS=30000;
+
+  function narrationTrack(key){return NARRATION_TRACKS.find(track=>track.key===key)||null}
+  function narrationOtherTrack(key){return NARRATION_TRACKS.find(track=>track.key!==key)||null}
+  function narrationCooldown(category){const entry=NARRATION_CATEGORIES.find(item=>item.id===category);return entry?entry.cooldownMs:null}
+  function narrationLangMatches(lang,prefix){const value=String(lang||'').toLowerCase();return value===prefix||value.startsWith(`${prefix}-`)}
+  function narrationVoiceMatches(voice,track){return track.prefixes.some(prefix=>narrationLangMatches(voice&&voice.lang,prefix))}
+  function narrationVoiceRank(voice,track){
+    const at=track.preferred.findIndex(prefix=>narrationLangMatches(voice&&voice.lang,prefix));
+    return at===-1?track.preferred.length:at;
+  }
+  /** Every voice on this computer that can read `trackKey`, best match first. */
+  function narrationVoicesFor(trackKey,voices){
+    const track=narrationTrack(trackKey);
+    if(!track||!Array.isArray(voices))return [];
+    return voices
+      .map((voice,index)=>({voice,index}))
+      .filter(entry=>narrationVoiceMatches(entry.voice,track))
+      .sort((a,b)=>narrationVoiceRank(a.voice,track)-narrationVoiceRank(b.voice,track)||a.index-b.index)
+      .map(entry=>entry.voice);
+  }
+  function narrationRemoteSentence(voice){
+    return voice&&voice.localService===false
+      ? ' It is network-backed, so the words are synthesised on that service’s computer rather than this one, and it goes quiet offline.'
+      : '';
+  }
+  /**
+   * Which voice will actually read `trackKey` right now, and why.
+   *
+   * `voices` is null when this browser has no speech synthesis at all, which is a
+   * different fact from a browser that has one and reports no voices for a language,
+   * and different again from one whose list has not arrived yet. All three are said
+   * out loud rather than collapsed into one shrug.
+   *
+   * A chosen voice that is not installed here is KEPT, never quietly reset: the
+   * person chose it on some machine, and the reason it is not speaking is a fact
+   * about this machine.
+   */
+  function resolveNarrationVoice(trackKey,chosenId,voices){
+    const track=narrationTrack(trackKey);
+    const label=track?track.label:trackKey;
+    if(!track)return{kind:'unknown-track',chosenVoiceId:'',effectiveVoiceId:'',message:`No narration track called ${trackKey} exists.`};
+    if(voices===null)return{kind:'no-engine',chosenVoiceId:String(chosenId||''),effectiveVoiceId:'',message:'This browser has no speech synthesis, so nothing can be spoken here at all.'};
+    const usable=narrationVoicesFor(trackKey,voices);
+    const chosen=chosenId?voices.find(voice=>voice&&voice.voiceURI===chosenId)||null:null;
+    if(!chosenId){
+      if(!usable.length)return{kind:'no-voice-available',chosenVoiceId:'',effectiveVoiceId:'',message:`No voice on this computer can read ${label} yet. Some browsers report their voices a moment after the page loads; this line updates when they do.`};
+      return{kind:'automatic',chosenVoiceId:'',effectiveVoiceId:usable[0].voiceURI,message:`Chosen automatically: “${usable[0].name}” will read ${label}.${narrationRemoteSentence(usable[0])}`};
+    }
+    if(!chosen){
+      if(!usable.length)return{kind:'no-voice-available',chosenVoiceId:chosenId,effectiveVoiceId:'',message:`The chosen ${label} voice is not installed on this computer, and no other voice here can read ${label} either. The choice is kept.`};
+      return{kind:'fallback',chosenVoiceId:chosenId,effectiveVoiceId:usable[0].voiceURI,message:`The chosen ${label} voice is not installed on this computer. “${usable[0].name}” reads it instead, and the choice is kept.${narrationRemoteSentence(usable[0])}`};
+    }
+    const kind=chosen.localService===false?'network':'ok';
+    return{kind,chosenVoiceId:chosenId,effectiveVoiceId:chosen.voiceURI,message:`“${chosen.name}” will read ${label}.${narrationRemoteSentence(chosen)}`};
+  }
+  function narrationSelectionIncludes(selection,trackKey){return selection==='both'||selection===trackKey}
+  /**
+   * The tracks one line is spoken in: the narrated language, narrowed to the
+   * languages the line has wording for, and -- when that leaves nothing -- the
+   * language the line is actually written in.
+   */
+  function narrationTracksFor(selection,available){
+    const order=NARRATION_TRACKS.map(track=>track.key);
+    const has=key=>available.includes(key);
+    const wanted=order.filter(key=>narrationSelectionIncludes(selection,key)&&has(key));
+    return wanted.length?wanted:order.filter(has);
+  }
+  /**
+   * Whether one line is spoken, and the exact reason when it is not.
+   *
+   * Pure, and takes the current time as an argument, so every branch is decided by
+   * values a caller supplies rather than by what the machine happened to be doing.
+   */
+  function narrationGate(request){
+    const cooldown=narrationCooldown(request.category);
+    if(cooldown===null)return{speak:false,why:'unknown-category'};
+    if(!request.enabled)return{speak:false,why:'off'};
+    if(request.quiet)return{speak:false,why:'quiet'};
+    const last=request.lastSpokenAtMs;
+    if(!request.isError&&typeof last==='number'&&request.now-last<cooldown)return{speak:false,why:'cooldown'};
+    return{speak:true,why:'speak'};
+  }
+  function clampNarrationValue(value,range){
+    const number=Number(value);
+    if(!Number.isFinite(number))return range.default;
+    return Math.min(range.max,Math.max(range.min,number));
+  }
+  /**
+   * The words for one line, per language.
+   *
+   * `copyKey` reads `copyLevel`, which is the per-language wording at that language's
+   * own funny level and BEFORE the personal vocabulary is applied. That is the whole
+   * point of going through it rather than through `copyText`: a network-backed voice
+   * would carry a private replacement off this computer.
+   */
+  function narrationTextFor(source){
+    if(source&&source.copyKey)return{en:copyLevel(source.copyKey,'en'),zh:copyLevel(source.copyKey,'zh')};
+    return{en:source&&source.en?String(source.en):'',zh:source&&source.zh?String(source.zh):''};
+  }
+
+  const narrationQueue=[];
+  const narrationLastSpokenAt=new Map();
+  let narrationSpeaking=false;
+  let narrationVoicesListener=null;
+  function narrationEngine(){return typeof speechSynthesis==='undefined'||!speechSynthesis?null:speechSynthesis}
+  /** Every voice this browser reports, or null when it has no synthesis at all. */
+  function narrationVoices(){
+    const engine=narrationEngine();
+    if(!engine)return null;
+    return typeof engine.getVoices==='function'?[...engine.getVoices()]:[];
+  }
+  function narrationQuiet(){return reduceMotion()}
+  function narrationChosenVoice(trackKey){const track=narrationTrack(trackKey);return track?String(state.narration[track.field]||''):''}
+  function narrationSilence(){
+    narrationQueue.length=0;
+    const engine=narrationEngine();
+    if(engine&&typeof engine.cancel==='function')engine.cancel();
+  }
+  /**
+   * Queue one line. Returns why, so a caller -- and a test -- can tell "spoken" from
+   * "dropped because the switch is off" from "dropped because it repeated itself".
+   *
+   * A line still waiting in the same category is REPLACED rather than queued behind:
+   * two status lines about the same thing are one answer and a stale one, and reading
+   * the stale one first is the version nobody wants.
+   */
+  function narrate(category,texts,options={}){
+    const isError=Boolean(options.isError);
+    /* Filtered here rather than at the selection, because `narrationTracksFor` falls
+     * back to whichever language a line actually has wording for -- so dropping the
+     * Cantonese SELECTION while leaving Cantonese TEXT in place would still speak
+     * Cantonese for any line with no English wording. Under the restricted
+     * presentation a Cantonese-only line is not spoken at all, which is the same
+     * answer the rest of the page gives: that capability is not installed. */
+    const spokenTracks=NARRATION_TRACKS.map(track=>track.key).filter(key=>!(schoolActive()&&key!=='en'));
+    const available=spokenTracks.filter(key=>String(texts&&texts[key]||'').trim().length>0);
+    if(!available.length)return{spoken:false,why:'no-text'};
+    const last=narrationLastSpokenAt.has(category)?narrationLastSpokenAt.get(category):null;
+    const gate=narrationGate({category,isError,enabled:Boolean(state.narration.enabled),quiet:narrationQuiet(),lastSpokenAtMs:last,now:Date.now()});
+    if(!gate.speak)return{spoken:false,why:gate.why};
+    for(let index=narrationQueue.length-1;index>=0;index-=1){
+      if(narrationQueue[index].category===category)narrationQueue.splice(index,1);
+    }
+    const tracks=narrationTracksFor(state.narration.language,available);
+    narrationQueue.push({category,isError,lines:tracks.map(key=>({track:key,text:String(texts[key])}))});
+    pumpNarration();
+    return{spoken:true,why:'queued',tracks};
+  }
+  /** One utterance at a time, in order -- "Both" means English then Cantonese, never together. */
+  async function pumpNarration(){
+    if(narrationSpeaking)return;
+    narrationSpeaking=true;
+    try{
+      while(narrationQueue.length){
+        if(!state.narration.enabled||narrationQuiet()){narrationQueue.length=0;break}
+        const item=narrationQueue.shift();
+        narrationLastSpokenAt.set(item.category,Date.now());
+        for(const line of item.lines){
+          if(!state.narration.enabled||narrationQuiet())break;
+          /* `continue` rather than `break`: the restricted presentation removes the
+           * Cantonese capability, it does not silence the narrator, so the English
+           * half of a bilingual line queued a moment earlier is still read. This is
+           * checked here as well as at queue time because the switch is shared across
+           * tabs and can come on between the two halves of one line. */
+          if(schoolActive()&&line.track!=='en')continue;
+          await speakNarrationLine(line);
+        }
+      }
+    }finally{narrationSpeaking=false}
+  }
+  function speakNarrationLine(line){
+    const engine=narrationEngine();
+    if(!engine||typeof SpeechSynthesisUtterance==='undefined')return Promise.resolve('no-engine');
+    const track=narrationTrack(line.track);
+    const voices=narrationVoices();
+    const status=resolveNarrationVoice(line.track,narrationChosenVoice(line.track),voices);
+    const utterance=new SpeechSynthesisUtterance(line.text);
+    utterance.lang=track?track.lang:'en-US';
+    const voice=status.effectiveVoiceId?(voices||[]).find(item=>item&&item.voiceURI===status.effectiveVoiceId):null;
+    if(voice)utterance.voice=voice;
+    utterance.rate=clampNarrationValue(state.narration.rate,NARRATION_RATE);
+    utterance.pitch=clampNarrationValue(state.narration.pitch,NARRATION_PITCH);
+    return new Promise(resolve=>{
+      let settled=false;
+      let timer=0;
+      const finish=why=>{if(settled)return;settled=true;if(timer)clearTimeout(timer);resolve(why)};
+      utterance.onend=()=>finish('end');
+      utterance.onerror=()=>finish('error');
+      timer=setTimeout(()=>finish('timeout'),NARRATION_UTTERANCE_TIMEOUT_MS);
+      engine.speak(utterance);
+    });
+  }
+  /** The sentence under one voice picker, in the state somebody is looking at it. */
+  function narrationTrackStatus(trackKey){
+    const track=narrationTrack(trackKey);
+    if(!track)return '';
+    const message=resolveNarrationVoice(trackKey,narrationChosenVoice(trackKey),narrationVoices()).message;
+    if(narrationSelectionIncludes(state.narration.language,trackKey))return message;
+    const other=narrationOtherTrack(trackKey);
+    return `${message} The narrated language is ${other?other.label:'the other one'}, so this voice only reads lines this site has no ${other?other.label:'other'} wording for.`;
+  }
+  function applyNarration(){
+    const on=Boolean(state.narration.enabled);
+    if($('narration-enabled'))$('narration-enabled').checked=on;
+    if($('narration-language'))$('narration-language').value=state.narration.language;
+    const rate=clampNarrationValue(state.narration.rate,NARRATION_RATE);
+    const pitch=clampNarrationValue(state.narration.pitch,NARRATION_PITCH);
+    if($('narration-rate'))$('narration-rate').value=String(rate);
+    if($('narration-rate-output'))$('narration-rate-output').textContent=`${rate.toFixed(1)}×`;
+    if($('narration-pitch'))$('narration-pitch').value=String(pitch);
+    if($('narration-pitch-output'))$('narration-pitch-output').textContent=pitch.toFixed(1);
+    const voices=narrationVoices();
+    for(const track of NARRATION_TRACKS){
+      const select=$(track.select);
+      if(select){
+        const chosen=narrationChosenVoice(track.key);
+        const options=[makeNarrationOption(NARRATION_AUTOMATIC_VOICE,'Choose automatically')];
+        for(const voice of narrationVoicesFor(track.key,voices)){
+          options.push(makeNarrationOption(voice.voiceURI,`${voice.name} (${voice.lang})`));
+        }
+        // A chosen voice this computer does not have keeps its own option, so the
+        // picker shows the kept choice rather than snapping back to automatic and
+        // reading as though nothing was ever chosen.
+        if(chosen&&!options.some(option=>option.value===chosen)){
+          options.push(makeNarrationOption(chosen,`${chosen} — not installed here`));
+        }
+        select.replaceChildren(...options);
+        select.value=chosen;
+      }
+      const status=$(track.status);
+      if(status)status.textContent=narrationTrackStatus(track.key);
+    }
+  }
+  function makeNarrationOption(value,label){
+    const option=document.createElement('option');
+    option.value=value;
+    option.textContent=label;
+    return option;
+  }
+  function setNarration(field,value){
+    const next={...state.narration};
+    if(field==='enabled')next.enabled=Boolean(value);
+    else if(field==='rate')next.rate=clampNarrationValue(value,NARRATION_RATE);
+    else if(field==='pitch')next.pitch=clampNarrationValue(value,NARRATION_PITCH);
+    else next[field]=String(value);
+    state.narration=next;
+    save();
+    // Turning it off stops the sentence in progress. Letting the current line finish
+    // would mean the switch does not do what its label says until it is convenient.
+    if(!next.enabled)narrationSilence();
+    applyNarration();
+  }
+  function commitNarration(field){
+    recordHistory('narration-changed',`narration.${field} changed to ${JSON.stringify(state.narration[field])}.`);
+    notify('Narration',state.narration.enabled
+      ? `Narration is on. ${narrationTrackStatus(state.narration.language==='zh'?'zh':'en')}`
+      : 'Narration is off. Nothing is spoken.',{category:'setting',en:'Narration settings changed.',zh:'朗讀設定已經改咗。'});
+  }
+  function initNarration(){
+    const toggle=$('narration-enabled');
+    if(!toggle)return;
+    toggle.onchange=event=>{setNarration('enabled',event.target.checked);commitNarration('enabled')};
+    const language=el('narration-language');
+    if(language)language.onchange=event=>{setNarration('language',event.target.value);commitNarration('language')};
+    for(const track of NARRATION_TRACKS){
+      const select=el(track.select);
+      if(select)select.onchange=event=>{setNarration(track.field,event.target.value);commitNarration(track.field)};
+    }
+    const rate=$('narration-rate');
+    if(rate){rate.oninput=event=>setNarration('rate',event.target.value);rate.onchange=()=>commitNarration('rate')}
+    const pitch=$('narration-pitch');
+    if(pitch){pitch.oninput=event=>setNarration('pitch',event.target.value);pitch.onchange=()=>commitNarration('pitch')}
+    const engine=narrationEngine();
+    if(engine&&typeof engine.addEventListener==='function'){
+      // The list arrives late on most browsers: `getVoices()` answers empty on the
+      // first call and fills in a moment afterwards behind this event. A picker read
+      // once reports "no voices" on a computer with forty of them.
+      narrationVoicesListener=()=>applyNarration();
+      engine.addEventListener('voiceschanged',narrationVoicesListener);
+    }
+    // Speech synthesis is a property of the browser, not of the page, so a narrator
+    // left talking carries on across a navigation to the next page of this site.
+    // Leaving also drops the subscription rather than accumulating one per page.
+    addEventListener('pagehide',()=>{
+      narrationSilence();
+      if(narrationVoicesListener&&engine&&typeof engine.removeEventListener==='function'){
+        engine.removeEventListener('voiceschanged',narrationVoicesListener);
+        narrationVoicesListener=null;
+      }
+    });
+    applyNarration();
   }
 
   let sessionStart=Date.now();
@@ -844,7 +1877,7 @@
     if(Date.now()<momentumSnoozeUntil)return;
     const idleMinutes=(Date.now()-lastInteraction)/60000;
     if(idleMinutes>=10){
-      notify('Still here','Nothing has changed on this page for a while. No action is needed.');
+      notify('Still here','Nothing has changed on this page for a while. No action is needed.',{category:'notification',en:'Still here. Nothing has changed on this page for a while, and no action is needed.',zh:'仲喺度。呢版一段時間都冇變過，唔使做嘢。'});
       momentumSnoozeUntil=Date.now()+15*60000;
       lastInteraction=Date.now();
     }
@@ -868,65 +1901,8 @@
     }
   }
 
-  function universalShellMarkup(){return `
-    <dialog id="site-controls" class="overlay-card universal-controls" aria-labelledby="site-controls-title"><form method="dialog"><div class="dialog-heading"><h2 id="site-controls-title" data-en="Site controls" data-zh="網站控制">Site controls</h2><button class="icon-button" value="cancel" aria-label="Close">×</button></div>
-      <p id="language-coverage-note" class="plain-note"></p>
-      <div class="search-composite"><label class="sr-only" for="shell-settings-search">Search site controls</label><input id="shell-settings-search" data-filter-target="#site-controls .universal-setting" type="search" placeholder="Search site controls"><button class="regex-trigger" type="button" data-regex-for="shell-settings-search" aria-label="Build a regular expression for site control search">.*</button></div>
-      <div class="universal-settings-grid">
-        <section class="universal-setting" data-search="language english cantonese bilingual funny humour"><h3 data-en="Language and voice" data-zh="語言同語氣">Language and voice</h3><label>Language<select id="shell-language"><option value="en">English</option><option value="zh">廣東話</option><option value="both">English / 廣東話</option></select></label><label>English funny level<input id="shell-english-funny" type="range" min="1" max="5" step="1"><output id="shell-english-funny-output"></output></label><label>Cantonese funny level<input id="shell-cantonese-funny" type="range" min="1" max="5" step="1"><output id="shell-cantonese-funny-output"></output></label></section>
-        <section class="universal-setting" data-search="attention focus low stimulation time awareness one thing momentum"><h3 data-en="Attention modes" data-zh="專注模式">Attention modes</h3><label><input id="shell-attention-focus" type="checkbox"> Focus</label><label><input id="shell-attention-low" type="checkbox"> Low stimulation</label><label><input id="shell-attention-time" type="checkbox"> Time awareness</label><label><input id="shell-attention-one" type="checkbox"> One thing at a time</label><input id="shell-attention-task" type="text" maxlength="140" placeholder="Current next action"><label><input id="shell-attention-momentum" type="checkbox"> Momentum</label></section>
-        <section class="universal-setting" data-search="schedule time weekday theme language density"><h3 data-en="Local schedule" data-zh="本地時間表">Local schedule</h3><p id="shell-schedule-status" role="status"></p><label><input id="shell-schedule-enabled" type="checkbox"> Enable this browser schedule</label><div class="schedule-times"><label>Start<input id="shell-schedule-start" type="time"></label><label>End<input id="shell-schedule-end" type="time"></label></div><fieldset><legend>Weekdays</legend><div class="weekday-grid">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((label,index)=>`<label><input type="checkbox" data-schedule-day="${index}">${label}</label>`).join('')}</div></fieldset><label>Scheduled theme<select id="shell-schedule-theme"><option value="dark">Dark</option><option value="light">Light</option><option value="contrast">High contrast</option></select></label><label>Scheduled language<select id="shell-schedule-language"><option value="en">English</option><option value="zh">廣東話</option><option value="both">English / 廣東話</option></select></label><label>Scheduled density<select id="shell-schedule-density"><option value="compact">Compact</option><option value="comfortable">Comfortable</option><option value="spacious">Spacious</option></select></label></section>
-        <section class="universal-setting" data-search="appearance theme density accent font navigation edge"><h3 data-en="Appearance" data-zh="外觀">Appearance</h3><label>Theme<select id="shell-theme"><option value="dark">Dark</option><option value="light">Light</option><option value="contrast">High contrast</option></select></label><label>Density<select id="shell-density"><option value="compact">Compact</option><option value="comfortable">Comfortable</option><option value="spacious">Spacious</option></select></label><label>Accent<input id="shell-accent" type="color"></label><label>Text size<input id="shell-font-scale" type="range" min="90" max="130"><output id="shell-font-scale-output"></output></label><label>Navigation edge<select id="shell-tab-edge"><option value="left">Left</option><option value="right">Right</option><option value="top">Top</option><option value="bottom">Bottom</option></select></label></section>
-        <section class="universal-setting" data-search="logo preset upload fit local image"><h3 data-en="Local logo" data-zh="本地標誌">Local logo</h3><label>Preset<select id="shell-logo-preset"><option value="default">Default D</option><option value="outline">Outline D</option><option value="solid">Solid D</option></select></label><label>Fit<select id="shell-logo-fit"><option value="contain">Contain</option><option value="cover">Fill</option></select></label><input id="shell-logo-file" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg"><button id="shell-logo-clear" class="text-button" type="button">Clear custom image</button><p id="shell-logo-status" role="status"></p></section>
-        <section class="universal-setting" data-search="personal vocabulary json local privacy replace clear"><h3 data-en="Personal vocabulary JSON" data-zh="個人詞彙 JSON">Personal vocabulary JSON</h3><p>Schema version 1, at most 64 KiB and 256 bounded string replacements. Parsing and caching stay in this browser.</p><input id="shell-vocabulary-file" type="file" accept="application/json,.json"><button id="shell-vocabulary-clear" class="text-button" type="button">Clear vocabulary</button><p id="shell-vocabulary-status" role="status"></p></section>
-        <section class="universal-setting" data-search="export download settings notifications page"><h3 data-en="Export" data-zh="匯出">Export</h3><p>Exports include every persisted site setting and notification. Custom logo bytes and personal vocabulary are omitted and named in the file.</p><button id="shell-export" class="text-button" type="button">Export site state as JSON</button></section>
-      </div>
-    </form></dialog>`}
-
-  function commandPaletteMarkup(){return `<dialog id="command-palette" class="overlay-card" aria-labelledby="palette-title"><form method="dialog"><div class="dialog-heading"><h2 id="palette-title">Command palette</h2><button class="icon-button" value="cancel" aria-label="Close">×</button></div><div class="search-composite"><input id="palette-search" type="search" aria-label="Search pages, articles, and controls"><button type="button" class="regex-trigger" data-regex-for="palette-search">.*</button></div><div id="palette-results" class="palette-results" role="listbox"></div></form></dialog>`}
-  function regexMarkup(){return `<dialog id="regex-dialog" class="overlay-card anchored-builder" aria-labelledby="regex-title"><form method="dialog"><div class="dialog-heading"><h2 id="regex-title">Regular expression builder</h2><button class="icon-button" value="cancel" aria-label="Close">×</button></div><p id="regex-target-label"></p><label>Pattern<input id="regex-pattern"></label><fieldset><legend>Flags</legend><label><input id="regex-i" type="checkbox" checked> Ignore case</label><label><input id="regex-m" type="checkbox"> Multiline</label><label><input id="regex-u" type="checkbox" checked> Unicode</label></fieldset><div class="builder-buttons"><button type="button" data-insert="^">Starts with</button><button type="button" data-insert="$">Ends with</button><button type="button" data-insert="( )">Group</button><button type="button" data-insert="[a-z]">Class</button><button type="button" data-insert="|">Either</button><button type="button" data-insert="+">One or more</button></div><label>Sample text<textarea id="regex-sample">Home\nDocumentation\nSettings</textarea></label><p id="regex-feedback" role="status"></p><button type="button" id="regex-apply" class="primary-button">Apply</button></form></dialog>`}
-  function notificationsMarkup(){return `<dialog id="notifications-dialog" class="overlay-card" aria-labelledby="notifications-title"><form method="dialog"><div class="dialog-heading"><h2 id="notifications-title">Local notifications</h2><button class="icon-button" value="cancel" aria-label="Close">×</button></div><div class="notif-toolbar"><div class="search-composite"><label class="sr-only" for="notification-search">Search notifications</label><input id="notification-search" type="search" placeholder="Search notifications"><button class="regex-trigger" type="button" data-regex-for="notification-search">.*</button></div><div class="notif-bulk-row"><button type="button" id="notif-select-page" class="text-button">Select this page</button><button type="button" id="notif-select-matches" class="text-button">Select every match</button><button type="button" id="notif-select-none" class="text-button">Clear selection</button><span id="notif-selection-status" class="filter-status" role="status"></span></div><div class="notif-bulk-row"><button type="button" id="notif-dismiss-selected" class="danger-button">Dismiss selected</button><select id="notif-export-format" aria-label="Notification export format"></select><button type="button" id="notif-export-selected" class="text-button">Export selected</button></div><p id="notif-export-loss" class="export-loss" role="status"></p><div id="notif-confirm" class="notif-confirm" role="alertdialog" aria-label="Confirm dismissal" hidden><p id="notif-confirm-text"></p><button type="button" id="notif-confirm-yes" class="danger-button">Confirm dismiss</button><button type="button" id="notif-confirm-cancel" class="text-button">Cancel</button></div></div><div id="notification-history"></div><button id="notification-clear" type="button" class="text-button">Clear all history</button></form></dialog>`}
-  function menuMarkup(){return `<dialog id="menu-search-dialog" class="overlay-card menu-search-dialog" aria-labelledby="menu-search-title"><form method="dialog"><div class="dialog-heading"><h2 id="menu-search-title">Search choices</h2><button class="icon-button" value="cancel" aria-label="Close">×</button></div><div class="search-composite"><input id="menu-search" type="search" aria-label="Search this menu"><button class="regex-trigger" type="button" data-regex-for="menu-search">.*</button></div><p id="menu-search-count" role="status"></p><div id="menu-search-results" class="menu-search-results"></div></form></dialog><dialog id="page-context-menu" class="overlay-card context-menu" aria-labelledby="page-context-title"><form method="dialog"><div class="dialog-heading"><h2 id="page-context-title">Page actions</h2><button class="icon-button" value="cancel" aria-label="Close">×</button></div><div class="search-composite"><input id="context-search" type="search" aria-label="Search page actions"><button class="regex-trigger" type="button" data-regex-for="context-search">.*</button></div><div id="context-results"></div></form></dialog>`}
-
-  function ensureUniversalShell(){
-    const navLinks=$('site-nav');if(navLinks){[['converter.html','Converter'],['ollama.html','Ollama']].forEach(([href,label])=>{if(!navLinks.querySelector(`a[href$="${href}"]`)){const link=document.createElement('a');link.href=`${BASE}${href}`;link.textContent=label;navLinks.append(link)}})}
-    const topActions=document.querySelector('.top-actions');
-    if(topActions&&!$('site-controls-open'))topActions.insertAdjacentHTML('afterbegin','<button class="icon-button" id="site-controls-open" type="button" aria-label="Open local site controls">⚙</button>');
-    if(topActions&&!$('notification-open'))topActions.insertAdjacentHTML('afterbegin','<button class="icon-button" id="notification-open" type="button" aria-label="Open notification history">◉<span id="notification-count" class="badge">0</span></button>');
-    const nav=$('site-nav');if(nav){nav.setAttribute('role','tablist');nav.setAttribute('aria-orientation',state.tabEdge==='left'||state.tabEdge==='right'?'vertical':'horizontal');all('#site-nav a').forEach(link=>{link.setAttribute('role','tab');link.setAttribute('aria-selected',String(link.hasAttribute('aria-current')))})}
-    if(!$('site-controls'))document.body.insertAdjacentHTML('beforeend',universalShellMarkup());
-    if(!$('command-palette'))document.body.insertAdjacentHTML('beforeend',commandPaletteMarkup());
-    if(!$('regex-dialog'))document.body.insertAdjacentHTML('beforeend',regexMarkup());
-    if(!$('notifications-dialog'))document.body.insertAdjacentHTML('beforeend',notificationsMarkup());
-    if(!$('menu-search-dialog'))document.body.insertAdjacentHTML('beforeend',menuMarkup());
-    if(!$('toast-region'))document.body.insertAdjacentHTML('beforeend','<div id="toast-region" class="toast-region" aria-live="polite"></div>');
-  }
-
-  function syncUniversalControls(){
-    if(!$('site-controls'))return;
-    syncValue('shell-language',state.language);syncValue('shell-english-funny',String(state.englishFunny));syncValue('shell-english-funny-output',String(state.englishFunny),'textContent');syncValue('shell-cantonese-funny',String(state.cantoneseFunny));syncValue('shell-cantonese-funny-output',String(state.cantoneseFunny),'textContent');
-    syncValue('shell-attention-focus',state.attention.focus,'checked');syncValue('shell-attention-low',state.lowMotion,'checked');syncValue('shell-attention-time',state.attention.timeAwareness,'checked');syncValue('shell-attention-one',state.attention.oneThing,'checked');syncValue('shell-attention-task',state.attention.currentTask||'');syncValue('shell-attention-momentum',state.attention.momentum,'checked');
-    syncValue('shell-schedule-enabled',state.schedule.enabled,'checked');syncValue('shell-schedule-start',state.schedule.start);syncValue('shell-schedule-end',state.schedule.end);syncValue('shell-schedule-theme',state.schedule.theme);syncValue('shell-schedule-language',state.schedule.language);syncValue('shell-schedule-density',state.schedule.density);all('[data-schedule-day]').forEach(input=>{input.checked=state.schedule.weekdays.includes(Number(input.dataset.scheduleDay))});
-    syncValue('shell-theme',state.theme);syncValue('shell-density',state.density);syncValue('shell-accent',state.accent);syncValue('shell-font-scale',String(state.fontScale));syncValue('shell-font-scale-output',`${state.fontScale}%`,'textContent');syncValue('shell-tab-edge',state.tabEdge);syncValue('shell-logo-preset',state.logoPreset);syncValue('shell-logo-fit',state.logoFit);
-  }
-  function updateScheduleStatus(){const status=$('shell-schedule-status');if(!status)return;const zone=Intl.DateTimeFormat().resolvedOptions().timeZone||'local timezone';status.textContent=!state.schedule.enabled?`Off. Times use ${zone}.`:scheduleMatches(state.schedule)?`Active now in ${zone}; scheduled values are applied without replacing the base settings.`:`Waiting for the next matching window in ${zone}; base settings remain active.`}
-  function saveSchedule(patch){state.schedule={...state.schedule,...patch};save();applyState()}
-  function exportSiteState(){const payload={schemaVersion:1,encoding:'UTF-8',exported:'site-owned local state',omitted:{personalVocabulary:'Private mappings and file metadata are omitted.',customLogoImage:'Custom image bytes and file metadata are omitted.'},settings:{...state,notifications:state.notifications.map(item=>({...item}))}};download('ding-pbx-site-state.json',JSON.stringify(payload,null,2),'application/json');notify('Site state exported',applyVocabularyText('The redacted local site state download was started. Personal vocabulary and custom image bytes remain omitted.'))}
-
-  function initUniversalSettings(){
-    $('site-controls-open')?.addEventListener('click',()=>{$('site-controls').showModal();setTimeout(()=>$('shell-settings-search')?.focus(),0)});
-    const on=(id,event,handler)=>$(id)?.addEventListener(event,handler);
-    on('shell-language','change',event=>update('language',event.target.value));on('shell-english-funny','input',event=>update('englishFunny',Number(event.target.value)));on('shell-cantonese-funny','input',event=>update('cantoneseFunny',Number(event.target.value)));
-    on('shell-attention-focus','change',event=>updateAttention('focus',event.target.checked));on('shell-attention-low','change',event=>update('lowMotion',event.target.checked));on('shell-attention-time','change',event=>updateAttention('timeAwareness',event.target.checked));on('shell-attention-one','change',event=>updateAttention('oneThing',event.target.checked));on('shell-attention-task','change',event=>updateAttention('currentTask',event.target.value.slice(0,140)));on('shell-attention-momentum','change',event=>updateAttention('momentum',event.target.checked));
-    on('shell-schedule-enabled','change',event=>saveSchedule({enabled:event.target.checked}));on('shell-schedule-start','change',event=>saveSchedule({start:event.target.value}));on('shell-schedule-end','change',event=>saveSchedule({end:event.target.value}));on('shell-schedule-theme','change',event=>saveSchedule({theme:event.target.value}));on('shell-schedule-language','change',event=>saveSchedule({language:event.target.value}));on('shell-schedule-density','change',event=>saveSchedule({density:event.target.value}));all('[data-schedule-day]').forEach(input=>input.addEventListener('change',()=>saveSchedule({weekdays:all('[data-schedule-day]:checked').map(item=>Number(item.dataset.scheduleDay)).sort()})));
-    on('shell-theme','change',event=>update('theme',event.target.value));on('shell-density','change',event=>update('density',event.target.value));on('shell-accent','input',event=>update('accent',event.target.value));on('shell-font-scale','input',event=>update('fontScale',Number(event.target.value)));on('shell-tab-edge','change',event=>update('tabEdge',event.target.value));on('shell-logo-preset','change',event=>update('logoPreset',event.target.value));on('shell-logo-fit','change',event=>update('logoFit',event.target.value));
-    on('shell-vocabulary-file','change',event=>loadVocabularyFromInput(event,'shell-vocabulary-status'));on('shell-vocabulary-clear','click',()=>clearVocabulary('shell-vocabulary-file','shell-vocabulary-status'));on('shell-logo-file','change',event=>loadLogoFromInput(event,'shell-logo-status'));on('shell-logo-clear','click',()=>clearLogo('shell-logo-file','shell-logo-status'));on('shell-export','click',exportSiteState);
-    on('open-schedule-controls','click',()=>{$('site-controls').showModal();setTimeout(()=>$('shell-schedule-enabled')?.focus(),0)});
-    syncUniversalControls();syncLocalAssetStatuses();setInterval(()=>applyState(),60000);
-  }
-
   function initCollapsibles(){
-    const map={'destination-map-panel':'destinationMap','settings-preview-panel':'settingsPreview','documentation-filters-panel':'documentationFilters','settings-filters-panel':'settingsFilters'};
+    const map={'destination-map-panel':'destinationMap','settings-preview-panel':'settingsPreview','documentation-filters-panel':'documentationFilters','settings-filters-panel':'settingsFilters','changelog-filters-panel':'changelogFilters'};
     Object.entries(map).forEach(([id,key])=>{
       const el=$(id);if(!el)return;
       el.open=!state.collapsed[key];
@@ -949,29 +1925,7 @@
   }
   function initReveals(){const items=all('.reveal');if(reduceMotion()||!('IntersectionObserver'in window)){items.forEach(item=>item.classList.add('visible'));return}const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target)}}),{rootMargin:'0px 0px -8% 0px',threshold:.08});items.forEach(item=>observer.observe(item))}
 
-  function renderDestinationResults(matches,query,message=''){
-    const grid=$('destination-grid');if(!grid)return;
-    const pageSize=8,pageCount=Math.max(1,Math.ceil(matches.length/pageSize));destinationPage=Math.min(destinationPage,pageCount-1);
-    const shown=matches.slice(destinationPage*pageSize,(destinationPage+1)*pageSize);
-    grid.innerHTML=shown.map(item=>`<article class="destination-card reveal" id="destination-${item.id}" tabindex="-1"><span class="destination-icon" aria-hidden="true">${item.icon}</span><span class="card-kicker">${escapeHtml(item.group)}</span><h2>${escapeHtml(item.name)}</h2><p>${escapeHtml(item.description)}</p><a class="text-button" href="${BASE}docs/${item.article}.html">Read article <span aria-hidden="true">→</span></a></article>`).join('')||(message?`<p class="empty-state">${escapeHtml(message)}</p>`:`<p class="empty-state">${escapeHtml(copyText('emptyDestinations'))}</p>`);
-    if($('destination-count'))$('destination-count').textContent=message?message:`${matches.length} destination${matches.length===1?'':'s'} · page ${destinationPage+1} of ${pageCount}`;
-    if($('destination-pagination'))$('destination-pagination').innerHTML=message?'':Array.from({length:pageCount},(_,index)=>`<button type="button" data-page="${index}" ${index===destinationPage?'aria-current="page"':''}>${index+1}</button>`).join('');
-    initReveals();updateDestinationMap(matches);applyVocabulary();updateFilterStatus('documentation-filter-status','feature-search');lastDocumentationMatches=matches;lastDocumentationQuery=query;updateDocumentationExport();
-  }
-  function renderDestinations(query=''){
-    const grid=$('destination-grid');if(!grid)return;
-    if(regexSearchEnabled('feature-search',query)){
-      grid.innerHTML='<p class="empty-state">Checking this pattern in a bounded local worker…</p>';
-      if($('destination-pagination'))$('destination-pagination').innerHTML='';
-      if($('destination-count'))$('destination-count').textContent='Checking pattern locally…';
-      updateDestinationMap([]);
-      lastDocumentationMatches=[];lastDocumentationQuery=query;updateDocumentationExport();
-      const run=runRegexWorker('search:feature-search',regexState.get('feature-search'),DESTINATIONS.map(item=>({id:item.id,text:`${item.name} ${item.group} ${item.description}`.slice(0,4096)})));
-      run.promise.then(result=>{if(!regexRunCurrent('search:feature-search',run))return;const ids=new Set(result.matchedIds);renderDestinationResults(DESTINATIONS.filter(item=>ids.has(item.id)),query)}).catch(error=>{if(!regexRunCurrent('search:feature-search',run))return;renderDestinationResults([],query,`Pattern evaluation unavailable: ${error.message}`)});
-      return;
-    }
-    renderDestinationResults(DESTINATIONS.filter(item=>!query||`${item.name} ${item.group} ${item.description}`.toLocaleLowerCase().includes(query.toLocaleLowerCase())),query);
-  }
+  function renderDestinations(query=''){const grid=$('destination-grid');if(!grid)return;const matches=DESTINATIONS.filter(item=>matchText(`${item.name} ${item.group} ${item.description}`,query,'feature-search')),pageSize=8,pageCount=Math.max(1,Math.ceil(matches.length/pageSize));destinationPage=Math.min(destinationPage,pageCount-1);const shown=matches.slice(destinationPage*pageSize,(destinationPage+1)*pageSize);grid.innerHTML=shown.map(item=>`<article class="destination-card reveal" id="destination-${item.id}" tabindex="-1"><span class="destination-icon" aria-hidden="true">${item.icon}</span><span class="card-kicker">${escapeHtml(item.group)}</span><h2>${escapeHtml(item.name)}</h2><p>${escapeHtml(item.description)}</p><a class="text-button" href="${BASE}docs/${item.article}.html">Read article <span aria-hidden="true">→</span></a></article>`).join('')||`<p class="empty-state">${escapeHtml(copyText('emptyDestinations'))}</p>`;if($('destination-count'))$('destination-count').textContent=`${matches.length} destination${matches.length===1?'':'s'} · page ${destinationPage+1} of ${pageCount}`;if($('destination-pagination'))$('destination-pagination').innerHTML=Array.from({length:pageCount},(_,index)=>`<button type="button" data-page="${index}" ${index===destinationPage?'aria-current="page"':''}>${index+1}</button>`).join('');initReveals();updateDestinationMap(matches);applyVocabulary();updateFilterStatus('documentation-filter-status','feature-search');lastDocumentationMatches=matches;lastDocumentationQuery=query;updateDocumentationExport()}
   let lastDocumentationMatches=[],lastDocumentationQuery='';
   function documentationExportRows(){return lastDocumentationMatches.map(item=>({id:item.id,name:item.name,group:item.group,description:item.description,article:item.article}))}
   function updateDocumentationExport(){
@@ -990,106 +1944,48 @@
       const format=select.value||'json',text=exportRows({rows,format,table:'destination'});
       const range=`${slugForFilename(lastDocumentationQuery)}-${rows.length}-of-${DESTINATIONS.length}`;
       download(exportFilename('ding-pbx-destinations',format,range),text,EXPORT_MIME[format]);
-      notify('Destinations exported',applyVocabularyText(`Exported ${rows.length} of ${DESTINATIONS.length} destinations as ${format.toUpperCase()}, covering the current search ("${lastDocumentationQuery||'no filter'}").`));
+      notify('Destinations exported',applyVocabularyText(`Exported ${rows.length} of ${DESTINATIONS.length} destinations as ${format.toUpperCase()}, covering the current search ("${lastDocumentationQuery||'no filter'}").`),{category:'export',en:`Exported ${rows.length} of ${DESTINATIONS.length} destinations as ${format.toUpperCase()}.`,zh:`已經匯出 ${rows.length} 個目的地，一共 ${DESTINATIONS.length} 個，格式係 ${format.toUpperCase()}。`});
     });
   }
-  function plainTextMatches(text,query){return !query||String(text).toLocaleLowerCase().includes(String(query).toLocaleLowerCase())}
-  function filter(selector,query,target){
-    const items=all(selector);if(!regexSearchEnabled(target,query)){items.forEach(item=>{item.hidden=!plainTextMatches(item.dataset.search||item.textContent,query)});return}
-    items.forEach((item,index)=>{item.hidden=true;item.dataset.regexStableId=item.dataset.regexStableId||`${target}:${item.id||index}`});
-    const key=`search:${target}`,run=runRegexWorker(key,regexState.get(target),items.map(item=>({id:item.dataset.regexStableId,text:(item.dataset.search||item.textContent||'').slice(0,4096)})));
-    run.promise.then(result=>{if(!regexRunCurrent(key,run))return;const ids=new Set(result.matchedIds);items.forEach(item=>{item.hidden=!ids.has(item.dataset.regexStableId)});}).catch(error=>{if(!regexRunCurrent(key,run))return;const status=target==='settings-search'?'settings-filter-status':'shell-settings-search'===target?'shell-settings-search-status':undefined;if(status&&$(status))$(status).textContent=`Pattern evaluation unavailable: ${error.message}`});
-  }
+  function matchText(text,query,target){const config=regexState.get(target);if(config?.enabled){try{return new RegExp(config.pattern,config.flags).test(text)}catch{return false}}if(!query)return true;return text.toLocaleLowerCase().includes(query.toLocaleLowerCase())}
+  function filter(selector,query,target){all(selector).forEach(item=>item.hidden=!matchText(item.dataset.search||item.textContent,query,target))}
 
   function initSearch(){all('[data-filter-target]').forEach(input=>input.addEventListener('input',()=>filter(input.dataset.filterTarget,input.value,input.id)));if($('feature-search'))$('feature-search').addEventListener('input',event=>{destinationPage=0;renderDestinations(event.target.value)});$('destination-pagination')?.addEventListener('click',event=>{const button=event.target.closest('[data-page]');if(!button)return;destinationPage=Number(button.dataset.page);renderDestinations($('feature-search')?.value||'');$('destination-grid').focus?.()});all('.regex-trigger').forEach(button=>button.onclick=event=>{event.preventDefault();openRegex(button.dataset.regexFor)})}
-  function openRegex(target){regexTarget=target;const dialog=$('regex-dialog');if(!dialog)return;const saved=regexState.get(target)||{pattern:'',flags:'iu'};$('regex-target-label').textContent=`Attached to: ${target}`;$('regex-pattern').value=saved.pattern;$('regex-i').checked=saved.flags.includes('i');$('regex-m').checked=saved.flags.includes('m');$('regex-u').checked=saved.flags.includes('u');if(dialog.open)dialog.close();dialog.classList.add('anchored-builder');dialog.show();const anchor=document.querySelector(`[data-regex-for="${CSS.escape(target)}"]`)||$(target);if(anchor){const rect=anchor.getBoundingClientRect();dialog.style.left=`${Math.max(8,Math.min(innerWidth-dialog.offsetWidth-8,rect.left))}px`;dialog.style.top=`${Math.max(8,Math.min(innerHeight-dialog.offsetHeight-8,rect.bottom+8))}px`}previewRegex();setTimeout(()=>$('regex-pattern').focus(),0)}
+  function openRegex(target){regexTarget=target;const dialog=$('regex-dialog');if(!dialog)return;const saved=regexState.get(target)||{pattern:'',flags:'iu'};$('regex-target-label').textContent=`Attached to: ${target}`;$('regex-pattern').value=saved.pattern;$('regex-i').checked=saved.flags.includes('i');$('regex-m').checked=saved.flags.includes('m');$('regex-u').checked=saved.flags.includes('u');dialog.showModal();previewRegex();setTimeout(()=>$('regex-pattern').focus(),0)}
   function regexConfig(){return{pattern:$('regex-pattern').value.slice(0,256),flags:`${$('regex-i').checked?'i':''}${$('regex-m').checked?'m':''}${$('regex-u').checked?'u':''}`}}
-  function previewRegex(){
-    const feedback=$('regex-feedback');if(!feedback)return;const config=regexConfig();if(!config.pattern){feedback.textContent='Enter a pattern.';return}
-    feedback.textContent='Checking the pattern in a bounded local worker…';
-    const run=runRegexWorker('preview',config,[],($('regex-sample')?.value||'').slice(0,4096));
-    run.promise.then(result=>{if(!regexRunCurrent('preview',run))return;const captures=result.captureGroupCount?` ${result.captureGroupCount} capture group${result.captureGroupCount===1?'':'s'} observed.`:'';feedback.textContent=`Valid JavaScript regular expression · ${result.sampleMatchCount} sample match${result.sampleMatchCount===1?'':'es'}.${captures}`}).catch(error=>{if(regexRunCurrent('preview',run))feedback.textContent=`Pattern unavailable: ${error.message}`});
-  }
-  function applyRegex(){
-    const config=regexConfig(),button=$('regex-apply');if(!config.pattern){regexState.delete(regexTarget);$('regex-dialog').close();$(regexTarget)?.dispatchEvent(new Event('input'));return}
-    if(button)button.disabled=true;$('regex-feedback').textContent='Checking the pattern in a bounded local worker…';
-    const run=runRegexWorker('apply',config,[],($('regex-sample')?.value||'').slice(0,4096));
-    run.promise.then(()=>{if(!regexRunCurrent('apply',run))return;regexState.set(regexTarget,{...config,enabled:true});$('regex-dialog').close();$(regexTarget)?.dispatchEvent(new Event('input'));notify(copyText('notifRegexApplied'),applyVocabularyText(`${regexTarget} now uses the local JavaScript regular expression engine.`))}).catch(error=>{if(regexRunCurrent('apply',run))$('regex-feedback').textContent=`Pattern unavailable: ${error.message}`}).finally(()=>{if(button)button.disabled=false});
-  }
+  function previewRegex(){if(!$('regex-feedback'))return;const config=regexConfig();if(!config.pattern){$('regex-feedback').textContent='Enter a pattern.';return}try{const re=new RegExp(config.pattern,config.flags),flags=re.flags.includes('g')?re.flags:`${re.flags}g`,matches=[...$('regex-sample').value.matchAll(new RegExp(re.source,flags))];$('regex-feedback').textContent=`Valid JavaScript regular expression · ${matches.length} sample match${matches.length===1?'':'es'}.`}catch(error){$('regex-feedback').textContent=`Invalid pattern: ${error.message}`}}
+  function applyRegex(){const config=regexConfig();try{new RegExp(config.pattern,config.flags)}catch{return}regexState.set(regexTarget,{...config,enabled:Boolean(config.pattern)});$('regex-dialog').close();$(regexTarget)?.dispatchEvent(new Event('input'));notify(copyText('notifRegexApplied'),applyVocabularyText(`${regexTarget} now uses the local JavaScript regular expression engine.`),{category:'search',copyKey:'notifRegexApplied'});renderModeStatus(regexTarget)}
   function initRegex(){if(!$('regex-dialog'))return;$('regex-pattern').addEventListener('input',previewRegex);$('regex-apply').onclick=applyRegex;all('[data-insert]').forEach(button=>button.onclick=()=>{const input=$('regex-pattern'),start=input.selectionStart;input.value=`${input.value.slice(0,start)}${button.dataset.insert}${input.value.slice(input.selectionEnd)}`;input.focus();input.setSelectionRange(start+button.dataset.insert.length,start+button.dataset.insert.length);previewRegex()})}
+  function renderModeStatus(target){const el=$(`${target}-mode-status`);if(!el)return;const config=regexState.get(target);if(config?.enabled){el.textContent=`${copyText('searchModeRegex')} /${config.pattern}/${config.flags}`;el.classList.add('is-regex')}else{el.textContent=copyText('searchModePlain');el.classList.remove('is-regex')}}
+  function renderAllModeStatuses(){all('.mode-status').forEach(el=>renderModeStatus(el.id.replace(/-mode-status$/,'')))}
 
-  let menuTarget=null;
-  function renderMenuChoiceResults(options,query,message=''){
-    const list=$('menu-search-results');if(!list||!menuTarget)return;
-    list.innerHTML=options.length?options.map(option=>`<button type="button" data-menu-value="${escapeHtml(option.value)}" ${option.disabled?'disabled aria-disabled="true"':''}><strong>${escapeHtml(option.textContent)}</strong><span>${option.disabled?'Unavailable':'Choose'}</span></button>`).join(''):`<p class="empty-state">${escapeHtml(message||'No choices match this menu search.')}</p>`;
-    if($('menu-search-count'))$('menu-search-count').textContent=message?message:`${options.length} of ${menuTarget.options.length} choices shown.`;
-  }
-  function renderMenuChoices(query=''){
-    if(!menuTarget)return;const options=[...menuTarget.options];
-    if(regexSearchEnabled('menu-search',query)){
-      renderMenuChoiceResults([],query,'Checking this pattern in a bounded local worker…');
-      const run=runRegexWorker('search:menu-search',regexState.get('menu-search'),options.map((option,index)=>({id:String(index),text:`${option.textContent} ${option.value}`.slice(0,4096)})));
-      run.promise.then(result=>{if(!regexRunCurrent('search:menu-search',run))return;const ids=new Set(result.matchedIds);renderMenuChoiceResults(options.filter((_,index)=>ids.has(String(index))),query)}).catch(error=>{if(regexRunCurrent('search:menu-search',run))renderMenuChoiceResults([],query,`Pattern evaluation unavailable: ${error.message}`)});
-      return;
-    }
-    renderMenuChoiceResults(options.filter(option=>plainTextMatches(`${option.textContent} ${option.value}`,query)),query);
-  }
-  function initSearchableMenus(){all('select').forEach((select,index)=>{if(select.dataset.searchUpgraded)return;select.dataset.searchUpgraded='true';if(!select.id)select.id=`searchable-select-${index}`;const button=document.createElement('button');button.type='button';button.className='menu-search-trigger';button.dataset.menuFor=select.id;button.textContent='Search choices';button.setAttribute('aria-label',`Search choices for ${select.getAttribute('aria-label')||select.closest('label')?.textContent?.trim()||select.id}`);select.insertAdjacentElement('afterend',button);button.addEventListener('click',()=>{menuTarget=select;$('menu-search-title').textContent=`Search choices: ${select.getAttribute('aria-label')||select.id}`;$('menu-search').value='';renderMenuChoices();$('menu-search-dialog').show();setTimeout(()=>$('menu-search').focus(),0)})});$('menu-search')?.addEventListener('input',event=>renderMenuChoices(event.target.value));$('menu-search-results')?.addEventListener('click',event=>{const button=event.target.closest('[data-menu-value]');if(!button||!menuTarget)return;const option=[...menuTarget.options].find(item=>item.value===button.dataset.menuValue);if(!option||option.disabled)return;menuTarget.value=option.value;menuTarget.dispatchEvent(new Event('change',{bubbles:true}));$('menu-search-dialog').close();menuTarget.focus()})}
-  const CONTEXT_ACTIONS=[{id:'controls',label:'Open site controls'},{id:'notifications',label:'Open notification history'},{id:'export',label:'Export local site state'}];
-  function renderContextActionResults(actions,message=''){
-    const list=$('context-results');if(!list)return;list.innerHTML=actions.length?actions.map(action=>`<button type="button" data-context-action="${action.id}">${escapeHtml(action.label)}</button>`).join(''):`<p class="empty-state">${escapeHtml(message||'No page actions match this search.')}</p>`;
-  }
-  function renderContextActions(query=''){
-    if(regexSearchEnabled('context-search',query)){
-      renderContextActionResults([], 'Checking this pattern in a bounded local worker…');
-      const run=runRegexWorker('search:context-search',regexState.get('context-search'),CONTEXT_ACTIONS.map(action=>({id:action.id,text:action.label})));
-      run.promise.then(result=>{if(!regexRunCurrent('search:context-search',run))return;const ids=new Set(result.matchedIds);renderContextActionResults(CONTEXT_ACTIONS.filter(action=>ids.has(action.id)))}).catch(error=>{if(regexRunCurrent('search:context-search',run))renderContextActionResults([],`Pattern evaluation unavailable: ${error.message}`)});
-      return;
-    }
-    renderContextActionResults(CONTEXT_ACTIONS.filter(action=>plainTextMatches(action.label,query)));
-  }
-  function initContextMenu(){document.addEventListener('contextmenu',event=>{if(event.target.closest('input,textarea,select,[contenteditable="true"]'))return;event.preventDefault();const dialog=$('page-context-menu');if(dialog.open)dialog.close();$('context-search').value='';renderContextActions();dialog.show();dialog.style.left=`${Math.max(8,Math.min(innerWidth-dialog.offsetWidth-8,event.clientX))}px`;dialog.style.top=`${Math.max(8,Math.min(innerHeight-dialog.offsetHeight-8,event.clientY))}px`;setTimeout(()=>$('context-search').focus(),0)});$('context-search')?.addEventListener('input',event=>renderContextActions(event.target.value));$('context-results')?.addEventListener('click',event=>{const action=event.target.closest('[data-context-action]')?.dataset.contextAction;if(!action)return;$('page-context-menu').close();if(action==='controls')$('site-controls').showModal();if(action==='notifications'){$('notifications-dialog').showModal();renderNotifications()}if(action==='export')exportSiteState()})}
 
-  function renderPaletteResults(items,message=''){
-    const list=$('palette-results');if(!list)return;list.innerHTML=items.length?items.map(item=>item.control?`<button class="palette-result" role="option" type="button" data-palette-control="${item.control}"><strong>${escapeHtml(item.name)}</strong><span>Open exact site control</span></button>`:`<a class="palette-result" role="option" href="${BASE}${item.path}"><strong>${escapeHtml(item.name)}</strong><span>Open ${item.kind.toLowerCase()}</span></a>`).join(''):`<p class="empty-state">${escapeHtml(message||'No matching pages, articles, or controls.')}</p>`;
-  }
-  function renderPalette(query=''){
-    const pages=[['Home','index.html'],['Product','product.html'],['Documentation','documentation.html'],['Converter','converter.html'],['Ollama manager','ollama.html'],['Downloads','downloads.html'],['Status','status.html'],['Settings','settings.html'],['Delivery workspace','history.html#history'],['Delivery history','history.html#history'],['Delivery changelog','history.html#changelog'],['Delivery export','history.html#operations'],['Delivery download handoff','history.html#downloads'],['Delivery editor','history.html#editor'],['Delivery forge preview','history.html#publishing'],['Delivery update status','history.html#updates']],controls=[['Language mode','shell-language'],['English funny level','shell-english-funny'],['Cantonese funny level','shell-cantonese-funny'],['Attention modes','shell-attention-focus'],['Scheduled settings','shell-schedule-enabled'],['Theme','shell-theme'],['Navigation edge','shell-tab-edge'],['Local logo','shell-logo-preset'],['Personal vocabulary JSON','shell-vocabulary-file'],['Export site state','shell-export']],items=[...pages.map(([name,path])=>({name,path,kind:'Page',id:`page:${path}`})),...DESTINATIONS.map(item=>({name:item.name,path:`docs/${item.article}.html`,kind:'Article',id:`article:${item.id}`})),...controls.map(([name,control])=>({name,control,kind:'Control',id:`control:${control}`}))];
-    if(regexSearchEnabled('palette-search',query)){
-      renderPaletteResults([], 'Checking this pattern in a bounded local worker…');
-      const run=runRegexWorker('search:palette-search',regexState.get('palette-search'),items.map(item=>({id:item.id,text:item.name})));
-      run.promise.then(result=>{if(!regexRunCurrent('search:palette-search',run))return;const ids=new Set(result.matchedIds);renderPaletteResults(items.filter(item=>ids.has(item.id)))}).catch(error=>{if(regexRunCurrent('search:palette-search',run))renderPaletteResults([],`Pattern evaluation unavailable: ${error.message}`)});
-      return;
-    }
-    renderPaletteResults(items.filter(item=>plainTextMatches(item.name,query)));
-  }
+  function renderPalette(query=''){const list=$('palette-results');if(!list)return;const pages=[['Home','index.html'],['Product','product.html'],['Documentation','documentation.html'],['Downloads','downloads.html'],['Status','status.html'],['Settings','settings.html']],items=[...pages,...DESTINATIONS.map(item=>[item.name,`documentation.html#destination-${item.id}`])].filter(([name])=>matchText(name,query,'palette-search'));list.innerHTML=items.length?items.map(([name,path])=>`<a class="palette-result" role="option" href="${BASE}${path}"><strong>${escapeHtml(name)}</strong><span>Open destination</span></a>`).join(''):'<p>No matching commands.</p>'}
   function openPalette(){const dialog=$('command-palette');if(!dialog)return;dialog.showModal();$('palette-search').value='';renderPalette();applyVocabulary();setTimeout(()=>$('palette-search').focus(),0)}
   let notifSeq=0;
-  function notify(title,body){state.notifications.unshift({id:`n${Date.now()}-${notifSeq++}`,title,body,time:Date.now()});state.notifications=state.notifications.slice(0,30);save();renderNotifications($('notification-search')?.value||'');const region=$('toast-region');if(!region)return;const toast=document.createElement('div');toast.className='toast';toast.innerHTML=`<strong>${escapeHtml(title)}</strong><span>${escapeHtml(body)}</span>`;region.append(toast);setTimeout(()=>toast.remove(),state.attention.extendedTimeouts?15000:5000)}
+  // `narration` is the words to speak, per language, and is deliberately a separate
+  // argument rather than the title and body above: those have already been through
+  // `applyVocabularyText` at every call site, and a network-backed voice would carry
+  // a private replacement off this computer. It is narrated before the toast region
+  // is looked for, because a page with no toast region still raised the event.
+  function notify(title,body,narration){state.notifications.unshift({id:`n${Date.now()}-${notifSeq++}`,title,body,time:Date.now()});state.notifications=state.notifications.slice(0,30);save();renderNotifications($('notification-search')?.value||'');if(narration)narrate(narration.category||'notification',narrationTextFor(narration),{isError:Boolean(narration.isError)});const region=$('toast-region');if(!region)return;const toast=document.createElement('div');toast.className='toast';toast.innerHTML=`<div class="toast-text"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(body)}</span></div>`;setDialogDecoration(toast,messageBoxGlyph());region.append(toast);setTimeout(()=>toast.remove(),state.attention.extendedTimeouts?15000:5000)}
 
   // ---- Notification centre: real multi-select, bulk dismiss, and export. ----
   let notifSelection={anchor:undefined,selected:new Set()};
   let lastNotificationOrder=[];
   function ensureNotificationIds(){let changed=false;state.notifications.forEach((item,index)=>{if(!item.id){item.id=`n${item.time||Date.now()}-legacy${index}`;changed=true}});if(changed)save()}
-  function renderNotificationResults(matches,query,message=''){
+  function notificationMatches(query){ensureNotificationIds();return state.notifications.filter(item=>matchText(`${item.title} ${item.body}`,query,'notification-search'))}
+  function renderNotifications(query=''){
+    if($('notification-count'))$('notification-count').textContent=state.notifications.length;
     if(!$('notification-history'))return;
+    const matches=notificationMatches(query);
     lastNotificationOrder=matches.map(item=>item.id);
     // A selected id that no longer matches (or was dismissed) never lingers as a phantom count.
     notifSelection={anchor:notifSelection.anchor,selected:new Set([...notifSelection.selected].filter(id=>lastNotificationOrder.includes(id)))};
-    $('notification-history').innerHTML=matches.length?matches.map(item=>`<article class="notice" data-notif-id="${item.id}"><input type="checkbox" aria-label="Select notification: ${escapeHtml(item.title)}" ${notifSelection.selected.has(item.id)?'checked':''}><div class="notice-body"><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.body)}</p><small>${new Date(item.time).toLocaleString()}</small></div></article>`).join(''):message?`<p class="empty-state">${escapeHtml(message)}</p>`:state.notifications.length?'<p class="empty-state">No notifications match the active search. Clear or change the filter to see saved history.</p>':`<p class="empty-state">${escapeHtml(copyText('emptyNotifications'))}</p>`;
+    $('notification-history').innerHTML=matches.length?matches.map(item=>`<article class="notice" data-notif-id="${item.id}"><input type="checkbox" aria-label="Select notification: ${escapeHtml(item.title)}" ${notifSelection.selected.has(item.id)?'checked':''}><div class="notice-body"><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.body)}</p><small>${new Date(item.time).toLocaleString()}</small></div></article>`).join(''):`<p>${escapeHtml(copyText('emptyNotifications'))}</p>`;
     applyVocabulary();
     updateNotificationSelectionUI();
     updateNotificationExportFormats();
-  }
-  function renderNotifications(query=''){
-    ensureNotificationIds();if($('notification-count'))$('notification-count').textContent=state.notifications.length;if(!$('notification-history'))return;
-    if(regexSearchEnabled('notification-search',query)){
-      renderNotificationResults([],query,'Checking this pattern in a bounded local worker…');
-      const run=runRegexWorker('search:notification-search',regexState.get('notification-search'),state.notifications.map(item=>({id:item.id,text:`${item.title} ${item.body}`.slice(0,4096)})));
-      run.promise.then(result=>{if(!regexRunCurrent('search:notification-search',run))return;const ids=new Set(result.matchedIds);renderNotificationResults(state.notifications.filter(item=>ids.has(item.id)),query)}).catch(error=>{if(regexRunCurrent('search:notification-search',run))renderNotificationResults([],query,`Pattern evaluation unavailable: ${error.message}`)});
-      return;
-    }
-    renderNotificationResults(state.notifications.filter(item=>plainTextMatches(`${item.title} ${item.body}`,query)),query);
   }
   function updateNotificationSelectionUI(){
     const status=$('notif-selection-status');if(status)status.textContent=`${notifSelection.selected.size} selected of ${lastNotificationOrder.length} shown`;
@@ -1129,7 +2025,7 @@
       const rows=notificationExportRows();if(!rows.length)return;
       const format=$('notif-export-format').value||'json',text=exportRows({rows,format,table:'notification'});
       download(exportFilename('ding-pbx-notifications',format,`${rows.length}-selected`),text,EXPORT_MIME[format]);
-      notify('Notifications exported',applyVocabularyText(`Exported ${rows.length} selected notification${rows.length===1?'':'s'} as ${format.toUpperCase()}.`));
+      notify('Notifications exported',applyVocabularyText(`Exported ${rows.length} selected notification${rows.length===1?'':'s'} as ${format.toUpperCase()}.`),{category:'export',en:`Exported ${rows.length} selected notification${rows.length===1?'':'s'} as ${format.toUpperCase()}.`,zh:`已經匯出 ${rows.length} 條揀咗嘅通知，格式係 ${format.toUpperCase()}。`});
     });
     $('notif-dismiss-selected')?.addEventListener('click',()=>{
       const plan=planBulk('Dismiss',[...notifSelection.selected],()=>true,{destructive:true});
@@ -1149,27 +2045,396 @@
     });
   }
 
-  function initSettings(){
-    if(!$('theme-mode'))return;
-    $('theme-mode').onchange=event=>update('theme',event.target.value);$('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>update('fontScale',Number(event.target.value));$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);$('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));$('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>saveSchedule({enabled:event.target.checked});
-    $('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);$('attention-current-task').onchange=event=>updateAttention('currentTask',event.target.value.slice(0,140));
-    $('settings-reset').onclick=()=>{const fresh=JSON.parse(JSON.stringify(DEFAULTS));for(const key of Object.keys(state))delete state[key];Object.assign(state,fresh);save();applyState();notify(copyText('notifSettingsReset'),applyVocabularyText('The local page settings returned to their shipped values.'))};
-    $('settings-export').onclick=exportSiteState;
-    $('vocabulary-file').onchange=event=>loadVocabularyFromInput(event,'vocabulary-status');$('vocabulary-clear').onclick=()=>clearVocabulary('vocabulary-file','vocabulary-status');$('logo-file').onchange=event=>loadLogoFromInput(event,'logo-status');$('logo-clear').onclick=()=>clearLogo('logo-file','logo-status');
-    $('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));
+  // ============================================================================
+  // Changelog viewer.
+  //
+  // The grammar is the one `app/renderer/src/changelog.ts` already parses, and it is
+  // ported rather than reinvented so the site and the desktop renderer cannot come to
+  // read the same generated Markdown differently:
+  //
+  //     ## <version> — <ISO date>
+  //     ### <Category>
+  //     - <summary> (<40-hex commit>)
+  //
+  // A line that looks like it belongs to that grammar and does not fully match is
+  // COUNTED as skipped rather than thrown away in silence. That count is shown. A
+  // viewer that quietly drops half its input looks exactly like one reading a short
+  // release history, which is the failure worth saying out loud.
+  // ============================================================================
+  const CHANGELOG_SHA40 = /^[0-9a-fA-F]{40}$/;
+  const CHANGELOG_VERSION_HEADING = /^##\s+(\S+)\s+[—-]\s+(\d{4}-\d{2}-\d{2})\s*$/;
+  const CHANGELOG_CATEGORY_HEADING = /^###\s+(.+?)\s*$/;
+  const CHANGELOG_CHANGE_ITEM = /^-\s+(.+?)\s+\(([0-9a-fA-F]{40})\)\s*$/;
+  const CHANGELOG_DEFAULT_CATEGORY = 'General';
+  const CHANGELOG_PRESETS = {all:'Every version',year:'This calendar year',d90:'Last 90 days',d30:'Last 30 days',d7:'Last 7 days'};
+
+  function parseChangelog(markdown){
+    const lines=String(markdown||'').split(/\r\n|\n|\r/);
+    const entries=[];
+    let skipped=0,current=null,category=CHANGELOG_DEFAULT_CATEGORY;
+    const flush=()=>{if(current)entries.push(current)};
+    for(const raw of lines){
+      const line=raw.replace(/\s+$/,'');
+      if(line.trim()==='')continue;
+      const version=CHANGELOG_VERSION_HEADING.exec(line);
+      if(version){flush();current={version:version[1],date:version[2],changes:[]};category=CHANGELOG_DEFAULT_CATEGORY;continue}
+      if(line.startsWith('## ')){skipped+=1;continue}
+      const heading=CHANGELOG_CATEGORY_HEADING.exec(line);
+      if(heading){if(!current){skipped+=1;continue}category=heading[1];continue}
+      if(line.startsWith('- ')){
+        const change=CHANGELOG_CHANGE_ITEM.exec(line);
+        if(!change||!current){skipped+=1;continue}
+        current.changes.push({category,summary:change[1],commit:change[2]});
+        continue;
+      }
+      skipped+=1;
+    }
+    flush();
+    return {entries,skipped};
   }
-  function normaliseVocabularyInput(raw){
-    if(!raw||typeof raw!=='object'||Array.isArray(raw))return raw;
-    const allowed=new Set(['version','schemaVersion','replacements','terms']);for(const key of Object.keys(raw))if(!allowed.has(key))throw new Error(`unexpected field ${key}`);
-    const replacements=Array.isArray(raw.replacements)?raw.replacements:raw.replacements&&typeof raw.replacements==='object'?Object.entries(raw.replacements).map(([from,to])=>({from,to})):raw.terms&&typeof raw.terms==='object'&&!Array.isArray(raw.terms)?Object.entries(raw.terms).map(([from,to])=>({from,to})):raw.replacements;
-    return {version:raw.version??raw.schemaVersion,replacements};
+
+  /**
+   * A browsable URL for one commit, or '' when no link can honestly be built.
+   *
+   * Empty rather than a guess in both refusing cases: an id that is not exactly 40
+   * hexadecimal characters, and a build that never resolved the repository. The caller
+   * renders the id as plain text instead, because a fact with no link beside it is
+   * worth more than a link that goes nowhere.
+   */
+  function changelogCommitUrl(commit,repository){
+    if(!CHANGELOG_SHA40.test(String(commit||'')))return '';
+    const base=String(repository||'').trim();
+    if(!/^https:\/\/\S+$/.test(base))return '';
+    return `${base.replace(/\/+$/,'')}/commit/${commit}`;
   }
-  async function loadVocabularyFromInput(event,statusId){const status=$(statusId),file=event.target.files[0];if(!file)return;if(file.size>65536){if(status)status.textContent=`Rejected: the file is ${Math.round(file.size/1024)} KiB and the limit is 64 KiB.`;return}try{const parsed=validateVocabularyPayload(normaliseVocabularyInput(JSON.parse(await file.text())));localStorage.setItem('ding-pbx-vocabulary-cache',JSON.stringify(parsed));if(status)status.textContent=`Loaded ${parsed.replacements.length} local replacement${parsed.replacements.length===1?'':'s'}. No data was transmitted.`;applyVocabulary();applyState();syncLocalAssetStatuses()}catch(error){if(status)status.textContent=`Rejected: ${error.message}`}}
-  function clearVocabulary(inputId,statusId){localStorage.removeItem('ding-pbx-vocabulary-cache');if($(inputId))$(inputId).value='';if($(statusId))$(statusId).textContent='No file loaded; original wording is active.';applyVocabulary();applyState();syncLocalAssetStatuses();notify('Personal vocabulary cleared',applyVocabularyText('Original shipped wording is active again.'))}
-  function imageDimensions(dataUrl){return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve({width:image.naturalWidth,height:image.naturalHeight});image.onerror=()=>reject(new Error('the browser could not decode the image'));image.src=dataUrl})}
-  async function loadLogoFromInput(event,statusId){const status=$(statusId),file=event.target.files[0];if(!file)return;if(file.size>131072){if(status)status.textContent='Rejected: file exceeds 128 KiB.';return}try{const bytes=new Uint8Array(await file.arrayBuffer()),png=bytes.length>8&&[137,80,78,71,13,10,26,10].every((value,index)=>bytes[index]===value),jpeg=bytes.length>3&&bytes[0]===255&&bytes[1]===216&&bytes[2]===255;if(!png&&!jpeg)throw new Error('the bytes are not a PNG or JPEG image');const mime=png?'image/png':'image/jpeg',dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('the file could not be read'));reader.readAsDataURL(new Blob([bytes],{type:mime}))}),dimensions=await imageDimensions(dataUrl);if(dimensions.width>4096||dimensions.height>4096||dimensions.width*dimensions.height>4194304)throw new Error('decoded dimensions exceed 4096 per side or 4,194,304 pixels');localStorage.setItem('ding-pbx-logo-cache',JSON.stringify({version:1,mime,bytes:file.size,width:dimensions.width,height:dimensions.height,dataUrl}));if(status)status.textContent=`Loaded ${dimensions.width}×${dimensions.height} local image (${Math.round(file.size/1024)} KiB). No data was transmitted.`;applyLogo();syncLocalAssetStatuses()}catch(error){if(status)status.textContent=`Rejected: ${error.message}`}}
-  function clearLogo(inputId,statusId){localStorage.removeItem('ding-pbx-logo-cache');if($(inputId))$(inputId).value='';if($(statusId))$(statusId).textContent='No custom image loaded; the selected preset is active.';applyLogo();syncLocalAssetStatuses();notify('Custom logo cleared',applyVocabularyText('The selected shipped logo preset is active again.'))}
-  function syncLocalAssetStatuses(){const replacements=vocabularyReplacements(),logo=readLogoCache(),vocabularyText=replacements?`Validated cache active: ${replacements.length} replacement${replacements.length===1?'':'s'}. No file metadata was retained.`:'No valid cache loaded; original wording is active.',logoText=logo?`Validated cache active: ${logo.width}×${logo.height}, ${Math.round(logo.bytes/1024)} KiB. No source filename was retained.`:'No valid custom image cache loaded; the selected preset is active.';['vocabulary-status','shell-vocabulary-status'].forEach(id=>{if($(id))$(id).textContent=vocabularyText});['logo-status','shell-logo-status'].forEach(id=>{if($(id))$(id).textContent=logoText})}
+
+  /** Entries whose date falls inside an inclusive ISO range; an absent bound is open. */
+  function changelogFilterByDate(entries,from,to){
+    return entries.filter(entry=>{
+      if(from&&entry.date<from)return false;
+      if(to&&entry.date>to)return false;
+      return true;
+    });
+  }
+
+  /**
+   * Search a version and every one of its change lines, through the same `matchText`
+   * every other search field on this site uses -- so plain text stays the default and
+   * the anchored regular-expression builder attached to `changelog-search` applies here
+   * exactly as it does everywhere else.
+   */
+  function changelogSearch(entries,query){
+    return entries.filter(entry=>matchText(
+      `${entry.version} ${entry.changes.map(change=>`${change.category} ${change.summary}`).join(' ')}`,
+      query,'changelog-search'));
+  }
+
+  /** "2026-08-24 to 2026-08-26", or the single date, or an honest empty statement. */
+  function changelogRangeLabel(entries){
+    if(!entries.length)return 'no entries';
+    const dates=entries.map(entry=>entry.date).slice().sort();
+    const first=dates[0],last=dates[dates.length-1];
+    return first===last?first:`${first} to ${last}`;
+  }
+
+  /**
+   * One flat row per change, for the site's ordinary ten-format export engine.
+   *
+   * `exportedRange` repeats on every row deliberately. The canonical contract asks the
+   * export to state its own range inside the file, and every one of these ten formats
+   * is a flat table: a single metadata row carrying different keys would make the whole
+   * set ragged, which five of the formats would then correctly report as a real loss.
+   * A repeated column costs bytes and says the same thing in CSV, JSON and SQL alike.
+   */
+  function changelogExportRows(entries){
+    const range=changelogRangeLabel(entries);
+    const rows=[];
+    for(const entry of entries){
+      for(const change of entry.changes){
+        rows.push({
+          version:entry.version,date:entry.date,category:change.category,summary:change.summary,
+          commit:change.commit,commitUrl:changelogCommitUrl(change.commit,CHANGELOG_REPOSITORY_URL),
+          exportedRange:range,
+        });
+      }
+    }
+    return rows;
+  }
+
+  /**
+   * The two date bounds, plus whatever the fields are refusing to interpret.
+   *
+   * A native date field answers a half-typed date with an empty `value` and a true
+   * `validity.badInput`. Reading only the value would silently widen the filter back to
+   * everything while the person is still looking at what they typed, so `badInput` is
+   * read and reported and the field is never written to -- the typed characters stay.
+   */
+  function changelogDateBounds(){
+    const read=id=>{
+      const field=$(id);
+      if(!field)return {value:'',bad:false};
+      return {value:field.value||'',bad:Boolean(field.validity&&field.validity.badInput)};
+    };
+    const from=read('changelog-date-from'),to=read('changelog-date-to');
+    const problems=[];
+    if(from.bad)problems.push('The “from” date is incomplete, so it is being ignored. What you typed has been left alone.');
+    if(to.bad)problems.push('The “to” date is incomplete, so it is being ignored. What you typed has been left alone.');
+    if(!from.bad&&!to.bad&&from.value&&to.value&&from.value>to.value){
+      problems.push(`The “from” date (${from.value}) is after the “to” date (${to.value}), so no version can fall between them.`);
+    }
+    return {from:from.value,to:to.value,problems};
+  }
+
+  /** Writes the two date fields from a named preset. 'all' clears both. */
+  function changelogPresetRange(preset,today){
+    const day=86400000;
+    const end=today.toISOString().slice(0,10);
+    if(preset==='all')return {from:'',to:''};
+    if(preset==='year')return {from:`${today.getUTCFullYear()}-01-01`,to:end};
+    const days={d7:7,d30:30,d90:90}[preset];
+    if(!days)return undefined;
+    return {from:new Date(today.getTime()-(days-1)*day).toISOString().slice(0,10),to:end};
+  }
+
+  function changelogVisibleEntries(query){
+    const parsed=parseChangelog(CHANGELOG_MARKDOWN);
+    const bounds=changelogDateBounds();
+    const dated=changelogFilterByDate(parsed.entries,bounds.from,bounds.to);
+    return {...parsed,bounds,matches:changelogSearch(dated,query)};
+  }
+
+  function changelogEntryMarkup(entry){
+    const byCategory=new Map();
+    for(const change of entry.changes){
+      if(!byCategory.has(change.category))byCategory.set(change.category,[]);
+      byCategory.get(change.category).push(change);
+    }
+    const groups=[...byCategory.entries()].map(([category,changes])=>
+      `<h4>${escapeHtml(category)}</h4><ul>${changes.map(change=>{
+        const url=changelogCommitUrl(change.commit,CHANGELOG_REPOSITORY_URL);
+        const short=escapeHtml(change.commit.slice(0,10));
+        const link=url
+          ?`<a class="changelog-commit mono" href="${escapeHtml(url)}" rel="noopener noreferrer">${short}</a>`
+          :`<span class="changelog-commit mono" title="No repository URL was resolved at build time, so this id is shown without a link.">${short}</span>`;
+        return `<li>${escapeHtml(change.summary)} ${link}</li>`;
+      }).join('')}</ul>`).join('');
+    const body=entry.changes.length?groups:'<p class="empty-state">No changes were recorded against this version.</p>';
+    return `<article class="changelog-entry" data-version="${escapeHtml(entry.version)}">`
+      +`<header><h3>${escapeHtml(entry.version)}</h3><time datetime="${escapeHtml(entry.date)}">${escapeHtml(entry.date)}</time></header>`
+      +`${body}</article>`;
+  }
+
+  function renderChangelog(query=''){
+    const list=$('changelog-entries');if(!list)return;
+    const {entries,skipped,bounds,matches}=changelogVisibleEntries(query);
+    if(!CHANGELOG_MARKDOWN){
+      list.innerHTML='<p class="empty-state">No release history was resolved for this build, so none is shown. '
+        +'This page carries the changelog its own build injected; a page served straight from the source directory has none.</p>';
+    }else{
+      list.innerHTML=matches.length
+        ?matches.map(changelogEntryMarkup).join('')
+        :'<p class="empty-state">No version matches the current search and date range. Widen the dates or clear the search.</p>';
+    }
+    const changes=matches.reduce((total,entry)=>total+entry.changes.length,0);
+    if($('changelog-count')){
+      $('changelog-count').textContent=entries.length
+        ?`${matches.length} of ${entries.length} version${entries.length===1?'':'s'} · ${changes} change${changes===1?'':'s'} · ${changelogRangeLabel(matches)}`
+        :'No versions are available in this build.';
+    }
+    if($('changelog-problems')){
+      const notes=[...bounds.problems];
+      if(skipped>0)notes.push(`${skipped} line${skipped===1?'':'s'} of the release history did not match the changelog grammar and ${skipped===1?'was':'were'} not shown.`);
+      // Said once, in words, rather than only in a tooltip on each id. A `title` is
+      // reachable with a pointer and by nothing else, so on its own it would leave a
+      // keyboard or screen-reader reader looking at unlinked ids with no explanation.
+      if(CHANGELOG_MARKDOWN&&!changelogCommitUrl('0'.repeat(40),CHANGELOG_REPOSITORY_URL)){
+        notes.push('This build resolved no repository, so each commit id is shown as text rather than as a link.');
+      }
+      $('changelog-problems').textContent=notes.join(' ');
+    }
+    updateChangelogExport(matches);
+    applyVocabulary();
+  }
+
+  function updateChangelogExport(matches){
+    const select=$('changelog-export-format');if(!select)return;
+    const rows=changelogExportRows(matches),formats=suitableFormats(rows),previous=select.value;
+    select.innerHTML=formats.map(format=>`<option value="${format}">${format.toUpperCase()}</option>`).join('');
+    if(formats.includes(previous))select.value=previous;
+    if($('changelog-export-loss')){
+      $('changelog-export-loss').textContent=rows.length
+        ?describeLoss(rows,select.value||formats[0]).join(' ')
+        :'Nothing is currently shown, so there is nothing to export.';
+    }
+  }
+
+  function changelogExportText(){
+    const query=$('changelog-search')?.value||'';
+    const {matches}=changelogVisibleEntries(query);
+    const rows=changelogExportRows(matches);
+    if(!rows.length)return undefined;
+    const format=$('changelog-export-format')?.value||'json';
+    return {rows,format,range:changelogRangeLabel(matches),text:exportRows({rows,format,table:'changelog'})};
+  }
+
+  function initChangelog(){
+    if(!$('changelog-entries'))return;
+    const rerender=()=>renderChangelog($('changelog-search')?.value||'');
+    $('changelog-search')?.addEventListener('input',rerender);
+    $('changelog-date-from')?.addEventListener('input',rerender);
+    $('changelog-date-to')?.addEventListener('input',rerender);
+    $('changelog-export-format')?.addEventListener('change',rerender);
+    $('changelog-date-preset')?.addEventListener('change',event=>{
+      const range=changelogPresetRange(event.target.value,new Date());
+      if(!range)return;
+      if($('changelog-date-from'))$('changelog-date-from').value=range.from;
+      if($('changelog-date-to'))$('changelog-date-to').value=range.to;
+      rerender();
+    });
+    $('changelog-export')?.addEventListener('click',()=>{
+      const result=changelogExportText();if(!result)return;
+      download(exportFilename('ding-pbx-changelog',result.format,result.range.split(' ').join('-')),result.text,EXPORT_MIME[result.format]);
+      notify('Changelog exported',applyVocabularyText(`Exported ${result.rows.length} change${result.rows.length===1?'':'s'} covering ${result.range} as ${result.format.toUpperCase()}.`),{category:'export',en:`Exported ${result.rows.length} change${result.rows.length===1?'':'s'} as ${result.format.toUpperCase()}.`,zh:`已經匯出 ${result.rows.length} 項變更，格式係 ${result.format.toUpperCase()}。`});
+    });
+    $('changelog-copy')?.addEventListener('click',()=>{
+      const result=changelogExportText();if(!result)return;
+      if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(result.text).catch(()=>{});
+      notify('Changelog copied',applyVocabularyText(`Copied ${result.rows.length} change${result.rows.length===1?'':'s'} covering ${result.range} as ${result.format.toUpperCase()}.`),{category:'export',en:`Copied ${result.rows.length} change${result.rows.length===1?'':'s'} to the clipboard as ${result.format.toUpperCase()}.`,zh:`已經複製 ${result.rows.length} 項變更去剪貼簿，格式係 ${result.format.toUpperCase()}。`});
+    });
+    rerender();
+  }
+
+  // ---- Local history panel: search, an action filter derived from the real
+  // recorded actions (never a hard-coded list), and a date-range filter. ----
+  function snapshotState(){const clone=JSON.parse(JSON.stringify(state));delete clone.notifications;return clone}
+  function recordHistory(action,summary){
+    historyEntries.unshift({id:`h${Date.now()}-${historySeq++}`,time:Date.now(),action,summary,snapshot:snapshotState()});
+    historyEntries=historyEntries.slice(0,HISTORY_LIMIT);
+    saveHistory();
+    renderHistory($('history-search')?.value||'');
+  }
+  function restoreHistoryEntry(id){
+    const entry=historyEntries.find(item=>item.id===id);if(!entry)return;
+    Object.assign(state,entry.snapshot);
+    state.attention={...DEFAULTS.attention,...(entry.snapshot.attention||{})};
+    state.collapsed={...DEFAULTS.collapsed,...(entry.snapshot.collapsed||{})};
+    save();applyState();
+    // Restoring is itself a NEW entry -- it never rewrites or removes the
+    // revision it restored, so this restore can be undone later too.
+    recordHistory('restored',`Restored the revision from ${new Date(entry.time).toLocaleString()} (${entry.summary})`);
+    notify('Local history restored',applyVocabularyText('This browser’s settings were replaced with an earlier local revision. The restore itself was recorded as a new history entry.'),{category:'setting',en:'Local history restored. This browser’s settings were replaced with an earlier local revision.',zh:'已經還原本機紀錄。呢個瀏覽器嘅設定換咗做早前一個版本。'});
+  }
+  function historyActionOptions(){return [...new Set(historyEntries.map(item=>item.action))].sort()}
+  function historyMatches(query){
+    const actionFilter=$('history-action-filter')?.value||'';
+    const fromRaw=$('history-date-from')?.value||'';
+    const toRaw=$('history-date-to')?.value||'';
+    const from=fromRaw?new Date(`${fromRaw}T00:00:00`).getTime():-Infinity;
+    const to=toRaw?new Date(`${toRaw}T23:59:59.999`).getTime():Infinity;
+    return historyEntries.filter(item=>{
+      if(actionFilter&&item.action!==actionFilter)return false;
+      if(!Number.isNaN(from)&&item.time<from)return false;
+      if(!Number.isNaN(to)&&item.time>to)return false;
+      return matchText(`${item.action} ${item.summary}`,query,'history-search');
+    });
+  }
+  function renderHistory(query=''){
+    const list=$('history-list');if(!list)return;
+    const select=$('history-action-filter');
+    if(select){
+      const previous=select.value;
+      select.innerHTML=`<option value="">All actions</option>${historyActionOptions().map(action=>`<option value="${escapeHtml(action)}">${escapeHtml(action)}</option>`).join('')}`;
+      if([...select.options].some(option=>option.value===previous))select.value=previous;
+    }
+    const matches=historyMatches(query);
+    list.innerHTML=matches.length?matches.map(item=>`<article class="history-entry" data-history-id="${item.id}"><div><strong>${escapeHtml(item.action)}</strong><p>${escapeHtml(item.summary)}</p><small>${new Date(item.time).toLocaleString()}</small></div><button type="button" class="text-button" data-restore="${item.id}">Restore</button></article>`).join(''):`<p class="empty-state">No local history entries yet -- change a setting on this page to create the first one.</p>`;
+    if($('history-count'))$('history-count').textContent=`${matches.length} of ${historyEntries.length} entr${historyEntries.length===1?'y':'ies'}`;
+    applyVocabulary();
+  }
+  function initHistory(){
+    if(!$('history-open'))return;
+    $('history-open').addEventListener('click',()=>{const dialog=$('history-dialog');if(!dialog)return;dialog.showModal();renderHistory($('history-search')?.value||'')});
+    $('history-search')?.addEventListener('input',event=>renderHistory(event.target.value));
+    $('history-action-filter')?.addEventListener('change',()=>renderHistory($('history-search')?.value||''));
+    $('history-date-from')?.addEventListener('change',()=>renderHistory($('history-search')?.value||''));
+    $('history-date-to')?.addEventListener('change',()=>renderHistory($('history-search')?.value||''));
+    $('history-list')?.addEventListener('click',event=>{
+      const button=event.target.closest('[data-restore]');if(!button)return;
+      restoreHistoryEntry(button.dataset.restore);
+    });
+  }
+
+  // ---- "Reset settings" destructive gate: two independently operated key
+  // controls must both be active before the full-range slider is even
+  // enabled, and only completing the slider all the way to the end runs the
+  // reset. Cancel is always available (button, ×, and native Escape); every
+  // close path -- confirm, cancel, or Escape -- resets the dialog's own
+  // fields and returns focus to the control that opened it. ----
+  function resetConfirmReady(){return Boolean($('reset-key-1')?.checked&&$('reset-key-2')?.checked)}
+  function resetConfirmFields(){
+    const dialog=$('reset-confirm-dialog');if(!dialog)return;
+    dialog.querySelectorAll('input[type="checkbox"]').forEach(box=>{box.checked=false});
+    const slider=$('reset-confirm-slider');
+    if(slider){slider.value='0';slider.disabled=true}
+    if($('reset-slider-status'))$('reset-slider-status').textContent='0%';
+  }
+  function updateResetSliderState(){
+    const slider=$('reset-confirm-slider');if(!slider)return;
+    const ready=resetConfirmReady();
+    slider.disabled=!ready;
+    if(!ready){slider.value='0';if($('reset-slider-status'))$('reset-slider-status').textContent='0%'}
+  }
+  function performSettingsReset(){
+    Object.assign(state,DEFAULTS);
+    save();
+    // A reset turns narration off, so it stops speaking now rather than at the end of
+    // whichever sentence it happened to be in the middle of.
+    narrationSilence();
+    applyState();
+    recordHistory('reset','Every local setting on this page returned to its shipped default.');
+    notify(copyText('notifSettingsReset'),applyVocabularyText('The local page settings returned to their shipped values.'),{category:'setting',copyKey:'notifSettingsReset'});
+  }
+  function initResetConfirm(){
+    const dialog=$('reset-confirm-dialog');if(!dialog)return;
+    resetConfirmFields();
+    $('reset-key-1')?.addEventListener('change',updateResetSliderState);
+    $('reset-key-2')?.addEventListener('change',updateResetSliderState);
+    $('reset-confirm-slider')?.addEventListener('input',event=>{
+      const value=Number(event.target.value);
+      if($('reset-slider-status'))$('reset-slider-status').textContent=`${value}%`;
+      if(value>=100&&resetConfirmReady()){performSettingsReset();dialog.close()}
+    });
+    $('reset-confirm-cancel')?.addEventListener('click',()=>dialog.close('cancel'));
+    // Fires for every close path -- the Cancel button, the × control, and the
+    // dialog's native Escape handling -- so the gate can never be left
+    // half-armed for the next time it opens.
+    dialog.addEventListener('close',()=>{resetConfirmFields();$('settings-reset')?.focus()});
+  }
+
+  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);el('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);el('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));el('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);if($('dialog-emojis'))$('dialog-emojis').onchange=event=>update('dialogEmojis',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState();recordHistory('attention-changed','attention.currentTask changed.')};$('settings-reset').onclick=()=>{const dialog=$('reset-confirm-dialog');if(!dialog)return;resetConfirmFields();dialog.showModal()};$('settings-export').onclick=()=>{download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state,restrictedPresentation:schoolExportSummary()},null,2));notify('Settings exported',applyVocabularyText('Exported the local settings on this page as ding-pbx-page-settings.json. Uploaded personal vocabulary was omitted.'),{category:'export',en:'Exported the local settings on this page. Uploaded personal vocabulary was omitted.',zh:'已經匯出呢版嘅本地設定，上載嘅個人詞彙冇包埋。'});};el('vocabulary-file').onchange=loadVocabulary;el('vocabulary-clear').onclick=clearVocabulary;initDisplayName();initNarration();initSchool();$('logo-file').onchange=loadLogo;$('logo-clear').onclick=()=>{localStorage.removeItem('ding-pbx-logo-cache');$('logo-file').value='';$('logo-status').textContent='No file loaded; default mark is active.';applyLogo()};if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));initResetConfirm();initHistory()}
+  /* One writer for every vocabulary rejection, so the rule below holds for all of them
+   * rather than for whichever branch somebody remembered.
+   *
+   * The reason is shown and never spoken. Several of these messages quote the file
+   * back -- a duplicate term, an over-long replacement -- and this file is the private
+   * dictionary. A network-backed voice synthesises on somebody else's computer, so
+   * speaking the reason is the one route by which a term in that file would leave this
+   * machine. The spoken line says a rejection happened and where to read why. */
+  function rejectVocabulary(reason){
+    $('vocabulary-status').textContent=`Rejected: ${reason}`;
+    narrate('error',{en:'The personal vocabulary file was rejected. The reason is beside the upload control; it is not read aloud, because it can quote the file.',zh:'個人詞彙檔案唔收得。原因寫咗喺上載控制項隔籬，唔會讀出嚟，因為入面可能引用返個檔案嘅內容。'},{isError:true});
+  }
+  /* The opposite case, and stated rather than assumed: every reason a logo rejection
+   * can carry is written by this file or by the browser's own reader ("only PNG, JPEG,
+   * or SVG images are accepted", "Could not read the file."), and none of them quotes
+   * the image. So this one speaks the reason itself. */
+  function rejectLogo(reason){
+    $('logo-status').textContent=`Rejected: ${reason}`;
+    narrate('error',{en:`The local logo was rejected. ${reason}`,zh:`本機標誌唔收得。${reason}`},{isError:true});
+  }
+  function clearVocabulary(){try{localStorage.removeItem(VOCABULARY_CACHE_KEY);el('vocabulary-file').value='';el('vocabulary-status').textContent='No file loaded; original wording is active.';applyVocabulary();applyState()}catch(error){rejectVocabulary(`the local cache was not cleared: ${error.message}`)}}
+  async function loadVocabulary(event){const file=event.target.files[0];if(!file)return;if(file.size>65536){rejectVocabulary(`the file is ${Math.round(file.size/1024)} KiB and the limit is 64 KiB.`);return}try{const parsed=validateVocabularyText(await file.text());localStorage.setItem(VOCABULARY_CACHE_KEY,JSON.stringify(parsed));$('vocabulary-status').textContent=`Loaded ${parsed.replacements.length} local replacement${parsed.replacements.length===1?'':'s'}. No data was transmitted.`;applyVocabulary();applyState()}catch(error){rejectVocabulary(error.message)}}
+  async function loadLogo(event){const file=event.target.files[0];if(!file)return;if(file.size>131072){rejectLogo('file exceeds 128 KiB.');return}if(!/^image\/(png|jpeg|svg\+xml)$/.test(file.type)){rejectLogo('only PNG, JPEG, or SVG images are accepted.');return}try{const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('Could not read the file.'));reader.readAsDataURL(file)});localStorage.setItem('ding-pbx-logo-cache',dataUrl);$('logo-status').textContent=`Loaded local logo (${Math.round(file.size/1024)} KiB). No data was transmitted.`;applyLogo()}catch(error){rejectLogo(error.message)}}
   function download(name,text,mime='application/json'){const link=document.createElement('a'),url=URL.createObjectURL(new Blob([text],{type:mime}));link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
   const EXPORT_MIME={json:'application/json',jsonl:'application/x-ndjson',yaml:'application/yaml',toml:'application/toml',xml:'application/xml',csv:'text/csv',tsv:'text/tab-separated-values',markdown:'text/markdown',html:'text/html',sql:'application/sql'};
   function slugForFilename(text){const slug=String(text||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);return slug||'all'}
@@ -1223,16 +2488,14 @@
       const total=DESTINATIONS.filter(item=>item.group===group).length;
       const matched=DESTINATIONS.filter(item=>item.group===group&&matchedIds.has(item.id)).length;
       const rail=map.querySelector(`[data-group="${group}"]`);if(!rail)return;
-      const percent=total?Math.round((matched/total)*100):undefined;
-      const fill=rail.querySelector('.rail-fill');if(fill){if(percent===undefined)fill.style.removeProperty('--rail-percent');else fill.style.setProperty('--rail-percent',`${percent}%`)}
-      const count=rail.querySelector('.rail-count');if(count)count.textContent=percent===undefined?'Unavailable':`${matched} of ${total}`;
-      rail.setAttribute('aria-label',percent===undefined?`${group}: current catalogue coverage unavailable`:`${group}: ${matched} of ${total} destinations matched in the current catalogue (${percent} percent)`);
+      const fill=rail.querySelector('.rail-fill');if(fill)fill.style.width=`${total?Math.round((matched/total)*100):0}%`;
+      const count=rail.querySelector('.rail-count');if(count)count.textContent=`${matched}/${total}`;
       rail.classList.toggle('rail-empty',matched===0);
     });
   }
   function initDestinationMap(){
     const map=$('destination-map');if(!map)return;
-    map.innerHTML=GROUPS.map(group=>{const total=DESTINATIONS.filter(item=>item.group===group).length;const percent=total?100:undefined;return `<div class="rail" data-group="${escapeHtml(group)}" aria-label="${escapeHtml(percent===undefined?`${group}: current catalogue coverage unavailable`:`${group}: ${total} of ${total} destinations in the current catalogue (100 percent)`)}"><span class="rail-label">${escapeHtml(group)}</span><span class="rail-track" aria-label="Current catalogue documentation coverage"><span class="rail-fill"${percent===undefined?'':' style="--rail-percent:100%"'}></span></span><span class="rail-count mono">${percent===undefined?'Unavailable':`${total} of ${total}`}</span></div>`}).join('');
+    map.innerHTML=GROUPS.map(group=>{const total=DESTINATIONS.filter(item=>item.group===group).length;return `<div class="rail" data-group="${escapeHtml(group)}"><span class="rail-label">${escapeHtml(group)}</span><span class="rail-track"><span class="rail-fill" style="width:100%"></span></span><span class="rail-count mono">${total}/${total}</span></div>`}).join('');
   }
 
   function initConnectionDiagram(){
@@ -1286,176 +2549,294 @@
     $('colour-translate-grid')?.addEventListener('click',event=>{
       const button=event.target.closest('[data-copy-colour]');if(!button)return;
       const value=button.dataset.copyColour;
-      if(!navigator.clipboard||!navigator.clipboard.writeText){notify('Copy unavailable',applyVocabularyText('The browser did not provide a clipboard action, so the colour was not copied.'));return}
-      navigator.clipboard.writeText(value).then(()=>notify('Colour copied',applyVocabularyText(`Copied ${value} to the clipboard.`))).catch(()=>notify('Copy unavailable',applyVocabularyText('The browser rejected the clipboard action, so the colour was not copied.')));
+      if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(value).catch(()=>{});
+      notify('Colour copied',applyVocabularyText(`Copied ${value} to the clipboard.`),{category:'export',en:`Copied the colour ${value} to the clipboard.`,zh:`已經將顏色 ${value} 複製去剪貼簿。`});
     });
     input.value=accent.value;
     sync(accent.value);
   }
 
+  // ------------------------------------------------------------------
+  // The deployed-version watch.
+  //
+  // Every decision below is a pure function taking values a caller supplies, and the
+  // three that touch the page do nothing else. That split is deliberate: "the value is
+  // stored" and "the banner is on the page" are both true of a watch that never notices
+  // anything, and only the pure half can be asked what it concludes.
+  // ------------------------------------------------------------------
+
+  /** The build identity this page is running. Empty commit means it was never built. */
+  function runningBuild(){return {version:SITE_BUILD_VERSION,commit:SITE_BUILD_COMMIT,builtAt:SITE_BUILD_AT}}
+  function shortCommit(commit){return String(commit||'').slice(0,7)}
+
+  /**
+   * Where the published manifest lives, or null when that is not this origin.
+   *
+   * The refusal is the point rather than a formality. Everything else on this site is a
+   * bundled local asset, and this is its one request, so the property worth being able
+   * to check is not "it fetched the right file" but "it could not have fetched somebody
+   * else's". A hand-edited `data-base` is enough to move it, and nothing would say so.
+   */
+  function versionManifestUrl(base,baseUri){
+    let here,there;
+    try{here=new URL(String(baseUri))}catch{return null}
+    try{there=new URL(`${String(base||'')}${VERSION_MANIFEST_NAME}`,here)}catch{return null}
+    if(there.origin!==here.origin)return null;
+    return there.href;
+  }
+
+  /**
+   * Reads the published manifest, refusing everything it cannot vouch for.
+   *
+   * Bounded first, because the size check is the only one that holds whatever the body
+   * turns out to be -- a proxy error page, an HTML 404, a truncated write.
+   */
+  function parseVersionManifest(text){
+    if(typeof text!=='string')return {ok:false,reason:'the published version manifest was not text'};
+    if(text.length>UPDATE_MANIFEST_MAX_BYTES)return {ok:false,reason:`the published version manifest is larger than the ${UPDATE_MANIFEST_MAX_BYTES}-byte bound this page will read`};
+    let parsed;
+    try{parsed=JSON.parse(text)}catch{return {ok:false,reason:'the published version manifest is not valid JSON'}}
+    if(typeof parsed!=='object'||parsed===null||Array.isArray(parsed))return {ok:false,reason:'the published version manifest is not a JSON object'};
+    if(parsed.schemaVersion!==1)return {ok:false,reason:`the published version manifest declares schema version ${JSON.stringify(parsed.schemaVersion)}, which this page cannot read`};
+    const version=parsed.version;
+    if(typeof version!=='string'||version.length===0||version.length>40||!/^[0-9A-Za-z][0-9A-Za-z.+-]*$/.test(version))return {ok:false,reason:'the published version manifest carries no readable version label'};
+    const commit=parsed.commit;
+    if(typeof commit!=='string'||!/^[0-9a-f]{40}$/.test(commit))return {ok:false,reason:'the published version manifest carries no full 40-character commit'};
+    const builtAt=parsed.builtAt;
+    if(typeof builtAt!=='string'||!Number.isFinite(Date.parse(builtAt)))return {ok:false,reason:'the published version manifest carries no readable build time'};
+    return {ok:true,manifest:{version,commit,builtAt}};
+  }
+
+  /**
+   * -1, 0 or 1 for two `v0.1.N`-shaped labels, and null for anything else.
+   *
+   * Null rather than a guess, because ordering two arbitrary strings is exactly how a
+   * roll-back gets announced to somebody as an update.
+   */
+  function compareBuildVersions(left,right){
+    const parse=label=>{const match=/^v?(\d+)\.(\d+)\.(\d+)$/.exec(String(label==null?'':label));return match?[Number(match[1]),Number(match[2]),Number(match[3])]:null};
+    const a=parse(left),b=parse(right);
+    if(!a||!b)return null;
+    for(let i=0;i<3;i+=1)if(a[i]!==b[i])return a[i]<b[i]?-1:1;
+    return 0;
+  }
+
+  /**
+   * What the two identities mean together. `direction` exists so the wording can stay
+   * honest when the published site moved BACKWARDS, which "an update is available" would
+   * describe wrongly.
+   */
+  function updateVerdict(running,deployed){
+    if(!running||!running.commit)return {state:'unbuilt',direction:'unknown'};
+    if(!deployed||!deployed.commit)return {state:'unknown',direction:'unknown'};
+    if(deployed.commit===running.commit)return {state:'current',direction:'same'};
+    const order=compareBuildVersions(running.version,deployed.version);
+    if(order===-1)return {state:'available',direction:'newer'};
+    if(order===1)return {state:'available',direction:'older'};
+    if(order===0)return {state:'available',direction:'rebuilt'};
+    return {state:'available',direction:'unknown'};
+  }
+
+  /** The headline the banner and the card both use, phrased by direction. */
+  function updateHeadline(watch){
+    const deployed=watch&&watch.deployed;
+    if(!deployed)return '';
+    const named=`${deployed.version} (${shortCommit(deployed.commit)})`;
+    if(watch.direction==='newer')return `A newer version of this page has been published: ${named}.`;
+    if(watch.direction==='older')return `The published page has been rolled back to ${named}.`;
+    if(watch.direction==='rebuilt')return `This page has been rebuilt and republished at the same version, ${named}.`;
+    return `The published page is now ${named}, which is not the build you are reading.`;
+  }
+
+  /** The identity line under the card: what this page actually is. */
+  function runningBuildLine(running){
+    if(!running||!running.commit)return 'This page was served straight out of the source directory, so it carries no build identity and cannot be compared with anything.';
+    return `You are reading ${running.version} (${shortCommit(running.commit)}), built ${running.builtAt}.`;
+  }
+
+  /** The status line under the card, for every state the watch can be in. */
+  function updateStatusLine(watch,running){
+    switch(watch&&watch.state){
+      case 'unbuilt':return 'Not checked: an unbuilt page has nothing to compare.';
+      case 'checking':return 'Checking the published version…';
+      case 'failed':return `Could not check: ${watch.reason}`;
+      case 'current':return 'This is the published version.';
+      case 'available':return `${updateHeadline(watch)} Reload to take it.`;
+      default:return 'Not checked yet.';
+    }
+  }
+
+  /**
+   * Why the check button is disabled, or '' when it is not. A disabled control that says
+   * nothing reads as broken rather than as waiting for a condition.
+   */
+  function updateCheckDisabledReason(watch,running){
+    if(!running||!running.commit)return 'This page was not produced by the site build, so there is no build identity to compare against the published one.';
+    if(watch&&watch.inFlight)return 'A check is already running.';
+    return '';
+  }
+
+  let updateWatch={state:'idle',direction:'unknown',reason:'',deployed:null,checkedAt:0,inFlight:false};
+  let updateTimer=null;
+
+  function ensureUpdateUI(){
+    const main=document.querySelector('main');
+    if(!main||$('update-banner'))return;
+    const banner=document.createElement('div');
+    banner.id='update-banner';banner.className='update-banner';banner.hidden=true;
+    banner.setAttribute('role','status');banner.setAttribute('aria-live','polite');
+    main.prepend(banner);
+  }
+
+  /**
+   * The banner is built with `textContent` throughout rather than a markup string. The
+   * values are validated above and would survive either way; what would not is the next
+   * person adding an unvalidated one to the same template.
+   */
+  function renderUpdateBanner(){
+    const banner=$('update-banner');if(!banner)return;
+    const deployed=updateWatch.deployed;
+    const show=updateWatch.state==='available'&&Boolean(deployed)&&state.updateDismissedCommit!==deployed.commit;
+    banner.hidden=!show;
+    banner.replaceChildren();
+    if(!show)return;
+    const headline=document.createElement('strong');
+    headline.textContent=applyVocabularyText(updateHeadline(updateWatch));
+    const note=document.createElement('p');
+    note.textContent=applyVocabularyText('Reloading fetches the published page. Your settings are saved as you change them, but anything typed into a field and not yet saved is lost.');
+    const actions=document.createElement('div');
+    actions.className='update-banner-actions';
+    const reload=document.createElement('button');
+    reload.type='button';reload.id='update-reload';reload.className='primary-button';
+    reload.textContent='Reload to update';
+    reload.addEventListener('click',()=>{location.reload()});
+    const later=document.createElement('button');
+    later.type='button';later.id='update-later';later.className='text-button';
+    later.textContent='Later';
+    later.addEventListener('click',dismissUpdateBanner);
+    const changes=document.createElement('a');
+    changes.className='text-button';changes.id='update-changes';
+    changes.href=`${BASE}downloads.html#changelog`;
+    changes.textContent='What changed';
+    actions.append(reload,later,changes);
+    banner.append(headline,note,actions);
+  }
+
+  /**
+   * `Later` is remembered against the exact commit it was said about, and persisted, so
+   * it survives moving to another page of this site. A newly published build is a
+   * different answer to a different question and raises the banner again.
+   */
+  function dismissUpdateBanner(){
+    if(!updateWatch.deployed)return;
+    state.updateDismissedCommit=updateWatch.deployed.commit;
+    save();
+    renderUpdateState();
+  }
+
+  function renderUpdateState(){
+    const running=runningBuild();
+    if($('update-status'))$('update-status').textContent=applyVocabularyText(updateStatusLine(updateWatch,running));
+    if($('update-identity'))$('update-identity').textContent=applyVocabularyText(runningBuildLine(running));
+    const button=$('update-check');
+    if(button){
+      const why=updateCheckDisabledReason(updateWatch,running);
+      button.disabled=why!=='';
+      if(why)button.title=why;else button.removeAttribute('title');
+    }
+    renderUpdateBanner();
+  }
+
+  /**
+   * One check. Re-entrant calls are refused rather than queued, because two checks in
+   * flight can settle in either order and the loser would overwrite the winner.
+   */
+  async function checkForUpdate(options){
+    const manual=Boolean(options&&options.manual);
+    const running=runningBuild();
+    if(!running.commit){
+      updateWatch={...updateWatch,state:'unbuilt',direction:'unknown',reason:'',inFlight:false};
+      renderUpdateState();
+      return updateWatch;
+    }
+    if(updateWatch.inFlight)return updateWatch;
+    /* Held before the state moves to `checking`, because that move is what the
+     * "have we already announced this build" question is asked against. Reading it
+     * afterwards always answers no, and the watch notifies on every poll. */
+    const previous=updateWatch;
+    const url=versionManifestUrl(BASE,document.baseURI);
+    if(!url){
+      updateWatch={...updateWatch,state:'failed',reason:'the published version manifest does not resolve to an address on this site',inFlight:false};
+      renderUpdateState();
+      return updateWatch;
+    }
+    updateWatch={...updateWatch,inFlight:true,state:'checking',reason:''};
+    renderUpdateState();
+    let text=null,failure='';
+    const controller=new AbortController();
+    const timer=setTimeout(()=>{controller.abort()},UPDATE_FETCH_TIMEOUT_MS);
+    try{
+      const response=await fetch(url,{cache:'no-store',credentials:'omit',signal:controller.signal});
+      if(!response.ok)failure=`the published version manifest answered HTTP ${response.status}`;
+      else text=await response.text();
+    }catch{
+      failure=controller.signal.aborted
+        ? `the published version manifest did not answer within ${UPDATE_FETCH_TIMEOUT_MS/1000} seconds`
+        : 'this browser could not reach the published version manifest';
+    }finally{clearTimeout(timer)}
+    if(!failure){
+      const parsed=parseVersionManifest(text);
+      if(!parsed.ok)failure=parsed.reason;
+      else{
+        const verdict=updateVerdict(running,parsed.manifest);
+        const repeat=previous.state==='available'&&Boolean(previous.deployed)&&previous.deployed.commit===parsed.manifest.commit;
+        updateWatch={...updateWatch,inFlight:false,state:verdict.state,direction:verdict.direction,deployed:parsed.manifest,reason:'',checkedAt:Date.now()};
+        renderUpdateState();
+        /* Told once per published build, and again on a check the person asked for. A
+         * banner that raises a notification on every poll is the nagging this site is
+         * not allowed to do. */
+        if(verdict.state==='available'&&!repeat){
+          const headline=updateHeadline(updateWatch);
+          notify('A new version is published',applyVocabularyText(`${headline} Reload to take it.`),
+            {category:'notification',en:`${headline} Reload to take it.`,zh:`網站已經發佈咗新版本 ${updateWatch.deployed.version}，重新載入就攞到。`});
+        }else if(manual&&verdict.state==='current'){
+          notify('This page is up to date',applyVocabularyText('This is the published version.'),
+            {category:'notification',en:'This page is already the published version.',zh:'呢版已經係已發佈嘅版本。'});
+        }
+        return updateWatch;
+      }
+    }
+    updateWatch={...updateWatch,inFlight:false,state:'failed',reason:failure,checkedAt:Date.now()};
+    renderUpdateState();
+    if(manual)notify('Update check failed',applyVocabularyText(`Could not check: ${failure}`),
+      {category:'error',isError:true,en:`The update check failed: ${failure}.`,zh:`更新檢查失敗：${failure}。`});
+    return updateWatch;
+  }
+
+  function startUpdateWatch(){
+    stopUpdateWatch();
+    if(!runningBuild().commit)return;
+    updateTimer=setInterval(()=>{checkForUpdate({manual:false})},UPDATE_CHECK_INTERVAL_MS);
+  }
+  function stopUpdateWatch(){if(updateTimer!==null){clearInterval(updateTimer);updateTimer=null}}
+
+  function initUpdates(){
+    ensureUpdateUI();
+    if($('update-check'))$('update-check').onclick=()=>{checkForUpdate({manual:true})};
+    renderUpdateState();
+    checkForUpdate({manual:false});
+    startUpdateWatch();
+  }
+
+  function initReleaseNotes(){renderMarkdownBlock($('release-notes'),RELEASE_NOTES_MARKDOWN,'No release notes were provided yet -- no verified release manifest exists.')}
+
   function initSettingsPreview(){
     const preview=$('settings-preview');if(!preview)return;
     const sync=()=>{if($('preview-scale'))$('preview-scale').style.width=`${Math.max(0,Math.min(100,(state.fontScale-90)/40*100))}%`;if($('preview-density'))$('preview-density').textContent=state.density};
-    ['theme-mode','language-mode','density-mode','accent-color','font-scale','motion-mode'].forEach(id=>{const el=$(id);if(el)el.addEventListener('input',sync)});
+    ['theme-mode','language-mode','density-mode','accent-color','font-scale','motion-mode'].forEach(id=>{const control=el(id);if(control)control.addEventListener('input',sync)});
     sync();
   }
 
-  function readSiteStatusRecord(){
-    try{
-      const element=$('site-status-record');if(!element)throw new Error('No composed build record is embedded in this source page.');
-      const record=JSON.parse(element.textContent);if(record.schemaVersion!==1||!record.build||!record.release)throw new Error('The embedded record has an unsupported schema.');
-      if(record.build.state!=='validated'||record.build.source!=='build-manifest.json'||!Number.isSafeInteger(record.build.documentationArticles)||record.build.documentationArticles<0||!Number.isSafeInteger(record.build.runtimeNetworkFetches)||record.build.runtimeNetworkFetches<0)throw new Error('The embedded build-manifest record is incomplete.');
-      return record;
-    }catch(error){return{schemaVersion:1,build:{state:'unavailable',reason:error.message},release:{state:'unavailable',reason:'No validated release record is available on this page.'}}}
-  }
-  function text(id,value){if($(id))$(id).textContent=value}
-  function renderSiteEvidence(){
-    const record=readSiteStatusRecord(),build=record.build,release=record.release,buildAvailable=build.state==='validated';
-    const destinationCount=DESTINATIONS.length;
-    all('[data-destination-count]').forEach(element=>element.textContent=String(destinationCount));
-    text('hero-doc-link',`Browse all ${destinationCount} destinations`);text('hero-release-state',release.state==='available'?`Version ${release.version}`:'Download unavailable');text('hero-release-note',release.state==='available'?`Validated release record ${release.tag}.`:release.reason||'No validated release evidence record is available.');
-    text('status-build-state',buildAvailable?`${build.documentationArticles} composed articles`:'Build record unavailable');text('status-build-note',buildAvailable?`Read from ${build.source}; ${build.topLevelPages} top-level pages are recorded in this composition.`:build.reason||'No build evidence is available.');
-    text('status-network-state',buildAvailable?String(build.runtimeNetworkFetches):'Unavailable');text('status-network-note',buildAvailable?`The ${build.source} record declares ${build.runtimeNetworkFetches} runtime network fetches for the composed static surface.`:'No build record is available, so this page does not claim a request count.');
-    text('status-release-state',release.state==='available'?`Available: ${release.version}`:release.state==='stale'?'Stale record':release.state==='invalid'?'Invalid record':'Unavailable');text('status-release-note',release.state==='available'?`${release.tag} identifies ${release.setup.name}, ${release.setup.bytes} bytes, with a full SHA-256.`:release.reason||'No validated release evidence record is available.');
-    const timeline=$('status-timeline');if(timeline){const rows=[{state:buildAvailable?'good':'waiting',title:'Build composition record',body:buildAvailable?`${build.documentationArticles} article files and ${build.topLevelPages} top-level pages were recorded.`:build.reason||'Unavailable.'},{state:release.state==='available'?'good':'waiting',title:'Installer release record',body:release.state==='available'?`${release.tag} passed the local record schema checks.`:release.reason||'Unavailable.'}];timeline.innerHTML=rows.map(row=>`<li data-state="${row.state}"><strong>${escapeHtml(row.title)}</strong><p>${escapeHtml(row.body)}</p></li>`).join('')}
-    const chip=$('download-release-chip'),button=$('download-button');
-    if(chip){chip.textContent=release.state==='available'?'Validated release':release.state==='stale'?'Stale record':release.state==='invalid'?'Invalid record':'Unavailable';chip.className=`status-chip ${release.state==='available'?'good-chip':'warning-chip'}`}
-    text('download-version',release.state==='available'?release.version:'Unavailable');text('download-artifact',release.state==='available'?`${release.setup.name} (${release.setup.bytes} bytes)`:'Not verified');text('download-sha',release.state==='available'?release.setup.sha256:'Not published');text('installer-status',release.state==='available'?`${release.tag} identifies an unsigned installer through a validated HTTPS asset record.`:release.reason||'No validated release record exists, so this site does not guess a download URL.');
-    if(button){if(release.state==='available'){button.disabled=false;button.textContent=`Download ${release.setup.name}`;button.addEventListener('click',()=>location.assign(release.setup.url),{once:true})}else{button.disabled=true;button.textContent='Download unavailable'}}
-  }
-
-  // ---- Local file converter -------------------------------------------------
-  // The browser surface deliberately exposes only adapters that are implemented
-  // in this file. Every other known family stays visible and disabled with its
-  // exact bundled-adapter boundary. No PATH lookup, upload, or guessed output.
-  const CONVERTER_MAX_BYTES=32*1024*1024,CONVERTER_PAGE_SIZE=10;
-  const CONVERTER_ADAPTERS=[
-    {category:'Documents/PDF',format:'PDF inspect',extensions:['pdf'],signatures:['pdf'],enabled:false,reason:'No bundled PDF parser is present in this browser surface.'},
-    {category:'Documents/PDF',format:'PDF split, merge, extract, reorder, rotate, metadata',extensions:['pdf'],signatures:['pdf'],enabled:false,reason:'No bundled PDF write adapter is present in this browser surface.'},
-    {category:'Images',format:'PNG',extensions:['png'],signatures:['png'],enabled:false,reason:'No bundled image adapter is present in this browser surface.'},
-    {category:'Images',format:'JPEG',extensions:['jpg','jpeg'],signatures:['jpeg'],enabled:false,reason:'No bundled image adapter is present in this browser surface.'},
-    {category:'Images',format:'GIF or WebP',extensions:['gif','webp'],signatures:['gif','webp'],enabled:false,reason:'No bundled animated or WebP adapter is present in this browser surface.'},
-    {category:'Audio',format:'WAV, MP3, OGG, or FLAC',extensions:['wav','mp3','ogg','flac'],signatures:['wav','mp3','ogg','flac'],enabled:false,reason:'No bundled audio adapter is present in this browser surface.'},
-    {category:'Video',format:'MP4, WebM, or Matroska',extensions:['mp4','webm','mkv'],signatures:['mp4','webm','mkv'],enabled:false,reason:'No bundled video adapter is present in this browser surface.'},
-    {category:'Archives',format:'ZIP, GZIP, TAR, 7z, or RAR',extensions:['zip','gz','tar','7z','rar'],signatures:['zip','gzip','tar','7z','rar'],enabled:false,reason:'No bundled archive adapter is present in this browser surface.'},
-    {category:'Structured Data/Spreadsheets',format:'JSON',extensions:['json'],signatures:['json'],enabled:true,reason:'Browser-bundled JSON parser and serializer.'},
-    {category:'Structured Data/Spreadsheets',format:'JSONL',extensions:['jsonl','ndjson'],signatures:['jsonl'],enabled:true,reason:'Browser-bundled line-delimited JSON parser and serializer.'},
-    {category:'Structured Data/Spreadsheets',format:'CSV or TSV',extensions:['csv','tsv'],signatures:['csv','tsv'],enabled:true,reason:'Bounded browser-bundled delimited-text adapter.'},
-    {category:'Code/Text',format:'UTF-8 text and Markdown',extensions:['txt','md','markdown','log','yaml','yml','toml','xml','html','css','js','ts','py','go','rs'],signatures:['text'],enabled:true,reason:'Bounded browser TextDecoder and Blob output.'},
-    {category:'Binary Encodings',format:'Base64',extensions:['*'],signatures:['binary'],enabled:true,reason:'Bounded browser-bundled Base64 encoder.'}
-  ];
-  let converterFiles=[],converterResults=[],converterPage=0,converterRunning=false,converterCancelled=false;
-  function converterAscii(bytes,count=16){return Array.from(bytes.slice(0,count),value=>value>=32&&value<=126?String.fromCharCode(value):'.').join('')}
-  function converterStarts(bytes,values){return values.some(value=>bytes.length>=value.length&&value.every((byte,index)=>bytes[index]===value))}
-  function converterText(bytes){try{return new TextDecoder('utf-8',{fatal:true}).decode(bytes)}catch{return undefined}}
-  function detectConverterType(file,bytes){
-    const name=file.name.toLowerCase(),extension=name.includes('.')?name.split('.').pop():'';
-    if(converterStarts(bytes,[[0x25,0x50,0x44,0x46]]))return {kind:'pdf',label:'PDF'};
-    if(converterStarts(bytes,[[0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]]))return {kind:'png',label:'PNG'};
-    if(converterStarts(bytes,[[0xff,0xd8,0xff]]))return {kind:'jpeg',label:'JPEG'};
-    if(converterStarts(bytes,[[0x47,0x49,0x46,0x38]]))return {kind:'gif',label:'GIF'};
-    if(converterStarts(bytes,[[0x52,0x49,0x46,0x46]]))return {kind:'wav',label:'WAV'};
-    if(converterStarts(bytes,[[0x49,0x44,0x33],[0xff,0xfb],[0xff,0xf3]]))return {kind:'mp3',label:'MP3'};
-    if(converterStarts(bytes,[[0x4f,0x67,0x67,0x53]]))return {kind:'ogg',label:'OGG'};
-    if(converterStarts(bytes,[[0x66,0x4c,0x61,0x43]]))return {kind:'flac',label:'FLAC'};
-    if(converterStarts(bytes,[[0x50,0x4b,0x03,0x04],[0x50,0x4b,0x05,0x06]]))return {kind:'zip',label:'ZIP'};
-    if(converterStarts(bytes,[[0x1f,0x8b]]))return {kind:'gzip',label:'GZIP'};
-    if(converterStarts(bytes,[[0x37,0x7a,0xbc,0xaf,0x27,0x1c]]))return {kind:'7z',label:'7z'};
-    if(converterStarts(bytes,[[0x52,0x61,0x72,0x21,0x1a,0x07]]))return {kind:'rar',label:'RAR'};
-    if(converterAscii(bytes,12).includes('ftyp'))return {kind:'mp4',label:'MP4'};
-    if(converterStarts(bytes,[[0x1a,0x45,0xdf,0xa3]]))return {kind:'mkv',label:'Matroska'};
-    const text=converterText(bytes.slice(0,Math.min(bytes.length,65536)));
-    if(text!==undefined){
-      if(extension==='json'||extension==='jsonl'||extension==='ndjson')return {kind:extension==='json'?'json':'jsonl',label:extension.toUpperCase()};
-      if(extension==='csv')return {kind:'csv',label:'CSV'};
-      if(extension==='tsv')return {kind:'tsv',label:'TSV'};
-      return {kind:'text',label:'UTF-8 text'};
-    }
-    return {kind:'binary',label:extension?`Unknown binary (.${extension})`:'Unknown binary'};
-  }
-  function converterAdapterForType(type){return CONVERTER_ADAPTERS.find(adapter=>adapter.signatures.includes(type.kind)&&adapter.enabled)||CONVERTER_ADAPTERS.find(adapter=>adapter.signatures.includes(type.kind))}
-  function converterAdapterMatches(adapter,query){return !query||plainTextMatches(`${adapter.category} ${adapter.format} ${adapter.reason}`,query)}
-  function renderConverterAdapters(query=''){
-    const target=$('converter-adapters');if(!target)return;
-    const render=items=>{target.innerHTML=items.length?items.map(adapter=>`<article class="adapter-card ${adapter.enabled?'adapter-enabled':'adapter-disabled'}"><div><strong>${escapeHtml(adapter.format)}</strong><small>${escapeHtml(adapter.category)}</small></div><span class="status-chip ${adapter.enabled?'good-chip':'warning-chip'}">${adapter.enabled?'Bundled':'Unavailable'}</span><p>${escapeHtml(adapter.reason)}</p></article>`).join(''):'<p class="empty-state">No adapters match this search.</p>';text('converter-format-status',`${items.length} adapter entries shown. Disabled entries are not discovered from this browser or the host.`)};
-    const adapters=CONVERTER_ADAPTERS;
-    if(regexSearchEnabled('converter-format-search',query)){
-      render([]);const run=runRegexWorker('search:converter-format-search',regexState.get('converter-format-search'),adapters.map((item,index)=>({id:String(index),text:`${item.category} ${item.format} ${item.reason}`})));
-      run.promise.then(result=>{if(!regexRunCurrent('search:converter-format-search',run))return;const ids=new Set(result.matchedIds);render(adapters.filter((_,index)=>ids.has(String(index))))}).catch(error=>{if(regexRunCurrent('search:converter-format-search',run))text('converter-format-status',`Pattern evaluation unavailable: ${error.message}`)});return;
-    }
-    render(adapters.filter(adapter=>converterAdapterMatches(adapter,query)));
-  }
-  function converterParseDelimited(raw,delimiter){const lines=raw.replaceAll('\r\n','\n').replaceAll('\r','\n').split('\n').filter(line=>line.length>0);if(!lines.length)return [];return lines.map(line=>line.split(delimiter).map(cell=>cell.trim()))}
-  function converterRowsFromText(raw,type){
-    if(type.kind==='json'){const value=JSON.parse(raw);return Array.isArray(value)?value:[value]}
-    if(type.kind==='jsonl'){return raw.split(/\r?\n/).filter(Boolean).map(line=>JSON.parse(line))}
-    if(type.kind==='csv'||type.kind==='tsv'){const cells=converterParseDelimited(raw,type.kind==='tsv'?'\t':',');if(!cells.length)return [];const [header,...rows]=cells;return rows.map(row=>Object.fromEntries(header.map((key,index)=>[key||`column_${index+1}`,row[index]??'']))) }
-    return undefined;
-  }
-  function converterRowsToText(rows,format){
-    if(format==='json')return JSON.stringify(rows,null,2);
-    if(format==='jsonl')return rows.map(row=>JSON.stringify(row)).join('\n');
-    if(format==='txt')return rows.map(row=>typeof row==='string'?row:JSON.stringify(row)).join('\n');
-    const columns=[...new Set(rows.flatMap(row=>Object.keys(row||{})))],delimiter=format==='tsv'?'\t':',';
-    const quote=value=>{const raw=String(value??'');return raw.includes(delimiter)||raw.includes('"')||raw.includes('\n')?`"${raw.replaceAll('"','""')}"`:raw};
-    return [columns.map(quote).join(delimiter),...rows.map(row=>columns.map(column=>quote(row?.[column])).join(delimiter))].join('\r\n')+'\r\n';
-  }
-  async function converterConvertFile(file,index){
-    const result={name:file.name,size:file.size,state:'reading',type:'',message:'Reading bounded bytes.',preview:'',blob:null};converterResults[index]=result;renderConverterQueue();
-    if(file.size>CONVERTER_MAX_BYTES){result.state='failed';result.message='Rejected before reading: the 32 MiB per-file bound was exceeded.';return}
-    const bytes=new Uint8Array(await file.arrayBuffer());if(converterCancelled){result.state='cancelled';result.message='Cancelled before conversion.';return}
-    const type=detectConverterType(file,bytes);result.type=type.label;const adapter=converterAdapterForType(type);
-    if(!adapter||!adapter.enabled){result.state='skipped';result.message=adapter?.reason||'No verified browser-bundled adapter matches the inspected bytes.';return}
-    const format=$('converter-target-format')?.value||'json';let output,mime='text/plain;charset=utf-8';
-    try{
-      if(format==='base64'){let binary='';for(let offset=0;offset<bytes.length;offset+=0x8000)binary+=String.fromCharCode(...bytes.slice(offset,offset+0x8000));output=btoa(binary);mime='text/plain;charset=utf-8'}
-      else{const raw=converterText(bytes);if(raw===undefined)throw new Error('The inspected bytes are not valid UTF-8 for this browser-bundled text adapter.');const rows=converterRowsFromText(raw,type);if(!rows&&format!=='txt'&&format!=='json'&&format!=='jsonl')throw new Error(`Target ${format.toUpperCase()} requires a structured text source; no guessed conversion was written.`);output=rows?converterRowsToText(rows,format):format==='txt'?raw:converterRowsToText([raw],format);mime=format==='json'||format==='jsonl'?'application/json':'text/plain;charset=utf-8'}
-      result.blob=new Blob([output],{type:mime});result.preview=output.slice(0,8192);result.state='ready';result.message=`${type.label} converted in memory as ${format.toUpperCase()}. ${output.length>8192?'Preview is capped at 8 KiB.':''}`;
-    }catch(error){result.state='failed';result.message=`Conversion stopped without writing a destination: ${error.message}`}
-  }
-  function renderConverterQueue(){
-    const target=$('converter-queue');if(!target)return;const start=converterPage*CONVERTER_PAGE_SIZE,page=converterResults.slice(start,start+CONVERTER_PAGE_SIZE);
-    target.innerHTML=page.length?page.map((result,localIndex)=>{const index=start+localIndex;const preview=result.preview?`<pre class="converter-preview">${escapeHtml(result.preview)}</pre>`:'';return `<article class="converter-result" data-converter-index="${index}"><div class="card-top"><div><strong>${escapeHtml(result.name)}</strong><small>${escapeHtml(result.type||'Not inspected')} · ${Math.ceil(result.size/1024)} KiB</small></div><span class="status-chip ${result.state==='ready'?'good-chip':result.state==='failed'?'danger-chip':'warning-chip'}">${escapeHtml(result.state)}</span></div><p>${escapeHtml(result.message)}</p>${preview}${result.state==='ready'?'<button class="text-button" type="button" data-converter-download>Download validated result</button>':''}</article>`}).join(''):'<p class="empty-state">Choose one or more local files to create the bounded queue.</p>';
-    text('converter-page-status',converterResults.length?`Showing ${start+1}-${Math.min(start+CONVERTER_PAGE_SIZE,converterResults.length)} of ${converterResults.length} files.`:'');if($('converter-prev'))$('converter-prev').disabled=converterPage===0;if($('converter-next'))$('converter-next').disabled=(converterPage+1)*CONVERTER_PAGE_SIZE>=converterResults.length;
-  }
-  function initConverter(){
-    if(!$('converter-files'))return;
-    renderConverterAdapters();renderConverterQueue();
-    $('converter-format-search')?.addEventListener('input',event=>renderConverterAdapters(event.target.value));
-    $('converter-target-format')?.addEventListener('change',()=>{text('converter-loss','A target change applies only to the next local conversion. Existing in-memory results remain unchanged.');});
-    $('converter-files').addEventListener('change',async event=>{converterFiles=[...event.target.files];converterResults=converterFiles.map(file=>({name:file.name,size:file.size,state:'queued',type:'',message:'Waiting for its bounded conversion turn.',preview:'',blob:null}));converterPage=0;converterCancelled=false;text('converter-input-status',`${converterFiles.length} local file${converterFiles.length===1?'':'s'} queued. No bytes have left this page.`);renderConverterQueue();if(converterRunning)return;converterRunning=true;$('converter-cancel').disabled=false;for(let index=0;index<converterFiles.length;index++){if(converterCancelled){converterResults.slice(index).forEach(result=>{result.state='cancelled';result.message='Cancelled before its conversion turn.'});break}await converterConvertFile(converterFiles[index],index);await new Promise(resolve=>setTimeout(resolve,0));renderConverterQueue()}converterRunning=false;$('converter-cancel').disabled=true;notify('Local conversion finished',applyVocabularyText('Each file has its own honest result. No destination was overwritten.'))});
-    $('converter-cancel')?.addEventListener('click',()=>{converterCancelled=true;text('converter-input-status','Cancellation requested. The active bounded read will finish or stop at its next safe boundary.')});$('converter-prev')?.addEventListener('click',()=>{converterPage=Math.max(0,converterPage-1);renderConverterQueue()});$('converter-next')?.addEventListener('click',()=>{converterPage=Math.min(Math.max(0,Math.ceil(converterResults.length/CONVERTER_PAGE_SIZE)-1),converterPage+1);renderConverterQueue()});
-    $('converter-queue')?.addEventListener('click',event=>{if(!event.target.closest('[data-converter-download]'))return;const index=Number(event.target.closest('[data-converter-index]')?.dataset.converterIndex),result=converterResults[index];if(!result?.blob)return;download(`${slugForFilename(result.name)}-converted.${$('converter-target-format')?.value||'txt'}`,result.blob,'application/octet-stream');notify('Validated result download started',applyVocabularyText(`${result.name} was offered as an in-memory result.`))});
-  }
-
-  // ---- Browser-local Ollama manager ----------------------------------------
-  // No call is made until the user enters and approves a loopback endpoint.
-  let ollama={endpoint:'',models:[],running:[],streamController:null};
-  function ollamaSetState(label,detail,kind='warning'){const chip=$('ollama-state-chip');if(chip){chip.textContent=label;chip.className=`status-chip ${kind==='good'?'good-chip':kind==='danger'?'danger-chip':'warning-chip'}`}text('ollama-boundary',detail)}
-  function ollamaEndpoint(){const raw=$('ollama-endpoint')?.value.trim()||'';let url;try{url=new URL(raw)}catch{return {error:'Enter a complete endpoint URL such as http://127.0.0.1:11434.'}}if(!['http:','https:'].includes(url.protocol)||url.username||url.password||url.search||url.hash)return {error:'Use an HTTP(S) endpoint without credentials, query data, or a fragment.'};const host=url.hostname.toLowerCase();if(!['localhost','127.0.0.1','[::1]','::1'].includes(host))return {error:'Only localhost, 127.0.0.1, or [::1] is allowed by this browser bridge.'};if(location.protocol==='https:'&&url.protocol==='http:')return {error:'HTTPS mixed-content policy blocks an HTTP loopback request from this page. Use the installed app bridge or an HTTPS local endpoint.'};return {url:url.href.replace(/\/$/,'')};}
-  async function ollamaJson(path,options={}){const check=ollamaEndpoint();if(check.error)throw new Error(check.error);const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);try{const response=await fetch(`${check.url}${path}`,{...options,signal:controller.signal,credentials:'omit',headers:{Accept:'application/json',...(options.headers||{})}});const length=Number(response.headers.get('content-length')||0);if(length>2*1024*1024)throw new Error('The local response exceeded the 2 MiB browser bound.');const body=await response.text();if(body.length>2*1024*1024)throw new Error('The local response exceeded the 2 MiB browser bound.');if(!response.ok)throw new Error(`Local Ollama returned HTTP ${response.status}.`);try{return JSON.parse(body)}catch{throw new Error('The local response was not valid JSON.')}}finally{clearTimeout(timer)}}
-  function ollamaRows(){const query=$('ollama-model-search')?.value||'',models=ollama.models.filter(model=>plainTextMatches(`${model.name||''} ${model.digest||''} ${model.details?.family||''}`,query));const target=$('ollama-models');if(!target)return;target.innerHTML=models.length?models.map(model=>`<article class="model-row"><strong>${escapeHtml(model.name||'Unnamed tag')}</strong><small>${escapeHtml(model.details?.family||'Family metadata not returned')} · ${escapeHtml(model.size?`${model.size} bytes`:'Blob size not returned')}</small><span>${ollama.running.some(item=>item.name===model.name)?'Running':'Installed'}</span></article>`).join(''):'<p class="empty-state">No verified installed model matches this search.</p>';const select=$('ollama-model-select');if(select){const prior=select.value;select.innerHTML=models.length?models.map(model=>`<option value="${escapeHtml(model.name)}">${escapeHtml(model.name)}</option>`).join(''):'<option value="">No verified model</option>';if(models.some(model=>model.name===prior))select.value=prior;select.disabled=!models.length}const has=Boolean(models.length);['ollama-pull','ollama-show','ollama-chat'].forEach(id=>{if($(id))$(id).disabled=!has});if($('ollama-prompt'))$('ollama-prompt').disabled=!has}
-  async function ollamaProbe(){
-    const check=ollamaEndpoint();if(check.error){ollamaSetState('Blocked',check.error,'danger');return}if(!$('ollama-approve')?.checked){ollamaSetState('Waiting for approval','Check the approval box before any loopback request. No request has been made.');return}ollama.endpoint=check.url;ollamaSetState('Probing','Requesting only /api/version, /api/tags, and /api/ps from the approved local endpoint.');
-    try{const version=await ollamaJson('/api/version'),tags=await ollamaJson('/api/tags'),running=await ollamaJson('/api/ps');ollama.models=Array.isArray(tags.models)?tags.models:[];ollama.running=Array.isArray(running.models)?running.models:[];text('ollama-version',version.version?`Version returned by local Ollama: ${version.version}.`:'Version field was not returned.');text('ollama-health',`Installed tags returned: ${ollama.models.length}. Running tags returned: ${ollama.running.length}.`);text('ollama-catalog-state','Catalog completeness: Unknown. Official catalog pages and all tags were not fetched by this browser surface.');ollamaSetState('Verified local response','The approved endpoint returned bounded version, installed-tag, and running-tag responses. Catalog completeness remains Unknown.','good');if($('ollama-refresh'))$('ollama-refresh').disabled=false;ollamaRows();}
-    catch(error){const message=error.name==='AbortError'?'The local request timed out. The service may be stopped or unhealthy.':error instanceof TypeError?'The browser refused the loopback request, commonly because the service is offline or CORS denied it. Use the installed-app bridge action, then return here.':error.message;ollamaSetState('Unavailable',message,'danger');text('ollama-version','Unavailable until the approved endpoint responds.');text('ollama-health','No health result was accepted.');}
-  }
-  async function ollamaStream(path,payload,onLine){const check=ollamaEndpoint();if(check.error)throw new Error(check.error);const controller=new AbortController();ollama.streamController=controller;const timer=setTimeout(()=>controller.abort(),60000);try{const response=await fetch(`${check.url}${path}`,{method:'POST',credentials:'omit',signal:controller.signal,headers:{'Content-Type':'application/json',Accept:'application/x-ndjson, application/json'},body:JSON.stringify(payload)});if(!response.ok)throw new Error(`Local Ollama returned HTTP ${response.status}.`);if(!response.body)throw new Error('The local response did not provide a stream.');const reader=response.body.getReader(),decoder=new TextDecoder(),chunks=[];let total=0,buffer='';while(true){const part=await reader.read();if(part.done)break;total+=part.value.byteLength;if(total>10*1024*1024)throw new Error('The local stream exceeded the 10 MiB browser bound.');buffer+=decoder.decode(part.value,{stream:true});const lines=buffer.split(/\r?\n/);buffer=lines.pop()||'';for(const line of lines)if(line.trim()){const parsed=JSON.parse(line);chunks.push(parsed);onLine(parsed)}}if(buffer.trim())onLine(JSON.parse(buffer));return chunks}finally{clearTimeout(timer);ollama.streamController=null}}
-  async function ollamaPull(){const model=$('ollama-model-select')?.value;if(!model)return;text('ollama-pull-status',`Pulling verified tag ${model}; progress is from the local API.`);try{await ollamaStream('/api/pull',{model,stream:true},data=>text('ollama-pull-status',data.status?`${model}: ${data.status}${data.completed&&data.total?` (${data.completed}/${data.total} bytes)`:''}`:'Local pull returned an unlabelled progress item.'));notify('Local model pull finished',applyVocabularyText(`${model} returned a terminal local API result. Check the status text for its exact outcome.`))}catch(error){text('ollama-pull-status',error.name==='AbortError'?'Pull cancelled or timed out.':`Pull unavailable: ${error.message}`)}}
-  async function ollamaShow(){const model=$('ollama-model-select')?.value;if(!model)return;try{const data=await ollamaJson('/api/show',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:model})});text('ollama-recovery',`Capability metadata returned for ${model}: ${JSON.stringify(data.details||data).slice(0,4000)}. No capability is inferred when the API omits it.`)}catch(error){text('ollama-recovery',`Capability metadata is unavailable for ${model}: ${error.message}`)}}
-  async function ollamaChat(){const model=$('ollama-model-select')?.value,prompt=$('ollama-prompt')?.value.trim();if(!model||!prompt)return;const output=$('ollama-chat-output');if(output)output.textContent='';$('ollama-chat').disabled=true;$('ollama-cancel').disabled=false;try{await ollamaStream('/api/chat',{model,messages:[{role:'user',content:prompt}],stream:true},data=>{const content=data.message?.content||data.response||'';if(output)output.textContent+=(content||data.error||'')});}catch(error){if(output)output.textContent=error.name==='AbortError'?'Local chat cancelled or timed out.':`Local chat unavailable: ${error.message}`}finally{$('ollama-chat').disabled=false;$('ollama-cancel').disabled=true}}
-  function initOllama(){
-    if(!$('ollama-probe'))return;$('ollama-probe').addEventListener('click',ollamaProbe);$('ollama-refresh')?.addEventListener('click',ollamaProbe);$('ollama-model-search')?.addEventListener('input',ollamaRows);$('ollama-pull')?.addEventListener('click',ollamaPull);$('ollama-show')?.addEventListener('click',ollamaShow);$('ollama-chat')?.addEventListener('click',ollamaChat);$('ollama-cancel')?.addEventListener('click',()=>ollama.streamController?.abort());ollamaRows();
-  }
-
-  function init(){ensureUniversalShell();ensureAttentionUI();applyState();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initUniversalSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initSearchableMenus();initContextMenu();renderSiteEvidence();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initTimeAwareness();initMomentum();initConverter();initOllama();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('palette-results')?.addEventListener('click',event=>{const control=event.target.closest('[data-palette-control]')?.dataset.paletteControl;if(!control)return;$('command-palette').close();$('site-controls').showModal();setTimeout(()=>$(control)?.focus(),0)});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
-  window.__dingSiteReady=true;
-  window.DingSiteRegex={open:target=>openRegex(typeof target==='string'?target:target?.id)};
-  window.DingSitePalette={open:openPalette};
-  document.dispatchEvent(new CustomEvent('site:ready'));
-  const scriptBase=new URL('.',document.currentScript?.src||location.href);
-  const loadScriptOnce=name=>new Promise((resolve,reject)=>{const existing=[...document.scripts].find(script=>new URL(script.src||'',location.href).pathname.endsWith(`/${name}`));if(existing){if(existing.dataset.loaded==='true'||!existing.src){resolve();return}existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',()=>reject(new Error(`${name} did not load.`)),{once:true});return}const script=document.createElement('script');script.src=new URL(name,scriptBase).href;script.dataset.loaded='false';script.onload=()=>{script.dataset.loaded='true';resolve()};script.onerror=()=>reject(new Error(`${name} did not load.`));document.head.append(script)});
-  const loadDelivery=async()=>{try{if(document.body?.dataset.page==='history')await loadScriptOnce('changelog-data.js');await loadScriptOnce('release-manifest.js');await loadScriptOnce('full-builder.js');await loadScriptOnce('history-delivery.js')}catch(error){notify('Delivery workspace unavailable',applyVocabularyText(error.message))}};
-  loadDelivery();
+  function init(){ensureAttentionUI();initSchoolWatch();applyState();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initUpdates();initTimeAwareness();initMomentum();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
   init();
 })();

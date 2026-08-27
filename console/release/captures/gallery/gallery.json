@@ -1,0 +1,127 @@
+{
+  "generatedAt": "2026-08-25T15:47:28.877Z",
+  "screens": 16,
+  "picked": [
+    {
+      "heading": "Dashboard",
+      "file": "00-dashboard.png",
+      "sha256": "4e25b328233a3b542182cac5fe17076ebc17036490c4c99a9a44076fea2fd194",
+      "bytes": 276586,
+      "source": "clean gallery run"
+    },
+    {
+      "heading": "Confirmation credits",
+      "file": "01-confirmation-credits.png",
+      "sha256": "2e9dca43e58d7e5f6d0b597f5aa9637b94036d9f3c191a9e06c5fb3d74428412",
+      "bytes": 361975,
+      "source": "clean gallery run"
+    },
+    {
+      "heading": "Voicemail boxes",
+      "file": "02-voicemail-boxes.png",
+      "sha256": "edd1d3360cfe44cb03215ad16f4c4371b84720229a358c4cd5256473459296be",
+      "bytes": 280981,
+      "source": "clean gallery run"
+    },
+    {
+      "heading": "Call records",
+      "file": "03-call-records.png",
+      "sha256": "ebe31fa7fb0c96e59437219e5b18accbcd52c6cb2450330a737fc6863a4b4c9f",
+      "bytes": 240268,
+      "source": "clean gallery run"
+    },
+    {
+      "heading": "Modules",
+      "file": "04-modules.png",
+      "sha256": "0002675cf19c35c8f4b940bfc489632dda3bf38af2808669f2d089709c2f507f",
+      "bytes": 292057,
+      "source": "clean gallery run"
+    },
+    {
+      "heading": "Memory console",
+      "file": "05-memory-console.png",
+      "sha256": "e33eddfc44cc40722cbe209809ae826155efaeb80e38d263556d9388561ffcd5",
+      "bytes": 182447,
+      "source": "clean gallery run"
+    },
+    {
+      "heading": "Deploy a server",
+      "file": "06-deploy-a-server.png",
+      "sha256": "abf4af1ff52996a802bb20beaa30c2410787fe976d1b353b18b0eb6ebf83d711",
+      "bytes": 325161,
+      "source": "clean gallery run"
+    },
+    {
+      "heading": "Live channels",
+      "file": "drive-live-channels.png",
+      "sha256": "7215d67de14e7d4adb55b6489f1467f2e821a4b871279a6ae2ae0a9ba39cfd77",
+      "bytes": 256829,
+      "source": "interaction drive",
+      "note": "a panel may be open over the screen"
+    },
+    {
+      "heading": "PJSIP endpoints",
+      "file": "drive-pjsip-endpoints.png",
+      "sha256": "a018f494e9fe6f870e18040256eb69ada1c636bb8b72482f22c099049822130a",
+      "bytes": 280004,
+      "source": "interaction drive",
+      "note": "a panel may be open over the screen"
+    },
+    {
+      "heading": "Trunks & registrations",
+      "file": "drive-trunks-registrations.png",
+      "sha256": "c579bad5f5debddaaf2247aa3b060326d386a421a7ebd6dd064bca6ea2307f9a",
+      "bytes": 264047,
+      "source": "interaction drive",
+      "note": "a panel may be open over the screen"
+    },
+    {
+      "heading": "Trunk authentication",
+      "file": "drive-trunk-authentication.png",
+      "sha256": "82ec6c57d8dbec2b4d63e4c3026371b451c4495554fd7a773d31b41d8ac1bb7c",
+      "bytes": 257383,
+      "source": "interaction drive",
+      "note": "a panel may be open over the screen"
+    },
+    {
+      "heading": "Feature codes",
+      "file": "drive-feature-codes.png",
+      "sha256": "d80b4149f60a4db8ad62f8b35a013b2afa7c29c2f12c0d8c0271418d998e9ab5",
+      "bytes": 270145,
+      "source": "interaction drive",
+      "note": "a panel may be open over the screen"
+    },
+    {
+      "heading": "IAX peers",
+      "file": "drive-iax-peers.png",
+      "sha256": "4915b2a8657e217e9ee94197d6d9fa3bec9c5b9cbb4880232008799b5421f96d",
+      "bytes": 265173,
+      "source": "interaction drive",
+      "note": "a panel may be open over the screen"
+    },
+    {
+      "heading": "Dialplan canvas",
+      "file": "drive-dialplan-canvas.png",
+      "sha256": "90304b439df62da302b39ecb5262785a6a2eb0ec76fd38ec2c71b5b40c9eed44",
+      "bytes": 336981,
+      "source": "interaction drive",
+      "note": "a panel may be open over the screen"
+    },
+    {
+      "heading": "IVR menus",
+      "file": "drive-ivr-menus.png",
+      "sha256": "a410b61f3e67fe16d22cc09af954b4230d8166fef09101664d5eed7f76b63f64",
+      "bytes": 275138,
+      "source": "interaction drive",
+      "note": "a panel may be open over the screen"
+    },
+    {
+      "heading": "Queues & agents",
+      "file": "drive-queues-agents.png",
+      "sha256": "576ade58fd3691e1985733972eb3a6f370ce4ad291e75ea198efd0f8b9940563",
+      "bytes": 282627,
+      "source": "interaction drive",
+      "note": "a panel may be open over the screen"
+    }
+  ]
+}

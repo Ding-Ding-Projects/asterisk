@@ -57,12 +57,12 @@ export interface IsolatedLogoDecoder {
 
 export interface LogoConversionHandlers {
   readonly descriptors: readonly LogoHandlerDescriptor[];
-  readonly inspect(request: LogoSourceInput): LogoInspectionResult;
-  readonly convert(request: LogoConversionRequest): Promise<LogoConversionResult>;
+  inspect(request: LogoSourceInput): LogoInspectionResult;
+  convert(request: LogoConversionRequest): Promise<LogoConversionResult>;
   readonly cache: {
-    readonly read(request: LogoCacheReadRequest): Promise<LogoCacheRecord | undefined>;
-    readonly write(request: LogoCacheWriteRequest): Promise<LogoCacheRecord>;
-    readonly clear(request: LogoCacheClearRequest): Promise<void>;
+    read(request: LogoCacheReadRequest): Promise<LogoCacheRecord | undefined>;
+    write(request: LogoCacheWriteRequest): Promise<LogoCacheRecord>;
+    clear(request: LogoCacheClearRequest): Promise<void>;
   };
 }
 

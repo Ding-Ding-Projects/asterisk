@@ -1,0 +1,23 @@
+{
+  "generatedBy": "console/scripts/vendor-design-react-host.mjs",
+  "pinnedBy": "design/support.js (REACT_URL/REACT_SRI and REACT_DOM_URL/REACT_DOM_SRI)",
+  "note": "Served to the design iframe through its own window.__resources hook so a capture run fetches nothing from the network. Regenerate rather than hand-edit.",
+  "files": [
+    {
+      "file": "react.production.min.js",
+      "global": "React",
+      "url": "https://unpkg.com/react@18.3.1/umd/react.production.min.js",
+      "integrity": "sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z",
+      "sha256": "d949f1c3687aedadcedac85261865f29b17cd273997e7f6b2bfc53b2f9d4c4dd",
+      "bytes": 10751
+    },
+    {
+      "file": "react-dom.production.min.js",
+      "global": "ReactDOM",
+      "url": "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js",
+      "integrity": "sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1",
+      "sha256": "35f4f974f4b2bcd44da73963347f8952e341f83909e4498227d4e26b98f66f0d",
+      "bytes": 131835
+    }
+  ]
+}

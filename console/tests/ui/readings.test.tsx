@@ -8,10 +8,12 @@ import {
   channelRows,
   confbridgeRows,
   dashboardStats,
+  droppedRowNote,
   endpointRows,
   formatDuration,
   formatUptime,
   healthBars,
+  iaxPeerRows,
   isReadable,
   mohRows,
   moduleRows,
@@ -23,7 +25,9 @@ import {
   valueOf,
   voicemailRows,
 } from '../../app/renderer/src/readings.ts';
-import type { Channel, Contact, Endpoint, ModuleSummary, QueueSummary, Registration, ViewReadings } from '../../app/renderer/src/readings.ts';
+import type {
+  Channel, ChannelCodecUsage, Contact, Endpoint, EndpointDetailSet, IaxPeer, IaxRegistration, ModuleSummary, QueueSummary, Registration, RowShortfall, ViewReadings,
+} from '../../app/renderer/src/readings.ts';
 
 const NOW = '2026-08-22T12:00:00.000Z';
 
@@ -83,7 +87,7 @@ test('channelRows on an empty list yields no rows', () => {
 
 // ---------------------------------------------------------------- endpointRows
 
-test('endpointRows joins a contact by AOR and marks transport/codecs NOT_READ', () => {
+test('endpointRows joins a contact by AOR, and marks transport/codecs NOT_READ when genuinely absent', () => {
   const endpoints: Endpoint[] = [
     { id: '1000', state: 'Not in use', channels: '0 of inf' },
     { id: '1001', state: 'Unavailable', channels: '0 of inf' },
@@ -94,11 +98,128 @@ test('endpointRows joins a contact by AOR and marks transport/codecs NOT_READ', 
   assert.deepEqual(rows[1], ['1001', NOT_READ, NOT_READ, NOT_READ, 'Unavailable']);
 });
 
+test('endpointRows reads the transport off the endpoint and the codec off a matching live channel', () => {
+  const endpoints: Endpoint[] = [
+    { id: '1000', state: 'Not in use', channels: '1 of inf', transport: 'transport-udp' },
+    // No active channel for 2000, and no explicit transport: both columns stay honest.
+    { id: '2000', state: 'Not in use', channels: '0 of inf' },
+  ];
+  const channelStats: ChannelCodecUsage[] = [
+    { channelName: 'PJSIP/1000-00000001', endpointId: '1000', codec: 'ulaw' },
+  ];
+  const rows = endpointRows(endpoints, [], channelStats);
+  // With no parameter table read, the only codec available is the one negotiated on a
+  // live call -- which is a different reading from the endpoint's configured list, so the
+  // cell says which one it is showing rather than letting the two look alike.
+  assert.deepEqual(rows[0], ['1000', NOT_READ, 'transport-udp', 'ulaw (in use)', 'Not in use']);
+  assert.deepEqual(rows[1], ['2000', NOT_READ, NOT_READ, NOT_READ, 'Not in use']);
+});
+
+test('endpointRows ignores a channel-stats row with no codec rather than showing a blank value', () => {
+  const endpoints: Endpoint[] = [{ id: '1000', state: 'Not in use', channels: '1 of inf' }];
+  // A channel that is up but reports no codec (e.g. direct media -- parseChannelStats
+  // never emits a row for those, but the row shape is still validated defensively here).
+  const channelStats: ChannelCodecUsage[] = [{ channelName: 'PJSIP/1000-00000001', endpointId: '1000' }];
+  const rows = endpointRows(endpoints, [], channelStats);
+  assert.deepEqual(rows[0], ['1000', NOT_READ, NOT_READ, NOT_READ, 'Not in use']);
+});
+
+test('endpointRows reads the configured transport and codecs off the endpoint detail', () => {
+  const endpoints: Endpoint[] = [{ id: '1000', state: 'Not in use', channels: '0 of inf' }];
+  const details: EndpointDetailSet = {
+    byEndpoint: { 1000: { transport: 'transport-tcp', codecs: ['ulaw', 'alaw', 'g722'] } },
+    notRead: [],
+  };
+  const rows = endpointRows(endpoints, [], [], details);
+  assert.deepEqual(rows[0], ['1000', NOT_READ, 'transport-tcp', 'ulaw, alaw, g722', 'Not in use']);
+});
+
+test('endpointRows prefers the configured codec list over the one codec a live call negotiated', () => {
+  const endpoints: Endpoint[] = [{ id: '1000', state: 'In use', channels: '1 of inf' }];
+  const channelStats: ChannelCodecUsage[] = [
+    { channelName: 'PJSIP/1000-00000001', endpointId: '1000', codec: 'alaw' },
+  ];
+  const details: EndpointDetailSet = { byEndpoint: { 1000: { codecs: ['ulaw', 'alaw'] } }, notRead: [] };
+  const rows = endpointRows(endpoints, [], channelStats, details);
+  // The column is headed "Codecs": the endpoint's own list is what belongs in it, and it
+  // is not silently replaced by whichever single codec one call happened to settle on.
+  assert.deepEqual(rows[0], ['1000', NOT_READ, NOT_READ, 'ulaw, alaw', 'In use']);
+});
+
+test('endpointRows spells out an endpoint that allows no codec at all', () => {
+  const endpoints: Endpoint[] = [{ id: '1000', state: 'Not in use', channels: '0 of inf' }];
+  // Asterisk printed `allow : (nothing)` -- a real reading, and not the same thing as
+  // never having looked, so it must not render as the not-read placeholder.
+  const details: EndpointDetailSet = { byEndpoint: { 1000: { codecs: [] } }, notRead: [] };
+  const rows = endpointRows(endpoints, [], [], details);
+  assert.deepEqual(rows[0], ['1000', NOT_READ, NOT_READ, 'none allowed', 'Not in use']);
+});
+
+test('endpointRows reports a transport the detail names even when the endpoints listing omitted it', () => {
+  // `config_transport.c` `cli_iterate` prints no `Transport:` child line when the id does
+  // not resolve to a transport on the target, so the plural listing shows nothing for an
+  // endpoint pinned to a transport that is missing -- which is the case worth seeing.
+  const endpoints: Endpoint[] = [{ id: '1000', state: 'Unavailable', channels: '0 of inf' }];
+  const details: EndpointDetailSet = { byEndpoint: { 1000: { transport: 'transport-tls' } }, notRead: [] };
+  const rows = endpointRows(endpoints, [], [], details);
+  assert.equal(rows[0][2], 'transport-tls');
+});
+
+test('endpointRows leaves an endpoint the detail budget skipped as NOT_READ rather than guessing', () => {
+  const endpoints: Endpoint[] = [
+    { id: '1000', state: 'Not in use', channels: '0 of inf' },
+    { id: '9999', state: 'Not in use', channels: '0 of inf' },
+  ];
+  const details: EndpointDetailSet = { byEndpoint: { 1000: { codecs: ['ulaw'] } }, notRead: ['9999'] };
+  const rows = endpointRows(endpoints, [], [], details);
+  assert.deepEqual(rows[0], ['1000', NOT_READ, NOT_READ, 'ulaw', 'Not in use']);
+  assert.deepEqual(rows[1], ['9999', NOT_READ, NOT_READ, NOT_READ, 'Not in use']);
+});
+
 // ---------------------------------------------------------------- registrationRows
 
 test('registrationRows marks the trunk/transport columns the console does not read', () => {
   const registrations: Registration[] = [{ id: 'trunk1', serverUri: 'sip:sip.example.com:5060', status: 'Registered' }];
   assert.deepEqual(registrationRows(registrations), [['trunk1', 'sip:sip.example.com:5060', NOT_READ, NOT_READ, 'Registered']]);
+});
+
+test('registrationRows appends IAX2 registrations after the PJSIP ones, named the way register => is written', () => {
+  const registrations: Registration[] = [{ id: 'trunk1', serverUri: 'sip:sip.example.com:5060', status: 'Registered' }];
+  const iaxRegistrations: IaxRegistration[] = [
+    { host: '203.0.113.9:4569', username: 'markpasswd', refresh: 60, state: 'Registered' },
+    // iax.conf's own `register => host` form (no username) has nothing to join with `@`.
+    { host: '198.51.100.4:4569', username: '', refresh: 120, state: 'Unregistered' },
+  ];
+  assert.deepEqual(registrationRows(registrations, iaxRegistrations), [
+    ['trunk1', 'sip:sip.example.com:5060', NOT_READ, NOT_READ, 'Registered'],
+    ['markpasswd@203.0.113.9:4569', '203.0.113.9:4569', NOT_READ, NOT_READ, 'Registered'],
+    ['198.51.100.4:4569', '198.51.100.4:4569', NOT_READ, NOT_READ, 'Unregistered'],
+  ]);
+});
+
+test('registrationRows with no IAX2 registrations behaves exactly as before -- PJSIP only', () => {
+  const registrations: Registration[] = [{ id: 'trunk1', serverUri: 'sip:sip.example.com:5060', status: 'Registered' }];
+  assert.deepEqual(registrationRows(registrations, []), registrationRows(registrations));
+});
+
+// ---------------------------------------------------------------- iaxPeerRows
+
+test('iaxPeerRows renders the live iax2 show peers reading, never an invented row', () => {
+  // dynamic and trunk deliberately differ within each row (rather than both true or both
+  // false) so a column swap between the two is actually detectable here, not only in the
+  // separate rowsFor(iaxpeers) test below.
+  const peers: IaxPeer[] = [
+    { name: 'branch-office', host: '203.0.113.9', dynamic: true, trunk: false, status: 'Registered' },
+    { name: 'carrier-iax', host: '198.51.100.4', dynamic: false, trunk: true, status: 'UNREACHABLE' },
+  ];
+  assert.deepEqual(iaxPeerRows(peers), [
+    ['branch-office', '203.0.113.9', 'yes', 'no', 'Registered'],
+    ['carrier-iax', '198.51.100.4', 'no', 'yes', 'UNREACHABLE'],
+  ]);
+});
+
+test('iaxPeerRows on an empty reading yields no rows, honestly', () => {
+  assert.deepEqual(iaxPeerRows([]), []);
 });
 
 // ---------------------------------------------------------------- queueRows
@@ -132,9 +253,49 @@ test('rowsFor dispatches to the matching parser by screen name', () => {
   assert.deepEqual(rowsFor('endpoints', readings), []);
 });
 
+test('rowsFor(endpoints) hands the endpoint detail reading to the row builder', () => {
+  // Not a restatement of the endpointRows tests above: those call the builder directly, so
+  // every one of them passes whether or not `rowsFor` ever passes the reading along. This
+  // is the seam -- a detail set read by the control plane and dropped on the way to the
+  // table would show as two placeholder columns and no failing test anywhere.
+  const readings: ViewReadings = {
+    endpoints: available<Endpoint[]>([{ id: '1000', state: 'Not in use', channels: '0 of inf' }]),
+    endpointDetails: available<EndpointDetailSet>({
+      byEndpoint: { 1000: { transport: 'transport-tcp', codecs: ['ulaw', 'alaw'] } },
+      notRead: [],
+    }),
+  };
+  assert.deepEqual(rowsFor('endpoints', readings), [
+    ['1000', NOT_READ, 'transport-tcp', 'ulaw, alaw', 'Not in use'],
+  ]);
+});
+
+test('rowsFor(endpoints) still builds rows when only the endpoint listing was read', () => {
+  const readings: ViewReadings = {
+    endpoints: available<Endpoint[]>([{ id: '1000', state: 'Not in use', channels: '0 of inf' }]),
+    endpointDetails: unavailable('`asterisk -rx "pjsip show endpoint 1000"` failed'),
+  };
+  assert.deepEqual(rowsFor('endpoints', readings), [['1000', NOT_READ, NOT_READ, NOT_READ, 'Not in use']]);
+});
+
 test('rowsFor returns no rows for an unrecognized screen or undefined readings', () => {
   assert.deepEqual(rowsFor('settings', { channels: available([]) }), []);
   assert.deepEqual(rowsFor('live', undefined), []);
+});
+
+test('rowsFor(trunks) merges PJSIP and IAX2 registrations, never PJSIP alone', () => {
+  const readings: ViewReadings = {
+    registrations: available<Registration[]>([{ id: 'trunk1', serverUri: 'sip:sip.example.com:5060', status: 'Registered' }]),
+    iaxRegistrations: available<IaxRegistration[]>([{ host: '203.0.113.9:4569', username: 'joe', refresh: 60, state: 'Registered' }]),
+  };
+  assert.equal(rowsFor('trunks', readings).length, 2);
+});
+
+test('rowsFor(iaxpeers) reads the live iax2 show peers rows', () => {
+  const readings: ViewReadings = {
+    iaxPeers: available<IaxPeer[]>([{ name: 'branch-office', host: '203.0.113.9', dynamic: true, trunk: false, status: 'Registered' }]),
+  };
+  assert.deepEqual(rowsFor('iaxpeers', readings), [['branch-office', '203.0.113.9', 'yes', 'no', 'Registered']]);
 });
 
 // ---------------------------------------------------------------- dashboardStats
@@ -221,6 +382,7 @@ test('badgeFor is empty for every destination with no matching reading', () => {
   assert.equal(badgeFor('live', {}), '');
   assert.equal(badgeFor('endpoints', {}), '');
   assert.equal(badgeFor('trunks', {}), '');
+  assert.equal(badgeFor('iaxpeers', {}), '');
   assert.equal(badgeFor('queues', {}), '');
   assert.equal(badgeFor('modules', {}), '');
   assert.equal(badgeFor('dash', {}), '');
@@ -245,6 +407,22 @@ test('badgeFor falls back to a dash reading for the same data without firing a n
 test('badgeFor never reports a count for a screen it was not asked about', () => {
   const channels: Channel[] = [{ name: 'c1', context: '', extension: '', state: 'Up', application: '', callerNumber: '', durationSeconds: 0 }];
   assert.equal(badgeFor('endpoints', { live: { channels: available(channels) } }), '');
+});
+
+test('badgeFor(trunks) counts PJSIP and IAX2 registrations together, so it never under-reports the merged table', () => {
+  const registrations: Registration[] = [{ id: 'trunk1', serverUri: 'sip:sip.example.com:5060', status: 'Registered' }];
+  const iaxRegistrations: IaxRegistration[] = [
+    { host: '203.0.113.9:4569', username: 'a', refresh: 60, state: 'Registered' },
+    { host: '198.51.100.4:4569', username: 'b', refresh: 60, state: 'Unregistered' },
+  ];
+  assert.equal(badgeFor('trunks', { trunks: { registrations: available(registrations), iaxRegistrations: available(iaxRegistrations) } }), '3');
+  // IAX2-only, no PJSIP registrations read yet at all -- still counted, not silently zero.
+  assert.equal(badgeFor('trunks', { trunks: { iaxRegistrations: available(iaxRegistrations) } }), '2');
+});
+
+test('badgeFor(iaxpeers) reports the real iax2 show peers count once read', () => {
+  const iaxPeers: IaxPeer[] = [{ name: 'branch-office', host: '203.0.113.9', dynamic: true, trunk: false, status: 'Registered' }];
+  assert.equal(badgeFor('iaxpeers', { iaxpeers: { iaxPeers: available(iaxPeers) } }), '1');
 });
 
 // ---------------------------------------------------------------- regexMatchLabel
@@ -303,7 +481,7 @@ test('amiRows lists manager users and ARI apps with unreadable columns marked ho
 
 test('rowsFor dispatches voicemail/confbridge/moh/ami to their own row builders', () => {
   const readings: ViewReadings = {
-    voicemailUsers: available({ users: [{ context: 'default', mailbox: '1001', fullName: 'Ada Deng', zone: '', newMessages: 1 }] }),
+    voicemailUsers: available({ users: [{ context: 'default', mailbox: '1001', fullName: 'Ada Deng', zone: '', newMessages: 1 }], dropped: [] }),
     rooms: available([{ name: '9000', users: 1, marked: 0, locked: false, muted: false }]),
     mohClasses: available([{ name: 'default', mode: 'files' }]),
     managerUsers: available({ users: [{ username: 'monitor' }] }),
@@ -319,4 +497,66 @@ test('rowsFor dispatches voicemail/confbridge/moh/ami to their own row builders'
 test('a screen with an unavailable reading reports the real reason, not silence', () => {
   const readings: ViewReadings = { rooms: unavailable('`asterisk -rx "confbridge list"` failed: No such command') };
   assert.equal(reasonFor(readings, ['rooms']), '`asterisk -rx "confbridge list"` failed: No such command');
+});
+
+// ---------------------------------------------------------------- droppedRowNote
+//
+// A table that is short of rows must say so. The measured case these guard is the live
+// target whose `voicemail show users` trailer said 4 and whose Voicemail screen showed 3.
+
+const shortfall = (over: Partial<RowShortfall> = {}): RowShortfall => ({
+  command: 'voicemail show users',
+  unit: 'voicemail user',
+  parsed: 3,
+  total: 4,
+  dropped: ['myaliases  1234@devices                                           0'],
+  reason: 'left a mailbox overrunning its own field',
+  ...over,
+});
+
+test('droppedRowNote says how many rows are missing and out of how many', () => {
+  const note = droppedRowNote(shortfall());
+  assert.match(note, /1 of the 4 voicemail users on this target is missing from this table/u);
+});
+
+test('droppedRowNote names the command, so a reader can go and run it themselves', () => {
+  assert.ok(droppedRowNote(shortfall()).includes('`voicemail show users` left a mailbox'), droppedRowNote(shortfall()));
+});
+
+test('droppedRowNote carries the parser\'s own reason and the line it could not read', () => {
+  const note = droppedRowNote(shortfall());
+  assert.ok(note.includes('left a mailbox overrunning its own field.'), `expected the reason in: ${note}`);
+  // Quoted with runs of spaces collapsed: these are fixed-width rows, so the raw line is
+  // fifty columns of padding and the surface collapses runs regardless.
+  assert.ok(note.includes('"myaliases 1234@devices 0"'), `expected the dropped line in: ${note}`);
+});
+
+test('droppedRowNote is silent when every row the target reported is on the table', () => {
+  assert.equal(droppedRowNote(shortfall({ parsed: 4, dropped: [] })), '');
+});
+
+test('droppedRowNote trusts the target trailer over the parser, so an unread non-row is not a missing row', () => {
+  // A line the parser choked on is not automatically a row: the target says it has four
+  // and four are on the table, so nothing is missing however many lines went unread.
+  assert.equal(droppedRowNote(shortfall({ parsed: 4, total: 4, dropped: ['*** a warning, not a mailbox'] })), '');
+});
+
+test('droppedRowNote falls back to the dropped count when the target printed no trailer', () => {
+  const note = droppedRowNote(shortfall({ total: undefined, parsed: 0, dropped: ['a', 'b'] }));
+  assert.match(note, /2 voicemail users on this target are missing from this table/u);
+});
+
+test('droppedRowNote reports a count with no lines when the parser cannot name them', () => {
+  const note = droppedRowNote({
+    command: 'manager show users', unit: 'manager user', parsed: 2, total: 3,
+    reason: 'printed a line that could not be told apart from the report\'s own furniture',
+  });
+  assert.match(note, /1 of the 3 manager users on this target is missing from this table/u);
+  assert.ok(!note.includes('could not read:'), `expected no quoted lines in: ${note}`);
+});
+
+test('droppedRowNote stops quoting after three lines and says it has', () => {
+  const note = droppedRowNote(shortfall({ parsed: 0, total: 4, dropped: ['a', 'b', 'c', 'd'] }));
+  assert.ok(note.includes('"a"; "b"; "c", …'), `expected a bounded list in: ${note}`);
+  assert.ok(!note.includes('"d"'), `expected the fourth line held back in: ${note}`);
 });

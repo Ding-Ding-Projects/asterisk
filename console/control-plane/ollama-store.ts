@@ -179,7 +179,7 @@ export class OllamaStore implements OllamaCatalogStore {
 
   async savePulls(records: readonly OllamaPullRecord[]): Promise<void> {
     if (records.length > MAX_PULL_RECORDS) throw new Error(`Ollama pull queue exceeded ${MAX_PULL_RECORDS} records.`);
-    await this.#mutate(draft => { draft.pulls = structuredClone(records); });
+    await this.#mutate(draft => { draft.pulls = structuredClone([...records]); });
   }
 
   async loadHarnessState(): Promise<OllamaHarnessPersistentState> {

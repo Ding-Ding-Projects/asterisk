@@ -1,0 +1,6 @@
+
+username
+--------
+ding-live-probe-ami
+-------------------
+1 manager users configured.

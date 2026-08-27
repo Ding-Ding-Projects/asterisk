@@ -4,7 +4,7 @@ This handoff is scoped to pull request **#3**, branch `feat/freepbx-parity-elect
 
 ## Product constraint
 
-PBX Admin is part of the existing Ding PBX Console. It does **not** mount a second Electron/React application, floating workspace, decorative overlay, or parallel visual language.
+PBX Admin is part of the existing Material Asterisk. It does **not** mount a second Electron/React application, floating workspace, decorative overlay, or parallel visual language.
 
 - `console/app/renderer/src/main.tsx` renders one application shell: `PbxAdminIntegratedApp`.
 - `PbxAdminIntegratedApp` extends the existing `App`, which extends the compiled `ConsoleShell`.

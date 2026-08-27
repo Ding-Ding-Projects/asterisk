@@ -7,19 +7,24 @@ import { promisify } from 'node:util';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve as resolvePath } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { MAX_DISPLAY_NAME_LENGTH } from '../renderer/src/display-name.js';
 import { handleSquirrelEvent, processHostess } from './squirrel-events.js';
 import { createControlPlaneDispatcher } from '../../control-plane/dispatch.js';
 import { createVaultReference } from '../../control-plane/status-hub-client.js';
+import { detectInstalledEditors, openInEditor, readEditorSettingsSnapshot } from '../../control-plane/editor-launch.js';
+import { openFolderInFileManager } from '../../control-plane/local-folder.js';
 import type { ControlPlaneRequest, NativeHostStatus, UpdaterRestartResult, UpdaterStatusForRenderer } from '../../shared/control-plane.js';
 import type { DownloadCommand, DownloadSurfaceKind, ExtensionDownloadHandoff } from '../../shared/download-transfer.js';
 import { isExtensionDownloadHandoff } from '../../shared/download-transfer.js';
 import { DOWNLOAD_NATIVE_MESSAGE_LIMIT, isNativeDownloadIngressMessage, type NativeIngressConfig } from '../../shared/native-messaging.js';
 import { SCHOOL_CREDENTIAL_ACCOUNT, SCHOOL_CREDENTIAL_SERVICE } from '../../shared/school-contract.js';
+import { DESTINATION_ROUTE_SCHEME, firstDestinationRouteArgument } from '../../shared/destination-route.js';
 // @ts-ignore CommonJS helper is shared with the standalone junction fixture.
 import { assertNoReparseAncestors } from './probe-path.cjs';
+import { createDestinationRouteRouter } from './deep-link.js';
 import {
   parseVersion, resolveLatestUpdate, validateReleaseIdentity, initialUpdaterState, beganChecking, checkSucceeded,
-  updateFailed, beganDownloading, downloadReady, dismissedForNow, verifyDownload, findDigestForAsset,
+  updateFailed, beganDownloading, downloadReady, installerLaunchFailed, dismissedForNow, verifyDownload, findDigestForAsset,
 } from '../../control-plane/updater.js';
 import type { UpdaterState } from '../../control-plane/updater.js';
 import {
@@ -38,6 +43,11 @@ const execFileAsync = promisify(execFile);
 let nativeHostStatus: NativeHostStatus = { state: 'unavailable', message: 'Native extension ingress has not been registered.', retryable: true };
 let probeAuthorization: string | undefined;
 let probeAuthorizationConsumed = false;
+// This is the installed identity, not the renameable display label. Existing profiles, vault
+// entries, settings, and history live here, so changing it would strand every prior install.
+const SHIPPED_DATA_DIRECTORY = 'Ding PBX Console';
+const shippedUserDataPath = join(app.getPath('appData'), SHIPPED_DATA_DIRECTORY);
+app.setPath('userData', shippedUserDataPath);
 const probeModeRequested = process.argv.some((value) => value.startsWith('--school-vault-probe-result='));
 const requestedProbeUserData = probeModeRequested ? process.argv.find((value) => value.startsWith('--user-data-dir='))?.slice('--user-data-dir='.length) : undefined;
 if (probeModeRequested && !requestedProbeUserData) throw new Error('Probe mode requires an isolated user-data path.');
@@ -72,11 +82,10 @@ async function runKeytarWorker(request: KeytarWorkerRequest, timeoutMs = 3000): 
     let output = ''; let settled = false;
     const timer = setTimeout(() => fail(new Error('The credential-vault worker did not exit after its bounded cancellation.')), timeoutMs);
     const finish = (value: KeytarWorkerResponse) => { if (!settled) { settled = true; clearTimeout(timer); resolve(value); } };
-    const fail = (error: Error) => { if (!settled) { settled = true; clearTimeout(timer); if (!worker.killed) worker.kill(); reject(error); } };
+    const fail = (error: Error) => { if (!settled) { settled = true; clearTimeout(timer); worker.kill(); reject(error); } };
     worker.stdout?.on('data', (chunk: Buffer | string) => { output += chunk.toString(); if (output.length > 8192) fail(new Error('The credential-vault worker returned an oversized response.')); });
-    worker.once('error', fail);
     worker.once('exit', (code) => { if (settled) return; if (code !== 0) return fail(new Error('The credential-vault worker exited without a successful response.')); try { finish(JSON.parse(output.trim().split('\n')[0] ?? '') as KeytarWorkerResponse); } catch { fail(new Error('The credential-vault worker returned malformed response data.')); } });
-    worker.stdin?.end(`${JSON.stringify(request)}\n`);
+    worker.postMessage(request);
   });
 }
 const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
@@ -200,7 +209,7 @@ ipcMain.handle('updater:restart-to-install', async (): Promise<UpdaterRestartRes
     publishUpdaterState({ ...updaterState, restartPending: true, revision: updaterState.revision + 1 });
     const result = await launchInstaller(updaterState.downloadedPath!);
     if (!result.ok) {
-      publishUpdaterState(updateFailed(updaterState, result.reason));
+      publishUpdaterState(installerLaunchFailed(updaterState, result.reason));
       return result;
     }
     return result;
@@ -218,12 +227,31 @@ ipcMain.handle('updater:restart-to-install', async (): Promise<UpdaterRestartRes
   return result;
 });
 
+/* A protocol activation can arrive before this process has a loaded renderer, or while
+ * the current renderer is reloading. The router retains only the newest valid route until
+ * this process can deliver it, rather than dropping the activation into an absent listener. */
+let rendererLoaded = false;
+const destinationRoutes = createDestinationRouteRouter((route) => {
+  if (!mainWindow || mainWindow.isDestroyed() || !rendererLoaded) return false;
+  mainWindow.webContents.send('deep-link:destination', route);
+  return true;
+});
+
+function revealMainWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
-    width: 1440, height: 920, minWidth: 920, minHeight: 640, frame: false, backgroundColor: '#101510', show: false, title: 'Ding PBX Console',
+    width: 1440, height: 920, minWidth: 920, minHeight: 640, frame: false, backgroundColor: '#101510', show: false, title: 'Material Asterisk',
     webPreferences: { preload: join(import.meta.dirname, '../../../app/electron/preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   mainWindow.once('ready-to-show', () => mainWindow?.show());
+  mainWindow.webContents.on('did-start-loading', () => { rendererLoaded = false; });
+  mainWindow.webContents.on('did-finish-load', () => { rendererLoaded = true; destinationRoutes.flush(); });
   if (process.env.VITE_DEV_SERVER_URL) mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
   else mainWindow.loadFile(join(import.meta.dirname, '../../../dist/index.html'));
 }
@@ -231,6 +259,23 @@ function createWindow(): void {
 ipcMain.on('window:minimize', () => mainWindow?.minimize());
 ipcMain.on('window:toggle-maximize', () => mainWindow?.isMaximized() ? mainWindow.unmaximize() : mainWindow?.maximize());
 ipcMain.on('window:close', () => mainWindow?.close());
+ipcMain.on('window:set-title', (_event, value: unknown) => {
+  if (typeof value !== 'string') return;
+  const title = value.trim();
+  if (title.length > 0 && title.length <= MAX_DISPLAY_NAME_LENGTH) mainWindow?.setTitle(title);
+});
+ipcMain.handle('accessibility:screen-reader', () => app.isAccessibilitySupportEnabled());
+app.on('accessibility-support-changed', (_event, active: boolean) => {
+  for (const window of BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send('accessibility:changed', active);
+});
+ipcMain.handle('editors:detect', async () => detectInstalledEditors().map((entry) => ({ id: entry.definition.id, resolved: entry.resolved })));
+ipcMain.handle('editors:open', async (_event, target: { kind?: unknown; path?: unknown }) => {
+  const kind = target?.kind === 'folder' ? 'folder' : 'file';
+  const path = typeof target?.path === 'string' ? target.path : '';
+  return openInEditor(readEditorSettingsSnapshot(app.getPath('userData')), { kind, path });
+});
+ipcMain.handle('local-data:path', async () => app.getPath('userData'));
+ipcMain.handle('local-data:open-folder', async () => openFolderInFileManager(app.getPath('userData')));
 ipcMain.handle('dialog:pick-folder', async () => {
   if (!mainWindow) return undefined;
   const result = await dialog.showOpenDialog(mainWindow, { properties: ['openDirectory', 'createDirectory'] });
@@ -253,10 +298,10 @@ async function acceptExtensionHandoff(handoff: ExtensionDownloadHandoff, senderW
   let chosenPath = downloadTransfers.isDestinationApproved(handoff.destinationPath) ? handoff.destinationPath : undefined;
   if (!chosenPath) {
     if (handoff.destinationKind === 'folder') {
-      const approved = await dialog.showOpenDialog(senderWindow ?? undefined, { properties: ['openDirectory'], title: 'Choose the download destination folder' });
+      const approved = senderWindow ? await dialog.showOpenDialog(senderWindow, { properties: ['openDirectory'], title: 'Choose the download destination folder' }) : await dialog.showOpenDialog({ properties: ['openDirectory'], title: 'Choose the download destination folder' });
       chosenPath = approved.canceled ? undefined : approved.filePaths[0];
     } else {
-      const approved = await dialog.showSaveDialog(senderWindow ?? undefined, { defaultPath: handoff.destinationPath, title: 'Choose the download destination file' });
+      const approved = senderWindow ? await dialog.showSaveDialog(senderWindow, { defaultPath: handoff.destinationPath, title: 'Choose the download destination file' }) : await dialog.showSaveDialog({ defaultPath: handoff.destinationPath, title: 'Choose the download destination file' });
       chosenPath = approved.canceled ? undefined : approved.filePath;
     }
     if (!chosenPath) return { accepted: false, detail: 'The native destination picker was cancelled; no handoff was recorded.' };
@@ -455,7 +500,7 @@ function openDownloadWindow(kind: DownloadSurfaceKind, binding: { handoffId?: st
     if (binding.handoffId) url.searchParams.set('downloadHandoffId', binding.handoffId);
     if (binding.transferId) url.searchParams.set('downloadTransferId', binding.transferId);
     void window.loadURL(url.href);
-  } else void window.loadFile(join(import.meta.dirname, '../../../dist/index.html'), { query: { downloadWindow: kind, ...(binding.handoffId ? { downloadHandoffId: binding.handoffId } : {}), ...(binding.transferId ? { downloadTransferId: binding.transferId } : {}) });
+  } else void window.loadFile(join(import.meta.dirname, '../../../dist/index.html'), { query: { downloadWindow: kind, ...(binding.handoffId ? { downloadHandoffId: binding.handoffId } : {}), ...(binding.transferId ? { downloadTransferId: binding.transferId } : {}) } });
   return window;
 }
 
@@ -534,28 +579,29 @@ downloadTransfers.subscribeGlobal((snapshot) => {
   }
 });
 ipcMain.handle('converter:pick-file', async () => {
-  const result = await dialog.showOpenDialog(mainWindow ?? undefined, { properties: ['openFile'], title: 'Choose a local source file' });
+  const result = mainWindow ? await dialog.showOpenDialog(mainWindow, { properties: ['openFile'], title: 'Choose a local source file' }) : await dialog.showOpenDialog({ properties: ['openFile'], title: 'Choose a local source file' });
   const sourcePath = result.canceled ? undefined : result.filePaths[0];
   if (!sourcePath) return undefined;
   const info = await stat(sourcePath);
   return { sourcePath, name: sourcePath.slice(Math.max(sourcePath.lastIndexOf('\\'), sourcePath.lastIndexOf('/')) + 1), bytes: info.size };
 });
 ipcMain.handle('converter:pick-destination', async () => {
-  const result = await dialog.showSaveDialog(mainWindow ?? undefined, { title: 'Choose a conversion destination' });
+  const result = mainWindow ? await dialog.showSaveDialog(mainWindow, { title: 'Choose a conversion destination' }) : await dialog.showSaveDialog({ title: 'Choose a conversion destination' });
   return result.canceled ? undefined : result.filePath;
 });
 ipcMain.handle('converter:confirm-overwrite', async (_event, request: { destinationPath?: unknown }) => {
   const destinationPath = typeof request?.destinationPath === 'string' ? request.destinationPath : '';
   if (!destinationPath) return { approved: false, detail: 'No destination path was supplied.' };
-  const result = await dialog.showMessageBox(mainWindow ?? undefined, {
-    type: 'warning',
+  const options = {
+    type: 'warning' as const,
     title: 'Confirm overwrite',
     message: `Replace the existing destination?`,
     detail: destinationPath,
     buttons: ['Cancel', 'Replace'],
     defaultId: 0,
     cancelId: 0,
-  });
+  };
+  const result = mainWindow ? await dialog.showMessageBox(mainWindow, options) : await dialog.showMessageBox(options);
   return result.response === 1
     ? { approved: true, detail: 'The user explicitly approved replacing the destination.' }
     : { approved: false, detail: 'Overwrite was cancelled; the destination was not touched.' };
@@ -563,8 +609,28 @@ ipcMain.handle('converter:confirm-overwrite', async (_event, request: { destinat
 
 if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
   app.quit();
+} else if (!app.requestSingleInstanceLock()) {
+  app.quit();
 } else {
-  app.whenReady().then(async () => { createWindow(); await startNativeDownloadIngress(); }).then(async () => {
+  app.on('second-instance', (_event, argv) => {
+    revealMainWindow();
+    const route = firstDestinationRouteArgument(argv);
+    if (route) destinationRoutes.offer(route);
+  });
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    revealMainWindow();
+    destinationRoutes.offer(url);
+  });
+  const launchRoute = firstDestinationRouteArgument(process.argv);
+  if (launchRoute) destinationRoutes.offer(launchRoute);
+  app.whenReady().then(async () => {
+    const scheme = DESTINATION_ROUTE_SCHEME.replace(':', '');
+    if (app.isPackaged) app.setAsDefaultProtocolClient(scheme);
+    else app.setAsDefaultProtocolClient(scheme, process.execPath, [join(import.meta.dirname, '../../..')]);
+    createWindow();
+    await startNativeDownloadIngress();
+  }).then(async () => {
     await downloadTransfers.initialize();
     const latest = downloadTransfers.getLatestSnapshot();
     if (latest?.status === 'partial') openDownloadWindow('progress', { handoffId: latest.handoffId, transferId: latest.transferId, origin: mainWindow });

@@ -225,7 +225,9 @@ export function filteredAdapters(
   if (regex.mode === 'regex') {
     const compiled = compileRegex(regex.pattern || trimmed, regex.flags);
     if (compiled.error) return [];
-    return adapters.filter((adapter) => compiled.value.test(adapterText(adapter)));
+    const pattern = compiled.value;
+    if (!pattern) return [];
+    return adapters.filter((adapter) => pattern.test(adapterText(adapter)));
   }
   const needle = trimmed.toLocaleLowerCase();
   return adapters.filter((adapter) => adapterText(adapter).toLocaleLowerCase().includes(needle));

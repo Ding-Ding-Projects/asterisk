@@ -42,7 +42,7 @@
       "id": "forge-conpty-helper",
       "version": "1",
       "source": "console/scripts/forge-device-signin.ps1",
-      "sha256": "4dc258722923d12e9887ca32d0241f95bd64e1e460f9b31866778cf06f50188a",
+      "sha256": "45693a271cdf4b37c77c8cfd58aeac03a382cd06fbcd5a70515372ceadbc8859",
       "artifact": "forge/forge-device-signin.ps1",
       "installScope": "bundled",
       "purpose": "Bounded native ConPTY host for gh's public device flow"

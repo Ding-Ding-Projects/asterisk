@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ConfigHistory } from '../../control-plane/config-history.js';
+import { ConfigHistory, diffLines } from '../../control-plane/config-history.js';
 import type { CommandRequest, CommandResult, ProcessExecutor } from '../../control-plane/executor.js';
 
 class FakeExecutor implements ProcessExecutor {
@@ -180,4 +180,109 @@ test('list for one resource never returns an entry for another resource', async 
   const entries = await history.list(QUEUES);
   assert.equal(entries.length, 1);
   assert.equal(entries[0].resource, QUEUES);
+});
+
+// ---------------------------------------------------------------- diffLines
+
+test('diffLines reports no lines for two identical inputs', () => {
+  assert.deepEqual(diffLines(['a', 'b', 'c'], ['a', 'b', 'c']), [
+    { text: 'a', sign: ' ' }, { text: 'b', sign: ' ' }, { text: 'c', sign: ' ' },
+  ]);
+});
+
+test('diffLines reports every line added against an empty original', () => {
+  assert.deepEqual(diffLines([], ['a', 'b']), [{ text: 'a', sign: '+' }, { text: 'b', sign: '+' }]);
+});
+
+test('diffLines reports every line removed against an empty result', () => {
+  assert.deepEqual(diffLines(['a', 'b'], []), [{ text: 'a', sign: '-' }, { text: 'b', sign: '-' }]);
+});
+
+test('diffLines finds a single changed line inside unchanged context on both sides', () => {
+  const result = diffLines(
+    ['bindaddr=0.0.0.0', 'bindport=5060', 'context=from-internal'],
+    ['bindaddr=0.0.0.0', 'bindport=5061', 'context=from-internal'],
+  );
+  assert.deepEqual(result, [
+    { text: 'bindaddr=0.0.0.0', sign: ' ' },
+    { text: 'bindport=5060', sign: '-' },
+    { text: 'bindport=5061', sign: '+' },
+    { text: 'context=from-internal', sign: ' ' },
+  ]);
+});
+
+test('diffLines round-trips: applying "-" removals and "+" additions to the before side reconstructs the after side', () => {
+  const before = ['one', 'two', 'three', 'four'];
+  const after = ['zero', 'one', 'three', 'five'];
+  const result = diffLines(before, after);
+  const reconstructed = result.filter((l) => l.sign !== '-').map((l) => l.text);
+  assert.deepEqual(reconstructed, after);
+  const removedFromBefore = result.filter((l) => l.sign !== '+').map((l) => l.text);
+  assert.deepEqual(removedFromBefore, before);
+});
+
+// ---------------------------------------------------------------- diff
+
+test('diff reports identical when the backup and the live resource match byte for byte', async () => {
+  const handle = `${DIRECTORY}/pjsip.conf.backup-2026-08-23T01-19-03-627Z`;
+  const { history } = build(withListing((r) => {
+    const v = verb(r);
+    if (v === 'cat') return { stdout: 'same content\n' };
+    if (v === 'test') return {};
+    return {};
+  }));
+  const result = await history.diff(handle);
+  assert.equal(result.identical, true);
+  assert.equal(result.added, 0);
+  assert.equal(result.removed, 0);
+  assert.deepEqual(result.lines, []);
+  assert.equal(result.resource, PJSIP);
+});
+
+test('diff reports the aligned line-by-line difference when the two sides differ', async () => {
+  const handle = `${DIRECTORY}/pjsip.conf.backup-2026-08-23T01-19-03-627Z`;
+  const { history } = build(withListing((r) => {
+    const v = verb(r);
+    if (v === 'cat' && target(r) === handle) return { stdout: 'bindport=5060\n' };
+    if (v === 'cat' && target(r) === PJSIP) return { stdout: 'bindport=5061\n' };
+    if (v === 'test') return {};
+    return {};
+  }));
+  const result = await history.diff(handle);
+  assert.equal(result.identical, false);
+  assert.equal(result.currentExists, true);
+  assert.equal(result.added, 1);
+  assert.equal(result.removed, 1);
+  assert.deepEqual(result.lines, [
+    { text: 'bindport=5060', sign: '-' },
+    { text: 'bindport=5061', sign: '+' },
+  ]);
+});
+
+test('diff against a resource the target no longer has reports currentExists false and every backup line removed', async () => {
+  const handle = `${DIRECTORY}/pjsip.conf.backup-2026-08-23T01-19-03-627Z`;
+  const { history } = build(withListing((r) => {
+    const v = verb(r);
+    if (v === 'cat' && target(r) === handle) return { stdout: 'bindport=5060\n' };
+    if (v === 'test' && target(r) === PJSIP) return { status: 'failed' };
+    return {};
+  }));
+  const result = await history.diff(handle);
+  assert.equal(result.currentExists, false);
+  assert.equal(result.identical, false);
+  assert.deepEqual(result.lines, [{ text: 'bindport=5060', sign: '-' }]);
+});
+
+test('diff refuses a handle outside the allowlist', async () => {
+  const { executor, history } = build(withListing());
+  await assert.rejects(() => history.diff('/etc/passwd'), /not a configurable resource/u);
+  assert.equal(executor.calls.length, 0);
+});
+
+test('diff refuses a handle not currently listed on the target', async () => {
+  const { history } = build(withListing());
+  await assert.rejects(
+    () => history.diff(`${DIRECTORY}/pjsip.conf.backup-1999-01-01T00-00-00-000Z`),
+    /not a recovery point currently listed/u,
+  );
 });

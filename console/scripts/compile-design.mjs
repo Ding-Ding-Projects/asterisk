@@ -16,11 +16,17 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..', '..');
-const outDir = resolve(root, 'console/app/renderer/src/generated');
+/* Where the compiled output lands. Overridable so the drift check can compile into a
+ * scratch directory and compare, rather than rewriting the shipped files underneath the
+ * sibling tests reading them -- that race made an unrelated test fail intermittently with
+ * an empty parse, which reads exactly like a real regression in whatever was changed last. */
+const outDir = process.env.DING_DESIGN_OUT_DIR
+  ? resolve(process.env.DING_DESIGN_OUT_DIR)
+  : resolve(root, 'console/app/renderer/src/generated');
 
 /** Branding replacements recorded in console/design/inventory.json under source.sanitization. */
 const BRAND = [
-  [/Asterisk Console/g, 'Ding PBX Console'],
+  [/Asterisk Console/g, 'Material Asterisk'],
   [/AsteriskConsole/g, 'DingPbxConsole'],
 ];
 
@@ -439,14 +445,34 @@ consoleModule.code = annotateEventCalls(consoleModule.code, 'generated-event-sou
  *  @font-face blocks with its original font-weight and unicode-range, so the
  *  typographic hierarchy and the per-subset ranges survive; the earlier package
  *  substitutes covered only a fraction of them and gave Material Symbols a face
- *  whose variation axes the design's .msym rule could not actually drive. */
+ *  that is not the variable font the design's stylesheet URL asks for.
+ *
+ *  The .msym rule below deliberately pins NO variation axes, and that is the one
+ *  thing in it worth explaining, because it used to. It carried Google's own
+ *  documented Material Symbols snippet -- `"FILL" 0, "wght" 400, "GRAD" 0,
+ *  "opsz" 24` -- from this compiler's first commit, thirty minutes before the
+ *  real font set arrived and unchanged by its arrival.
+ *
+ *  Measured against the shipped face's own fvar table and rendered both ways by
+ *  console/scripts/design-parity-msym-axes.mjs: three of those four axes were
+ *  pinned to the value the file already defaults to (FILL 0, GRAD 0, wght 400),
+ *  so they did nothing. The fourth did a great deal. CSS font-optical-sizing
+ *  defaults to `auto`, which drives `opsz` from the used font-size, and
+ *  font-variation-settings outranks it -- so a fixed `opsz 24` replaced every
+ *  icon's own optical size with one belonging to a 24px icon. The design draws
+ *  175 icons and exactly four of them are 24px. Rendering all 98 of its distinct
+ *  literal (size, ligature) pairs proved it: 95 differ from the pin, the three
+ *  that do not are the 24px ones, and pinning `opsz` per icon at
+ *  clamp(font-size, 20, 48) instead reproduces the design's own rendering to
+ *  zero differing pixels across the whole frame. The axes are driven correctly
+ *  by the cascade already; pinning them was the only thing stopping it. */
 const baseCss = [
   '/* GENERATED FILE — do not edit. Produced by console/scripts/compile-design.mjs. */',
   "@import '../../../../assets/fonts/fonts.css';",
   '',
   sanitizeBrand(consoleSource.style),
   '',
-  '.msym { font-family:"Material Symbols Outlined"; font-weight:400; font-style:normal; font-size:24px; line-height:1; letter-spacing:normal; text-transform:none; display:inline-block; white-space:nowrap; direction:ltr; font-variation-settings:"FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24; -webkit-font-feature-settings:"liga"; -webkit-font-smoothing:antialiased; }',
+  '.msym { font-family:"Material Symbols Outlined"; font-weight:400; font-style:normal; font-size:24px; line-height:1; letter-spacing:normal; text-transform:none; display:inline-block; white-space:nowrap; direction:ltr; -webkit-font-feature-settings:"liga"; -webkit-font-smoothing:antialiased; }',
   '',
   '/* The window is frameless, so the design title bar drags it and its controls do not. */',
   '[data-window-drag] { -webkit-app-region: drag; }',

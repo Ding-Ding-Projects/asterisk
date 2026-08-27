@@ -8,14 +8,22 @@
     "both"
   ],
   "knownCopyKeys": [
+    "changelogDesc",
+    "dialogEmojisDesc",
+    "displayNameDesc",
     "emptyDestinations",
     "emptyNotifications",
     "heroLede",
     "motionDesc",
+    "narrationDesc",
     "notifRegexApplied",
     "notifSettingSaved",
     "notifSettingsReset",
-    "themeDesc"
+    "schoolDesc",
+    "searchModePlain",
+    "searchModeRegex",
+    "themeDesc",
+    "updatesDesc"
   ],
   "features": {
     "language-modes": {
@@ -35,25 +43,31 @@
       "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
     },
     "dialog-emojis": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
-      "copyKeys": [],
+      "copyKeys": [
+        "dialogEmojisDesc"
+      ],
       "missingCopyKeys": [],
-      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+      "note": "Covered by COPY keys: dialogEmojisDesc. The dialog-emoji card description carries four English and four Cantonese variants, and every one of the eight states both facts the switch turns on: that the wording is unchanged, and that no button, label or screen-reader name carries a glyph. The checkbox label, the card heading and the live status line are still fixed English."
     },
     "school-mode": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
-      "copyKeys": [],
+      "copyKeys": [
+        "schoolDesc"
+      ],
       "missingCopyKeys": [],
-      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+      "note": "The card ships COPY.schoolDesc with four English and four Cantonese funny levels, wired through data-copy=\"schoolDesc\". None of the eight variants names the mode, deliberately: the name is the reader's to change, so it is written into the heading, the status line and the search keywords at run time instead, and a description that named it could never be renamed with it. The status, suppression and recovery sentences are generated at run time from the chosen name and render in English, which is the only language available while the mode is on."
     },
     "narration": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
-      "copyKeys": [],
+      "copyKeys": [
+        "narrationDesc"
+      ],
       "missingCopyKeys": [],
-      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+      "note": "The narration card ships COPY.narrationDesc with four English and four Cantonese funny levels, wired through data-copy=\"narrationDesc\". Every level states both facts the card rests on: the narrator is off until it is switched on, and everything it reads is already on screen. The two voice-status lines and the spoken lines themselves are generated at runtime; the spoken lines carry their own en/zh wording at each call site, and are deliberately read from copyLevel() rather than copyText() so no personal-vocabulary replacement can be spoken through a network-backed voice."
     },
     "scheduled-settings": {
       "state": "not-localized",
@@ -80,10 +94,12 @@
       "state": "localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
       "copyKeys": [
-        "notifRegexApplied"
+        "notifRegexApplied",
+        "searchModePlain",
+        "searchModeRegex"
       ],
       "missingCopyKeys": [],
-      "note": "Covered by COPY keys: notifRegexApplied."
+      "note": "Covered by COPY keys: notifRegexApplied, searchModePlain, searchModeRegex."
     },
     "non-blocking-notifications": {
       "state": "localized",
@@ -171,11 +187,13 @@
       "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
     },
     "changelog-viewer": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
-      "copyKeys": [],
+      "copyKeys": [
+        "changelogDesc"
+      ],
       "missingCopyKeys": [],
-      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+      "note": "Covered by COPY keys: changelogDesc. The changelog description carries four English and four Cantonese variants, and every one of the eight states the two facts the viewer rests on: each line carries the real commit that made it, and what is exported is exactly what is on screen. The section heading, the control labels and the count, range and problem lines are still fixed English. The entries themselves are deliberately NOT localized and never will be: a change summary is a factual external record of what a release said, and restyling it at a funny level would stop it being a record."
     },
     "external-editor-handoff": {
       "state": "not-localized",
@@ -271,11 +289,13 @@
       "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
     },
     "app-display-name": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
-      "copyKeys": [],
+      "copyKeys": [
+        "displayNameDesc"
+      ],
       "missingCopyKeys": [],
-      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+      "note": "Covered by COPY keys: displayNameDesc. The display-name card description carries four English and four Cantonese variants, and every one of the eight names the shipped product so the identity boundary is stated at every funny level. The field label, the reset button and the live status line are still fixed English."
     },
     "guided-forms": {
       "state": "not-localized",
@@ -334,11 +354,13 @@
       "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
     },
     "automatic-updates": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
-      "copyKeys": [],
+      "copyKeys": [
+        "updatesDesc"
+      ],
       "missingCopyKeys": [],
-      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+      "note": "COPY.updatesDesc ships four English and four Cantonese variants, wired to the sliders from the start through the settings card's data-copy=\"updatesDesc\" hook. Voice moves with the slider; four facts never do -- every one of the eight states that the comparison is on the build commit rather than the version label, that nothing installs or downloads in the background, that reloading is what takes the new page, and that the check asks this same site for one small file and sends nothing anywhere. The banner and status wording is rendered from the watch own state rather than from COPY, so it is English at every level; it is a factual report of two build identities rather than product prose, and every string in it still passes through applyVocabularyText()."
     }
   }
 }

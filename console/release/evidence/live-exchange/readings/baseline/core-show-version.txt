@@ -1,0 +1,1 @@
+Asterisk UNKNOWN__and_probably_unsupported built by root @ buildkitsandbox on a x86_64 running Linux on 2026-08-25 03:43:18 UTC

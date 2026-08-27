@@ -1,0 +1,11 @@
+FAX For Asterisk Settings:
+	ECM: Enabled
+	Status Events: On
+	Minimum Bit Rate: 4800
+	Maximum Bit Rate: 14400
+	Modem Modulations Allowed: V17,V27,V29
+	T.38 Negotiation Timeout: 5000
+
+
+FAX Technology Modules:
+

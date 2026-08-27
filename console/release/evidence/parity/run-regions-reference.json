@@ -1,0 +1,219 @@
+{
+  "generatedAt": "2026-08-25T18:42:31.019Z",
+  "regionsOnly": true,
+  "side": "reference",
+  "regionsMeasuredThisRun": 32,
+  "regionsOnDisk": 32,
+  "target": "design/Asterisk Console M3.dc.html rendered by design/support.js with locally vendored React 18.3.1",
+  "tuple": {
+    "state": "default",
+    "theme": "dark",
+    "width": 1440,
+    "height": 1000,
+    "scale": 1
+  },
+  "interceptedRequests": {
+    "server": 711,
+    "font-stylesheet": 64,
+    "font-face": 0,
+    "blocked": 0
+  },
+  "blockedUrls": [],
+  "reachedTheNetwork": "no",
+  "captured": 0,
+  "failed": 32,
+  "results": [
+    {
+      "id": "dash",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "live",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "endpoints",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "trunks",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "trunkauth",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "canvas",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "ivr",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "queues",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "voicemail",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "confbridge",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "moh",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "codecs",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "cdr",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "ami",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "modules",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "logger",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "security",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "cli",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "memory",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "sync",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "skills",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "hub",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "vocab",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "ops",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "secrets",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "servers",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "arcade",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "notifications",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "history",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "customise",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "appearance",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    },
+    {
+      "id": "about",
+      "captured": false,
+      "regionsOnly": true,
+      "reason": "run made with --regions-only; no capture was taken and none was expected"
+    }
+  ]
+}

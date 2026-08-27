@@ -1,0 +1,44 @@
+{
+  "destinationId": "notifications",
+  "verdict": "diff",
+  "reasons": [],
+  "dimensions": {
+    "reference": {
+      "width": 1440,
+      "height": 1000
+    },
+    "built": {
+      "width": 1440,
+      "height": 1000
+    }
+  },
+  "diffPixelCount": 738401,
+  "totalPixels": 1440000,
+  "diffPercentage": 51.27784722222222,
+  "boundingBox": {
+    "x0": 2,
+    "y0": 6,
+    "x1": 1413,
+    "y1": 986
+  },
+  "paletteCheck": {
+    "blackFraction": 0,
+    "thresholdExceeded": false
+  },
+  "stalenessCheck": {
+    "checked": true,
+    "stale": false,
+    "builtCaptureMtimeMs": 1787701427437.4023,
+    "newestBuildSourceMtimeMs": 1787701108062.1504
+  },
+  "generatedBy": "console/scripts/design-parity-capture-run.mjs --side=diff",
+  "tuple": {
+    "state": "default",
+    "theme": "dark",
+    "width": 1440,
+    "height": 1000,
+    "scale": 1
+  },
+  "referenceCapture": "console/release/captures/parity/notifications-reference.png",
+  "builtCapture": "console/release/captures/parity/notifications-built.png"
+}

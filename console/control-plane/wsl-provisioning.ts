@@ -98,6 +98,13 @@ export interface WslProvisioningOptions {
   baseImage?: BaseImageSource;
   downloader?: RootfsDownloader;
   now?: () => Date;
+  /**
+   * Called as each provisioning step finishes, rather than only when the whole run
+   * does. Optional: a caller that passes nothing gets exactly the previous behaviour,
+   * and the steps are still returned in the outcome either way, so this adds a live
+   * view without changing what a completed run reports.
+   */
+  onStep?: (step: ProvisionStep) => void;
 }
 
 const stripNulls = (text: string) => text.replaceAll("\0", "");
@@ -110,6 +117,7 @@ export class WslProvisioning {
 
   readonly #baseImage?: BaseImageSource;
   readonly #downloader?: RootfsDownloader;
+  readonly #onStep?: (step: ProvisionStep) => void;
 
   constructor(options: WslProvisioningOptions) {
     this.#executor = options.executor;
@@ -118,6 +126,7 @@ export class WslProvisioning {
     this.#baseImage = options.baseImage;
     this.#downloader = options.downloader;
     this.#now = options.now ?? (() => new Date());
+    this.#onStep = options.onStep;
   }
 
   #stamp() {
@@ -224,39 +233,55 @@ export class WslProvisioning {
    */
   async provision(payloadPresent: boolean, signal?: AbortSignal): Promise<ProvisionOutcome> {
     const steps: ProvisionStep[] = [];
+    /* Both collects and emits. A step reported here has actually happened -- the
+     * callback fires after the work, never before it, so a listener cannot show
+     * progress for something still in flight. */
+    const record = (step: ProvisionStep) => {
+      steps.push(step);
+      try {
+        this.#onStep?.(step);
+      } catch {
+        /* A listener is somebody else's code, and a deploy must not fail because a
+         * progress line could not be rendered -- that would be the observation destroying
+         * the thing observed. The step is already recorded above, so the outcome is
+         * unaffected and the run continues. Deliberately swallowed rather than logged:
+         * this module has no logger, and adding one to report a listener's bug would put
+         * the listener's failure into the provisioning record as though it were ours. */
+      }
+    };
     const fail = (reason: string): ProvisionOutcome => ({
       status: { state: "failed", distribution: MANAGED_DISTRIBUTION, reason, observedAt: this.#stamp() },
       steps,
     });
 
     if (!payloadPresent) {
-      steps.push({ name: "packaged runtime", ok: false, detail: "The packaged Asterisk runtime is missing from this build." });
+      record({ name: "packaged runtime", ok: false, detail: "The packaged Asterisk runtime is missing from this build." });
       return fail("This build does not carry the packaged Asterisk runtime.");
     }
-    steps.push({ name: "packaged runtime", ok: true, detail: this.#rootfs });
+    record({ name: "packaged runtime", ok: true, detail: this.#rootfs });
 
     let existing: ReadonlyArray<string>;
     try {
       existing = await this.#listDistributions(signal);
     } catch (error) {
       const reason = error instanceof Error ? error.message : "WSL is not available.";
-      steps.push({ name: "WSL available", ok: false, detail: reason });
+      record({ name: "WSL available", ok: false, detail: reason });
       return {
         status: { state: "wslUnavailable", distribution: MANAGED_DISTRIBUTION, reason, observedAt: this.#stamp() },
         steps,
       };
     }
-    steps.push({ name: "WSL available", ok: true, detail: `${existing.length} distribution(s) present` });
+    record({ name: "WSL available", ok: true, detail: `${existing.length} distribution(s) present` });
 
     if (existing.includes(MANAGED_DISTRIBUTION)) {
-      steps.push({
+      record({
         name: "distribution absent",
         ok: false,
         detail: `${MANAGED_DISTRIBUTION} already exists; importing over it would discard its contents.`,
       });
       return fail(`${MANAGED_DISTRIBUTION} already exists. Remove it first if you intend to recreate it.`);
     }
-    steps.push({ name: "distribution absent", ok: true, detail: `${MANAGED_DISTRIBUTION} is not registered yet` });
+    record({ name: "distribution absent", ok: true, detail: `${MANAGED_DISTRIBUTION} is not registered yet` });
 
     const imported = await this.#executor.execute({
       executable: "wsl.exe",
@@ -267,19 +292,19 @@ export class WslProvisioning {
     });
     if (imported.status !== "succeeded") {
       const detail = stripNulls(imported.stderr).trim() || `wsl --import exited with ${imported.exitCode}`;
-      steps.push({ name: "import runtime", ok: false, detail });
+      record({ name: "import runtime", ok: false, detail });
       return fail(detail);
     }
-    steps.push({ name: "import runtime", ok: true, detail: `imported into ${this.#installDirectory}` });
+    record({ name: "import runtime", ok: true, detail: `imported into ${this.#installDirectory}` });
 
     /* Verify by asking the distribution itself rather than trusting the import's exit
      * code. An import can succeed and still produce something that cannot run. */
     const version = await this.#asteriskVersion(signal);
     if (!version.ok) {
-      steps.push({ name: "verify Asterisk", ok: false, detail: version.detail });
+      record({ name: "verify Asterisk", ok: false, detail: version.detail });
       return fail(version.detail);
     }
-    steps.push({ name: "verify Asterisk", ok: true, detail: version.detail });
+    record({ name: "verify Asterisk", ok: true, detail: version.detail });
 
     return {
       status: {

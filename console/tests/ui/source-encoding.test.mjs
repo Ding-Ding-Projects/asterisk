@@ -58,6 +58,18 @@ function walk(dir, found = []) {
   return found;
 }
 
+/** Everything below space except the three that legitimately appear in source. */
+const CONTROL_CHARACTERS = new RegExp(
+  /* Built from code points rather than written as a literal: an escape in a regex
+   * literal has to survive every layer between the editor and the file, and the
+   * first version of this line arrived with real control characters in it -- the
+   * exact corruption it exists to catch. */
+  '[' + [[0, 8], [11, 12], [14, 31], [127, 127]]
+    .map(([from, to]) => String.fromCharCode(from) + '-' + String.fromCharCode(to))
+    .join('') + ']',
+  'u',
+);
+
 export function scanEncoding(files, read = (path) => readFileSync(path)) {
   const decoder = new TextDecoder('utf-8', { fatal: true });
   const faults = [];
@@ -71,6 +83,17 @@ export function scanEncoding(files, read = (path) => readFileSync(path)) {
     }
     for (const sequence of MOJIBAKE) {
       if (text.includes(sequence)) faults.push(`${path}: contains re-encoded text`);
+    }
+    /* A stray control character is valid UTF-8, so the decode above passes and the
+     * mojibake scan sees nothing. It survived into a source file in this repository: a
+     * NUL landed where a separator should have been, TypeScript compiled it, the tests
+     * went green, and the only symptom was grep reporting the file as binary. Anything
+     * below space that is not tab, newline or carriage return has no business in source. */
+    const control = text.match(CONTROL_CHARACTERS);
+    if (control) {
+      const at = text.indexOf(control[0]);
+      const line = text.slice(0, at).split(String.fromCharCode(10)).length;
+      faults.push(`${path}: control character U+${control[0].codePointAt(0).toString(16).padStart(4, '0').toUpperCase()} at line ${line}`);
     }
   }
   return faults;
@@ -97,6 +120,26 @@ test('negative regression: double-encoded text turns the scan red although it is
     Buffer.from(`const dash = "${asLegacy('—')} oops";`, 'utf8'));
   assert.equal(planted.length, 1, 'mojibake passed as acceptable because the bytes decode cleanly');
   assert.match(planted[0], /re-encoded text/u);
+});
+
+test('a control character is caught although the bytes are valid UTF-8', () => {
+  /* The decode succeeds and the mojibake scan finds nothing, which is exactly why this
+   * needed its own check rather than being assumed covered by the two above. */
+  const planted = scanEncoding(['pretend.ts'], () =>
+    Buffer.from(`const key = \`a${String.fromCharCode(0)}b\`;`, 'utf8'));
+  assert.equal(planted.length, 1, 'a NUL passed as acceptable source');
+  assert.match(planted[0], /control character U\+0000 at line 1/u);
+});
+
+test('tab, newline and carriage return are not treated as control characters', () => {
+  /* All three are ordinary in source, and a check that rejected them would fail on every
+   * file in the repository. */
+  const CR = String.fromCharCode(13);
+  const LF = String.fromCharCode(10);
+  const TAB = String.fromCharCode(9);
+  const planted = scanEncoding(['pretend.ts'], () =>
+    Buffer.from(`const a = 1;${CR}${LF}${TAB}const b = 2;${LF}`, 'utf8'));
+  assert.deepEqual(planted, []);
 });
 
 test('negative regression: ordinary correct text stays green', () => {

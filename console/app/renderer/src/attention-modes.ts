@@ -533,6 +533,25 @@ export function momentumPrompt(
   return { show: true, message: `Nothing has changed here for ${elapsedPhrase(sinceChangeMs)}.` };
 }
 
+/** A one-time momentum dismissal is persisted so the requested quiet period survives rerenders. */
+export function snoozeMomentum(storage: ModeStorage, now: number = Date.now()): void {
+  storage.setItem(SNOOZED_UNTIL_SETTING_KEY, String(now));
+}
+
+/** Returns the elapsed time since a momentum dismissal, or no value when it was never set. */
+export function msSinceSnooze(storage: ModeStorage | undefined, now: number = Date.now()): number | undefined {
+  /* Keep the existing persisted stamp readable while newer callers use the named storage key. */
+  const raw = storage?.getItem(SNOOZED_UNTIL_SETTING_KEY) ?? storage?.getItem(`${MODE_SETTING_PREFIX}snoozedAt`);
+  if (typeof raw !== 'string' || raw === '') return undefined;
+  const recordedAt = Number(raw);
+  return Number.isFinite(recordedAt) ? Math.max(0, now - recordedAt) : undefined;
+}
+
+/** Focus reduces competing visual weight without hiding or disabling any reachable content. */
+export const FOCUS_DIM_CSS =
+  '.attn-content:focus-within * { opacity: .55; transition: opacity 150ms ease; } '
+  + '.attn-content:focus-within *:focus, .attn-content:focus-within *:focus-within { opacity: 1; }';
+
 /**
  * Words that must never appear in this feature's copy.
  *
@@ -555,6 +574,6 @@ import {
   ATTENTION_WIRING,
   type AttentionSeverityProducerSite,
   type AttentionWiringRow,
-} from './attention-inventory.js';
-export { ATTENTION_MUTATION_ACTIONS, ATTENTION_MUTATION_INVENTORY, ATTENTION_MUTATION_PASSIVE_EXCLUSIONS, ATTENTION_SEVERITY_PRODUCERS, ATTENTION_SEVERITY_ROUTES, ATTENTION_STRUCTURED_NOTICE_PRODUCERS, ATTENTION_WIRING } from './attention-inventory.js';
-export type { AttentionSeverityProducerSite, AttentionWiringRow } from './attention-inventory.js';
+} from './attention-inventory.ts';
+export { ATTENTION_MUTATION_ACTIONS, ATTENTION_MUTATION_INVENTORY, ATTENTION_MUTATION_PASSIVE_EXCLUSIONS, ATTENTION_SEVERITY_PRODUCERS, ATTENTION_SEVERITY_ROUTES, ATTENTION_STRUCTURED_NOTICE_PRODUCERS, ATTENTION_WIRING } from './attention-inventory.ts';
+export type { AttentionSeverityProducerSite, AttentionWiringRow } from './attention-inventory.ts';

@@ -11,7 +11,7 @@ function host(argv: string[], platform = 'win32') {
     /* Forward slashes on purpose. Node resolves them correctly on Windows, and a
      * backslash in a source literal is the one character that does not survive being
      * written through a shell — it silently collapses and the path becomes nonsense. */
-    execPath: 'C:/Users/example/AppData/Local/ding-pbx-console/app-0.1.0/Ding PBX Console.exe',
+    execPath: 'C:/Users/example/AppData/Local/ding-pbx-console/app-0.1.0/Material Asterisk.exe',
     runUpdater: (exe, args) => { ran.push({ exe, args: [...args] }); },
     quit: () => { quits += 1; },
   };
@@ -33,7 +33,7 @@ test('install creates shortcuts through Update.exe and quits immediately', () =>
   assert.equal(result.action, 'shortcuts-created');
   assert.equal(h.ran.length, 1);
   assert.match(h.ran[0].exe, /Update\.exe$/u);
-  assert.deepEqual(h.ran[0].args, ['--createShortcut', 'Ding PBX Console.exe']);
+  assert.deepEqual(h.ran[0].args, ['--createShortcut', 'Material Asterisk.exe']);
   assert.equal(h.quits(), 1, 'it did not quit, so Squirrel would wait out its timeout');
 });
 
@@ -50,7 +50,7 @@ test('update recreates shortcuts and quits', () => {
   const h = host(['app.exe', '--squirrel-updated', '0.2.0']);
   const result = handleSquirrelEvent(h.hostess);
   assert.equal(result.action, 'shortcuts-created');
-  assert.deepEqual(h.ran[0].args, ['--createShortcut', 'Ding PBX Console.exe']);
+  assert.deepEqual(h.ran[0].args, ['--createShortcut', 'Material Asterisk.exe']);
   assert.equal(h.quits(), 1);
 });
 
@@ -58,7 +58,7 @@ test('uninstall removes shortcuts and quits', () => {
   const h = host(['app.exe', '--squirrel-uninstall', '0.1.0']);
   const result = handleSquirrelEvent(h.hostess);
   assert.equal(result.action, 'shortcuts-removed');
-  assert.deepEqual(h.ran[0].args, ['--removeShortcut', 'Ding PBX Console.exe']);
+  assert.deepEqual(h.ran[0].args, ['--removeShortcut', 'Material Asterisk.exe']);
   assert.equal(h.quits(), 1);
 });
 
