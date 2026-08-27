@@ -27,11 +27,60 @@ export const ATTENTION_WIRING: readonly AttentionWiringRow[] = [
    * six controls are declared in the design and this one is declared by the application. */
   { id:'next-action', control:'attn-rail-next-input', mode:null, controlDeclaration:marker('app',"className: 'attn-rail-next-input',"), controlConstruction:marker('app',"placeholder: 'Choose the one thing you are doing',"), durableKey:marker('module',"nextAction: 'console.attention.nextAction'"), writerMarkers:[marker('app',"setNextAction(storage, event.target.value);")], setterMarkers:[marker('module',"export function setNextAction(storage: ModeStorage, value: string): void {"), marker('module',"export const NEXT_ACTION_MAX_LENGTH = 140;")], consumerMarkers:[marker('app',"value: nextAction(storage),"), marker('app',"'aria-label': 'The one thing you are doing right now',"), marker('module',"export function nextAction(storage: ModeStorage | undefined): string {")] }
 ];
+/**
+ * The twelve state keys the compiled shell writes through `set()` that hold the user's
+ * own work, each beside the exact text in the compiled renderer that mutates it.
+ *
+ * `generatedMutation` is what makes this a record rather than a wish. The rows used to
+ * carry only the three name fields, and the check searched the compiled renderer for the
+ * literal `action: 'set', key: 'canvasTool', state: 'canvasTool'` -- an object shape that
+ * appears in no commit of that file, ever, so the check could not pass and had never run
+ * against anything real. Behind the unpassable shape was a real gap, and a larger one
+ * than the list suggested: nothing called `onUserMutation` for any of these keys, and
+ * the method the compiled shell calls was declared nowhere at all.
+ *
+ * Four of the twelve are toggled through a computed key, `this.set(t.k, !s[t.k])`, which
+ * is why grepping the renderer for `set('grid'` finds nothing and why an earlier reading
+ * concluded that only eight of the twelve went through `set()`. All twelve do. Those four
+ * record the control declaration that supplies the key instead, and the one dispatch they
+ * share is checked separately below.
+ */
 export const ATTENTION_MUTATION_ACTIONS = [
-  { action:'set', key:'canvasTool', state:'canvasTool' }, { action:'set', key:'grid', state:'grid' }, { action:'set', key:'snap', state:'snap' }, { action:'set', key:'guides', state:'guides' }, { action:'set', key:'minimap', state:'minimap' }, { action:'set', key:'layer', state:'layer' }, { action:'set', key:'zoom', state:'zoom' }, { action:'set', key:'pinned', state:'pinned' }, { action:'set', key:'dock', state:'dock' }, { action:'set', key:'fullscreen', state:'fullscreen' }, { action:'set', key:'branch', state:'branch' }, { action:'set', key:'sortList', state:'sortList' },
+  { action:'set', key:'canvasTool', state:'canvasTool', generatedMutation:"this.set('canvasTool'" },
+  { action:'set', key:'grid', state:'grid', generatedMutation:"label:'Grid', k:'grid'" },
+  { action:'set', key:'snap', state:'snap', generatedMutation:"label:'Snap', k:'snap'" },
+  { action:'set', key:'guides', state:'guides', generatedMutation:"label:'Guides', k:'guides'" },
+  { action:'set', key:'minimap', state:'minimap', generatedMutation:"label:'Minimap', k:'minimap'" },
+  { action:'set', key:'layer', state:'layer', generatedMutation:"this.set('layer'" },
+  { action:'set', key:'zoom', state:'zoom', generatedMutation:"this.set('zoom'" },
+  { action:'set', key:'pinned', state:'pinned', generatedMutation:"this.set('pinned'" },
+  { action:'set', key:'dock', state:'dock', generatedMutation:"this.set('dock'" },
+  { action:'set', key:'fullscreen', state:'fullscreen', generatedMutation:"this.set('fullscreen'" },
+  { action:'set', key:'branch', state:'branch', generatedMutation:"this.set('branch'" },
+  { action:'set', key:'sortList', state:'sortList', generatedMutation:"this.set('sortList'" },
 ] as const;
+/** The single dispatch the four computed-key toggles above share. Checked on its own,
+ *  because no per-key marker can stand for a call that never names a key. */
+export const ATTENTION_COMPUTED_TOGGLE_DISPATCH = 'pick:() => this.set(t.k, !s[t.k])';
+/**
+ * The subclass half of the compiled shell's mutation contract, in the exact text each
+ * part must have. The shell calls `onUserMutation`; `App` has to declare it and to route
+ * `set()` through it, and neither of those was true.
+ */
+export const ATTENTION_MUTATION_HOOK_MARKERS: readonly AttentionMarker[] = [
+  marker('generated', "this.onUserMutation('control:' + (c.id || 'unknown'));"),
+  marker('app', "onUserMutation = (_source: string = 'unknown'): void => {"),
+  marker('app', 'private static readonly SET_MUTATION_KEYS: ReadonlySet<string> = new Set('),
+  marker('app', "ATTENTION_MUTATION_ACTIONS.filter((action) => action.action === 'set').map((action) => action.key),"),
+  marker('app', 'const changed = App.SET_MUTATION_KEYS.has(key)'),
+  marker('app', "if (changed) this.onUserMutation('set:' + key);"),
+];
 export interface AttentionMutationInventoryRow { readonly file:string; readonly line:number; readonly argument:string; readonly occurrence:number; readonly state:string; readonly clockEffect:AttentionClockEffect; }
 export const ATTENTION_MUTATION_INVENTORY: readonly AttentionMutationInventoryRow[] = [
+  /* The one App-side call site that exists. Every other `App.tsx` row below names a call
+   * this file does not contain -- that drift is the open inventory pass recorded on the
+   * roadmap, not something this row is part of. */
+  { file: 'App.tsx', line: 1005, argument: "'set:' + key", occurrence: 1, state: 'canvasAndLayoutKeys', clockEffect: 'recorded' },
   { file: 'App.tsx', line: 375, argument: "'attention-history-clear'", occurrence: 1, state: 'noticeHistory', clockEffect: 'recorded' },
   { file: 'App.tsx', line: 899, argument: "'vocabulary-load'", occurrence: 1, state: 'vocabularyCache', clockEffect: 'recorded' },
   { file: 'App.tsx', line: 912, argument: "'vocabulary-clear'", occurrence: 1, state: 'vocabularyCache', clockEffect: 'recorded' },

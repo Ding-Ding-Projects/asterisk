@@ -46,11 +46,16 @@ function withSyncUpdater(instance: AppInstance): AppInstance {
     isMounted: () => true,
     enqueueForceUpdate() {},
     enqueueReplaceState(publicInstance: AppInstance, state: Record<string, unknown>) { publicInstance.state = state; },
-    enqueueSetState(publicInstance: AppInstance, partial: unknown) {
+    /* The `callback` argument is React's post-commit callback and running it is not
+     * optional detail. Every copy of this stub used to drop it, so the one place the
+     * compiled shell reports an accepted value never ran in any test -- which is how a
+     * call to a method that existed nowhere shipped and stayed invisible. */
+    enqueueSetState(publicInstance: AppInstance, partial: unknown, callback?: () => void) {
       const next = typeof partial === 'function'
         ? (partial as (s: Record<string, unknown>) => Record<string, unknown>)(publicInstance.state)
         : partial as Record<string, unknown>;
       publicInstance.state = { ...publicInstance.state, ...next };
+      callback?.();
     },
   };
   return instance;

@@ -265,3 +265,86 @@ test('the attention contract keeps exactly five mode ids and its hand-written wi
     'removing one hand-written mutation inventory row must turn the contract red',
   );
 });
+
+/* --- the guard on the compiled shell's mutation hook ---------------------------------
+ *
+ * These feed `verifyAttentionWiring` deliberately damaged sources and require it to
+ * refuse. They exist because the checks they exercise cannot guard their own deletion:
+ * removing the loop that requires the subclass hook leaves the verifier passing on a
+ * tree with no hook at all, and a negative-regression script planting that break would
+ * watch it stay cheerfully green. Something outside the verifier has to insist that the
+ * verifier still refuses, and this is that something.
+ */
+
+/** The real sources on disk, which `verifyAttentionWiring` must accept unmodified. */
+function attentionSources() {
+  const repo = resolve(root, '..');
+  const readRepo = (p) => readFileSync(resolve(repo, p), 'utf8').replace(/\r\n|\r/gu, '\n');
+  return {
+    design: readRepo('design/Asterisk Console M3.dc.html'),
+    app: readRepo('console/app/renderer/src/App.tsx'),
+    generated: readRepo('console/app/renderer/src/generated/console.tsx'),
+    module: readRepo('console/app/renderer/src/attention-modes.ts'),
+  };
+}
+
+test('the wiring verifier accepts the tree as it stands', () => {
+  attention.verifyAttentionWiring(attentionSources());
+});
+
+test('the wiring verifier refuses a tree whose subclass does not declare the hook the shell calls', () => {
+  const sources = attentionSources();
+  const declaration = "onUserMutation = (_source: string = 'unknown'): void => {";
+  assert.equal(sources.app.split(declaration).length - 1, 1, 'the declaration this fixture removes is no longer unique in App.tsx');
+  assert.throws(
+    () => attention.verifyAttentionWiring({ ...sources, app: sources.app.replace(declaration, 'private removedForFixture = () => {') }),
+    /attention mutation hook/u,
+    'a tree with no onUserMutation declaration must be refused -- that exact tree shipped, and every control change threw',
+  );
+});
+
+test('the wiring verifier refuses a hook line that has been commented out rather than deleted', () => {
+  /* The trap this closes: a substring needle is satisfied by a commented-out call, which
+   * is how a wiring line usually dies. The marker has to be anchored to the start of its
+   * own line for the difference to be visible at all. */
+  const sources = attentionSources();
+  const call = "if (changed) this.onUserMutation('set:' + key);";
+  assert.equal(sources.app.split(call).length - 1, 1);
+  assert.throws(
+    () => attention.verifyAttentionWiring({ ...sources, app: sources.app.replace(call, `// ${call}`) }),
+    /attention mutation hook/u,
+    'commenting the call out must be refused exactly as deleting it is',
+  );
+});
+
+test('the wiring verifier refuses a mutation key the compiled renderer no longer writes', () => {
+  const sources = attentionSources();
+  const written = "this.set('fullscreen'";
+  assert.ok(sources.generated.includes(written));
+  assert.throws(
+    () => attention.verifyAttentionWiring({ ...sources, generated: sources.generated.split(written).join('this.setGoneForFixture(') }),
+    /no longer written by the compiled renderer/u,
+    'a key the inventory claims and the renderer never writes must be refused',
+  );
+});
+
+test('the wiring verifier refuses a duplicated mutation key', () => {
+  const sources = attentionSources();
+  const rows = attention.ATTENTION_MUTATION_ACTIONS;
+  assert.ok(rows.length >= 2, 'this fixture needs at least two rows to duplicate one');
+  assert.throws(
+    () => attention.verifyAttentionWiring(sources, attention.ATTENTION_WIRING, [...rows, rows[0]]),
+    /Duplicate attention mutation key/u,
+    'two rows claiming the same key must be refused, or one could stand in for the other',
+  );
+});
+
+test('the wiring verifier refuses a renderer that has lost the computed-key toggle dispatch', () => {
+  const sources = attentionSources();
+  assert.equal(sources.generated.split(attention.ATTENTION_COMPUTED_TOGGLE_DISPATCH).length - 1, 1);
+  assert.throws(
+    () => attention.verifyAttentionWiring({ ...sources, generated: sources.generated.replace(attention.ATTENTION_COMPUTED_TOGGLE_DISPATCH, 'pick:() => undefined') }),
+    /computed-key canvas toggle dispatch/u,
+    'grid, snap, guides and minimap are all toggled through that one call',
+  );
+});
