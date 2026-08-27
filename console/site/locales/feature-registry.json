@@ -18,6 +18,7 @@
     "emptyNotifications",
     "exportEverythingDesc",
     "heroLede",
+    "locksDesc",
     "motionDesc",
     "narrationDesc",
     "notifRegexApplied",
@@ -243,11 +244,13 @@
       "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
     },
     "per-element-toy-locks": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
-      "copyKeys": [],
+      "copyKeys": [
+        "locksDesc"
+      ],
       "missingCopyKeys": [],
-      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+      "note": "The card description carries four English and four Cantonese variants and is hooked from site/settings.html by data-copy=\"locksDesc\". Three facts survive every one of the eight: it is a speed bump rather than a security boundary, every lock carries its own value so opening one opens nothing else, and clearing this site's storage removes them all with no way to get a value back. The first of those is the one a funny level must never soften, because softening it would advertise protection this feature does not provide."
     },
     "support-tickets": {
       "state": "not-localized",

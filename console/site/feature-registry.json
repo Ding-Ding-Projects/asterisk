@@ -199,9 +199,13 @@
       ]
     },
     "per-element-toy-locks": {
-      "state": "absent",
-      "note": "No per-element lock/unlock mechanism was found anywhere in site/app.js.",
-      "files": []
+      "state": "implemented",
+      "note": "Built on 2026-08-26. site/app.js carries LOCK_POLICIES (the six canonical methods, each an ORDERED factor list), one fixed storage key ding-pbx-pages-locks-v1 holding a record map keyed by element, and the pure decisions the surfaces are written from: lockElementKey/lockKeySelector (an id where the element has one, a structural path where it has not), lockSetupVerdict, lockCredentialVerdict (a full-length compare, never an early return), lockAttemptVerdict, lockOpenVerdict and lockEventVerdict. PINs and passwords are kept as salted SHA-256 digests and never as themselves; a one-time-code factor really does keep the shared secret the reader supplied, because a code cannot be computed from a hash, and the card and the article both say so rather than implying otherwise. The right-click 'Lock this element...' command is now a real conditional entry (Alt+Shift+K) that opens an anchored, non-modal wizard beside the element; the unlock prompt walks the policy's factors in order, offers an access-control keypad and manual entry that feed ONE validator and ONE attempt budget, and a wrong step drops every factor verified in that attempt. A locked element is refused rather than disabled -- a native disabled attribute receives no events, which would destroy the unlock route -- so the refusal is a capture-phase interception across pointerdown, mousedown, click, keydown, input, change, dragstart and paste, plus a second refusal inside activateContextMenuItem so an action cannot be reached from the element's own menu instead. contextmenu itself is deliberately not refused, because removing a lock is reached from there. Unlock duration is once, a number of minutes, or until the page is closed; all three live in memory only, so a reload relocks everything and locked-on-launch is a property of the code rather than a fourth option. The settings card lists every lock with its own search and anchored regex builder, bulk selection, an export whose every row carries the word omitted where a credential would be, and a removal that refuses a lock that has not been opened and reports the skipped ones by reason. Both dialogs are built at load rather than written into six documents, so -- exactly like the right-click menu, and for the same reason -- they are not in the dialog-emoji decoration table, which names surfaces by id and reads them out of the published markup.",
+      "files": [
+        "site/app.js",
+        "site/settings.html",
+        "site/styles.css"
+      ]
     },
     "support-tickets": {
       "state": "absent",

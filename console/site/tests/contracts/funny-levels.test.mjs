@@ -87,8 +87,8 @@ test('the COPY table defines a genuine four-level voice for both languages, on e
    * the feature they describe is switched on -- that mode forces English -- and they are
    * required all the same, because the card is read by somebody deciding whether to turn
    * it on, which is a state in which every language mode is still available. */
-  assert.equal(Object.keys(table).length, 21,
-    `expected exactly 21 COPY keys, found ${Object.keys(table).length} -- update this pin if a message was deliberately added or removed`);
+  assert.equal(Object.keys(table).length, 22,
+    `expected exactly 22 COPY keys, found ${Object.keys(table).length} -- update this pin if a message was deliberately added or removed`);
   for (const [key, counts] of Object.entries(table)) {
     assert.equal(counts.enCount, 4, `${key}: expected 4 English funny-level variants (Plain/Mild/Playful/Maximum), found ${counts.enCount}`);
     assert.equal(counts.zhCount, 4, `${key}: expected 4 Cantonese funny-level variants, found ${counts.zhCount}`);
@@ -161,9 +161,9 @@ test('the funny sliders reach only a small, explicitly wired subset of the six p
    * 2026-08-26, three times in one day: the settings page's restricted-presentation
    * card, then its published-version watch, then the Export everything dialog, each
    * built with its description wired to the sliders from the start, as the narration,
-   * changelog, dialog-emoji and display-name cards had been earlier the same day. Ten
-   * of nineteen keys is still nowhere near the whole page, so the classification does
-   * not change. The two the right-click menu added the same day are not markup hooks at
+   * changelog, dialog-emoji and display-name cards had been earlier the same day, and
+   * then a fourth time for the element-locks card. Twelve of twenty-two keys is still
+   * nowhere near the whole page, so the classification does not change. The two the right-click menu added the same day are not markup hooks at
    * all -- that menu is built at run time and reads its copy through copyText() -- which
    * is why the key count moved by two and this list did not.
    *
@@ -175,7 +175,7 @@ test('the funny sliders reach only a small, explicitly wired subset of the six p
   const wiredKeys = new Set([...html.matchAll(/data-copy="(\w+)"/g)].map((m) => m[1]));
   assert.deepEqual([...wiredKeys].sort(),
     ['authenticatorDesc', 'changelogDesc', 'dialogEmojisDesc', 'displayNameDesc', 'exportEverythingDesc',
-      'heroLede', 'motionDesc', 'narrationDesc', 'schoolDesc', 'themeDesc', 'updatesDesc'],
+      'heroLede', 'locksDesc', 'motionDesc', 'narrationDesc', 'schoolDesc', 'themeDesc', 'updatesDesc'],
     'the set of markup-wired funny-level strings changed -- if it grew, the "partial" classification may need revisiting');
   const totalKeys = Object.keys(copyTable()).length;
   assert.ok(wiredKeys.size < totalKeys,

@@ -354,8 +354,12 @@ const cases = [
   ['the card loses its settings-search terms',
     swap(SETTINGS, 'data-search="authenticator totp otp one-time code two factor 2fa pairing qr secret account codes security"', 'data-search=""')],
 
+  /* The anchor gained a second subject on 2026-08-26, when the element locks joined the
+   * same sentence for the same reason. Reported by this script as a FAILED CASE rather
+   * than passing on an anchor that had quietly stopped existing. */
   ['the reset gate stops naming the accounts among the things it deliberately does not clear',
-    swap(SETTINGS, 'It also leaves your authenticator accounts alone', 'It also leaves some things alone')],
+    swap(SETTINGS, 'It also leaves your authenticator accounts and your element locks alone',
+      'It also leaves your element locks alone')],
 
   ['Export everything stops saying which record set it does not write',
     swap(SETTINGS, '<p id="export-everything-excluded" class="setting-note">', '<p id="export-everything-unnamed" class="setting-note">')],

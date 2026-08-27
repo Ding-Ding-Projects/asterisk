@@ -793,8 +793,19 @@ test('the one capability the canon names that this site cannot suppress is recor
    * the scan below match this feature's own explanation of why the scan exists. */
   const combined = [app.replace(schoolBlock(), ''), css, ...PAGES.map((name) => pageSource[name])].join('\n');
   assert.ok(combined.length > 20000, 'the combined source is too small to trust a "not found" result from it');
+  /* Re-derived on 2026-08-26. This was a `Math.random` needle, which read as proof
+   * that nothing on this site drew a random number and stopped being that the moment
+   * something reached for a different generator -- the element locks' shuffled PIN
+   * keypad did, using the cryptographic one. What actually matters here is narrower
+   * and is checked instead: a per-launch surprise needs a draw at LOAD, and every draw
+   * this site makes happens inside a function that runs when somebody asks for it.
+   * The dim-sum contract keeps the full accounting of where every draw lives. */
   assert.doesNotMatch(app, /Math\.random/u,
-    'site/app.js now draws a random number -- a per-launch surprise may exist, and the mode would have to remove it');
+    'site/app.js now draws a random number the ordinary way -- a per-launch surprise may exist, and the mode would have to remove it');
+  const initLine = app.split('\n').find((line) => /^\s*function init\(\)\{/u.test(line));
+  assert.ok(initLine, 'init() was not found as a single source line');
+  assert.doesNotMatch(initLine, /random/iu,
+    'init() now reaches for a random number as the page loads -- a per-launch surprise may exist');
   for (const pattern of [/\bdumplings?\b/giu, /har[\s-]?gow/giu, /\bsurprise\b/giu]) {
     assert.deepEqual([...combined.matchAll(pattern)].map((m) => m[0]), [],
       'a per-launch surprise may have been added to this site -- the restricted presentation would have to remove it');

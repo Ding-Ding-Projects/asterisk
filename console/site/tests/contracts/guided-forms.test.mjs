@@ -103,14 +103,49 @@ test('every <select> on the site is either a fixed, hard-coded option list, or o
    * they are not preferences but the set of parameters this page can actually compute a
    * code from, so an option outside them would be one that produces codes no service
    * accepts. The authenticator contract pins both lists equal to what the code accepts.
-   * All eight empty-in-markup selects are named here explicitly so a newly added select
+   * locks-export-format joined the empty bucket on 2026-08-26 with the element locks,
+   * filled from suitableFormats() over the selected locks exactly like the other
+   * format pickers.
+   *
+   * Two selects the element locks added are deliberately NOT in either bucket, and the
+   * reason has to be said out loud rather than left as a silent gap: this scan reads
+   * markup, and lock-wizard-policy and lock-wizard-duration are built at load by
+   * ensureLockUI() -- so they are invisible here, exactly as the right-click menu's own
+   * search field is. Both are fixed, in-source lists (LOCK_POLICIES and LOCK_DURATIONS)
+   * and the test below checks that, so they are covered rather than exempt.
+   *
+   * All nine empty-in-markup selects are named here explicitly so a newly added select
    * falls into neither bucket by accident. */
   assert.deepEqual(withStaticOptions.sort(),
     ['auth-algorithm', 'auth-digits', 'cantonese-funny', 'changelog-date-preset', 'density-mode',
       'english-funny', 'language-mode', 'narration-language', 'theme-mode']);
   assert.deepEqual(empty.sort(), ['auth-export-format', 'changelog-export-format', 'doc-export-format',
-    'export-everything-format', 'history-action-filter', 'narration-voice-en', 'narration-voice-zh',
-    'notif-export-format']);
+    'export-everything-format', 'history-action-filter', 'locks-export-format', 'narration-voice-en',
+    'narration-voice-zh', 'notif-export-format']);
+});
+
+test('the two selects the lock wizard builds at load are fixed in-source lists, not live or user data', () => {
+  /* The test above cannot see these, because it reads markup and these are created by
+   * ensureLockUI(). A select this scan is structurally blind to is exactly the kind of
+   * gap that reads as covered and is not, so it is checked here instead of waved
+   * through -- and it is checked against the tables the rest of the feature reads, so
+   * an option that would mean nothing when chosen cannot be added to either. */
+  const src = norm(read('site/app.js'));
+  /* Exact substrings rather than patterns. A pattern here would need escaped braces and
+   * a lazy any-character bridge, and both of those have produced guards in this
+   * repository that matched nothing and reported clean. */
+  for (const [id, variable, table] of [
+    ['lock-wizard-policy', 'policy', 'LOCK_POLICIES'],
+    ['lock-wizard-duration', 'duration', 'LOCK_DURATIONS'],
+  ]) {
+    assert.ok(src.includes(`const ${variable}=lockAppend(wizard,'select',{id:'${id}'`),
+      `${id} is no longer the select ensureLockUI() builds`);
+    assert.ok(src.includes(`for(const entry of ${table})lockAppend(${variable},'option',`),
+      `${id} is no longer filled from ${table} -- verify what it is filled from instead`);
+  }
+  /* And the tables really are in-source literals rather than anything read at run time. */
+  assert.ok(src.includes("const LOCK_POLICIES=[\n    {id:'pin',"), 'LOCK_POLICIES is no longer a source literal');
+  assert.ok(src.includes("const LOCK_DURATIONS=[\n    {id:'once',"), 'LOCK_DURATIONS is no longer a source literal');
 });
 
 test('the five export-format selects are populated from the fixed export-format list, never from live/user data', () => {

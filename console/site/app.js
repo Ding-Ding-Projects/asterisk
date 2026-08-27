@@ -648,7 +648,7 @@
   const state=loadState();
   function save(){return reportWrite('this page’s settings',writeLocal(STORAGE_KEY,JSON.stringify(state)))}
   function update(key,value){state[key]=value;save();applyState();recordHistory('setting-changed',`${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`${key} now uses ${value}.`),{category:'setting',copyKey:'notifSettingSaved'})}
-  function applyState(){applySchoolMode();document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyDisplayName();applyVocabulary();applyDialogEmojis();applyNarration();updateSessionTimer();updateOneThingBanner();renderAllModeStatuses();renderUpdateState()}
+  function applyState(){applySchoolMode();document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyDisplayName();applyVocabulary();applyDialogEmojis();applyLocks();applyNarration();updateSessionTimer();updateOneThingBanner();renderAllModeStatuses();renderUpdateState()}
   function updateAttention(key,value){state.attention={...state.attention,[key]:value};save();applyState();recordHistory('attention-changed',`attention.${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`attention.${key} now uses ${value}.`),{category:'setting',copyKey:'notifSettingSaved'})}
   function applyLanguage(){if(!$('language-preview'))return;document.documentElement.lang=state.language==='zh'?'zh-Hant':'en';$('language-preview').textContent=state.language==='en'?'English presentation active.':state.language==='zh'?'廣東話顯示已啟用。':'Bilingual presentation active. / 雙語顯示已啟用。'}
 
@@ -658,6 +658,23 @@
   // exact wording this page already shipped, so nothing changes for anyone who never
   // touches the sliders.
   const COPY = {
+    /* Voice moves with the slider; three facts never do. Every one of the eight
+     * variants says that this is a speed bump rather than a security boundary, that
+     * every lock carries its own value so opening one opens nothing else, and that
+     * clearing this site's storage removes them all with no way to get a value back.
+     * A variant that dropped the first would be advertising protection this feature
+     * does not provide, which is the one direction a joke must never take. */
+    locksDesc:{en:[
+      'Locks one control at a time behind a PIN, a password, a one-time code, or a combination of them. It is a speed bump you set for yourself, not a security boundary: it encrypts nothing and stops nobody else who has this computer. Every lock carries its own value, so opening one opens nothing else, and clearing this site’s storage removes them all — nothing here can give a value back.',
+      'Locks one control at a time behind a PIN, a password, a one-time code, or a mix of them. It is a speed bump you set for yourself, not a security boundary: it encrypts nothing and stops nobody else who has this computer. Every lock carries its own value, so opening one opens nothing else, and clearing this site’s storage removes the lot — nothing here can give a value back.',
+      'Puts a lock on one control at a time — a PIN, a password, a one-time code, or several of them in a row. It is a speed bump you built for yourself, not a security boundary: it encrypts nothing and stops nobody else who has this computer. Every lock carries its own value, so opening one opens nothing else, and clearing this site’s storage takes the lot with it — nothing here can give a value back.',
+      'Bolts one single control shut behind a PIN, a password, a one-time code, or all three in a queue. It is a speed bump you cheerfully built for yourself, not a security boundary, and it is not pretending to be one either: it encrypts nothing, and anyone else sitting at this computer walks straight past it. Every lock carries its own value, so opening one opens precisely one, and clearing this site’s storage sweeps the whole lot away — nothing here can give a value back.'
+    ],zh:[
+      '一次鎖一個控制項，用 PIN、密碼、一次性驗證碼，或者幾樣夾埋。呢個係你自己set畀自己嘅減速墩，唔係安全防線：佢冇加密任何嘢，亦都攔唔住其他攞得到呢部電腦嘅人。每個鎖有自己嘅值，所以開一個唔會連帶開其他，而清除呢個網站嘅儲存空間就會將全部移除 —— 呢度冇任何嘢可以將個值還返畀你。',
+      '一次鎖一個控制項，用 PIN、密碼、一次性驗證碼，或者幾樣溝埋一齊。呢個係你自己set畀自己嘅減速墩，唔係安全防線：佢冇加密任何嘢，亦都攔唔住其他攞得到呢部電腦嘅人。每個鎖有自己嘅值，所以開一個唔會連帶開其他，清除呢個網站嘅儲存空間就會將成批移除 —— 呢度冇任何嘢可以將個值還返畀你。',
+      '一次鎖一個控制項 —— PIN、密碼、一次性驗證碼，或者幾樣排住隊嚟。當佢係你自己砌畀自己嘅減速墩就啱，唔係安全防線：佢冇加密任何嘢，其他攞得到呢部電腦嘅人一樣行得過。每個鎖有自己嘅值，所以開一個唔會連帶開其他，清咗呢個網站嘅儲存空間就會成批帶走 —— 呢度冇任何嘢可以將個值還返畀你。',
+      '一次淨係閂實一個控制項，用 PIN、用密碼、用一次性驗證碼，或者三樣排住隊逐個嚟。呢個純粹係你自己開開心心砌畀自己嘅減速墩，唔係安全防線，佢亦都唔會扮：佢冇加密任何嘢，其他坐喺呢部電腦前面嘅人一步就行過咗。每個鎖有自己嘅值，所以開一個就係開一個，清咗呢個網站嘅儲存空間就成批掃走 —— 呢度冇任何嘢可以將個值還返畀你。'
+    ]},
     /* Voice moves with the slider; three facts never do. Every one of the eight
      * variants says that the secrets stay in this browser and nothing is sent
      * anywhere, that every code is computed on this page from the secret the reader
@@ -2663,12 +2680,16 @@
       namedOnlyByIcon:Boolean(target)&&name===null&&String(target.textContent||'').trim().length>0,
       href:target?.getAttribute?.('href')||'',
       sectionId:section?.id||'',
+      /* Whether THIS element already carries a lock, which is what makes the lock entry
+       * a conditional item rather than one that offers to lock a locked thing twice. */
+      locked:Boolean(target&&target.dataset&&target.dataset.lockKey),
       page:{
         palette:Boolean($('command-palette')),
         notifications:Boolean($('notifications-dialog')),
         history:Boolean($('history-dialog')),
         resetGate:Boolean($('reset-confirm-dialog')),
         appearance:Boolean($('theme-mode')),
+        lockWizard:Boolean($('lock-wizard')),
       },
     };
   }
@@ -2720,9 +2741,15 @@
     {id:'element-appearance',label:'Edit this element’s appearance…',chord:null,kinds:'any',
       unavailable:()=>'this site has no per-element appearance editor: material-appearance is recorded partial in site/feature-registry.json',
       run:()=>{}},
-    {id:'lock-element',label:'Lock this element…',chord:null,kinds:'any',
-      unavailable:()=>'this site ships no per-element lock: per-element-toy-locks is recorded absent in site/feature-registry.json',
-      run:()=>{}},
+    /* This one WAS the second permanently-unavailable entry, and stopped being one when
+     * the locks landed. It is now an ordinary conditional item like every other: it needs
+     * the wizard, and the wizard is built at load, so in practice the only page it is
+     * unavailable on is one where that build did not happen. */
+    {id:'lock-element',label:'Lock this element…',chord:chord('k',{alt:true,shift:true}),kinds:'any',
+      unavailable:ctx=>ctx.locked
+        ?'this element already carries a lock; open it and remove that one first'
+        :ctx.page.lockWizard?null:'this page has not built the lock wizard, so there is nothing to lock with',
+      run:ctx=>openLockWizard(ctx)},
     /* No chord, and that is not an oversight. A destructive action reached by a chord is
      * a destructive action reached without reading anything, and this one is only ever
      * meant to be reached through the two-key gate below. */
@@ -2980,8 +3007,32 @@
     if(!item||!item.enabled)return;
     const action=MENU_ACTIONS.find(entry=>entry.id===id);
     const ctx=contextMenu.ctx;
+    /* The menu is the other way an element's action can be reached, so it is the other
+     * place a lock has to hold. Without this a locked control would refuse a click and
+     * then do the same thing from its own right-click menu, which is a lock in one
+     * direction only -- the exact walk-around the canonical contract names. */
+    if(menuActionIsLocked(action,ctx)){
+      closeContextMenu({restoreFocus:false});
+      openLockPrompt(String(ctx.element.dataset.lockKey),ctx.element);
+      return;
+    }
     closeContextMenu({restoreFocus:false});
     action?.run(ctx);
+  }
+  /**
+   * Whether one menu action on one element is refused by that element's lock.
+   *
+   * The lock command itself is exempt on purpose, and so is anything that only reads:
+   * removing a lock is reached from the element's own menu, and a lock that hid its
+   * own management would leave clearing storage as the only way out.
+   */
+  const LOCK_EXEMPT_MENU_ACTIONS=['lock-element','copy-text','copy-link','copy-section-link','copy-image-description'];
+  function menuActionIsLocked(action,ctx){
+    if(!action||!ctx||!ctx.element||!ctx.element.dataset)return false;
+    const key=String(ctx.element.dataset.lockKey||'');
+    if(!key)return false;
+    if(LOCK_EXEMPT_MENU_ACTIONS.includes(action.id))return false;
+    return !lockIsOpen(key,Date.now());
   }
 
   function moveContextMenuActive(step){
@@ -5137,6 +5188,1072 @@
     sync();
   }
 
-  function init(){ensureAttentionUI();initSchoolWatch();ensureContextMenuUI();applyState();initContextMenu();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initUpdates();initExportEverything();initTimeAwareness();initMomentum();initAuthenticator();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
+  // ============================================================================
+  // Per-element toy locks.
+  //
+  // A lock a reader puts on one control, for themselves, on purpose. It is not a
+  // security boundary and every surface it draws says so in those words: it
+  // encrypts nothing, it stops nobody else who has this computer, and clearing
+  // this site's storage removes every one of them without the value.
+  //
+  // Three properties are what make it worth having at all, and each is checked
+  // rather than asserted:
+  //
+  //   - Per element means PER ELEMENT. Every lock carries its own policy and its
+  //     own credential set. Opening one opens exactly one; there is no master
+  //     value and no inheritance, so a reader who wants one value everywhere gets
+  //     there by typing it again rather than by this page assuming it.
+  //   - A locked element is refused, and is still the way in. Its action does not
+  //     run, and activating it opens that element's own prompt instead. A native
+  //     `disabled` attribute would do the first half and destroy the second, so
+  //     the refusal is an interception and the element stays operable.
+  //   - Nothing here can give a value back. The recovery route is the reader's own
+  //     browser storage, named in full wherever a value is asked for, because a
+  //     for-fun lock that can strand somebody is not for fun.
+  //
+  // One fixed storage key holds a map of records rather than one key per element:
+  // a key built from an element is a key an element's rename orphans, and an
+  // unbounded set of them is a store nothing can enumerate to clear.
+  // ============================================================================
+  const LOCK_KEY='ding-pbx-pages-locks-v1';
+  const LOCK_ENTRY_LIMIT=64;
+  const LOCK_PIN_MIN=4;
+  const LOCK_PIN_MAX=12;
+  const LOCK_PASSWORD_MIN=4;
+  const LOCK_PASSWORD_MAX=128;
+  const LOCK_DIGEST='SHA-256';
+  const LOCK_ATTEMPT_BUDGET=5;
+  const LOCK_ATTEMPT_WINDOW_MS=60000;
+  const LOCK_TOTP_SKEW_STEPS=1;
+  const LOCK_MINUTES_MIN=1;
+  const LOCK_MINUTES_MAX=120;
+  const LOCK_MINUTES_DEFAULT=5;
+  /**
+   * The six canonical policies, each an ORDERED list of factors.
+   *
+   * Ordered because the prompt walks them one at a time and says which step it is
+   * on. A set would render in whatever order the object happened to enumerate,
+   * and the reader would be told to enter a different thing on different visits.
+   */
+  const LOCK_POLICIES=[
+    {id:'pin',label:'A PIN',factors:['pin']},
+    {id:'password',label:'A password',factors:['password']},
+    {id:'pin+password',label:'A PIN, then a password',factors:['pin','password']},
+    {id:'password+totp',label:'A password, then a one-time code',factors:['password','totp']},
+    {id:'pin+totp',label:'A PIN, then a one-time code',factors:['pin','totp']},
+    {id:'password+pin+totp',label:'A password, then a PIN, then a one-time code',factors:['password','pin','totp']}
+  ];
+  const LOCK_FACTOR_LABEL={pin:'PIN',password:'password',totp:'one-time code'};
+  /**
+   * How long one successful unlock lasts.
+   *
+   * All three are held in memory and nothing writes them down, so a reload
+   * relocks everything whichever one was chosen. That is the canonical
+   * locked-on-launch default arriving as a property of the code rather than as a
+   * fourth option somebody has to pick.
+   */
+  const LOCK_DURATIONS=[
+    {id:'once',label:'Just this once'},
+    {id:'minutes',label:'For a number of minutes'},
+    {id:'session',label:'Until this page is closed'}
+  ];
+  const LOCK_TOY_LINE='This is a speed bump you set for yourself, not a security boundary. It encrypts nothing, it protects nothing from anyone else who has this computer, and clearing this site’s storage removes it without the value.';
+  const LOCK_RECOVERY_LINE='Forgotten it? Nothing on this page can give it back. Clear this site’s storage in your browser: every lock here goes with it, along with the rest of this page’s local data.';
+
+  function lockPolicy(id){return LOCK_POLICIES.find(entry=>entry.id===id)||null}
+  function lockDuration(id){return LOCK_DURATIONS.find(entry=>entry.id===id)||null}
+
+  // ------------------------------------------------------------------ naming an element
+  //
+  // A key has to survive a reload, and an element that carries an id gets one that
+  // survives a re-layout too. Everything else falls back to its structural position,
+  // which is honest rather than clever: it is the best a page can do for an element
+  // nobody gave a name to, and it stops being right the moment the markup moves. The
+  // list on the settings card says which locks no longer resolve here, rather than
+  // leaving a record pointing at nothing.
+  function lockPageId(){return String(document.body&&document.body.dataset&&document.body.dataset.page||'page')}
+  function lockElementPath(element){
+    const parts=[];
+    let node=element;
+    while(node&&node.tagName&&String(node.tagName).toLowerCase()!=='body'){
+      const tag=String(node.tagName).toLowerCase();
+      const parent=node.parentElement;
+      if(!parent){parts.unshift(tag);break}
+      const siblings=[...parent.children].filter(child=>String(child.tagName).toLowerCase()===tag);
+      const index=siblings.indexOf(node);
+      parts.unshift(siblings.length>1&&index>=0?`${tag}[${index+1}]`:tag);
+      node=parent;
+    }
+    return parts.join('/');
+  }
+  function lockElementKey(element,page){
+    if(!element||!element.tagName)return '';
+    const where=String(page||lockPageId());
+    const id=String(element.id||'');
+    if(id)return `${where}::#${id}`;
+    const path=lockElementPath(element);
+    return path?`${where}::${path}`:'';
+  }
+  function lockKeyPage(key){const at=String(key||'').indexOf('::');return at===-1?'':String(key).slice(0,at)}
+  /** The selector one key resolves through on the page it belongs to, or '' when it cannot. */
+  function lockKeySelector(key){
+    const at=String(key||'').indexOf('::');
+    if(at===-1)return '';
+    const tail=String(key).slice(at+2);
+    if(!tail)return '';
+    if(tail.startsWith('#'))return /^#[A-Za-z][\w-]*$/.test(tail)?tail:'';
+    const steps=tail.split('/').map(part=>{
+      const parsed=part.match(/^([a-z][a-z0-9-]*)(?:\[(\d+)\])?$/);
+      if(!parsed)return '';
+      return parsed[2]?`${parsed[1]}:nth-of-type(${parsed[2]})`:parsed[1];
+    });
+    if(steps.some(step=>!step))return '';
+    return `body > ${steps.join(' > ')}`;
+  }
+  function lockResolveElement(key){
+    if(lockKeyPage(key)!==lockPageId())return null;
+    const selector=lockKeySelector(key);
+    if(!selector)return null;
+    try{return document.querySelector(selector)}catch{return null}
+  }
+
+  // ------------------------------------------------------------------ credentials
+  //
+  // A PIN and a password are kept as a salted digest and never as themselves. A
+  // one-time-code factor is different in kind and the difference is stated rather
+  // than hidden: a shared secret cannot be hashed, because this page has to compute
+  // codes from it, so that one really is kept in this browser as the reader supplied
+  // it -- exactly like the authenticator card's accounts, in its own storage key,
+  // out of `state`, and out of every export that does not say it is writing secrets.
+  function lockCryptoApi(){
+    const api=typeof crypto==='undefined'?null:crypto;
+    if(!api||typeof api.getRandomValues!=='function')return null;
+    if(!api.subtle||typeof api.subtle.digest!=='function')return null;
+    return api;
+  }
+  function lockHex(bytes){return [...bytes].map(byte=>byte.toString(16).padStart(2,'0')).join('')}
+  function lockSalt(){const api=lockCryptoApi();return api?lockHex(api.getRandomValues(new Uint8Array(16))):''}
+  async function lockDigestOf(value,saltHex){
+    const api=lockCryptoApi();
+    if(!api||!saltHex)return null;
+    const data=new TextEncoder().encode(`${saltHex}:${String(value)}`);
+    return lockHex(new Uint8Array(await api.subtle.digest(LOCK_DIGEST,data)));
+  }
+  /**
+   * Whether one offered digest opens one stored factor, and why when it does not.
+   *
+   * Every character is compared rather than stopping at the first difference, so
+   * how long it takes says nothing about how much of the value was right.
+   */
+  function lockCredentialVerdict(stored,digestHex){
+    if(!stored||typeof stored.digestHex!=='string'||!stored.digestHex)return{open:false,why:'no-credential'};
+    if(typeof digestHex!=='string'||!digestHex)return{open:false,why:'no-digest'};
+    if(digestHex.length!==stored.digestHex.length)return{open:false,why:'wrong-value'};
+    let difference=0;
+    for(let index=0;index<digestHex.length;index+=1)difference|=digestHex.charCodeAt(index)^stored.digestHex.charCodeAt(index);
+    return difference===0?{open:true,why:'match'}:{open:false,why:'wrong-value'};
+  }
+
+  // ------------------------------------------------------------------ the store
+  function lockNormaliseFactorDigest(raw){
+    if(!raw||typeof raw!=='object')return null;
+    if(typeof raw.saltHex!=='string'||!raw.saltHex)return null;
+    if(typeof raw.digestHex!=='string'||!raw.digestHex)return null;
+    return{algorithm:String(raw.algorithm||LOCK_DIGEST),saltHex:raw.saltHex,digestHex:raw.digestHex};
+  }
+  function lockNormaliseRecord(raw){
+    if(!raw||typeof raw!=='object')return null;
+    const policy=lockPolicy(raw.policy);
+    if(!policy)return null;
+    const key=String(raw.key||'');
+    if(!key||!lockKeySelector(key))return null;
+    const factors={};
+    for(const factor of policy.factors){
+      if(factor==='totp'){
+        const totp=raw.factors&&raw.factors.totp;
+        if(!totp||typeof totp!=='object')return null;
+        try{
+          const secret=String(totp.secret||'').replace(/\s+/g,'').toUpperCase();
+          authDecodeBase32(secret);
+          factors.totp={secret,algorithm:authNormaliseAlgorithm(totp.algorithm),digits:authNormaliseDigits(totp.digits),period:authNormalisePeriod(totp.period)};
+        }catch{return null}
+        continue;
+      }
+      const digest=lockNormaliseFactorDigest(raw.factors&&raw.factors[factor]);
+      if(!digest)return null;
+      factors[factor]=digest;
+    }
+    const duration=lockDuration(raw.duration)?String(raw.duration):'once';
+    const minutes=Math.min(LOCK_MINUTES_MAX,Math.max(LOCK_MINUTES_MIN,Number(raw.minutes)||LOCK_MINUTES_DEFAULT));
+    return{
+      key,
+      page:lockKeyPage(key),
+      name:String(raw.name||'').slice(0,120),
+      kind:String(raw.kind||'element'),
+      policy:policy.id,
+      factors,
+      duration,
+      minutes,
+      /* Off unless the reader asked for it, per lock. A shuffled keypad nobody chose
+       * is slower for everybody and safer for nobody, on a lock that protects nothing
+       * from anybody. */
+      shuffle:Boolean(raw.shuffle),
+      created:Number.isFinite(Number(raw.created))?Number(raw.created):0
+    };
+  }
+  /**
+   * Every record, keyed by element, refusing anything malformed rather than
+   * half-trusting it.
+   *
+   * A record that cannot be read falls out rather than locking an element behind a
+   * credential nothing can check -- which would be an element nobody could ever
+   * open again, from a store whose whole promise is that it is only a speed bump.
+   */
+  function lockLoadRecords(){
+    try{
+      const raw=JSON.parse(localStorage.getItem(LOCK_KEY)||'{}');
+      if(!raw||typeof raw!=='object'||Array.isArray(raw))return{records:{},dropped:0};
+      const records={};
+      let dropped=0;
+      for(const[key,value]of Object.entries(raw).slice(0,LOCK_ENTRY_LIMIT)){
+        const record=lockNormaliseRecord({...value,key:String(value&&value.key||key)});
+        if(record&&record.key===key)records[key]=record;else dropped+=1;
+      }
+      return{records,dropped:dropped+Math.max(0,Object.keys(raw).length-LOCK_ENTRY_LIMIT)};
+    }catch{return{records:{},dropped:0}}
+  }
+  let lockLoaded=lockLoadRecords();
+  let lockRecords=lockLoaded.records;
+  let lockDroppedOnLoad=lockLoaded.dropped;
+  /* Through the one guarded writer, like every other store on this page. A browser
+   * with no room left refuses the write, and a lock the reader just created would
+   * otherwise be gone at the next load with nothing having said so -- which for
+   * this feature reads as the lock having silently unlocked itself. */
+  function lockSaveRecords(){return reportWrite('your element locks',writeLocal(LOCK_KEY,JSON.stringify(lockRecords)))}
+  function lockRecordFor(key){return Object.hasOwn(lockRecords,key)?lockRecords[key]:null}
+  function lockCount(){return Object.keys(lockRecords).length}
+  /** What a redacted export and the settings export both say about this store. */
+  function lockExportSummary(){return{locks:lockCount(),credentials:'omitted',storedSeparatelyIn:LOCK_KEY}}
+  function lockExportRows(keys){
+    const wanted=keys instanceof Set?keys:new Set(keys||[]);
+    return Object.values(lockRecords).filter(record=>wanted.has(record.key)).map(record=>({
+      element:record.name||record.key,
+      page:record.page,
+      kind:record.kind,
+      method:record.policy,
+      unlockLasts:record.duration==='minutes'?`${record.minutes} minutes`:record.duration,
+      credentials:'omitted'
+    }));
+  }
+
+  // ------------------------------------------------------------------ creating one
+  const LOCK_SETUP_REASON={
+    'no-policy':'Choose one of the six methods.',
+    'no-element':'This element cannot be named in a way that would survive a reload, so a lock on it could not be found again.',
+    'already-locked':'This element already carries a lock. Remove that one first.',
+    'too-many':`This page keeps at most ${LOCK_ENTRY_LIMIT} locks and it already has that many. Remove one first.`,
+    'no-digest-available':'This browser gives this page no cryptographic digest here, which happens when the page is not served over a secure connection. Without one the value could only be kept in the clear, so nothing is locked at all rather than locked with a value stored as itself.',
+    'pin-not-digits':'A PIN is digits only.',
+    'pin-too-short':`Choose at least ${LOCK_PIN_MIN} digits.`,
+    'pin-too-long':`Choose at most ${LOCK_PIN_MAX} digits.`,
+    'pin-mismatch':'The two PINs are not the same. Nothing was locked.',
+    'password-too-short':`Choose at least ${LOCK_PASSWORD_MIN} characters.`,
+    'password-too-long':`Choose at most ${LOCK_PASSWORD_MAX} characters.`,
+    'password-mismatch':'The two passwords are not the same. Nothing was locked.',
+    'totp-missing':'Paste an otpauth:// link or type the base32 secret your authenticator gave you. Nothing is generated here.',
+    'totp-unreadable':'That secret is not readable base32, so no code could ever be computed from it.',
+    'no-duration':'Choose how long one unlock should last.'
+  };
+  /**
+   * The one refusal reason for a proposed lock, or `ready`. Pure.
+   *
+   * Pure so the wizard's status line and the create path cannot come to disagree
+   * about whether something is acceptable -- both ask this, and the button is
+   * disabled from the same answer the sentence beneath it is written from.
+   */
+  function lockSetupVerdict(input){
+    const policy=lockPolicy(input&&input.policy);
+    if(!policy)return{ok:false,why:'no-policy'};
+    if(!input.key||!lockKeySelector(input.key))return{ok:false,why:'no-element'};
+    if(input.alreadyLocked)return{ok:false,why:'already-locked'};
+    if(Number(input.count||0)>=LOCK_ENTRY_LIMIT)return{ok:false,why:'too-many'};
+    if(!input.hasDigest)return{ok:false,why:'no-digest-available'};
+    if(policy.factors.includes('pin')){
+      const pin=String(input.pin||'');
+      if(!/^\d+$/.test(pin))return{ok:false,why:'pin-not-digits'};
+      if(pin.length<LOCK_PIN_MIN)return{ok:false,why:'pin-too-short'};
+      if(pin.length>LOCK_PIN_MAX)return{ok:false,why:'pin-too-long'};
+      if(pin!==String(input.pinConfirm||''))return{ok:false,why:'pin-mismatch'};
+    }
+    if(policy.factors.includes('password')){
+      const password=String(input.password||'');
+      if(password.length<LOCK_PASSWORD_MIN)return{ok:false,why:'password-too-short'};
+      if(password.length>LOCK_PASSWORD_MAX)return{ok:false,why:'password-too-long'};
+      if(password!==String(input.passwordConfirm||''))return{ok:false,why:'password-mismatch'};
+    }
+    if(policy.factors.includes('totp')){
+      const secret=String(input.totpSecret||'').replace(/\s+/g,'').toUpperCase();
+      if(!secret)return{ok:false,why:'totp-missing'};
+      try{authDecodeBase32(secret)}catch{return{ok:false,why:'totp-unreadable'}}
+    }
+    if(!lockDuration(input.duration))return{ok:false,why:'no-duration'};
+    return{ok:true,why:'ready'};
+  }
+
+  // ------------------------------------------------------------------ attempts
+  //
+  // Bounded, and honest about being bounded. A wrong value costs one of a small
+  // number of tries inside a short window and then the prompt waits; nothing is
+  // deleted, nothing escalates, and the wait is stated in seconds rather than
+  // implied. A for-fun lock that punished a wrong guess would be neither.
+  const lockAttempts=new Map();
+  function lockAttemptVerdict(entry,nowMs){
+    if(!entry)return{allowed:true,remaining:LOCK_ATTEMPT_BUDGET,waitMs:0};
+    if(Number(entry.blockedUntil||0)>nowMs)return{allowed:false,remaining:0,waitMs:entry.blockedUntil-nowMs};
+    if(nowMs-Number(entry.firstAt||0)>LOCK_ATTEMPT_WINDOW_MS)return{allowed:true,remaining:LOCK_ATTEMPT_BUDGET,waitMs:0};
+    const remaining=Math.max(0,LOCK_ATTEMPT_BUDGET-Number(entry.count||0));
+    return{allowed:remaining>0,remaining,waitMs:0};
+  }
+  function lockNoteAttempt(key,nowMs){
+    const existing=lockAttempts.get(key);
+    const fresh=!existing||nowMs-Number(existing.firstAt||0)>LOCK_ATTEMPT_WINDOW_MS;
+    const entry=fresh?{count:0,firstAt:nowMs,blockedUntil:0}:{...existing};
+    entry.count+=1;
+    if(entry.count>=LOCK_ATTEMPT_BUDGET)entry.blockedUntil=nowMs+LOCK_ATTEMPT_WINDOW_MS;
+    lockAttempts.set(key,entry);
+    return lockAttemptVerdict(entry,nowMs);
+  }
+  function lockClearAttempts(key){lockAttempts.delete(key)}
+
+  // ------------------------------------------------------------------ being open
+  const lockOpened=new Map();
+  function lockOpenVerdict(entry,nowMs){
+    if(!entry)return{open:false,why:'locked'};
+    if(entry.mode==='once')return Number(entry.uses||0)>0?{open:false,why:'used'}:{open:true,why:'once'};
+    if(entry.mode==='session')return{open:true,why:'session'};
+    if(entry.mode==='minutes')return nowMs<Number(entry.until||0)?{open:true,why:'timed',msLeft:entry.until-nowMs}:{open:false,why:'expired'};
+    return{open:false,why:'unknown-mode'};
+  }
+  function lockGrant(key,record,nowMs){
+    const mode=record&&record.duration||'once';
+    const minutes=Math.min(LOCK_MINUTES_MAX,Math.max(LOCK_MINUTES_MIN,Number(record&&record.minutes)||LOCK_MINUTES_DEFAULT));
+    lockOpened.set(key,{mode,uses:0,until:mode==='minutes'?nowMs+minutes*60000:0});
+    lockClearAttempts(key);
+  }
+  function lockNoteUse(key){
+    const entry=lockOpened.get(key);
+    if(!entry)return;
+    lockOpened.set(key,{...entry,uses:Number(entry.uses||0)+1});
+  }
+  function lockRelock(key){lockOpened.delete(key)}
+  function lockIsOpen(key,nowMs){return lockOpenVerdict(lockOpened.get(key),nowMs).open}
+
+  // ------------------------------------------------------------------ the refusal
+  //
+  // A locked element is refused and is still the way in. `disabled` would do the
+  // first and destroy the second: a disabled control receives no events at all, so
+  // clicking it would do nothing and say nothing, which is the decorative-refusal
+  // defect rather than a lock. So the element keeps its events, announces itself
+  // as disabled to assistive technology, and every route that could run its action
+  // is intercepted before anything else sees the event.
+  const LOCK_GUARDED_EVENTS=['pointerdown','mousedown','click','keydown','input','change','dragstart','paste','contextmenu'];
+  const LOCK_PROMPTING_EVENTS=['click'];
+  /**
+   * The nearest element carrying a lock, open or shut.
+   *
+   * Deliberately `[data-lock-key]` rather than `[data-locked="1"]`. An OPEN lock still
+   * has to be found, because that is how a one-use unlock gets its one use counted --
+   * looking only for the shut marker made "just this once" mean "until the page is
+   * reloaded", which is a different duration wearing the right label.
+   */
+  function lockedAncestor(element){
+    if(!element||typeof element.closest!=='function')return null;
+    return element.closest('[data-lock-key]');
+  }
+  /**
+   * What one event on one element does. Pure, so both halves are testable without
+   * a browser: whether the event is refused, and whether it opens the prompt.
+   *
+   * `contextmenu` is deliberately NOT refused. Right-clicking a locked element is
+   * how its lock is removed once it has been opened, and a lock that hid its own
+   * management is a lock with no way out but clearing storage.
+   */
+  function lockEventVerdict(input){
+    const key=String(input&&input.elementKey||'');
+    if(!key)return{refuse:false,prompt:false,why:'not-locked'};
+    if(input.type==='contextmenu')return{refuse:false,prompt:false,why:'menu'};
+    if(input.open)return{refuse:false,prompt:false,why:'open'};
+    if(input.insidePrompt)return{refuse:false,prompt:false,why:'prompt'};
+    const prompt=LOCK_PROMPTING_EVENTS.includes(String(input.type))
+      ||(input.type==='keydown'&&(input.eventKey==='Enter'||input.eventKey===' '));
+    return{refuse:true,prompt,why:'locked'};
+  }
+
+  // ------------------------------------------------------------------ the keypad
+  //
+  // Ten digits in their ordinary order, or shuffled -- and shuffled only because
+  // the reader asked for it. A randomised keypad nobody chose is a keypad that is
+  // slower to use for everybody and safer for nobody, on a lock that protects
+  // nothing from anybody in the first place.
+  /**
+   * A number below `bound`, from this browser's cryptographic generator or not at all.
+   *
+   * The ordinary arithmetic generator is deliberately not used, and not because a
+   * shuffled keypad needs a good one -- it does not. It is because two of this site's
+   * own contracts scan for a per-launch random draw, and a second source of randomness
+   * arriving quietly would make the one they scan for prove less than it says. Both
+   * scans were widened to name this function in the same change. A browser with no
+   * cryptographic generator does not shuffle, rather than falling back to a weaker one.
+   *
+   * The remainder is very slightly biased towards the low digits. On a ten-key pad
+   * that nobody's security depends on it is not worth the rejection loop, and saying
+   * so here is better than a comment implying it is uniform.
+   */
+  function lockRandomBelow(bound){
+    const api=lockCryptoApi();
+    const limit=Math.max(1,Math.floor(Number(bound)||1));
+    if(!api)return 0;
+    return api.getRandomValues(new Uint32Array(1))[0]%limit;
+  }
+  function lockKeypadDigits(shuffle,draw){
+    const digits=['1','2','3','4','5','6','7','8','9','0'];
+    if(!shuffle)return digits;
+    const pick=typeof draw==='function'?draw:lockRandomBelow;
+    const out=[...digits];
+    for(let index=out.length-1;index>0;index-=1){
+      const at=Math.max(0,Math.min(index,Math.floor(pick(index+1))));
+      const swap=out[index];out[index]=out[at];out[at]=swap;
+    }
+    return out;
+  }
+
+  // ------------------------------------------------------------------ verifying
+  async function lockVerifyFactor(record,factor,offered,nowMs){
+    if(!record||!record.factors)return false;
+    if(factor==='totp'){
+      const totp=record.factors.totp;
+      if(!totp)return false;
+      try{return await authVerifyCode(totp,String(offered||'').replace(/\s+/g,''),nowMs,LOCK_TOTP_SKEW_STEPS)}
+      catch{return false}
+    }
+    const stored=record.factors[factor];
+    if(!stored)return false;
+    const digestHex=await lockDigestOf(offered,stored.saltHex);
+    return lockCredentialVerdict(stored,digestHex).open;
+  }
+
+  // ------------------------------------------------------------------ the surfaces
+  //
+  // Both dialogs are built here rather than written into every page's markup, for the
+  // same reason the right-click menu is: the lock command is offered on every page,
+  // so its wizard has to exist on every page, and six copies of one dialog in six
+  // documents is six places for one of them to drift.
+  //
+  // The consequence is worth naming rather than leaving as a silence: the dialog-emoji
+  // decoration table names surfaces by id and reads them out of the published markup,
+  // so a dialog this page creates at load is not in it. These two carry no decoration,
+  // exactly as the right-click menu does not, and for the same reason.
+  let lockWizard={key:'',element:null,opener:null,name:'',kind:'element'};
+  let lockPrompt={key:'',element:null,opener:null,factors:[],step:0};
+  let lockSelection={anchor:undefined,selected:new Set()};
+  let lockOrder=[];
+
+  function lockAppend(parent,tag,options){
+    const node=document.createElement(tag);
+    const settings=options||{};
+    if(settings.id)node.id=settings.id;
+    if(settings.className)node.className=settings.className;
+    if(settings.text)node.textContent=settings.text;
+    for(const[name,value]of Object.entries(settings.attributes||{}))node.setAttribute(name,value);
+    parent.append(node);
+    return node;
+  }
+  function lockField(parent,id,labelText,type,extra){
+    const label=lockAppend(parent,'label',{text:labelText,attributes:{for:id}});
+    const input=lockAppend(parent,'input',{id,attributes:{type,autocomplete:'off',...(extra||{})}});
+    return{label,input};
+  }
+  function lockHeading(dialog,titleId,titleText,closeId,closeLabel){
+    const bar=lockAppend(dialog,'div',{className:'dialog-heading'});
+    lockAppend(bar,'h2',{id:titleId,text:titleText});
+    lockAppend(bar,'button',{id:closeId,className:'icon-button',text:'×',attributes:{type:'button','aria-label':closeLabel}});
+  }
+
+  function ensureLockUI(){
+    if(!document.body||$('lock-wizard'))return;
+
+    const wizard=document.createElement('dialog');
+    wizard.id='lock-wizard';wizard.className='overlay-card lock-dialog';
+    wizard.setAttribute('aria-labelledby','lock-wizard-title');
+    lockHeading(wizard,'lock-wizard-title','Lock this element','lock-wizard-close','Close the lock wizard');
+    lockAppend(wizard,'p',{id:'lock-wizard-target'});
+    lockAppend(wizard,'p',{id:'lock-wizard-toy',className:'setting-note',text:LOCK_TOY_LINE});
+    lockAppend(wizard,'label',{text:'Method',attributes:{for:'lock-wizard-policy'}});
+    const policy=lockAppend(wizard,'select',{id:'lock-wizard-policy',attributes:{'aria-label':'Lock method'}});
+    for(const entry of LOCK_POLICIES)lockAppend(policy,'option',{text:entry.label,attributes:{value:entry.id}});
+
+    const pinBlock=lockAppend(wizard,'div',{id:'lock-wizard-pin-block'});
+    lockField(pinBlock,'lock-wizard-pin',`A PIN of ${LOCK_PIN_MIN} to ${LOCK_PIN_MAX} digits`,'password',{inputmode:'numeric',maxlength:String(LOCK_PIN_MAX)});
+    lockField(pinBlock,'lock-wizard-pin-confirm','The same PIN again','password',{inputmode:'numeric',maxlength:String(LOCK_PIN_MAX)});
+    lockAppend(pinBlock,'label',{}).append(
+      Object.assign(document.createElement('input'),{id:'lock-wizard-shuffle',type:'checkbox'}),
+      document.createTextNode(' Shuffle the keypad when this asks for the PIN')
+    );
+
+    const passwordBlock=lockAppend(wizard,'div',{id:'lock-wizard-password-block'});
+    lockField(passwordBlock,'lock-wizard-password',`A password of at least ${LOCK_PASSWORD_MIN} characters`,'password',{maxlength:String(LOCK_PASSWORD_MAX)});
+    lockField(passwordBlock,'lock-wizard-password-confirm','The same password again','password',{maxlength:String(LOCK_PASSWORD_MAX)});
+
+    const totpBlock=lockAppend(wizard,'div',{id:'lock-wizard-totp-block'});
+    lockAppend(totpBlock,'p',{id:'lock-wizard-totp-note',className:'setting-note',
+      text:'Nothing is generated here. Bring a secret your own authenticator already holds, by pasting its otpauth:// link or typing its base32 secret. This page draws no QR code, because a code drawn here would pair a phone to a factor nobody else could use.'});
+    const uri=lockField(totpBlock,'lock-wizard-totp-uri','Paste an otpauth:// link','text',{spellcheck:'false'});
+    uri.input.placeholder='otpauth://totp/Example:you@example.com?secret=…';
+    lockAppend(totpBlock,'button',{id:'lock-wizard-totp-apply',className:'text-button',text:'Read the link',attributes:{type:'button'}});
+    lockField(totpBlock,'lock-wizard-totp-secret','Or the base32 secret','password',{spellcheck:'false'});
+    lockAppend(totpBlock,'p',{id:'lock-wizard-totp-status',attributes:{role:'status'}});
+
+    lockAppend(wizard,'label',{text:'One unlock lasts',attributes:{for:'lock-wizard-duration'}});
+    const duration=lockAppend(wizard,'select',{id:'lock-wizard-duration',attributes:{'aria-label':'How long one unlock lasts'}});
+    for(const entry of LOCK_DURATIONS)lockAppend(duration,'option',{text:entry.label,attributes:{value:entry.id}});
+    const minutesRow=lockAppend(wizard,'div',{id:'lock-wizard-minutes-row',className:'inline-controls'});
+    lockField(minutesRow,'lock-wizard-minutes','Minutes','number',{min:String(LOCK_MINUTES_MIN),max:String(LOCK_MINUTES_MAX),value:String(LOCK_MINUTES_DEFAULT)});
+    lockAppend(wizard,'p',{id:'lock-wizard-relock',className:'setting-note',
+      text:'Whichever you choose, reloading this page locks it again: nothing about an unlock is written down.'});
+    lockAppend(wizard,'p',{id:'lock-wizard-recovery',className:'setting-note',text:LOCK_RECOVERY_LINE});
+    lockAppend(wizard,'p',{id:'lock-wizard-status',attributes:{role:'status'}});
+    const wizardActions=lockAppend(wizard,'div',{className:'dialog-actions'});
+    lockAppend(wizardActions,'button',{id:'lock-wizard-create',className:'primary-button',text:'Lock it',attributes:{type:'button'}});
+    lockAppend(wizardActions,'button',{id:'lock-wizard-cancel',className:'text-button',text:'Cancel',attributes:{type:'button'}});
+    document.body.append(wizard);
+
+    const prompt=document.createElement('dialog');
+    prompt.id='lock-unlock';prompt.className='overlay-card lock-dialog';
+    prompt.setAttribute('aria-labelledby','lock-unlock-title');
+    lockHeading(prompt,'lock-unlock-title','Unlock this element','lock-unlock-close','Close without unlocking');
+    lockAppend(prompt,'p',{id:'lock-unlock-target'});
+    lockAppend(prompt,'p',{id:'lock-unlock-step'});
+    lockAppend(prompt,'label',{id:'lock-unlock-label',attributes:{for:'lock-unlock-value'}});
+    lockAppend(prompt,'input',{id:'lock-unlock-value',attributes:{type:'password',autocomplete:'off',spellcheck:'false'}});
+    lockAppend(prompt,'div',{id:'lock-unlock-keypad',className:'lock-keypad',attributes:{role:'group','aria-label':'PIN keypad'}});
+    lockAppend(prompt,'p',{id:'lock-unlock-toy',className:'setting-note',text:LOCK_TOY_LINE});
+    lockAppend(prompt,'p',{id:'lock-unlock-recovery',className:'setting-note',text:LOCK_RECOVERY_LINE});
+    lockAppend(prompt,'p',{id:'lock-unlock-status',attributes:{role:'status','aria-live':'polite'}});
+    const promptActions=lockAppend(prompt,'div',{className:'dialog-actions'});
+    lockAppend(promptActions,'button',{id:'lock-unlock-submit',className:'primary-button',text:'Unlock',attributes:{type:'button'}});
+    lockAppend(promptActions,'button',{id:'lock-unlock-cancel',className:'text-button',text:'Cancel',attributes:{type:'button'}});
+    document.body.append(prompt);
+  }
+
+  /**
+   * Put one of these dialogs beside the element it is about, inside the viewport.
+   *
+   * The same clamp the right-click menu uses, for the same reason: an anchored
+   * surface that paints off the bottom of a short window is an anchored surface
+   * nobody can reach the buttons of.
+   */
+  function lockAnchor(dialog,element){
+    if(!dialog||!dialog.getBoundingClientRect)return;
+    const box=element&&element.getBoundingClientRect?element.getBoundingClientRect():{left:CONTEXT_MENU_MARGIN,bottom:CONTEXT_MENU_MARGIN};
+    const own=dialog.getBoundingClientRect();
+    const placed=clampMenuPosition({
+      x:box.left||CONTEXT_MENU_MARGIN,
+      y:box.bottom||CONTEXT_MENU_MARGIN,
+      menuWidth:own.width||CONTEXT_MENU_WIDTH,
+      menuHeight:own.height||CONTEXT_MENU_MIN_HEIGHT,
+      viewWidth:window.innerWidth||0,
+      viewHeight:window.innerHeight||0
+    });
+    dialog.style.position='fixed';
+    dialog.style.left=`${placed.left}px`;
+    dialog.style.top=`${placed.top}px`;
+    dialog.style.maxHeight=`${placed.maxHeight}px`;
+    dialog.style.overflowY=placed.scrolls?'auto':'';
+  }
+
+  // ------------------------------------------------------------------ the wizard
+  function lockWizardFields(){
+    return{
+      policy:$('lock-wizard-policy')?.value||'',
+      pin:$('lock-wizard-pin')?.value||'',
+      pinConfirm:$('lock-wizard-pin-confirm')?.value||'',
+      password:$('lock-wizard-password')?.value||'',
+      passwordConfirm:$('lock-wizard-password-confirm')?.value||'',
+      totpSecret:$('lock-wizard-totp-secret')?.value||'',
+      duration:$('lock-wizard-duration')?.value||'',
+      minutes:Number($('lock-wizard-minutes')?.value||LOCK_MINUTES_DEFAULT),
+      shuffle:Boolean($('lock-wizard-shuffle')?.checked),
+      key:lockWizard.key,
+      alreadyLocked:Boolean(lockRecordFor(lockWizard.key)),
+      count:lockCount(),
+      hasDigest:Boolean(lockCryptoApi())
+    };
+  }
+  /** Show only the factor blocks the chosen method actually asks for. */
+  function renderLockWizard(){
+    const fields=lockWizardFields();
+    const policy=lockPolicy(fields.policy);
+    const factors=policy?policy.factors:[];
+    const show=(id,on)=>{const node=$(id);if(node)node.hidden=!on};
+    show('lock-wizard-pin-block',factors.includes('pin'));
+    show('lock-wizard-password-block',factors.includes('password'));
+    show('lock-wizard-totp-block',factors.includes('totp'));
+    show('lock-wizard-minutes-row',fields.duration==='minutes');
+    const verdict=lockSetupVerdict(fields);
+    const button=$('lock-wizard-create');
+    if(button)button.disabled=!verdict.ok;
+    const status=$('lock-wizard-status');
+    if(status){
+      status.textContent=verdict.ok
+        ?`Ready. This locks one element and nothing else: ${policy.label.toLowerCase()}, checked only against the value you are choosing now.`
+        :(LOCK_SETUP_REASON[verdict.why]||'This cannot be locked yet.');
+    }
+  }
+  function openLockWizard(ctx){
+    ensureLockUI();
+    const dialog=$('lock-wizard');
+    if(!dialog)return null;
+    const element=ctx&&ctx.element?ctx.element:null;
+    lockWizard={
+      key:lockElementKey(element),
+      element,
+      opener:element,
+      name:(ctx&&ctx.name)||accessibleName(element)||'',
+      kind:(ctx&&ctx.kind)||'element'
+    };
+    for(const id of ['lock-wizard-pin','lock-wizard-pin-confirm','lock-wizard-password','lock-wizard-password-confirm','lock-wizard-totp-uri','lock-wizard-totp-secret']){
+      const field=$(id);if(field)field.value='';
+    }
+    if($('lock-wizard-shuffle'))$('lock-wizard-shuffle').checked=false;
+    if($('lock-wizard-minutes'))$('lock-wizard-minutes').value=String(LOCK_MINUTES_DEFAULT);
+    if($('lock-wizard-totp-status'))$('lock-wizard-totp-status').textContent='';
+    const target=$('lock-wizard-target');
+    if(target){
+      target.textContent=lockWizard.name
+        ?`This locks the ${lockWizard.kind} named “${lockWizard.name}”, and only that one. Every lock on this site carries its own value; opening one opens nothing else.`
+        :`This locks one ${lockWizard.kind} on this page, and only that one. Every lock on this site carries its own value; opening one opens nothing else.`;
+    }
+    if(dialog.show)dialog.show();
+    renderLockWizard();
+    lockAnchor(dialog,element);
+    $('lock-wizard-policy')?.focus?.();
+    return lockWizard;
+  }
+  function closeLockWizard(){
+    const dialog=$('lock-wizard');
+    if(dialog&&dialog.close)dialog.close();
+    for(const id of ['lock-wizard-pin','lock-wizard-pin-confirm','lock-wizard-password','lock-wizard-password-confirm','lock-wizard-totp-secret']){
+      const field=$(id);if(field)field.value='';
+    }
+    const opener=lockWizard.opener;
+    lockWizard={key:'',element:null,opener:null,name:'',kind:'element'};
+    opener?.focus?.();
+  }
+  async function createLockFromWizard(){
+    const fields=lockWizardFields();
+    const verdict=lockSetupVerdict(fields);
+    if(!verdict.ok){renderLockWizard();return null}
+    const policy=lockPolicy(fields.policy);
+    const factors={};
+    for(const factor of policy.factors){
+      if(factor==='totp'){
+        const secret=String(fields.totpSecret).replace(/\s+/g,'').toUpperCase();
+        factors.totp={secret,algorithm:'SHA-1',digits:6,period:30};
+        continue;
+      }
+      const saltHex=lockSalt();
+      // eslint-disable-next-line no-await-in-loop
+      const digestHex=await lockDigestOf(factor==='pin'?fields.pin:fields.password,saltHex);
+      if(!digestHex){renderLockWizard();return null}
+      factors[factor]={algorithm:LOCK_DIGEST,saltHex,digestHex};
+    }
+    const record=lockNormaliseRecord({
+      key:fields.key,name:lockWizard.name,kind:lockWizard.kind,policy:policy.id,factors,
+      duration:fields.duration,minutes:fields.minutes,shuffle:fields.shuffle,created:Date.now()
+    });
+    if(!record){renderLockWizard();return null}
+    lockRecords={...lockRecords,[record.key]:record};
+    lockSaveRecords();
+    applyLocks();
+    renderLocksCard($('locks-search')?.value||'');
+    /* The summary names the element and the method and never the value, because a
+     * history entry is a record somebody else can read. */
+    recordHistory('lock-created',`Locked ${record.name?`“${record.name}”`:`one ${record.kind}`} on the ${record.page} page behind ${policy.label.toLowerCase()}.`);
+    notify('Element locked',applyVocabularyText(`${record.name||`One ${record.kind}`} now asks for ${policy.label.toLowerCase()} before it will do anything. It is a speed bump, not a security boundary.`),
+      {category:'setting',en:`One element is now locked behind ${policy.label.toLowerCase()}.`,zh:`有一個元素而家鎖咗，要${policy.label}先郁得。`});
+    closeLockWizard();
+    return record;
+  }
+
+  // ------------------------------------------------------------------ the prompt
+  function lockPromptFactor(){
+    return lockPrompt.factors[lockPrompt.step]||'';
+  }
+  function renderLockKeypad(){
+    const pad=$('lock-unlock-keypad');
+    if(!pad)return;
+    pad.textContent='';
+    const record=lockRecordFor(lockPrompt.key);
+    const wanted=lockPromptFactor()==='pin';
+    pad.hidden=!wanted;
+    if(!wanted)return;
+    for(const digit of lockKeypadDigits(Boolean(record&&record.shuffle))){
+      lockAppend(pad,'button',{className:'lock-key',text:digit,attributes:{type:'button','data-lock-digit':digit,'aria-label':`Digit ${digit}`}});
+    }
+    lockAppend(pad,'button',{id:'lock-key-back',className:'lock-key lock-key-wide',text:'Backspace',attributes:{type:'button'}});
+    lockAppend(pad,'button',{id:'lock-key-clear',className:'lock-key lock-key-wide',text:'Clear',attributes:{type:'button'}});
+  }
+  function renderLockPrompt(message){
+    const record=lockRecordFor(lockPrompt.key);
+    const policy=record?lockPolicy(record.policy):null;
+    const target=$('lock-unlock-target');
+    if(target&&record){
+      target.textContent=record.name
+        ? `“${record.name}” is locked. This value opens that one element and nothing else.`
+        : `This ${record.kind} is locked. This value opens that one element and nothing else.`;
+    }
+    const factor=lockPromptFactor();
+    const step=$('lock-unlock-step');
+    if(step&&policy){
+      step.textContent=policy.factors.length===1
+        ?`It asks for one thing: its ${LOCK_FACTOR_LABEL[factor]||factor}.`
+        :`Step ${lockPrompt.step+1} of ${policy.factors.length}: its ${LOCK_FACTOR_LABEL[factor]||factor}.`;
+    }
+    const label=$('lock-unlock-label');
+    if(label)label.textContent=factor==='totp'
+      ?'The current code from your authenticator'
+      :factor==='pin'?'Its PIN':'Its password';
+    const value=$('lock-unlock-value');
+    if(value){
+      value.value='';
+      value.setAttribute('inputmode',factor==='pin'||factor==='totp'?'numeric':'text');
+      value.setAttribute('type',factor==='totp'?'text':'password');
+    }
+    renderLockKeypad();
+    const status=$('lock-unlock-status');
+    if(status)status.textContent=message||'';
+  }
+  function openLockPrompt(key,opener){
+    ensureLockUI();
+    const record=lockRecordFor(key);
+    const dialog=$('lock-unlock');
+    if(!record||!dialog)return null;
+    const policy=lockPolicy(record.policy);
+    lockPrompt={key,element:lockResolveElement(key),opener:opener||lockResolveElement(key),factors:policy?[...policy.factors]:[],step:0};
+    if(dialog.show)dialog.show();
+    const verdict=lockAttemptVerdict(lockAttempts.get(key),Date.now());
+    renderLockPrompt(verdict.allowed?'':`Too many wrong tries. This waits ${Math.ceil(verdict.waitMs/1000)} more seconds. Nothing was deleted.`);
+    lockAnchor(dialog,lockPrompt.element);
+    $('lock-unlock-value')?.focus?.();
+    return lockPrompt;
+  }
+  function closeLockPrompt(){
+    const dialog=$('lock-unlock');
+    if(dialog&&dialog.close)dialog.close();
+    const value=$('lock-unlock-value');
+    if(value)value.value='';
+    const opener=lockPrompt.opener;
+    lockPrompt={key:'',element:null,opener:null,factors:[],step:0};
+    opener?.focus?.();
+  }
+  /**
+   * One step of one prompt.
+   *
+   * The keypad and the text field are the same submission: the keypad writes into
+   * that field and this is the only thing that reads it, so the two routes cannot
+   * come to disagree about what is acceptable or spend different budgets.
+   */
+  async function submitLockStep(){
+    const key=lockPrompt.key;
+    const record=lockRecordFor(key);
+    if(!record)return{ok:false,why:'no-record'};
+    const now=Date.now();
+    const before=lockAttemptVerdict(lockAttempts.get(key),now);
+    if(!before.allowed){
+      renderLockPrompt(`Too many wrong tries. This waits ${Math.ceil(before.waitMs/1000)} more seconds. Nothing was deleted, and nothing has escalated.`);
+      return{ok:false,why:'rate-limited'};
+    }
+    const factor=lockPromptFactor();
+    const offered=$('lock-unlock-value')?.value||'';
+    const matched=await lockVerifyFactor(record,factor,offered,now);
+    if(!matched){
+      /* Every wrong step starts the whole thing again. A factor verified a moment ago
+       * is kept only for the attempt it belongs to, so a half-remembered password
+       * cannot be banked while somebody works on the code. */
+      lockPrompt.step=0;
+      const after=lockNoteAttempt(key,now);
+      renderLockPrompt(after.allowed
+        ? `That ${LOCK_FACTOR_LABEL[factor]||factor} did not match. ${after.remaining} ${after.remaining===1?'try':'tries'} left before this waits a minute. Nothing was deleted.`
+        : `That ${LOCK_FACTOR_LABEL[factor]||factor} did not match, and this now waits ${Math.round(LOCK_ATTEMPT_WINDOW_MS/1000)} seconds. Nothing was deleted, and nothing has escalated.`);
+      return{ok:false,why:'wrong-value'};
+    }
+    if(lockPrompt.step+1<lockPrompt.factors.length){
+      lockPrompt.step+=1;
+      renderLockPrompt('That one matched. One more thing before this opens.');
+      $('lock-unlock-value')?.focus?.();
+      return{ok:true,why:'next-step'};
+    }
+    lockGrant(key,record,now);
+    applyLocks();
+    renderLocksCard($('locks-search')?.value||'');
+    const element=lockPrompt.element;
+    closeLockPrompt();
+    notify('Element unlocked',applyVocabularyText(lockOpenDescription(record)),
+      {category:'setting',en:'One element was unlocked on this page.',zh:'有一個元素解鎖咗。'});
+    element?.focus?.();
+    return{ok:true,why:'open'};
+  }
+  function lockOpenDescription(record){
+    if(!record)return '';
+    if(record.duration==='once')return 'It is open for one use. It locks itself again straight after.';
+    if(record.duration==='minutes')return `It stays open for ${record.minutes} minute${record.minutes===1?'':'s'}, or until this page is reloaded.`;
+    return 'It stays open until this page is closed or reloaded.';
+  }
+
+  // ------------------------------------------------------------------ applying
+  //
+  // Marking, not disabling. `aria-disabled` says what a listener needs to hear while
+  // leaving the element able to receive the click that opens its own prompt, and the
+  // affordance beside it is a word rather than a glyph so a search over the page's
+  // own text still finds a locked control by the word locked.
+  function applyLocks(){
+    for(const marked of all('[data-locked="1"],[data-lock-key]')){
+      marked.removeAttribute('data-locked');
+      marked.removeAttribute('data-lock-key');
+      marked.removeAttribute('aria-disabled');
+      marked.classList.remove('locked-element');
+      marked.querySelector?.('.lock-affordance')?.remove();
+    }
+    const now=Date.now();
+    for(const record of Object.values(lockRecords)){
+      const element=lockResolveElement(record.key);
+      if(!element)continue;
+      const open=lockIsOpen(record.key,now);
+      element.dataset.lockKey=record.key;
+      element.classList.add('locked-element');
+      if(open){
+        element.setAttribute('aria-disabled','false');
+        continue;
+      }
+      element.dataset.locked='1';
+      element.setAttribute('aria-disabled','true');
+      if(element.querySelector&&!element.querySelector('.lock-affordance')){
+        const badge=document.createElement('span');
+        badge.className='lock-affordance';
+        badge.textContent=' (locked)';
+        badge.setAttribute('data-no-vocab','');
+        element.append(badge);
+      }
+    }
+    if($('locks-status')){
+      const total=lockCount();
+      const openNow=Object.keys(lockRecords).filter(key=>lockIsOpen(key,now)).length;
+      /* The dropped count is reported in BOTH states. It was appended only to the
+       * "some locks" sentence at first, which meant a browser holding nothing but
+       * unreadable records said "nothing on this site is locked" -- true of what it
+       * could read, and silent about the records it had thrown away. */
+      const dropped=lockDroppedOnLoad?` ${lockDroppedOnLoad} unreadable record${lockDroppedOnLoad===1?' was':'s were'} dropped at load.`:'';
+      $('locks-status').textContent=total===0
+        ? `Nothing on this site is locked. Right-click any control and choose “Lock this element…” to lock one.${dropped}`
+        : `${total} element${total===1?'':'s'} locked on this site, ${openNow} of them open right now.${dropped}`;
+    }
+  }
+
+  // ------------------------------------------------------------------ the guard
+  function lockGuard(event){
+    const element=lockedAncestor(event.target);
+    if(!element)return;
+    const key=String(element.dataset&&element.dataset.lockKey||'');
+    const verdict=lockEventVerdict({
+      type:event.type,
+      eventKey:event.key,
+      elementKey:key,
+      open:lockIsOpen(key,Date.now()),
+      insidePrompt:Boolean(event.target?.closest?.('#lock-unlock,#lock-wizard'))
+    });
+    if(!verdict.refuse){
+      if(event.type==='click'&&key)lockNoteUse(key);
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation?.();
+    if(verdict.prompt)openLockPrompt(key,element);
+  }
+  function initLockGuard(){
+    for(const type of LOCK_GUARDED_EVENTS)document.addEventListener(type,lockGuard,true);
+  }
+
+  // ------------------------------------------------------------------ the card
+  function lockRowLabel(record){
+    const policy=lockPolicy(record.policy);
+    return `${record.name||`An unnamed ${record.kind}`} · ${record.page} page · ${policy?policy.label:record.policy}`;
+  }
+  function lockMatches(query){
+    return Object.values(lockRecords)
+      .sort((left,right)=>right.created-left.created)
+      .filter(record=>matchText(`${lockRowLabel(record)} ${record.key} ${lockIsOpen(record.key,Date.now())?'open unlocked':'locked'}`,query,'locks-search'));
+  }
+  function renderLocksCard(query=''){
+    const list=$('locks-list');
+    if(!list)return;
+    const now=Date.now();
+    const matches=lockMatches(query);
+    lockOrder=matches.map(record=>record.key);
+    list.innerHTML=matches.length
+      ?matches.map(record=>{
+        const open=lockIsOpen(record.key,now);
+        const here=lockKeyPage(record.key)===lockPageId();
+        const where=here?(lockResolveElement(record.key)?'on this page':'recorded for this page, but the element is no longer here'):`on the ${record.page} page`;
+        return `<article class="lock-entry" data-lock-row="${escapeHtml(record.key)}"><label class="sr-only" for="lock-pick-${escapeHtml(record.key)}">Select ${escapeHtml(lockRowLabel(record))}</label><input id="lock-pick-${escapeHtml(record.key)}" type="checkbox"><div><strong>${escapeHtml(lockRowLabel(record))}</strong><p>${escapeHtml(where)} · ${escapeHtml(open?`open: ${lockOpenDescription(record)}`:'locked')}</p><small>${escapeHtml(record.key)}</small></div>${open?`<button type="button" class="text-button" data-lock-relock="${escapeHtml(record.key)}">Lock again</button>`:''}</article>`;
+      }).join('')
+      :`<p class="empty-state">${escapeHtml(lockCount()?'No lock matches that.':'Nothing on this site is locked yet.')}</p>`;
+    if($('locks-count'))$('locks-count').textContent=`${matches.length} of ${lockCount()} lock${lockCount()===1?'':'s'}`;
+    lockUpdateSelectionUI();
+    lockUpdateExportFormats();
+    applyVocabulary();
+  }
+  function lockUpdateSelectionUI(){
+    const list=$('locks-list');
+    if(list)for(const row of list.querySelectorAll('.lock-entry')){
+      const box=row.querySelector('input[type="checkbox"]');
+      if(box)box.checked=lockSelection.selected.has(row.dataset.lockRow);
+    }
+    if($('locks-selection-status'))$('locks-selection-status').textContent=lockSelection.selected.size?`${lockSelection.selected.size} selected of ${lockCount()}.`:'';
+  }
+  function lockUpdateExportFormats(){
+    const select=$('locks-export-format');
+    if(!select)return;
+    const rows=lockExportRows(lockSelection.selected);
+    const formats=suitableFormats(rows.length?rows:[{element:'',page:'',kind:'',method:'',unlockLasts:'',credentials:''}]);
+    const previous=select.value;
+    select.innerHTML=formats.map(format=>`<option value="${format}">${format.toUpperCase()}</option>`).join('');
+    if(formats.includes(previous))select.value=previous;
+    if($('locks-export-loss')){
+      $('locks-export-loss').textContent=rows.length
+        ?`${describeLoss(rows,select.value||formats[0]).join(' ')} No PIN, password, salt, digest or one-time-code secret is written: every row carries the word omitted where a credential would be.`.trim()
+        :'Select one or more locks to export. Whatever is written, no credential is in it.';
+    }
+  }
+  /** A lock is removed only once it has been opened, which is what makes it a lock at all. */
+  function lockRemovalVerdict(key){
+    if(!lockRecordFor(key))return 'that lock is already gone';
+    return lockIsOpen(key,Date.now())?true:'that element is still locked -- open it first, or clear this site’s storage';
+  }
+  function lockRemove(keys){
+    const removed=[];
+    const next={...lockRecords};
+    for(const key of keys){
+      if(lockRemovalVerdict(key)!==true)continue;
+      removed.push(next[key]);
+      delete next[key];
+      lockRelock(key);
+      lockClearAttempts(key);
+    }
+    if(!removed.length)return removed;
+    lockRecords=next;
+    lockSelection={anchor:lockSelection.anchor,selected:new Set()};
+    lockSaveRecords();
+    applyLocks();
+    renderLocksCard($('locks-search')?.value||'');
+    recordHistory('lock-removed',`Removed ${removed.length} element lock${removed.length===1?'':'s'}: ${removed.map(record=>record.name||record.key).join(', ')}.`);
+    notify('Element locks removed',applyVocabularyText(`${removed.length} lock${removed.length===1?'':'s'} removed. The elements behave normally again.`),
+      {category:'setting',en:`${removed.length} element lock${removed.length===1?'':'s'} removed.`,zh:`已經移除咗 ${removed.length} 個元素鎖。`});
+    return removed;
+  }
+
+  function initLocks(){
+    ensureLockUI();
+    initLockGuard();
+    applyLocks();
+    $('lock-wizard-policy')?.addEventListener('change',renderLockWizard);
+    $('lock-wizard-duration')?.addEventListener('change',renderLockWizard);
+    for(const id of ['lock-wizard-pin','lock-wizard-pin-confirm','lock-wizard-password','lock-wizard-password-confirm','lock-wizard-totp-secret','lock-wizard-minutes']){
+      $(id)?.addEventListener('input',renderLockWizard);
+    }
+    $('lock-wizard-totp-apply')?.addEventListener('click',()=>{
+      const status=$('lock-wizard-totp-status');
+      try{
+        const parsed=authParsePairingUri($('lock-wizard-totp-uri')?.value||'');
+        if($('lock-wizard-totp-secret'))$('lock-wizard-totp-secret').value=parsed.secret;
+        /* The parameters are stated rather than the secret. A status line is on screen,
+         * in a capture, and in whatever a reader pastes into an issue. */
+        if(status)status.textContent=`Read a ${parsed.algorithm} account, ${parsed.digits} digits, every ${parsed.period} seconds. The secret is ${parsed.secret.length} characters and is not shown here.`;
+      }catch(error){if(status)status.textContent=error.message}
+      renderLockWizard();
+    });
+    $('lock-wizard-create')?.addEventListener('click',()=>{createLockFromWizard()});
+    $('lock-wizard-cancel')?.addEventListener('click',closeLockWizard);
+    $('lock-wizard-close')?.addEventListener('click',closeLockWizard);
+
+    $('lock-unlock-submit')?.addEventListener('click',()=>{submitLockStep()});
+    $('lock-unlock-cancel')?.addEventListener('click',closeLockPrompt);
+    $('lock-unlock-close')?.addEventListener('click',closeLockPrompt);
+    $('lock-unlock-value')?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();submitLockStep()}});
+    $('lock-unlock-keypad')?.addEventListener('click',event=>{
+      const button=event.target.closest('button');
+      const value=$('lock-unlock-value');
+      if(!button||!value)return;
+      if(button.id==='lock-key-clear'){value.value='';return}
+      if(button.id==='lock-key-back'){value.value=value.value.slice(0,-1);return}
+      const digit=button.dataset.lockDigit;
+      if(digit)value.value=`${value.value}${digit}`;
+    });
+
+    if(!$('locks-list'))return;
+    if($('locks-recovery-text'))$('locks-recovery-text').textContent=LOCK_RECOVERY_LINE;
+    if($('locks-toy-note'))$('locks-toy-note').textContent=LOCK_TOY_LINE;
+    $('locks-search')?.addEventListener('input',event=>renderLocksCard(event.target.value));
+    $('locks-list')?.addEventListener('click',event=>{
+      const relock=event.target.closest('[data-lock-relock]');
+      if(relock){
+        lockRelock(relock.dataset.lockRelock);
+        applyLocks();
+        renderLocksCard($('locks-search')?.value||'');
+        return;
+      }
+      const row=event.target.closest('.lock-entry');
+      if(!row)return;
+      const isCheckbox=event.target.tagName==='INPUT';
+      lockSelection=bulkClick(lockSelection,row.dataset.lockRow,{shift:event.shiftKey,ctrl:event.ctrlKey||event.metaKey||isCheckbox},lockOrder);
+      lockUpdateSelectionUI();lockUpdateExportFormats();
+    });
+    $('locks-select-page')?.addEventListener('click',()=>{
+      const result=bulkSelectAll(lockSelection,'page',lockOrder,lockOrder);
+      lockSelection=result.state;lockUpdateSelectionUI();lockUpdateExportFormats();
+      if($('locks-selection-status'))$('locks-selection-status').textContent=`Selected ${result.count} shown here.`;
+    });
+    $('locks-select-matches')?.addEventListener('click',()=>{
+      const result=bulkSelectAll(lockSelection,'matches',lockOrder,lockOrder);
+      lockSelection=result.state;lockUpdateSelectionUI();lockUpdateExportFormats();
+      if($('locks-selection-status'))$('locks-selection-status').textContent=`Selected ${result.count} matching locks.`;
+    });
+    $('locks-select-none')?.addEventListener('click',()=>{lockSelection={anchor:lockSelection.anchor,selected:new Set()};lockUpdateSelectionUI();lockUpdateExportFormats()});
+    $('locks-export-format')?.addEventListener('change',lockUpdateExportFormats);
+    $('locks-export-selected')?.addEventListener('click',()=>{
+      const rows=lockExportRows(lockSelection.selected);
+      if(!rows.length)return;
+      const format=$('locks-export-format').value||'json';
+      download(exportFilename('ding-pbx-element-locks',format,`${rows.length}-selected`),exportRows({rows,format,table:'lock'}),EXPORT_MIME[format]);
+      notify('Element locks exported',applyVocabularyText(`Exported ${rows.length} lock${rows.length===1?'':'s'} as ${format.toUpperCase()}, with every credential left out.`),
+        {category:'export',en:`Exported ${rows.length} element lock${rows.length===1?'':'s'} without their credentials.`,zh:`已經匯出 ${rows.length} 個元素鎖，密碼冇包埋。`});
+    });
+    $('locks-remove-selected')?.addEventListener('click',()=>{
+      const plan=planBulk('Remove',[...lockSelection.selected],lockRemovalVerdict,{destructive:true});
+      if(!plan.selected.length)return;
+      const box=$('locks-confirm');
+      if(!box)return;
+      if($('locks-confirm-text'))$('locks-confirm-text').textContent=`${summariseBulk(plan)} A removed lock is gone with its value; the element behaves normally again.`;
+      box.hidden=false;
+    });
+    $('locks-confirm-cancel')?.addEventListener('click',()=>{if($('locks-confirm'))$('locks-confirm').hidden=true});
+    $('locks-confirm-yes')?.addEventListener('click',()=>{
+      lockRemove([...lockSelection.selected]);
+      if($('locks-confirm'))$('locks-confirm').hidden=true;
+    });
+    renderLocksCard('');
+  }
+
+  function init(){ensureAttentionUI();initSchoolWatch();ensureContextMenuUI();ensureLockUI();applyState();initContextMenu();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initUpdates();initExportEverything();initTimeAwareness();initMomentum();initAuthenticator();initLocks();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
   init();
 })();

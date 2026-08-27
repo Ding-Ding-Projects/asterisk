@@ -78,8 +78,12 @@ const cases = [
 
   // The filter's plain-text-versus-regex readout is rendered by applyState(). Build the
   // menu after it and the readout is blank until something else happens to re-render it.
+  /* The anchor moved on 2026-08-26 when ensureLockUI() landed between these two calls,
+   * and this script reported the move as a FAILED CASE rather than letting a break
+   * that never landed read as a guard that held. The break itself is unchanged: the
+   * menu is built after applyState() rather than before it. */
   ['the menu is built after applyState(), so its first readout is missed',
-    swap(APP, 'ensureContextMenuUI();applyState();', 'applyState();ensureContextMenuUI();')],
+    swap(APP, 'ensureContextMenuUI();ensureLockUI();applyState();', 'ensureLockUI();applyState();ensureContextMenuUI();')],
 
   // On body rather than document: every element still "has" a menu right up until one is
   // rendered outside the body, and nothing says which.
@@ -172,15 +176,27 @@ const cases = [
     swap(APP, 'return `No action matches “${trimmed}”. ${total} action${total===1?\'\':\'s\'} were offered for this element.`;',
       'return `No action matches “${trimmed}”.`;')],
 
-  /* ---- The two entries that must never become available. ---- */
+  /* ---- The entry that must never become available. ----
+   *
+   * There were two of these until 2026-08-26. The element locks landed and the lock
+   * entry stopped being one of them: it is now an ordinary conditional item that opens
+   * a real wizard, and its own contract owns what it does. Both of its cases here were
+   * removed rather than rewritten, because a break that describes a refusal the code no
+   * longer makes is a break about nothing. This script reported them as FAILED CASEs
+   * rather than passing on anchors that had stopped existing, which is what the
+   * exactly-once check is for.
+   *
+   * The two cases below take their place: the lock entry is now expected to be wired
+   * to something, and to refuse an element that already carries a lock. */
 
-  ['the lock entry becomes conditionally available',
-    swap(APP, "      unavailable:()=>'this site ships no per-element lock: per-element-toy-locks is recorded absent in site/feature-registry.json',",
-      "      unavailable:ctx=>ctx.page.palette?null:'this site ships no per-element lock: per-element-toy-locks is recorded absent in site/feature-registry.json',")],
+  ['the lock entry is offered and connected to nothing',
+    swap(APP, 'run:ctx=>openLockWizard(ctx)}', 'run:()=>{}}')],
 
-  ['the lock entry stops naming the registry row that records why',
-    swap(APP, "'this site ships no per-element lock: per-element-toy-locks is recorded absent in site/feature-registry.json'",
-      "'this is not available'")],
+  /* One line rather than the whole three-line ternary. A multi-line anchor here would
+   * have to be written with `\n` and rewritten for a CRLF checkout, and the shortest
+   * edit that makes the refusal unreachable is to make its condition always false. */
+  ['the lock entry offers a second lock on an element that already carries one',
+    swap(APP, 'unavailable:ctx=>ctx.locked', 'unavailable:ctx=>false&&ctx.locked')],
 
   ['the per-element appearance entry gains a body, so something would happen',
     swap(APP, "{id:'element-appearance',label:'Edit this element’s appearance…',chord:null,kinds:'any',\n      unavailable:()=>'this site has no per-element appearance editor: material-appearance is recorded partial in site/feature-registry.json',\n      run:()=>{}},",

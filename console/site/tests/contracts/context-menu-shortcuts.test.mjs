@@ -182,7 +182,7 @@ function makePage({ ids = [] } = {}) {
       return walk(body);
     },
   };
-  return { document, notifications: [], copied: [], opened: [], palette: 0, timers: [] };
+  return { document, notifications: [], copied: [], opened: [], palette: 0, timers: [], lockWizardOpened: [], lockPrompted: [], openLocks: new Set() };
 }
 
 /** Compiles the extracted block against a recording page and hands back its internals. */
@@ -219,6 +219,12 @@ function load({ ids = [], regexState = new Map(), copy = (key) => `COPY:${key}` 
      * so. A shared helper is exactly where a copy silently stops being a copy. */
     matchText: realMatchText(regexState),
     openPalette: () => { own.palette += 1; },
+    /* The element-lock neighbours, recorded rather than stubbed to nothing. The lock
+     * command's whole point is that it reaches the wizard with the element it was
+     * opened on, and a stub returning undefined could not tell that from a no-op. */
+    openLockWizard: (ctx) => { own.lockWizardOpened.push(ctx); },
+    openLockPrompt: (key, opener) => { own.lockPrompted.push({ key, opener }); },
+    lockIsOpen: (key) => own.openLocks.has(key),
     renderModeStatus: () => {},
     /* A fired timer leaves the list, exactly as a real one does. Leaving it behind would
      * make "a cancelled long press left its timer running" fail on the corpse of an
@@ -237,7 +243,8 @@ function load({ ids = [], regexState = new Map(), copy = (key) => `COPY:${key}` 
     'accessibleName', 'resolveContextTarget', 'contextTargetKind', 'contextMenuContext', 'MENU_ACTIONS',
     'absoluteHref', 'menuItemsFor', 'filterMenuItems', 'menuResultSummary', 'chordIsLive',
     'ensureContextMenuUI', 'clampMenuPosition', 'renderContextMenuList', 'openContextMenu', 'closeContextMenu',
-    'activateContextMenuItem', 'moveContextMenuActive', 'onContextMenuKeydown', 'contextMenuChordAction',
+    'activateContextMenuItem', 'menuActionIsLocked', 'LOCK_EXEMPT_MENU_ACTIONS',
+    'moveContextMenuActive', 'onContextMenuKeydown', 'contextMenuChordAction',
     'handleContextMenuChord', 'openContextMenuForFocus', 'initContextMenu', 'startLongPress', 'cancelLongPress',
   ];
   const names = Object.keys(globals);
@@ -277,7 +284,11 @@ function eventFor(c, overrides = {}) {
 }
 
 const ALL_IDS = ['command-palette', 'notifications-dialog', 'history-dialog', 'reset-confirm-dialog', 'theme-mode',
-  'notification-open', 'history-open', 'settings-reset', 'regex-dialog'];
+  'notification-open', 'history-open', 'settings-reset', 'regex-dialog',
+  /* Joined on 2026-08-26 by the element locks. The lock command asks for this exactly
+   * as the palette command asks for `command-palette`, so a "fully equipped page" that
+   * lacked it would still be testing the lock entry's unavailable branch. */
+  'lock-wizard'];
 
 /* ================================================================== *
  * The registry, and the fact that the feature is started at all.
@@ -290,7 +301,16 @@ test('the site feature registry carries a row for context-menu-shortcuts', () =>
 test('the menu is built and started from init(), and built before applyState() reads its filter status', () => {
   const line = app.split('\n').find((l) => /^\s*function init\(\)\{/u.test(l));
   assert.ok(line, 'init() was not found as a single source line');
-  assert.match(line, /ensureContextMenuUI\(\);applyState\(\);/u,
+  /* Re-derived on 2026-08-26, when the element locks put their own ensureLockUI()
+   * between these two calls. The property was always "built before applyState()"; it
+   * had been written as "immediately before", which is a stricter claim than the
+   * feature needs and one that a second builder legitimately breaks. Ordering is what
+   * is checked now, and it is checked by position rather than by adjacency. */
+  const built = line.indexOf('ensureContextMenuUI()');
+  const applied = line.indexOf('applyState()');
+  assert.notEqual(built, -1, 'init() no longer builds the right-click menu at all');
+  assert.notEqual(applied, -1, 'init() no longer calls applyState()');
+  assert.ok(built < applied,
     'the menu is no longer built before applyState(), so its filter-mode readout would be missed on the first pass');
   assert.match(line, /initContextMenu\(\)/u, 'nothing starts the right-click menu');
   /* Commented out rather than deleted is how a wiring line usually dies, and a bare
@@ -520,22 +540,103 @@ test('activating an unavailable item does nothing, whichever route is taken', ()
   assert.deepEqual(api.page.copied, [], 'an unavailable item did something');
 });
 
-test('the two permanently unavailable entries stay unavailable on a page that carries everything', () => {
-  /* The property, not the phrasing. `unavailable` taking no argument is what makes
-   * "permanently" true: an `unavailable:ctx=>...` could consult the page and turn on, and
-   * a fully-equipped page is where that would show. */
+/**
+ * Re-derived on 2026-08-26. This used to say TWO entries were permanently unavailable;
+ * one of them stopped being so when the element locks landed, and `lock-element` is now
+ * an ordinary conditional item that opens a real wizard.
+ *
+ * What is left is the single genuine case, and the property is unchanged: `unavailable`
+ * taking no argument is what makes "permanently" true, because an `unavailable:ctx=>...`
+ * could consult the page and turn on -- and a fully-equipped page is where that shows.
+ */
+test('the one permanently unavailable entry stays unavailable on a page that carries everything', () => {
   const api = load({ ids: ALL_IDS });
   const items = api.menuItemsFor(api.contextMenuContext(null), 'Win32');
-  for (const [id, row] of [['lock-element', 'per-element-toy-locks'], ['element-appearance', 'material-appearance']]) {
-    const item = items.find((entry) => entry.id === id);
-    assert.ok(item, `the menu no longer offers ${id} at all`);
-    assert.equal(item.enabled, false, `${id} became available on a fully-equipped page`);
-    assert.ok(item.unavailableReason.includes(row), `${id} no longer names the registry row that records why`);
-    const action = api.MENU_ACTIONS.find((entry) => entry.id === id);
-    assert.equal(action.unavailable.length, 0,
-      `${id}'s unavailability now takes an argument, so some state could turn it on`);
-    assert.equal(action.run.length, 0, `${id} now has a body that reads its context -- something would happen`);
+  const item = items.find((entry) => entry.id === 'element-appearance');
+  assert.ok(item, 'the menu no longer offers element-appearance at all');
+  assert.equal(item.enabled, false, 'element-appearance became available on a fully-equipped page');
+  assert.ok(item.unavailableReason.includes('material-appearance'),
+    'element-appearance no longer names the registry row that records why');
+  const action = api.MENU_ACTIONS.find((entry) => entry.id === 'element-appearance');
+  assert.equal(action.unavailable.length, 0,
+    "element-appearance's unavailability now takes an argument, so some state could turn it on");
+  assert.equal(action.run.length, 0, 'element-appearance now has a body that reads its context -- something would happen');
+});
+
+test('the lock command is offered, needs the wizard, and routes the element it was opened on to it', () => {
+  /* The other half of the re-derivation above. An entry that became available and then
+   * did nothing would be the decorative control the old permanent refusal was avoiding,
+   * so the routing is checked rather than only the availability. */
+  const bare = load({ ids: [] });
+  const unavailable = bare.menuItemsFor(bare.contextMenuContext(null), 'Win32').find((entry) => entry.id === 'lock-element');
+  assert.equal(unavailable.enabled, false, 'the lock command is available on a page with no wizard to lock with');
+  assert.match(unavailable.unavailableReason, /lock wizard/u, 'the lock command no longer names what it is missing');
+
+  const api = load({ ids: ALL_IDS });
+  const target = makeElement('button');
+  target.textContent = 'Reset settings';
+  const item = api.menuItemsFor(api.contextMenuContext(target), 'Win32').find((entry) => entry.id === 'lock-element');
+  assert.equal(item.enabled, true, 'the lock command is unavailable on a page that carries the wizard');
+  assert.equal(item.shortcut, 'Alt+Shift+K', 'the lock command lost its printed shortcut');
+  api.openContextMenu({ element: target, x: 10, y: 10 });
+  api.activateContextMenuItem('lock-element');
+  assert.deepEqual(api.page.lockWizardOpened.map((ctx) => ctx.name), ['Reset settings'],
+    'activating the lock command did not reach the wizard with the element it was opened on');
+});
+
+test('a locked element refuses its own menu actions and opens its prompt instead', () => {
+  /* The menu is the OTHER way an element's action can be reached. Without this a locked
+   * control would refuse a click and then do exactly the same thing from its own
+   * right-click menu, which is a lock in one direction only. */
+  const api = load({ ids: ALL_IDS });
+  const target = makeElement('button');
+  target.textContent = 'Reset settings';
+  target.dataset.lockKey = 'settings::#settings-reset';
+  api.openContextMenu({ element: target, x: 10, y: 10 });
+  api.activateContextMenuItem('reset-settings');
+  assert.equal(api.page.document.getElementById('settings-reset').clicks, 0,
+    'a locked element ran its action from its own menu');
+  assert.deepEqual(api.page.lockPrompted.map((entry) => entry.key), ['settings::#settings-reset'],
+    'refusing the action did not open that element\'s unlock prompt');
+
+  api.page.openLocks.add('settings::#settings-reset');
+  api.openContextMenu({ element: target, x: 10, y: 10 });
+  api.activateContextMenuItem('reset-settings');
+  assert.equal(api.page.document.getElementById('settings-reset').clicks, 1,
+    'an element whose lock is open still had its action refused');
+});
+
+test('the lock command and the read-only actions are exempt, and nothing else is', () => {
+  /* Removing a lock is reached from the element's own menu, so a menu that refused
+   * everything would leave clearing storage as the only way out. The exemption list is
+   * checked against the real action ids rather than restated, because an id that stops
+   * existing would otherwise sit in it forever exempting nothing. */
+  const api = load({ ids: ALL_IDS });
+  const ids = api.MENU_ACTIONS.map((action) => action.id);
+  for (const exempt of api.LOCK_EXEMPT_MENU_ACTIONS) {
+    assert.ok(ids.includes(exempt), `${exempt} is exempted from the lock but is no longer a menu action`);
   }
+  const target = makeElement('button');
+  target.dataset.lockKey = 'settings::#settings-reset';
+  const ctx = api.contextMenuContext(target);
+  for (const action of api.MENU_ACTIONS) {
+    const expected = !api.LOCK_EXEMPT_MENU_ACTIONS.includes(action.id);
+    assert.equal(api.menuActionIsLocked(action, ctx), expected,
+      `${action.id} is ${expected ? 'no longer' : 'now'} refused on a locked element`);
+  }
+  assert.equal(api.menuActionIsLocked(api.MENU_ACTIONS[0], api.contextMenuContext(makeElement('button'))), false,
+    'an element with no lock at all had a menu action refused');
+});
+
+test('an element that already carries a lock is not offered a second one', () => {
+  const api = load({ ids: ALL_IDS });
+  const target = makeElement('button');
+  target.textContent = 'Reset settings';
+  target.dataset.lockKey = 'settings::#settings-reset';
+  const item = api.menuItemsFor(api.contextMenuContext(target), 'Win32').find((entry) => entry.id === 'lock-element');
+  assert.equal(item.enabled, false, 'a locked element was offered a second lock');
+  assert.match(item.unavailableReason, /already carries a lock/u,
+    'the refusal no longer says why a locked element cannot be locked again');
 });
 
 /* ================================================================== *
