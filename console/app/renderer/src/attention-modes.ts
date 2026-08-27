@@ -235,7 +235,18 @@ export function verifyAttentionWiring(sources: { design: string; app: string; ge
   for (const row of rows) {
     if (controls.has(row.control)) throw new Error(`Duplicate attention control: ${row.control}`);
     controls.add(row.control);
-    exactOwnedMarker(sources, row.designMarker, `${row.id} design control`);
+    /* A row may declare that the design draws no control for it -- the one-thing field is
+     * rendered by App.tsx in the attention rail rather than as a settings ctl() -- but it
+     * has to earn that. The named control id must genuinely be ABSENT from the design, so a
+     * row cannot excuse itself from a marker for a control the design does draw. Without
+     * this branch the exemption would be a hole rather than a recorded exception. */
+    if (row.designMarker.owner === 'none') {
+      if (!row.designMarker.reason.trim()) throw new Error(`${row.id} declares no design control and gives no reason`);
+      const absences = sources.design.split(row.designMarker.absentFromDesign).length - 1;
+      if (absences !== 0) throw new Error(`${row.id} claims the design draws no '${row.designMarker.absentFromDesign}' control, but the design mentions it ${absences} time(s)`);
+    } else {
+      exactOwnedMarker(sources, row.designMarker, `${row.id} design control`);
+    }
     exactOwnedMarker(sources, row.controlConstruction, `${row.id} App control construction`);
     exactOwnedMarker(sources, row.durableKey, `${row.id} durable key`);
     for (const marker of row.writerMarkers) exactOwnedMarker(sources, marker, `${row.id} writer chain`);
