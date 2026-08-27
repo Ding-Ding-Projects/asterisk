@@ -90,12 +90,68 @@ test('voice enumeration is live and its status source is the effective channel v
   assert.match(src, /resolveVoiceStatus\(language, this\.narration\.channels\[language\]\.voiceId, this\.voices\)/);
 });
 
+/* This guard went red on master, and the code was right and the guard was wrong.
+ * It pinned `narratedFire`'s exact one-line signature -- `(title, body, isError = false)`
+ * -- and its exact `{ isError }` argument. The notification path since grew a third
+ * parameter that accepts either a `NotificationSeverity` or the legacy boolean, which
+ * moved the declaration onto four lines and turned the argument into a derived
+ * `{ isError: severity === 'error' }`. Both are refactors of the spelling, not of the
+ * behaviour, so the guard was reporting a defect that was not there while saying
+ * nothing about the three properties its own title claims.
+ *
+ * It asserts those three properties now, against the code as it is actually written:
+ * the path is narrated, it narrates the STYLED text rather than the raw text, and an
+ * error keeps its priority through the boolean-to-severity normalisation. Each is
+ * anchored to a whole line, because a needle like `narratedFire` is satisfied by a
+ * renamed `narratedFireX` and by a commented-out call. */
+/**
+ * The body of `narratedFire`, on its own.
+ *
+ * Whole-file anchors are not enough here, and that was measured rather than assumed:
+ * `scripts/negative-narration-fire.mjs` deleted the styling line and the on-screen
+ * hand-off from inside `narratedFire` and this guard stayed GREEN both times, because
+ * `const styled = styledDialog(..., classifyDialogKind(title), title, body);` and
+ * `this.baseFire(styled.heading, styled.body);` each appear TWICE in App.tsx -- once
+ * here and once in a sibling dialog path. A file-wide match is therefore satisfied by
+ * the copy this test is not about, which is the descendant-satisfies-the-check shape
+ * in a new costume. Slicing the method out first is what makes the two assertions
+ * below say anything at all.
+ */
+function narratedFireBody(src) {
+  const start = src.indexOf('  private narratedFire = (');
+  assert.notEqual(start, -1, 'narratedFire is no longer declared as a private class field on the mounted app');
+  const end = src.indexOf('\n  };', start);
+  assert.notEqual(end, -1, 'narratedFire has no closing brace at class-field indentation -- the slice would run to end of file');
+  const body = src.slice(start, end);
+  // A slice that came back empty or tiny would let every assertion below pass by
+  // finding nothing, so its size is asserted before it is used.
+  assert.ok(body.split('\n').length > 5, 'the narratedFire slice is too short to be the real method body');
+  return body;
+}
+
 test('the mounted notification path is narrated and preserves the styled message plus error priority', () => {
   const src = app();
-  assert.match(src, /private narratedFire = \(title: string, body: string, isError = false\): void => \{/);
-  assert.match(src, /const styled = styledDialog\(/);
-  assert.match(src, /this\.narrator\.enqueue\('notification', styled\.body \? `\$\{styled\.heading\}\. \$\{styled\.body\}` : styled\.heading, \{ isError \}\);/);
-  assert.match(src, /this\.baseFire\(styled\.heading, styled\.body\);/);
+  const body = narratedFireBody(src);
+
+  assert.match(body, /^ {4}severityOrLegacyError: NotificationSeverity \| boolean = 'warning',$/m,
+    'the severity parameter that replaced the old isError boolean is gone; a caller passing true may no longer reach the error path');
+  assert.match(src, /^ {4}this\.fire = this\.narratedFire;$/m,
+    'the mounted fire() is no longer narratedFire, so the notification path is not narrated at all');
+
+  /* Styled before spoken. The console must not say one thing while the screen shows
+   * another, so the narrator has to receive styled.heading/styled.body and never the
+   * raw title and body it was handed. Both of these are asserted inside the slice. */
+  assert.match(body, /^ {4}const styled = styledDialog\(this\.messageStorage, this\.currentCopyLanguage\(\), classifyDialogKind\(title\), title, body\);$/m,
+    'narratedFire no longer styles the copy before narrating it');
+  assert.match(body, /^ {4}this\.narrator\.enqueue\('notification', styled\.body \? `\$\{styled\.heading\}\. \$\{styled\.body\}` : styled\.heading, \{ isError: severity === 'error' \}\);$/m,
+    'the narrator no longer receives the styled text, or no longer derives isError from the normalised severity');
+  assert.match(body, /^ {4}this\.baseFire\(styled\.heading, styled\.body\);$/m,
+    'the on-screen notification no longer receives the same styled text the narrator was given');
+
+  /* Error priority survives the legacy boolean. `fire(title, body, true)` is the call
+   * shape the compiled shell still emits, and it has to keep arriving as 'error'. */
+  assert.match(body, /^ {6}\? \(severityOrLegacyError \? 'error' : 'warning'\)$/m,
+    'a legacy boolean true no longer normalises to the error severity, so shell error notices lose their priority');
 });
 
 test('the registry row remains an honest unresolved inventory task until the central inventory materializer records proof', () => {
