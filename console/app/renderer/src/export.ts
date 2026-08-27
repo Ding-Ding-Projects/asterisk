@@ -1,3 +1,5 @@
+import type { ExportArtifact } from '../../../shared/export';
+
 /**
  * Export engine: pure functions that turn arbitrary row data into export text.
  *
@@ -551,4 +553,19 @@ export function exportFilename(base: string, format: ExportFormat, range?: strin
   }
   const suffix = range ? `-${range}` : '';
   return `${trimmed}${suffix}.${EXTENSION_BY_FORMAT[format]}`;
+}
+
+export type ExportPreparationResult =
+  | { status: 'prepared'; artifact: ExportArtifact }
+  | { status: 'unavailable'; reason: string };
+
+/** Prepares only formats this renderer can serialize without inventing a lossy adapter. */
+export function prepareExport(request: ExportRequest): ExportPreparationResult {
+  const content = exportRows(request);
+  const filename = exportFilename(request.table ?? 'export', request.format);
+  const mediaType: Record<ExportFormat, string> = {
+    json: 'application/json', jsonl: 'application/x-ndjson', yaml: 'application/yaml', toml: 'application/toml',
+    xml: 'application/xml', csv: 'text/csv', tsv: 'text/tab-separated-values', markdown: 'text/markdown', html: 'text/html', sql: 'application/sql',
+  };
+  return { status: 'prepared', artifact: { schemaVersion: 'ding-pbx-export.v1', format: request.format, filename, mediaType: mediaType[request.format], encoding: 'utf-8', lineEnding: 'lf', content, byteLength: new TextEncoder().encode(content).byteLength, rowCount: request.rows.length, disclosures: describeLoss(request.rows, request.format).map((message) => ({ code: 'representation-loss', message, severity: 'warning' as const })) } };
 }

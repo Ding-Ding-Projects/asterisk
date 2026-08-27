@@ -70,6 +70,6 @@ test('a one-thing banner and a momentum/idle timer are real functions, called fr
 });
 
 test('the registry records attention-modes as implemented', () => {
-  assert.equal(registry.features['attention-modes'].state, 'implemented',
+  assert.equal(registry.features['attention-modes'].status, 'implemented-unverified',
     'real ADHD/attention accommodations, wired and off by default, should read as implemented');
 });

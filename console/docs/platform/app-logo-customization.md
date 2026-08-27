@@ -14,11 +14,11 @@ Processing would be bounded and safe — validated file types, no network upload
 
 **Desktop application:** Not implemented. The desktop application shows a fixed application mark with no customization surface.
 
-**Documentation website:** Partial. The site's settings page includes a placeholder entry for logo customization; no preset picker, no upload control, and no on-device processing exist behind it yet.
+**Documentation website:** Partial. Every page exposes three presets, contain/fill choice, and local PNG/JPEG upload. The loader verifies the byte signature, bounds encoded bytes and decoded pixels, revalidates the cache, applies the mark live, and retains the prior valid mark after rejection. Crop, focal point, background treatment, and multi-size output remain incomplete.
 
 ## Failure modes
 
-A malformed or oversized uploaded image is meant to be rejected before it becomes the active mark, with the previous logo staying in place; nothing implements the upload path today, so nothing enforces that yet.
+A malformed, spoofed, oversized, or over-dimension image is rejected before storage, with the previous valid logo staying active. Source filenames and file paths are not retained, and image bytes are omitted from site-state export with that omission stated.
 
 ## Accessibility and localization
 

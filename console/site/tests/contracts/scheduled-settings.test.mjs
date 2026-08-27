@@ -51,6 +51,6 @@ test('there is no Home Assistant or external HTTPS source integration for schedu
 });
 
 test('the registry records scheduled-settings as partial', () => {
-  assert.equal(registry.features['scheduled-settings'].state, 'partial',
+  assert.equal(registry.features['scheduled-settings'].status, 'partial',
     'a real, persisted, off-by-default checkbox exists, but no scheduling surface exists behind it -- "partial" is the honest state');
 });

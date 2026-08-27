@@ -1,46 +1,79 @@
 /**
- * Contract: ollama-suite-manager. The honest state is "absent" -- no local Ollama
- * HTTP client, model store, chat surface, or harness launcher exists anywhere in
- * the renderer or the control plane. This file pins that from the real sources.
+ * Contract: ollama-suite-manager. This verifies implemented source seams while
+ * retaining the honest absence of packaged, live-runtime, and capture evidence.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const read = (p) => readFileSync(resolve(root, p), 'utf8').replace(/\r\n/g, '\n');
-const json = (p) => JSON.parse(read(p));
+const read = (path) => readFileSync(resolve(root, path), 'utf8').replace(/\r\n/g, '\n');
+const registry = JSON.parse(read('app/feature-registry.json'));
+const dispatch = read('control-plane/dispatch.ts');
+const client = read('control-plane/ollama-client.ts');
+const catalog = read('control-plane/ollama-catalog.ts');
+const pulls = read('control-plane/ollama-pulls.ts');
+const chat = read('control-plane/ollama-chat.ts');
+const harness = read('control-plane/ollama-harness.ts');
+const fit = read('control-plane/ollama-fit.ts');
+const model = read('app/renderer/src/ollama-suite-model.ts');
+const surface = read('app/renderer/src/ollama-suite.tsx');
+const mounts = read('app/renderer/src/surface-mounts.tsx');
+const docs = read('docs/platform/ollama-suite-manager.md');
 
-const rendererSrcDir = resolve(root, 'app/renderer/src');
-const rendererFiles = readdirSync(rendererSrcDir).filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'));
-const rendererSource = rendererFiles.map((f) => read(`app/renderer/src/${f}`)).join('\n');
-const controlPlaneDir = resolve(root, 'control-plane');
-const controlPlaneSource = readdirSync(controlPlaneDir)
-  .filter((f) => f.endsWith('.ts'))
-  .map((f) => read(`control-plane/${f}`))
-  .join('\n');
-
-test('the implementation registry carries a row for ollama-suite-manager, marked absent', () => {
-  const registry = json('app/feature-registry.json');
+test('registry records the implemented but unverified Ollama boundary', () => {
   const row = registry.features['ollama-suite-manager'];
-  assert.ok(row, 'no ollama-suite-manager row in app/feature-registry.json');
-  assert.equal(row.state, 'absent', 'an Ollama integration may have landed -- re-check this test, not just the registry');
-  assert.deepEqual(row.files, [], 'an absent row should name no implementation files');
+  assert.ok(row, 'ollama-suite-manager must have a registry row');
+  assert.equal(row.status, 'implemented-unverified');
+  assert.match(row.route, /#surface=ollama/u);
+  assert.equal(row.documentation.state, 'present');
+  assert.equal(row.focusedChecks.state, 'not-run');
+  assert.equal(row.builtInteraction.state, 'not-run');
+  assert.equal(row.captures.state, 'not-run');
 });
 
-test('no Ollama local-API client, model store, chat surface, or harness launcher exists in the renderer', () => {
-  assert.doesNotMatch(rendererSource, /\bollama\b/iu, 'an Ollama integration now appears in the renderer -- the "absent" state needs re-checking');
+test('the desktop surface is mounted with a typed local suite client', () => {
+  assert.match(model, /interface OllamaSuiteClient/u);
+  assert.match(model, /OLLAMA_SUITE_REGISTRATION/u);
+  assert.match(surface, /OllamaSuite/u);
+  assert.match(mounts, /ollama\.snapshot/u);
+  assert.match(mounts, /OllamaSuite/u);
 });
 
-test('no Ollama loopback request or process orchestration exists in the control plane', () => {
-  assert.doesNotMatch(controlPlaneSource, /\bollama\b/iu, 'an Ollama integration now appears in the control plane -- re-check the "absent" state');
-  assert.doesNotMatch(controlPlaneSource, /11434/u, "Ollama's default local port now appears in the control plane -- a loopback client may have landed");
+test('the local client constrains loopback transport, payloads, deadlines, and streams', () => {
+  assert.match(client, /127\.0\.0\.1|localhost|::1/u);
+  assert.match(client, /11434/u);
+  assert.match(client, /maxResponseBytes|MAX_RESPONSE/u);
+  assert.match(client, /AbortController|deadline/u);
+  assert.match(client, /api\/pull/u);
+  assert.match(client, /api\/chat/u);
 });
 
-test('no documentation article exists for a feature that was never built', () => {
-  const docs = readdirSync(resolve(root, 'docs/platform'));
-  assert.ok(!docs.includes('ollama-suite-manager.md'),
-    'a documentation article now exists for ollama-suite-manager -- the implementation may have landed too');
+test('dispatcher wires observed runtime, pull, and chat seams without inventing catalog, fit, or harness integration', () => {
+  for (const symbol of ['OllamaClient', 'OllamaStore', 'OllamaPullQueue', 'OllamaChat']) {
+    assert.match(dispatch, new RegExp(symbol, 'u'));
+  }
+  for (const factory of ['createOllamaRuntimeHandlers', 'createOllamaPullHandlers', 'createOllamaChatHandlers']) {
+    assert.match(dispatch, new RegExp(factory, 'u'));
+  }
+  for (const factory of ['createOllamaCatalogHandlers', 'createOllamaFitHandlers', 'createOllamaHarnessHandlers']) {
+    assert.doesNotMatch(dispatch, new RegExp(factory, 'u'));
+  }
+  assert.match(mounts, /OLLAMA_ACTION_UNAVAILABLE|unavailable/u);
+});
+
+test('catalog, pull, chat, fit, and harness source seams retain their explicit evidence contracts', () => {
+  assert.match(catalog, /page|cursor|complete|partial/u);
+  assert.match(pulls, /concurrency|cancel|retry|resume/u);
+  assert.match(chat, /stream|attachment|session/u);
+  assert.match(fit, /runs-well|runs-with-limits|unlikely|unknown/u);
+  assert.match(harness, /allowlist|preflight|snapshot|rollback/u);
+});
+
+test('documentation states local-only behavior and the unverified boundary', () => {
+  assert.match(docs, /local Ollama/u);
+  assert.match(docs, /Verification boundary/u);
+  assert.match(docs, /implemented but unverified/u);
 });

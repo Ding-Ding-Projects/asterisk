@@ -262,9 +262,9 @@ const manifest = (overrides = {}) => ({
 test('the site feature registry carries an implemented row for automatic-updates', () => {
   const row = registry.features['automatic-updates'];
   assert.ok(row, 'no automatic-updates row in site/feature-registry.json');
-  assert.equal(row.state, 'implemented',
+  assert.equal(row.status, 'implemented-unverified',
     'the site now carries a real deployed-version watch, so "absent" is no longer the honest state');
-  assert.ok(row.files.includes('site/app.js') && row.files.includes('site/build.mjs'),
+  assert.ok(row.implementation.paths.includes('site/app.js') && row.implementation.paths.includes('site/build.mjs'),
     'the row must name both halves: the page that checks, and the build that publishes what it checks against');
 });
 

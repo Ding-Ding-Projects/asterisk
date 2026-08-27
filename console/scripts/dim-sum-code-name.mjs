@@ -68,7 +68,8 @@ try {
 
   /* HEAD only the next candidate across the volumes rather than listing thousands of
    * assets: a full enumeration of three releases costs far more than it can ever save. */
-  for (const dish of candidates.slice(0, 40)) {
+  let selected = false;
+  candidateLoop: for (const dish of candidates.slice(0, 40)) {
     const file = dish.image.path.split('/').pop();
     for (const volume of VOLUMES) {
       const url = `${DOWNLOAD_BASE}/${volume}/${file}`;
@@ -88,12 +89,20 @@ try {
           spentBefore: spent.size,
           catalogueSize: dishes.length,
         });
-        process.exit(0);
+        /* Do not call process.exit() while Node's fetch implementation still owns an
+         * asynchronous socket handle.  On Windows that can abort the process after
+         * the JSON record has been printed.  Falling off the module lets the handle
+         * settle and still returns a successful status to the release workflow. */
+        process.exitCode = 0;
+        selected = true;
+        break candidateLoop;
       }
     }
   }
-  throw new Error('no published photo found for the first 40 unspent dishes');
+  if (!selected) throw new Error('no published photo found for the first 40 unspent dishes');
 } catch (error) {
   out({ resolved: false, reason: String(error.message ?? error) });
-  process.exit(0);
+  /* A code name is decorative.  The release continues with an honest unresolved
+   * record whenever the catalogue or its published assets are unavailable. */
+  process.exitCode = 0;
 }

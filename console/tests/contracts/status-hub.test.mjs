@@ -32,13 +32,13 @@ const json = (p) => JSON.parse(read(p));
 const APP = 'app/renderer/src/App.tsx';
 const MODULE = 'app/renderer/src/status-hub-client.ts';
 
-test('the registry row is internally honest: a defined state with a note explaining what is and is not wired', () => {
+test('the registry row is internally honest: a defined status with a note explaining what is and is not wired', () => {
   const registry = json('app/feature-registry.json');
   const row = registry.features['status-hub'];
   assert.ok(row, 'the implementation registry has no row for status-hub');
-  assert.ok(['implemented', 'partial', 'absent'].includes(row.state), `undefined state "${row.state}"`);
+  assert.ok(['implemented-unverified', 'partial', 'absent'].includes(row.status), `undefined status "${row.status}"`);
   assert.ok(typeof row.note === 'string' && row.note.length > 40, 'no note explaining what is and is not wired');
-  if (row.state === 'partial') {
+  if (row.status === 'partial') {
     /* implementation-blockers.test.mjs's "a blocked row does not also claim a consumer" rule
      * forbids `blockedBy` on a row a real App.tsx import consumes -- which this one now is,
      * since 2026-08-26's "Record this session" button. A row can therefore be genuinely

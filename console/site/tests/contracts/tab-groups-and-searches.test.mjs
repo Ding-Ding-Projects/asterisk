@@ -28,6 +28,6 @@ test('there is no group model or group-search of any kind in app.js', () => {
 });
 
 test('the registry records tab-groups-and-searches as absent, and the code agrees', () => {
-  assert.equal(registry.features['tab-groups-and-searches'].state, 'absent',
+  assert.equal(registry.features['tab-groups-and-searches'].status, 'absent',
     'no tabs exist on the site at all, so there are no tab groups or tab searches -- "absent" is the honest state');
 });

@@ -36,13 +36,13 @@ test('the registry row is internally honest: a defined state with a note explain
   const registry = json('app/feature-registry.json');
   const row = registry.features['offline-documentation-browser'];
   assert.ok(row, 'the implementation registry has no row for offline-documentation-browser');
-  assert.ok(['implemented', 'partial', 'absent'].includes(row.state), `undefined state "${row.state}"`);
+  assert.ok(['implemented', 'partial', 'absent'].includes(row.status), `undefined state "${row.status}"`);
   assert.ok(typeof row.note === 'string' && row.note.length > 40, 'no note explaining what is and is not wired');
 });
 
 test('docs-browser.ts, docs-markdown.ts, and the bundle are all imported by App.tsx', () => {
   const app = read(APP);
-  assert.match(app, /import \{ listArticles, resolveLink, search as docsSearch, suggested as docsSuggestedFor \} from '\.\/docs-browser';/,
+  assert.match(app, /import \{ listArticles, resolveLink, search as docsSearch, searchBounded as docsSearchBounded, suggested as docsSuggestedFor \} from '\.\/docs-browser';/,
     'docs-browser.ts is no longer imported the expected way');
   assert.match(app, /import \{ DOCS_BUNDLE \} from '\.\/generated\/docs-bundle';/, 'the docs bundle is no longer imported');
   assert.match(app, /import \{ parseMarkdown, plainTextExcerpt, type DocsBlock \} from '\.\/docs-markdown';/,

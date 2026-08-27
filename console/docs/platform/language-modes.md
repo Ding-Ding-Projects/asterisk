@@ -14,7 +14,7 @@ The choice would live in application or site settings, persist across sessions, 
 
 **Desktop application:** Not implemented. No language selector exists anywhere in the interface; every label is a fixed English string with no translation table behind it.
 
-**Documentation website:** Partial. A mode selector exists in site settings and changes visible copy on a handful of pages, not every string across the site.
+**Documentation website:** Partial. Every top-level page and composed article now receives the same persisted English, Cantonese, and bilingual control. Shared shell labels and status copy change immediately; authored article prose remains its original source text, and the shell states that limitation.
 
 ## Failure modes
 

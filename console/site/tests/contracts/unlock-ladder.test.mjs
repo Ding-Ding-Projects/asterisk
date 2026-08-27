@@ -29,6 +29,6 @@ test('no dim-sum/sums/whack-a-mole/clock ladder mechanism exists anywhere on the
 });
 
 test('the registry records unlock-ladder as absent, and the code agrees', () => {
-  assert.equal(registry.features['unlock-ladder'].state, 'absent',
+  assert.equal(registry.features['unlock-ladder'].status, 'absent',
     'no unlock ladder exists; there is nothing to unlock in the first place -- "absent" is the honest state');
 });

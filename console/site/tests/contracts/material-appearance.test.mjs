@@ -134,6 +134,6 @@ test('there is no named-preset save/load/export mechanism beyond the one general
 });
 
 test('the registry records material-appearance as partial, matching translator-and-tokens-yes, per-element-editor-no', () => {
-  assert.equal(registry.features['material-appearance'].state, 'partial',
+  assert.equal(registry.features['material-appearance'].status, 'partial',
     'a real colour translator and live theme/density/font tokens exist, but no per-element editor and no named presets -- "partial" is the honest state');
 });

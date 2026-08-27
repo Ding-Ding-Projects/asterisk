@@ -9,26 +9,53 @@
  * delegated entirely to colour.ts — this module never reimplements it.
  */
 
-import { isRainbow, parseColour, RAINBOW } from './colour';
+import {
+  contrastRatio,
+  contrastVerdict,
+  parseColour,
+  resolveRainbow,
+  RAINBOW,
+} from './colour';
+import {
+  APPEARANCE_INTERACTION_STATES,
+  APPEARANCE_PROPERTIES as SCHEMA_APPEARANCE_PROPERTIES,
+  MAX_APPEARANCE_ELEMENT_ID_LENGTH,
+  MAX_APPEARANCE_VALUE_LENGTH,
+  appearanceOverrideKey,
+  type AppearanceInteractionState,
+  type AppearanceModel,
+  type AppearanceOverride,
+  type AppearanceProperty as SchemaAppearanceProperty,
+  type AppearanceTarget,
+  type AppearanceValue,
+} from './appearance-schema';
+
+export type {
+  AppearanceCapabilityRecord,
+  AppearanceDraft,
+  AppearanceInteractionState,
+  AppearanceModel,
+  AppearanceOverride,
+  AppearanceTarget,
+  AppearanceValue,
+  LogoAppearanceMetadata,
+  NamedAppearancePreset,
+} from './appearance-schema';
 
 // ---------------------------------------------------------------- Types
 
-export type AppearanceProperty =
-  | 'fontFamily' | 'fontSize' | 'fontWeight' | 'fontStyle'
-  | 'underline' | 'strikethrough' | 'overline' | 'capitalisation'
-  | 'letterSpacing' | 'wordSpacing' | 'lineHeight' | 'baselineShift' | 'textAlign' | 'direction'
-  | 'colour' | 'background' | 'highlight' | 'borderColour'
-  | 'radius' | 'borderWidth' | 'padding' | 'gap' | 'elevation' | 'opacity';
+export type AppearanceProperty = SchemaAppearanceProperty;
 
-export const APPEARANCE_PROPERTIES: ReadonlyArray<AppearanceProperty> = [
+export const APPEARANCE_PROPERTIES: ReadonlyArray<AppearanceProperty> = SCHEMA_APPEARANCE_PROPERTIES;
+
+const PROPERTY_SET: ReadonlySet<AppearanceProperty> = new Set(APPEARANCE_PROPERTIES);
+const LEGACY_PROPERTY_SET: ReadonlySet<AppearanceProperty> = new Set([
   'fontFamily', 'fontSize', 'fontWeight', 'fontStyle',
   'underline', 'strikethrough', 'overline', 'capitalisation',
   'letterSpacing', 'wordSpacing', 'lineHeight', 'baselineShift', 'textAlign', 'direction',
   'colour', 'background', 'highlight', 'borderColour',
   'radius', 'borderWidth', 'padding', 'gap', 'elevation', 'opacity',
-];
-
-const PROPERTY_SET: ReadonlySet<AppearanceProperty> = new Set(APPEARANCE_PROPERTIES);
+]);
 
 export interface AppearanceRule {
   element: string;
@@ -54,7 +81,7 @@ const ELEMENT_PATTERN = /^[a-zA-Z][a-zA-Z0-9._-]{0,127}$/;
 
 // The colour-bearing properties, delegated wholesale to colour.ts.
 const COLOUR_PROPERTIES: ReadonlySet<AppearanceProperty> = new Set([
-  'colour', 'background', 'highlight', 'borderColour',
+  'colour', 'background', 'highlight', 'borderColour', 'underlineColour',
 ]);
 
 // Length-valued properties: a bare non-negative number (px assumed) or a
@@ -114,7 +141,7 @@ function validatePropertyValue(property: AppearanceProperty, value: string): Val
   }
 
   if (COLOUR_PROPERTIES.has(property)) {
-    if (isRainbow(value)) return { ok: true };
+    if (value === RAINBOW) return { ok: true };
     const parsed = parseColour(value);
     if (!parsed) {
       return { ok: false, reason: `${property} must be a valid colour, got '${value}'` };
@@ -122,7 +149,7 @@ function validatePropertyValue(property: AppearanceProperty, value: string): Val
     return { ok: true };
   }
 
-  if (isRainbow(value)) {
+  if (value === RAINBOW) {
     return { ok: false, reason: `${property} does not accept the rainbow colour sentinel; it is only valid for colour-bearing properties, got '${value}'` };
   }
 
@@ -156,7 +183,11 @@ function validatePropertyValue(property: AppearanceProperty, value: string): Val
     }
     case 'underline':
     case 'strikethrough':
-    case 'overline': {
+    case 'doubleStrikethrough':
+    case 'overline':
+    case 'smallCaps':
+    case 'superscript':
+    case 'subscript': {
       if (!BOOLEAN_VALUES.has(value.toLowerCase())) {
         return { ok: false, reason: `${property} must be 'true' or 'false', got '${value}'` };
       }
@@ -165,6 +196,12 @@ function validatePropertyValue(property: AppearanceProperty, value: string): Val
     case 'capitalisation': {
       if (!CAPITALISATION_VALUES.has(value.toLowerCase())) {
         return { ok: false, reason: `capitalisation must be one of ${[...CAPITALISATION_VALUES].join(', ')}, got '${value}'` };
+      }
+      return { ok: true };
+    }
+    case 'underlineStyle': {
+      if (!new Set(['solid', 'double', 'dotted', 'dashed', 'wavy']).has(value.toLowerCase())) {
+        return { ok: false, reason: `underlineStyle must be solid, double, dotted, dashed, or wavy, got '${value}'` };
       }
       return { ok: true };
     }
@@ -232,6 +269,14 @@ function validatePropertyValue(property: AppearanceProperty, value: string): Val
       }
       return { ok: true };
     }
+    case 'outline':
+    case 'shadow':
+    case 'glow': {
+      if (!/^[a-zA-Z0-9#(),.%+\-\s/]+$/.test(value)) {
+        return { ok: false, reason: `${property} contains unsupported characters` };
+      }
+      return { ok: true };
+    }
     default:
       return { ok: false, reason: `unknown property '${property as string}'` };
   }
@@ -244,7 +289,7 @@ export function validateRule(rule: AppearanceRule): ValidationResult {
   const elementCheck = validateElementId(rule.element);
   if (!elementCheck.ok) return elementCheck;
 
-  if (!PROPERTY_SET.has(rule.property)) {
+  if (!LEGACY_PROPERTY_SET.has(rule.property)) {
     return { ok: false, reason: `unknown property '${String(rule.property)}'` };
   }
 
@@ -288,9 +333,15 @@ const PROPERTY_TO_CSS_VAR: Record<AppearanceProperty, string> = {
   fontWeight: '--font-weight',
   fontStyle: '--font-style',
   underline: '--text-underline',
+  underlineStyle: '--text-underline-style',
+  underlineColour: '--text-underline-colour',
   strikethrough: '--text-strikethrough',
+  doubleStrikethrough: '--text-double-strikethrough',
   overline: '--text-overline',
   capitalisation: '--text-transform',
+  smallCaps: '--font-small-caps',
+  superscript: '--text-superscript',
+  subscript: '--text-subscript',
   letterSpacing: '--letter-spacing',
   wordSpacing: '--word-spacing',
   lineHeight: '--line-height',
@@ -301,6 +352,9 @@ const PROPERTY_TO_CSS_VAR: Record<AppearanceProperty, string> = {
   background: '--background',
   highlight: '--highlight',
   borderColour: '--border-colour',
+  outline: '--outline',
+  shadow: '--shadow',
+  glow: '--glow',
   radius: '--radius',
   borderWidth: '--border-width',
   padding: '--padding',
@@ -457,14 +511,13 @@ export function contrastWarnings(theme: AppearanceTheme, pairs: ReadonlyArray<Co
     const colourValue = resolve(theme, pair.element, 'colour');
     const backgroundValue = resolve(theme, pair.element, 'background');
     if (!colourValue || !backgroundValue) continue;
-    if (isRainbow(colourValue) || isRainbow(backgroundValue)) continue;
+    if (colourValue === RAINBOW || backgroundValue === RAINBOW) continue;
     const fg = parseColour(colourValue);
     const bg = parseColour(backgroundValue);
     if (!fg || !bg) continue;
 
     // Local, deterministic re-derivation avoided: delegate to colour.ts.
     // (contrastRatio/contrastVerdict live there.)
-    const { contrastRatio, contrastVerdict } = colourModule();
     const ratio = contrastRatio(fg, bg);
     const verdict = contrastVerdict(ratio, pair.largeText ?? false);
     if (verdict === 'fail') {
@@ -472,13 +525,6 @@ export function contrastWarnings(theme: AppearanceTheme, pairs: ReadonlyArray<Co
     }
   }
   return warnings;
-}
-
-// Indirection so the single import at the top of the file remains the only
-// place colour.ts is named, while still using its real functions.
-import { contrastRatio as _contrastRatio, contrastVerdict as _contrastVerdict } from './colour';
-function colourModule(): { contrastRatio: typeof _contrastRatio; contrastVerdict: typeof _contrastVerdict } {
-  return { contrastRatio: _contrastRatio, contrastVerdict: _contrastVerdict };
 }
 
 // ---------------------------------------------------------------- export-loss description
@@ -502,6 +548,245 @@ export function describeLoss(theme: AppearanceTheme, format: ExportFormat): stri
     messages.push(`${rule.property} on '${rule.element}': ${loss}`);
   }
   return messages;
+}
+
+// ---------------------------------------------------------------- versioned runtime model
+
+const RUNTIME_ELEMENT_PATTERN = /^[a-zA-Z][a-zA-Z0-9._:-]*$/;
+const INTERACTION_STATE_SET = new Set<AppearanceInteractionState>(APPEARANCE_INTERACTION_STATES);
+const RUNTIME_COLOUR_PROPERTIES = new Set<AppearanceProperty>([
+  'colour', 'background', 'highlight', 'borderColour', 'underlineColour',
+]);
+
+export function validateStableElementId(elementId: string): ValidationResult {
+  if (typeof elementId !== 'string' || elementId.length === 0) {
+    return { ok: false, reason: 'elementId must be a non-empty stable identifier' };
+  }
+  if (elementId.length > MAX_APPEARANCE_ELEMENT_ID_LENGTH) {
+    return {
+      ok: false,
+      reason: `elementId must be at most ${MAX_APPEARANCE_ELEMENT_ID_LENGTH} characters, got ${elementId.length}`,
+    };
+  }
+  if (!RUNTIME_ELEMENT_PATTERN.test(elementId)) {
+    return {
+      ok: false,
+      reason: `elementId '${elementId}' must start with a letter and contain only letters, digits, '.', '_', ':', or '-'`,
+    };
+  }
+  return { ok: true };
+}
+
+export function validateAppearanceTarget(target: AppearanceTarget): ValidationResult {
+  if (target === null || typeof target !== 'object') {
+    return { ok: false, reason: 'target must be a global or element target object' };
+  }
+  if (target.scope === 'global') return { ok: true };
+  if (target.scope !== 'element') {
+    return { ok: false, reason: `unknown appearance target scope '${String((target as { scope?: unknown }).scope)}'` };
+  }
+  return validateStableElementId(target.elementId);
+}
+
+export function validateAppearanceValue(property: AppearanceProperty, value: AppearanceValue): ValidationResult {
+  if (value === null || typeof value !== 'object') {
+    return { ok: false, reason: `${property} value must be a discriminated appearance value` };
+  }
+
+  if (value.kind === 'rainbow') {
+    if (!RUNTIME_COLOUR_PROPERTIES.has(property)) {
+      return { ok: false, reason: `${property} does not accept the non-colour rainbow marker` };
+    }
+    if (!Number.isFinite(value.reducedMotionHue)) {
+      return { ok: false, reason: 'rainbow reducedMotionHue must be finite' };
+    }
+    return { ok: true };
+  }
+
+  if (typeof value.value !== 'string' || value.value.length === 0) {
+    return { ok: false, reason: `${property} value must be a non-empty string` };
+  }
+  if (value.value.length > MAX_APPEARANCE_VALUE_LENGTH) {
+    return {
+      ok: false,
+      reason: `${property} value exceeds the ${MAX_APPEARANCE_VALUE_LENGTH}-character limit`,
+    };
+  }
+
+  if (RUNTIME_COLOUR_PROPERTIES.has(property)) {
+    if (value.kind !== 'colour') {
+      return { ok: false, reason: `${property} requires a colour or rainbow value, not '${value.kind}'` };
+    }
+    return parseColour(value.value)
+      ? { ok: true }
+      : { ok: false, reason: `${property} is not a parseable colour` };
+  }
+
+  if (value.kind !== 'literal') {
+    return { ok: false, reason: `${property} requires a literal value, not '${value.kind}'` };
+  }
+  return validatePropertyValue(property, value.value);
+}
+
+export function validateAppearanceOverride(override: AppearanceOverride): ValidationResult {
+  if (override === null || typeof override !== 'object') {
+    return { ok: false, reason: 'appearance override must be an object' };
+  }
+  const target = validateAppearanceTarget(override.target);
+  if (!target.ok) return target;
+  if (!INTERACTION_STATE_SET.has(override.state)) {
+    return { ok: false, reason: `unknown appearance interaction state '${String(override.state)}'` };
+  }
+  if (!PROPERTY_SET.has(override.property)) {
+    return { ok: false, reason: `unknown appearance property '${String(override.property)}'` };
+  }
+  return validateAppearanceValue(override.property, override.value);
+}
+
+export interface ResolvedAppearanceValue {
+  readonly value: AppearanceValue;
+  readonly source: 'element-state' | 'element-default' | 'global-state' | 'global-default';
+  readonly override: AppearanceOverride;
+}
+
+/**
+ * Resolution precedence is stable and explicit:
+ * element state, element default, global state, then global default.
+ */
+export function resolveAppearanceValue(
+  model: AppearanceModel,
+  elementId: string,
+  state: AppearanceInteractionState,
+  property: AppearanceProperty,
+): ResolvedAppearanceValue | undefined {
+  const candidates: Array<{
+    key: string;
+    source: ResolvedAppearanceValue['source'];
+  }> = [
+    { key: appearanceOverrideKey({ scope: 'element', elementId }, state, property), source: 'element-state' },
+    { key: appearanceOverrideKey({ scope: 'element', elementId }, 'default', property), source: 'element-default' },
+    { key: appearanceOverrideKey({ scope: 'global' }, state, property), source: 'global-state' },
+    { key: appearanceOverrideKey({ scope: 'global' }, 'default', property), source: 'global-default' },
+  ];
+  const indexed = new Map<string, AppearanceOverride>();
+  for (const override of model.overrides) {
+    indexed.set(appearanceOverrideKey(override.target, override.state, override.property), override);
+  }
+  for (const candidate of candidates) {
+    const override = indexed.get(candidate.key);
+    if (override) return { value: override.value, source: candidate.source, override };
+  }
+  return undefined;
+}
+
+export function upsertAppearanceOverride(model: AppearanceModel, override: AppearanceOverride): AppearanceModel {
+  const check = validateAppearanceOverride(override);
+  if (!check.ok) throw new Error(check.reason);
+  const key = appearanceOverrideKey(override.target, override.state, override.property);
+  return {
+    ...model,
+    revision: model.revision + 1,
+    overrides: [
+      ...model.overrides.filter((item) => appearanceOverrideKey(item.target, item.state, item.property) !== key),
+      override,
+    ],
+  };
+}
+
+export function removeAppearanceOverride(
+  model: AppearanceModel,
+  target: AppearanceTarget,
+  state: AppearanceInteractionState,
+  property: AppearanceProperty,
+): AppearanceModel {
+  const key = appearanceOverrideKey(target, state, property);
+  const overrides = model.overrides.filter(
+    (item) => appearanceOverrideKey(item.target, item.state, item.property) !== key,
+  );
+  return overrides.length === model.overrides.length
+    ? model
+    : { ...model, revision: model.revision + 1, overrides };
+}
+
+export interface RuntimeContrastRequest {
+  readonly elementId: string;
+  readonly state: AppearanceInteractionState;
+  readonly largeText?: boolean;
+  readonly reducedMotion?: boolean;
+}
+
+export interface RuntimeContrastEvidence {
+  readonly elementId: string;
+  readonly state: AppearanceInteractionState;
+  readonly status: 'evaluated' | 'not-evaluated';
+  readonly foreground?: string;
+  readonly background?: string;
+  readonly ratio?: number;
+  readonly verdict?: 'fail' | 'AA' | 'AAA';
+  readonly reason?: string;
+}
+
+function appearanceColourForEvidence(
+  value: AppearanceValue,
+  reducedMotion: boolean,
+  rainbowLevel: AppearanceModel['rainbowLevel'],
+): string | undefined {
+  if (value.kind === 'colour') return value.value;
+  if (value.kind === 'rainbow') {
+    if (!reducedMotion) return undefined;
+    return resolveRainbow(value, true, rainbowLevel).cssColour;
+  }
+  return undefined;
+}
+
+export function runtimeContrastEvidence(
+  model: AppearanceModel,
+  requests: ReadonlyArray<RuntimeContrastRequest>,
+): RuntimeContrastEvidence[] {
+  return requests.map((request) => {
+    const foregroundValue = resolveAppearanceValue(model, request.elementId, request.state, 'colour')?.value;
+    const backgroundValue = resolveAppearanceValue(model, request.elementId, request.state, 'background')?.value;
+    if (!foregroundValue || !backgroundValue) {
+      return {
+        elementId: request.elementId,
+        state: request.state,
+        status: 'not-evaluated',
+        reason: 'Both foreground and background overrides are required for contrast evidence.',
+      };
+    }
+    const foreground = appearanceColourForEvidence(foregroundValue, request.reducedMotion ?? false, model.rainbowLevel);
+    const background = appearanceColourForEvidence(backgroundValue, request.reducedMotion ?? false, model.rainbowLevel);
+    if (!foreground || !background) {
+      return {
+        elementId: request.elementId,
+        state: request.state,
+        status: 'not-evaluated',
+        reason: 'Animated rainbow contrast changes over time; enable reduced motion or choose solid colours for a fixed ratio.',
+      };
+    }
+    const parsedForeground = parseColour(foreground);
+    const parsedBackground = parseColour(background);
+    if (!parsedForeground || !parsedBackground) {
+      return {
+        elementId: request.elementId,
+        state: request.state,
+        status: 'not-evaluated',
+        foreground,
+        background,
+        reason: 'One or both resolved colour values could not be parsed.',
+      };
+    }
+    const ratio = contrastRatio(parsedForeground, parsedBackground);
+    return {
+      elementId: request.elementId,
+      state: request.state,
+      status: 'evaluated',
+      foreground,
+      background,
+      ratio,
+      verdict: contrastVerdict(ratio, request.largeText ?? false),
+    };
+  });
 }
 
 export { RAINBOW };

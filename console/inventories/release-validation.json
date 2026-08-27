@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "surface": "windows-console",
+  "status": "implemented-unverified",
+  "purpose": "Hand-written release-equivalent checks for the native credential-vault add-on used by School mode.",
+  "checks": [
+    {
+      "id": "keytar-native-rebuild",
+      "command": "electron-builder install-app-deps --platform win32 --arch x64",
+      "source": "console/scripts/package-squirrel.mjs",
+      "status": "implemented-unverified",
+      "evidence": "The packaging path runs electron-builder install-app-deps for win32 x64."
+    },
+    {
+      "id": "keytar-asar-unpack",
+      "source": "console/electron-builder.yml",
+      "status": "implemented-unverified",
+      "evidence": "node_modules/keytar/** is listed under asarUnpack."
+    },
+    {
+      "id": "clear-win-unpacked",
+      "source": "console/scripts/package-squirrel.mjs",
+      "status": "implemented-unverified",
+      "evidence": "The exact win-unpacked directory is removed before Electron packaging so stale native binaries cannot satisfy the probe."
+    },
+    {
+      "id": "keytar-packaged-load",
+      "command": "node scripts/verify-keytar-packaged.mjs",
+      "source": "console/scripts/verify-keytar-packaged.mjs",
+      "status": "implemented-unverified",
+      "evidence": "Launches the final artifact in probe mode and loads keytar through the packaged preload and main-process IPC handler, with the native binary presence checked before launch."
+    },
+    {
+      "id": "probe-preload-isolation",
+      "command": "node scripts/verify-probe-path-fixture.mjs",
+      "source": "console/app/electron/preload-probe.cjs",
+      "status": "implemented-unverified",
+      "evidence": "The probe-only preload is packaged separately; the normal preload and shared desktop API type contain no packaged-vault probe capability. The real junction fixture imports the shared production reparse validator, accepts an ordinary profile, and rejects a junction."
+    },
+    {
+      "id": "candidate-provenance",
+      "source": "console/scripts/package-squirrel.mjs",
+      "status": "implemented-unverified",
+      "evidence": "Stages school-mode-provenance.json before electron-builder, packages it through extraResources, and has the final-artifact main-process probe read and compare product, app id, package version and candidate commit."
+    },
+    {
+      "id": "keytar-vault-roundtrip",
+      "command": "node scripts/verify-keytar-packaged.mjs",
+      "source": "console/scripts/verify-keytar-packaged.mjs",
+      "status": "implemented-unverified",
+      "evidence": "Binds the probe service to package version and candidate commit, writes and reads an ephemeral value in isolated workers, deletes it with cumulative bounded attempts, then requires post-delete absence and the exact worker-operation relation."
+    },
+    {
+      "id": "candidate-package-identity",
+      "source": "console/scripts/package-squirrel.mjs",
+      "status": "implemented-unverified",
+      "evidence": "Candidate product, app ID, commit, package version, product name, and unpacked executable digest are recorded in release identity and compared by the packaged probe."
+    }
+  ]
+}

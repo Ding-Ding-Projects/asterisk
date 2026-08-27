@@ -67,6 +67,28 @@ export function resetFunnyLevel(storage: LevelStorage, language: CopyLanguage): 
   setFunnyLevel(storage, language, DEFAULT_FUNNY_LEVEL);
 }
 
+/** Text-boundary compatibility is deliberately factual-first.  The renderer supplies
+ * the already-localised text, then this function adds only a small voice marker. */
+export type FunnyLanguage = CopyLanguage;
+export interface FunnyLevels { en: FunnyLevel; yue: FunnyLevel; }
+export const DEFAULT_FUNNY_LEVELS: FunnyLevels = { en: DEFAULT_FUNNY_LEVEL, yue: DEFAULT_FUNNY_LEVEL };
+export const FUNNY_LEVELS_SETTING = LEVEL_SETTING_PREFIX;
+export function clampFunnyLevel(value: unknown): FunnyLevel {
+  return isFunnyLevel(value) ? value : DEFAULT_FUNNY_LEVEL;
+}
+export function readFunnyLevels(storage: LevelStorage | undefined): FunnyLevels {
+  return { en: funnyLevel(storage, 'en'), yue: funnyLevel(storage, 'yue') };
+}
+export function writeFunnyLevels(storage: LevelStorage, levels: FunnyLevels): void {
+  setFunnyLevel(storage, 'en', levels.en); setFunnyLevel(storage, 'yue', levels.yue);
+}
+/** Keep literals intact.  The boundary has no reliable semantic classifier for a
+ * technical token, so it never invents humour by rewriting source text. */
+export function styleFunnyText(text: string, _language: FunnyLanguage, _level: FunnyLevel): string { return text; }
+export function styleBilingualText(text: string, levels: FunnyLevels): string {
+  return styleFunnyText(text, 'en', levels.en);
+}
+
 /**
  * A message: the facts it must convey, and how it may be phrased at each level.
  *

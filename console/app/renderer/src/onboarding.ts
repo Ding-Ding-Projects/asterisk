@@ -10,8 +10,9 @@
  * exists on the target (highest numbered endpoint plus one, or 100 if there is none);
  * a secret is generated at random rather than guessed; TLS is only turned on when a
  * certificate is already present on the target, because a certificate path cannot be
- * invented; "hardened" is a fixed, well-known boolean default (`allowguest=no`) with
- * no site-specific data in it. Business hours has no real value to derive from a single
+ * invented. Hardening needs target-specific ACL, transport, and dialplan policy, so
+ * the wizard reports that boundary instead of inventing a configuration option.
+ * Business hours has no real value to derive from a single
  * yes/no switch, so this module does not write a schedule - see `ONBOARD_HOURS_NOTE`.
  */
 import { CONFIG_DIRECTORY, entryValue, type ConfigSection, type ConfigValue } from './configuration';
@@ -27,6 +28,7 @@ export interface OnboardAnswers {
 export interface OnboardDocument {
   resource: string;
   value: ConfigValue;
+  expectedBefore: ConfigValue;
 }
 
 export interface OnboardExtension {
@@ -50,7 +52,7 @@ export interface OnboardPlan {
 /** Shown on the Basics step and in the deploy summary - the honest replacement for a
  *  promise this module cannot keep from one boolean switch. */
 export const ONBOARD_HOURS_NOTE =
-  'Recorded as a preference only. A real business-hours schedule needs actual open/close ' +
+  'Not written. A real business-hours schedule needs actual open/close ' +
   'times, which this wizard does not ask for - set it up afterward in Configure > Dialplan.';
 
 function resourcePath(file: string): string {
@@ -63,6 +65,15 @@ function section(value: ConfigValue, name: string): ConfigSection {
 
 function withSection(value: ConfigValue, updated: ConfigSection): ConfigValue {
   const rest = value.filter((s) => s.name !== updated.name);
+  return [...rest, updated];
+}
+
+function withTypedSection(value: ConfigValue, updated: ConfigSection): ConfigValue {
+  const updatedType = updated.entries.find((entry) => entry.key === 'type')?.value;
+  const rest = value.filter((candidate) => {
+    if (candidate.name !== updated.name) return true;
+    return candidate.entries.find((entry) => entry.key === 'type')?.value !== updatedType;
+  });
   return [...rest, updated];
 }
 
@@ -99,7 +110,10 @@ export function buildOnboardPlan(answers: OnboardAnswers, inputs: OnboardPlanInp
   let http = inputs.http;
 
   const start = highestExtension(pjsip) + 1;
-  const count = Math.max(0, Math.min(500, Math.floor(answers.phones)));
+  const count = Number.isFinite(answers.phones)
+    ? Math.max(0, Math.min(500, Math.floor(answers.phones)))
+    : 0;
+  if (!Number.isFinite(answers.phones)) skipped.push('Extensions: skipped - the requested count was not a finite number.');
 
   for (let i = 0; i < count; i++) {
     const id = String(start + i);
@@ -114,10 +128,16 @@ export function buildOnboardPlan(answers: OnboardAnswers, inputs: OnboardPlanInp
         { key: 'disallow', value: 'all' },
         { key: 'allow', value: 'ulaw,alaw' },
         { key: 'auth', value: `auth${id}` },
-        { key: 'aors', value: id },
+        // PJSIP configuration sections are named records.  An endpoint and its AoR
+        // must therefore not both occupy the numeric extension record: doing so
+        // creates two records with the same name, which is ambiguous to a complete
+        // document planner and makes the wizard appear to have created extensions
+        // twice.  Keep the dialable extension id for the endpoint and give the AoR
+        // its own stable, derived record name.
+        { key: 'aors', value: `aor${id}` },
       ],
     });
-    pjsip = withSection(pjsip, {
+    pjsip = withTypedSection(pjsip, {
       name: `auth${id}`,
       entries: [
         { key: 'type', value: 'auth' },
@@ -126,9 +146,18 @@ export function buildOnboardPlan(answers: OnboardAnswers, inputs: OnboardPlanInp
         { key: 'password', value: secret },
       ],
     });
+    pjsip = withTypedSection(pjsip, {
+      name: `aor${id}`,
+      entries: [
+        { key: 'type', value: 'aor' },
+        { key: 'max_contacts', value: '1' },
+        { key: 'remove_existing', value: 'yes' },
+        { key: 'qualify_frequency', value: '60' },
+      ],
+    });
   }
   if (count > 0) {
-    summary.push(`pjsip.conf: add ${count} extension${count === 1 ? '' : 's'} starting at ${start}`);
+    summary.push(`pjsip.conf: add ${count} endpoint, authentication, and AoR trio${count === 1 ? '' : 's'} starting at ${start}`);
   }
 
   if (answers.menu && count > 0) {
@@ -167,19 +196,15 @@ export function buildOnboardPlan(answers: OnboardAnswers, inputs: OnboardPlanInp
   }
 
   if (answers.hardened) {
-    const global = section(pjsip, 'global');
-    const already = global.entries.some((e) => e.key === 'allowguest' && e.value === 'no');
-    pjsip = withSection(pjsip, {
-      name: 'global',
-      entries: [...global.entries.filter((e) => e.key !== 'allowguest'), { key: 'allowguest', value: 'no' }],
-    });
-    if (!already) summary.push('pjsip.conf: harden - disable anonymous/guest calls (allowguest=no)');
+    skipped.push(
+      'Hardening: skipped - target-specific endpoint, ACL, transport, and dialplan policy must be read and selected explicitly.',
+    );
   }
 
   const documents: OnboardDocument[] = [
-    { resource: resourcePath('pjsip.conf'), value: pjsip },
-    { resource: resourcePath('extensions.conf'), value: extensions },
-    { resource: resourcePath('http.conf'), value: http },
+    { resource: resourcePath('pjsip.conf'), value: pjsip, expectedBefore: inputs.pjsip },
+    { resource: resourcePath('extensions.conf'), value: extensions, expectedBefore: inputs.extensions },
+    { resource: resourcePath('http.conf'), value: http, expectedBefore: inputs.http },
   ];
 
   return { documents, newExtensions, summary, skipped };

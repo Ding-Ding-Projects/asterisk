@@ -1,338 +1,441 @@
-/**
- * Selection and bulk-operation model shared by every list surface.
- *
- * Pure functions and a small progress-reporting async runner. No rendering,
- * no I/O, no clock: callers supply ordering, apply functions, and a
- * cancellation signal.
- */
+import {
+  sameSelectionContext,
+  type SelectionContext,
+  type SelectionItem,
+  type SelectionState,
+} from './selection-model';
 
-// ---------------------------------------------------------------- selection
+export type BulkSuccessStatus =
+  | 'converted'
+  | 'saved'
+  | 'exported'
+  | 'deleted'
+  | 'moved'
+  | 'copied'
+  | 'duplicated'
+  | 'renamed'
+  | 'tagged'
+  | 'untagged'
+  | 'enabled'
+  | 'disabled'
+  | 'retried'
+  | 'changed';
 
-export interface SelectionState {
-  anchor?: string;
-  selected: ReadonlySet<string>;
+export interface BulkMutationReceipt {
+  operationId: string;
+  completedAt: string;
+  inverseToken?: string;
+  historyRevision?: string;
 }
 
-export const EMPTY_SELECTION: SelectionState = { anchor: undefined, selected: new Set() };
+export type BulkMutationResult =
+  | { status: 'confirmed'; receipt: BulkMutationReceipt }
+  | { status: 'skipped'; reason: string }
+  | { status: 'cancelled'; reason: string }
+  | { status: 'failed'; code: string; reason: string; retryable: boolean };
 
-export interface ClickModifiers {
-  shift?: boolean;
-  ctrl?: boolean;
+export type BulkCapability = { status: 'enabled' } | { status: 'disabled'; reason: string };
+
+export interface BulkExecutionContext {
+  signal: AbortSignal;
+  itemDeadlineMs: number;
 }
 
-/**
- * Apply a click to a selection.
- *
- * - Plain click: replace the selection with just this item; it becomes the anchor.
- * - Ctrl-click: toggle this item's membership; it becomes the anchor regardless
- *   of whether it was added or removed, so the next shift-click ranges from here.
- * - Shift-click: select the inclusive range between the current anchor and this
- *   item, in `ordered`'s order (the order the list is currently displayed in).
- *   If there is no anchor yet, shift-click behaves like a plain click.
- */
-export function click(
-  state: SelectionState,
-  id: string,
-  modifiers: ClickModifiers,
-  ordered: ReadonlyArray<string>,
-): SelectionState {
-  if (modifiers.shift && state.anchor !== undefined) {
-    const from = ordered.indexOf(state.anchor);
-    const to = ordered.indexOf(id);
-    if (from === -1 || to === -1) {
-      // Anchor or target is not in the visible order; fall back to a plain click.
-      return { anchor: id, selected: new Set([id]) };
-    }
-    const lo = Math.min(from, to);
-    const hi = Math.max(from, to);
-    const range = ordered.slice(lo, hi + 1);
-    return { anchor: state.anchor, selected: new Set(range) };
-  }
-
-  if (modifiers.ctrl) {
-    const next = new Set(state.selected);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-    return { anchor: id, selected: next };
-  }
-
-  // Plain click.
-  return { anchor: id, selected: new Set([id]) };
+export interface ExecutableBulkAction<T extends SelectionItem> {
+  availability: 'enabled';
+  id: string;
+  label: string;
+  successStatus: BulkSuccessStatus;
+  destructive: boolean;
+  capability(item: T): BulkCapability;
+  execute(item: T, context: BulkExecutionContext): Promise<BulkMutationResult>;
+  revert?: (
+    item: T,
+    receipt: BulkMutationReceipt,
+    context: BulkExecutionContext,
+  ) => Promise<BulkMutationResult>;
 }
 
-export type SelectAllScope = 'page' | 'matches';
-
-export interface SelectAllResult {
-  state: SelectionState;
-  scope: SelectAllScope;
-  count: number;
-}
-
-/**
- * Select every item on the current page, or every item matching the active
- * filter/search across the whole collection. The caller supplies both
- * candidate sets explicitly and picks which scope was intended; the result
- * carries the scope and count back so a caller can report exactly what
- * happened ("42 selected on this page" versus "1,204 matching items selected").
- */
-export function selectAll(
-  state: SelectionState,
-  scope: SelectAllScope,
-  page: ReadonlyArray<string>,
-  matches: ReadonlyArray<string>,
-): SelectAllResult {
-  const ids = scope === 'page' ? page : matches;
-  const selected = new Set(ids);
-  return {
-    state: { anchor: state.anchor, selected },
-    scope,
-    count: selected.size,
-  };
-}
-
-/** Invert the selection against the full visible/candidate order. */
-export function invert(state: SelectionState, ordered: ReadonlyArray<string>): SelectionState {
-  const next = new Set<string>();
-  for (const id of ordered) {
-    if (!state.selected.has(id)) {
-      next.add(id);
-    }
-  }
-  return { anchor: state.anchor, selected: next };
-}
-
-export function clearSelection(state: SelectionState): SelectionState {
-  return { anchor: state.anchor, selected: new Set() };
-}
-
-export function isSelected(state: SelectionState, id: string): boolean {
-  return state.selected.has(id);
-}
-
-export function selectionCount(state: SelectionState): number {
-  return state.selected.size;
-}
-
-// ------------------------------------------------------------------ bulk plan
-
-export interface BulkSkip<T> {
-  item: T;
+export interface DisabledBulkAction {
+  availability: 'disabled';
+  id: string;
+  label: string;
   reason: string;
-}
-
-export interface BulkPlan<T> {
-  action: string;
-  selected: ReadonlyArray<T>;
-  affected: ReadonlyArray<T>;
-  skipped: ReadonlyArray<BulkSkip<T>>;
   destructive: boolean;
 }
 
-export interface PlanBulkOptions {
-  destructive?: boolean;
+export type BulkAction<T extends SelectionItem> = ExecutableBulkAction<T> | DisabledBulkAction;
+
+export function unsupportedBulkAction(
+  id: string,
+  label: string,
+  reason: string,
+  destructive = false,
+): DisabledBulkAction {
+  const exactReason = reason.trim();
+  if (!exactReason) throw new Error(`Disabled bulk action ${id} requires an exact reason.`);
+  return { availability: 'disabled', id, label, reason: exactReason, destructive };
 }
 
-/**
- * Build a reviewable plan for a bulk action: which of the selected items will
- * actually be affected, and which are excluded and why. `canApply` returns
- * `true` when the action applies to an item, or a human-readable reason
- * string when it does not.
- */
-export function planBulk<T>(
-  action: string,
-  selected: ReadonlyArray<T>,
-  canApply: (item: T) => true | string,
-  options: PlanBulkOptions = {},
-): BulkPlan<T> {
-  const affected: T[] = [];
-  const skipped: BulkSkip<T>[] = [];
-
-  for (const item of selected) {
-    const verdict = canApply(item);
-    if (verdict === true) {
-      affected.push(item);
-    } else {
-      skipped.push({ item, reason: verdict });
-    }
-  }
-
-  return {
-    action,
-    selected,
-    affected,
-    skipped,
-    destructive: options.destructive ?? false,
-  };
-}
-
-/**
- * Render a plan as a sentence suitable for a confirmation dialog: what will
- * happen, to how many items, and how many are excluded (and why, when there
- * is exactly one exclusion reason worth naming plainly).
- */
-export function summarise<T>(plan: BulkPlan<T>): string {
-  const total = plan.selected.length;
-  const affected = plan.affected.length;
-  const skipped = plan.skipped.length;
-
-  if (total === 0) {
-    return `${plan.action}: nothing selected.`;
-  }
-
-  const parts: string[] = [];
-  parts.push(`${plan.action}: ${affected} of ${total} selected will change`);
-
-  if (skipped > 0) {
-    const reasons = new Set(plan.skipped.map((s) => s.reason));
-    if (reasons.size === 1) {
-      parts.push(`; ${skipped} skipped (${[...reasons][0]})`);
-    } else {
-      parts.push(`; ${skipped} skipped for ${reasons.size} different reasons`);
-    }
-  }
-
-  if (plan.destructive) {
-    parts.push('. This cannot be undone.');
-  } else {
-    parts.push('.');
-  }
-
-  return parts.join('');
-}
-
-// -------------------------------------------------------------------- running
-
-export interface BulkFailure {
-  id: string;
+export interface BulkPlanExclusion<T> {
+  item: T;
   reason: string;
 }
 
+export interface BulkPreview<T extends SelectionItem> {
+  status: 'ready';
+  action: ExecutableBulkAction<T>;
+  selectedCount: number;
+  affectedCount: number;
+  excludedCount: number;
+  affected: ReadonlyArray<T>;
+  excluded: ReadonlyArray<BulkPlanExclusion<T>>;
+  destructive: boolean;
+}
+
+export interface DisabledBulkPreview {
+  status: 'disabled';
+  actionId: string;
+  reason: string;
+  selectedCount: number;
+}
+
+export type BulkPlan<T extends SelectionItem> = BulkPreview<T> | DisabledBulkPreview;
+
+export interface BulkPlanOptions {
+  includePinned?: boolean;
+  includeProtected?: boolean;
+}
+
+export interface BulkCollectionSnapshot<T extends SelectionItem> {
+  context: SelectionContext;
+  items: ReadonlyArray<T>;
+}
+
+export function planBulkAction<T extends SelectionItem>(
+  action: BulkAction<T>,
+  collection: BulkCollectionSnapshot<T>,
+  selection: SelectionState,
+  options: BulkPlanOptions = {},
+): BulkPlan<T> {
+  if (!sameSelectionContext(collection.context, selection.context)) {
+    return {
+      status: 'disabled',
+      actionId: action.id,
+      reason: 'The selection belongs to a different collection or query. Refresh the selection before continuing.',
+      selectedCount: 0,
+    };
+  }
+  const duplicateIds = collection.items
+    .map((item) => item.id)
+    .filter((id, index, ids) => ids.indexOf(id) !== index);
+  if (duplicateIds.length > 0) {
+    return {
+      status: 'disabled',
+      actionId: action.id,
+      reason: `The collection contains duplicate item identifiers: ${[...new Set(duplicateIds)].join(', ')}.`,
+      selectedCount: selection.selectedIds.size,
+    };
+  }
+  const availableIds = new Set(collection.items.map((item) => item.id));
+  const missingIds = [...selection.selectedIds].filter((id) => !availableIds.has(id));
+  if (missingIds.length > 0) {
+    return {
+      status: 'disabled',
+      actionId: action.id,
+      reason: `${missingIds.length} selected item(s) are no longer in this collection result. Refresh the selection before continuing.`,
+      selectedCount: selection.selectedIds.size,
+    };
+  }
+  const selected = collection.items.filter((item) => selection.selectedIds.has(item.id));
+  if (action.availability === 'disabled') {
+    return { status: 'disabled', actionId: action.id, reason: action.reason, selectedCount: selected.length };
+  }
+
+  const affected: T[] = [];
+  const excluded: Array<BulkPlanExclusion<T>> = [];
+  selected.forEach((item) => {
+    if (item.protectedReason && !options.includeProtected) {
+      excluded.push({ item, reason: item.protectedReason });
+      return;
+    }
+    if (item.pinned && !options.includePinned) {
+      excluded.push({ item, reason: 'Pinned items are excluded unless they are explicitly included.' });
+      return;
+    }
+    const capability = action.capability(item);
+    if (capability.status === 'disabled') {
+      excluded.push({ item, reason: capability.reason });
+      return;
+    }
+    affected.push(item);
+  });
+
+  return {
+    status: 'ready',
+    action,
+    selectedCount: selected.length,
+    affectedCount: affected.length,
+    excludedCount: excluded.length,
+    affected,
+    excluded,
+    destructive: action.destructive,
+  };
+}
+
+export type BulkItemOutcome<T> =
+  | { item: T; status: BulkSuccessStatus; receipt: BulkMutationReceipt }
+  | { item: T; status: 'skipped'; reason: string }
+  | { item: T; status: 'cancelled'; reason: string }
+  | { item: T; status: 'timed-out'; code: 'deadline-exceeded'; reason: string; retryable: false }
+  | { item: T; status: 'failed'; code: string; reason: string; retryable: boolean };
+
 export interface BulkProgress {
-  done: number;
+  completed: number;
   total: number;
-  failed: ReadonlyArray<BulkFailure>;
+  counts: Readonly<Record<BulkSuccessStatus | 'skipped' | 'cancelled' | 'timed-out' | 'failed', number>>;
 }
 
-export interface BulkSuccess<T> {
-  item: T;
-  index: number;
+export interface BulkUndoPlan<T> {
+  actionId: string;
+  items: ReadonlyArray<{ item: T; receipt: BulkMutationReceipt }>;
+  source: 'inverse-handler' | 'history-revision';
 }
 
-export interface BulkResult<T> {
-  succeeded: ReadonlyArray<BulkSuccess<T>>;
-  failed: ReadonlyArray<BulkFailure>;
-  cancelled: boolean;
-  total: number;
+export interface BulkRunResult<T> {
+  actionId: string;
+  outcomes: ReadonlyArray<BulkItemOutcome<T>>;
+  counts: Readonly<Record<BulkSuccessStatus | 'skipped' | 'cancelled' | 'timed-out' | 'failed', number>>;
+  undo?: BulkUndoPlan<T>;
 }
+
+export const DEFAULT_BULK_ITEM_DEADLINE_MS = 30_000;
+const MAX_TIMER_DELAY_MS = 2_147_483_647;
 
 export interface RunBulkOptions {
-  onProgress?: (progress: BulkProgress) => void;
-  signal?: { aborted: boolean };
   concurrency?: number;
+  signal?: AbortSignal;
+  itemDeadlineMs?: number;
+  onProgress?: (progress: BulkProgress) => void;
 }
 
-/**
- * Apply a plan's affected items with bounded concurrency, reporting progress
- * and collecting failures without aborting the rest of the batch (a single
- * item's rejection never stops the others). Results are returned in the same
- * order as `plan.affected` regardless of the concurrency used to produce
- * them, so a report reads the same no matter how the work was scheduled:
- * each worker claims the next unclaimed index and writes its outcome into a
- * slot addressed by that index, so reassembly at the end is a plain ordered
- * walk over the slots rather than a race-dependent append.
- */
-export async function runBulk<T>(
+type BulkOutcomeStatus = BulkSuccessStatus | 'skipped' | 'cancelled' | 'timed-out' | 'failed';
+
+const ALL_OUTCOME_STATUSES: ReadonlyArray<BulkOutcomeStatus> = [
+  'converted', 'saved', 'exported', 'deleted', 'moved', 'copied', 'duplicated', 'renamed',
+  'tagged', 'untagged', 'enabled', 'disabled', 'retried', 'changed', 'skipped', 'cancelled',
+  'timed-out', 'failed',
+];
+
+function outcomeCounts<T>(outcomes: ReadonlyArray<BulkItemOutcome<T>>): Record<BulkOutcomeStatus, number> {
+  const counts = Object.fromEntries(ALL_OUTCOME_STATUSES.map((status) => [status, 0])) as Record<BulkOutcomeStatus, number>;
+  outcomes.forEach((outcome) => { counts[outcome.status] += 1; });
+  return counts;
+}
+
+function resolveItemDeadline(value: number | undefined): number {
+  const deadline = value ?? DEFAULT_BULK_ITEM_DEADLINE_MS;
+  if (!Number.isSafeInteger(deadline) || deadline <= 0 || deadline > MAX_TIMER_DELAY_MS) {
+    throw new RangeError(`itemDeadlineMs must be a positive safe integer from 1 through ${MAX_TIMER_DELAY_MS}.`);
+  }
+  return deadline;
+}
+
+type BoundedOperationResult<T> =
+  | { status: 'completed'; value: T }
+  | { status: 'cancelled' }
+  | { status: 'timed-out' }
+  | { status: 'rejected' };
+
+async function runBoundedOperation<T>(
+  callerSignal: AbortSignal | undefined,
+  itemDeadlineMs: number,
+  invoke: (signal: AbortSignal) => Promise<T>,
+): Promise<BoundedOperationResult<T>> {
+  const controller = new AbortController();
+  let termination: 'cancelled' | 'timed-out' | undefined;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  let resolveTermination: ((result: BoundedOperationResult<T>) => void) | undefined;
+
+  const terminate = (status: 'cancelled' | 'timed-out'): void => {
+    if (termination) return;
+    termination = status;
+    controller.abort();
+    resolveTermination?.({ status });
+  };
+  const onCallerAbort = (): void => terminate('cancelled');
+
+  if (callerSignal?.aborted) {
+    terminate('cancelled');
+    return { status: 'cancelled' };
+  }
+
+  const terminationPromise = new Promise<BoundedOperationResult<T>>((resolve) => {
+    resolveTermination = resolve;
+    callerSignal?.addEventListener('abort', onCallerAbort, { once: true });
+    timeoutId = setTimeout(() => terminate('timed-out'), itemDeadlineMs);
+  });
+
+  const operationPromise = Promise.resolve()
+    .then(() => invoke(controller.signal))
+    .then(
+      (value): BoundedOperationResult<T> => termination ? { status: termination } : { status: 'completed', value },
+      (): BoundedOperationResult<T> => termination ? { status: termination } : { status: 'rejected' },
+    );
+
+  try {
+    return await Promise.race([operationPromise, terminationPromise]);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+    callerSignal?.removeEventListener('abort', onCallerAbort);
+    resolveTermination = undefined;
+  }
+}
+
+function mapMutation<T>(item: T, successStatus: BulkSuccessStatus, result: BulkMutationResult): BulkItemOutcome<T> {
+  if (result.status === 'confirmed') {
+    if (!result.receipt.operationId.trim() || !result.receipt.completedAt.trim() || !Number.isFinite(Date.parse(result.receipt.completedAt))) {
+      return {
+        item,
+        status: 'failed',
+        code: 'invalid-confirmation',
+        reason: 'The action handler returned a confirmation without a valid operation identifier and completion time.',
+        retryable: false,
+      };
+    }
+    return { item, status: successStatus, receipt: result.receipt };
+  }
+  if (result.status === 'skipped') return { item, status: 'skipped', reason: result.reason };
+  if (result.status === 'cancelled') return { item, status: 'cancelled', reason: result.reason };
+  return { item, status: 'failed', code: result.code, reason: result.reason, retryable: result.retryable };
+}
+
+function mapBoundedMutation<T>(
+  item: T,
+  successStatus: BulkSuccessStatus,
+  result: BoundedOperationResult<BulkMutationResult>,
+): BulkItemOutcome<T> {
+  if (result.status === 'completed') return mapMutation(item, successStatus, result.value);
+  if (result.status === 'cancelled') {
+    return { item, status: 'cancelled', reason: 'The operation was cancelled before the item completed.' };
+  }
+  if (result.status === 'timed-out') {
+    return {
+      item,
+      status: 'timed-out',
+      code: 'deadline-exceeded',
+      reason: 'The item operation did not complete within its configured deadline.',
+      retryable: false,
+    };
+  }
+  return {
+    item,
+    status: 'failed',
+    code: 'handler-rejected',
+    reason: 'The item handler rejected without a typed failure result. Untyped details were not exposed.',
+    retryable: false,
+  };
+}
+
+function buildUndoPlan<T extends SelectionItem>(
+  action: ExecutableBulkAction<T>,
+  outcomes: ReadonlyArray<BulkItemOutcome<T>>,
+): BulkUndoPlan<T> | undefined {
+  if (!action.revert) return undefined;
+  const confirmed: Array<{ item: T; receipt: BulkMutationReceipt }> = [];
+  outcomes.forEach((outcome) => {
+    if ('receipt' in outcome) confirmed.push({ item: outcome.item, receipt: outcome.receipt });
+  });
+  if (confirmed.length === 0 || confirmed.some(({ receipt }) => !receipt.inverseToken && !receipt.historyRevision)) return undefined;
+  return {
+    actionId: action.id,
+    items: confirmed,
+    source: confirmed.every(({ receipt }) => Boolean(receipt.historyRevision)) ? 'history-revision' : 'inverse-handler',
+  };
+}
+
+export async function runBulkAction<T extends SelectionItem>(
   plan: BulkPlan<T>,
-  apply: (item: T, index: number) => Promise<string>,
   options: RunBulkOptions = {},
-): Promise<BulkResult<T>> {
-  const items = plan.affected;
-  const total = items.length;
-  const concurrency = Math.max(1, options.concurrency ?? 1);
+): Promise<BulkRunResult<T>> {
+  if (plan.status === 'disabled') throw new Error(`${plan.actionId} is disabled: ${plan.reason}`);
 
-  type Outcome = { ok: true; id: string } | { ok: false; id: string; reason: string };
-  const outcomes: Array<Outcome | undefined> = new Array(total).fill(undefined);
-
-  let cancelled = false;
+  const outcomes: Array<BulkItemOutcome<T> | undefined> = new Array(plan.affected.length).fill(undefined);
   let nextIndex = 0;
-  let doneCount = 0;
+  let completed = 0;
+  const concurrency = Math.min(Math.max(1, options.concurrency ?? 1), Math.max(1, plan.affected.length));
+  const itemDeadlineMs = resolveItemDeadline(options.itemDeadlineMs);
 
-  function reportProgress(): void {
+  const report = (): void => {
     if (!options.onProgress) return;
-    const failed: BulkFailure[] = [];
-    for (const outcome of outcomes) {
-      if (outcome && !outcome.ok) {
-        failed.push({ id: outcome.id, reason: outcome.reason });
-      }
-    }
-    options.onProgress({ done: doneCount, total, failed });
-  }
+    const settled = outcomes.filter((outcome): outcome is BulkItemOutcome<T> => Boolean(outcome));
+    options.onProgress({ completed, total: plan.affected.length, counts: outcomeCounts(settled) });
+  };
 
-  async function worker(): Promise<void> {
+  const worker = async (): Promise<void> => {
     for (;;) {
-      if (options.signal?.aborted) {
-        cancelled = true;
-        return;
-      }
+      if (options.signal?.aborted) return;
       const index = nextIndex;
-      if (index >= total) {
-        return;
-      }
+      if (index >= plan.affected.length) return;
       nextIndex += 1;
-
-      const item = items[index];
-      const id = itemId(item, index);
-
-      try {
-        const reason = await apply(item, index);
-        outcomes[index] = reason ? { ok: false, id, reason } : { ok: true, id };
-      } catch (err) {
-        outcomes[index] = { ok: false, id, reason: err instanceof Error ? err.message : String(err) };
-      }
-
-      doneCount += 1;
-      reportProgress();
+      const item = plan.affected[index];
+      const result = await runBoundedOperation(
+        options.signal,
+        itemDeadlineMs,
+        (signal) => plan.action.execute(item, { signal, itemDeadlineMs }),
+      );
+      outcomes[index] = mapBoundedMutation(item, plan.action.successStatus, result);
+      completed += 1;
+      report();
     }
+  };
+
+  await Promise.all(Array.from({ length: concurrency }, () => worker()));
+  outcomes.forEach((outcome, index) => {
+    if (!outcome) outcomes[index] = { item: plan.affected[index], status: 'cancelled', reason: 'The batch was cancelled before this item started.' };
+  });
+  const settled = outcomes as Array<BulkItemOutcome<T>>;
+  options.onProgress?.({ completed: settled.length, total: plan.affected.length, counts: outcomeCounts(settled) });
+  const excludedOutcomes: Array<BulkItemOutcome<T>> = plan.excluded.map(({ item, reason }) => ({ item, status: 'skipped', reason }));
+  const allOutcomes = [...settled, ...excludedOutcomes];
+  return {
+    actionId: plan.action.id,
+    outcomes: allOutcomes,
+    counts: outcomeCounts(allOutcomes),
+    undo: buildUndoPlan(plan.action, settled),
+  };
+}
+
+export type BulkUndoResult<T> =
+  | { status: 'disabled'; reason: string }
+  | { status: 'complete'; outcomes: ReadonlyArray<BulkItemOutcome<T>> };
+
+export async function undoBulkAction<T extends SelectionItem>(
+  action: ExecutableBulkAction<T>,
+  undo: BulkUndoPlan<T> | undefined,
+  options: RunBulkOptions = {},
+): Promise<BulkUndoResult<T>> {
+  if (!undo) return { status: 'disabled', reason: 'No confirmed inverse operation or history revision is available.' };
+  if (!action.revert) {
+    return { status: 'disabled', reason: 'This action has history evidence but no registered inverse handler in this surface.' };
   }
-
-  const workerCount = Math.min(concurrency, total || 1);
-  const workers = Array.from({ length: workerCount }, () => worker());
-  await Promise.all(workers);
-
-  const succeeded: BulkSuccess<T>[] = [];
-  const failed: BulkFailure[] = [];
-
-  for (let index = 0; index < total; index += 1) {
-    const outcome = outcomes[index];
-    if (outcome === undefined) {
-      // Never attempted: cancellation stopped the workers before reaching it.
+  const revert = action.revert;
+  const itemDeadlineMs = resolveItemDeadline(options.itemDeadlineMs);
+  const outcomes: Array<BulkItemOutcome<T>> = [];
+  for (const { item, receipt } of [...undo.items].reverse()) {
+    if (options.signal?.aborted) {
+      outcomes.push({ item, status: 'cancelled', reason: 'Undo was cancelled before this item started.' });
       continue;
     }
-    if (outcome.ok) {
-      succeeded.push({ item: items[index], index });
-    } else {
-      failed.push({ id: outcome.id, reason: outcome.reason });
-    }
+    const result = await runBoundedOperation(
+      options.signal,
+      itemDeadlineMs,
+      (signal) => revert(item, receipt, { signal, itemDeadlineMs }),
+    );
+    outcomes.push(mapBoundedMutation(item, 'changed', result));
+    options.onProgress?.({ completed: outcomes.length, total: undo.items.length, counts: outcomeCounts(outcomes) });
   }
-
-  return { succeeded, failed, cancelled, total };
-}
-
-function itemId(item: unknown, index: number): string {
-  if (item !== null && typeof item === 'object' && 'id' in (item as Record<string, unknown>)) {
-    const raw = (item as Record<string, unknown>).id;
-    if (typeof raw === 'string') return raw;
-    if (typeof raw === 'number') return String(raw);
-  }
-  return String(index);
-}
-
-/** True only when every attempted item succeeded and nothing was cancelled early. */
-export function bulkSucceeded<T>(result: BulkResult<T>): boolean {
-  return !result.cancelled && result.failed.length === 0 && result.succeeded.length === result.total;
+  return { status: 'complete', outcomes };
 }
 
 // --------------------------------------------------------------- bulk delete ceremony

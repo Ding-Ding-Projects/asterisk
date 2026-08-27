@@ -162,6 +162,15 @@ textarea {
   height: 100%;
 }
 
+/* Focus only lowers competing visual weight. Nothing is hidden, disabled, or made
+ * unclickable, and moving focus to a control restores that control in one action. */
+[data-attention-inactive="true"] { opacity: .55; transition: opacity 150ms ease; }
+[data-attention-inactive="true"]:focus,
+[data-attention-inactive="true"]:focus-within { opacity: 1; }
+
+/* Low stimulation keeps the same information but removes the strongest decorative motion. */
+.attention-low-stimulation .dim-sum-surprise { animation: none; }
+
 /* Time awareness, the one chosen next action, and momentum's own prompt. Anchored to
  * the bottom-left corner per the house rule for non-blocking notifications -- the
  * bottom-right corner is where this console's primary actions sit (see the update

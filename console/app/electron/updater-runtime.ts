@@ -179,7 +179,12 @@ export async function launchInstaller(installerPath: string): Promise<{ ok: true
     };
     let child: ReturnType<typeof spawn>;
     try {
-      child = spawn(installerPath, ['--silent'], { detached: true, stdio: 'ignore', windowsHide: true });
+      /* Setup.exe is the actual unsigned Squirrel.Windows handoff.  Do not pass
+       * --silent here: the renderer has already received the user's explicit choice,
+       * but silent mode hides the only installer/UAC surface and makes a successful
+       * handoff indistinguishable from a button that did nothing.  The normal setup
+       * surface also carries the unknown-publisher warning we disclose before launch. */
+      child = spawn(installerPath, [], { detached: true, stdio: 'ignore', windowsHide: false });
     } catch (error) {
       finish({ ok: false, reason: `Could not start the installer: ${error instanceof Error ? error.message : String(error)}` });
       return;

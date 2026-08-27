@@ -95,6 +95,6 @@ test('each history entry is labelled with what actually changed, not merely that
 });
 
 test('the registry records local-version-history as implemented, and the code agrees', () => {
-  assert.equal(registry.features['local-version-history'].state, 'implemented',
+  assert.equal(registry.features['local-version-history'].status, 'implemented-unverified',
     'a real, append-only, isolated local history exists with restore-as-new-entry, a search field, a real action filter derived from recorded data, and a date-range filter -- "implemented" is the honest state');
 });

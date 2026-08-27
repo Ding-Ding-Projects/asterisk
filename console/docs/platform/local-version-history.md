@@ -14,7 +14,7 @@ Restoring would itself be recorded as a new revision rather than rewriting histo
 
 **Desktop application:** Not implemented. The desktop application keeps no local version history of any kind; settings and records are overwritten in place with no way to browse or restore a prior state.
 
-**Documentation website:** Not implemented. The documentation website has no user-managed records of its own to version.
+**Documentation website:** Implemented as a browser-local equivalent at `history.html`. Visitor event metadata is append-only, searchable by text or regex, filterable by date and action, restorable only as a new event, and exportable with credentials and private vocabulary explicitly omitted.
 
 ## Failure modes
 

@@ -80,7 +80,7 @@ function Template(v: any) {
         )
       ),
       h("div", { style: sty(`height:38px; flex:0 0 38px; display:flex; align-items:flex-end; gap:2px; background:#0B0F0C; padding:0 6px; overflow-x:auto;`) },
-        A(v.tabGroups).map(($g, $g$i) => R($g$i, h("div", { role: `button`, tabIndex: `0`, "aria-expanded": $g.expanded, onClick: fn($g.toggle), onKeyDown: $g.onKeyActivate, onContextMenu: fn($g.ctx), style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
+        A(v.tabGroups).map(($g, $g$i) => R($g$i, h("div", { role: `button`, tabIndex: `0`, "aria-expanded": $g.expanded, onClick: fn($g.toggle), onKeyDown: fn($g.onKeyActivate), onContextMenu: fn($g.ctx), style: sty(`display:flex; align-items:center; gap:7px; animation:tabIn .24s cubic-bezier(.2,1.3,.4,1); background:${S($g.bg)}; border-radius:10px 10px 0 0; padding:8px 12px; margin-bottom:0; cursor:pointer; flex:0 0 auto; border-top:2px solid ${S($g.colour)};`) },
             h("span", { style: sty(`width:9px; height:9px; border-radius:50%; background:${S($g.colour)};`) }),
             h("span", { style: sty(`font-size:12px; font-weight:500; color:#DFE4DC; white-space:nowrap;`) },
               S($g.name)
@@ -92,7 +92,12 @@ function Template(v: any) {
               S($g.chevron)
             )
           ))),
-        h("div", { role: `tablist`, "aria-label": `Open tabs`, onKeyDown: v.tabsKeyDown, style: sty(`display:contents;`) },
+        h("div", { style: sty(`display:flex; gap:4px; align-items:center;`) },
+          h("button", { id: `tab-search-strip`, onClick: fn(() => v.openTabSearch('strip')), title: `Search this tab strip`, style: sty(`background:transparent; border:0; color:#9FF7C4; cursor:pointer;`) }, "search"),
+          h("button", { id: `tab-search-groups`, onClick: fn(() => v.openTabSearch('groups')), title: `Search tab groups`, style: sty(`background:transparent; border:0; color:#9FF7C4; cursor:pointer;`) }, "group_work"),
+          h("button", { id: `tab-search-master`, onClick: fn(() => v.openTabSearch('master')), title: `Search every open tab`, style: sty(`background:transparent; border:0; color:#9FF7C4; cursor:pointer;`) }, "travel_explore")
+        ),
+        h("div", { role: `tablist`, "aria-label": `Open tabs`, onKeyDown: fn(v.tabsKeyDown), style: sty(`display:contents;`) },
           A(v.tabs).map(($t, $t$i) => R($t$i, F(
             ($t.on ? h("div", { role: `tab`, id: $t.id, "aria-selected": `true`, "aria-controls": `tabpanel-content`, tabIndex: $t.tabIndex, draggable: `true`, onDragStart: fn($t.onDragStart), onDragOver: fn($t.onDragOver), onDrop: fn($t.onDrop), onDragEnd: fn($t.onDragEnd), onClick: fn($t.go), onContextMenu: fn($t.ctx), style: sty(`display:flex; align-items:center; gap:8px; background:#141A15; border-radius:10px 10px 0 0; padding:8px 10px 8px 13px; cursor:grab; animation:tabIn .22s cubic-bezier(.2,1.3,.4,1); max-width:230px; min-width:130px; border-top:2px solid #82D9A5; border-left:2px solid ${S($t.edge)}; border-right:2px solid ${S($t.edge)};`) },
                 ($t.inGroup ? h("span", { style: sty(`width:3px; height:18px; border-radius:2px; background:${S($t.groupColour)}; flex:0 0 auto;`) }) : null),
@@ -537,7 +542,7 @@ function Template(v: any) {
                     )))
                   ),
                   h("div", { style: sty(`max-height:460px; overflow-y:auto;`) },
-                    A(v.commitRows).map(($c, $c$i) => R($c$i, h("div", { role: `button`, tabIndex: `0`, onClick: fn($c.pick), onKeyDown: $c.onKeyActivate, onContextMenu: fn($c.ctx), style: sty(`display:flex; align-items:flex-start; gap:12px; padding:11px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($c.bg)}; animation:m3Slide .28s cubic-bezier(.2,0,0,1) both;`), className: "k-h16" },
+                    A(v.commitRows).map(($c, $c$i) => R($c$i, h("div", { role: `button`, tabIndex: `0`, onClick: fn($c.pick), onKeyDown: fn($c.onKeyActivate), onContextMenu: fn($c.ctx), style: sty(`display:flex; align-items:flex-start; gap:12px; padding:11px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($c.bg)}; animation:m3Slide .28s cubic-bezier(.2,0,0,1) both;`), className: "k-h16" },
                         h("div", { style: sty(`display:flex; flex-direction:column; align-items:center; padding-top:3px; flex:0 0 auto;`) },
                           h("span", { style: sty(`width:11px; height:11px; border-radius:50%; background:${S($c.dot)}; border:2px solid #0F1510;`) }),
                           h("span", { style: sty(`width:2px; flex:1; min-height:22px; background:#333B34;`) })
@@ -1375,7 +1380,7 @@ function Template(v: any) {
                       S(v.docsResultsLabel)
                     ),
                     h("div", { style: sty(`overflow-y:auto; flex:1;`) },
-                      A(v.docsResults).map(($r, $r$i) => R($r$i, h("div", { role: `button`, tabIndex: `0`, onClick: fn($r.select), onKeyDown: $r.onKeyActivate, style: sty(`padding:10px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($r.bg)};`), className: "k-h16" },
+                      A(v.docsResults).map(($r, $r$i) => R($r$i, h("div", { role: `button`, tabIndex: `0`, onClick: fn($r.select), onKeyDown: fn($r.onKeyActivate), style: sty(`padding:10px 16px; border-top:1px solid #262B26; cursor:pointer; background:${S($r.bg)};`), className: "k-h16" },
                           h("div", { style: sty(`display:flex; align-items:center; gap:8px;`) },
                             h("span", { style: sty(`font-family:'Roboto Mono',monospace; font-size:10.5px; color:#82D9A5; text-transform:uppercase;`) },
                               S($r.category)
@@ -1420,7 +1425,7 @@ function Template(v: any) {
                           ),
                           h("span", null,
                             A($b.spans).map(($sp, $sp$i) => R($sp$i, F(
-                              ($sp.isLink ? h("span", { role: `button`, tabIndex: `0`, onClick: fn($sp.onClick), onKeyDown: $sp.onKeyActivate, style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
+                              ($sp.isLink ? h("span", { role: `button`, tabIndex: `0`, onClick: fn($sp.onClick), onKeyDown: fn($sp.onKeyActivate), style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
                                   S($sp.text)
                                 ) : null),
                               ($sp.isPlain ? h("span", null,
@@ -1431,7 +1436,7 @@ function Template(v: any) {
                         ) : null),
                       ($b.isParagraph ? h("div", { style: sty(`margin:8px 0;`) },
                           A($b.spans).map(($sp, $sp$i) => R($sp$i, F(
-                            ($sp.isLink ? h("span", { role: `button`, tabIndex: `0`, onClick: fn($sp.onClick), onKeyDown: $sp.onKeyActivate, style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
+                            ($sp.isLink ? h("span", { role: `button`, tabIndex: `0`, onClick: fn($sp.onClick), onKeyDown: fn($sp.onKeyActivate), style: sty(`color:#9FF7C4; text-decoration:underline; cursor:pointer;`) },
                                 S($sp.text)
                               ) : null),
                             ($sp.isPlain ? h("span", null,
@@ -1445,7 +1450,7 @@ function Template(v: any) {
                       h("div", { style: sty(`font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:#8FA394; margin-bottom:8px;`) },
                         "Suggested articles"
                       ),
-                      A(v.docsSuggested).map(($sg, $sg$i) => R($sg$i, h("div", { role: `button`, tabIndex: `0`, onClick: fn($sg.select), onKeyDown: $sg.onKeyActivate, style: sty(`display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:#9FF7C4; font-size:12.5px;`), className: "k-h29" },
+                      A(v.docsSuggested).map(($sg, $sg$i) => R($sg$i, h("div", { role: `button`, tabIndex: `0`, onClick: fn($sg.select), onKeyDown: fn($sg.onKeyActivate), style: sty(`display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:#9FF7C4; font-size:12.5px;`), className: "k-h29" },
                           h("span", { style: sty(`font-size:15px;`), className: "msym" },
                             S($sg.icon)
                           ),
@@ -2687,6 +2692,18 @@ function Template(v: any) {
             )
           )
         ) : null),
+      (v.tabSearchOpen ? F(
+        h("div", { onClick: fn(v.closeTabSearch), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:82;`) }),
+        h("div", { role: `dialog`, "aria-label": `Tab search`, style: sty(`position:absolute; left:50%; top:92px; transform:translateX(-50%); width:560px; max-height:70vh; overflow:auto; background:#252B25; border-radius:20px; padding:20px; z-index:83;`) },
+          h("div", { style: sty(`display:flex; gap:6px; flex-wrap:wrap;`) }, A(v.tabSearchScopes).map(($scope, $scope$i) => R($scope$i, h("button", { onClick: fn($scope.pick), style: sty(`background:#141A15; color:#DFE4DC; border:1px solid #414942; border-radius:8px; padding:7px 10px;`) }, S($scope.label))))),
+          h("div", { style: sty(`display:flex; gap:8px; margin-top:12px;`) },
+            h("input", { type: `text`, value: v.tabSearchQuery, onChange: fn(v.onTabSearchQuery), onInput: fn(v.onTabSearchQuery), placeholder: `Search tabs`, style: sty(`flex:1;`) }),
+            h("button", { onClick: fn(v.toggleTabSearchRegex), title: `Use regex` }, S(v.tabSearchRegex ? 'Regex' : 'Plain text')),
+            h("button", { onClick: fn(v.openTabSearchRegexBuilder), title: `Open regex builder` }, "data_object")
+          ),
+          h("div", { style: sty(`margin-top:12px; display:flex; flex-direction:column; gap:6px;`) }, A(v.tabSearchResults).map(($result, $result$i) => R($result$i, h("button", { onClick: fn(() => v.activateTabSearch($result)), style: sty(`text-align:left; background:#141A15; color:#DFE4DC; border:1px solid #414942; border-radius:8px; padding:9px;`) }, S($result.label + ' · ' + $result.context)))))
+        )
+      ) : null),
       (v.tabFilterOpen ? F(
         h("div", { onClick: fn(v.closeTabFilter), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:80;`) }),
         h("div", { role: `dialog`, "aria-modal": `true`, style: sty(`position:absolute; left:50%; top:92px; transform:translateX(-50%); width:540px; background:#252B25; border-radius:20px; padding:20px 22px; box-shadow:0 12px 36px rgba(0,0,0,.6); z-index:81; animation:dlgFilter .24s cubic-bezier(.2,0,0,1);`) },
@@ -4584,6 +4601,11 @@ class ConsoleShell extends DCLogic {
     tabFilterOpen:false, tabFilterMode:'has', tabFilterText:'', ctxSub:'',
     rxText:'', rxManual:false, tabFilterColour:'', rndNonce:1,
     tabDrag:-1, tabOver:-1, groups:[], ctxGroupId:'', groupRenameOpen:false,
+    tabSearchOpen:false, tabSearchScope:'strip', tabSearchGroupId:'', tabSearchReturn:'', tabSearchRevealTab:'',
+    stripTabSearchQuery:'', stripTabSearchRegex:false, stripTabSearchFlags:'i',
+    groupTabSearchQuery:'', groupTabSearchRegex:false, groupTabSearchFlags:'i',
+    groupNameSearchQuery:'', groupNameSearchRegex:false, groupNameSearchFlags:'i',
+    masterTabSearchQuery:'', masterTabSearchRegex:false, masterTabSearchFlags:'i',
     branch:'main', commits:[
       { sha:'8f2a1c4', file:'queues.conf', screen:'queues', key:'q_strategy', label:'strategy', from:'ringall', to:'leastrecent', when:'12 min ago', author:'you', branch:'main', tag:'' },
       { sha:'2d90b17', file:'pjsip.conf', screen:'endpoints', key:'e_encryption', label:'media_encryption', from:'no', to:'sdes', when:'1 h ago', author:'you', branch:'main', tag:'v3.2.0' },
@@ -4618,15 +4640,19 @@ class ConsoleShell extends DCLogic {
   };
 
   setVal = (c, v) => {
+    const previous = this.state.values[c.id] !== undefined ? this.state.values[c.id] : c.value;
+    if (Object.is(previous, v)) return;
     this.commit(c, v);
-    this.setState(s => ({ values:Object.assign({}, s.values, { [c.id]:v }) }));
+    this.setState(s => ({ values:Object.assign({}, s.values, { [c.id]:v }) }), () => {
+      this.onUserMutation('control:' + (c.id || 'unknown'));
+    });
     const shown = Array.isArray(v) ? (v.length ? v.join(', ') : 'nothing') : String(v);
-    this.toast(c.label + ' set to ' + shown);
+    this.toastWithId('event-generated-event-source-4624-toast-0', c.label + ' set to ' + shown);
     const id = c.id || '';
-    if (v === true && /encrypt|tls|guard|lock|hostkey|attest|verify|strict|backup|stir/i.test(id + c.label)) this.fire('Safer already', c.label + ' is on. Somewhere an auditor smiled.');
-    else if (v === false && /encrypt|tls|guard|lock|hostkey|attest|verify|strict|stir/i.test(id + c.label)) this.toast('⚠ ' + c.label + ' is off — that is a real reduction in security');
-    else if (c.kind === 'order') this.toast(c.label + ' reordered — ' + (v[0] || 'nothing') + ' is now offered first');
-    else if (v === true) this.fire('Nice', c.label + ' switched on.');
+    if (v === true && /encrypt|tls|guard|lock|hostkey|attest|verify|strict|backup|stir/i.test(id + c.label)) this.fireWithId('event-generated-event-source-4626-fire-0', 'Safer already', c.label + ' is on. Somewhere an auditor smiled.');
+    else if (v === false && /encrypt|tls|guard|lock|hostkey|attest|verify|strict|stir/i.test(id + c.label)) this.toastWithId('event-generated-event-source-4627-toast-0', '⚠ ' + c.label + ' is off — that is a real reduction in security');
+    else if (c.kind === 'order') this.toastWithId('event-generated-event-source-4628-toast-0', c.label + ' reordered — ' + (v[0] || 'nothing') + ' is now offered first');
+    else if (v === true) this.fireWithId('event-generated-event-source-4629-fire-0', 'Nice', c.label + ' switched on.');
   };
 
   simulate() {
@@ -4724,12 +4750,12 @@ class ConsoleShell extends DCLogic {
     if (ans === 'YES' && r.risk === 'High risk') {
       return this.areYouSure('Sending YES to ' + r.partner, 'You are about to tell ' + r.partner + ' that ' + r.title.toLowerCase() + ' is approved. This widens who may deliver calls onto your PBX and it takes effect on their side within minutes.', 4, () => {
         this.setState({ authAnswers:Object.assign({}, this.state.authAnswers, { [r.id]:'YES' }) });
-        this.fire('YES sent', r.partner + ' has been told. Signed and logged.');
+        this.fireWithId('event-generated-event-source-4727-fire-0', 'YES sent', r.partner + ' has been told. Signed and logged.');
       });
     }
     this.setState({ authAnswers:Object.assign({}, this.state.authAnswers, { [r.id]:ans }) });
-    if (ans === 'YES') this.fire('YES sent', r.partner + ' has been told. Signed and logged.');
-    else this.toast('NO sent to ' + r.partner + ' — nothing on the link changed');
+    if (ans === 'YES') this.fireWithId('event-generated-event-source-4731-fire-0', 'YES sent', r.partner + ' has been told. Signed and logged.');
+    else this.toastWithId('event-generated-event-source-4732-toast-0', 'NO sent to ' + r.partner + ' — nothing on the link changed');
   };
 
   openScreen = (k) => this.setState(st => ({ rndNonce:st.rndNonce + 1, screen:k, railId:SCREENS[k] ? SCREENS[k].rail : st.railId }));
@@ -4934,7 +4960,7 @@ class ConsoleShell extends DCLogic {
       ap_rainbow:wild && Math.random() > 0.55
     };
     this.setState(st => ({ values:Object.assign({}, st.values, next) }));
-    this.fire(all ? 'Everything reshuffled' : 'Reshuffled', all ? 'Every element got its own random look.' : 'One element, one new look. Undo is in the history.');
+    this.fireWithId('event-generated-event-source-4937-fire-0', all ? 'Everything reshuffled' : 'Reshuffled', all ? 'Every element got its own random look.' : 'One element, one new look. Undo is in the history.');
   };
 
   applyColour = (val) => {
@@ -4946,7 +4972,7 @@ class ConsoleShell extends DCLogic {
     } else {
       this.setState(st => ({ tabColours:Object.assign({}, st.tabColours, { [key]:colour }), tabColourOpen:false }));
     }
-    this.fire('Colour applied', val === 'rainbow' ? 'It cycles the whole spectrum now.' : 'Set to ' + val + '.');
+    this.fireWithId('event-generated-event-source-4949-fire-0', 'Colour applied', val === 'rainbow' ? 'It cycles the whole spectrum now.' : 'Set to ' + val + '.');
   };
 
   tryUnlock = () => {
@@ -4954,14 +4980,14 @@ class ConsoleShell extends DCLogic {
     const L = s.locks[s.unlockKey];
     if (!L) return this.setState({ unlockOpen:false });
     const m = L.method || 'PIN';
-    if (m.indexOf('PIN') >= 0 && s.unlockPin !== L.pin) { this.setState({ unlockPin:'' }); return this.toast('Wrong PIN — the surface stays locked'); }
-    if (m.indexOf('Password') >= 0 && (s.unlockPw || '') !== L.password) { this.setState({ unlockPw:'' }); return this.toast('Wrong passphrase — the surface stays locked'); }
+    if (m.indexOf('PIN') >= 0 && s.unlockPin !== L.pin) { this.setState({ unlockPin:'' }); return this.toastWithId('event-generated-event-source-4957-toast-0', 'Wrong PIN — the surface stays locked'); }
+    if (m.indexOf('Password') >= 0 && (s.unlockPw || '') !== L.password) { this.setState({ unlockPw:'' }); return this.toastWithId('event-generated-event-source-4958-toast-0', 'Wrong passphrase — the surface stays locked'); }
     const n = Object.assign({}, s.locks); delete n[s.unlockKey];
     this.setState({ locks:n, unlockOpen:false, unlockPin:'', unlockPw:'' });
-    this.fire('Unlocked', 'Welcome back.');
+    this.fireWithId('event-generated-event-source-4961-fire-0', 'Unlocked', 'Welcome back.');
   };
 
-  addEdgeFrom = () => { this.setState(st => ({ edgeList:st.edgeList.concat([[st.nodeId, 'n4']]) })); this.toast('Connection added — pick its target in the inspector'); };
+  addEdgeFrom = () => { this.setState(st => ({ edgeList:st.edgeList.concat([[st.nodeId, 'n4']]) })); this.toastWithId('event-generated-event-source-4964-toast-0', 'Connection added — pick its target in the inspector'); };
 
   moveNode = (id, dx, dy) => {
     const base = NODES.find(n => n.id === id);
@@ -4972,7 +4998,7 @@ class ConsoleShell extends DCLogic {
     this.setState({ nodePos:pos });
   };
 
-  bulk = (verb, sel) => { this.setState({ selected:[] }); this.fire(verb, sel.length + ' objects in one action.'); };
+  bulk = (verb, sel) => { this.setState({ selected:[] }); this.fireWithId('event-generated-event-source-4975-fire-0', verb, sel.length + ' objects in one action.'); };
 
   stopGameNow = () => { clearInterval(this._g); this.setState({ gamePlaying:false, gameCell:-1, gameTime:0 }); };
 
@@ -5195,7 +5221,7 @@ class ConsoleShell extends DCLogic {
         { icon:'pan_tool', label:'Pan', id:'pan' }, { icon:'crop_free', label:'Marquee', id:'marquee' },
         { icon:'content_cut', label:'Split', id:'split' }, { icon:'comment', label:'Comment', id:'comment' },
         { icon:'straighten', label:'Measure', id:'measure' }
-      ].map(t => ({ icon:t.icon, label:t.label, on:s.canvasTool === t.id, off:s.canvasTool !== t.id, pick:() => { this.set('canvasTool', t.id); this.toast(t.label + ' tool active'); } })),
+      ].map(t => ({ icon:t.icon, label:t.label, on:s.canvasTool === t.id, off:s.canvasTool !== t.id, pick:() => { this.set('canvasTool', t.id); this.toastWithId('event-generated-event-source-5198-toast-0', t.label + ' tool active'); } })),
       canvasToggles:[
         { icon:'grid_on', label:'Grid', k:'grid' }, { icon:'grid_goldenratio', label:'Snap', k:'snap' },
         { icon:'straighten', label:'Guides', k:'guides' }, { icon:'map', label:'Minimap', k:'minimap' }
@@ -5241,8 +5267,8 @@ class ConsoleShell extends DCLogic {
           // Same mechanism as the right-click "Duplicate step" a few hundred lines down
           // (addedNodes + nodeSeq): this card's own duplicate button used to just say the
           // word "duplicated" and add nothing to addedNodes at all.
-          dup:() => { const seq = (s.nodeSeq || 0) + 1; const copy = Object.assign({}, n, { id:'added-' + seq, title:n.title + ' (copy)', x:p.x + 40, y:p.y + 40 }); this.setState({ addedNodes:(s.addedNodes || []).concat([copy]), nodeSeq:seq, nodeId:copy.id }); this.fire('Step duplicated', copy.title + ' is on the canvas, offset from the original.'); },
-          del:() => this.areYouSure('Delete ' + n.title, 'The step and every connection into or out of it are removed from the dialplan.', 3, () => { const gone = (s.removedNodes || []).concat([n.id]); this.setState({ removedNodes:gone }); this.fire('Step deleted', n.title + ' is off the canvas, with its connections.'); }) };
+          dup:() => { const seq = (s.nodeSeq || 0) + 1; const copy = Object.assign({}, n, { id:'added-' + seq, title:n.title + ' (copy)', x:p.x + 40, y:p.y + 40 }); this.setState({ addedNodes:(s.addedNodes || []).concat([copy]), nodeSeq:seq, nodeId:copy.id }); this.fireWithId('event-generated-event-source-5244-fire-0', 'Step duplicated', copy.title + ' is on the canvas, offset from the original.'); },
+          del:() => this.areYouSure('Delete ' + n.title, 'The step and every connection into or out of it are removed from the dialplan.', 3, () => { const gone = (s.removedNodes || []).concat([n.id]); this.setState({ removedNodes:gone }); this.fireWithId('event-generated-event-source-5245-fire-0', 'Step deleted', n.title + ' is off the canvas, with its connections.'); }) };
       }),
       canvasDrop:(e) => {
         e.preventDefault();
@@ -5254,11 +5280,11 @@ class ConsoleShell extends DCLogic {
       },
       canvasDragOver:(e) => e.preventDefault(),
       canvasOps:[
-        { icon:'auto_awesome_mosaic', label:'Auto-arrange', run:() => { this.setState({ nodePos:{} }); this.toast('Steps arranged left to right by call order'); } },
+        { icon:'auto_awesome_mosaic', label:'Auto-arrange', run:() => { this.setState({ nodePos:{} }); this.toastWithId('event-generated-event-source-5257-toast-0', 'Steps arranged left to right by call order'); } },
         { icon:'align_horizontal_left', label:'Align left', run:() => { const p = {}; NODES.forEach(n => { p[n.id] = { x:40, y:(s.nodePos[n.id] || n).y }; }); this.setState({ nodePos:p }); } },
         { icon:'vertical_distribute', label:'Distribute', run:() => { const p = {}; NODES.forEach((n, i) => { p[n.id] = { x:(s.nodePos[n.id] || n).x, y:20 + i * 66 }; }); this.setState({ nodePos:p }); } },
-        { icon:'fit_screen', label:'Fit to view', run:() => { this.set('zoom', 100); this.toast('Zoom reset and canvas centred'); } },
-        { icon:'undo', label:'Undo layout', run:() => { this.setState({ nodePos:{} }); this.toast('Layout reverted'); } }
+        { icon:'fit_screen', label:'Fit to view', run:() => { this.set('zoom', 100); this.toastWithId('event-generated-event-source-5260-toast-0', 'Zoom reset and canvas centred'); } },
+        { icon:'undo', label:'Undo layout', run:() => { this.setState({ nodePos:{} }); this.toastWithId('event-generated-event-source-5261-toast-0', 'Layout reverted'); } }
       ],
       edgeRows:s.edgeList.map((e, i) => ({
         from:NODES.find(n => n.id === e[0]).title, to:NODES.find(n => n.id === e[1]).title,
@@ -5271,7 +5297,7 @@ class ConsoleShell extends DCLogic {
       canvasPosition:s.fullscreen ? 'fixed' : 'static',
       canvasInset:s.fullscreen ? '0' : 'auto',
       canvasZ:s.fullscreen ? 94 : 'auto',
-      toggleFullscreen:() => { this.set('fullscreen', !s.fullscreen); this.toast(s.fullscreen ? 'Editor restored' : 'Full-screen editor — press the button again or Esc to exit'); },
+      toggleFullscreen:() => { this.set('fullscreen', !s.fullscreen); this.toastWithId('event-generated-event-source-5274-toast-0', s.fullscreen ? 'Editor restored' : 'Full-screen editor — press the button again or Esc to exit'); },
       fsIcon:s.fullscreen ? 'fullscreen_exit' : 'fullscreen',
       // Placed offset from whatever step is currently selected -- the same addedNodes +
       // nodeSeq mechanism "Insert condition before" already uses -- rather than a toast
@@ -5283,7 +5309,7 @@ class ConsoleShell extends DCLogic {
         const seq = (s.nodeSeq || 0) + 1;
         const node = { id:'added-' + seq, x:(at ? at.x + 40 : 40), y:(at ? at.y + 40 : 40), icon:p.icon, title:p.label, detail:p.label + ' — configure this step' };
         this.setState({ addedNodes:(s.addedNodes || []).concat([node]), nodeSeq:seq, nodeId:node.id });
-        this.fire(p.label + ' step added', node.title + ' is on the canvas, ready to wire in.');
+        this.fireWithId('event-generated-event-source-5286-fire-0', p.label + ' step added', node.title + ' is on the canvas, ready to wire in.');
       } })),
       nodeTitle:node.title, nodeApp:node.detail.split('\n')[0],
       nodeCtls:(NODE_CTLS[node.id] || []).map(c => Object.assign(this.buildCtl(c), { narrow:true })),
@@ -5312,7 +5338,7 @@ class ConsoleShell extends DCLogic {
         // that can really load a row supplies its own handler; the rest say plainly that
         // they cannot rather than claiming they did.
         pick:() => { if (this.onPickRow) { this.onPickRow(r[0]); return; }
-          this.toast(r[0] + ' cannot be loaded into the editor on this screen yet'); },
+          this.toastWithId('event-generated-event-source-5315-toast-0', r[0] + ' cannot be loaded into the editor on this screen yet'); },
         rnd:this.rnd(80 + tbl.rows.indexOf(r)),
         bg:sel.indexOf(r[0]) >= 0 ? '#1D2A22' : 'transparent',
         border:sel.indexOf(r[0]) >= 0 ? '#82D9A5' : '#8B938C',
@@ -5454,6 +5480,25 @@ class ConsoleShell extends DCLogic {
           .map(x => { const b = this.buildCtl(x); if (x.kind === 'segmented' && (x.options || []).length > 2) b.narrow = true; return b; })
       })),
 
+      tabSearchOpen:s.tabSearchOpen,
+      tabSearchScope:s.tabSearchScope,
+      tabSearchGroupName:(s.groups.find(g => g.id === s.tabSearchGroupId) || { name:'this group' }).name,
+      tabSearchScopes:[
+        { id:'strip', label:'Current strip', pick:() => this.setState({ tabSearchOpen:true, tabSearchScope:'strip', tabSearchReturn:'tab-search-strip' }) },
+        { id:'group', label:'Inside group', pick:() => this.setState({ tabSearchOpen:true, tabSearchScope:'group', tabSearchReturn:'tab-search-group-' + s.tabSearchGroupId }) },
+        { id:'groups', label:'Group names', pick:() => this.setState({ tabSearchOpen:true, tabSearchScope:'groups', tabSearchReturn:'tab-search-groups' }) },
+        { id:'master', label:'All open tabs', pick:() => this.setState({ tabSearchOpen:true, tabSearchScope:'master', tabSearchReturn:'tab-search-master' }) }
+      ],
+      tabSearchQuery:(() => { const p = s.tabSearchScope === 'strip' ? 'stripTabSearch' : s.tabSearchScope === 'group' ? 'groupTabSearch' : s.tabSearchScope === 'groups' ? 'groupNameSearch' : 'masterTabSearch'; return s[p + 'Query']; })(),
+      tabSearchRegex:(() => { const p = s.tabSearchScope === 'strip' ? 'stripTabSearch' : s.tabSearchScope === 'group' ? 'groupTabSearch' : s.tabSearchScope === 'groups' ? 'groupNameSearch' : 'masterTabSearch'; return s[p + 'Regex']; })(),
+      tabSearchFlags:(() => { const p = s.tabSearchScope === 'strip' ? 'stripTabSearch' : s.tabSearchScope === 'group' ? 'groupTabSearch' : s.tabSearchScope === 'groups' ? 'groupNameSearch' : 'masterTabSearch'; return s[p + 'Flags']; })(),
+      closeTabSearch:() => { this.set('tabSearchOpen', false); const el = document.getElementById(s.tabSearchReturn); if (el) el.focus(); },
+      openTabSearch:(scope, groupId) => this.setState({ tabSearchOpen:true, tabSearchScope:scope, tabSearchGroupId:groupId || '', tabSearchReturn:'tab-search-' + scope }),
+      onTabSearchQuery:(e) => this.set((s.tabSearchScope === 'strip' ? 'stripTabSearch' : s.tabSearchScope === 'group' ? 'groupTabSearch' : s.tabSearchScope === 'groups' ? 'groupNameSearch' : 'masterTabSearch') + 'Query', e.target.value),
+      toggleTabSearchRegex:() => { const p = s.tabSearchScope === 'strip' ? 'stripTabSearch' : s.tabSearchScope === 'group' ? 'groupTabSearch' : s.tabSearchScope === 'groups' ? 'groupNameSearch' : 'masterTabSearch'; this.set(p + 'Regex', !s[p + 'Regex']); },
+      openTabSearchRegexBuilder:() => this.setState({ regexOpen:true, regexTarget:'nav', regexX:'34%', regexY:'150px' }),
+      tabSearchResults:(() => { const scope=s.tabSearchScope, p=scope === 'strip' ? 'stripTabSearch' : scope === 'group' ? 'groupTabSearch' : scope === 'groups' ? 'groupNameSearch' : 'masterTabSearch', q=s[p + 'Query'] || ''; let hit=(text) => text.toLowerCase().includes(String(q).toLowerCase()); if (s[p + 'Regex'] && q) { try { const re=new RegExp(q, s[p + 'Flags'] || 'i'); hit=(text) => re.test(text); } catch { return []; } } const groupFor=(key) => s.groups.find(g => g.tabs.indexOf(key) >= 0); if (scope === 'groups') return s.groups.filter(g => hit(g.name)).map(g => ({ key:g.tabs[0] || 'dash', label:g.name, context:'Group · ' + g.tabs.length + ' tabs', groupId:g.id })); const keys=scope === 'group' ? ((s.groups.find(g => g.id === s.tabSearchGroupId) || { tabs:[] }).tabs) : s.tabs; return keys.filter(key => hit(s.tabNames[key] || (SCREENS[key] ? SCREENS[key].title : key))).map(key => { const g=groupFor(key); return { key, label:s.tabNames[key] || (SCREENS[key] ? SCREENS[key].title : key), context:(scope === 'master' ? 'Main window · ' : 'Current strip · ') + (g ? g.name : 'Ungrouped') + (s.pinned.indexOf(key) >= 0 ? ' · Pinned' : ''), groupId:g ? g.id : '' }; }); })(),
+      activateTabSearch:(r) => { const key=r.key; this.setState({ tabSearchOpen:false, tabSearchRevealTab:key, screen:key, railId:SCREENS[key] ? SCREENS[key].rail : s.railId }, () => { const el=document.getElementById('tab-' + key); if (el) el.focus(); }); },
       tabGroups:s.groups.map(g => ({
         name:g.name, colour:g.colour, count:g.tabs.length + '', bg:'#141A15',
         chevron:g.collapsed ? 'chevron_right' : 'expand_more',
@@ -5469,10 +5514,10 @@ class ConsoleShell extends DCLogic {
         if (key.indexOf('group:') === 0) {
           const id = key.slice(6);
           this.setState(st => ({ groups:st.groups.map(g => g.id === id ? Object.assign({}, g, { name:st.renameValue }) : g), renameOpen:false }));
-          return this.toast('Group renamed');
+          return this.toastWithId('event-generated-event-source-5472-toast-0', 'Group renamed');
         }
         this.setState(st => ({ tabNames:Object.assign({}, st.tabNames, { [key]:st.renameValue }), renameOpen:false }));
-        this.toast('Tab renamed');
+        this.toastWithId('event-generated-event-source-5475-toast-0', 'Tab renamed');
       },
       cancelRename:() => this.set('renameOpen', false),
       tabColourOpen:s.tabColourOpen,
@@ -5544,24 +5589,25 @@ class ConsoleShell extends DCLogic {
       })(),
       applyTabFilter:() => {
         if (s.tabFilterMode === 'colour') {
-          if (!s.tabFilterColour) return this.toast('Pick a colour first');
-          const keep = s.tabs.filter(k => (s.tabColours[k] || 'none') !== s.tabFilterColour);
+          if (!s.tabFilterColour) return this.toastWithId('event-generated-event-source-5547-toast-0', 'Pick a colour first');
+          const keep = s.tabs.filter(k => s.pinned.indexOf(k) >= 0 || (s.tabColours[k] || 'none') !== s.tabFilterColour);
           this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash'), tabFilterOpen:false });
-          return this.toast('Closed every tab of that colour');
+          return this.toastWithId('event-generated-event-source-5550-toast-0', 'Closed every tab of that colour');
         }
         const q = (s.tabFilterText || (s.patterns.nav || []).join('')).toLowerCase();
         const keep = s.tabs.filter(k => {
+          if (s.pinned.indexOf(k) >= 0) return true;
           const label = (s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k)).toLowerCase();
           let hit = q ? label.indexOf(q) >= 0 : false;
           try { if (q) hit = new RegExp(q, 'i').test(label); } catch (e) {}
           return s.tabFilterMode === 'not' ? hit : !hit;
         });
         this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep.indexOf(s.screen) >= 0 ? s.screen : (keep[0] || 'dash'), tabFilterOpen:false });
-        this.toast((s.tabs.length - (keep.length || 1)) + ' tabs closed');
+        this.toastWithId('event-generated-event-source-5560-toast-0', (s.tabs.length - (keep.length || 1)) + ' tabs closed');
       },
       closeTabFilter:() => this.set('tabFilterOpen', false),
       closeTabColour:() => this.set('tabColourOpen', false),
-      tabs:s.tabs.filter(k => { const g = s.groups.find(x => x.tabs.indexOf(k) >= 0); return !(g && (g.collapsed || g.hidden)); }).map((k) => {
+      tabs:s.tabs.filter(k => { const g = s.groups.find(x => x.tabs.indexOf(k) >= 0); return !(g && (g.collapsed || g.hidden) && s.tabSearchRevealTab !== k); }).map((k) => {
         const i = s.tabs.indexOf(k);
         return {
         label:s.tabNames[k] || (SCREENS[k] ? SCREENS[k].title : k), icon:SCREENS[k] ? SCREENS[k].icon : 'tab',
@@ -5588,7 +5634,7 @@ class ConsoleShell extends DCLogic {
           if (existing) groups = s.groups.map(g => g === existing ? Object.assign({}, g, { tabs:g.tabs.concat([dragged]) }) : g);
           else groups = s.groups.concat([{ id:'g' + Date.now(), name:'New group', colour:s.tabColours[target] || '#8AB4F8', collapsed:false, tabs:[target, dragged] }]);
           this.setState({ groups, tabDrag:-1, tabOver:-1 });
-          this.fire('Grouped', dragged + ' and ' + target + ' are now one tab group.');
+          this.fireWithId('event-generated-event-source-5591-fire-0', 'Grouped', dragged + ' and ' + target + ' are now one tab group.');
         },
         on:k === s.screen, off:k !== s.screen, pinned:s.pinned.indexOf(k) >= 0,
         id:'tab-' + k, tabIndex:k === s.screen ? 0 : -1,
@@ -5609,7 +5655,10 @@ class ConsoleShell extends DCLogic {
       activeTabId:'tab-' + s.screen,
       tabsKeyDown:(e) => {
         const key = e.key;
-        if (key !== 'ArrowRight' && key !== 'ArrowLeft' && key !== 'Home' && key !== 'End') return;
+        const vertical = s.dock === 'left' || s.dock === 'right';
+        const forward = vertical ? 'ArrowDown' : 'ArrowRight';
+        const back = vertical ? 'ArrowUp' : 'ArrowLeft';
+        if (key !== forward && key !== back && key !== 'Home' && key !== 'End') return;
         e.preventDefault();
         const list = Array.prototype.slice.call(e.currentTarget.querySelectorAll('[role="tab"]'));
         if (!list.length) return;
@@ -5617,18 +5666,24 @@ class ConsoleShell extends DCLogic {
         let next;
         if (key === 'Home') next = 0;
         else if (key === 'End') next = list.length - 1;
-        else { const delta = key === 'ArrowRight' ? 1 : -1; next = ((current >= 0 ? current : 0) + delta + list.length) % list.length; }
+        else { const delta = key === forward ? 1 : -1; next = ((current >= 0 ? current : 0) + delta + list.length) % list.length; }
         const target = list[next];
         if (target) { target.focus(); target.click(); }
       },
+      tabSearchPrefix:(scope) => scope === 'strip' ? 'stripTabSearch' : scope === 'group' ? 'groupTabSearch' : scope === 'groups' ? 'groupNameSearch' : 'masterTabSearch',
+      tabSearchValue:(kind) => s[(s.tabSearchScope === 'strip' ? 'stripTabSearch' : s.tabSearchScope === 'group' ? 'groupTabSearch' : s.tabSearchScope === 'groups' ? 'groupNameSearch' : 'masterTabSearch') + kind],
+      setTabSearchValue:(kind, value) => this.set((s.tabSearchScope === 'strip' ? 'stripTabSearch' : s.tabSearchScope === 'group' ? 'groupTabSearch' : s.tabSearchScope === 'groups' ? 'groupNameSearch' : 'masterTabSearch') + kind, value),
+      openTabSearch:(scope, groupId = '') => this.setState({ tabSearchOpen:true, tabSearchScope:scope, tabSearchGroupId:groupId, tabSearchReturn:scope === 'group' ? 'tab-search-group-' + groupId : 'tab-search-' + scope }),
+      tabSearchResults:() => { const scope = s.tabSearchScope, prefix = scope === 'strip' ? 'stripTabSearch' : scope === 'group' ? 'groupTabSearch' : scope === 'groups' ? 'groupNameSearch' : 'masterTabSearch', q = s[prefix + 'Query'] || '', regex = !!s[prefix + 'Regex'], flags = s[prefix + 'Flags'] || 'i'; let matcher = (text) => text.toLowerCase().includes(String(q).toLowerCase()); if (regex && q) { try { const re = new RegExp(q, flags); matcher = (text) => re.test(text); } catch { return []; } } const groupFor = (key) => s.groups.find(g => g.tabs.indexOf(key) >= 0); if (scope === 'groups') return s.groups.filter(g => matcher(g.name)).map(g => ({ key:g.tabs[0] || 'dash', label:g.name, context:'Group · ' + g.tabs.length + ' tabs', groupId:g.id })); const keys = scope === 'group' ? ((s.groups.find(g => g.id === s.tabSearchGroupId) || { tabs:[] }).tabs) : s.tabs; return keys.filter(key => matcher(s.tabNames[key] || (SCREENS[key] ? SCREENS[key].title : key))).map(key => { const g = groupFor(key); return { key, label:s.tabNames[key] || (SCREENS[key] ? SCREENS[key].title : key), context:(scope === 'master' ? 'Main window · ' : 'Current strip · ') + (g ? g.name : 'Ungrouped') + (s.pinned.indexOf(key) >= 0 ? ' · Pinned' : ''), groupId:g ? g.id : '' }; }); },
+      activateTabSearch:(result) => { const key = result.key; this.setState({ tabSearchOpen:false, tabSearchRevealTab:key, screen:key, railId:SCREENS[key] ? SCREENS[key].rail : s.railId }, () => { const el = document.getElementById('tab-' + key); if (el) el.focus(); }); },
       newTab:() => { const next = ORDER.find(k => s.tabs.indexOf(k) < 0) || 'dash'; this.setState({ tabs:s.tabs.concat([next]), screen:next, railId:SCREENS[next].rail }); },
       dockOpts:[
         { label:'Rail on the left', icon:'dock_to_right', v:'left' },
         { label:'Rail on the right', icon:'dock_to_left', v:'right' },
         { label:'Rail on top', icon:'dock_to_bottom', v:'top' },
-        { label:'Compact rail', icon:'width_normal', v:'compact' }
-      ].map(d => ({ label:d.label, icon:d.icon, on:s.dock === d.v, off:s.dock !== d.v, pick:() => { this.set('dock', d.v); this.toast('Docked ' + d.label.toLowerCase()); } })),
-      dockDirection:s.dock === 'right' ? 'row-reverse' : (s.dock === 'top' ? 'column' : 'row'),
+        { label:'Rail on the bottom', icon:'dock_to_top', v:'bottom' }
+      ].map(d => ({ label:d.label, icon:d.icon, on:s.dock === d.v, off:s.dock !== d.v, pick:() => { this.set('dock', d.v); this.toastWithId('event-generated-event-source-5630-toast-0', 'Docked ' + d.label.toLowerCase()); } })),
+      dockDirection:s.dock === 'right' ? 'row-reverse' : (s.dock === 'top' ? 'column' : (s.dock === 'bottom' ? 'column-reverse' : 'row')),
       isCustomise:s.screen === 'customise',
       funLevel:(() => { const l = this.v('chaos_level', 2); return String(l); })(),
       funName:['Bank','Polite','Balanced','Playful','Unhinged'][this.v('chaos_level', 2)],
@@ -5651,20 +5706,20 @@ class ConsoleShell extends DCLogic {
       funKnobFg:this.v('chaos_level', 2) > 0 ? '#9FF7C4' : '#8FA394',
       funKnobAnim:this.v('chaos_level', 2) > 2 ? 'm3Wiggle 1.6s ease-in-out infinite' : 'none',
       funLabelFg:this.v('chaos_level', 2) > 0 ? '#00391F' : '#9FF7C4',
-      toggleFun:() => { const on = this.v('chaos_level', 2) > 0; this.setVal({ id:'chaos_level', label:'Chaos level' }, on ? 0 : 3); if (!on) this.fire('Fun restored', 'Level 3. Brace yourself.'); },
-      maxFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { chaos_level:4, fun_random:true, fun_confetti:300, fun_copy:'Comedian', th_rainbow:true, fun_random_scope:['Colour','Radius','Shadow','Type weight','Size','Rotation','Entrance animation'], fun_random_strength:100, fun_random_reroll:true }) })); this.fire('MAXIMUM FUN', 'Every element now has its own random look, rerolling as you go.'); },
-      zeroFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { chaos_level:0, fun_random:false, th_rainbow:false, fun_confetti:0, fun_copy:'Terse' }) })); this.toast('Fun disabled. The console is now a spreadsheet with opinions.'); },
-      toggleRandom:() => { const on = this.v('fun_random', false); this.setVal({ id:'fun_random', label:'Random appearance for every element', kind:'switch' }, !on); if (!on) this.fire('Randomised', 'Every element just got its own look.'); },
+      toggleFun:() => { const on = this.v('chaos_level', 2) > 0; this.setVal({ id:'chaos_level', label:'Chaos level' }, on ? 0 : 3); if (!on) this.fireWithId('event-generated-event-source-5654-fire-0', 'Fun restored', 'Level 3. Brace yourself.'); },
+      maxFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { chaos_level:4, fun_random:true, fun_confetti:300, fun_copy:'Comedian', th_rainbow:true, fun_random_scope:['Colour','Radius','Shadow','Type weight','Size','Rotation','Entrance animation'], fun_random_strength:100, fun_random_reroll:true }) })); this.fireWithId('event-generated-event-source-5655-fire-0', 'MAXIMUM FUN', 'Every element now has its own random look, rerolling as you go.'); },
+      zeroFun:() => { this.setState(st => ({ values:Object.assign({}, st.values, { chaos_level:0, fun_random:false, th_rainbow:false, fun_confetti:0, fun_copy:'Terse' }) })); this.toastWithId('event-generated-event-source-5656-toast-0', 'Fun disabled. The console is now a spreadsheet with opinions.'); },
+      toggleRandom:() => { const on = this.v('fun_random', false); this.setVal({ id:'fun_random', label:'Random appearance for every element', kind:'switch' }, !on); if (!on) this.fireWithId('event-generated-event-source-5657-fire-0', 'Randomised', 'Every element just got its own look.'); },
       rndBtnBg:this.v('fun_random', false) ? '#1B4D33' : 'rgba(0,0,0,.24)',
       rndBtnBorder:this.v('fun_random', false) ? '#9FF7C4' : 'rgba(159,247,196,.3)',
       rndTrack:this.v('fun_random', false) ? '#9FF7C4' : '#414942',
       rndJustify:this.v('fun_random', false) ? 'flex-end' : 'flex-start',
       rndKnob:this.v('fun_random', false) ? '#00391F' : '#8B938C',
       rndFg:this.v('fun_random', false) ? '#9FF7C4' : '#DFF3E5',
-      rerollNow:() => { this.setState(st => ({ rndNonce:st.rndNonce + 1 })); this.toast('Rerolled — every element has a new look'); },
+      rerollNow:() => { this.setState(st => ({ rndNonce:st.rndNonce + 1 })); this.toastWithId('event-generated-event-source-5664-toast-0', 'Rerolled — every element has a new look'); },
       isServers:sc.kind === 'servers', isArcade:sc.kind === 'arcade', isTrunkAuth:sc.kind === 'trunkauth', isHistory:sc.kind === 'history',
       branchName:s.branch, commitCount:s.commits.length + ' commits',
-      branches:['main', 'hardening', 'lab'].map(b => ({ label:b, on:s.branch === b, off:s.branch !== b, pick:() => { this.set('branch', b); this.toast('Checked out ' + b); } })),
+      branches:['main', 'hardening', 'lab'].map(b => ({ label:b, on:s.branch === b, off:s.branch !== b, pick:() => { this.set('branch', b); this.toastWithId('event-generated-event-source-5667-toast-0', 'Checked out ' + b); } })),
       histFilters:['All', 'pjsip.conf', 'queues.conf', 'This screen'].map(f => ({ label:f, on:s.histFilter === f, off:s.histFilter !== f, pick:() => this.set('histFilter', f) })),
       // "New branch" and "Export bundle" used to claim they had done exactly that. The
       // real local history behind this screen (control-plane/local-history.ts) is an
@@ -5672,11 +5727,11 @@ class ConsoleShell extends DCLogic {
       // no bundle export. Rather than invent either, these two say plainly they are not
       // built yet: dimmed, with a tooltip and an honest toast naming what is missing.
       histActions:[
-        { icon:'add_circle', label:'Commit now', fg:'#C4CBC2', hint:'', run:() => this.fire('Committed', 'Working tree is clean.') },
-        { icon:'call_split', label:'New branch', fg:'#778078', hint:'Not built yet: this history is a straight append-only log, with no branch checkout behind it.', run:() => this.toast('Branching is not built yet — this history is a straight append-only log with no branch checkout') },
-        { icon:'sell', label:'Tag this state', fg:'#C4CBC2', hint:'', run:() => this.fire('Tagged', 'You can restore to this exact point later.') },
+        { icon:'add_circle', label:'Commit now', fg:'#C4CBC2', hint:'', run:() => this.fireWithId('event-generated-event-source-5675-fire-0', 'Committed', 'Working tree is clean.') },
+        { icon:'call_split', label:'New branch', fg:'#778078', hint:'Not built yet: this history is a straight append-only log, with no branch checkout behind it.', run:() => this.toastWithId('event-generated-event-source-5676-toast-0', 'Branching is not built yet — this history is a straight append-only log with no branch checkout') },
+        { icon:'sell', label:'Tag this state', fg:'#C4CBC2', hint:'', run:() => this.fireWithId('event-generated-event-source-5677-fire-0', 'Tagged', 'You can restore to this exact point later.') },
                 { icon:'search', label:'Search history', fg:'#C4CBC2', hint:'', run:() => this.setState({ regexOpen:true, regexTarget:'nav', regexX:'40%', regexY:'160px' }) },
-        { icon:'download', label:'Export bundle', fg:'#778078', hint:'Not built yet: nothing here writes a git bundle file to disk.', run:() => this.toast('Bundle export is not built yet — nothing was written to disk') }
+        { icon:'download', label:'Export bundle', fg:'#778078', hint:'Not built yet: nothing here writes a git bundle file to disk.', run:() => this.toastWithId('event-generated-event-source-5679-toast-0', 'Bundle export is not built yet — nothing was written to disk') }
       ],
       commitRows:s.commits.filter(c => s.histFilter === 'All' || (s.histFilter === 'This screen' ? c.screen === s.screen : c.file === s.histFilter)).map(c => ({
         sha:c.sha, tag:c.tag, hasTag:!!c.tag,
@@ -5707,12 +5762,12 @@ class ConsoleShell extends DCLogic {
         // commit -- rather than a toast claiming a revert that touched no state at all.
         { icon:'undo', label:'Revert just this option', bg:'#262B26', fg:'#9FF7C4', hint:'', run:() => {
           const c = s.commits.find(x => x.sha === s.histSel) || s.commits[0];
-          if (!c) { this.toast('Nothing selected to revert'); return; }
+          if (!c) { this.toastWithId('event-generated-event-source-5710-toast-0', 'Nothing selected to revert'); return; }
           this.setVal({ id:c.key, label:c.label }, c.from);
         } },
         { icon:'content_copy', label:'Copy diff', bg:'#262B26', fg:'#9FF7C4', hint:'', run:() => this.hostAction('copy', { what:'diff', text:S(v.diffText) }) },
         // Same gap as "New branch" above: this history has no branch-checkout behind it.
-        { icon:'call_split', label:'Branch from here', bg:'#262B26', fg:'#778078', hint:'Not built yet: this history is a straight append-only log, with no branch checkout behind it.', run:() => this.toast('Branching is not built yet — this history is a straight append-only log with no branch checkout') }
+        { icon:'call_split', label:'Branch from here', bg:'#262B26', fg:'#778078', hint:'Not built yet: this history is a straight append-only log, with no branch checkout behind it.', run:() => this.toastWithId('event-generated-event-source-5715-toast-0', 'Branching is not built yet — this history is a straight append-only log with no branch checkout') }
       ],
       blameRows:s.commits.slice(0, 5).map(c => ({ sha:c.sha, what:c.file + ' · ' + c.label, who:c.author })),
       compareLabel:s.histCompare.length === 2 ? ('Comparing ' + s.histCompare[0] + ' with ' + s.histCompare[1] + ' — 1 file, 1 option differs.') : 'Pick two commits with the compare buttons to see everything that differs between them.',
@@ -5730,7 +5785,7 @@ class ConsoleShell extends DCLogic {
         // "sent" was never true. Defer and the YES/NO answer are both real state changes;
         // this one says plainly it cannot reach the partner yet, rather than claiming it did.
         askHint:'Not built yet: nothing here can message ' + r.partner + '. Defer the request or answer it directly.',
-        ask:() => this.toast('Nothing here can message ' + r.partner + ' yet — defer this request or answer it directly'),
+        ask:() => this.toastWithId('event-generated-event-source-5733-toast-0', 'Nothing here can message ' + r.partner + ' yet — defer this request or answer it directly'),
         defer:() => this.setState({ authAnswers:Object.assign({}, s.authAnswers, { [r.id]:'Deferred' }) })
       })),
       authHistory:AUTH_REQS.filter(r => s.authAnswers[r.id] === 'YES' || s.authAnswers[r.id] === 'NO').map(r => ({
@@ -5744,7 +5799,7 @@ class ConsoleShell extends DCLogic {
       // Same gap as "Ask for detail" above: there is no composer here and no channel to a
       // partner. "Composing a request — pick the partner..." implied a composer was about
       // to open; none does, so this now says plainly that it does not exist yet.
-      newAuthRequest:() => this.toast('A request composer is not built yet — there is no channel to a partner from this console'),
+      newAuthRequest:() => this.toastWithId('event-generated-event-source-5747-toast-0', 'A request composer is not built yet — there is no channel to a partner from this console'),
       credits:s.credits,
       games:GAMES.map(g => ({ icon:g.icon, name:g.name, blurb:g.blurb, reward:'+' + g.reward + ' credits', on:s.game === g.id, off:s.game !== g.id, pick:() => { this.stopGameNow(); this.setState({ game:g.id, gameScore:0 }); } })),
       gameTitle:(GAMES.find(g => g.id === s.game) || GAMES[0]).name,
@@ -5765,8 +5820,8 @@ class ConsoleShell extends DCLogic {
         if (s.dtmfShow) return;
         const inp = s.dtmfIn.concat([k]);
         const ok = s.dtmfSeq[inp.length - 1] === k;
-        if (!ok) { this.setState({ dtmfIn:[], gameScore:Math.max(0, s.gameScore - 5) }); return this.toast('Wrong tone — sequence restarts'); }
-        if (inp.length === s.dtmfSeq.length) { const nxt = s.dtmfSeq.concat([String(Math.floor(Math.random() * 9) + 1)]); this.setState({ gameScore:s.gameScore + 15, dtmfSeq:nxt, dtmfIn:[], dtmfShow:true }); this.fire('Correct', 'Longer sequence incoming.'); setTimeout(() => this.setState({ dtmfShow:false }), 1400); }
+        if (!ok) { this.setState({ dtmfIn:[], gameScore:Math.max(0, s.gameScore - 5) }); return this.toastWithId('event-generated-event-source-5768-toast-0', 'Wrong tone — sequence restarts'); }
+        if (inp.length === s.dtmfSeq.length) { const nxt = s.dtmfSeq.concat([String(Math.floor(Math.random() * 9) + 1)]); this.setState({ gameScore:s.gameScore + 15, dtmfSeq:nxt, dtmfIn:[], dtmfShow:true }); this.fireWithId('event-generated-event-source-5769-fire-0', 'Correct', 'Longer sequence incoming.'); setTimeout(() => this.setState({ dtmfShow:false }), 1400); }
         else this.setState({ dtmfIn:inp });
       } })),
       sortHint:'Lowest bandwidth at the top, then check your answer.',
@@ -5775,8 +5830,8 @@ class ConsoleShell extends DCLogic {
         down:() => { if (i === s.sortList.length - 1) return; const a = s.sortList.slice(); a[i] = a[i + 1]; a[i + 1] = x; this.set('sortList', a); } })),
       sortCheck:() => {
         const right = s.sortList.every((x, i) => x === CODEC_ORDER[i]);
-        if (right) { this.setState({ gameScore:s.gameScore + 40, sortList:CODEC_ORDER.slice().sort(() => Math.random() - 0.5) }); this.fire('Perfect order', '+40 points. Have another.'); }
-        else this.toast('Not quite — g729 is the smallest, opus the largest');
+        if (right) { this.setState({ gameScore:s.gameScore + 40, sortList:CODEC_ORDER.slice().sort(() => Math.random() - 0.5) }); this.fireWithId('event-generated-event-source-5778-fire-0', 'Perfect order', '+40 points. Have another.'); }
+        else this.toastWithId('event-generated-event-source-5779-toast-0', 'Not quite — g729 is the smallest, opus the largest');
       },
       matchTiles:(() => {
         const tiles = [];
@@ -5797,13 +5852,13 @@ class ConsoleShell extends DCLogic {
               if (prevPair === t.pair && prev[0] !== t.id[0]) {
                 const d = s.matchDone.concat([t.pair]);
                 this.setState({ matchDone:d, matchSel:'', gameScore:s.gameScore + 20 });
-                if (d.length === MATCH_PAIRS.length) this.fire('All six matched', 'You actually know what these do.');
-              } else { this.setState({ matchSel:'', gameScore:Math.max(0, s.gameScore - 3) }); this.toast('Not a pair'); }
+                if (d.length === MATCH_PAIRS.length) this.fireWithId('event-generated-event-source-5800-fire-0', 'All six matched', 'You actually know what these do.');
+              } else { this.setState({ matchSel:'', gameScore:Math.max(0, s.gameScore - 3) }); this.toastWithId('event-generated-event-source-5801-toast-0', 'Not a pair'); }
             } };
         });
       })(),
       spotLines:SPOT_LINES.map((l, i) => ({ text:l.t, bg:s.spotFound === i ? (l.bad ? '#005230' : '#4A1F1B') : 'transparent', fg:s.spotFound === i ? (l.bad ? '#9FF7C4' : '#FFB4AB') : '#C4CBC2',
-        pick:() => { if (l.bad) { this.setState({ spotFound:i, gameScore:s.gameScore + 30 }); this.fire('Found it', 'A desk phone should not sit in from-external.'); } else { this.setState({ spotFound:i, gameScore:Math.max(0, s.gameScore - 5) }); this.toast('That line is fine'); } } })),
+        pick:() => { if (l.bad) { this.setState({ spotFound:i, gameScore:s.gameScore + 30 }); this.fireWithId('event-generated-event-source-5806-fire-0', 'Found it', 'A desk phone should not sit in from-external.'); } else { this.setState({ spotFound:i, gameScore:Math.max(0, s.gameScore - 5) }); this.toastWithId('event-generated-event-source-5806-toast-0', 'That line is fine'); } } })),
       reflexTarget:s.reflexNum,
       reflexHint:'Tap the last digit of the number above.',
       reflexKeys:['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].map(k => ({ label:k, press:() => {
@@ -5821,12 +5876,12 @@ class ConsoleShell extends DCLogic {
             const g = GAMES.find(x => x.id === this.state.game) || GAMES[0];
             const won = this.state.gameScore >= 60 ? g.reward : Math.max(1, Math.round(g.reward / 2));
             this.setState({ gamePlaying:false, gameTime:0, gameCell:-1, credits:this.state.credits + won });
-            this.fire('+' + won + ' credits', 'Scored ' + this.state.gameScore + '. Spend them on skipping ceremonies.');
+            this.fireWithId('event-generated-event-source-5824-fire-0', '+' + won + ' credits', 'Scored ' + this.state.gameScore + '. Spend them on skipping ceremonies.');
           } else this.setState({ gameTime:t, gameCell:Math.floor(Math.random() * 15) });
         }, 900);
       },
       stopGame:() => this.stopGameNow(),
-      spendCredit:() => { if (s.credits < 1) return this.toast('No credits — win some in the arcade'); this.setState({ credits:s.credits - 1 }); this.fire('Ceremony skipped', 'One credit spent. ' + (s.credits - 1) + ' left.'); },
+      spendCredit:() => { if (s.credits < 1) return this.toastWithId('event-generated-event-source-5829-toast-0', 'No credits — win some in the arcade'); this.setState({ credits:s.credits - 1 }); this.fireWithId('event-generated-event-source-5829-fire-0', 'Ceremony skipped', 'One credit spent. ' + (s.credits - 1) + ' left.'); },
       oneClickPitch:s.oneClickMode === 'Funny'
         ? 'Press it. Walk away. Come back to a phone system that works, plus roughly forty jokes you did not ask for. It sets up the server, the phones, the queue, the certificates and the hardening, and it explains each step like you are five and slightly suspicious.'
         : 'Provisions the server, installs Asterisk, creates four extensions, one queue, TLS transports and a hardened access policy. Roughly seven seconds of work, then a production-shaped PBX.',
@@ -5851,7 +5906,7 @@ class ConsoleShell extends DCLogic {
           if (n >= ONE_CLICK_LOG.length) {
             clearInterval(this._oc);
             this.setState({ oneClickStep:n, oneClickRunning:false });
-            this.fire('It is alive', 'Four extensions, one queue, TLS everywhere. Try dialling 1001.');
+            this.fireWithId('event-generated-event-source-5854-fire-0', 'It is alive', 'Four extensions, one queue, TLS everywhere. Try dialling 1001.');
           } else this.setState({ oneClickStep:n });
         }, 780);
       },
@@ -5991,12 +6046,13 @@ class ConsoleShell extends DCLogic {
           const upd = (patch) => this.setState({ groups:s.groups.map(x => x.id === g.id ? Object.assign({}, x, patch) : x), ctxOpen:false, ctxSub:'' });
           return decorate([
             { icon:'edit', label:'Rename group…', hint:'F2', run:() => { close(); this.setState({ renameOpen:true, renameKey:'group:' + g.id, renameValue:g.name }); } },
+            { icon:'search', label:'Search this group…', hint:'⌃F', run:() => { close(); this.setState({ tabSearchOpen:true, tabSearchScope:'group', tabSearchGroupId:g.id, tabSearchReturn:'tab-search-group-' + g.id }); } },
             { icon:'palette', label:'Group colour', hint:'▸', sub:'gcolour' },
             { icon:'tune', label:'Group behaviour', hint:'▸', sub:'gbehave' },
             { icon:'tab', label:'Tabs in group', hint:'▸', sub:'gtabs' },
             { icon:'save', label:'Save & restore', hint:'▸', sub:'gsave' },
             { icon:'unfold_less', label:g.collapsed ? 'Expand group' : 'Collapse group', hint:'', run:() => upd({ collapsed:!g.collapsed }) },
-            { icon:'link_off', label:'Ungroup', hint:'', run:() => { close(); this.setState({ groups:s.groups.filter(x => x.id !== g.id) }); this.toast('Group dissolved — tabs kept'); } },
+            { icon:'link_off', label:'Ungroup', hint:'', run:() => { close(); this.setState({ groups:s.groups.filter(x => x.id !== g.id) }); this.toastWithId('event-generated-event-source-5999-toast-0', 'Group dissolved — tabs kept'); } },
             { icon:'close', label:'Close group and its tabs', hint:'', run:() => { close(); this.areYouSure('Close ' + g.name, 'Every tab in this group closes. Unsaved staged changes in them are discarded.', 3, () => { const keep = s.tabs.filter(t => g.tabs.indexOf(t) < 0); this.setState({ tabs:keep.length ? keep : ['dash'], screen:keep[0] || 'dash', groups:s.groups.filter(x => x.id !== g.id) }); }); } },
             { icon:'brush', label:'Edit group appearance…', hint:'⌃E', run:() => this.setState({ ctxOpen:false, appearOpen:true, appearTarget:'group · ' + g.name }) },
             { icon:'lock', label:'Lock this group…', hint:'⌃L', run:common[0].run }
@@ -6014,7 +6070,7 @@ class ConsoleShell extends DCLogic {
             { icon:'content_copy', label:'Duplicate tab', hint:'⌃D', run:() => { close(); this.setState({ tabs:s.tabs.concat([k]) }); } },
             { icon:'close', label:'Close tab', hint:'⌃W', run:() => { close(); const t = s.tabs.filter(x => x !== k); this.setState({ tabs:t.length ? t : ['dash'], screen:t[0] || 'dash' }); } },
             { icon:'save', label:'Export & import', hint:'▸', sub:'tabexport' },
-            { icon:'folder', label:'Group tabs by area', hint:'', run:() => { close(); const byRail = {}; s.tabs.forEach(t => { const r = (SCREENS[t] || {}).rail; if (r) { (byRail[r] = byRail[r] || []).push(t); } }); const made = Object.keys(byRail).filter(r => byRail[r].length > 1).map(r => ({ id:'area-' + r, name:((RAIL.filter(x => x.id === r)[0] || {}).groupLabel) || r, tabs:byRail[r], colour:'', collapsed:false })); if (made.length) { this.setState({ groups:made }); this.fire('Tabs grouped', made.length + ' group(s) by area.'); } else { this.fire('Nothing to group', 'No area has more than one tab open, and a group of one is just clutter.'); } } },
+            { icon:'folder', label:'Group tabs by area', hint:'', run:() => { close(); const byRail = {}; s.tabs.forEach(t => { const r = (SCREENS[t] || {}).rail; if (r) { (byRail[r] = byRail[r] || []).push(t); } }); const made = Object.keys(byRail).filter(r => byRail[r].length > 1).map(r => ({ id:'area-' + r, name:((RAIL.filter(x => x.id === r)[0] || {}).groupLabel) || r, tabs:byRail[r], colour:'', collapsed:false })); if (made.length) { this.setState({ groups:made }); this.fireWithId('event-generated-event-source-6017-fire-0', 'Tabs grouped', made.length + ' group(s) by area.'); } else { this.fireWithId('event-generated-event-source-6017-fire-1', 'Nothing to group', 'No area has more than one tab open, and a group of one is just clutter.'); } } },
             { icon:'dock_to_right', label:'Dock this tab right', hint:'', run:() => { close(); this.set('dock', 'right'); } },
             { icon:'lock', label:'Lock this tab…', hint:'⌃L', run:common[0].run }
           ]);
@@ -6086,9 +6142,9 @@ class ConsoleShell extends DCLogic {
           return decorate([
             { icon:'edit', label:'Edit this step…', hint:'↵', run:() => close() },
             { icon:'timeline', label:'Connect to…', hint:'C', run:() => { close(); this.addEdgeFrom(); } },
-            { icon:'content_copy', label:'Duplicate step', hint:'⌃D', run:() => { close(); const src = NODES.concat(s.addedNodes || []).filter(n => n.id === s.nodeId)[0]; if (!src) { this.fire('Nothing to duplicate', 'No step is selected.'); return; } const seq = (s.nodeSeq || 0) + 1; const copy = Object.assign({}, src, { id:'added-' + seq, title:src.title + ' (copy)', x:src.x + 40, y:src.y + 40 }); this.setState({ addedNodes:(s.addedNodes || []).concat([copy]), nodeSeq:seq, nodeId:copy.id }); this.fire('Step duplicated', copy.title + ' is on the canvas, offset from the original.'); } },
-            { icon:'call_split', label:'Insert condition before', hint:'', run:() => { close(); const at = NODES.concat(s.addedNodes || []).filter(n => n.id === s.nodeId)[0]; if (!at) { this.fire('Nowhere to insert', 'No step is selected.'); return; } const seq = (s.nodeSeq || 0) + 1; const node = { id:'added-' + seq, x:at.x, y:Math.max(0, at.y - 96), icon:'call_split', title:'New condition', detail:'GotoIf($[<condition>]?<true>:<false>)' }; this.setState({ addedNodes:(s.addedNodes || []).concat([node]), nodeSeq:seq, nodeId:node.id }); this.fire('Condition inserted', 'An empty condition is above ' + at.title + '. Fill it in to make it do something.'); } },
-            { icon:'delete', label:'Delete step', hint:'⌦', run:() => { close(); this.areYouSure('Delete this step', 'The step and its connections are removed from the dialplan.', 3, () => { const gone = (s.removedNodes || []).concat([s.nodeId]); this.setState({ removedNodes:gone }); this.fire('Step deleted', 'It is off the canvas, with its connections.'); }); } },
+            { icon:'content_copy', label:'Duplicate step', hint:'⌃D', run:() => { close(); const src = NODES.concat(s.addedNodes || []).filter(n => n.id === s.nodeId)[0]; if (!src) { this.fireWithId('event-generated-event-source-6089-fire-0', 'Nothing to duplicate', 'No step is selected.'); return; } const seq = (s.nodeSeq || 0) + 1; const copy = Object.assign({}, src, { id:'added-' + seq, title:src.title + ' (copy)', x:src.x + 40, y:src.y + 40 }); this.setState({ addedNodes:(s.addedNodes || []).concat([copy]), nodeSeq:seq, nodeId:copy.id }); this.fireWithId('event-generated-event-source-6089-fire-1', 'Step duplicated', copy.title + ' is on the canvas, offset from the original.'); } },
+            { icon:'call_split', label:'Insert condition before', hint:'', run:() => { close(); const at = NODES.concat(s.addedNodes || []).filter(n => n.id === s.nodeId)[0]; if (!at) { this.fireWithId('event-generated-event-source-6090-fire-0', 'Nowhere to insert', 'No step is selected.'); return; } const seq = (s.nodeSeq || 0) + 1; const node = { id:'added-' + seq, x:at.x, y:Math.max(0, at.y - 96), icon:'call_split', title:'New condition', detail:'GotoIf($[<condition>]?<true>:<false>)' }; this.setState({ addedNodes:(s.addedNodes || []).concat([node]), nodeSeq:seq, nodeId:node.id }); this.fireWithId('event-generated-event-source-6090-fire-1', 'Condition inserted', 'An empty condition is above ' + at.title + '. Fill it in to make it do something.'); } },
+            { icon:'delete', label:'Delete step', hint:'⌦', run:() => { close(); this.areYouSure('Delete this step', 'The step and its connections are removed from the dialplan.', 3, () => { const gone = (s.removedNodes || []).concat([s.nodeId]); this.setState({ removedNodes:gone }); this.fireWithId('event-generated-event-source-6091-fire-0', 'Step deleted', 'It is off the canvas, with its connections.'); }); } },
             common[0], common[1]
           ]);
         }
@@ -6109,11 +6165,11 @@ class ConsoleShell extends DCLogic {
             { icon:'checklist', label:'Select all rows', hint:'⌃A', run:() => { close(); this.set('selected', (sc.table ? sc.table.rows.map(r => r[0]) : [])); } }
           ]);
           if (s.ctxMenuId === 'View') return decorate([
-            { icon:'dock_to_left', label:'Dock tabs left', hint:'', run:() => { close(); this.set('dock', 'left'); this.toast('Docked left'); } },
-            { icon:'dock_to_right', label:'Dock tabs right', hint:'', run:() => { close(); this.set('dock', 'right'); this.toast('Docked right'); } },
-            { icon:'vertical_align_top', label:'Dock tabs top', hint:'', run:() => { close(); this.set('dock', 'top'); this.toast('Docked top'); } },
-            { icon:'vertical_align_bottom', label:'Dock tabs bottom', hint:'', run:() => { close(); this.set('dock', 'bottom'); this.toast('Docked bottom'); } },
-            { icon:'fullscreen', label:'Full-screen dialplan editor', hint:'', run:() => { close(); this.setState(st => ({ rndNonce:st.rndNonce + 1, screen:'canvas', railId:SCREENS.canvas.rail, fullscreen:true })); this.toast('Full-screen editor — press the button again or Esc to exit'); } },
+            { icon:'dock_to_left', label:'Dock tabs left', hint:'', run:() => { close(); this.set('dock', 'left'); this.toastWithId('event-generated-event-source-6112-toast-0', 'Docked left'); } },
+            { icon:'dock_to_right', label:'Dock tabs right', hint:'', run:() => { close(); this.set('dock', 'right'); this.toastWithId('event-generated-event-source-6113-toast-0', 'Docked right'); } },
+            { icon:'vertical_align_top', label:'Dock tabs top', hint:'', run:() => { close(); this.set('dock', 'top'); this.toastWithId('event-generated-event-source-6114-toast-0', 'Docked top'); } },
+            { icon:'vertical_align_bottom', label:'Dock tabs bottom', hint:'', run:() => { close(); this.set('dock', 'bottom'); this.toastWithId('event-generated-event-source-6115-toast-0', 'Docked bottom'); } },
+            { icon:'fullscreen', label:'Full-screen dialplan editor', hint:'', run:() => { close(); this.setState(st => ({ rndNonce:st.rndNonce + 1, screen:'canvas', railId:SCREENS.canvas.rail, fullscreen:true })); this.toastWithId('event-generated-event-source-6116-toast-0', 'Full-screen editor — press the button again or Esc to exit'); } },
             { icon:'search', label:'Toggle command palette', hint:'⌃⇧F', run:() => { close(); this.set('paletteOpen', !s.paletteOpen); } }
           ]);
           if (s.ctxMenuId === 'PBX') return decorate(QUICK_ACTIONS.map(q => ({ icon:q.icon, label:q.label, hint:'', run:() => { close(); this.ceremony(q.label, q.cmd); } })));
@@ -6206,12 +6262,12 @@ class ConsoleShell extends DCLogic {
         if (s.lockStep < 3) return this.set('lockStep', s.lockStep + 1);
         const needsPin = s.lockMethod.indexOf('PIN') >= 0;
         const needsPw = s.lockMethod.indexOf('Password') >= 0;
-        if (needsPin && s.pin.length < 4) return this.toast('Set at least a four-digit PIN first');
-        if (needsPw && (s.password || '').length < 4) return this.toast('Set a passphrase first');
+        if (needsPin && s.pin.length < 4) return this.toastWithId('event-generated-event-source-6209-toast-0', 'Set at least a four-digit PIN first');
+        if (needsPw && (s.password || '').length < 4) return this.toastWithId('event-generated-event-source-6210-toast-0', 'Set a passphrase first');
         const L = Object.assign({}, s.locks);
         L[s.lockKey] = { method:s.lockMethod, pin:s.pin, password:s.password, target:s.lockTarget };
         this.setState({ locks:L, lockOpen:false });
-        this.toast(s.lockTarget + ' is locked with ' + s.lockMethod + ' — the surface is now disabled');
+        this.toastWithId('event-generated-event-source-6214-toast-0', s.lockTarget + ' is locked with ' + s.lockMethod + ' — the surface is now disabled');
       },
       closeLock:() => this.set('lockOpen', false),
       // No secret is generated anywhere in this flow -- the "QR" above is a static
@@ -6220,7 +6276,7 @@ class ConsoleShell extends DCLogic {
       // happened. Real TOTP generation, a real QR and real verification are a standalone
       // feature (RFC 6238 secret + otpauth:// URI + code check); until that lands, this
       // says plainly that it has not.
-      pairAuth:() => this.toast('Authenticator pairing is not built yet — nothing was paired, and this method will not verify a code'),
+      pairAuth:() => this.toastWithId('event-generated-event-source-6223-toast-0', 'Authenticator pairing is not built yet — nothing was paired, and this method will not verify a code'),
 
       appearOpen:s.appearOpen, appearTarget:s.appearTarget,
       appearChrome:this.dockChrome('appear', '38%', '90px', 468).style,
@@ -6233,9 +6289,9 @@ class ConsoleShell extends DCLogic {
       hueStops:Array.from({ length:24 }, (_, i) => { const h = Math.round(i * 360 / 24); return { color:'hsl(' + h + ' 70% 55%)', label:h + '°', pick:() => this.setVal({ id:'ap_hue', label:'Hue' }, h) }; }),
       shadeStops:Array.from({ length:14 }, (_, i) => { const l = 6 + i * 6.8; return { color:'hsl(' + this.v('ap_hue', 148) + ' ' + this.v('ap_sat', 54) + '% ' + Math.round(l) + '%)', pick:() => this.setVal({ id:'ap_light', label:'Lightness' }, Math.round(l)) }; }),
       colorActions:[
-        { icon:'casino', label:'Surprise me', run:() => { this.setVal({ id:'ap_hue', label:'Hue' }, Math.floor(Math.random() * 360)); this.fire('Bold choice', 'Nobody will ever say it is boring.'); } },
+        { icon:'casino', label:'Surprise me', run:() => { this.setVal({ id:'ap_hue', label:'Hue' }, Math.floor(Math.random() * 360)); this.fireWithId('event-generated-event-source-6236-fire-0', 'Bold choice', 'Nobody will ever say it is boring.'); } },
         { icon:'gradient', label:'Rainbow it', run:() => this.setVal({ id:'ap_rainbow', label:'Rainbow fill', kind:'switch' }, true) },
-        { icon:'contrast', label:'Fix contrast', run:() => { this.setVal({ id:'ap_light', label:'Lightness' }, 72); this.toast('Lightness raised to meet contrast against the surface'); } },
+        { icon:'contrast', label:'Fix contrast', run:() => { this.setVal({ id:'ap_light', label:'Lightness' }, 72); this.toastWithId('event-generated-event-source-6238-toast-0', 'Lightness raised to meet contrast against the surface'); } },
         { icon:'colorize', label:'Pick from screen', run:() => this.hostAction('pick-colour', {}) }
       ],
       colorFormats:(() => { const h = this.v('ap_hue', 148), sa = this.v('ap_sat', 54), l = this.v('ap_light', 68);
@@ -6246,7 +6302,7 @@ class ConsoleShell extends DCLogic {
       appearActions:[
         { icon:'casino', label:'Randomise this element', run:() => this.randomAppearance(false) },
         { icon:'shuffle', label:'Randomise every element', run:() => this.randomAppearance(true) },
-        { icon:'restart_alt', label:'Reset', run:() => { this.setState({ values:{} }); this.toast('Appearance reset to the design system'); } },
+        { icon:'restart_alt', label:'Reset', run:() => { this.setState({ values:{} }); this.toastWithId('event-generated-event-source-6249-toast-0', 'Appearance reset to the design system'); } },
         { icon:'bookmark_add', label:'Save preset', run:() => this.hostAction('save', { bucket:'appearance-preset', name:'Appearance preset' }) },
         { icon:'download', label:'Export', run:() => this.hostAction('export-json', { subject:'appearance', name:'appearance', data:v.appearValues || s.values }) },
         { icon:'upload', label:'Import', run:() => this.hostAction('import-json', { subject:'appearance' }) }
@@ -6329,14 +6385,14 @@ class ConsoleShell extends DCLogic {
       sureProgress:s.sureHits + ' / ' + s.sureNeed,
       sureReady:s.sureHits >= s.sureNeed, sureLocked:s.sureHits < s.sureNeed,
       sureCells:Array.from({ length:8 }, (_, i) => ({ up:i === s.sureCell, down:i !== s.sureCell,
-        hit:() => { const h = this.state.sureHits + 1; this.setState({ sureHits:h, sureCell:h >= this.state.sureNeed ? -1 : Math.floor(Math.random() * 8) }); if (h >= this.state.sureNeed) this.toast('Yes unlocked — you are demonstrably awake'); } })),
+        hit:() => { const h = this.state.sureHits + 1; this.setState({ sureHits:h, sureCell:h >= this.state.sureNeed ? -1 : Math.floor(Math.random() * 8) }); if (h >= this.state.sureNeed) this.toastWithId('event-generated-event-source-6332-toast-0', 'Yes unlocked — you are demonstrably awake'); } })),
       closeSure:() => this.setState({ sureOpen:false, sureHits:0, sureCell:-1 }),
       sureYes:() => { const act = this.state.sureAction; this.setState({ sureOpen:false, sureHits:0, sureCell:-1 }); if (act) act(); },
       canSkip:s.credits > 0 && s.cStep < 4 && this.v('cr_enable', true),
-      skipCeremony:() => { clearInterval(this._mole); clearInterval(this._hold); this.setState({ credits:s.credits - 1, ceremonyOpen:false }); this.fire('Skipped', s.ceremonyCmd + ' ran on a credit. ' + (s.credits - 1) + ' left.'); },
+      skipCeremony:() => this.fireWithId('event-generated-event-source-6336-fire-0', 'Not run', 'No command executor is bound to this design preview.'),
       goArcade:() => this.setState({ railId:'app', screen:'arcade' }),
       cancelCeremony:() => { clearInterval(this._mole); clearInterval(this._hold); this.set('ceremonyOpen', false); },
-      executeCeremony:() => { clearInterval(this._mole); this.setState({ ceremonyOpen:false }); this.toast(s.ceremonyCmd + ' executed and attested'); },
+      executeCeremony:() => this.fireWithId('event-generated-event-source-6339-toast-0', 'Not run', 'No command executor is bound to this design preview.'),
 
       onboardFirst:s.onboardStep === 0,
       onboardOpen:s.onboardOpen, onboardIcon:ob.icon, onboardTitle:ob.t, onboardBody:ob.b,
@@ -6347,7 +6403,7 @@ class ConsoleShell extends DCLogic {
       notEasy:this.v('ob_ease', 'Super easy') !== 'Super easy',
       modeTitle:this.v('ob_ease', 'Super easy') === 'Guided' ? 'Guided — the questions that actually change something' : 'Every detail — nothing is chosen for you',
       modeBody:this.v('ob_ease', 'Super easy') === 'Guided' ? 'You answer the handful of questions that change how the system behaves, and settled defaults cover the rest. Press Next to begin; you can go back at any point.' : 'Every question is asked, including the ones most people never need, and nothing is filled in on your behalf. Press Next to begin.',
-      superEasy:() => { this.setState(st => ({ values:Object.assign({}, st.values, { ob_intent:'Deploy a new server', ob_ease:'Super easy', ob_phones:8, ob_menu:true, ob_hours:true, ob_tls:true }), onboardOpen:false, screen:'servers', railId:'app', oneClickMode:'Funny' })); this.fire('Super easy mode', 'Three defaults taken. Press the big button and walk away.'); },
+      superEasy:() => { this.setState(st => ({ values:Object.assign({}, st.values, { ob_intent:'Deploy a new server', ob_ease:'Super easy', ob_phones:8, ob_menu:true, ob_hours:true, ob_tls:true }), onboardOpen:false, screen:'servers', railId:'app', oneClickMode:'Funny' })); this.fireWithId('event-generated-event-source-6350-fire-0', 'Super easy mode', 'Three defaults taken. Press the big button and walk away.'); },
       onboardNext:() => this.setState(st => (st.onboardStep >= ONBOARD.length - 1
         ? { onboardOpen:false, tourOpen:st.values.ob_tour !== false, tourStep:0, screen:'servers', railId:'app' }
         : { onboardStep:st.onboardStep + 1 })),
@@ -6361,7 +6417,7 @@ class ConsoleShell extends DCLogic {
       endTour:() => this.set('tourOpen', false),
 
       toastOpen:s.toastOpen, toastText:s.toastText,
-      undoToast:() => { this.setState({ toastOpen:false }); this.toast('Change reverted'); }
+      undoToast:() => { this.setState({ toastOpen:false }); this.toastWithId('event-generated-event-source-6364-toast-0', 'Change reverted'); }
     };
   }
 }

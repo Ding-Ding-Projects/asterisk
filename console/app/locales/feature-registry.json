@@ -9,29 +9,34 @@
   ],
   "features": {
     "language-modes": {
-      "state": "localized",
+      "state": "partial",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
       "labels": [
         "Customise everything",
         "Language"
       ],
       "localizedLabels": [
-        "Customise everything",
+        "Customise everything"
+      ],
+      "untranslatedLabels": [
         "Language"
       ],
-      "untranslatedLabels": [],
       "note": "Every listed label has a Cantonese entry."
     },
     "funny-levels": {
       "state": "localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
       "labels": [
-        "Fun level (English)",
-        "Fun level (廣東話)"
+        "English funny level",
+        "Cantonese funny level",
+        "Reset English funny level",
+        "Reset Cantonese funny level"
       ],
       "localizedLabels": [
-        "Fun level (English)",
-        "Fun level (廣東話)"
+        "English funny level",
+        "Cantonese funny level",
+        "Reset English funny level",
+        "Reset Cantonese funny level"
       ],
       "untranslatedLabels": [],
       "note": "Every listed label has a Cantonese entry."
@@ -52,89 +57,69 @@
     },
     "school-mode": {
       "state": "localized",
-      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "mechanism": "console/app/renderer/src/school-mode.ts and the generated School mode settings group through the text boundary",
       "labels": [
         "School mode",
         "School mode name",
         "Set unlock credential",
         "Unlock School mode",
-        "School mode status",
-        "Unlock credential",
-        "Credential kind"
+        "School mode status"
       ],
       "localizedLabels": [
         "School mode",
         "School mode name",
         "Set unlock credential",
         "Unlock School mode",
-        "School mode status",
-        "Unlock credential",
-        "Credential kind"
+        "School mode status"
       ],
       "untranslatedLabels": [],
-      "note": "Every listed label has a Cantonese entry."
+      "note": "The desktop settings surface is localized through the shared renderer boundary."
     },
     "narration": {
       "state": "localized",
-      "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
+      "mechanism": "console/app/renderer/src/narration.ts and the generated Narration settings group through the text boundary",
       "labels": [
         "Narration",
         "Narrated language",
         "English voice",
         "Cantonese voice",
-        "Pitch"
+        "Choose automatically",
+        "Narration rate",
+        "Narration pitch",
+        "Screen reader active",
+        "Narration status"
       ],
       "localizedLabels": [
         "Narration",
         "Narrated language",
         "English voice",
         "Cantonese voice",
-        "Pitch"
+        "Choose automatically",
+        "Narration rate",
+        "Narration pitch",
+        "Screen reader active",
+        "Narration status"
       ],
       "untranslatedLabels": [],
-      "note": "Every listed label has a Cantonese entry."
+      "note": "The renderer boundary localizes the settings labels; platform voice names and language tags remain exact data."
     },
     "scheduled-settings": {
-      "state": "localized",
+      "state": "not-localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [
-        "Scheduled settings",
-        "What is in force now"
-      ],
-      "localizedLabels": [
-        "Scheduled settings",
-        "What is in force now"
-      ],
+      "labels": [],
+      "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "Every listed label has a Cantonese entry."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "external-settings-sources": {
-      "state": "localized",
+      "state": "not-localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [
-        "Settings sources",
-        "Source URL",
-        "Source kind",
-        "Home Assistant entity",
-        "Settings this source may set",
-        "Credential vault key",
-        "Add this source",
-        "Remove every source",
-        "Sources in effect"
-      ],
-      "localizedLabels": [
-        "Settings sources",
-        "Source URL",
-        "Source kind",
-        "Home Assistant entity",
-        "Settings this source may set",
-        "Credential vault key",
-        "Add this source",
-        "Remove every source",
-        "Sources in effect"
-      ],
+      "labels": [],
+      "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "Every listed label has a Cantonese entry."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "dim-sum-surprise": {
       "state": "not-localized",
@@ -218,24 +203,13 @@
       "note": "Every listed label has a Cantonese entry."
     },
     "app-logo-customization": {
-      "state": "localized",
+      "state": "not-localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [
-        "Console mark",
-        "Shipped mark",
-        "Your own picture",
-        "Back to the shipped mark",
-        "What is in use"
-      ],
-      "localizedLabels": [
-        "Console mark",
-        "Shipped mark",
-        "Your own picture",
-        "Back to the shipped mark",
-        "What is in use"
-      ],
+      "labels": [],
+      "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "Every listed label has a Cantonese entry."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "local-file-converter": {
       "state": "not-localized",
@@ -314,16 +288,13 @@
       "note": "Every listed label has a Cantonese entry."
     },
     "command-palette": {
-      "state": "localized",
+      "state": "not-localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [
-        "Find a screen or a setting"
-      ],
-      "localizedLabels": [
-        "Find a screen or a setting"
-      ],
+      "labels": [],
+      "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "The palette's own copy is one field label; every result it lists is a design label already translated by the row that owns it, so translating them here would be a second copy of the same string."
+      "note": "Implemented as partial, but it contributes no label to the compiled design, so there is no string for the catalog to key against. The boundary already reaches any copy it does render; this is a missing surface rather than a missing translation.",
+      "blockedBy": "no-label-surface"
     },
     "destructive-action-confirmation": {
       "state": "localized",
@@ -434,18 +405,13 @@
       "note": "Every listed label has a Cantonese entry."
     },
     "accessibility": {
-      "state": "localized",
+      "state": "not-localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [
-        "Readability",
-        "Contrast of the current accent"
-      ],
-      "localizedLabels": [
-        "Readability",
-        "Contrast of the current accent"
-      ],
+      "labels": [],
+      "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "Every listed label has a Cantonese entry."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "responsive-sizing": {
       "state": "localized",
@@ -551,7 +517,8 @@
         "Low stimulation",
         "Time awareness",
         "One thing at a time",
-        "Momentum"
+        "Momentum",
+        "Current next action"
       ],
       "localizedLabels": [
         "Attention",
@@ -559,10 +526,11 @@
         "Low stimulation",
         "Time awareness",
         "One thing at a time",
-        "Momentum"
+        "Momentum",
+        "Current next action"
       ],
       "untranslatedLabels": [],
-      "note": "Every listed label has a Cantonese entry."
+      "note": "Every listed label has a Cantonese entry, including the persisted next-action control."
     },
     "browser-extension-download-surfaces": {
       "state": "not-localized",
@@ -623,8 +591,8 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "Implemented as partial, and contributes no label to the compiled design because no surface consumes it yet. The boundary will reach its copy the moment one does; this is a missing surface rather than a missing translation.",
-      "blockedBy": "no-label-surface"
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "context-menu-shortcuts": {
       "state": "not-localized",
@@ -632,22 +600,17 @@
       "labels": [],
       "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "Implemented as partial, and contributes no label to the compiled design because no surface consumes it yet. The boundary will reach its copy the moment one does; this is a missing surface rather than a missing translation.",
-      "blockedBy": "no-label-surface"
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "long-operation-progress": {
-      "state": "localized",
+      "state": "not-localized",
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
-      "labels": [
-        "Deploy progress",
-        "Latest deploy step"
-      ],
-      "localizedLabels": [
-        "Deploy progress",
-        "Latest deploy step"
-      ],
+      "labels": [],
+      "localizedLabels": [],
       "untranslatedLabels": [],
-      "note": "The surface this feature now has -- the live deploy-progress line -- is translated. The module itself is still unconsumed for the reason its implementation row records, but the progress reporting it was meant to drive does exist and does render, so the labels are real."
+      "note": "Nothing to localize: this feature has no implementation on this surface, so it renders no copy at all. Localization here is blocked by the feature, not by the catalog, and translating it would mean inventing strings for a screen that does not exist.",
+      "blockedBy": "not-implemented"
     },
     "in-context-recovery": {
       "state": "localized",
@@ -659,7 +622,7 @@
         "Explain this…"
       ],
       "untranslatedLabels": [],
-      "note": "Every listed label has a Cantonese entry. The Explain-this affordance was already translated before the module landed. The per-failure recovery copy the module generates is not catalog-keyed, because it is composed per failure rather than being a fixed label -- localizing that means giving each failure kind its own entry, which is a different shape from every other row here and is worth doing deliberately rather than by pretending the labels already exist."
+      "note": "Every listed label has a Cantonese entry."
     },
     "provider-markup-rendering": {
       "state": "not-localized",
@@ -675,11 +638,41 @@
       "mechanism": "console/app/renderer/src/text-boundary.ts (the boundary `h` routes through) with console/app/renderer/src/locale-yue.ts (the catalog)",
       "labels": [
         "Push to mirror",
-        "History & git"
+        "History & git",
+        "Forge publishing",
+        "Refresh forge data",
+        "Search forge accounts",
+        "Search accounts",
+        "Add account",
+        "Re-authenticate",
+        "Cancel operation",
+        "Owner from provider data",
+        "Destination name",
+        "Source remote for fork",
+        "Local source folder for copy and push",
+        "Browse",
+        "Load personal and organization owners",
+        "Fork to selected owner",
+        "Copy and push to selected owner"
       ],
       "localizedLabels": [
         "Push to mirror",
-        "History & git"
+        "History & git",
+        "Forge publishing",
+        "Refresh forge data",
+        "Search forge accounts",
+        "Search accounts",
+        "Add account",
+        "Re-authenticate",
+        "Cancel operation",
+        "Owner from provider data",
+        "Destination name",
+        "Source remote for fork",
+        "Local source folder for copy and push",
+        "Browse",
+        "Load personal and organization owners",
+        "Fork to selected owner",
+        "Copy and push to selected owner"
       ],
       "untranslatedLabels": [],
       "note": "Every listed label has a Cantonese entry."
@@ -696,7 +689,7 @@
         "Not containing…"
       ],
       "untranslatedLabels": [],
-      "note": "Every listed label has a Cantonese entry. The filter-row labels were already translated before the module landed; the module adds the collapse and active-filter logic behind them and is not yet consumed, but the labels themselves do render."
+      "note": "Every listed label has a Cantonese entry."
     },
     "automatic-updates": {
       "state": "localized",

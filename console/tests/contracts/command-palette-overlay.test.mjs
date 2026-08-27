@@ -128,7 +128,7 @@ function declarationsTargeting(cssText, className) {
 /* --- every class App.tsx's hand-written renderer asks for, derived rather than restated --- */
 
 /**
- * Every kebab-case token inside a `class:` value in App.tsx. Kebab-case only (at least
+ * Every kebab-case token inside a `className:` value in App.tsx. Kebab-case only (at least
  * one hyphen) deliberately excludes bare JS identifiers picked up by a cruder scan --
  * `index`, `this`, `paletteRow` are all lowercase-letters-only or mixed-case and contain
  * no hyphen, so `/[a-z][a-z0-9]*(?:-[a-z0-9]+)+/` cannot match them, while
@@ -136,7 +136,7 @@ function declarationsTargeting(cssText, className) {
  */
 function handWrittenClasses(appSource) {
   const found = new Set();
-  for (const attr of appSource.matchAll(/\bclass:\s*(`[^`]*`|'[^']*'|"[^"]*")/g)) {
+  for (const attr of appSource.matchAll(/\bclassName:\s*(`[^`]*`|'[^']*'|"[^"]*")/g)) {
     for (const token of attr[1].matchAll(/[a-z][a-z0-9]*(?:-[a-z0-9]+)+/g)) found.add(token[0]);
   }
   return found;
@@ -146,6 +146,18 @@ test('the class scan itself finds something -- an empty result would make every 
   const used = handWrittenClasses(app);
   assert.ok(used.size > 0, 'handWrittenClasses() found no class tokens in App.tsx; the scan is broken');
   assert.ok(used.has('palette-scrim') && used.has('app-root'), 'the scan missed classes known to be there');
+});
+
+test('no direct React class prop survives in handwritten App.tsx', () => {
+  assert.doesNotMatch(app, /\{[^{}]*\bclass\s*:/,
+    'React DOM ignores `class`; handwritten App.tsx must use className exactly');
+});
+
+test('negative regression: one direct React class prop crosses the exact source boundary', () => {
+  const withBrokenProp = app.replace("className: 'palette-scrim'", "class: 'palette-scrim'");
+  assert.notEqual(withBrokenProp, app, 'the deliberate direct-prop mutation did not land');
+  assert.match(withBrokenProp, /\{[^{}]*\bclass\s*:/,
+    'the direct React class prop must be detected rather than passing on a descendant or substring');
 });
 
 test('every class the hand-written renderer asks for has a rule in styles.css', () => {
@@ -278,8 +290,8 @@ test('no separator character was inserted to fake the fix: the markup that alrea
   /* The label/context split was a styling gap, not a markup bug -- App.tsx already
    * renders two correct sibling spans. Confirms no middot or other delimiter text was
    * added to paper over it once the real fix (the rules above) landed. */
-  assert.match(app, /h\('span', \{ class: 'palette-label' \}, match\.entry\.label\)/);
-  assert.match(app, /h\('span', \{ class: 'palette-context' \}, match\.entry\.context\)/);
+  assert.match(app, /h\('span', \{ className: 'palette-label' \}, match\.entry\.label\)/);
+  assert.match(app, /h\('span', \{ className: 'palette-context' \}, match\.entry\.context\)/);
   assert.doesNotMatch(app, /palette-label[\s\S]{0,40}·/, 'a separator character was inserted near the label -- style with CSS instead');
 });
 

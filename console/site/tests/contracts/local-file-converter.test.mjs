@@ -39,6 +39,6 @@ test('there is no file-picker-driven converter surface, adapter registry, or cat
 });
 
 test('the registry records local-file-converter as absent, and the code agrees', () => {
-  assert.equal(registry.features['local-file-converter'].state, 'absent',
+  assert.equal(registry.features['local-file-converter'].status, 'absent',
     "the site's to*() functions are export formatting for existing data, not a general-purpose converter with an adapter registry and category catalogue -- \"absent\" is the honest state");
 });

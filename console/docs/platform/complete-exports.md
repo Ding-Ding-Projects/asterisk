@@ -14,11 +14,11 @@ Exports would be complete and, where the shape allows it, re-importable, rather 
 
 **Desktop application:** Not implemented. No list, record, or setting anywhere in the desktop application can currently be exported to a file.
 
-**Documentation website:** Partial. The site's settings page includes a placeholder export button that is not wired to produce a file yet.
+**Documentation website:** Implemented for current site-owned records. Documentation results and selected notifications use every suitable structured or tabular format. Shared site-state export includes every persisted setting and notification in JSON, and explicitly names omitted personal-vocabulary data, source metadata, and custom-logo bytes.
 
 ## Failure modes
 
-Where a chosen format cannot carry every field of a record, the intended behavior is to say so before the export runs rather than truncate silently afterward; the placeholder export button does not yet reach this decision point.
+Formats that cannot faithfully carry nested values are removed from the applicable picker, and remaining loss notes appear before export. Privacy-bound payloads are omitted only with an explicit field in the exported file describing the omission.
 
 ## Accessibility and localization
 

@@ -81,6 +81,6 @@ test('there is no crop/fit/background editor and no shipped preset gallery -- on
 });
 
 test('the registry records app-logo-customization as partial', () => {
-  assert.equal(registry.features['app-logo-customization'].state, 'partial',
+  assert.equal(registry.features['app-logo-customization'].status, 'partial',
     'a real, bounded, local-only upload and clear path exists, but no editor or preset gallery exists behind it');
 });

@@ -1,24 +1,4 @@
-/**
- * Contract: spoken narration.
- *
- * The registry note for this feature contradicts itself: it opens by saying `narration.ts`
- * "is never imported by App.tsx ... so it never runs inside the mounted application," then
- * appends "Wired 2026-08-24 with seven controls." Both halves are checked here against the
- * current source rather than trusted -- the honest answer turns out to be a third thing,
- * narrower than either half of the note.
- *
- * What IS wired: exactly seven settings controls (enabled, language, two voice pickers,
- * rate, pitch, status line), each routed through `applyNarrationControl`, persisted, and
- * reported back through `resolveVoiceStatus` -- including live re-enumeration of the
- * platform's voice list via the `voiceschanged` event, matching the module's own stated
- * reason for subscribing rather than reading once.
- *
- * What is NOT wired: the `Narrator` class -- the queue, the per-category cooldown, and the
- * actual call to `engine.speak(...)` -- is never imported or instantiated anywhere in
- * App.tsx. So today the app can report which voice WOULD speak Cantonese or English, and
- * persist a rate and pitch for it, but no application event ever reaches an `enqueue()`
- * call and nothing is ever spoken aloud. This file pins that gap explicitly.
- */
+/** Contract: the mounted narrator uses the current channel-based settings schema. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
@@ -26,112 +6,104 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const read = (p) => readFileSync(resolve(root, p), 'utf8').replace(/\r\n/g, '\n');
-const json = (p) => JSON.parse(read(p));
+const read = (path) => readFileSync(resolve(root, path), 'utf8').replace(/\r\n/g, '\n');
+const app = () => read('app/renderer/src/App.tsx');
+const narration = () => read('app/renderer/src/narration.ts');
+const design = () => read('app/renderer/src/generated/console.tsx');
 
-const MODULE = 'app/renderer/src/narration.ts';
-const APP = 'app/renderer/src/App.tsx';
-const DESIGN = 'app/renderer/src/generated/console.tsx';
-
-test('the registry state agrees with the note that has to justify it', () => {
-  /* This used to hardcode 'implemented'. A registry audit then corrected six rows to
-   * 'partial' -- their modules are imported but never called, wired at one end and
-   * consumed at neither -- and the hardcoded literal turned that correction into six
-   * failures. The test was pinning a claim that had become false, which is the opposite
-   * of what a guard is for.
-   *
-   * So it no longer asserts a fixed value. It asserts the row is internally honest: a
-   * state the validator defines, and a note long enough to say what is or is not wired.
-   * That stays true when the wiring lands and the row legitimately moves back up. */
-  const registry = json('app/feature-registry.json');
-  const row = registry.features['narration'];
-  assert.ok(row, 'the implementation registry has no row for narration');
-  assert.ok(['implemented', 'partial', 'absent'].includes(row.state),
-    `narration records an undefined state "${row.state}"`);
-  assert.ok(typeof row.note === 'string' && row.note.length > 40,
-    'narration records a state with no note explaining what is and is not wired');
-});
-
-test('default settings are off, with the documented default rate and pitch', () => {
-  const src = read(MODULE);
-  assert.match(
-    src,
-    /return \{ enabled: false, language: 'en', voices: \{\}, rate: DEFAULT_RATE, pitch: DEFAULT_PITCH \};/,
-  );
-  assert.match(src, /^export const DEFAULT_RATE = 1\.0;$/m);
-  assert.match(src, /^export const DEFAULT_PITCH = 1\.0;$/m);
+test('default narration is off and retains independent stable voice, rate, and pitch channels', () => {
+  const src = narration();
+  assert.match(src, /enabled: false,/);
+  assert.match(src, /language: 'en',/);
+  assert.match(src, /channels: \{/);
+  for (const language of ['en', 'zh']) {
+    assert.match(src, new RegExp(`${language}: \\{ rate: DEFAULT_RATE, pitch: DEFAULT_PITCH \\}`));
+  }
   assert.match(src, /^export const MIN_RATE = 0\.5;$/m);
   assert.match(src, /^export const MAX_RATE = 2\.0;$/m);
+  assert.match(src, /^export const MIN_PITCH = 0\.0;$/m);
+  assert.match(src, /^export const MAX_PITCH = 2\.0;$/m);
 });
 
-test('the Narrator class exists, queues, and would actually call the engine to speak', () => {
-  /* Establishes that the capability is real code, not a stub -- so the gap this file
-   * documents is genuinely "unwired", not "unimplemented". */
-  const src = read(MODULE);
-  assert.match(src, /^export class Narrator \{$/m);
-  assert.match(src, /enqueue\(category: string, text: string,/);
-  assert.match(src, /await this\.engine\.speak\(\{/);
+test('Narrator owns a serialized queue, error reporting, cooldown, quiet mode, and screen-reader yielding', () => {
+  const src = narration();
+  for (const needle of [
+    'private queue: QueueItem[] = [];',
+    'private speaking = false;',
+    'private lastError: string | undefined;',
+    'private readonly lastSpokenAtMs = new Map<string, number>();',
+    'setScreenReaderActive(active: boolean): void',
+    'setQuiet(quiet: boolean): void',
+    'if (this.suppressed()) return false;',
+    'if (!isError)',
+    'this.queue = this.queue.filter((item) => item.category !== category);',
+    'await this.engine.speak({',
+    'this.lastError = error instanceof Error ? error.message : String(error);',
+  ]) assert.ok(src.includes(needle), `missing narrator contract: ${needle}`);
 });
 
-test('exactly seven controls are declared in the compiled design for this feature', () => {
-  const design = read(DESIGN);
+test('each language resolves its chosen stable voice independently while retaining unavailable choices', () => {
+  const src = narration();
+  assert.match(src, /resolveVoiceStatus\(\n  language: 'en' \| 'zh',/);
+  assert.match(src, /chosenVoiceId: string \| undefined,/);
+  assert.match(src, /The chosen voice is not installed on this machine/);
+  assert.match(src, /while keeping the choice\./);
+  assert.match(src, /network-backed and will go quiet offline/);
+});
+
+test('the compiled surface declares exactly the seven narration controls owned by the mounted app', () => {
+  const src = design();
   const ids = ['nar_enabled', 'nar_language', 'nar_en_voice', 'nar_yue_voice', 'nar_rate', 'nar_pitch', 'nar_status'];
-  for (const id of ids) {
-    assert.match(design, new RegExp(`ctl\\('${id}',`), `expected control '${id}' in the compiled design`);
-  }
-  const count = [...design.matchAll(/ctl\('nar_\w+',/g)].length;
-  assert.equal(count, ids.length, `expected exactly ${ids.length} nar_* controls, found ${count}`);
+  for (const id of ids) assert.match(src, new RegExp(`ctl\\('${id}',`));
+  assert.equal([...src.matchAll(/ctl\('nar_\w+',/g)].length, ids.length);
 });
 
-test('App.tsx routes every one of the seven controls through applyNarrationControl', () => {
-  const app = read(APP);
-  const fn = app.match(/private applyNarrationControl\(id: string, value: unknown\): void \{[\s\S]*?\n  \}/);
-  assert.ok(fn, 'expected to find applyNarrationControl');
-  const body = fn[0];
+test('the mounted app routes controls into channels and immediately updates the actual narrator', () => {
+  const src = app();
+  const match = src.match(/private applyNarrationControl\(id: string, value: unknown\): void \{[\s\S]*?\n  \}/);
+  assert.ok(match, 'applyNarrationControl is missing');
+  const body = match[0];
   for (const id of ['nar_enabled', 'nar_language', 'nar_en_voice', 'nar_yue_voice', 'nar_rate', 'nar_pitch']) {
-    assert.match(body, new RegExp(`id === '${id}'`), `expected applyNarrationControl to handle '${id}'`);
+    assert.match(body, new RegExp(`id === '${id}'`));
   }
-  assert.match(app, /if \(action === 'narration-status'\) return this\.narrationStatusLine;/);
+  for (const needle of [
+    'next.channels.en.voiceId', 'next.channels.zh.voiceId',
+    'next.channels.en.rate', 'next.channels.zh.rate',
+    'next.channels.en.pitch', 'next.channels.zh.pitch',
+    'this.narrator.setSettings(next);',
+  ]) assert.ok(body.includes(needle), `missing live narrator update: ${needle}`);
 });
 
-test('voice enumeration subscribes to live changes rather than reading the list once', () => {
-  /* The module and the doc both say enumeration fills in late behind an event; this
-   * checks the app actually subscribes, not merely calls getVoices() once. The negative
-   * lookbehind refuses a line commented out with "// " immediately before the call --
-   * a bare substring match would still find that text inside a disabled line. */
-  const app = read(APP);
-  assert.match(app, /(?<!\/\/ )speech\.addEventListener\('voiceschanged', handler\);/);
-  assert.match(app, /(?<!\/\/ )speech\.removeEventListener\('voiceschanged', handler\);/);
+test('the app persists narration settings and restores the current schema before narration can run', () => {
+  const src = app();
+  assert.match(src, /private static readonly NARRATION_SETTING = 'console\.narration';/);
+  assert.match(src, /this\.durableStorage\.storage\.setItem\(App\.NARRATION_SETTING, JSON\.stringify\(next\)\);/);
+  assert.match(src, /private restoreNarration\(\): void \{/);
+  assert.match(src, /this\.narrator\.setSettings\(this\.narration\);/);
 });
 
-test('the stable voice identity is stored, and the display name is resolved separately', () => {
-  const app = read(APP);
-  assert.match(app, /private voiceIdByName\(name: string\): string \| undefined \{/);
-  assert.match(app, /next\.voices\.en = value === 'Choose automatically' \? undefined : this\.voiceIdByName\(value\);/);
+test('voice enumeration is live and its status source is the effective channel voice', () => {
+  const src = app();
+  assert.match(src, /speech\.addEventListener\('voiceschanged', handler\);/);
+  assert.match(src, /speech\.removeEventListener\('voiceschanged', handler\);/);
+  assert.match(src, /private voiceIdByName\(name: string\): string \| undefined \{/);
+  assert.match(src, /resolveVoiceStatus\(language, this\.narration\.channels\[language\]\.voiceId, this\.voices\)/);
 });
 
-test('App.tsx constructs a real Narrator rather than only its settings helpers', () => {
-  /* This replaces a pin that asserted the opposite. The narrator was fully built and
-   * fully tested in isolation, and App.tsx imported only the settings helpers -- so seven
-   * controls persisted a choice, a status line described it, and the console never spoke a
-   * word no matter what the user set. The pin was right to exist and right to fire when
-   * the wiring landed. */
-  const app = read(APP);
-  assert.match(app, /^\s*DEFAULT_PITCH,.*\bNarrator,$/m,
-    'App.tsx no longer imports the Narrator class alongside the settings helpers');
-  assert.match(app, /new Narrator\(/, 'App.tsx no longer constructs a Narrator, so nothing can speak');
+test('the mounted notification path is narrated and preserves the styled message plus error priority', () => {
+  const src = app();
+  assert.match(src, /private narratedFire = \(title: string, body: string, isError = false\): void => \{/);
+  assert.match(src, /const styled = styledDialog\(/);
+  assert.match(src, /this\.narrator\.enqueue\('notification', styled\.body \? `\$\{styled\.heading\}\. \$\{styled\.body\}` : styled\.heading, \{ isError \}\);/);
+  assert.match(src, /this\.baseFire\(styled\.heading, styled\.body\);/);
 });
 
-test('something in App.tsx actually enqueues an utterance', () => {
-  /* The assertion this file exists to make, inverted now that the gap is closed. Anchored
-   * on the call shape rather than the bare word, so a mention in a comment can neither
-   * satisfy nor defeat it -- which is how the original was written, and why it held. */
-  const app = read(APP);
-  assert.match(app, /\.enqueue\(/, 'nothing in App.tsx enqueues an utterance, so nothing is ever spoken');
-});
-
-test('the status line honestly reports what is happening, not that narration is speaking', () => {
-  const app = read(APP);
-  assert.match(app, /private narrationStatusLine = 'Not started\.';/);
-  assert.match(app, /this\.narrationStatusLine = 'This computer has no speech synthesis, so nothing can be spoken\.';/);
+test('the registry row remains an honest unresolved inventory task until the central inventory materializer records proof', () => {
+  const registry = JSON.parse(read('app/feature-registry.json'));
+  const row = registry.features.narration;
+  assert.ok(row, 'missing narration registry row');
+  assert.equal(row.status, 'partial');
+  assert.equal(row.note, 'Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.');
+  assert.deepEqual(row.implementation.paths, []);
+  assert.equal(row.builtInteraction.state, 'not-run');
 });

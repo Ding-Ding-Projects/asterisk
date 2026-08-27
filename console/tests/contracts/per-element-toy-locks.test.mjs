@@ -40,7 +40,7 @@ test('the registry row is internally honest: a defined state with a note explain
   const registry = json('app/feature-registry.json');
   const row = registry.features['per-element-toy-locks'];
   assert.ok(row, 'the implementation registry has no row for per-element-toy-locks');
-  assert.ok(['implemented', 'partial', 'absent'].includes(row.state), `undefined state "${row.state}"`);
+  assert.ok(['implemented', 'partial', 'absent'].includes(row.status), `undefined state "${row.status}"`);
   assert.ok(typeof row.note === 'string' && row.note.length > 40, 'no note explaining what is and is not wired');
 });
 

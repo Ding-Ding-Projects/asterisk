@@ -184,7 +184,8 @@ export function createServerModeHandler(options: ServerModeOptions) {
         const limited = limiter.check(key);
         if (limited) return sendJson(res, 429, { error: 'RATE_LIMITED', message: limited });
 
-        const account = accountStore.read();
+        const state = accountStore.readState();
+        const account = state.state === 'valid' ? state.record : undefined;
         const body = await readJsonBody(req) as { username?: string; password?: string };
         const username = String(body.username ?? '');
         const password = String(body.password ?? '');

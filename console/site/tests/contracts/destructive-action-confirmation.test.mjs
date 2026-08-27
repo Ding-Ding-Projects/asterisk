@@ -94,6 +94,6 @@ test('performing the reset also records a local-history entry, so the reset itse
 });
 
 test('the registry records destructive-action-confirmation as partial, and the code agrees', () => {
-  assert.equal(registry.features['destructive-action-confirmation'].state, 'partial',
+  assert.equal(registry.features['destructive-action-confirmation'].status, 'partial',
     'the canonical two-key-plus-slider ceremony now exists for "Reset settings," but "Dismiss selected" notifications still uses its own lighter plain confirm/cancel gate -- the two destructive actions on this site are not held to one mechanism, so "partial" (not "implemented") is the honest state');
 });

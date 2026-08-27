@@ -29,7 +29,9 @@ const registry = json('feature-registry.json');
 
 test('the site feature registry carries a row for language-modes', () => {
   assert.ok(registry.features['language-modes'], 'no language-modes row in site/feature-registry.json');
-  assert.equal(typeof registry.features['language-modes'].state, 'string');
+  assert.equal(typeof registry.features['language-modes'].status, 'string');
+  assert.equal(Object.hasOwn(registry.features['language-modes'], 'state'), false,
+    'schema v2 must expose feature status through status, not retain the legacy state field');
 });
 
 test('settings.html exposes exactly the three language modes the switch implements', () => {
@@ -79,6 +81,6 @@ test('primary navigation labels are plain, untranslated English with no data-cop
 });
 
 test('the registry honestly records "partial" rather than rounding up or down', () => {
-  assert.equal(registry.features['language-modes'].state, 'partial',
+  assert.equal(registry.features['language-modes'].status, 'partial',
     'the language-mode switch is real (wired select, applyLanguage, data-copy hooks) but does not cover the page\'s static text -- "partial" is the honest state, not "implemented" or "absent"');
 });

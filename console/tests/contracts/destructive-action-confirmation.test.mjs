@@ -25,8 +25,10 @@ const MODULE = 'app/renderer/src/ceremony.ts';
 const APP = 'app/renderer/src/App.tsx';
 const DESIGN = 'app/renderer/src/generated/console.tsx';
 const RUNTIME = 'app/renderer/src/dc-runtime.tsx';
+const DESIGN_SOURCE = '../design/Asterisk Console M3.dc.html';
+const EXTENSION = 'scripts/extend-pbx-m3.mjs';
 
-test('the registry state agrees with the note that has to justify it', () => {
+test('the registry status agrees with the note that has to justify it', () => {
   /* This used to hardcode 'implemented'. A registry audit then corrected six rows to
    * 'partial' -- their modules are imported but never called, wired at one end and
    * consumed at neither -- and the hardcoded literal turned that correction into six
@@ -39,40 +41,49 @@ test('the registry state agrees with the note that has to justify it', () => {
   const registry = json('app/feature-registry.json');
   const row = registry.features['destructive-action-confirmation'];
   assert.ok(row, 'the implementation registry has no row for destructive-action-confirmation');
-  assert.ok(['implemented', 'partial', 'absent'].includes(row.state),
-    `destructive-action-confirmation records an undefined state "${row.state}"`);
+  assert.ok(['implemented', 'implemented-unverified', 'partial', 'absent'].includes(row.status),
+    `destructive-action-confirmation records an undefined status "${row.status}"`);
   assert.ok(typeof row.note === 'string' && row.note.length > 40,
     'destructive-action-confirmation records a state with no note explaining what is and is not wired');
 });
 
 test('runCeremonyCommand refuses to run an empty command, an unconnected target, or a missing bridge', () => {
   const src = read(MODULE);
-  assert.match(src, /if \(command\.length === 0\) \{\n\s*options\.fire\(NOT_RUN, 'No command was attached to this confirmation, so nothing was run\.'\);/);
-  assert.match(src, /if \(!options\.connected\) \{\n\s*options\.fire\(NOT_RUN, `No target is connected, so "\$\{command\}" was not run\.`\);/);
-  assert.match(src, /if \(!response\) \{\n\s*options\.fire\(NOT_RUN, `The desktop bridge is unavailable, so "\$\{command\}" was not run\.`\);/);
+  assert.match(src, /if \(command\.length === 0\) \{\n\s*options\.fire\(NOT_RUN, 'No command was attached to this confirmation, so nothing was run\.', 'error'\);/);
+  assert.match(src, /if \(!options\.connected\) \{\n\s*options\.fire\(NOT_RUN, `No target is connected, so "\$\{command\}" was not run\.`, 'warning'\);/);
+  assert.match(src, /if \(!response\) \{\n\s*options\.fire\(NOT_RUN, `The desktop bridge is unavailable, so "\$\{command\}" was not run\.`, 'error'\);/);
 });
 
 test('a refusal from the control plane is reported by name, not softened into a success', () => {
   const src = read(MODULE);
-  assert.match(src, /if \(!response\.ok\) \{\n\s*options\.fire\(NOT_RUN, response\.message \?\? `"\$\{command\}" was not run\.`\);/);
+  assert.match(src, /if \(!response\.ok\) \{\n\s*options\.fire\(NOT_RUN, response\.message \?\? `"\$\{command\}" was not run\.`, 'error'\);/);
 });
 
-test('KNOWN DEFECT SURVIVING IN THE DESIGN: the compiled template still contains a fake executeCeremony', () => {
-  /* This documents that the old bug is not merely fixed by deletion -- it is fixed by
-   * being shadowed, so the fake code is still sitting right there in generated/console.tsx.
-   * Recorded so the override chain proven below is understood as necessary, not decorative. */
+test('the immutable design source retains its original handlers while the post-compiler extension removes fake command-success claims', () => {
+  const original = read(DESIGN_SOURCE);
   const design = read(DESIGN);
-  assert.match(
-    design,
-    /executeCeremony:\(\) => \{ clearInterval\(this\._mole\); this\.setState\(\{ ceremonyOpen:false \}\); this\.toast\(s\.ceremonyCmd \+ ' executed and attested'\); \},/,
-  );
+  const extension = read(EXTENSION);
+  assert.match(original, /executeCeremony:\(\) => \{ clearInterval\(this\._mole\); this\.setState\(\{ ceremonyOpen:false \}\); this\.toast\(s\.ceremonyCmd \+ ' executed and attested'\); \},/,
+    'the original design-reference source must not be edited for desktop wiring');
+  assert.match(original, /skipCeremony:\(\) => \{ clearInterval\(this\._mole\); clearInterval\(this\._hold\); this\.setState\(\{ credits:s\.credits - 1, ceremonyOpen:false \}\); this\.fire\('Skipped', s\.ceremonyCmd \+ ' ran on a credit\. ' \+ \(s\.credits - 1\) \+ ' left\.'\); \},/,
+    'the original design-reference source must not be edited for credit wiring');
+  assert.match(extension, /const ceremonyFallbacks = \[/,
+    'the sanctioned post-compiler extension must own ceremony fallback repair');
+  assert.match(extension, /expected exactly one \$\{name\}/,
+    'the extension must fail closed when a ceremony source marker drifts');
+  assert.doesNotMatch(design, /executed and attested/);
+  assert.doesNotMatch(design, /ran on a credit/);
+  assert.match(design, /executeCeremony:\(\) => this\.fireWithId\('[^']+', 'Not run', 'No command executor is bound to this design preview\.'\),/);
+  assert.match(design, /skipCeremony:\(\) => this\.fireWithId\('[^']+', 'Not run', 'No command executor is bound to this design preview\.'\),/);
 });
 
-test('App.tsx overrides renderVals, calls super, and sets a real executeCeremony afterward', () => {
+test('App.tsx overrides renderVals, calls super, and routes both execution paths through the typed control-plane handler', () => {
   const app = read(APP);
-  const fn = app.match(/renderVals\(\) \{[\s\S]*?const values = super\.renderVals\(\) as Record<string, unknown>;[\s\S]*?executeCeremony: \(\) => \{[\s\S]*?void runCeremonyCommand\(\{/);
-  assert.ok(fn, 'expected renderVals to call super.renderVals() and then set a real executeCeremony that calls runCeremonyCommand');
-  assert.match(fn[0], /return \{\n\s*\.\.\.values,/, 'expected the returned object to spread the base values before overriding executeCeremony');
+  const fn = app.match(/renderVals\(\) \{[\s\S]*?const values = super\.renderVals\(\) as Record<string, unknown>;[\s\S]*?executeCeremony: \(\) => \{ void this\.executeCeremonyCommand\(\); \},[\s\S]*?skipCeremony: \(\) => \{/);
+  assert.ok(fn, 'expected renderVals to call super.renderVals() and route execute and credit paths through executeCeremonyCommand');
+  assert.match(fn[0], /return \{\n\s*\.\.\.values,/, 'expected the returned object to spread the base values before overriding ceremony handlers');
+  assert.match(app, /private async executeCeremonyCommand\(\): Promise<boolean> \{[\s\S]*?await runCeremonyCommand\(\{/,
+    'the renderer-to-control-plane ceremony method is missing');
 });
 
 test('the real executeCeremony passes the actual connection state and server id through, not a stub', () => {
@@ -80,6 +91,12 @@ test('the real executeCeremony passes the actual connection state and server id 
   assert.match(app, /connected: this\.target\.connected,/);
   assert.match(app, /serverId: this\.target\.id,/);
   assert.match(app, /request: \(action, extra\) => this\.request\(action, extra\) as Promise<CeremonyResponse \| undefined>,/);
+});
+
+test('a confirmation credit is spent only after the same real execution route reports success', () => {
+  const app = read(APP);
+  assert.match(app, /skipCeremony: \(\) => \{\n\s*void this\.executeCeremonyCommand\(\)\.then\(\(ok\) => \{\n\s*if \(!ok\) return;/);
+  assert.match(app, /this\.setState\(\(st: \{ credits\?: number \}\) => \(\{ credits: Math\.max\(0, \(st\.credits \?\? 0\) - 1\) \}\)\);/);
 });
 
 test('object-spread ordering genuinely means a later key wins over an earlier spread, proven independently of the app', () => {

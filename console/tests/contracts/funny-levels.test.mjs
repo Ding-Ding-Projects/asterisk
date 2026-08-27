@@ -50,8 +50,8 @@ test('the registry state agrees with the note that has to justify it', () => {
   const registry = json('app/feature-registry.json');
   const row = registry.features['funny-levels'];
   assert.ok(row, 'the implementation registry has no row for funny-levels');
-  assert.ok(['implemented', 'partial', 'absent'].includes(row.state),
-    `funny-levels records an undefined state "${row.state}"`);
+  assert.ok(['implemented', 'partial', 'absent'].includes(row.status),
+    `funny-levels records an undefined state "${row.status}"`);
   assert.ok(typeof row.note === 'string' && row.note.length > 40,
     'funny-levels records a state with no note explaining what is and is not wired');
 });

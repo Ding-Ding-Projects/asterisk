@@ -116,6 +116,6 @@ test('the real parser has an honest empty result for empty/whitespace-only input
 });
 
 test('the registry records provider-markup-rendering as implemented, and the code agrees', () => {
-  assert.equal(registry.features['provider-markup-rendering'].state, 'implemented',
+  assert.equal(registry.features['provider-markup-rendering'].status, 'implemented-unverified',
     'a real, safe, shared Markdown renderer now exists and is wired to a real consumer (downloads.html release notes) with an honest empty state -- "implemented" is the honest state');
 });

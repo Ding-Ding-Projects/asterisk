@@ -236,6 +236,13 @@ export function downloadReady(s: UpdaterState, downloadedPath: string): UpdaterS
   return { ...s, state: 'ready', downloadedPath, lastError: undefined, revision: s.revision + 1 };
 }
 
+/** A failed Setup.exe launch is not a failed update check. The verified download stays
+ * privileged and retryable, while the renderer receives the concrete launch reason. */
+export function installerLaunchFailed(s: UpdaterState, reason: string): UpdaterState {
+  if (s.state !== 'ready' || !s.downloadedPath) return updateFailed(s, reason);
+  return { ...s, state: 'ready', lastError: reason, restartPending: false, revision: s.revision + 1 };
+}
+
 export function dismissedForNow(s: UpdaterState): UpdaterState {
   if (!s.resolved) return s;
   return { ...s, dismissedTag: s.resolved.tag, revision: s.revision + 1 };

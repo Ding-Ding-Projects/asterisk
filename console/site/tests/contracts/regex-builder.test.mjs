@@ -84,7 +84,7 @@ test('matched fields use their own independent regex, and unconfigured fields fa
 });
 
 test('the registry records regex-builder as implemented, and every fact above supports that', () => {
-  assert.equal(registry.features['regex-builder'].state, 'implemented',
+  assert.equal(registry.features['regex-builder'].status, 'implemented-unverified',
     'a real anchored, per-field, flag-aware regex engine with live preview exists in the shipped site -- "implemented" is the honest state');
 });
 

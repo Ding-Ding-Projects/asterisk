@@ -74,6 +74,6 @@ test('renderPalette() only indexes the six pages and the destination catalog, no
 });
 
 test('the registry records command-palette as partial, and that is still the honest state', () => {
-  assert.equal(registry.features['command-palette'].state, 'partial',
+  assert.equal(registry.features['command-palette'].status, 'partial',
     'the palette is real and keyboard-activated on every page, but only indexes pages and destinations -- "partial" is correct, even though the note\'s specific reasoning (an unconfirmed shortcut) is stale');
 });

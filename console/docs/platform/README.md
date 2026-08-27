@@ -47,8 +47,9 @@ The two surfaces referenced throughout are the desktop application (the installe
 - [Forge publishing](forge-publishing.md)
 - [Collapsible filters and statistics](collapsible-filters.md)
 - [Automatic updates](automatic-updates.md)
+- [Site history and delivery workspace](site-history-and-delivery.md)
 
 ## Exemptions
 
-Two further canonical features were considered for this product and deliberately excluded by the owner rather than left unbuilt by omission: an Ollama model-manager suite and a general local file converter. Neither shares a data path, a target, or a control surface with the rest of this console. The recorded reason for each exclusion lives in `console/inventories/exemptions.json`, not repeated here, so there is exactly one place that reason can drift out of date.
+The local file converter and Ollama suite are now present as separate local surfaces. The desktop routes are `desktop://console/#surface=converter` and `desktop://console/#surface=ollama`; the Pages equivalents are `converter.html` and `ollama.html`. Their current evidence is `implemented-unverified`: the converter catalog and PDF capability read are mounted through the control plane, while picker and queue mutations remain explicitly unavailable until their handlers are registered. The Ollama desktop client reports a typed bridge-unregistered state until its privileged dispatcher is mounted. Neither surface invents models, health, conversion output, or sample data.
 

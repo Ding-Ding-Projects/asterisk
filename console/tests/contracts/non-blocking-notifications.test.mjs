@@ -41,11 +41,10 @@
  * `Source` reports honestly which of the two primitives raised each entry --
  * 'notice' for `fire`, 'toast' for `toast` -- rather than inventing a specific
  * subsystem (pjsip, sync, ops...) the way the design's own sample rows did,
- * since neither primitive carries a real per-subsystem tag today. App.tsx's own
- * comment beside CONSOLE_SETTINGS still says as much: nt_levels has no per-toast
- * severity to filter
- * by, nt_quiet has no configured quiet-hours window, and nt_keep describes a
- * history this console does not implement yet.
+ * since neither primitive carries a real per-subsystem tag today. The real
+ * records also hold severity and a delivered/suppressed outcome, so low
+ * stimulation can suppress only explicit informational notices without hiding
+ * warnings or errors.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -64,7 +63,7 @@ test('the registry row is internally honest: a defined state with a note explain
   const registry = json('app/feature-registry.json');
   const row = registry.features['non-blocking-notifications'];
   assert.ok(row, 'the implementation registry has no row for non-blocking-notifications');
-  assert.ok(['implemented', 'partial', 'absent'].includes(row.state), `undefined state "${row.state}"`);
+  assert.ok(['implemented', 'partial', 'absent'].includes(row.status), `undefined state "${row.status}"`);
   assert.ok(typeof row.note === 'string' && row.note.length > 40, 'no note explaining what is and is not wired');
 });
 
@@ -108,10 +107,10 @@ test('FIXED 2026-08-26: the notification table is real -- App.tsx now overrides 
   assert.match(app, /id === 'notifications'\s*\n\s*\?\s*this\.notificationRows\(\)/u,
     'App.tsx no longer overrides the notifications screen rows with notificationRows() -- the mock table may have regressed');
   assert.match(app, /private notificationHistory:/u, 'the recorded notification history field is gone');
-  assert.match(app, /recordNotification\('toast', message\)/u,
-    'gatedToast no longer records every toast into notification history');
-  assert.match(app, /recordNotification\('notice', /u,
-    'narratedFire no longer records every fired notice into notification history');
+  assert.match(app, /recordNotification\('toast', message, severity, suppressed \? 'suppressed' : 'delivered'\)/u,
+    'gatedToast no longer records structured severity and outcome evidence');
+  assert.match(app, /recordNotification\('notice', message, severity, suppressed \? 'suppressed' : 'delivered'\)/u,
+    'narratedFire no longer records structured severity and outcome evidence');
 });
 
 test('"Mark all read" reaches a real handler, wired through the same generic table-add dispatch onAddServer/onAddAclRule/onAddApiUser already use', () => {
@@ -122,17 +121,17 @@ test('"Mark all read" reaches a real handler, wired through the same generic tab
   assert.match(app, /onMarkAllNotificationsRead = \(\): void => \{/u, 'App.tsx no longer defines onMarkAllNotificationsRead');
 });
 
-test("App.tsx's own comment confirms nt_levels, nt_quiet, and nt_keep are unimplemented intentions, not live filters", () => {
+test("App.tsx documents remaining notification settings without denying its low-stimulation severity path", () => {
   const app = read(APP);
-  assert.match(app, /nt_levels has no\s*\n?\s*\* per-toast severity to filter by/u,
-    'the nt_levels gap is no longer documented as unimplemented -- it may have been wired');
-  assert.match(app, /nt_quiet has no configured quiet-hours window/u,
-    'the nt_quiet gap is no longer documented as unimplemented -- it may have been wired');
+  assert.match(app, /explicit low-stimulation\s*\n?\s*\* severity filter below/u,
+    'the live low-stimulation severity filter is no longer documented');
+  assert.match(app, /nt_quiet have no user-configured filter\/window policy/u,
+    'the remaining nt_quiet gap is no longer documented honestly');
 });
 
 test('nt_toast and nt_sound are the two settings with a genuine live consumer', () => {
   const app = read(APP);
-  assert.match(app, /consoleSetting<boolean>\('nt_toast', true\) === false\) return;/u,
+  assert.match(app, /consoleSetting<boolean>\('nt_toast', true\) === false/u,
     'gatedToast no longer gates on nt_toast the way the comment describes');
   assert.match(app, /consoleSetting<boolean>\('nt_sound', false\) === true\) this\.playNotificationSound\(\);/u,
     'gatedToast no longer gates the notification sound on nt_sound');

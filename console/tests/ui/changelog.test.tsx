@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 import {
@@ -9,6 +12,7 @@ import {
   parseChangelogDetailed,
   search,
   searchDetailed,
+  searchDetailedBounded,
   toMarkdown,
   toPlainText,
   validateCommits,
@@ -19,6 +23,7 @@ const SHA_A = 'a'.repeat(40);
 const SHA_B = 'b'.repeat(40);
 const SHA_C = 'c'.repeat(40);
 const SHA_D = 'd'.repeat(40);
+const here = fileURLToPath(new URL('.', import.meta.url));
 
 // ---------------------------------------------------------------- parsing
 
@@ -135,19 +140,30 @@ test('plain-text search is the default and is case-insensitive', () => {
   assert.deepEqual(result.map((e) => e.version), ['2.0.0']);
 });
 
-test('regex search only applies when explicitly requested', () => {
+test('regex search only applies when explicitly requested and awaits bounded evaluation', async () => {
   const literalAsPlainText = search(ENTRIES, '^Repaired');
   assert.deepEqual(literalAsPlainText, []); // no literal caret in any text
 
-  const asRegex = search(ENTRIES, '^Repaired', { regex: true });
-  assert.deepEqual(asRegex.map((e) => e.version), ['3.0.0']);
+  const asRegex = await searchDetailedBounded(ENTRIES, '^Repaired', { regex: true });
+  // Node has no browser Worker. Regex mode is deliberately unavailable rather
+  // than falling back to same-thread evaluation.
+  assert.deepEqual(asRegex.entries, []);
+  assert.match(asRegex.error ?? '', /isolated regular-expression search is unavailable/iu);
 });
 
-test('an invalid regex is reported, never thrown', () => {
-  assert.doesNotThrow(() => searchDetailed(ENTRIES, '(unterminated', { regex: true }));
-  const result = searchDetailed(ENTRIES, '(unterminated', { regex: true });
+test('an invalid regex is reported by the bounded evaluator, never thrown', async () => {
+  await assert.doesNotReject(() => searchDetailedBounded(ENTRIES, '(unterminated', { regex: true }));
+  const result = await searchDetailedBounded(ENTRIES, '(unterminated', { regex: true });
   assert.equal(result.entries.length, 0);
   assert.ok(result.error && result.error.length > 0);
+});
+
+test('App routes changelog regex queries through bounded evaluation and rejects stale replies', () => {
+  const app = readFileSync(resolve(here, '../../app/renderer/src/App.tsx'), 'utf8');
+  assert.match(app, /searchDetailedBounded\(entries, query, \{ regex: true, flags, signal: abort\.signal \}\)/u);
+  assert.match(app, /generation !== this\.changelogSearchGeneration \|\| abort\.signal\.aborted/u);
+  assert.match(app, /setChangelogQuery: this\.updateChangelogQuery/u);
+  assert.match(app, /toggleChangelogRegex: this\.toggleChangelogRegex/u);
 });
 
 // ---------------------------------------------------------------- filterAndSearch composition
