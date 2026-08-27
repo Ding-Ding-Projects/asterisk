@@ -77,27 +77,75 @@ export const ATTENTION_MUTATION_HOOK_MARKERS: readonly AttentionMarker[] = [
 ];
 export interface AttentionMutationInventoryRow { readonly file:string; readonly line:number; readonly argument:string; readonly occurrence:number; readonly state:string; readonly clockEffect:AttentionClockEffect; }
 export const ATTENTION_MUTATION_INVENTORY: readonly AttentionMutationInventoryRow[] = [
-  /* The one App-side call site that exists. Every other `App.tsx` row below names a call
-   * this file does not contain -- that drift is the open inventory pass recorded on the
-   * roadmap, not something this row is part of. */
+  /* Fourteen of these fifteen rows named a call `App.tsx` did not contain, and the reason
+   * turned out to be worth more than the drift: the calls were not aspirational, they were
+   * LOST. `git show 83ec555d0:console/app/renderer/src/App.tsx` has every one of them, at
+   * the same handlers, and the consolidation merge that produced `246b2bc7a` dropped all
+   * fourteen while leaving this inventory behind as their only surviving record. That is
+   * the same accident, in the same merge, that took `onUserMutation` itself.
+   *
+   * They are restored, at the handlers they came from, and the line numbers here are
+   * re-measured against the current file rather than carried over. What each one costs
+   * when it is missing is concrete: adding a server, writing an endpoint, filing a ticket
+   * or pairing an authenticator would not reset the attention clock, so Momentum would
+   * prompt "nothing has changed here for 40 minutes" at somebody who had just done the
+   * most substantial thing this application does.
+   *
+   * One row is deliberately NOT restored, and its absence is the honest one. */
   { file: 'App.tsx', line: 1005, argument: "'set:' + key", occurrence: 1, state: 'canvasAndLayoutKeys', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 375, argument: "'attention-history-clear'", occurrence: 1, state: 'noticeHistory', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 899, argument: "'vocabulary-load'", occurrence: 1, state: 'vocabularyCache', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 912, argument: "'vocabulary-clear'", occurrence: 1, state: 'vocabularyCache', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 975, argument: "'support-ticket'", occurrence: 1, state: 'supportTickets', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 1105, argument: "'server-add'", occurrence: 1, state: 'servers', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 1118, argument: "'server-remove'", occurrence: 1, state: 'servers', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 1179, argument: "'onboarding-connect'", occurrence: 1, state: 'servers', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 1255, argument: "'onboarding-deploy'", occurrence: 1, state: 'runtimeConfiguration', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 1429, argument: "'authenticator-pair'", occurrence: 1, state: 'authenticator', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 1468, argument: "'lock-create'", occurrence: 1, state: 'locks', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 1527, argument: "'lock-remove'", occurrence: 1, state: 'locks', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 1610, argument: "'endpoint-write'", occurrence: 1, state: 'endpointConfiguration', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 2164, argument: "'appearance-random'", occurrence: 1, state: 'appearance', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 2181, argument: "'appearance-reset'", occurrence: 1, state: 'appearance', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 2187, argument: "'appearance-save'", occurrence: 1, state: 'appearance', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 1570, argument: "'vocabulary-load'", occurrence: 1, state: 'vocabularyCache', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 1589, argument: "'vocabulary-clear'", occurrence: 1, state: 'vocabularyCache', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 1878, argument: "'support-ticket'", occurrence: 1, state: 'supportTickets', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 3781, argument: "'server-add'", occurrence: 1, state: 'servers', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 3794, argument: "'server-remove'", occurrence: 1, state: 'servers', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 3855, argument: "'onboarding-connect'", occurrence: 1, state: 'servers', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 3934, argument: "'onboarding-deploy'", occurrence: 1, state: 'runtimeConfiguration', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 4391, argument: "'authenticator-pair'", occurrence: 1, state: 'authenticator', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 4430, argument: "'lock-create'", occurrence: 1, state: 'locks', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 4486, argument: "'lock-remove'", occurrence: 1, state: 'locks', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 4672, argument: "'endpoint-write'", occurrence: 1, state: 'endpointConfiguration', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 8446, argument: "'appearance-random'", occurrence: 1, state: 'appearance', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 8463, argument: "'appearance-reset'", occurrence: 1, state: 'appearance', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 8469, argument: "'appearance-save'", occurrence: 1, state: 'appearance', clockEffect: 'recorded' },
+  /* The row that was here was `'attention-history-clear'`, against `state: 'noticeHistory'`.
+   * It is not restored because there is nothing to restore it INTO: the whole attention
+   * notice-history feature it belonged to is gone from this tree. `attentionClearHistory`,
+   * `attentionRecordNotice`, `attentionNoticeHistory` and `attentionExportHistory` were
+   * added by `b64c3dbd6` -- searchable, clearable, exportable warning and error history --
+   * and no longer exist anywhere in `app/renderer/src`. Only the storage key survives, in
+   * `attention-modes.ts` as `ATTENTION_STORAGE_KEYS.noticeHistory`.
+   *
+   * Keeping the row would have meant either a permanently red gate or a verifier taught to
+   * tolerate a row it cannot find, and the second is how a completeness check quietly stops
+   * checking. The loss is recorded on the roadmap as its own item instead, which is a place
+   * somebody reads on purpose rather than a comment beside a list it is not on. */
+  { file: 'generated/console.tsx', line: 4647, argument: "'control:' + (c.id || 'unknown')", occurrence: 1, state: 'controlValues', clockEffect: 'recorded' },
+];
+
+/**
+ * The forty-five generated-shell mutation call sites that a consolidation merge deleted.
+ *
+ * This is a record, not an inventory: nothing here is expected to exist, and the test beside
+ * it asserts that none of it does. Deleting these rows outright would have been the tidy
+ * thing to do and would have destroyed the only surviving description of what was lost, so
+ * they are kept as data a check can read rather than as a paragraph nobody can verify.
+ *
+ * How they were lost, measured rather than guessed. Commits 83ec555d0 and b64c3dbd6 carry 46
+ * and 47 onUserMutation calls in generated/console.tsx; 246b2bc7a carries 1, and so does
+ * every commit after it. Neither compile-design.mjs nor extend-pbx-m3.mjs injected a single
+ * one of them at those commits -- so the generated file had been HAND-EDITED, which
+ * is exactly what the drift check now forbids, and regenerating it swept every edit away.
+ * That is worth stating plainly: the merge did not introduce this defect on its own. It
+ * removed edits that could not have survived the first honest recompile either way.
+ *
+ * Restoring them therefore means adding an anchored patch per call to extend-pbx-m3.mjs,
+ * forty-five times, each one proved against the compiled output. That is its own pass and it
+ * is on the roadmap. Until it runs, the attention clock is reset by ordinary control changes
+ * and by the fifteen App-side mutations above, and NOT by the shell-owned ones listed here --
+ * canvas moves, tab and group operations, layout docking, preset picks.
+ */
+export const ATTENTION_MUTATION_INVENTORY_LOST: readonly AttentionMutationInventoryRow[] = [
   { file: 'generated/console.tsx', line: 4022, argument: "'set:' + k", occurrence: 1, state: 'generatedUserMutationKey', clockEffect: 'recorded' },
-  { file: 'generated/console.tsx', line: 4045, argument: "'control:' + (c.id || 'unknown')", occurrence: 1, state: 'controlValues', clockEffect: 'recorded' },
   { file: 'generated/console.tsx', line: 4160, argument: "'layout:resize'", occurrence: 1, state: 'dlgSize', clockEffect: 'recorded' },
   { file: 'generated/console.tsx', line: 4167, argument: "'layout:move'", occurrence: 1, state: 'dlgPos', clockEffect: 'recorded' },
   { file: 'generated/console.tsx', line: 4222, argument: "'layout:dock'", occurrence: 1, state: 'dlgDock', clockEffect: 'recorded' },
@@ -141,7 +189,7 @@ export const ATTENTION_MUTATION_INVENTORY: readonly AttentionMutationInventoryRo
   { file: 'generated/console.tsx', line: 5376, argument: "'tabs:group-by-area'", occurrence: 1, state: 'groupsAndTabs', clockEffect: 'recorded' },
   { file: 'generated/console.tsx', line: 5419, argument: "'tabs:new-here'", occurrence: 1, state: 'tabs', clockEffect: 'recorded' },
   { file: 'generated/console.tsx', line: 5519, argument: "'appearance:reset'", occurrence: 1, state: 'values', clockEffect: 'recorded' },
-  { file: 'generated/console.tsx', line: 5617, argument: "'preset:super-easy'", occurrence: 1, state: 'valuesAndOnboarding', clockEffect: 'recorded' }
+  { file: 'generated/console.tsx', line: 5617, argument: "'preset:super-easy'", occurrence: 1, state: 'valuesAndOnboarding', clockEffect: 'recorded' },
 ];
 export const ATTENTION_MUTATION_PASSIVE_EXCLUSIONS = [
   { id:'navigation', description:'screen and rail navigation does not change user data' }, { id:'passive-read', description:'PBX reads and refresh timers do not change user data' }, { id:'selection', description:'row, tab, and palette selection does not persist user data' }, { id:'overlay', description:'opening, closing, and moving transient overlays is not a durable mutation' }, { id:'timer', description:'elapsed-time and notification timers do not change user data' },

@@ -18,6 +18,28 @@ Wide-gamut input reports when its displayed sRGB result was clipped. The origina
 
 Rainbow is a discriminated marker, not a color string and not a palette entry. One global speed level maps to one duration shared by every mounted rainbow surface. Reduced motion resolves the marker to one stable hue and disables the animation.
 
+## Configuration
+
+Nothing here is configured by editing a file. Every knob is an argument a host passes when it
+constructs the store or mounts the model, and the exact names matter because two hosts that spell a
+storage key differently do not share a model:
+
+| What a host supplies | Where | Default |
+| --- | --- | --- |
+| The storage adapter — `getItem`/`setItem`, nothing browser-specific | `createAppearanceStore(storage, …)` (`app/renderer/src/appearance-store.ts:122`) | none; it is required |
+| The capability records the runtime detected on this machine | second argument to the same call | `[]`, meaning nothing is claimed supported |
+| The storage key the model is written under | third argument | `APPEARANCE_STORAGE_KEY`, `ding-pbx-console.appearance.v2` |
+| Which element an override addresses | the `data-appearance-id` attribute on the element (`APPEARANCE_ELEMENT_ATTRIBUTE`) | none; an element without it is never targeted |
+| Which interaction state is live | the `data-appearance-state` attribute, rewritten by the host as interaction changes (`APPEARANCE_STATE_ATTRIBUTE`) | the default state |
+| Rainbow speed | one global level on the model, shared by every mounted rainbow surface | see the color model above |
+
+The stored document declares `schemaVersion: 2` (`APPEARANCE_MODEL_SCHEMA_VERSION`,
+`app/renderer/src/appearance-schema.ts:3`). A document declaring anything else is rejected whole
+rather than migrated silently, so an older profile reports its version instead of being partly read.
+
+The user-facing settings this model backs are described in
+[Material appearance system](material-appearance.md); this article is the layer underneath them.
+
 ## Persistence and import
 
 The local store uses schema version 2 and a caller-provided storage adapter. The browser adapter can use local storage, while tests or non-browser hosts can supply another adapter without changing the model. Reads revalidate the complete stored document. Writes serialize and validate the complete next model before replacing the prior stored value. A rejected import applies nothing.

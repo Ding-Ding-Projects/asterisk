@@ -125,14 +125,29 @@ test('contains exactly 32 destination definitions in six declared groups', () =>
     'arcade','notifications','history','customise','appearance','about',
   ]);
 });
-test('provides 78 complete feature articles plus checked evidence records', async () => {
+test('provides 97 complete feature articles plus checked evidence records', async () => {
   const docsRoot=resolve(root,'..','docs'), categories=['pbx','media','data','system','agent','app','platform'];
   const articles=[];
-  for(const category of categories)for(const name of await readdir(join(docsRoot,category)))if(name.endsWith('.md')&&name!=='README.md')articles.push(join(docsRoot,category,name));
-  // 32 destination articles (pbx/media/data/system/agent/app) plus 45 platform articles,
-  // plus one more: docs/pbx/iaxpeers.md, the IAX peers screen's own previously missing
-  // documentation article, added alongside the Trunks/IVR deepening pass.
-  assert.equal(articles.length,78);
+  const byCategory=new Map();
+  for(const category of categories){
+    const names=(await readdir(join(docsRoot,category))).filter(name=>name.endsWith('.md')&&name!=='README.md');
+    byCategory.set(category,names.length);
+    for(const name of names)articles.push(join(docsRoot,category,name));
+  }
+  // Write the arithmetic out per category rather than pinning one total nobody can check.
+  // A single number tells the next reader that it moved and nothing about where, which is
+  // exactly how this pin sat at 78 against 101 on disk while the console feature integration
+  // added 36 documents underneath it.
+  assert.deepEqual([...byCategory].map(([category,count])=>`${category}:${count}`), [
+    'pbx:10','media:4','data:2','system:4','agent:8','app:8','platform:61',
+  ]);
+  // 36 of the 32-destination-plus-platform corpus arrived with the console feature
+  // integration. Four of those were changelog entries filed into feature categories -- a
+  // lane's "Added ..." bullets, which the "## Behavior" rule below would distort rather
+  // than improve -- and they now live in docs/changelog/ beside their three siblings,
+  // which is outside `categories` for the same reason docs/evidence is.
+  assert.equal(articles.length,97);
+  assert.equal(articles.length,[...byCategory.values()].reduce((sum,count)=>sum+count,0));
   // An evidence record is a different genre from a feature article: it says what was
   // captured, from which commit, and by what method, and forcing "## Behavior" onto it
   // would distort a document that is doing its job. So it lives in its own category --
@@ -328,7 +343,41 @@ test('build composes deterministic local output without fetches', async () => {
   // made outside a git checkout cannot name its own commit, deliberately writes no manifest
   // rather than one carrying a placeholder, and bakes no identity into app.js -- so that
   // page reports itself unbuilt instead of asking for a file that was never published.
-  const expectedFiles = manifest.buildIdentity.resolved ? 196 : 195;
+  //
+  // Re-derived on 2026-08-27 rather than nudged: the ledger above had reached 196 while the
+  // build published 232, because the console feature integration added 36 documents under
+  // docs/ and one document is one page. Adding 36 to the running total would have restored a
+  // green check and preserved the thing that made it drift -- a single number nobody can take
+  // apart. So the pin is now a composition, and the total is asserted to equal the sum of its
+  // own parts. A future arrival lands in exactly one row, and the failure message says which.
+  const outputPaths = manifest.outputFiles.map(file => file.path);
+  const count = (predicate) => outputPaths.filter(predicate).length;
+  const composition = {
+    // One document under docs/ becomes one HTML page. This is the row that moves most.
+    docPages: count(path => path.startsWith('docs/') && path.endsWith('.html')),
+    // The six published site pages: index, product, documentation, downloads, status, settings.
+    sitePages: count(path => !path.startsWith('docs/') && path.endsWith('.html')),
+    // 49 vendored Roboto faces plus 30 Archivo / IBM Plex Mono faces, so the published pages
+    // fetch no font from anybody.
+    fontFaces: count(path => path.endsWith('.woff2')),
+    // Each vendored set carries its own fonts.css and manifest.json.
+    fontSupport: count(path => path.startsWith('assets/') && !path.endsWith('.woff2')),
+    // The social preview, plus the six product screenshots the homepage names by hand.
+    images: count(path => path.endsWith('.png')),
+    script: count(path => path === 'app.js'),
+    stylesheet: count(path => path === 'styles.css'),
+    // Conditional on the environment rather than on the source: see below.
+    identity: count(path => path === 'version.json'),
+  };
+  assert.deepEqual(composition, {
+    docPages: 133, sitePages: 6, fontFaces: 79, fontSupport: 4,
+    images: 7, script: 1, stylesheet: 1, identity: manifest.buildIdentity.resolved ? 1 : 0,
+  });
+  const expectedFiles = Object.values(composition).reduce((sum, part) => sum + part, 0);
+  assert.equal(expectedFiles, manifest.buildIdentity.resolved ? 232 : 231);
+  // The sum is asserted against the manifest's own length as well, so a file matching none of
+  // the rows above cannot be published without failing here -- a composition that only counts
+  // the kinds it already knows about would let a new kind through in silence.
   assert.equal(manifest.outputFiles.length, expectedFiles);
   assert.equal(
     manifest.outputFiles.some(file => file.path === 'version.json'),

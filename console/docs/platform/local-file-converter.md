@@ -2,7 +2,21 @@
 
 The converter backend and documentation-site equivalent are separate local surfaces. Both keep source bytes local, detect types from bounded bytes rather than extensions, and leave the source unchanged. Neither uses PATH discovery, a remote converter, or guessed output.
 
-## Desktop backend contract
+## Behavior
+
+There are two independent implementations here, and the difference between them is the point rather
+than an accident of history. The desktop side is a **typed contract plus a renderer surface**: a
+catalog, a queue seam and a set of fixed worker kernels, with no privileged process registered
+against it yet. The site side is a **working browser-local converter** whose adapters are limited to
+what a browser can honestly do without a bundled runtime. Both keep source bytes local, classify a
+file from bounded bytes rather than from its extension, leave the source untouched, and refuse to
+enable an adapter through PATH discovery, a remote service, or a guess.
+
+Read the two subsections below as answering different questions: the first is what the desktop side
+*would* do when a privileged backend is registered against the contract, and the second is what the
+published page does today.
+
+### Desktop backend contract
 
 The backend defines a bounded, offline conversion catalog and a persistent queue. It always exposes Documents and PDF, Images, Audio, Video, Archives, Structured Data and Spreadsheets, Code and Text, and Binary Encodings, including when every adapter in a category is unavailable. Unavailable adapters remain visible with the exact missing bundled dependency and reason.
 
@@ -18,15 +32,54 @@ The queue consumes an `AsyncIterable` one path at a time and persists each item 
 
 PDF adapters are cataloged but disabled until a packaged offline tool is proven. A valid adapter must reopen its output and verify page count, order, rotations, metadata, and opaque capability limits before replacement. Encrypted, signed, malformed, and unsupported inputs remain explicit facts.
 
-## Documentation site surface
+### Documentation site surface
 
 The site exposes `converter.html` as a browser-local equivalent. Its catalog is categorized as Documents/PDF, Images, Audio, Video, Archives, Structured Data/Spreadsheets, Code/Text, and Binary Encodings. Browser-bundled adapters are limited to UTF-8 text, Markdown, JSON, JSONL, CSV, TSV, and Base64 output. Other entries stay visible as unavailable with their missing-adapter reason.
 
 The site queue stores file handles and bounded metadata, reads one file at a time, pages visible results, and reports queued, reading, ready, skipped, failed, or cancelled state. A Blob is offered only after conversion succeeds, preview text is capped, cancellation is honored at safe boundaries, and one failed item never marks another successful. Adapter search is plain text by default with its own adjacent regex builder. Pattern evaluation and file bytes stay in the browser.
 
-## Privacy and failure modes
+## Configuration
 
-Conversion is local-only. Paths must be absolute and null-free, symbolic-link sources and destination components are refused, and no adapter is enabled through PATH discovery. Inputs, outputs, memory, time, temporary storage, and concurrency are bounded. Existing destinations require explicit overwrite approval. The backend and site report unavailable adapters, malformed encodings, source mismatches, missing disclosures, resource limits, storage shortages, cancellation, output validation mismatches, and destination conflicts without writing guessed or partial output.
+There is no configuration file and no environment variable. What a caller may vary is what the typed
+seam takes, and the list is deliberately short (`console/shared/converter.ts:247-258`):
+
+| Call | Caller-supplied |
+| --- | --- |
+| `sniff` | `sourcePath`, and an optional `maxBytes` bounding how much of the file is inspected |
+| `createQueue` | a `label` |
+| `enqueueOne` | one `queueId` and one `ConverterRequest` — **one item per call**, so a transport can stream a selection instead of collecting an unlimited path list in memory |
+| `queuePage` | `queueId`, an optional `cursor`, an optional `limit` |
+| `startQueue`, `pauseQueue`, `resumeQueue`, `cancelQueue` | a `queueId` |
+
+The eight categories are fixed in `CONVERTER_CATEGORIES` (`shared/converter.ts:1`) and are always
+shown whole, including a category in which every adapter is unavailable. That is a contract rather
+than a default: a category that vanished when it had nothing to offer would read as a converter that
+supports fewer kinds of file than it does, instead of one whose runtime is not bundled.
+
+Which adapters are enabled is **not** a setting either. An adapter becomes enabled only with a
+packaged-artifact proof carrying an absolute path, a SHA-256, a verification time, an offline
+declaration and an exact runtime identity. Presence in the source tree is not proof, and there is no
+switch that overrides it.
+
+Two honest gaps in the section above, recorded here rather than left to be discovered: the
+bounded-shard and 1-to-8 concurrency behaviour it describes has **no counterpart in this
+repository**. `ConverterBackendHandlers` exposes no concurrency or shard field, and no privileged
+process implements it — `shared/converter.ts` is a seam, `app/renderer/src/converter-surface.tsx` is
+its renderer, and nothing else in the tree references either. The site queue, by contrast, is real.
+
+## Failure modes
+
+The backend and site both report unavailable adapters, malformed encodings, source mismatches,
+missing disclosures, resource limits, storage shortages, cancellation, output validation mismatches
+and destination conflicts — without writing guessed or partial output. A failed item never becomes a
+false batch success, and cancellation removes temporary output and leaves the destination unchanged.
+
+## Privacy
+
+Conversion is local-only. Paths must be absolute and null-free, symbolic-link sources and destination
+components are refused, and no adapter is enabled through PATH discovery. Inputs, outputs, memory,
+time, temporary storage, and concurrency are bounded. Existing destinations require explicit
+overwrite approval.
 
 ## Verification boundary
 

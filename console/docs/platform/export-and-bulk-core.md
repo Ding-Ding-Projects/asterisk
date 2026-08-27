@@ -18,6 +18,32 @@ Each execute and revert call receives a real `AbortSignal` from its own linked `
 
 Undo is exposed only when a confirmed mutation supplies an inverse token or local-history revision and the surface registers a real inverse handler. A notification action cannot manufacture undo support.
 
+## Configuration
+
+This layer has no settings file and no environment variables. Everything a caller can vary is an
+option object, and the defaults below are the ones the code actually carries:
+
+| Option | Where | Default |
+| --- | --- | --- |
+| `concurrency` — how many bulk items run at once | `RunBulkOptions` (`app/renderer/src/bulk.ts:214`) | unset, so the run is serial |
+| `itemDeadlineMs` — the finite per-item deadline described above | same interface | `DEFAULT_BULK_ITEM_DEADLINE_MS`, `30_000` (`bulk.ts:212`) |
+| `signal` — the caller's own `AbortSignal`, linked into each item's controller | same interface | unset, so only the deadline can abort |
+| `onProgress` — a callback receiving `BulkProgress` as outcomes settle | same interface | unset, so a run reports only when it finishes |
+| `includePinned`, `includeProtected` — whether a plan reaches records the exclusion policy holds back | `BulkPlanOptions` (`bulk.ts:105`) | both absent, so a pinned record is excluded and counted rather than silently dropped |
+| The export format | `ExportRequest.format` (`app/renderer/src/export.ts:23`) | none; a caller picks from the list above, and `suitableFormats()` reports which of them this dataset can survive |
+
+A per-item deadline above `MAX_TIMER_DELAY_MS` (`2_147_483_647`) cannot be expressed by the platform
+timer, so `bulk.ts` knows that bound rather than silently giving a caller a shorter wait than it
+asked for.
+
+Every prepared artifact declares `schemaVersion: 'ding-pbx-export.v1'`, UTF-8, and LF line endings
+(`export.ts:570`). Those three are fixed rather than configurable, because an export whose encoding
+or line endings vary by host is an export another tool cannot read without guessing.
+
+There is nothing to configure for archives. No bundled ZIP or 7z adapter is registered, so those
+formats are unavailable rather than optional, and the core refuses encryption settings outright
+instead of accepting settings it cannot honour.
+
 ## Platform integration contract
 
 The renderer does not write files or launch an editor directly. A privileged desktop or hosted adapter must implement the shared `ExportPlatformPort` contract for save, download, clipboard, editor detection, and editor launch. The renderer reports success only after that adapter returns a confirmation receipt with an operation identifier and completion time.
