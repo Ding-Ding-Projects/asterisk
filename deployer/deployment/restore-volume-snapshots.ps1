@@ -58,7 +58,10 @@ if (-not (Test-Path -LiteralPath $recordPath -PathType Leaf)) { throw 'Snapshot 
 $record = Get-Content -Raw -LiteralPath $recordPath | ConvertFrom-Json
 $ExpectedPersistentVolumes = @('ding-pbx-control-plane-data', 'ding-pbx-control-plane-asterisk-etc', 'ding-pbx-control-plane-asterisk-lib', 'ding-pbx-control-plane-asterisk-log', 'ding-pbx-control-plane-asterisk-spool')
 $ExpectedPersistentVolumeLabels = @('control-plane-data', 'asterisk-etc', 'asterisk-lib', 'asterisk-log', 'asterisk-spool')
-if ($record.schemaVersion -ne 1 -or $record.snapshotKeyId -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$' -or $record.volumeSchemaVersion -ne 1 -or $record.mountProfile -ne 'five-volumes-plus-run-tmpfs' -or (@($record.volumes) -join '|') -ne ($ExpectedPersistentVolumes -join '|') -or (@($record.archives | ForEach-Object { $_.volume }) -join '|') -ne ($ExpectedPersistentVolumes -join '|')) { throw 'Snapshot record is incomplete or incompatible with the exact ordered five-volume deployment contract.' }
+function Get-ExpectedPersistentVolumeInventory { return @($ExpectedPersistentVolumes | ForEach-Object -Begin { $index = 0 } -Process { $entry = [ordered]@{ volume = $_; projectLabel = 'ding-pbx'; volumeLabel = $ExpectedPersistentVolumeLabels[$index] }; $index++; [pscustomobject]$entry }) }
+function Test-ExactPersistentVolumeInventory($Inventory) { $expected = @(Get-ExpectedPersistentVolumeInventory); $actual = @($Inventory); if ($actual.Count -ne $expected.Count) { return $false }; for ($index = 0; $index -lt $expected.Count; $index++) { if ([string]$actual[$index].volume -ne $expected[$index].volume -or [string]$actual[$index].projectLabel -ne $expected[$index].projectLabel -or [string]$actual[$index].volumeLabel -ne $expected[$index].volumeLabel) { return $false } }; return $true }
+function Assert-OwnedSnapshotArchivePath([string]$ArchiveLeaf, [string]$Volume) { $canonicalLeaf = ($Volume.Replace('-', '_') + '.tar.enc'); if ([string]::IsNullOrWhiteSpace($ArchiveLeaf) -or $ArchiveLeaf -ne $canonicalLeaf -or $ArchiveLeaf -ne [IO.Path]::GetFileName($ArchiveLeaf)) { throw 'Snapshot archive must use its canonical archive leaf name.' }; $root = [IO.Path]::GetFullPath($snapshotPath).TrimEnd('\\') + '\\'; $full = [IO.Path]::GetFullPath((Join-Path $snapshotPath $ArchiveLeaf)); if (-not $full.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) { throw 'Snapshot archive path escapes the owned snapshot directory.' }; $cursor = $full; while ($cursor -and $cursor -ne [IO.Path]::GetPathRoot($cursor)) { if (Test-Path -LiteralPath $cursor) { $item = Get-Item -LiteralPath $cursor; if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Snapshot archive path cannot traverse a reparse point.' } }; $cursor = [IO.Path]::GetDirectoryName($cursor) }; if (-not (Test-Path -LiteralPath $full -PathType Leaf)) { throw 'Snapshot archive must be an existing regular file.' }; $item = Get-Item -LiteralPath $full; if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -or $item.Length -lt 84 -or $item.Length -gt $MaxEncryptedArchiveBytes) { throw 'Snapshot archive is not a bounded regular file.' }; return $full }
+if ($record.schemaVersion -ne 1 -or $record.snapshotKeyId -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$' -or $record.volumeSchemaVersion -ne 1 -or $record.mountProfile -ne 'five-volumes-plus-run-tmpfs' -or (@($record.volumes) -join '|') -ne ($ExpectedPersistentVolumes -join '|') -or (@($record.archives | ForEach-Object { $_.volume }) -join '|') -ne ($ExpectedPersistentVolumes -join '|') -or -not (Test-ExactPersistentVolumeInventory $record.persistentVolumeInventory)) { throw 'Snapshot record is incomplete or incompatible with the exact ordered five-volume deployment contract.' }
 if ([string]::IsNullOrWhiteSpace($ImageRef)) { $ImageRef = [string]$record.sourceImage }
 if ($ImageRef -notmatch '@sha256:[0-9a-f]{64}$') { throw 'ImageRef must be an immutable image@sha256 reference.' }
 if ($Execute -and ([string]::IsNullOrWhiteSpace($ManifestPath) -or [string]::IsNullOrWhiteSpace($PreflightEvidencePath) -or [string]::IsNullOrWhiteSpace($SnapshotEncryptionKeyFile) -or $TlsCertificateSha256 -notmatch '^[0-9a-fA-F]{64}$' -or [string]::IsNullOrWhiteSpace($SessionCookieFile))) { throw 'Execute requires the compatible manifest, fresh preflight evidence, protected encryption key, TLS pin, and readiness credential.' }
@@ -117,7 +120,7 @@ function Assert-ExactOwnedPersistentVolumes {
     for ($index = 0; $index -lt $ExpectedPersistentVolumes.Count; $index++) {
         $volume = $ExpectedPersistentVolumes[$index]
         $volumeRecord = @(& docker volume inspect $volume 2>$null | ConvertFrom-Json)
-        if ($LASTEXITCODE -ne 0 -or $volumeRecord.Count -ne 1 -or [string]$volumeRecord[0].Name -ne $volume -or $volumeRecord[0].Labels.'io.ding.pbx.project' -ne 'ding-pbx' -or $volumeRecord[0].Labels.'io.ding.pbx.volume' -ne $ExpectedPersistentVolumeLabels[$index]) {
+        if ($LASTEXITCODE -ne 0 -or $volumeRecord.Count -ne 1 -or [string]$volumeRecord[0].Name -ne $volume -or $volumeRecord[0].Labels.'io.ding.pbx.project' -ne [string]$record.persistentVolumeInventory[$index].projectLabel -or $volumeRecord[0].Labels.'io.ding.pbx.volume' -ne [string]$record.persistentVolumeInventory[$index].volumeLabel) {
             throw "Volume $volume is not the exact labeled persistent deployment volume."
         }
     }
@@ -144,7 +147,7 @@ function Get-TarExecutable {
 }
 
 function Validate-Archive([string]$Path, $Expected) {
-    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "Snapshot archive is missing: $Path" }
+    $Path = Assert-OwnedSnapshotArchivePath ([string]$Expected.archive) ([string]$Expected.volume)
     $plainPath = Unprotect-Archive $Path $record.snapshotId $Expected.volume $record.snapshotKeyId
     Register-PlaintextPath $plainPath 'created'
     try {
@@ -164,7 +167,7 @@ function Validate-Archive([string]$Path, $Expected) {
     } finally { if (Test-Path -LiteralPath $plainPath) { Remove-Item -LiteralPath $plainPath -Force }; Register-PlaintextPath $plainPath 'erased' }
 }
 
-foreach ($archive in @($record.archives)) { Assert-OperationDeadline; Validate-Archive (Join-Path $snapshotPath $archive.archive) $archive }
+foreach ($archive in @($record.archives)) { Assert-OperationDeadline; Validate-Archive (Assert-OwnedSnapshotArchivePath ([string]$archive.archive) ([string]$archive.volume)) $archive }
 if (-not $Execute) {
     Write-Host "Plan only. Restore command is: powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\restore-volume-snapshots.ps1`" -SnapshotDirectory `"$snapshotPath`" -ImageRef `"$ImageRef`" -ManifestPath `"$ManifestPath`" -PreflightEvidencePath `"$PreflightEvidencePath`" -SnapshotEncryptionKeyFile `"$SnapshotEncryptionKeyFile`" -TlsCertificateSha256 `"$TlsCertificateSha256`" -TlsCertFile `"$TlsCertFile`" -TlsKeyFile `"$TlsKeyFile`" -SessionCookieFile `"$SessionCookieFile`" -BindAddress `"$BindAddress`" -ComposeFile `"$ComposeFile`" -ProjectName `"$ProjectName`" -AdminPort $AdminPort -Execute"
     exit 0
@@ -190,7 +193,7 @@ $restoreJournal = [ordered]@{ schemaVersion = 1; transactionId = ([guid]::NewGui
 [System.IO.File]::WriteAllText($restoreJournalPath, ($restoreJournal | ConvertTo-Json -Depth 8), [System.Text.UTF8Encoding]::new($false))
 
 try { foreach ($archive in @($record.archives)) { Assert-OperationDeadline
-    $plainPath = Unprotect-Archive (Join-Path $snapshotPath $archive.archive) $record.snapshotId $archive.volume $record.snapshotKeyId
+    $plainPath = Unprotect-Archive (Assert-OwnedSnapshotArchivePath ([string]$archive.archive) ([string]$archive.volume)) $record.snapshotId $archive.volume $record.snapshotKeyId
     $helperId = $null
     try {
         $helperId = (& docker run --detach --label "io.ding.pbx.snapshot-restore=$($record.snapshotId)" --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --pids-limit 64 --memory 256m --cpus 0.50 --tmpfs /tmp:rw,noexec,nosuid,size=8m --user 10001:10001 --entrypoint /bin/tar -v "$($archive.volume):/restore:rw" -v "${plainPath}:/backup/archive.tar:ro" $ImageRef -xf /backup/archive.tar -C /restore).Trim()
