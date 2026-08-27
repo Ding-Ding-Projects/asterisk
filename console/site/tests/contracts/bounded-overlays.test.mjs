@@ -50,6 +50,6 @@ test('the underlying HTML elements really are <dialog> elements, not a styled <d
 });
 
 test('the registry records bounded-overlays as implemented for these two real surfaces', () => {
-  assert.equal(registry.features['bounded-overlays'].state, 'implemented',
+  assert.equal(registry.features['bounded-overlays'].status, 'implemented-unverified',
     'the regex builder and command palette are real, bounded, self-painting native dialogs');
 });

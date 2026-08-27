@@ -29,6 +29,20 @@
 import { createElement, type ReactNode } from 'react';
 
 import { applyVocabularyText, type VocabularyStorage } from './personal-vocabulary';
+import { funnyLevel, styleFunnyText, type CopyLanguage } from './funny-levels';
+export {
+  clampFunnyLevel,
+  DEFAULT_FUNNY_LEVELS,
+  FUNNY_LEVELS_SETTING,
+  MAX_FUNNY_LEVEL,
+  MIN_FUNNY_LEVEL,
+  readFunnyLevels,
+  styleBilingualText,
+  styleFunnyText,
+  writeFunnyLevels,
+  type FunnyLanguage,
+  type FunnyLevels,
+} from './funny-levels';
 
 export const LANGUAGE_MODES = ['en', 'yue', 'both'] as const;
 export type LanguageMode = (typeof LANGUAGE_MODES)[number];
@@ -56,6 +70,7 @@ export type Catalog = Readonly<Record<string, string>>;
 let catalog: Catalog = {};
 let mode: LanguageMode = 'en';
 let vocabulary: VocabularyStorage | undefined;
+let schoolModeNameProvider: ((text: string) => string) | undefined;
 
 export function setCatalog(next: Catalog): void {
   catalog = next;
@@ -72,6 +87,11 @@ export function languageMode(): LanguageMode {
 /** Wires the vocabulary cache in. Until this is called, vocabulary is simply not applied. */
 export function setVocabularyStorage(storage: VocabularyStorage | undefined): void {
   vocabulary = storage;
+}
+
+/** Lets a shared renamed School mode label reach visible copy and accessible names. */
+export function setSchoolModeNameProvider(provider: ((text: string) => string) | undefined): void {
+  schoolModeNameProvider = provider;
 }
 
 /** The separator between the two halves of a bilingual string. */
@@ -95,7 +115,28 @@ export function localizeText(text: string): string {
 /** The full boundary: language mode, then personal vocabulary over the result. */
 export function transformText(text: string): string {
   const localized = localizeText(text);
-  return vocabulary ? applyVocabularyText(vocabulary, localized) : localized;
+  const language: CopyLanguage = mode === 'yue' ? 'yue' : 'en';
+  /* Voice styling happens before vocabulary.  Vocabulary is the user's final local
+   * naming choice, while unknown/technical literals remain untouched by the no-op
+   * factual styler above. */
+  const styled = styleFunnyText(localized, language, funnyLevel(vocabulary, language));
+  const renamed = schoolModeNameProvider ? schoolModeNameProvider(styled) : styled;
+  return vocabulary ? applyVocabularyText(vocabulary, { text: renamed, boundary: 'user-interface-copy' }) : renamed;
+}
+
+export interface LocalizedEventText {
+  enText: string;
+  yueText: string;
+  bilingualText: string;
+  translated: boolean;
+}
+
+/** Split an event into independent language tracks before funny styling or speech. */
+export function localizeEventText(text: string, rename: (value: string) => string = (value) => value): LocalizedEventText {
+  const separator = BILINGUAL_SEPARATOR;
+  const source = text.includes(separator) ? text.slice(0, text.indexOf(separator)) : text;
+  const yueText = catalog[source] ?? source;
+  return { enText: rename(source), yueText: rename(yueText), bilingualText: `${rename(source)}${separator}${rename(yueText)}`, translated: catalog[source] !== undefined };
 }
 
 /**
@@ -134,7 +175,9 @@ function localizeProps(props: Record<string, unknown> | null | undefined): Recor
     const next = transformText(value);
     if (next === value) continue;
     copy ??= { ...props };
-    copy[attribute] = next;
+    copy[attribute] = vocabulary
+      ? applyVocabularyText(vocabulary, { text: next, boundary: 'accessible-name' })
+      : next;
   }
   return copy ?? props;
 }

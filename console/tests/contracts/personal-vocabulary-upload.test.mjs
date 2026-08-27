@@ -35,7 +35,7 @@ test('the registry row is internally honest: a defined state with a note explain
   const registry = json('app/feature-registry.json');
   const row = registry.features['personal-vocabulary-upload'];
   assert.ok(row, 'the implementation registry has no row for personal-vocabulary-upload');
-  assert.ok(['implemented', 'partial', 'absent'].includes(row.state), `undefined state "${row.state}"`);
+  assert.ok(['implemented', 'partial', 'absent'].includes(row.status), `undefined state "${row.status}"`);
   assert.ok(typeof row.note === 'string' && row.note.length > 40, 'no note explaining what is and is not wired');
 });
 
@@ -51,7 +51,7 @@ test('applyVocabularyText IS consumed through text-boundary.ts -- replacement ru
   const src = read(TEXT_BOUNDARY);
   assert.match(src, /import \{ applyVocabularyText, type VocabularyStorage \} from '\.\/personal-vocabulary';/,
     'personal-vocabulary.ts is no longer imported by text-boundary.ts -- the consumption gap may have regressed');
-  assert.match(src, /return vocabulary \? applyVocabularyText\(vocabulary, localized\) : localized;/u,
+  assert.match(src, /return vocabulary \? applyVocabularyText\(vocabulary, \{ text: renamed, boundary: 'user-interface-copy' \}\) : renamed;/u,
     'applyVocabularyText no longer runs after localization -- re-check ordering');
 });
 

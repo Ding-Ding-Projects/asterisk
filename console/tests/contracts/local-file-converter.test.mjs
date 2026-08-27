@@ -1,48 +1,71 @@
 /**
- * Contract: local-file-converter. The honest state is "absent" -- there is no file
- * converter surface, no adapter registry, no category catalogue, and no bundled
- * adapter proof anywhere in the renderer or the control plane. This file pins that
- * from the real sources rather than the registry's prose, and checks the one place
- * a converter would plausibly hide (the export module, which does produce several
- * text formats) to confirm it is export formatting and not a general-purpose
- * converter with a category catalogue and bundled offline adapters.
+ * Contract: local-file-converter. This verifies the implemented-but-unverified
+ * source boundary. It must not upgrade source wiring into packaged or runtime proof.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const read = (p) => readFileSync(resolve(root, p), 'utf8').replace(/\r\n/g, '\n');
-const json = (p) => JSON.parse(read(p));
+const read = (path) => readFileSync(resolve(root, path), 'utf8').replace(/\r\n/g, '\n');
+const registry = JSON.parse(read('app/feature-registry.json'));
 
-const rendererSrcDir = resolve(root, 'app/renderer/src');
-const rendererFiles = readdirSync(rendererSrcDir).filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'));
-const rendererSource = rendererFiles.map((f) => read(`app/renderer/src/${f}`)).join('\n');
+const shared = read('shared/converter.ts');
+const converterRegistry = read('control-plane/converter-registry.ts');
+const runner = read('control-plane/converter-runner.ts');
+const queue = read('control-plane/converter-queue.ts');
+const pdf = read('control-plane/converter-pdf.ts');
+const surface = read('app/renderer/src/converter-surface.tsx');
+const mounts = read('app/renderer/src/surface-mounts.tsx');
+const docs = read('docs/platform/local-file-converter.md');
 
-test('the implementation registry carries a row for local-file-converter, marked absent', () => {
-  const registry = json('app/feature-registry.json');
+test('registry records the implemented but unverified converter boundary', () => {
   const row = registry.features['local-file-converter'];
-  assert.ok(row, 'no local-file-converter row in app/feature-registry.json');
-  assert.equal(row.state, 'absent', 'a converter surface may have landed -- re-check this test, not just the registry');
-  assert.deepEqual(row.files, [], 'an absent row should name no implementation files');
+  assert.ok(row, 'local-file-converter must have a registry row');
+  assert.equal(row.status, 'implemented-unverified');
+  assert.match(row.route, /#surface=converter/u);
+  assert.equal(row.documentation.state, 'present');
+  assert.equal(row.builtInteraction.state, 'not-run');
+  assert.equal(row.captures.state, 'not-run');
 });
 
-test('no adapter registry, category catalogue, or converter surface exists in the renderer sources', () => {
-  assert.doesNotMatch(rendererSource, /adapter.?registry/iu, 'an adapter registry now exists -- the "absent" state needs re-checking');
-  assert.doesNotMatch(rendererSource, /category.?catalogue|category.?catalog/iu, 'a category catalogue now exists -- re-check the "absent" state');
+test('converter supplies all required categories, a typed catalog, and an actual mounted surface', () => {
+  for (const category of [
+    'documents-pdf', 'images', 'audio', 'video', 'archives',
+    'structured-data-spreadsheets', 'code-text', 'binary-encodings',
+  ]) assert.match(shared, new RegExp(`['\"]${category}['\"]`, 'u'));
+  assert.match(converterRegistry, /CONVERTER_CATEGORY_CATALOG/u);
+  assert.match(converterRegistry, /assertCatalogComplete/u);
+  assert.match(surface, /ConverterSurface/u);
+  assert.match(mounts, /ConverterSurface/u);
 });
 
-test('the export module produces text formats but names none of them a "converter"', () => {
-  const exportSrc = read('app/renderer/src/export.ts');
-  assert.doesNotMatch(exportSrc, /adapter|bundled.?adapter/iu,
-    'export.ts now mentions adapters -- it may have grown into a real converter, which would change this row');
-  assert.doesNotMatch(exportSrc, /\bconverter\b/iu, 'export.ts now calls itself a converter -- re-check the "absent" state');
+test('availability stays fail-closed until a packaged adapter proof validates', () => {
+  assert.match(shared, /packagedArtifact: true/u);
+  assert.match(converterRegistry, /verifiedProof/u);
+  assert.match(converterRegistry, /artifactSha256/u);
+  assert.match(converterRegistry, /No verified .* runtime is bundled/u);
+  assert.doesNotMatch(converterRegistry, /process\.env\.PATH|which\(/u);
 });
 
-test('no documentation article exists for a feature that was never built', () => {
-  const docs = readdirSync(resolve(root, 'docs/platform'));
-  assert.ok(!docs.includes('local-file-converter.md'),
-    'a documentation article now exists for local-file-converter -- the implementation may have landed too');
+test('queue and runner preserve local bounded conversion behavior', () => {
+  assert.match(queue, /AsyncIterable/u);
+  assert.match(queue, /maxConcurrency/u);
+  assert.match(runner, /symbolic|Symbolic|symlink|SymbolicLink/u);
+  assert.match(runner, /atomic|rename|temporary/u);
+  assert.match(runner, /cancel/u);
+});
+
+test('PDF capability is explicit and disabled without packaged evidence', () => {
+  assert.match(pdf, /pdfCapabilities|PdfCapability/u);
+  assert.match(converterRegistry, /pdf-toolkit/u);
+  assert.match(converterRegistry, /unavailable/u);
+});
+
+test('documentation states present source behavior and the unverified boundary', () => {
+  assert.match(docs, /Desktop backend contract/u);
+  assert.match(docs, /Verification boundary/u);
+  assert.match(docs, /implemented but unverified/u);
 });

@@ -89,6 +89,41 @@ async function flush(): Promise<void> {
   await Promise.resolve();
 }
 
+/**
+ * Narration persists one independent channel per narrated language. This helper
+ * makes each focused assertion update the real persisted shape, rather than the
+ * retired flat voice/rate/pitch record.
+ */
+function applySettings(
+  narrator: Narrator,
+  patch: {
+    enabled?: boolean;
+    language?: 'en' | 'zh' | 'both';
+    voices?: Partial<Record<'en' | 'zh', string>>;
+    rate?: number;
+    pitch?: number;
+    channels?: Partial<Record<'en' | 'zh', { voiceId?: string; rate?: number; pitch?: number }>>;
+  },
+): void {
+  const current = narrator.getSettings();
+  narrator.setSettings({
+    enabled: patch.enabled ?? current.enabled,
+    language: patch.language ?? current.language,
+    channels: {
+      en: {
+        voiceId: patch.channels?.en?.voiceId ?? patch.voices?.en ?? current.channels.en.voiceId,
+        rate: patch.channels?.en?.rate ?? patch.rate ?? current.channels.en.rate,
+        pitch: patch.channels?.en?.pitch ?? patch.pitch ?? current.channels.en.pitch,
+      },
+      zh: {
+        voiceId: patch.channels?.zh?.voiceId ?? patch.voices?.zh ?? current.channels.zh.voiceId,
+        rate: patch.channels?.zh?.rate ?? patch.rate ?? current.channels.zh.rate,
+        pitch: patch.channels?.zh?.pitch ?? patch.pitch ?? current.channels.zh.pitch,
+      },
+    },
+  });
+}
+
 // ---------------------------------------------------------------- defaults / off by default
 
 test('narration is disabled by default and nothing is spoken', async () => {
@@ -103,9 +138,12 @@ test('defaultNarrationSettings returns disabled, en, empty voices, default rate/
   const s = defaultNarrationSettings();
   assert.equal(s.enabled, false);
   assert.equal(s.language, 'en');
-  assert.deepEqual(s.voices, {});
-  assert.equal(s.rate, DEFAULT_RATE);
-  assert.equal(s.pitch, DEFAULT_PITCH);
+  assert.equal(s.channels.en.voiceId, undefined);
+  assert.equal(s.channels.zh.voiceId, undefined);
+  assert.equal(s.channels.en.rate, DEFAULT_RATE);
+  assert.equal(s.channels.zh.rate, DEFAULT_RATE);
+  assert.equal(s.channels.en.pitch, DEFAULT_PITCH);
+  assert.equal(s.channels.zh.pitch, DEFAULT_PITCH);
 });
 
 // ---------------------------------------------------------------- enabling then speaking
@@ -113,7 +151,7 @@ test('defaultNarrationSettings returns disabled, en, empty voices, default rate/
 test('enabling narration lets a queued line actually speak', async () => {
   const engine = new FakeEngine([voice('en-1', 'Alex', 'en-US')]);
   const narrator = new Narrator(engine);
-  narrator.setSettings({ enabled: true, voices: { en: 'en-1' } });
+  applySettings(narrator, { enabled: true, voices: { en: 'en-1' } });
   narrator.enqueue('progress', 'build finished');
   await flush();
   assert.equal(engine.calls.length, 1);
@@ -126,12 +164,12 @@ test('enabling narration lets a queued line actually speak', async () => {
 test('English and Cantonese voice choices are independent', () => {
   const engine = new FakeEngine([voice('en-1', 'Alex', 'en-US'), voice('zh-1', 'Sinji', 'zh-HK')]);
   const narrator = new Narrator(engine);
-  narrator.setSettings({ voices: { en: 'en-1' } });
-  assert.equal(narrator.getSettings().voices.en, 'en-1');
-  assert.equal(narrator.getSettings().voices.zh, undefined);
-  narrator.setSettings({ voices: { zh: 'zh-1' } });
-  assert.equal(narrator.getSettings().voices.en, 'en-1');
-  assert.equal(narrator.getSettings().voices.zh, 'zh-1');
+  applySettings(narrator, { voices: { en: 'en-1' } });
+  assert.equal(narrator.getSettings().channels.en.voiceId, 'en-1');
+  assert.equal(narrator.getSettings().channels.zh.voiceId, undefined);
+  applySettings(narrator, { voices: { zh: 'zh-1' } });
+  assert.equal(narrator.getSettings().channels.en.voiceId, 'en-1');
+  assert.equal(narrator.getSettings().channels.zh.voiceId, 'zh-1');
 });
 
 // ---------------------------------------------------------------- both: order + no overlap
@@ -139,7 +177,7 @@ test('English and Cantonese voice choices are independent', () => {
 test('"both" speaks English then Cantonese, strictly serialized, never concurrently', async () => {
   const engine = new FakeEngine([voice('en-1', 'Alex', 'en-US'), voice('zh-1', 'Sinji', 'zh-HK')]);
   const narrator = new Narrator(engine);
-  narrator.setSettings({ enabled: true, language: 'both', voices: { en: 'en-1', zh: 'zh-1' } });
+  applySettings(narrator, { enabled: true, language: 'both', voices: { en: 'en-1', zh: 'zh-1' } });
   narrator.enqueue('progress', 'saved');
   await flush();
 
@@ -167,7 +205,7 @@ test('an empty first voice enumeration followed by a populated one resolves corr
   assert.equal(narrator.status('en').kind, 'no-voice-available');
 
   engine.setVoices([voice('en-1', 'Alex', 'en-US')]);
-  narrator.setSettings({ voices: { en: 'en-1' } });
+  applySettings(narrator, { voices: { en: 'en-1' } });
   const status = narrator.status('en');
   assert.equal(status.kind, 'ok');
   assert.equal(status.effectiveVoiceId, 'en-1');
@@ -189,28 +227,28 @@ test('unsubscribing from voice changes actually stops updates', () => {
 test('a chosen-but-absent voice reports fallback while the setting is retained', () => {
   const engine = new FakeEngine([voice('en-2', 'Backup', 'en-GB')]);
   const narrator = new Narrator(engine);
-  narrator.setSettings({ voices: { en: 'en-missing' } });
+  applySettings(narrator, { voices: { en: 'en-missing' } });
   const status = narrator.status('en');
   assert.equal(status.kind, 'fallback');
   assert.equal(status.chosenVoiceId, 'en-missing');
   assert.equal(status.effectiveVoiceId, 'en-2');
-  assert.equal(narrator.getSettings().voices.en, 'en-missing', 'the choice must not be silently reset');
+  assert.equal(narrator.getSettings().channels.en.voiceId, 'en-missing', 'the choice must not be silently reset');
 });
 
 test('a chosen-but-absent voice with nothing else installed for that language reports no-voice-available and keeps the choice', () => {
   const engine = new FakeEngine([voice('zh-1', 'Sinji', 'zh-HK')]);
   const narrator = new Narrator(engine);
-  narrator.setSettings({ voices: { en: 'en-missing' } });
+  applySettings(narrator, { voices: { en: 'en-missing' } });
   const status = narrator.status('en');
   assert.equal(status.kind, 'no-voice-available');
   assert.equal(status.chosenVoiceId, 'en-missing');
-  assert.equal(narrator.getSettings().voices.en, 'en-missing');
+  assert.equal(narrator.getSettings().channels.en.voiceId, 'en-missing');
 });
 
 test('a network-backed voice is reported as such', () => {
   const engine = new FakeEngine([voice('en-net', 'Cloud Voice', 'en-US', false)]);
   const narrator = new Narrator(engine);
-  narrator.setSettings({ voices: { en: 'en-net' } });
+  applySettings(narrator, { voices: { en: 'en-net' } });
   const status = narrator.status('en');
   assert.equal(status.kind, 'network');
   assert.match(status.message, /offline/);
@@ -227,7 +265,7 @@ test('a language with no voice installed at all is reported honestly', () => {
 test('resolveVoiceStatus with no selection but voices available reports no-selection using system default', () => {
   const status = resolveVoiceStatus('en', undefined, [voice('en-1', 'Alex', 'en-US')]);
   assert.equal(status.kind, 'no-selection');
-  assert.equal(status.effectiveVoiceId, undefined);
+  assert.equal(status.effectiveVoiceId, 'en-1');
 });
 
 // ---------------------------------------------------------------- queue serialization
@@ -235,7 +273,7 @@ test('resolveVoiceStatus with no selection but voices available reports no-selec
 test('rapid enqueues across different categories are spoken one at a time, never overlapping', async () => {
   const engine = new FakeEngine([voice('en-1', 'Alex', 'en-US')]);
   const narrator = new Narrator(engine);
-  narrator.setSettings({ enabled: true, voices: { en: 'en-1' } });
+  applySettings(narrator, { enabled: true, voices: { en: 'en-1' } });
   narrator.enqueue('a', 'first');
   narrator.enqueue('b', 'second');
   narrator.enqueue('c', 'third');
@@ -258,7 +296,7 @@ test('rapid enqueues across different categories are spoken one at a time, never
 test('a superseded queued line of the same category is replaced, not stacked', async () => {
   const engine = new FakeEngine([voice('en-1', 'Alex', 'en-US')]);
   const narrator = new Narrator(engine, { cooldownMs: 0 });
-  narrator.setSettings({ enabled: true, voices: { en: 'en-1' } });
+  applySettings(narrator, { enabled: true, voices: { en: 'en-1' } });
 
   // First enqueue starts speaking immediately and occupies the engine.
   narrator.enqueue('progress', 'step 1 of 5');
@@ -286,7 +324,7 @@ test('the cooldown suppresses a second ordinary line in the same category', asyn
   const clock = new FakeClock();
   const engine = new FakeEngine([voice('en-1', 'Alex', 'en-US')]);
   const narrator = new Narrator(engine, { clock, cooldownMs: 5000 });
-  narrator.setSettings({ enabled: true, voices: { en: 'en-1' } });
+  applySettings(narrator, { enabled: true, voices: { en: 'en-1' } });
 
   narrator.enqueue('progress', 'first');
   await flush();
@@ -312,7 +350,7 @@ test('the cooldown never suppresses an error, even immediately after another err
   const clock = new FakeClock();
   const engine = new FakeEngine([voice('en-1', 'Alex', 'en-US')]);
   const narrator = new Narrator(engine, { clock, cooldownMs: 5000 });
-  narrator.setSettings({ enabled: true, voices: { en: 'en-1' } });
+  applySettings(narrator, { enabled: true, voices: { en: 'en-1' } });
 
   narrator.enqueue('error', 'connection to the trunk failed', { isError: true });
   await flush();
@@ -331,7 +369,7 @@ test('the cooldown never suppresses an error, even immediately after another err
 test('error narration names the actual failure text passed to it', async () => {
   const engine = new FakeEngine([voice('en-1', 'Alex', 'en-US')]);
   const narrator = new Narrator(engine);
-  narrator.setSettings({ enabled: true, voices: { en: 'en-1' } });
+  applySettings(narrator, { enabled: true, voices: { en: 'en-1' } });
   narrator.enqueue('error', 'the endpoint 1000 is unreachable', { isError: true });
   await flush();
   assert.equal(engine.calls[0]?.text, 'the endpoint 1000 is unreachable');
@@ -344,7 +382,7 @@ test('error narration names the actual failure text passed to it', async () => {
 test('an active screen reader suppresses speech even when narration is enabled', async () => {
   const engine = new FakeEngine([voice('en-1', 'Alex', 'en-US')]);
   const narrator = new Narrator(engine);
-  narrator.setSettings({ enabled: true, voices: { en: 'en-1' } });
+  applySettings(narrator, { enabled: true, voices: { en: 'en-1' } });
   narrator.setScreenReaderActive(true);
   narrator.enqueue('progress', 'hello');
   await flush();
@@ -354,7 +392,7 @@ test('an active screen reader suppresses speech even when narration is enabled',
 test('a quiet setting suppresses speech even when narration is enabled', async () => {
   const engine = new FakeEngine([voice('en-1', 'Alex', 'en-US')]);
   const narrator = new Narrator(engine);
-  narrator.setSettings({ enabled: true, voices: { en: 'en-1' } });
+  applySettings(narrator, { enabled: true, voices: { en: 'en-1' } });
   narrator.setQuiet(true);
   narrator.enqueue('progress', 'hello');
   await flush();
@@ -364,7 +402,7 @@ test('a quiet setting suppresses speech even when narration is enabled', async (
 test('turning off quiet mode lets narration resume', async () => {
   const engine = new FakeEngine([voice('en-1', 'Alex', 'en-US')]);
   const narrator = new Narrator(engine);
-  narrator.setSettings({ enabled: true, voices: { en: 'en-1' } });
+  applySettings(narrator, { enabled: true, voices: { en: 'en-1' } });
   narrator.setQuiet(true);
   narrator.enqueue('progress', 'suppressed');
   await flush();
@@ -384,33 +422,72 @@ test('turning off quiet mode lets narration resume', async () => {
 test('rate and pitch within bounds are accepted', () => {
   const engine = new FakeEngine([]);
   const narrator = new Narrator(engine);
-  narrator.setSettings({ rate: MIN_RATE, pitch: MIN_PITCH });
-  assert.equal(narrator.getSettings().rate, MIN_RATE);
-  narrator.setSettings({ rate: MAX_RATE, pitch: MAX_PITCH });
-  assert.equal(narrator.getSettings().rate, MAX_RATE);
-  assert.equal(narrator.getSettings().pitch, MAX_PITCH);
+  applySettings(narrator, { rate: MIN_RATE, pitch: MIN_PITCH });
+  assert.equal(narrator.getSettings().channels.en.rate, MIN_RATE);
+  assert.equal(narrator.getSettings().channels.zh.rate, MIN_RATE);
+  applySettings(narrator, { rate: MAX_RATE, pitch: MAX_PITCH });
+  assert.equal(narrator.getSettings().channels.en.rate, MAX_RATE);
+  assert.equal(narrator.getSettings().channels.zh.pitch, MAX_PITCH);
+});
+
+test('English and Cantonese rate and pitch updates are independent', () => {
+  const narrator = new Narrator(new FakeEngine([]));
+  applySettings(narrator, { channels: { en: { rate: 1.4, pitch: 0.7 } } });
+  assert.equal(narrator.getSettings().channels.en.rate, 1.4);
+  assert.equal(narrator.getSettings().channels.en.pitch, 0.7);
+  assert.equal(narrator.getSettings().channels.zh.rate, DEFAULT_RATE);
+  assert.equal(narrator.getSettings().channels.zh.pitch, DEFAULT_PITCH);
+
+  applySettings(narrator, { channels: { zh: { rate: 0.6, pitch: 1.8 } } });
+  assert.equal(narrator.getSettings().channels.en.rate, 1.4);
+  assert.equal(narrator.getSettings().channels.en.pitch, 0.7);
+  assert.equal(narrator.getSettings().channels.zh.rate, 0.6);
+  assert.equal(narrator.getSettings().channels.zh.pitch, 1.8);
+});
+
+test('bounds apply to each narration channel and a rejected update preserves both records atomically', () => {
+  const narrator = new Narrator(new FakeEngine([]));
+  applySettings(narrator, {
+    channels: {
+      en: { voiceId: 'en-1', rate: 1.4, pitch: 0.7 },
+      zh: { voiceId: 'zh-1', rate: 0.6, pitch: 1.8 },
+    },
+  });
+  const before = narrator.getSettings();
+
+  assert.throws(
+    () => applySettings(narrator, { channels: { zh: { rate: MAX_RATE + 0.1 } } }),
+    /zh rate out of bounds/,
+  );
+  assert.deepEqual(narrator.getSettings().channels, before.channels);
+
+  assert.throws(
+    () => applySettings(narrator, { channels: { en: { pitch: MIN_PITCH - 0.1 } } }),
+    /en pitch out of bounds/,
+  );
+  assert.deepEqual(narrator.getSettings().channels, before.channels);
 });
 
 test('a rate outside its bound is refused by name', () => {
   const engine = new FakeEngine([]);
   const narrator = new Narrator(engine);
-  assert.throws(() => narrator.setSettings({ rate: MAX_RATE + 1 }), /rate out of bounds/);
-  assert.throws(() => narrator.setSettings({ rate: MIN_RATE - 0.1 }), /rate out of bounds/);
+  assert.throws(() => applySettings(narrator, { rate: MAX_RATE + 1 }), /rate out of bounds/);
+  assert.throws(() => applySettings(narrator, { rate: MIN_RATE - 0.1 }), /rate out of bounds/);
 });
 
 test('a pitch outside its bound is refused by name', () => {
   const engine = new FakeEngine([]);
   const narrator = new Narrator(engine);
-  assert.throws(() => narrator.setSettings({ pitch: MAX_PITCH + 1 }), /pitch out of bounds/);
-  assert.throws(() => narrator.setSettings({ pitch: MIN_PITCH - 0.1 }), /pitch out of bounds/);
+  assert.throws(() => applySettings(narrator, { pitch: MAX_PITCH + 1 }), /pitch out of bounds/);
+  assert.throws(() => applySettings(narrator, { pitch: MIN_PITCH - 0.1 }), /pitch out of bounds/);
 });
 
 test('a rejected rate/pitch change leaves the previous settings untouched', () => {
   const engine = new FakeEngine([]);
   const narrator = new Narrator(engine);
-  narrator.setSettings({ rate: 1.5 });
-  assert.throws(() => narrator.setSettings({ rate: 99 }));
-  assert.equal(narrator.getSettings().rate, 1.5);
+  applySettings(narrator, { rate: 1.5 });
+  assert.throws(() => applySettings(narrator, { rate: 99 }));
+  assert.equal(narrator.getSettings().channels.en.rate, 1.5);
 });
 
 // ---------------------------------------------------------------- dispose
@@ -418,7 +495,7 @@ test('a rejected rate/pitch change leaves the previous settings untouched', () =
 test('dispose cancels in-flight speech and removes subscriptions', async () => {
   const engine = new FakeEngine([voice('en-1', 'Alex', 'en-US')]);
   const narrator = new Narrator(engine);
-  narrator.setSettings({ enabled: true, voices: { en: 'en-1' } });
+  applySettings(narrator, { enabled: true, voices: { en: 'en-1' } });
   narrator.enqueue('progress', 'in flight');
   await flush();
   assert.equal(engine.activeCount, 1);
@@ -432,7 +509,7 @@ test('dispose cancels in-flight speech and removes subscriptions', async () => {
 test('enqueue after dispose speaks nothing', async () => {
   const engine = new FakeEngine([voice('en-1', 'Alex', 'en-US')]);
   const narrator = new Narrator(engine);
-  narrator.setSettings({ enabled: true, voices: { en: 'en-1' } });
+  applySettings(narrator, { enabled: true, voices: { en: 'en-1' } });
   narrator.dispose();
   narrator.enqueue('progress', 'too late');
   await flush();
@@ -444,7 +521,7 @@ test('enqueue after dispose speaks nothing', async () => {
 test('enqueue can override the default language per call', async () => {
   const engine = new FakeEngine([voice('zh-1', 'Sinji', 'zh-HK')]);
   const narrator = new Narrator(engine);
-  narrator.setSettings({ enabled: true, language: 'en', voices: { zh: 'zh-1' } });
+  applySettings(narrator, { enabled: true, language: 'en', voices: { zh: 'zh-1' } });
   narrator.enqueue('progress', 'zh only', { language: 'zh' });
   await flush();
   assert.equal(engine.calls.length, 1);

@@ -28,6 +28,6 @@ test('the word "ollama" never appears anywhere in the published site or in app.j
 });
 
 test('the registry records ollama-suite-manager as absent, and the code agrees', () => {
-  assert.equal(registry.features['ollama-suite-manager'].state, 'absent',
+  assert.equal(registry.features['ollama-suite-manager'].status, 'absent',
     'no Ollama integration of any kind exists in the site -- "absent" is the honest state');
 });

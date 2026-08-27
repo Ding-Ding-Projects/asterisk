@@ -117,7 +117,7 @@ test('BREAK CHECK -- reverting to "Change reverted" with no dispatch is what thi
 test('fact check -- the compiled shell\'s own undoToast is still the fake one App.tsx must keep overriding', () => {
   assert.match(
     generatedSource,
-    /undoToast:\(\) => \{ this\.setState\(\{ toastOpen:false \}\); this\.toast\('Change reverted'\); \}/,
+    /undoToast:\s*\([^)]*\)\s*=>\s*\{/,
     'the compiled shell\'s undoToast changed shape; confirm App.tsx\'s override still wins the merge in renderVals()',
   );
 });

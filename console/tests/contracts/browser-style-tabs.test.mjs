@@ -25,12 +25,12 @@ test('the shell\'s initial state carries real tabs, a pin list and a dock side, 
 
 /* --- docking -------------------------------------------------------------------------- */
 
-test('all four documented dock positions exist as real choices that write state.dock', () => {
+test('all four documented edge dock positions exist as real choices that write state.dock', () => {
   const at = generated.indexOf('dockOpts:[');
   assert.ok(at > 0, 'dockOpts has been renamed or removed');
   const end = generated.indexOf('].map(d =>', at);
   const block = generated.slice(at, end);
-  for (const label of ['Rail on the left', 'Rail on the right', 'Rail on top', 'Compact rail']) {
+  for (const label of ['Rail on the left', 'Rail on the right', 'Rail on top', 'Rail on the bottom']) {
     /* Delimited by the surrounding quotes rather than a bare substring match: "Compact
      * rail" is itself a substring of "X-Compact rail", so an unanchored .includes() would
      * still pass a renamed/mangled label -- exactly the bare-substring trap this suite's
@@ -38,8 +38,28 @@ test('all four documented dock positions exist as real choices that write state.
     assert.ok(block.includes(`label:'${label}',`), `"${label}" is missing from dockOpts`);
   }
   const mapLine = generated.slice(end, generated.indexOf('\n', end + 1));
-  assert.match(mapLine, /pick:\(\) => \{ this\.set\('dock', d\.v\); this\.toast\('Docked ' \+ d\.label\.toLowerCase\(\)\); \}/,
+  assert.match(mapLine, /pick:\(\) => \{ this\.set\('dock', d\.v\); this\.toastWithId\('event-generated-event-source-\d+-toast-0', 'Docked ' \+ d\.label\.toLowerCase\(\)\); \}/,
     'choosing a dock option no longer writes this.set(\'dock\', ...)');
+});
+
+test('bottom docking has its own layout direction, rather than falling through to the left rail', () => {
+  assert.match(generated, /dockDirection:s\.dock === 'right' \? 'row-reverse' : \(s\.dock === 'top' \? 'column' : \(s\.dock === 'bottom' \? 'column-reverse' : 'row'\)\)/,
+    'the bottom dock must put the tab strip after content and cannot silently render as a left rail');
+});
+
+test('the post-compile dock and pinned-close assertions turn red when their exact live clauses are removed', () => {
+  const dockClause = "{ label:'Rail on the bottom', icon:'dock_to_top', v:'bottom' }";
+  const pinnedColourClause = "s.pinned.indexOf(k) >= 0 || (s.tabColours[k] || 'none') !== s.tabFilterColour";
+  assert.ok(generated.includes(dockClause), 'precondition: bottom dock clause is absent');
+  assert.ok(generated.includes(pinnedColourClause), 'precondition: pinned colour protection is absent');
+  const broken = generated.replace(dockClause, '').replace(pinnedColourClause, "(s.tabColours[k] || 'none') !== s.tabFilterColour");
+  assert.doesNotMatch(broken, /label:'Rail on the bottom', icon:'dock_to_top', v:'bottom'/,
+    'negative regression did not remove the exact bottom dock clause');
+  assert.doesNotMatch(broken, /s\.pinned\.indexOf\(k\) >= 0 \|\| \(s\.tabColours\[k\] \|\| 'none'\) !== s\.tabFilterColour/,
+    'negative regression did not remove the exact pinned colour protection');
+  const restored = broken.replace("(s.tabColours[k] || 'none') !== s.tabFilterColour", pinnedColourClause).replace("        \n      ].map(d =>", `        ${dockClause}\n      ].map(d =>`);
+  assert.match(restored, /label:'Rail on the bottom', icon:'dock_to_top', v:'bottom'/);
+  assert.match(restored, /s\.pinned\.indexOf\(k\) >= 0 \|\| \(s\.tabColours\[k\] \|\| 'none'\) !== s\.tabFilterColour/);
 });
 
 test('the context menu also offers docking a single tab, independent of the dockOpts list', () => {
@@ -62,20 +82,12 @@ test('pinning a whole group concatenates its tabs into state.pinned', () => {
   assert.match(generated, /label:'Pin whole group', run:\(\) => \{ close\(\); this\.set\('pinned', s\.pinned\.concat\(g\.tabs\)\); \}/);
 });
 
-test('a bulk close (containing / not containing) excludes pinned tabs by default', () => {
-  /* applyTabFilter keeps a tab when it does NOT match the filter's predicate; there is no
-   * separate "keep if pinned" branch, so this only holds if the filter is never offered a
-   * pinned tab to begin with, or the caller is relied on to exclude it via s.tabs already
-   * filtering out collapsed/hidden group members. This assertion pins the actual mechanism
-   * rather than assuming a specific implementation shape: the filter operates over s.tabs
-   * (the full tab list) and closes purely by name/colour match, with no reference to
-   * s.pinned anywhere inside applyTabFilter -- so a pinned tab whose label matches a close
-   * filter is closed exactly like any other tab. */
+test('a bulk close (containing / not containing / colour) excludes pinned tabs by default', () => {
   const start = generated.indexOf('applyTabFilter:() => {');
   const end = generated.indexOf('closeTabFilter:', start);
   const body = generated.slice(start, end);
-  assert.doesNotMatch(body, /pinned/,
-    'applyTabFilter now references pinned -- if this is now excluding pinned tabs, update this test to assert that positively instead of pinning the absence');
+  assert.match(body, /s\.pinned\.indexOf\(k\) >= 0/,
+    'applyTabFilter must preserve a pinned tab unless an explicit include-pinned choice is selected');
 });
 
 /* --- groups: creation, collapse, rename, colour ---------------------------------------- */
@@ -128,8 +140,8 @@ test('applyTabFilter\'s colour mode closes every tab of the chosen colour and re
   const end = generated.indexOf('closeTabFilter:', start);
   const body = generated.slice(start, end);
   assert.match(body, /if \(s\.tabFilterMode === 'colour'\) \{/);
-  assert.match(body, /if \(!s\.tabFilterColour\) return this\.toast\('Pick a colour first'\);/);
-  assert.match(body, /const keep = s\.tabs\.filter\(k => \(s\.tabColours\[k\] \|\| 'none'\) !== s\.tabFilterColour\);/);
+  assert.match(body, /if \(!s\.tabFilterColour\) return this\.toastWithId\('event-generated-event-source-\d+-toast-0', 'Pick a colour first'\);/);
+  assert.match(body, /const keep = s\.tabs\.filter\(k => s\.pinned\.indexOf\(k\) >= 0 \|\| \(s\.tabColours\[k\] \|\| 'none'\) !== s\.tabFilterColour\);/);
 });
 
 test('a bulk close never empties the tab strip entirely -- it falls back to the dash tab', () => {

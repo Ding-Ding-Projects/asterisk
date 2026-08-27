@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { UpdaterStatusForRenderer } from '../../../shared/control-plane';
+import type { DingDesktopApi, UpdaterRestartResult, UpdaterStatusForRenderer } from '../../../shared/control-plane';
 
 /**
  * The Chrome/GitHub-Desktop-style "an update is ready" banner.
@@ -14,10 +14,35 @@ import type { UpdaterStatusForRenderer } from '../../../shared/control-plane';
  */
 const NULL_STATUS: UpdaterStatusForRenderer = { state: 'idle', unsavedDraftCount: 0, restartPending: false, revision: 0 };
 
+/**
+ * The action behind the rendered restart button. Keeping it narrow makes the user
+ * choice, the production preload bridge, and the refusal/error result testable as
+ * one seam rather than three unrelated source-text claims.
+ */
+export async function requestReadyUpdateInstall(
+  updater: DingDesktopApi['updater'],
+  status: Pick<UpdaterStatusForRenderer, 'restartPending' | 'unsavedDraftCount'>,
+): Promise<UpdaterRestartResult> {
+  if (status.restartPending) return { ok: false, reason: 'The installer is already starting.' };
+  if ((status.unsavedDraftCount ?? 0) > 0) return { ok: false, reason: 'Review, apply, or discard PBX drafts before restarting to install the update.' };
+  try {
+    return await updater.restartToInstall();
+  } catch (error) {
+    return { ok: false, reason: `Could not ask the desktop updater to start the installer: ${error instanceof Error ? error.message : String(error)}` };
+  }
+}
+
+/** Put keyboard focus back on the action that refused, so retry is immediate and
+ * the visible error never strands keyboard users elsewhere in the banner. */
+export function restoreUpdateRestartFocus(button: Pick<HTMLButtonElement, 'focus'> | null): void {
+  queueMicrotask(() => button?.focus());
+}
+
 export function UpdateBanner() {
   const [status, setStatus] = useState<UpdaterStatusForRenderer>(NULL_STATUS);
   const acceptedRevision = useRef(-1);
   const bannerRef = useRef<HTMLDivElement | null>(null);
+  const restartButtonRef = useRef<HTMLButtonElement | null>(null);
   const [restartError, setRestartError] = useState<string | undefined>();
   const bridge = typeof window !== 'undefined' ? window.dingDesktop : undefined;
 
@@ -81,10 +106,16 @@ export function UpdateBanner() {
   const restartPending = Boolean(status.restartPending);
 
   const restart = async () => {
+    /* Keep the renderer-side refusal explicit too: a disabled control alone is not
+     * a safety boundary, and this makes a synthetic click a no-op before it reaches
+     * the privileged bridge. The helper repeats the check for direct callers. */
     if (restartPending || drafts > 0) return;
     setRestartError(undefined);
-    const result = await bridge.updater.restartToInstall();
-    if (!result.ok) setRestartError(result.reason ?? 'The installer could not be started. Try again.');
+    const result = await requestReadyUpdateInstall(bridge.updater, status);
+    if (!result.ok) {
+      setRestartError(result.reason ?? 'The installer could not be started. Try again.');
+      restoreUpdateRestartFocus(restartButtonRef.current);
+    }
   };
 
   return (
@@ -110,8 +141,9 @@ export function UpdateBanner() {
             )}
           </span>
           {drafts > 0 && <span role="alert">{drafts} PBX draft{drafts === 1 ? '' : 's'} need review, apply, or discard before restart.</span>}
+          {status.lastError && <span role="alert">Installer launch failed: {status.lastError}. The verified update is still ready; choose Restart to install update to try again.</span>}
           {restartError && <span role="alert">{restartError}</span>}
-          <button type="button" disabled={restartPending || drafts > 0} onClick={() => void restart()}>{restartPending ? 'Starting installer…' : 'Restart to install update'}</button>
+          <button type="button" ref={restartButtonRef} disabled={restartPending || drafts > 0} onClick={() => void restart()}>{restartPending ? 'Starting installer…' : 'Restart to install update'}</button>
           <button type="button" onClick={() => bridge.updater.dismiss()}>Later</button>
         </>
       )}

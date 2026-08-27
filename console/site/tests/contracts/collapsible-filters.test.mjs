@@ -49,6 +49,6 @@ test('collapsed state is a real user choice, not hard-coded: the settings-previe
 });
 
 test('the registry records collapsible-filters as implemented', () => {
-  assert.equal(registry.features['collapsible-filters'].state, 'implemented',
+  assert.equal(registry.features['collapsible-filters'].status, 'implemented-unverified',
     'real, accessible collapsible <details> panels wired to a live match-count status should read as implemented');
 });

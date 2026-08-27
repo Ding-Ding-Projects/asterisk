@@ -5,7 +5,13 @@
  * No rendering, no I/O — every function here takes a bundle and returns data.
  */
 
-import type { DocsArticle, DocsBundle, DocsHeading } from './generated/docs-bundle.js';
+import type {
+  DocumentationArticle as DocsArticle,
+  DocumentationBundle as DocsBundle,
+  DocumentationHeading as DocsHeading,
+  DocumentationSearchOrigin,
+} from '../../../shared/documentation.js';
+import { runBoundedSearch, type BoundedSearchErrorCode } from './bounded-regex.js';
 
 export interface CategorySummary {
   readonly category: string;
@@ -39,9 +45,12 @@ export interface SearchMatch {
   readonly category: string;
   readonly title: string;
   readonly field: 'title' | 'heading' | 'body';
+  /** Exact corpus field, including a heading id when the match came from one. */
+  readonly origin: string;
   readonly excerpt: string;
   readonly matchStart: number;
   readonly matchEnd: number;
+  readonly captures: readonly (string | undefined)[];
 }
 
 export interface SearchResult {
@@ -55,33 +64,7 @@ const MAX_MATCHES_PER_FIELD = 3;
 /** Bound the work a hostile pattern can do against one field. */
 const MAX_FIELD_LENGTH = 200_000;
 
-function buildMatcher(query: string, options: SearchOptions | undefined): { ok: true; test: (text: string) => RegExpMatchArray[] } | { ok: false; error: string } {
-  if (options?.regex) {
-    let re: RegExp;
-    try {
-      const flags = options.flags ?? 'gi';
-      re = new RegExp(query, flags.includes('g') ? flags : `${flags}g`);
-    } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : 'Invalid regular expression.' };
-    }
-    return {
-      ok: true,
-      test: (text: string) => {
-        const bounded = text.slice(0, MAX_FIELD_LENGTH);
-        const results: RegExpMatchArray[] = [];
-        re.lastIndex = 0;
-        let match: RegExpMatchArray | null;
-        let guard = 0;
-        while ((match = re.exec(bounded)) !== null && guard < 500) {
-          results.push(match);
-          guard += 1;
-          if (match[0].length === 0) re.lastIndex += 1;
-        }
-        return results;
-      },
-    };
-  }
-
+function buildPlainMatcher(query: string): { ok: true; test: (text: string) => RegExpMatchArray[] } {
   const needle = query.toLowerCase();
   if (needle.length === 0) return { ok: true, test: () => [] };
   return {
@@ -120,9 +103,15 @@ function excerptFor(text: string, index: number, length: number): { excerpt: str
 
 export function search(bundle: DocsBundle, query: string, options?: SearchOptions): SearchResult {
   if (query.length === 0) return { ok: true, matches: [] };
+  if (options?.regex) {
+    return {
+      ok: false,
+      error: 'Regular-expression search requires the asynchronous isolated worker API.',
+      matches: [],
+    };
+  }
 
-  const matcher = buildMatcher(query, options);
-  if (!matcher.ok) return { ok: false, error: matcher.error, matches: [] };
+  const matcher = buildPlainMatcher(query);
 
   const matches: SearchMatch[] = [];
 
@@ -131,7 +120,7 @@ export function search(bundle: DocsBundle, query: string, options?: SearchOption
     for (const hit of titleHits) {
       const idx = hit.index ?? 0;
       const { excerpt, matchStart, matchEnd } = excerptFor(article.title, idx, hit[0].length);
-      matches.push({ articleId: article.id, category: article.category, title: article.title, field: 'title', excerpt, matchStart, matchEnd });
+      matches.push({ articleId: article.id, category: article.category, title: article.title, field: 'title', origin: 'title', excerpt, matchStart, matchEnd, captures: [] });
     }
 
     for (const heading of article.headings) {
@@ -139,7 +128,7 @@ export function search(bundle: DocsBundle, query: string, options?: SearchOption
       for (const hit of headingHits) {
         const idx = hit.index ?? 0;
         const { excerpt, matchStart, matchEnd } = excerptFor(heading.title, idx, hit[0].length);
-        matches.push({ articleId: article.id, category: article.category, title: article.title, field: 'heading', excerpt, matchStart, matchEnd });
+        matches.push({ articleId: article.id, category: article.category, title: article.title, field: 'heading', origin: `heading:${heading.id}`, excerpt, matchStart, matchEnd, captures: [] });
       }
     }
 
@@ -147,11 +136,85 @@ export function search(bundle: DocsBundle, query: string, options?: SearchOption
     for (const hit of bodyHits) {
       const idx = hit.index ?? 0;
       const { excerpt, matchStart, matchEnd } = excerptFor(article.body, idx, hit[0].length);
-      matches.push({ articleId: article.id, category: article.category, title: article.title, field: 'body', excerpt, matchStart, matchEnd });
+      matches.push({ articleId: article.id, category: article.category, title: article.title, field: 'body', origin: 'body', excerpt, matchStart, matchEnd, captures: [] });
     }
   }
 
   return { ok: true, matches };
+}
+
+export interface BoundedDocumentationSearchOptions extends SearchOptions {
+  readonly deadlineMs?: number;
+  readonly signal?: AbortSignal;
+}
+
+export interface BoundedDocumentationSearchResult extends SearchResult {
+  readonly truncated?: boolean;
+  readonly code?: BoundedSearchErrorCode;
+}
+
+/**
+ * Full-text search used by the mounted documentation surface. User patterns run only
+ * in the disposable worker from bounded-regex.ts. Each result retains the exact field
+ * that produced it, and capture groups are returned without re-running the pattern.
+ */
+export async function searchBounded(
+  bundle: DocsBundle,
+  query: string,
+  options: BoundedDocumentationSearchOptions = {},
+): Promise<BoundedDocumentationSearchResult> {
+  if (query.length === 0) return { ok: true, matches: [], truncated: false };
+
+  const articles = listArticles(bundle);
+  const fields = articles.flatMap((article) => [
+    { recordId: article.id, origin: 'title', text: article.title },
+    ...article.headings.map((heading) => ({ recordId: article.id, origin: `heading:${heading.id}`, text: heading.title })),
+    { recordId: article.id, origin: 'body', text: article.body },
+  ]);
+  const outcome = await runBoundedSearch({
+    query,
+    mode: options.regex ? 'regex' : 'plain',
+    flags: options.flags,
+    fields,
+    deadlineMs: options.deadlineMs,
+    signal: options.signal,
+  });
+  if (!outcome.ok) {
+    return { ok: false, code: outcome.code, error: outcome.error, matches: [] };
+  }
+
+  const byId = new Map(articles.map((article) => [article.id, article]));
+  const perOrigin = new Map<string, number>();
+  const matches: SearchMatch[] = [];
+  for (const hit of outcome.matches) {
+    const article = byId.get(hit.recordId);
+    if (!article) continue;
+    const key = `${hit.recordId}\u0000${hit.origin}`;
+    const count = perOrigin.get(key) ?? 0;
+    if (count >= MAX_MATCHES_PER_FIELD) continue;
+    perOrigin.set(key, count + 1);
+
+    const headingId = hit.origin.startsWith('heading:') ? hit.origin.slice('heading:'.length) : undefined;
+    const source = hit.origin === 'title'
+      ? article.title
+      : headingId
+        ? article.headings.find((heading) => heading.id === headingId)?.title ?? ''
+        : article.body;
+    const field: DocumentationSearchOrigin = hit.origin === 'title' ? 'title' : headingId ? 'heading' : 'body';
+    const excerpt = excerptFor(source, hit.start, hit.end - hit.start);
+    matches.push({
+      articleId: article.id,
+      category: article.category,
+      title: article.title,
+      field,
+      origin: hit.origin,
+      excerpt: excerpt.excerpt,
+      matchStart: excerpt.matchStart,
+      matchEnd: excerpt.matchEnd,
+      captures: hit.captures,
+    });
+  }
+  return { ok: true, matches, truncated: outcome.truncated };
 }
 
 // ---------------------------------------------------------------- links
@@ -169,8 +232,10 @@ export function resolveLink(bundle: DocsBundle, fromArticle: DocsArticle | strin
   const from = typeof fromArticle === 'string' ? articleById(bundle, fromArticle) : fromArticle;
   if (!from) return undefined;
 
-  const withoutFragment = href.split('#')[0];
+  const trimmed = href.trim();
+  const withoutFragment = trimmed.split('#')[0];
   if (!withoutFragment || !withoutFragment.endsWith('.md')) return undefined;
+  if (/^[a-z][a-z\d+.-]*:/i.test(withoutFragment) || withoutFragment.startsWith('//')) return undefined;
 
   const fromDir = from.id.includes('/') ? from.id.slice(0, from.id.lastIndexOf('/')) : '';
   const segments = [...fromDir.split('/').filter(Boolean), ...withoutFragment.split('/')];
@@ -179,6 +244,7 @@ export function resolveLink(bundle: DocsBundle, fromArticle: DocsArticle | strin
   for (const segment of segments) {
     if (segment === '.' || segment === '') continue;
     if (segment === '..') {
+      if (resolved.length === 0) return undefined;
       resolved.pop();
       continue;
     }
@@ -198,6 +264,10 @@ export function brokenLinks(bundle: DocsBundle): BrokenLink[] {
   const broken: BrokenLink[] = [];
   for (const article of listArticles(bundle)) {
     for (const href of article.links) {
+      const trimmed = href.trim();
+      const withoutFragment = trimmed.split('#')[0];
+      if (!withoutFragment || !withoutFragment.endsWith('.md')) continue;
+      if (/^[a-z][a-z\d+.-]*:/i.test(withoutFragment) || withoutFragment.startsWith('//')) continue;
       if (resolveLink(bundle, article, href) === undefined) {
         broken.push({ fromArticleId: article.id, href });
       }

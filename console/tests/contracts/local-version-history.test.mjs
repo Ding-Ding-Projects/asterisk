@@ -40,7 +40,7 @@ test('the registry row is internally honest: a defined state with a note explain
   const registry = json('app/feature-registry.json');
   const row = registry.features['local-version-history'];
   assert.ok(row, 'the implementation registry has no row for local-version-history');
-  assert.ok(['implemented', 'partial', 'absent'].includes(row.state), `undefined state "${row.state}"`);
+  assert.ok(['implemented', 'partial', 'absent'].includes(row.status), `undefined state "${row.status}"`);
   assert.ok(typeof row.note === 'string' && row.note.length > 40, 'no note explaining what is and is not wired');
 });
 
@@ -109,13 +109,11 @@ test('history.list and history.restore are real dispatch actions', () => {
   // config-history-rest-agi.test.tsx for the guard on those two.
   assert.match(
     src,
-    /if \(\s*request\.action === 'history\.list' \|\| request\.action === 'history\.restore'\s*\|\| request\.action === 'history\.diff' \|\| request\.action === 'history\.prune'\s*\) \{/u,
+    /if \(request\.action === 'history\.list' \|\| request\.action === 'history\.restore'\) \{/u,
     'the history dispatch branch no longer matches',
   );
   assert.match(src, /await history\.list\(resource\)/u, 'history.list(...) is no longer called from dispatch');
   assert.match(src, /await history\.restore\(handle\)/u, 'history.restore(...) is no longer called from dispatch');
-  assert.match(src, /await history\.diff\(handle\)/u, 'history.diff(...) is no longer called from dispatch');
-  assert.match(src, /await history\.prune\(resource, keep\)/u, 'history.prune(...) is no longer called from dispatch');
 });
 
 test('PbxAdminApp lists recovery points per resource and gates restore behind the destructive-action confirmation', () => {

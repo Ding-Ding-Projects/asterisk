@@ -67,6 +67,6 @@ test('no Home Assistant integration (binary_sensor, input_boolean, access token)
 });
 
 test('the registry records external-settings-sources as absent, and the code agrees', () => {
-  assert.equal(registry.features['external-settings-sources'].state, 'absent',
+  assert.equal(registry.features['external-settings-sources'].status, 'absent',
     'no HTTPS API or Home Assistant integration exists anywhere in site/app.js -- "absent" is the honest state');
 });

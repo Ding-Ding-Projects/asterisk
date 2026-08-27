@@ -595,8 +595,8 @@ test('the site feature registry carries a row for dialog-emojis', () => {
 
 test('the registry records dialog-emojis as implemented, and names the files it lives in', () => {
   const row = registry.features['dialog-emojis'];
-  assert.equal(row.state, 'implemented');
-  assert.deepEqual([...row.files].sort(), ['site/app.js', 'site/settings.html', 'site/styles.css'].sort());
+  assert.equal(row.status, 'implemented-unverified');
+  assert.deepEqual([...row.implementation.paths].sort(), ['site/app.js', 'site/settings.html', 'site/styles.css'].sort());
   assert.match(row.note, /aria-hidden/u, 'the registry note does not record the accessible-name boundary');
 });
 

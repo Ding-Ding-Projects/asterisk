@@ -21,6 +21,8 @@
 import type { ProcessExecutor } from "./executor.js";
 import type { ConfigDocument, ConfigTransport } from "./config-transaction.js";
 
+export type RawConfigReader = (distribution: string, resource: string, signal?: AbortSignal) => Promise<{ state: 'present'; text: string } | { state: 'absent' }>;
+
 const CONFIG_DIRECTORY = "/etc/asterisk";
 
 /**
@@ -429,6 +431,8 @@ export interface WslConfigTransportOptions {
   executor: ProcessExecutor;
   distribution: string;
   now?: () => Date;
+  targetId?: string;
+  rawRead?: RawConfigReader;
 }
 
 function looksAbsent(error: unknown): boolean {
@@ -498,6 +502,12 @@ export class WslConfigTransport implements ConfigTransport {
       throw error;
     }
   }
+
+  async readState(resource: string): Promise<{ state: 'present'; value: ConfigValue } | { state: 'absent' }> {
+    try { return { state: 'present', value: await this.read(resource) }; } catch (error) { if (looksAbsent(error)) return { state: 'absent' }; throw error; }
+  }
+
+  projectForRead(_resource: string, value: unknown): unknown { return value; }
 
   /**
    * An allowlisted file's exact text, unparsed.

@@ -14,11 +14,11 @@ Query, pattern, flags, and mode would stay synchronized bidirectionally between 
 
 **Desktop application:** Partial. The desktop application's filter fields accept plain-text substring queries and have no adjacent builder affordance, raw pattern editor, or guided construction controls.
 
-**Documentation website:** Partial. The site's search input is plain-text only with no builder affordance, guided construction, or pattern/flags UI.
+**Documentation website:** Implemented for the shared shell. Settings, documentation, command-palette, notification, every upgraded dropdown, and page-context searches have their own adjacent builder, bounded raw pattern, guided inserts, i/m/u flags, sample text, live match count, and local JavaScript-engine application. Plain text remains the default.
 
 ## Failure modes
 
-A pathological pattern is meant to be time- and step-bounded so it cannot hang the evaluating process; today there is no evaluator to bound, since there is no regex mode on either surface.
+Pattern and sample input are bounded, but browser-native JavaScript regular expressions do not provide a hard execution deadline. The site identifies that engine and keeps the evaluator local; a worker-isolated timeout remains incomplete.
 
 ## Accessibility and localization
 

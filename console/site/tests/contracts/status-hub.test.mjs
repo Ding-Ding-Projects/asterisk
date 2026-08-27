@@ -78,6 +78,6 @@ test('status.html states plainly why it does not implement a live status hub, ra
 });
 
 test('the registry records status-hub as absent, and the code agrees', () => {
-  assert.equal(registry.features['status-hub'].state, 'absent',
+  assert.equal(registry.features['status-hub'].status, 'absent',
     'status.html is a real static status surface with a factual timeline, and now explicitly states why it is not a live authenticated Status Hub, but no live status-hub project, session card, or question-card logic exists -- "absent" is still the honest state');
 });

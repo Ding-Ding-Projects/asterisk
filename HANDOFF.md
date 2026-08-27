@@ -43,9 +43,63 @@ Two branches are not ancestors of master, and neither should be merged as it sta
 ---
 # Ding PBX delivery handoff
 
+## Status Hub and browser-extension transfer mount, 2026-08-23
+
+The `codex/mount-status-downloads` lane mounts `#surface=status` plus `#surface=download/start`, `#surface=download/progress`, and `#surface=download/complete`. The Status Hub client and store remain receipt-led and derive rows only from the configured external service. The privileged dispatcher exposes `status-hub.*` actions and accepts the non-secret `STATUS_HUB_URL` origin configuration. An absent or unreachable service remains a typed unavailable or offline state.
+
+The browser-extension handoff enters through the packaged submission-only `Ding-PBX-Console-NativeMessagingHost.exe`, registered under reverse-domain host name `com.dingdingprojects.asterisk.downloads` and authenticated with the shipped 32-character extension id `dnpkplcgjmipnndmghkhljjoefjhidab`. The native host is built through `build-native-host.ps1`, and `register-native-host.ps1` writes the absolute manifest path for both Chrome and Edge, verifies executable and manifest ownership, stable digest, protected challenge config, current-user ACL, registry values, and returns a typed registration receipt. The primary shell exposes the first-run Register extension ingress action and typed ready, starting, unavailable, or retry state; successful registration hot-reloads the listener. The host crosses the bounded random local named pipe with the installation challenge into `download:submit-handoff`, can submit one validated handoff and receive its receipt, and exposes no transfer command, snapshot, queue, or credential operation. Handoffs are persisted in an ordered pending queue with transfer snapshots in `download-transfers.json`. The primary shell only offers a passive open-window action, while dedicated always-on-top BrowserWindows are the sole owners of Start, Downloading, and Complete surfaces and events, each bound to one exact handoff or transfer id. The native picker or a persisted approved root supplies the destination, and the manager rejects mismatched handoff replay, non-absolute paths, containment escapes, and symlink or reparse components immediately before writing. It rechecks the parent after directory creation before opening the temporary file. The packaged native helper contract opens the verified parent with `FILE_FLAG_OPEN_REPARSE_POINT` and no delete sharing before no-follow temporary creation. It streams HTTPS bytes into a unique adjacent temporary file, applies header, body-idle, and total deadlines, validates bytes, records exact complete size and SHA-256, and publishes through the shared Windows rename retry helper. A full-body publication failure keeps the same complete temporary file available for retry publication only after size and digest revalidation, never requesting Range at EOF. Range pause and resume use recorded validators when supported, while unsupported controls stay disabled with an exact reason. Startup reconciliation turns interrupted work into partial or failed state, and retry or discard outcomes remain explicit. Durable Status Hub receipt read and write failures stay visibly warned while the live registration remains usable, and stale or not-found receipts get one bounded clear and re-registration attempt. The preload exposes only dedicated-window transfer actions. The companion extension capture itself is not part of this Oak Kay, so no browser extension source was added.
+
+This lane intentionally ran no tests, lint, type checks, builds, packaging, runtime interaction, external service calls, extension launch, or captures. The next owner must run the focused control-plane and renderer checks, then verify the built desktop routes with a real configured Status Hub and a real extension handoff. The feature registry and platform articles record this unverified boundary.
+
+The source platform articles were updated and `npm run bundle:docs` was run as the permitted documentation-only generator. The generated `console/app/renderer/src/generated/docs-bundle.ts` now contains the updated articles. No other build or verification command was run.
+
+## Surface mount integration, 2026-08-23
+
+The integration lane added `console/app/renderer/src/surface-mounts.tsx` and mounted it from `main.tsx` as an addressable hash route. `#surface=converter` renders the real converter component and reads its catalog and PDF capability evidence through the local control-plane dispatcher. Picker, queue mutation, and packaged-worker proof operations still return explicit unavailable receipts because those handlers are not registered. `#surface=ollama` renders the real Ollama component and reports a typed `bridge-not-registered` state until its privileged dispatcher is registered. `#surface=docs` and `#surface=changelog` render the bundled documentation and changelog components.
+
+The desktop and Pages feature registries, plus `console/inventories/surface-completeness.json`, record the converter and Ollama rows as `implemented-unverified`. No tests, lint, type checks, builds, packaging, UI runs, captures, or Lowlevel work ran in this lane. The next owner must register the remaining converter and Ollama handlers, then run the focused checks and built-artifact interaction proof.
+
 ## Scope
 
 This handoff covers the integrated Material Asterisk desktop application, bounded PBX control plane, GitHub Pages documentation application, repository delivery automation, line counting, completeness and design-parity inventories, contributor guidance, and release evidence contracts.
+
+## Completeness matrix session of 2026-08-23
+
+### Scope and current commit
+
+This lane replaces the earlier 44-feature, two-surface inventory with schema version 2 of `console/inventories/surface-completeness.json`. The source audit baseline for this lane is `088ecde1a6`. The matrix is hand-written and does not discover features or routes from implementation files.
+
+### Matrix counts
+
+| Surface family | Exact count |
+| --- | ---: |
+| Desktop shell | 1 |
+| Login | 1 |
+| Setup | 1 |
+| Desktop destinations | 32 |
+| Desktop overlay states | 17 |
+| Top-level site pages | 6 |
+| Generated documentation routes | 82 |
+| Browser-extension download states | 3 |
+| **Total addressable surfaces** | **143** |
+| **Canonical features on every surface** | **44** |
+| **Feature rows** | **6,292** |
+
+The required features include local file conversion and the local Ollama suite manager. `console/inventories/exemptions.json` is schema version 2 with zero exemptions.
+
+### Evidence boundary
+
+Every row records status, demo state, exact provenance, implementation and registration symbols, route, documentation, localization, persistence, focused checks, negative evidence, built interaction, current-commit capture fields, and design-parity tuple fields. The current ultra-speed delivery boundary did not run validators, tests, or captures. No row was promoted to `verified`, and no unproven evidence is described as present.
+
+### Verification and next owner
+
+The validator is `console/scripts/verify-inventories.mjs`. The red-then-green regressions are `console/scripts/negative-surface-completeness.mjs` and `console/scripts/negative-evidence-claims.mjs`. The next owner must run them against the exact integrated default-branch commit, observe every deliberate break turn red, restore the matrix, and then capture the real built artifact and design reference under identical tuples before recording verified evidence.
+
+## Site history and delivery lane
+
+The isolated `codex/site-history-delivery` lane added `console/site/history-delivery.js` and `console/site/history.html`. The shared `console/site/app.js` now registers the module on each primary page, and `console/site/build.mjs` copies it into deterministic output and wires it into generated documentation pages with a real delivery mount host, depth-correct changelog, release-manifest, app, full-builder, and command-palette shells. The module supplies schema-versioned local append-only visitor history with explicit older-state migration and future-version refusal, bounded browser storage, strict recursive redaction, scrubbed summaries that omit paths, URLs, and private values, validated local calendar dates and presets, date/action/regex filtering, retention preview that reserves the prune-event slot, restore-as-new-event, a generated product-release changelog with optional upstream history and exact Git target validation, safe provider Markdown preview, honest unavailable editor handoff, a File System Access download state machine with measured chunks and stream-close completion, interrupted-transfer reconciliation and active-write refusal, a partial forge provider preview with source and destination states, cancellable byte-based local export preparation, in-context recovery, target-specific context actions on genuine panels and rows, ordinary persisted route navigation with pinning, and static-page update status that validates the bundled release manifest without claiming installation. It never stores credentials, private vocabulary, local paths, or file contents, and it never claims that a browser handoff installed, published, or completed something the browser did not report.
+
+The source documentation is `console/docs/platform/site-history-and-delivery.md`, indexed by `console/docs/platform/README.md`. This lane did not run tests, lint, builds, browser interaction, captures, hosting, releases, or pushes by assignment. The next owner should run the site's existing validation and inspect the built route before publication.
 
 ## Implemented
 
@@ -61,6 +115,7 @@ This handoff covers the integrated Material Asterisk desktop application, bounde
 - Implemented a dependency-free static documentation application containing the same 32 destination identifiers, 32 feature articles, local settings and search behavior, deterministic output, an Open Graph graphic, and no runtime asset fetches.
 - Reworked the static site into a responsive product-marketing and documentation surface with an animated hero, bento product sections, scroll reveals, a responsive 32-destination navigator, local theme/language/density controls, accessible search and anchored regular-expression tooling, and an installer action that remains unavailable until a verified immutable URL exists.
 - Split the compact static experience into six routable pages—Home, Product, Documentation, Downloads, Status, and Settings—using shared local CSS and JavaScript. The documentation map shows eight of 32 destinations at a time, generated articles include anchored section navigation, and every primary page carries page-specific title, description, Open Graph URL, active navigation, and `/asterisk/`-compatible relative links.
+- Mounted the desktop forge-publishing runtime on the History screen. The typed bridge now discovers local GitHub CLI accounts, confirms the active login for each owner read, proves keyring storage and refuses plaintext fallback, clears inherited authentication variables, stores only account ids and provider-supplied vault references in atomic versioned state, supports client-id-free ConPTY device sign-in with surfaced user code and verification URL plus per-request deadlines, bounded polling and stdin-only credential installation, valid stdin-confirmed sign-out with independent reread and provider-authorization disclosure, refresh, add, and cancellation, reads personal and organization owners with unknown capabilities until proven, distinguishes GitHub and unavailable GitLab capabilities, and offers exact fork and copy-and-push routes with destination identity and exactly-one effective push-URL `git ls-remote` proof. `gh` and `git` calls use the allowlisted `shell:false` executor with deadlines, redaction, and common settlement. Account and publication receipts are separate, reloadable, action-specific, and retain failed, partial, cancelled, and unknown-side-effect outcomes. Hosted refusal and disabled controls, visible corruption reset, forge-bound regex label and preview, operation-id progress terminal states, and pinned gh and ConPTY helper package checks are explicit. The direct HTTP route still needs an immutable approved public OAuth client id, and the feature is partial until runtime provider verification and built-artifact evidence land.
 
 ## Design parity by compilation
 
@@ -411,6 +466,43 @@ present: looking for a native `select` finds nothing, because a choice renders a
 and matching button text finds every option **except the one currently set**, because the selected
 option carries a mark and its text is not the bare value.
 
+## Language, School mode and narration lane
+
+The desktop language lane is implemented in commits `1b920405cfc18908565da8eb531aba089a06f17e`,
+`303733d7ab3018f132a824bff4b6582fc243d41e`, and `d743779088`. The design source adds three language modes, independent English and Cantonese funny
+levels, a persisted dialog-emoji switch, a shared renamable School mode, and an off-by-default narration
+group. The renderer mounts the existing localization boundary, applies bounded funny wrappers to app
+notifications and dialogs, polls the shared settings snapshot once per second, and hides Cantonese,
+funny, vocabulary, dialog-emoji and narration controls while School mode is active. Electron stores
+the School unlock credential through the operating-system credential vault under a stable account key using the `keytar` adapter; the plain settings snapshot and application-data files never receive it.
+
+The browser speech adapter enumerates the installed voice list late through `voiceschanged`, persists
+stable voice URI identities, reports missing and network-backed choices, and serializes English then
+Cantonese for `Both`. Events are split into independent English and Cantonese tracks before funny
+styling and speech. Cantonese accepts only `zh-HK` or `yue-HK`; duplicate voice names carry an engine
+or URI suffix. The app-owned credential dialog exposes the exact `%APPDATA%\\ding-pbx-console` recovery
+line. No tests, lint, broad build, packaging, UI capture or release work was run in this lane, per its
+bounded scope. The generated renderer and docs bundle were regenerated from the checked-in design and
+Markdown sources. A type-check attempt was not independently usable because this isolated checkout has
+no installed React dependencies and no referenced Electron declaration outputs.
+
+The School credential now uses the shared `keytar` OS-vault account contract in
+`shared/school-contract.ts`. The supported packaging path rebuilds native add-ons through
+`electron-builder install-app-deps`, unpacks `keytar` from the asar, and runs
+`scripts/verify-keytar-packaged.mjs` to load the packaged native module and complete a vault
+round-trip. The packaging controller now stages candidate provenance before the builder, compares
+the final release identity with independent controller values, and passes that identity into a
+probe-only preload and main-process IPC route. Credential operations run in isolated cancellable
+workers with cumulative bounded cleanup evidence. The probe asserts the requested isolated
+application data path before dispatcher initialization, uses the shared production reparse
+validator, waits for a bounded post-kill exit deadline, records each cleanup result, and retains
+the forensic profile when child exit cannot be proven. The event census has one runtime record and
+stable call ID for each of 276 App, design, and generated event calls, plus the 12 App template
+records, with an explicit localized or plain-English fallback status for each. The 98 generated
+records carry one-to-one design-source pairing metadata, and text lookup is reserved for
+non-census fallback paths. These records and the release checks remain `implemented-unverified`
+because package execution was not run in this lane.
+
 
 ## Next owner actions
 
@@ -462,3 +554,20 @@ one-page target preflight. The run also recorded direct `Setup.exe` launch succe
 repaired restart path, Later hiding the banner while retaining the staged candidate, and
 the visible review, apply, or discard block for two drafts. The detailed public article is
 `console/docs/platform/automatic-updates-evidence.md`. No new capture was made in this lane.
+
+## Attention runtime mount on 2026-08-23
+
+The desktop attention runtime is implemented but unverified on `codex/mount-attention-runtime`.
+`App.tsx` restores all five independent switches and the persisted `att_next` action after the durable settings snapshot loads. It applies Focus dimming without removing inactive work, Low stimulation color and motion consumers, live operating-system reduced-motion composition, session and since-last-change values, and a factual Momentum prompt with a 30-minute snooze.
+
+The checked-in design adds the `att_next` text control, generated renderer output was refreshed with `npm run compile:design`, and Cantonese labels cover the new control. Directly related records are `console/app/feature-registry.json`, `console/app/locales/feature-registry.json`, `console/docs/platform/attention-modes.md`, `console/docs/changelog/attention-runtime-mount.md`, and `ROADMAP.md`.
+
+The refutation repair now uses semantic markers from the design for title bar, tab strip, rail, section list, work region, and attention-card mount instead of child indexes. It also acknowledges attention writes, bounds restored snoozes, suppresses informational notifications only, retains warning and error history, and records last-change time through the explicit mutation-path inventory while leaving passive reads and navigation alone.
+
+The second refutation repair adds the generated `onUserMutation` callback for controls, steppers, appearance, canvas, layout, tabs, groups, presets, and direct application-owned mutations. Durable writes are serialized per key and newest generations decide pending, session-only, retry, or saved state. Notification severity is passed explicitly through the notification and ceremony APIs, with no text heuristic.
+
+The fourth refutation repair routes every App and generated notification producer through typed notification helpers, persists bounded schema-versioned redacted warning and error history with restore, search, clear, and export, and adds exact mutation action and notification producer inventories. Host settings roll back their in-memory map when atomic persistence fails, while Group tabs by area is real and Move to new window is explicitly unavailable.
+
+The fifth refutation repair wires `verifyAttentionWiring` into `scripts/verify-inventories.mjs` through Node's type stripping, with one deliberate red and restored-green fixture for each of the six rows. It also separates mode and history persistence status, shows corrupt history without deleting it, adds reset recovery, expands path redaction to Windows, UNC, POSIX, relative, and PBX paths, and removes raw App and generated notification calls in favor of typed helpers.
+
+No UI, accessibility, browser, capture, Lowlevel, broad build, packaging, or release verification was run in this lane. The next owner must run focused built-artifact checks for mount restoration, each mode's visible consumer, the next-action persistence path, Momentum snooze expiry, keyboard access, reduced-motion behavior, refused durable writes, and reviewable warning or error history before marking the feature verified.

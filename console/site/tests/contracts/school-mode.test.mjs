@@ -310,13 +310,7 @@ function loadSchool({
     (detail) => { recoveriesReported.push({ id: 'school-cannot-arm', detail }); return { ok: true, id: 'school-cannot-arm' }; },
   );
 
-  /* `vocabularyReplacements` reads the cache through VOCABULARY_CACHE_KEY since the ticket
-   * desk landed, so the constant's own declaration is lifted out of the file and prepended
-   * rather than a copy of its value being written here -- a copy would go on satisfying
-   * this harness after the real key moved. */
-  const cacheKeyLine = app.match(/^ {2}const VOCABULARY_CACHE_KEY = '[^']+';$/mu);
-  assert.ok(cacheKeyLine, 'VOCABULARY_CACHE_KEY is no longer declared in site/app.js');
-  const copyBody = `${cacheKeyLine[0]}\n${functionSource(app, 'copyLevel')}\n${functionSource(app, 'copyText')}\n`
+  const copyBody = `${functionSource(app, 'copyLevel')}\n${functionSource(app, 'copyText')}\n`
     + `${functionSource(app, 'vocabularyReplacements')}\n${functionSource(app, 'applyVocabularyText')}\n`
     + 'return { copyLevel, copyText, applyVocabularyText };';
   // eslint-disable-line no-new-func -- the real copy layer, wired to this block's schoolActive
@@ -888,8 +882,8 @@ test('the card is findable from the settings search, and its keywords follow the
 test('the site feature registry records it as implemented, and names the files it lives in', () => {
   const row = registry.features['school-mode'];
   assert.ok(row, 'no school-mode row in site/feature-registry.json');
-  assert.equal(row.state, 'implemented');
-  assert.deepEqual([...row.files].sort(), ['site/app.js', 'site/settings.html', 'site/styles.css'].sort());
+  assert.equal(row.status, 'implemented-unverified');
+  assert.deepEqual([...row.implementation.paths].sort(), ['site/app.js', 'site/settings.html', 'site/styles.css'].sort());
   assert.match(row.note, /removed from the document/u, 'the registry note does not record the removal boundary');
   /* The exact claim, not the word. A bare /digest/ needle was satisfied by the note's
    * second, unrelated mention of one, so a planted break that deleted the sentence

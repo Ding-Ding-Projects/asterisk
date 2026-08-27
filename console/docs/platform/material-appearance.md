@@ -14,7 +14,7 @@ Colors would be chosen through a continuous picker with bidirectional conversion
 
 **Desktop application:** Partial, and corrected 2026-08-25. The accent colour (hue/saturation/lightness), font family, font weight, and font size controls are genuinely live: changing any of them writes a real inline style onto the console's root element immediately, with no restart, persists across relaunch, and can be exported as a re-importable JSON theme file. There is no import path yet for that same file even though export is real, and the whole system is scoped to one global (wildcard) theme rather than the true per-element appearance editor the contract describes, because the compiled interface exposes no per-element CSS hook for a rule to be read back from. A `Theme: Dark / Light / Follow system` control also exists and persists, but it has no effect: the compiled design bakes literal dark-mode hex colours and pixel paddings rather than CSS custom properties the theme setting could switch, so it is a stored intention with no live consumer, in the same way a density control sits beside it.
 
-**Documentation website:** Partial. The site ships a fixed dark theme with no live theme switch, no accent picker, no density control, and no per-element editor.
+**Documentation website:** Partial. Every page exposes persisted dark, light, and high-contrast themes, density, accent, font scale, navigation docking, logo presets, and a broad color translator. These values apply live. Per-element editors and full word-processor typography remain incomplete.
 
 ## Failure modes
 

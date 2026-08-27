@@ -21,9 +21,10 @@
  * `bootstrap()` loads the full snapshot once, after which every read is answered from an
  * in-memory `Map` and every write updates that `Map` immediately (so the value is visible
  * to the very next synchronous read within the same session) and is mirrored to the main
- * process in the background. Until `bootstrap()` resolves, reads answer as if nothing were
- * stored yet -- the same fail-closed-to-defaults behaviour a corrupt or missing file gets
- * on the main-process side.
+ * process in the background for legacy callers. Attention settings use the explicit
+ * `writeItem` and `removeItem` methods when they need an acknowledgement. Until
+ * `bootstrap()` resolves, reads answer as if nothing were stored yet, the same
+ * fail-closed-to-defaults behaviour a corrupt or missing file gets on the main-process side.
  */
 
 /** The minimal shape of the control-plane request the durable storage needs, kept
@@ -50,11 +51,29 @@ function newRequestId(): string {
 
 export interface DurableStorageHandle {
   storage: DurableStorage;
-  /** Resolves once the initial snapshot has been loaded (or, with no bridge, resolves
-   *  immediately with an empty cache). Callers that restore persisted UI state at mount
-   *  should await this before reading, then re-render. */
-  bootstrap(): Promise<void>;
+  /** Loads the initial snapshot and retains the exact result, including failures. */
+  bootstrap(): Promise<DurableBootstrapResult>;
+  /** Retries only within the bounded retry budget. */
+  retryBootstrap(): Promise<DurableBootstrapResult>;
+  /** The last bootstrap result, retained for rendering and diagnostics. */
+  bootstrapResult(): DurableBootstrapResult | undefined;
+  /** Writes one value and reports whether the main process acknowledged it. */
+  writeItem(key: string, value: string): Promise<DurableWriteResult>;
+  /** Removes one value and reports whether the main process acknowledged it. */
+  removeItem(key: string): Promise<DurableWriteResult>;
 }
+
+export interface DurableWriteResult {
+  ok: boolean;
+  durable: boolean;
+}
+
+export const DURABLE_BOOTSTRAP_MAX_RETRIES = 3;
+export type DurableBootstrapResult =
+  | { status: 'loaded'; restoredKeys: number; attempt: number }
+  | { status: 'unavailable'; reason: 'bridge-missing'; attempt: number }
+  | { status: 'malformed'; reason: 'invalid-response' | 'invalid-values'; attempt: number }
+  | { status: 'retryable'; reason: 'request-failed' | 'refused'; attempt: number; retriesRemaining: number };
 
 /**
  * Builds one durable storage instance. With no bridge available (tests, or a host with
@@ -64,40 +83,104 @@ export interface DurableStorageHandle {
 export function createDurableStorage(bridge: DurableStorageBridge | undefined): DurableStorageHandle {
   const cache = new Map<string, string>();
   let bootstrapped = false;
-  let bootstrapPromise: Promise<void> | undefined;
+  let bootstrapPromise: Promise<DurableBootstrapResult> | undefined;
+  let result: DurableBootstrapResult | undefined;
+  let attempt = 0;
 
-  async function bootstrap(): Promise<void> {
-    if (bootstrapped) return;
+  async function bootstrap(): Promise<DurableBootstrapResult> {
+    if (bootstrapped && result) return result;
     if (bootstrapPromise) return bootstrapPromise;
     bootstrapPromise = (async () => {
-      if (!bridge) { bootstrapped = true; return; }
+      attempt += 1;
+      cache.clear();
+      result = undefined;
+      if (!bridge) {
+        result = { status: 'unavailable', reason: 'bridge-missing', attempt };
+        bootstrapped = true;
+        return result;
+      }
       try {
         const response = await bridge.controlPlane.request({ requestId: newRequestId(), action: 'settings.snapshot' });
-        if (response?.ok) {
-          const values = (response.data as { values?: Record<string, string> } | undefined)?.values;
-          if (values && typeof values === 'object') {
-            for (const [key, value] of Object.entries(values)) {
-              if (typeof value === 'string') cache.set(key, value);
+        if (!response) {
+          result = { status: 'retryable', reason: 'request-failed', attempt, retriesRemaining: Math.max(0, DURABLE_BOOTSTRAP_MAX_RETRIES - attempt) };
+        } else if (!response.ok) {
+          result = { status: 'retryable', reason: 'refused', attempt, retriesRemaining: Math.max(0, DURABLE_BOOTSTRAP_MAX_RETRIES - attempt) };
+        } else {
+          const data = response.data;
+          if (!data || typeof data !== 'object' || !('values' in data)) {
+            result = { status: 'malformed', reason: 'invalid-response', attempt };
+          } else {
+            const values = (data as { values?: unknown }).values;
+            if (!values || typeof values !== 'object' || Array.isArray(values)) {
+              result = { status: 'malformed', reason: 'invalid-values', attempt };
+            } else {
+              let restoredKeys = 0;
+              for (const [key, value] of Object.entries(values)) {
+                if (typeof value !== 'string') {
+                  result = { status: 'malformed', reason: 'invalid-values', attempt };
+                  cache.clear();
+                  break;
+                }
+                cache.set(key, value);
+                restoredKeys += 1;
+              }
+              if (!result || result.status !== 'malformed') result = { status: 'loaded', restoredKeys, attempt };
             }
           }
         }
       } catch {
-        // No snapshot to restore from; the cache stays empty, i.e. every renderer
-        // default applies, exactly like a missing settings.json on the main-process side.
-      } finally {
-        bootstrapped = true;
+        result = { status: 'retryable', reason: 'request-failed', attempt, retriesRemaining: Math.max(0, DURABLE_BOOTSTRAP_MAX_RETRIES - attempt) };
       }
+      bootstrapped = true;
+      return result!;
     })();
-    return bootstrapPromise;
+    try { return await bootstrapPromise; } finally { bootstrapPromise = undefined; }
   }
 
-  function persist(action: 'settings.write' | 'settings.remove', payload: Record<string, unknown>): void {
-    if (!bridge) return;
-    // Fire-and-forget: the cache is already updated synchronously above, so the
-    // renderer's own next read is correct regardless of how long the IPC round trip
-    // takes. A failure here means the next relaunch loses this one write; it never
-    // corrupts the in-session value.
-    void bridge.controlPlane.request({ requestId: newRequestId(), action, payload }).catch(() => {});
+  async function retryBootstrap(): Promise<DurableBootstrapResult> {
+    if (result?.status === 'loaded') return result;
+    if (attempt >= DURABLE_BOOTSTRAP_MAX_RETRIES) {
+      if (result?.status === 'retryable') return result;
+      return result ?? { status: 'unavailable', reason: 'bridge-missing', attempt };
+    }
+    bootstrapped = false;
+    return bootstrap();
+  }
+
+  const pending = new Map<string, { kind: 'write' | 'remove'; value?: string; promise: Promise<DurableWriteResult> }>();
+  const chains = new Map<string, Promise<DurableWriteResult>>();
+
+  function persist(action: 'settings.write' | 'settings.remove', payload: Record<string, unknown>, key: string, value?: string): Promise<DurableWriteResult> {
+    const kind = action === 'settings.write' ? 'write' : 'remove';
+    const existing = pending.get(key);
+    if (existing && existing.kind === kind && existing.value === value) return existing.promise;
+    const previous = chains.get(key) ?? Promise.resolve({ ok: true, durable: !!bridge });
+    const promise = previous.catch(() => ({ ok: false, durable: !!bridge })).then(() => bridge
+      ? bridge.controlPlane.request({ requestId: newRequestId(), action, payload })
+        .then((response) => ({ ok: response?.ok === true, durable: true }))
+        .catch(() => ({ ok: false, durable: true }))
+      : Promise.resolve({ ok: false, durable: false }));
+    chains.set(key, promise);
+    pending.set(key, { kind, value, promise });
+    void promise.finally(() => {
+      const current = pending.get(key);
+      if (current?.promise === promise) pending.delete(key);
+      if (chains.get(key) === promise) chains.delete(key);
+    });
+    return promise;
+  }
+
+  function writeItem(key: string, value: string): Promise<DurableWriteResult> {
+    cache.set(key, value);
+    return persist('settings.write', { key, value }, key, value);
+  }
+
+  function removeItem(key: string): Promise<DurableWriteResult> {
+    const existing = pending.get(key);
+    if (existing && existing.kind === 'remove') return existing.promise;
+    if (!cache.has(key)) return Promise.resolve({ ok: true, durable: !!bridge });
+    cache.delete(key);
+    return persist('settings.remove', { key }, key);
   }
 
   const storage: DurableStorage = {
@@ -105,15 +188,12 @@ export function createDurableStorage(bridge: DurableStorageBridge | undefined): 
       return cache.has(key) ? cache.get(key)! : null;
     },
     setItem(key, value) {
-      cache.set(key, value);
-      persist('settings.write', { key, value });
+      void writeItem(key, value);
     },
     removeItem(key) {
-      if (!cache.has(key)) return;
-      cache.delete(key);
-      persist('settings.remove', { key });
+      void removeItem(key);
     },
   };
 
-  return { storage, bootstrap };
+  return { storage, bootstrap, retryBootstrap, bootstrapResult: () => result, writeItem, removeItem };
 }

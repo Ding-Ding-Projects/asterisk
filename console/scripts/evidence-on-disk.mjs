@@ -40,7 +40,7 @@ export function verifyExemptions(inventory, exemptions) {
   const problems = [];
   let exemptRows = 0;
   for (const surface of inventory.surfaces) {
-    for (const feature of surface.features) {
+    for (const feature of surface.rows) {
       const key = `${surface.id}.${feature.id}`;
       if (feature.status === 'exempt') {
         exemptRows += 1;
@@ -69,7 +69,7 @@ export function verifyEvidenceOnDisk(inventory, { root, exists = existsSync, rea
   let verifiedRows = 0;
 
   for (const surface of inventory.surfaces) {
-    for (const feature of surface.features) {
+    for (const feature of surface.rows) {
       if (feature.status !== 'verified') continue;
       verifiedRows += 1;
       for (const [kind, template] of Object.entries(surface.evidenceTemplates)) {

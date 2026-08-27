@@ -14,11 +14,11 @@ Rules would be stored with stable identifiers and deterministic precedence for w
 
 **Desktop application:** Not implemented. No schedule editor and no scheduled-value application logic exist anywhere in the product.
 
-**Documentation website:** Not implemented. No scheduling surface exists on the site.
+**Documentation website:** Implemented for site-owned local settings. Every page exposes one persisted rule with explicit weekdays, start and end times, cross-midnight and equal-time behavior, local-timezone status, and scheduled theme, language, and density values. Base values return when the window ends.
 
 ## Failure modes
 
-An invalid or overlapping schedule is meant to be rejected with a specific inline reason rather than silently applied; there is nothing to validate today because no schedule editor exists.
+An empty weekday selection never matches. Invalid time text never matches. This bounded site implementation has one rule, so overlapping-rule precedence and external sources remain outside the implemented slice.
 
 ## Accessibility and localization
 

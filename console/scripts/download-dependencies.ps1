@@ -96,6 +96,42 @@ try {
     }
 
     $env:PATH = "$nodeRoot;$env:PATH"
+    $gh = @($manifest.dependencies | Where-Object id -eq 'github-cli-win-x64')
+    if ($gh.Count -ne 1) { Fail 'GitHub CLI' 'one exact github-cli-win-x64 record' $manifestPath "found $($gh.Count) records" }
+    $gh = $gh[0]
+    if ($gh.sha256 -notmatch '^[0-9a-f]{64}$') { Fail 'GitHub CLI' "version $($gh.version)" $gh.source 'manifest SHA-256 is malformed' }
+    if ($gh.archiveSha256 -notmatch '^[0-9a-f]{64}$') { Fail 'GitHub CLI' "version $($gh.version)" $gh.source 'manifest archiveSha256 is missing or malformed; archive verification is required before extraction' }
+    $ghRoot = Join-Path $toolchainRoot ("github-cli-{0}" -f $gh.version)
+    $ghExe = Join-Path $ghRoot 'bin\gh.exe'
+    $ghArchive = Join-Path $cacheRoot (Split-Path -Leaf $gh.source)
+    New-Item -ItemType Directory -Force -Path $ghRoot | Out-Null
+    if (-not (Test-Path -LiteralPath $ghExe -PathType Leaf) -or (Get-Sha256 $ghExe) -ne $gh.sha256) {
+        if (-not (Test-Path -LiteralPath $ghArchive -PathType Leaf)) {
+            try { Invoke-WebRequest -UseBasicParsing -Uri $gh.source -OutFile $ghArchive }
+            catch { Fail 'GitHub CLI' "version $($gh.version)" $gh.source $_.Exception.Message }
+        }
+        $archiveHash = Get-Sha256 $ghArchive
+        if ($archiveHash -ne $gh.archiveSha256.ToLowerInvariant()) {
+            Fail 'GitHub CLI' "archive SHA-256 $($gh.archiveSha256)" $gh.source "received archive SHA-256 $archiveHash"
+        }
+        $ghExtract = Join-Path $toolchainRoot ('.gh-extract-' + [Guid]::NewGuid().ToString('N'))
+        try {
+            Expand-Archive -LiteralPath $ghArchive -DestinationPath $ghExtract -Force
+            $candidate = Get-ChildItem -LiteralPath $ghExtract -Filter gh.exe -File -Recurse | Select-Object -First 1
+            if (-not $candidate) { Fail 'GitHub CLI' "version $($gh.version)" $gh.source 'archive did not contain gh.exe' }
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $ghExe) | Out-Null
+            Copy-Item -LiteralPath $candidate.FullName -Destination $ghExe -Force
+        } finally { if (Test-Path -LiteralPath $ghExtract) { Remove-Item -LiteralPath $ghExtract -Recurse -Force } }
+    }
+    if ((Get-Sha256 $ghExe) -ne $gh.sha256) { Fail 'GitHub CLI' "SHA-256 $($gh.sha256)" $gh.source "received SHA-256 $(Get-Sha256 $ghExe)" }
+    $forgeResource = Join-Path $repoRoot 'console\resources\forge'
+    New-Item -ItemType Directory -Force -Path $forgeResource | Out-Null
+    Copy-Item -LiteralPath $ghExe -Destination (Join-Path $forgeResource 'gh.exe') -Force
+    $helper = @($manifest.dependencies | Where-Object id -eq 'forge-conpty-helper')
+    if ($helper.Count -ne 1) { Fail 'Forge ConPTY helper' 'one exact forge-conpty-helper record' $manifestPath "found $($helper.Count) records" }
+    $helper = $helper[0]
+    $helperSource = Join-Path $repoRoot $helper.source
+    if ((Get-Sha256 $helperSource) -ne $helper.sha256) { Fail 'Forge ConPTY helper' "SHA-256 $($helper.sha256)" $helper.source "received SHA-256 $(Get-Sha256 $helperSource)" }
     $consoleRoot = Join-Path $repoRoot 'console'
     $packageJson = Join-Path $consoleRoot 'package.json'
     $lockfile = Join-Path $consoleRoot 'package-lock.json'

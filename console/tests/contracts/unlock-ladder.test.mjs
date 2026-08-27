@@ -1,28 +1,4 @@
-/**
- * Contract: unlock-ladder. Real and wired into the per-element unlock dialog:
- * after three consecutive wrong attempts on a lock (`tryUnlock`'s `wrong()`
- * helper), `this.ladder.issue(s.unlockKey)` is called, and for a real dish or
- * sums challenge the dialog's existing numeric keypad/dots and mono-font method
- * line are reused (no new markup added, since the compiled design has no bound
- * slot for a dish grid or sums list) to collect and grade a real answer through
- * `this.ladder.grade(...)`.
- *
- * The module's own safety rules -- never refunds the attempt budget, single-use
- * graded nonces consumed before grading, a rolling 3-per-hour skip budget -- are
- * enforced by the module itself, unmodified.
- *
- * Rule 1 (a cleared ladder is never a credential) is kept explicitly honest:
- * `finishLadderGrade` only closes the ladder UI and says the wait is over -- it
- * never touches `state.locks` or the unlock dialog's own PIN/password/TOTP
- * buffers, so the real credential is still required afterward.
- *
- * Two real gaps, both because editing the compiled design/generated output was
- * out of scope for the change that wired this: the "moles" rung has no visual
- * board to render in this build, so it falls back to "wait it out" rather than
- * faking a graded round; and this app's per-element lock has no server-enforced
- * or time-based lockout of its own, so "clearing the wait" dismisses the ladder
- * UI without bypassing any actual timed lockout, since none exists to bypass.
- */
+/** Contract: the unlock ladder is async, state-store backed, and never authenticates. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
@@ -30,47 +6,94 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const read = (p) => readFileSync(resolve(root, p), 'utf8').replace(/\r\n/g, '\n');
-const json = (p) => JSON.parse(read(p));
+const read = (path) => readFileSync(resolve(root, path), 'utf8').replace(/\r\n/g, '\n');
+const app = () => read('app/renderer/src/App.tsx');
+const ladder = () => read('app/renderer/src/unlock-ladder.ts');
 
-const APP = 'app/renderer/src/App.tsx';
-const MODULE = 'app/renderer/src/unlock-ladder.ts';
+test('the application supplies an async durable state store and a cryptographically scoped nonce source', () => {
+  const src = app();
+  for (const needle of [
+    'private readonly ladderStateStore: UnlockLadderStateStore = {',
+    'readLockout: async (lockoutId)',
+    'writeLockout: async (lockoutId, state)',
+    'readClearedWaits: async (budgetScopeId)',
+    'writeClearedWaits: async (budgetScopeId, timestamps)',
+    'createNonce: () => crypto.randomUUID()',
+    'stateStore: this.ladderStateStore,',
+  ]) assert.ok(src.includes(needle), `missing privileged ladder boundary: ${needle}`);
+});
 
-test('the registry row is internally honest: a defined state with a note explaining what is and is not wired', () => {
-  const registry = json('app/feature-registry.json');
+test('three wrong unlock attempts await a scoped ladder issue and never call a synchronous legacy path', () => {
+  const src = app();
+  const match = src.match(/const wrong = async \(message: string\): Promise<void> => \{[\s\S]*?\n    \};/);
+  assert.ok(match, 'async wrong-attempt helper is missing');
+  const body = match[0];
+  assert.match(body, /if \(count >= 3\) \{/);
+  assert.match(body, /const result = await this\.ladder\.issue\(\{ lockoutId: `element:\$\{s\.unlockKey\}`, budgetScopeId: 'desktop-unlock-ladder', schoolMode: schoolModeActive\(this\.durableStorage\.storage\) \}\);/);
+  assert.doesNotMatch(body, /this\.ladder\.issue\(s\.unlockKey\)/);
+});
+
+test('a cleared challenge only clears its wait UI, never a credential or attempt budget', () => {
+  const src = app();
+  const match = src.match(/private async finishLadderGrade\(result: UnlockLadderGradeResult, lockKey: string\): Promise<void> \{[\s\S]*?if \(result\.waitCleared\) \{[\s\S]*?\n      return;[\s\S]*?\n    \}/);
+  assert.ok(match, 'cleared wait branch is missing');
+  const body = match[0];
+  assert.doesNotMatch(body, /state\.locks|s\.locks|delete n\[|wrongUnlockCounts/);
+  assert.match(body, /You still need the real PIN, passphrase or code\./);
+});
+
+test('the state-store ladder consumes a nonce before grading and returns explicit no-authentication proof fields', () => {
+  const src = ladder();
+  assert.match(src, /const internal = this\.#challenges\.get\(nonce\);/);
+  assert.match(src, /this\.#challenges\.delete\(nonce\);/);
+  assert.match(src, /credentialCleared: false,/);
+  assert.match(src, /attemptsRestored: false,/);
+  assert.match(src, /authenticationGranted: false,/);
+});
+
+test('School mode starts at sums, rolling budget is persisted, and state-store failures fall closed to the clock', () => {
+  const src = ladder();
+  assert.match(src, /request\.schoolMode \? "sums" : "dish"/);
+  assert.match(src, /DEFAULT_MAX_CLEARED_WAITS_PER_HOUR = 3/);
+  assert.match(src, /async #budgetRemaining\(scopeId: string, atMs: number\): Promise<number>/);
+  assert.match(src, /await this\.#stateStore\.readClearedWaits\(scopeId\)/);
+  assert.match(src, /reason: "state-store-unavailable"/);
+});
+
+test('mole grading requires the full round and credits each visible spawn ID at most once', () => {
+  const src = ladder();
+  assert.match(src, /if \(atMs - Date\.parse\(challenge\.issuedAt\) < challenge\.payload\.durationMs\)/);
+  assert.match(src, /"mole-round-submitted-early",/);
+  assert.match(src, /const credited = new Set<number>\(\);/);
+  assert.match(src, /credited\.has\(spawn\.spawnId\)/);
+  assert.match(src, /spawn\.cell !== hit\.cell/);
+  assert.match(src, /hit\.atMs < spawn\.appearsAtMs/);
+  assert.match(src, /credited\.add\(spawn\.spawnId\);/);
+});
+
+test('the app owns an accessible mole overlay and does not strand a moles challenge inside the immutable shell', () => {
+  const src = app();
+  assert.match(src, /if \(challenge\.rung === 'dish'\)/);
+  assert.match(src, /if \(challenge\.rung === 'sums'\)/);
+  assert.match(src, /private moleBoardOverlay\(\): ReactNode \{/);
+  assert.match(src, /role: 'dialog', 'aria-modal': 'true'/);
+  assert.match(src, /role: 'grid', 'aria-label': 'Mole board'/);
+  assert.match(src, /Visible mole in cell/);
+  assert.match(src, /event\.key === 'Escape'/);
+  assert.match(src, /Emergency exit/);
+  assert.match(src, /private startMoleTicker\(/);
+  assert.match(src, /private stopMoleTicker\(\): void/);
+  assert.match(src, /if \(next\.challenge\.rung === 'moles'\)/);
+  assert.match(src, /this\.startMoleTicker\(next\.challenge\);/);
+  assert.doesNotMatch(src, /moles never reaches here -- offerLadder\/finishLadderGrade never store one/);
+});
+
+test('the registry row remains an honest unresolved inventory task until the central inventory materializer records proof', () => {
+  const registry = JSON.parse(read('app/feature-registry.json'));
   const row = registry.features['unlock-ladder'];
-  assert.ok(row, 'the implementation registry has no row for unlock-ladder');
-  assert.ok(['implemented', 'partial', 'absent'].includes(row.state), `undefined state "${row.state}"`);
-  assert.ok(typeof row.note === 'string' && row.note.length > 40, 'no note explaining what is and is not wired');
-});
-
-test('unlock-ladder.ts IS imported and this.ladder.issue() is called after the third wrong attempt', () => {
-  const app = read(APP);
-  const wrongFn = app.match(/const wrong = \(message: string\): void => \{[\s\S]*?\n    \};/);
-  assert.ok(wrongFn, 'expected to find the wrong() helper inside tryUnlock');
-  assert.match(wrongFn[0], /if \(count >= 3\) \{/u, 'the ladder no longer triggers after the third wrong attempt');
-  assert.match(wrongFn[0], /const result = this\.ladder\.issue\(s\.unlockKey\);/u, 'this.ladder.issue(...) is no longer called');
-});
-
-test('the moles rung falls back to "wait it out" because this build has no visual board', () => {
-  const app = read(APP);
-  assert.match(app, /needs a visual board this build cannot show yet\. Wait it out\./u,
-    'the moles-rung fallback copy no longer matches -- a visual board may have been added');
-});
-
-test('finishLadderGrade never touches state.locks or the unlock buffers on a cleared challenge -- rule 1 is enforced', () => {
-  const app = read(APP);
-  const fn = app.match(/private finishLadderGrade\(result: GradeResult, lockKey: string\): void \{[\s\S]*?if \(result\.cleared\) \{[\s\S]*?\n      return;\s*\n    \}/);
-  assert.ok(fn, 'expected to find the cleared-result branch of finishLadderGrade');
-  assert.doesNotMatch(fn[0], /state\.locks|s\.locks|delete n\[/u,
-    'the cleared-challenge branch now touches lock state -- this would violate rule 1 (never a credential)');
-  assert.match(fn[0], /the wait is over/u, 'the cleared-challenge toast no longer says the wait is over');
-});
-
-test("the module's own safety rules are documented and enforced in its own source: never-refund, single-use nonces, rolling budget", () => {
-  const src = read(MODULE);
-  assert.match(src, /Never refunds the attempt budget\./u, 'the never-refund rule is no longer documented');
-  assert.match(src, /Single-use: consume the nonce before grading, so a wrong answer cannot be retried against/u,
-    'the single-use-nonce enforcement comment no longer matches');
-  assert.match(src, /budgetRemaining\(atMs: number\): number \{/u, 'budgetRemaining(...) no longer exists');
+  assert.ok(row, 'missing unlock-ladder registry row');
+  assert.equal(row.status, 'partial');
+  assert.equal(row.note, 'Exact source seams are recorded in this schema-v2 row. Built interaction, current-commit captures, and design-parity evidence remain not-run, so this row makes no verified claim.');
+  assert.deepEqual(row.implementation.paths, []);
+  assert.equal(row.builtInteraction.state, 'not-run');
 });

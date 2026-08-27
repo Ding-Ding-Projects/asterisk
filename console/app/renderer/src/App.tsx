@@ -96,10 +96,16 @@ import {
   classifyDialogKind, copyLanguageFor, styledDialog, styledToastText, type MessageStorage,
 } from './message-styling';
 import {
-  elapsedPhrase, FOCUS_DIM_CSS, isAttentionMode, modeEnabled, momentumPrompt, msSinceSnooze,
+  elapsedPhrase, isAttentionMode, MODE_SETTING_PREFIX, modeEnabled, momentumPrompt, msSinceSnooze,
   nextAction, presentationFor, setModeEnabled, setNextAction, snoozeMomentum,
   type AttentionMode, type PresentationState,
 } from './attention-modes';
+import type { NotificationSeverity } from '../../../shared/notifications';
+
+/* Rendered with the live focus state, so the dynamic inactive marker remains effective
+ * even before the stylesheet bundle has finished applying after a route transition. */
+const FOCUS_INACTIVE_CSS = '[data-attention-inactive="true"] { opacity: .55; transition: opacity 150ms ease; } '
+  + '[data-attention-inactive="true"]:focus, [data-attention-inactive="true"]:focus-within { opacity: 1; }';
 import { openTicket, resolutionFor, type Ticket, type TicketCategory, type TicketSeverity } from './support-tickets';
 import {
   KNOWN_EDITORS, chooseEditor, chosenEditor, clearEditorChoice, saveCustomEditor, validateCustomEditor, CUSTOM_EDITOR_ID,
@@ -145,18 +151,23 @@ import {
 } from './accessibility-contract';
 import { EMPTY_RUNNER_STATE, statusLine, tick, type RunnerState } from './schedule-runner';
 import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
-import { listArticles, resolveLink, search as docsSearch, suggested as docsSuggestedFor } from './docs-browser';
+import { listArticles, resolveLink, search as docsSearch, searchBounded as docsSearchBounded, suggested as docsSuggestedFor } from './docs-browser';
 import { DOCS_BUNDLE } from './generated/docs-bundle';
 import { parseMarkdown, plainTextExcerpt, type DocsBlock } from './docs-markdown';
 import {
-  commitUrl, filterAndSearch, parseChangelogDetailed, toMarkdown, toPlainText, type ChangelogEntry,
+  commitUrl, filterAndSearch, filterByDate, parseChangelogDetailed, searchDetailedBounded,
+  toMarkdown, toPlainText, type ChangelogEntry,
 } from './changelog';
 import { CHANGELOG_MARKDOWN, CHANGELOG_REPOSITORY_URL } from './generated/changelog-bundle';
 import {
-  click as bulkClick, clearSelection as bulkClearSelection, invert as bulkInvert, parseBulkDeleteCeremony, planBulk,
-  selectAll as bulkSelectAll, summarise as bulkSummarise, type SelectionState,
+  parseBulkDeleteCeremony, planBulkAction, runBulkAction, unsupportedBulkAction,
+  type BulkAction, type BulkCollectionSnapshot, type BulkMutationResult,
 } from './bulk';
-import { describeLoss, exportFilename, exportRows, suitableFormats, type ExportFormat } from './export';
+import {
+  clearSelection as bulkClearSelection, createSelection, invertSelection, selectPage,
+  selectionForContext, toggleSelection, type SelectionItem, type SelectionState,
+} from './selection-model';
+import { prepareExport, suitableFormats, type ExportFormat } from './export';
 import { tabListText } from './tab-list';
 import { decideUndo, type CommitEntry } from './undo-toast';
 import {
@@ -168,7 +179,8 @@ import {
   encodeBase32, pairingUri, verifyCode, type TotpParameters,
 } from './totp';
 import {
-  UnlockLadder, type Challenge, type GradeResult,
+  UnlockLadder, type UnlockLadderAnswer, type UnlockLadderChallenge, type UnlockLadderGradeResult,
+  type UnlockLadderStateStore,
 } from './unlock-ladder';
 import {
   completeOperation, createOperation, failOperation, reportProgress, snapshot, startOperation,
@@ -683,8 +695,9 @@ export class App extends Base {
    * light-theme token system to apply to (the compiled design bakes literal dark-mode hex
    * colours and pixel paddings, not CSS custom properties); p_confirm is never allowed to
    * weaken the destructive-action ceremony, which is mandatory everywhere in this app;
-   * p_tray has no tray implementation in the main process to hand it to; nt_levels has no
-   * per-toast severity to filter by; nt_quiet has no configured quiet-hours window; nt_keep
+   * p_tray has no tray implementation in the main process to hand it to; nt_levels and
+   * nt_quiet have no user-configured filter/window policy beyond the explicit low-stimulation
+   * severity filter below; nt_keep
    * and every hi_* control describe tracking the *target's own* configuration files
    * (`/etc/asterisk/.git`, a real per-machine repository these settings would name a
    * commit author/message template for) under version control, which nothing in this
@@ -796,6 +809,19 @@ export class App extends Base {
     this.baseSetState = this.setState.bind(this) as (update: Record<string, unknown>, callback?: () => void) => void;
     this.setState = this.boundedOverlaySetState;
   }
+
+  /**
+   * The generated shell addresses event sinks by stable source ids. The ids are
+   * evidence metadata, not a second notification route, so visible delivery still
+   * goes through the App wrappers for styling and low-stimulation behaviour.
+   */
+  toastWithId = (_eventId: string, message: string): void => {
+    this.toast(message);
+  };
+
+  fireWithId = (_eventId: string, title: string, body: string): void => {
+    this.fire(title, body);
+  };
 
   /** The dial that governs dialog copy in whatever language the console is currently
    *  showing (see `message-styling.ts` for why dialog copy is never itself translated). */
@@ -944,18 +970,34 @@ export class App extends Base {
    *  rows did would be inventing a fact nothing here actually knows. Capped so a long
    *  session cannot grow this without bound. */
   private static readonly NOTIFICATION_HISTORY_LIMIT = 200;
-  private notificationHistory: Array<{ source: string; message: string; when: string; read: boolean }> = [];
+  private notificationHistory: Array<{
+    source: 'notice' | 'toast';
+    message: string;
+    when: string;
+    severity: NotificationSeverity;
+    outcome: 'delivered' | 'suppressed';
+    read: boolean;
+  }> = [];
 
-  private recordNotification(source: 'notice' | 'toast', message: string): void {
+  /** Records the delivery decision before any visual or spoken side effect. This makes a
+   * deliberately quieted informational notice visible as an honest suppressed history row,
+   * while warning and error entries retain their delivered severity evidence. */
+  private recordNotification(
+    source: 'notice' | 'toast',
+    message: string,
+    severity: NotificationSeverity,
+    outcome: 'delivered' | 'suppressed',
+  ): void {
     const when = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-    this.notificationHistory = [{ source, message, when, read: false }, ...this.notificationHistory]
+    this.notificationHistory = [{ source, message, when, severity, outcome, read: false }, ...this.notificationHistory]
       .slice(0, App.NOTIFICATION_HISTORY_LIMIT);
   }
 
   /** The Notification centre table's real rows, from `this.notificationHistory`. */
   private notificationRows(): string[][] {
     return this.notificationHistory.map((entry) => [
-      entry.source, entry.message, entry.when, entry.read ? 'Read' : 'Unread',
+      entry.source, entry.message, entry.when,
+      `${entry.read ? 'Read' : 'Unread'} · ${entry.severity} · ${entry.outcome}`,
     ]);
   }
 
@@ -970,16 +1012,14 @@ export class App extends Base {
     this.forceUpdate();
   };
 
-  /** `toast` carries the ambient, lower-priority notices (progress pings, "name
-   *  restored to X") -- `fire`, the console's other non-blocking surface, carries the
-   *  ones a person actually has to see: failures and the outcome of something
-   *  substantial. Low stimulation's "only the notifications that genuinely need a
-   *  person" therefore quiets this one and leaves `fire` alone, rather than silencing
-   *  every notification in the app regardless of what it is telling somebody. */
-  private gatedToast = (message: string): void => {
-    this.recordNotification('toast', message);
-    if (this.consoleSetting<boolean>('nt_toast', true) === false) return;
-    if (this.attentionPresentation().quietNotifications) return;
+  /** All ambient notification paths declare their severity at this authoritative wrapper.
+   * Low stimulation suppresses only informational notices. Warnings and errors keep their
+   * visual and serialized-narration paths, even while low stimulation is active. */
+  private gatedToast = (message: string, severity: NotificationSeverity = 'info'): void => {
+    const suppressed = this.consoleSetting<boolean>('nt_toast', true) === false
+      || (severity === 'info' && this.attentionPresentation().quietNotifications);
+    this.recordNotification('toast', message, severity, suppressed ? 'suppressed' : 'delivered');
+    if (suppressed) return;
 
     /* Narrated in its own category, separate from `narratedFire`'s 'notification' --
      * a toast and a fired notice are visually distinct surfaces in this console and
@@ -1082,7 +1122,30 @@ export class App extends Base {
   private applyLiveAttentionSetting(): void {
     const presentation = this.attentionPresentation();
     this.setReducedMotion(presentation.reduceMotion);
+    this.setInactiveAttentionElements(presentation);
+    if (typeof document !== 'undefined') {
+      document.body.classList.toggle('attention-low-stimulation', presentation.quietNotifications);
+    }
     this.forceUpdate();
+  }
+
+  /**
+   * Focus is a reversible visual accommodation. The active control restores itself via
+   * `:focus` / `:focus-within`; every other directly operable control stays visible and
+   * reachable, merely de-emphasised by the stylesheet.
+   */
+  private setInactiveAttentionElements(presentation: PresentationState): void {
+    const doc = (globalThis as { document?: Document }).document;
+    if (!doc) return;
+    const selector = '.attn-content button, .attn-content input, .attn-content select, .attn-content textarea, .attn-content [data-ctl]';
+    for (const element of doc.querySelectorAll<HTMLElement>(selector)) {
+      element.dataset.attentionInactive = presentation.dimInactive ? 'true' : 'false';
+    }
+  }
+
+  /** The one production write seam for the five independently persisted attention modes. */
+  private attentionWrite(key: string, value: 'on' | 'off'): void {
+    this.durableStorage.storage.setItem(key, value);
   }
 
   /** The switch controls' own on/off position is stored separately from the mode
@@ -1151,7 +1214,35 @@ export class App extends Base {
    *  refunding the attempt budget, the 3-per-hour skip budget, never touching lockout
    *  escalation, and single-use graded nonces) are still fully enforced by the module
    *  itself; see tryUnlock/authVals below for exactly how far that reaches. */
-  private ladder = new UnlockLadder({ now: () => Date.now(), random: () => Math.random() });
+  /** Renderer-side adapter over the durable local bridge.  It has stable, namespaced
+   * keys and never stores a nonce, credential, or authentication result. */
+  private readonly ladderStateStore: UnlockLadderStateStore = {
+    available: true,
+    readLockout: async (lockoutId) => {
+      const raw = this.durableStorage.storage.getItem(`console.unlock-ladder.lockout.${lockoutId}`);
+      return raw ? JSON.parse(raw) as { rung: 'dish' | 'sums' | 'moles' | 'clock'; wrongDishAnswers: number } : undefined;
+    },
+    writeLockout: async (lockoutId, state) => {
+      const key = `console.unlock-ladder.lockout.${lockoutId}`;
+      if (state) this.durableStorage.storage.setItem(key, JSON.stringify(state));
+      else this.durableStorage.storage.removeItem(key);
+    },
+    readClearedWaits: async (budgetScopeId) => {
+      const raw = this.durableStorage.storage.getItem(`console.unlock-ladder.budget.${budgetScopeId}`);
+      return raw ? JSON.parse(raw) as number[] : [];
+    },
+    writeClearedWaits: async (budgetScopeId, timestamps) => {
+      this.durableStorage.storage.setItem(`console.unlock-ladder.budget.${budgetScopeId}`, JSON.stringify(timestamps));
+    },
+  };
+  private ladder = new UnlockLadder({
+    now: () => Date.now(), random: () => Math.random(),
+    createNonce: () => crypto.randomUUID().replace(/-/gu, '').padEnd(32, '0'),
+    stateStore: this.ladderStateStore,
+  });
+  /** The App-owned mole board is deliberately outside generated design output. */
+  private moleTicker: ReturnType<typeof setInterval> | undefined;
+  private moleChallengeNonce: string | undefined;
   /** Consecutive wrong unlock attempts per lock key, so the ladder is offered after
    *  repeated failures rather than on the first typo. */
   private wrongUnlockCounts: Record<string, number> = {};
@@ -1253,6 +1344,7 @@ export class App extends Base {
     /* Cancels anything mid-utterance and drops the voice-list subscription the narrator
      * holds internally — the same "torn down on unmount" rule as every listener above. */
     this.narrator.dispose();
+    this.stopMoleTicker();
   }
 
   componentDidUpdate() {
@@ -2398,26 +2490,26 @@ What you can do: ${offered}.` : ''}`);
     const matches = this.paletteMatches();
     const rows = matches.map((match, index) => h('button', {
       key: match.entry.key,
-      class: `palette-row${index === this.paletteRow ? ' palette-row-on' : ''}`,
+      className: `palette-row${index === this.paletteRow ? ' palette-row-on' : ''}`,
       role: 'option',
       'aria-selected': index === this.paletteRow ? 'true' : 'false',
       onClick: () => this.activatePaletteEntry(match.entry),
       onMouseEnter: () => { this.paletteRow = index; this.forceUpdate(); },
     },
-      h('span', { class: 'palette-label' }, match.entry.label),
-      h('span', { class: 'palette-context' }, match.entry.context)));
+      h('span', { className: 'palette-label' }, match.entry.label),
+      h('span', { className: 'palette-context' }, match.entry.context)));
     return h('div', {
-      class: 'palette-scrim',
+      className: 'palette-scrim',
       onClick: () => this.closePalette(),
     }, h('div', {
-      class: 'palette-card',
+      className: 'palette-card',
       role: 'dialog',
       'aria-modal': 'true',
       'aria-label': 'Find a screen or a setting',
       onClick: (event: { stopPropagation(): void }) => event.stopPropagation(),
     },
       h('input', {
-        class: 'palette-field',
+        className: 'palette-field',
         type: 'text',
         autoFocus: true,
         placeholder: 'Find a screen or a setting',
@@ -2432,11 +2524,11 @@ What you can do: ${offered}.` : ''}`);
           this.forceUpdate();
         },
       }),
-      h('div', { id: 'palette-results', class: 'palette-results', role: 'listbox' },
+      h('div', { id: 'palette-results', className: 'palette-results', role: 'listbox' },
         rows.length > 0
           ? rows
-          : h('p', { class: 'palette-empty' }, `Nothing here matches ${this.paletteQuery}.`)),
-      h('p', { class: 'palette-hint' },
+          : h('p', { className: 'palette-empty' }, `Nothing here matches ${this.paletteQuery}.`)),
+      h('p', { className: 'palette-hint' },
         `${matches.length} of ${this.palette.length}. Arrow keys to move, Enter to go, Escape to close.`)));
   }
 
@@ -2453,15 +2545,15 @@ What you can do: ${offered}.` : ''}`);
     const now = Date.now();
     const prompt = momentumPrompt(storage, now - this.lastChangeAt, msSinceSnooze(storage, now));
     if (!presentation.showElapsedTime && !presentation.showNextAction && !prompt.show) return null;
-    return h('div', { class: 'attn-rail', role: 'complementary', 'aria-label': 'Attention accommodations' },
-      !presentation.showElapsedTime ? null : h('p', { class: 'attn-rail-time' },
+    return h('div', { className: 'attn-rail', role: 'complementary', 'aria-label': 'Attention accommodations' },
+      !presentation.showElapsedTime ? null : h('p', { className: 'attn-rail-time' },
         `Open for ${elapsedPhrase(now - this.sessionStartedAt)}. `
         + `Last change ${elapsedPhrase(now - this.lastChangeAt)} ago.`),
-      !presentation.showNextAction ? null : h('div', { class: 'attn-rail-next' },
-        h('span', { class: 'attn-rail-next-label' }, 'One thing'),
+      !presentation.showNextAction ? null : h('div', { className: 'attn-rail-next' },
+        h('span', { className: 'attn-rail-next-label' }, 'One thing'),
         h('input', {
           type: 'text',
-          class: 'attn-rail-next-input',
+          className: 'attn-rail-next-input',
           placeholder: 'Choose the one thing you are doing',
           'aria-label': 'The one thing you are doing right now',
           value: nextAction(storage),
@@ -2470,11 +2562,11 @@ What you can do: ${offered}.` : ''}`);
             this.forceUpdate();
           },
         })),
-      !prompt.show ? null : h('div', { class: 'attn-rail-momentum', role: 'status' },
-        h('p', { class: 'attn-rail-momentum-message' }, prompt.message),
+      !prompt.show ? null : h('div', { className: 'attn-rail-momentum', role: 'status' },
+        h('p', { className: 'attn-rail-momentum-message' }, prompt.message),
         h('button', {
           type: 'button',
-          class: 'attn-rail-momentum-dismiss',
+          className: 'attn-rail-momentum-dismiss',
           onClick: () => { snoozeMomentum(storage); this.forceUpdate(); },
         }, 'Not now')));
   }
@@ -2488,10 +2580,11 @@ What you can do: ${offered}.` : ''}`);
      * the interface" the mode exists to push back. */
     const shell = withTitleBarName(super.render(), nameFor('titleBar', this.durableStorage.storage));
     const presentation = this.attentionPresentation();
-    return h('div', { class: 'app-root' },
-      h('div', { class: 'attn-content' },
-        !presentation.dimInactive ? null : h('style', {}, FOCUS_DIM_CSS),
+    return h('div', { className: 'app-root' },
+      h('div', { className: 'attn-content' },
+        !presentation.dimInactive ? null : h('style', {}, FOCUS_INACTIVE_CSS),
         shell),
+      this.moleBoardOverlay(),
       this.paletteOverlay(),
       this.attentionOverlay());
   }
@@ -2815,7 +2908,7 @@ What you can do: ${offered}.` : ''}`);
   }
 
   private applyNarrationControl(id: string, value: unknown): void {
-    const next: NarrationSettings = { ...this.narration, voices: { ...this.narration.voices } };
+    const next: NarrationSettings = { ...this.narration, channels: { ...this.narration.channels, en: { ...this.narration.channels.en }, zh: { ...this.narration.channels.zh } } };
     if (id === 'nar_enabled' && typeof value === 'boolean') next.enabled = value;
     /* The design offers these in the words somebody reads, so they are mapped here rather
      * than stored as typed. Storing the label would tie the saved profile to the wording. */
@@ -2826,19 +2919,19 @@ What you can do: ${offered}.` : ''}`);
     /* "Choose automatically" is stored as no choice at all rather than as a voice named
      * that, so a machine gaining a better voice starts using it. */
     if (id === 'nar_en_voice' && typeof value === 'string') {
-      next.voices.en = value === 'Choose automatically' ? undefined : this.voiceIdByName(value);
+      next.channels.en.voiceId = value === 'Choose automatically' ? undefined : this.voiceIdByName(value);
     }
     if (id === 'nar_yue_voice' && typeof value === 'string') {
-      next.voices.zh = value === 'Choose automatically' ? undefined : this.voiceIdByName(value);
+      next.channels.zh.voiceId = value === 'Choose automatically' ? undefined : this.voiceIdByName(value);
     }
     /* Clamped rather than refused: a slider cannot produce an out-of-range value through
      * the interface, so one arriving here came from a hand-edited profile and the nearest
      * usable value is friendlier than a refusal nobody can act on. */
     if (id === 'nar_rate' && typeof value === 'number') {
-      next.rate = Math.min(MAX_RATE, Math.max(MIN_RATE, value));
+      next.channels.en.rate = Math.min(MAX_RATE, Math.max(MIN_RATE, value)); next.channels.zh.rate = next.channels.en.rate;
     }
     if (id === 'nar_pitch' && typeof value === 'number') {
-      next.pitch = Math.min(MAX_PITCH, Math.max(MIN_PITCH, value));
+      next.channels.en.pitch = Math.min(MAX_PITCH, Math.max(MIN_PITCH, value)); next.channels.zh.pitch = next.channels.en.pitch;
     }
     this.narration = next;
     this.durableStorage.storage.setItem(App.NARRATION_SETTING, JSON.stringify(next));
@@ -2891,7 +2984,7 @@ What you can do: ${offered}.` : ''}`);
       ? ['en', 'zh']
       : [this.narration.language === 'zh' ? 'zh' : 'en'];
     const lines = languages.map((language) =>
-      resolveVoiceStatus(language, this.narration.voices[language], this.voices).message);
+      resolveVoiceStatus(language, this.narration.channels[language].voiceId, this.voices).message);
     this.narrationStatusLine = this.narration.enabled
       ? lines.join(' ')
       : `Narration is off. ${lines.join(' ')}`;
@@ -2972,10 +3065,24 @@ What you can do: ${offered}.` : ''}`);
    * the point -- the narrator speaks the STYLED text, so the humour level reaches speech
    * as the narration contract requires. Narrating the raw text would have the console
    * say one thing while the screen showed another. */
-  private narratedFire = (title: string, body: string, isError = false): void => {
+  private narratedFire = (
+    title: string,
+    body: string,
+    severityOrLegacyError: NotificationSeverity | boolean = 'warning',
+  ): void => {
+    /* The compiled shell already calls fire(title, body, true) for its explicit error
+     * path. Preserve that concrete call shape while accepting an explicit severity for
+     * new informational, warning, and error notice producers. Two-argument fire calls
+     * are substantial outcomes and therefore default to warning, never information. */
+    const severity: NotificationSeverity = typeof severityOrLegacyError === 'boolean'
+      ? (severityOrLegacyError ? 'error' : 'warning')
+      : severityOrLegacyError;
     const styled = styledDialog(this.messageStorage, this.currentCopyLanguage(), classifyDialogKind(title), title, body);
-    this.narrator.enqueue('notification', styled.body ? `${styled.heading}. ${styled.body}` : styled.heading, { isError });
-    this.recordNotification('notice', styled.body ? `${styled.heading}: ${styled.body}` : styled.heading);
+    const message = styled.body ? `${styled.heading}: ${styled.body}` : styled.heading;
+    const suppressed = severity === 'info' && this.attentionPresentation().quietNotifications;
+    this.recordNotification('notice', message, severity, suppressed ? 'suppressed' : 'delivered');
+    if (suppressed) return;
+    this.narrator.enqueue('notification', styled.body ? `${styled.heading}. ${styled.body}` : styled.heading, { isError: severity === 'error' });
     this.baseFire(styled.heading, styled.body);
   };
 
@@ -3363,6 +3470,7 @@ What you can do: ${offered}.` : ''}`);
       const mode = App.ATTENTION_CONTROLS[control.id];
       if (isAttentionMode(mode)) {
         setModeEnabled(this.durableStorage.storage, mode, value);
+        this.attentionWrite(`${MODE_SETTING_PREFIX}${mode}`, value ? 'on' : 'off');
         /* Persisting the switch was the entire wiring before this lane: presentationFor
          * and momentumPrompt existed, computed the right thing, and were never once
          * called from here or from render(). This is the line that actually applies
@@ -4081,53 +4189,56 @@ What you can do: ${offered}.` : ''}`);
    * hands the browser a real file download built from those exact rows --
    * never the whole table when only a few rows are selected.
    */
-  bulk = (verb: string, sel: string[]): void => {
+  bulk = async (verb: string, sel: string[]): Promise<void> => {
     const screen = (this.state as { screen: string }).screen;
     const screens = SCREENS as Record<string, { table?: { rows: string[][]; cols: string[] } }>;
     const table = screens[screen]?.table;
     const cols = table?.cols ?? [];
     const rows = table?.rows ?? [];
-    const known = new Set(rows.map((r) => r[0]));
-
-    // Every selected row that no longer exists in the current table (deleted,
-    // filtered out) is a real skip with a real reason -- never silently dropped.
-    const plan = planBulk(verb, sel, (id) => (known.has(id) ? true : 'no longer in this table'), {
-      destructive: verb === 'Deleted',
-    });
-    const message = bulkSummarise(plan);
-
-    if (verb === 'Exported') {
-      if (plan.affected.length === 0) {
-        this.fire('Nothing to export', message);
+    const context = { collectionId: screen, queryKey: JSON.stringify(rows.map((row) => row[0])) };
+    const items: SelectionItem[] = rows.map((row) => ({ id: row[0] }));
+    const selection = { ...createSelection(context), selectedIds: new Set(sel) };
+    const collection: BulkCollectionSnapshot<SelectionItem> = { context, items };
+    const action: BulkAction<SelectionItem> = verb === 'Exported'
+      ? {
+        availability: 'enabled', id: 'export', label: 'Export selected rows', successStatus: 'exported', destructive: false,
+        capability: () => ({ status: 'enabled' }),
+        execute: async (): Promise<BulkMutationResult> => {
+          return { status: 'confirmed', receipt: { operationId: crypto.randomUUID(), completedAt: new Date().toISOString() } };
+        },
+      }
+      : unsupportedBulkAction(verb.toLowerCase(), verb, `Bulk ${verb.toLowerCase()} is unavailable because this table has no verified write executor.` , verb === 'Deleted');
+    const plan = planBulkAction(action, collection, selection);
+    if (plan.status === 'disabled') { this.fire(verb, plan.reason); return; }
+    if (plan.action.id === 'export') {
+      /* A single export represents the exact approved selection, not one silent
+       * download per row and never the table's entire reading.  The preview is made
+       * before the browser side effect, and the loss disclosure follows the exact
+       * same chosen format. */
+      const selectedRecords = plan.affected.map((item) => {
+        const row = rows.find((candidate) => candidate[0] === item.id) ?? [];
+        return Object.fromEntries(cols.map((column, index) => [column, row[index] ?? ''])) as Record<string, unknown>;
+      });
+      const formats = suitableFormats(selectedRecords);
+      const format: ExportFormat = formats.includes('csv') ? 'csv' : (formats[0] ?? 'json');
+      const prepared = prepareExport({ rows: selectedRecords, format, table: screen });
+      if (prepared.status !== 'prepared') {
+        this.fire(verb, `The selected rows were not exported: ${prepared.reason}`);
         return;
       }
-      const byId = new Map(rows.map((r) => [r[0], r] as const));
-      const records = plan.affected.map((id) => {
-        const row = byId.get(id) ?? [];
-        return Object.fromEntries(cols.map((c, i) => [c, row[i] ?? ''])) as Record<string, unknown>;
-      });
-      const formats = suitableFormats(records);
-      const format: ExportFormat = formats.includes('csv') ? 'csv' : (formats[0] ?? 'json');
-      const text = exportRows({ rows: records, format, table: screen });
-      const loss = describeLoss(records, format);
-      const filename = exportFilename(screen, format);
-      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const artifact = prepared.artifact;
+      const blob = new Blob([artifact.content], { type: artifact.mediaType });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
+      a.href = url; a.download = artifact.filename; a.click(); URL.revokeObjectURL(url);
       this.set('selected', []);
-      const lossNote = loss.length > 0 ? ` ${loss.join(' ')}` : '';
-      this.fire('Exported', `${message} Saved as ${filename} — ${format.toUpperCase()}, UTF-8, LF line endings.${lossNote}`);
+      const disclosures = artifact.disclosures.map((disclosure) => disclosure.message);
+      this.fire(verb, `${plan.affectedCount} selected row(s) exported as ${artifact.format}.${disclosures.length ? ` ${disclosures.join(' ')}` : ''}`);
       return;
     }
-
-    // Every other bulk verb (Enable/Disable/Duplicate/...) has no write path in this
-    // console yet -- the plan and its honest count are real, but nothing is applied.
+    const result = await runBulkAction(plan, { concurrency: 1 });
     this.set('selected', []);
-    this.fire(verb, message);
+    this.fire(verb, `${result.counts.exported} completed; ${result.counts.skipped} skipped; ${result.counts.failed} failed.`);
   };
 
   /**
@@ -4147,20 +4258,20 @@ What you can do: ${offered}.` : ''}`);
     const table = screens[screen]?.table;
     if (!table) return {};
     const ids = table.rows.map((r) => r[0]);
+    const context = { collectionId: screen, queryKey: JSON.stringify(ids) };
+    const items: SelectionItem[] = ids.map((id) => ({ id }));
     const state = this.state as { selected?: string[] };
     const selectedArr = state.selected ?? [];
-    const sel: SelectionState = {
-      anchor: selectedArr.length > 0 ? selectedArr[selectedArr.length - 1] : undefined,
-      selected: new Set(selectedArr),
-    };
-    const apply = (next: SelectionState) => this.set('selected', [...next.selected]);
+    const sel: SelectionState = { ...selectionForContext(createSelection(context), context), anchorId: selectedArr.at(-1), selectedIds: new Set(selectedArr) };
+    const apply = (next: SelectionState) => this.set('selected', [...next.selectedIds]);
 
     const rows = Array.isArray(values.tableRows) ? (values.tableRows as Array<Record<string, unknown>>) : [];
     const tableRows = rows.map((row, i) => ({
       ...row,
       toggle: (e?: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }) => {
         const modifiers = { shift: !!e?.shiftKey, ctrl: !!(e?.ctrlKey || e?.metaKey) };
-        apply(bulkClick(sel, ids[i], modifiers, ids));
+        const change = toggleSelection(sel, items[i]!, items, { range: !!e?.shiftKey, additive: !!(e?.ctrlKey || e?.metaKey) });
+        apply(change.state);
       },
     }));
 
@@ -4181,11 +4292,11 @@ What you can do: ${offered}.` : ''}`);
         ? 'Nothing here yet. Anything this screen reads from the target, or that you add with the button above, appears in this table.'
         : 'No rows match the current search or filter. Clear them to see all ' + String(ids.length) + '.',
       toggleAll: () => apply(selectedArr.length === ids.length && ids.length > 0
-        ? bulkClearSelection(sel)
-        : bulkSelectAll(sel, 'page', ids, ids).state),
-      clearSelection: () => apply(bulkClearSelection(sel)),
+          ? bulkClearSelection(sel)
+          : selectPage(sel, items).state),
+       clearSelection: () => apply(bulkClearSelection(sel)),
       bulkActions: existingActions.concat([
-        { icon: 'flip_camera_android', label: 'Invert selection', run: () => apply(bulkInvert(sel, ids)) },
+        { icon: 'flip_camera_android', label: 'Invert selection', run: () => apply(invertSelection(sel, items).state) },
       ]),
     };
   }
@@ -4268,40 +4379,37 @@ What you can do: ${offered}.` : ''}`);
     if (!L) { this.setState({ unlockOpen: false } as never); return; }
     const m = L.method || 'PIN';
 
-    const wrong = (message: string): void => {
+    const wrong = async (message: string): Promise<void> => {
       const count = (this.wrongUnlockCounts[s.unlockKey] ?? 0) + 1;
       this.wrongUnlockCounts[s.unlockKey] = count;
       this.setState({
         unlockPin: '', unlockTotpDigits: '', unlockPhase: m.indexOf('PIN') >= 0 ? 'pin' : 'totp',
       } as never);
       if (count >= 3) {
-        const result = this.ladder.issue(s.unlockKey);
-        if (result.rung === 'clock') {
+        const result = await this.ladder.issue({ lockoutId: `element:${s.unlockKey}`, budgetScopeId: 'desktop-unlock-ladder', schoolMode: schoolModeActive(this.durableStorage.storage) });
+        if (!result.offered) {
           this.toast(`${message} -- ${result.reason}`);
           return;
         }
-        if (result.rung === 'moles') {
-          this.toast(`${message} -- the next challenge needs a visual board this build cannot show yet. Wait it out.`);
-          return;
-        }
-        this.setState({ ladderActive: true, ladderChallenge: result, ladderDigits: '', ladderSumsAnswers: [] } as never);
+        this.setState({ ladderActive: true, ladderChallenge: result.challenge, ladderDigits: '', ladderSumsAnswers: [] } as never);
         this.toast(`${message} -- or clear a quick challenge instead of waiting. It only clears the wait, not this credential.`);
         return;
       }
       this.toast(message);
     };
 
-    if (m.indexOf('PIN') >= 0 && s.unlockPin !== L.pin) { wrong('Wrong PIN -- the surface stays locked'); return; }
-    if (m.indexOf('Password') >= 0 && (s.unlockPw || '') !== L.password) { wrong('Wrong passphrase -- the surface stays locked'); return; }
+    if (m.indexOf('PIN') >= 0 && s.unlockPin !== L.pin) { await wrong('Wrong PIN -- the surface stays locked'); return; }
+    if (m.indexOf('Password') >= 0 && (s.unlockPw || '') !== L.password) { await wrong('Wrong passphrase -- the surface stays locked'); return; }
     if (m.indexOf('TOTP') >= 0) {
-      if (!L.totpSecret) { wrong('No authenticator secret is on record for this element'); return; }
+      if (!L.totpSecret) { await wrong('No authenticator secret is on record for this element'); return; }
       const params: TotpParameters = { secret: L.totpSecret };
       const ok = await verifyCode(params, s.unlockTotpDigits ?? '', Date.now(), 1);
-      if (!ok) { wrong('Wrong code -- the surface stays locked'); return; }
+      if (!ok) { await wrong('Wrong code -- the surface stays locked'); return; }
     }
 
     const n = { ...s.locks };
     delete n[s.unlockKey];
+    this.stopMoleTicker();
     this.wrongUnlockCounts[s.unlockKey] = 0;
     this.setState({
       locks: n, unlockOpen: false, unlockPin: '', unlockPw: '', unlockTotpDigits: '', unlockPhase: undefined,
@@ -4318,22 +4426,112 @@ What you can do: ${offered}.` : ''}`);
    * or the unlock dialog's own PIN/password/TOTP state, so the real credential
    * is still required afterward.
    */
-  private finishLadderGrade(result: GradeResult, lockKey: string): void {
-    if (result.cleared) {
+  private async finishLadderGrade(result: UnlockLadderGradeResult, lockKey: string): Promise<void> {
+    this.stopMoleTicker();
+    if (result.waitCleared) {
       this.setState({ ladderActive: false, ladderChallenge: null, ladderDigits: '', ladderSumsAnswers: [] } as never);
       this.toast('Challenge cleared -- the wait is over. You still need the real PIN, passphrase or code.');
       return;
     }
-    const next = this.ladder.issue(lockKey);
-    if (next.rung === 'clock' || next.rung === 'moles') {
+    const next = await this.ladder.issue({ lockoutId: `element:${lockKey}`, budgetScopeId: 'desktop-unlock-ladder', schoolMode: schoolModeActive(this.durableStorage.storage) });
+    if (!next.offered) {
       this.setState({ ladderActive: false, ladderChallenge: null } as never);
-      this.toast(next.rung === 'clock'
-        ? `Wrong. ${next.reason}`
-        : 'Wrong. The next challenge needs a visual board this build cannot show yet.');
+      this.toast(`Wrong. ${next.reason}`);
       return;
     }
-    this.setState({ ladderChallenge: next, ladderDigits: '', ladderSumsAnswers: [] } as never);
+    if (next.challenge.rung === 'moles') {
+      this.startMoleTicker(next.challenge);
+      this.setState({
+        ladderActive: true, ladderChallenge: next.challenge, ladderDigits: '', ladderSumsAnswers: [],
+        moleHits: [], moleNowMs: Date.now(),
+      } as never);
+      this.toast('The mole round is ready. Hit visible moles, then submit after the countdown ends.');
+      return;
+    }
+    this.setState({ ladderChallenge: next.challenge, ladderDigits: '', ladderSumsAnswers: [] } as never);
     this.toast('Wrong -- try again.');
+  }
+
+  private stopMoleTicker(): void {
+    if (this.moleTicker) clearInterval(this.moleTicker);
+    this.moleTicker = undefined;
+    this.moleChallengeNonce = undefined;
+  }
+
+  private startMoleTicker(challenge: Extract<UnlockLadderChallenge, { rung: 'moles' }>): void {
+    this.stopMoleTicker();
+    this.moleChallengeNonce = challenge.nonce;
+    this.moleTicker = setInterval(() => {
+      const active = (this.state as { ladderChallenge?: UnlockLadderChallenge | null }).ladderChallenge;
+      if (!active || active.rung !== 'moles' || active.nonce !== this.moleChallengeNonce) {
+        this.stopMoleTicker();
+        return;
+      }
+      this.setState({ moleNowMs: Date.now() } as never);
+    }, 100);
+  }
+
+  private async abandonMoleRound(): Promise<void> {
+    const state = this.state as { ladderChallenge?: UnlockLadderChallenge | null; unlockKey?: string };
+    const challenge = state.ladderChallenge;
+    if (!challenge || challenge.rung !== 'moles') return;
+    this.stopMoleTicker();
+    /* A voluntary exit consumes this single-use challenge through the same server-owned
+     * state path and therefore falls to the clock without touching credentials or tries. */
+    const result = await this.ladder.grade(challenge.nonce, { kind: 'dish', choiceIndex: -1 });
+    this.setState({ ladderActive: false, ladderChallenge: null, moleHits: [], moleNowMs: undefined } as never);
+    this.toast(`Mole round closed. ${result.nextRung === 'clock' ? 'The wait continues.' : result.reason}`);
+  }
+
+  private moleBoardOverlay(): ReactNode {
+    const state = this.state as {
+      ladderActive?: boolean; ladderChallenge?: UnlockLadderChallenge | null; unlockKey?: string;
+      moleHits?: Array<{ spawnId: number; cell: number; atMs: number }>; moleNowMs?: number;
+    };
+    const challenge = state.ladderChallenge;
+    if (!state.ladderActive || !challenge || challenge.rung !== 'moles') return null;
+    const now = state.moleNowMs ?? Date.now();
+    const issuedAt = Date.parse(challenge.issuedAt);
+    const elapsed = Math.max(0, now - issuedAt);
+    const remaining = Math.max(0, challenge.payload.durationMs - elapsed);
+    const hits = state.moleHits ?? [];
+    const credited = new Set(hits.map((hit) => hit.spawnId));
+    const visible = challenge.payload.spawns.filter((spawn) => elapsed >= spawn.appearsAtMs && elapsed <= spawn.disappearsAtMs && !credited.has(spawn.spawnId));
+    const hit = (cell: number): void => {
+      const spawn = visible.find((candidate) => candidate.cell === cell);
+      if (!spawn) return;
+      this.setState({ moleHits: [...hits, { spawnId: spawn.spawnId, cell: spawn.cell, atMs: elapsed }] } as never);
+    };
+    const submit = async (): Promise<void> => {
+      if (remaining > 0) { this.toast(`The round still has ${Math.ceil(remaining / 1000)} seconds. Submit is available when the timer reaches zero.`); return; }
+      this.stopMoleTicker();
+      const result = await this.ladder.grade(challenge.nonce, { kind: 'moles', hits });
+      await this.finishLadderGrade(result, String(state.unlockKey ?? ''));
+    };
+    const cells = Array.from({ length: challenge.payload.gridSize }, (_, cell) => {
+      const spawn = visible.find((candidate) => candidate.cell === cell);
+      return h('button', {
+        key: `mole-cell-${cell}`, type: 'button', onClick: () => hit(cell),
+        disabled: !spawn, 'aria-label': spawn ? `Visible mole in cell ${cell + 1}` : `Empty mole cell ${cell + 1}`,
+        style: {
+          minWidth: '48px', minHeight: '48px', borderRadius: '12px', border: '1px solid #627264',
+          background: spawn ? '#1B4D33' : '#182019', color: '#E8F4EA', fontSize: '22px', cursor: spawn ? 'pointer' : 'default',
+        },
+      }, spawn ? '●' : '○');
+    });
+    return h('div', {
+      role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mole-round-title',
+      onKeyDown: (event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); void this.abandonMoleRound(); } },
+      style: { position: 'fixed', inset: 0, zIndex: 1000, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,.58)', padding: '16px' },
+    }, h('section', { style: { width: 'min(440px, 100%)', maxHeight: 'calc(100vh - 32px)', overflowY: 'auto', background: '#141A15', color: '#E8F4EA', border: '1px solid #627264', borderRadius: '20px', padding: '20px', boxShadow: '0 16px 40px rgba(0,0,0,.48)' } },
+      h('h2', { id: 'mole-round-title', tabIndex: -1 }, 'Mole round'),
+      h('p', { role: 'status', 'aria-live': 'polite' }, `${Math.ceil(remaining / 1000)} seconds remaining. ${hits.length} of ${challenge.payload.hitsRequired} visible moles hit.`),
+      h('p', {}, 'Hit each visible mole once. The round must finish before submission. Winning clears only the wait, never your PIN, passphrase, code, or attempt history.'),
+      h('div', { role: 'grid', 'aria-label': 'Mole board', style: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(48px, 1fr))', gap: '10px' } }, cells),
+      h('div', { style: { display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' } },
+        h('button', { type: 'button', onClick: () => void submit(), disabled: remaining > 0 }, remaining > 0 ? 'Wait for timer' : 'Submit round'),
+        h('button', { type: 'button', onClick: () => void this.abandonMoleRound() }, 'Emergency exit')),
+    ));
   }
 
   /** Writes the controls back onto the endpoint they were loaded from. */
@@ -8218,6 +8416,39 @@ It is shown once. The far end needs it to register.`);
     this.toast('Appearance exported as JSON');
   }
 
+  /**
+   * The generated design only knows how to render the ceremony. Command execution
+   * belongs here, at the typed renderer-to-control-plane boundary. Keeping the whole
+   * path in one method also prevents the credit shortcut from becoming a second,
+   * decorative execution route.
+   */
+  private async executeCeremonyCommand(): Promise<boolean> {
+    const title = String((this.state as { ceremonyTitle?: string }).ceremonyTitle ?? '');
+    const command = String((this.state as { ceremonyCmd?: string }).ceremonyCmd ?? '');
+    this.set('ceremonyOpen', false);
+
+    const bulkDeleteIds = parseBulkDeleteCeremony(title, command);
+    if (bulkDeleteIds) {
+      this.bulk('Deleted', bulkDeleteIds);
+      return true;
+    }
+
+    const ok = await runCeremonyCommand({
+      command,
+      connected: this.target.connected,
+      serverId: this.target.id,
+      request: (action, extra) => this.request(action, extra) as Promise<CeremonyResponse | undefined>,
+      toast: (message) => this.toast(message),
+      fire: (noticeTitle, body) => this.fire(noticeTitle, body),
+    });
+    if (!ok) return false;
+
+    if (/^module (load|unload|reload) /u.test(command)) delete this.readings.modules;
+    if (/^manager kick session /u.test(command)) delete this.readings.ami;
+    this.forceUpdate();
+    return true;
+  }
+
   renderVals() {
     const screen = (this.state as { screen: string }).screen;
     this.applyRows(screen);
@@ -8248,61 +8479,12 @@ It is shown once. The far end needs it to register.`);
         toggleMaximize: () => bridge?.window.toggleMaximize(),
         close: () => bridge?.window.close(),
       },
-      /**
-       * The confirmation flow used to end by announcing that the command had been
-       * "executed and attested" while calling nothing at all. Every destructive and
-       * write control in the interface funnels through here, so that one line was the
-       * single largest untrue claim in the product.
-       *
-       * It now dispatches the command and reports exactly what came back: the real
-       * output on success, and the exact reason otherwise — no connected target, a
-       * command outside the read-only allowlist, or the target's own error. A refusal
-       * shown plainly is worth far more than a cheerful message about work that never
-       * happened.
-       */
-      executeCeremony: () => {
-        const title = String((this.state as { ceremonyTitle?: string }).ceremonyTitle ?? '');
-        const command = String((this.state as { ceremonyCmd?: string }).ceremonyCmd ?? '');
-        this.set('ceremonyOpen', false);
-
-        /*
-         * The bulk-actions "Delete" button opens this exact ceremony (`Delete ${n}
-         * objects` / `delete ${ids.join(' ')}`) and, once confirmed, used to send that
-         * command straight to the target -- "delete" is not a real Asterisk CLI command,
-         * so the target's own error is what came back. Route a confirmed bulk delete
-         * through bulk() instead, so it reaches the same real planBulk()/summarise()
-         * plan-and-report every other bulk verb goes through (see bulk() above). A
-         * single row's own "Delete <name>" ceremony, opened from its context menu
-         * through a different (`areYouSure`) gate, does not match this shape and keeps
-         * running through the target command below exactly as before.
-         */
-        const bulkDeleteIds = parseBulkDeleteCeremony(title, command);
-        if (bulkDeleteIds) {
-          this.bulk('Deleted', bulkDeleteIds);
-          return;
-        }
-
-        void runCeremonyCommand({
-          command,
-          connected: this.target.connected,
-          serverId: this.target.id,
-          request: (action, extra) => this.request(action, extra) as Promise<CeremonyResponse | undefined>,
-          toast: (message) => this.toast(message),
-          fire: (title, body) => this.fire(title, body),
-        }).then((ok) => {
-          /* `module load|unload|reload <name>` and `manager kick session <fd>` are the
-           * only two non-read-only command lines this console will run at all (see
-           * `write-commands.ts`); either one, once it genuinely ran, makes the console's
-           * own cached reading of that screen stale -- a module's use count/state, or
-           * who is still connected. Dropping the cache is what makes the very next
-           * refresh cycle re-read the target instead of going on showing the state from
-           * before the action, the same "delete the cache key, let the normal read path
-           * repopulate it" shape `writeConfigResource`'s own callback uses everywhere
-           * else on this console. */
+      executeCeremony: () => { void this.executeCeremonyCommand(); },
+      skipCeremony: () => {
+        void this.executeCeremonyCommand().then((ok) => {
           if (!ok) return;
-          if (/^module (load|unload|reload) /u.test(command)) delete this.readings.modules;
-          if (/^manager kick session /u.test(command)) delete this.readings.ami;
-          this.forceUpdate();
+          this.setState((st: { credits?: number }) => ({ credits: Math.max(0, (st.credits ?? 0) - 1) }));
+          this.fire('Confirmation credit spent', 'The completed command used one confirmation credit.');
         });
       },
       /**
@@ -8494,19 +8676,18 @@ It is shown once. The far end needs it to register.`);
    *
    * Both wire into the *existing* lock-wizard and unlock-dialog controls -- the
    * numeric keypad, its dots, and the mono-font line under the unlock dialog's
-   * title -- rather than adding new markup, because the compiled design has no
-   * bound slot for a dish grid, a sums list, a mole board, or QR pixel data, and
+   * title -- rather than adding new markup for the dish and sums steps, because the compiled design has no
+   * bound slot for a dish grid, a sums list, or QR pixel data. The mole board is
+   * an App-owned accessible overlay outside that immutable compiled shell, and
    * editing the checked-in design reference or its generated output is out of
-   * scope here. That is a real gap, not a cosmetic one: the "moles" rung has no
-   * way to be rendered in this build, so it is treated as unreachable (see
-   * tryUnlock/finishLadderGrade) rather than faked.
+   * scope here.
    */
   private authVals(): Record<string, unknown> {
     const s = this.state as {
       locks: Record<string, { method?: string; pin?: string; password?: string; totpSecret?: string }>;
       unlockKey: string; unlockPin: string; unlockPw: string; unlockTotpDigits?: string;
       unlockPhase?: 'pin' | 'totp';
-      ladderActive?: boolean; ladderChallenge?: Challenge | null; ladderDigits?: string; ladderSumsAnswers?: number[];
+       ladderActive?: boolean; ladderChallenge?: UnlockLadderChallenge | null; ladderDigits?: string; ladderSumsAnswers?: number[];
     };
 
     const L = s.locks[s.unlockKey] || {};
@@ -8518,13 +8699,13 @@ It is shown once. The far end needs it to register.`);
     const ladderActive = !!s.ladderActive;
     const challenge = s.ladderChallenge ?? null;
 
-    const gradeLadder = (): void => {
+    const gradeLadder = async (): Promise<void> => {
       if (!challenge) return;
       const digits = s.ladderDigits ?? '';
       if (challenge.rung === 'dish') {
         const choiceIndex = Number(digits) - 1;
-        const result = this.ladder.grade(challenge.nonce, { kind: 'dish', choiceIndex }, Date.now());
-        this.finishLadderGrade(result, s.unlockKey);
+        const result = await this.ladder.grade(challenge.nonce, { kind: 'dish', choiceIndex });
+        await this.finishLadderGrade(result, s.unlockKey);
         return;
       }
       if (challenge.rung === 'sums') {
@@ -8533,17 +8714,17 @@ It is shown once. The far end needs it to register.`);
           this.setState({ ladderSumsAnswers: answers, ladderDigits: '' } as never);
           return;
         }
-        const result = this.ladder.grade(challenge.nonce, { kind: 'sums', answers }, Date.now());
-        this.finishLadderGrade(result, s.unlockKey);
+        const result = await this.ladder.grade(challenge.nonce, { kind: 'sums', answers });
+        await this.finishLadderGrade(result, s.unlockKey);
         return;
       }
-      // moles never reaches here -- offerLadder/finishLadderGrade never store one.
+      // The App-owned mole overlay has its own keyboard-operable cells and submit action.
     };
 
     const keyPress = (k: string): void => {
       if (ladderActive) {
         if (k === '⌫') { this.setState({ ladderDigits: (s.ladderDigits ?? '').slice(0, -1) } as never); return; }
-        if (k === '✓') { gradeLadder(); return; }
+        if (k === '✓') { void gradeLadder(); return; }
         this.setState({ ladderDigits: ((s.ladderDigits ?? '') + k).slice(0, 6) } as never);
         return;
       }
@@ -8584,7 +8765,7 @@ It is shown once. The far end needs it to register.`);
       const idx = s.ladderSumsAnswers?.length ?? 0;
       const problem = challenge.payload.problems[idx];
       ladderPrompt = `Quick challenge -- sum ${idx + 1} of ${challenge.payload.problems.length}: `
-        + `${problem.a} ${problem.op} ${problem.b} = ? Type it, then the check mark`;
+        + `${problem.a} ${problem.operator} ${problem.b} = ? Type it, then the check mark`;
     }
 
     const unlockMethod = ladderActive
@@ -8596,6 +8777,7 @@ It is shown once. The far end needs it to register.`);
       lockNext: this.lockNext,
 
       openUnlock: () => {
+        this.stopMoleTicker();
         const screen = (this.state as { screen: string }).screen;
         this.setState({
           unlockOpen: true, unlockKey: screen, unlockPin: '', unlockPw: '', unlockTotpDigits: '',
@@ -8605,13 +8787,126 @@ It is shown once. The far end needs it to register.`);
       unlockKeys,
       unlockDots,
       unlockMethod,
-      submitUnlock: () => { if (ladderActive) { gradeLadder(); return; } void this.tryUnlock(); },
+       submitUnlock: () => { if (ladderActive) { void gradeLadder(); return; } void this.tryUnlock(); },
     };
   }
 
+  /** Regex evaluation is deliberately asynchronous. A later literal query or a new
+   * pattern invalidates the older worker reply before it can repaint the list. */
+  private docsSearchGeneration = 0;
+  private docsSearchAbort: AbortController | undefined;
+  private docsRegexResult: Awaited<ReturnType<typeof docsSearchBounded>> | undefined;
+  private docsRegexResultKey = '';
+  private docsRegexSearching = false;
+
+  private changelogSearchGeneration = 0;
+  private changelogSearchAbort: AbortController | undefined;
+  private changelogRegexResult: Awaited<ReturnType<typeof searchDetailedBounded>> | undefined;
+  private changelogRegexResultKey = '';
+  private changelogRegexSearching = false;
+
+  private docsSearchKey(query: string, flags: string): string {
+    return `${query}\u0000${flags}`;
+  }
+
+  private beginDocsRegexSearch(query: string, flags = ''): void {
+    this.docsSearchAbort?.abort();
+    const generation = ++this.docsSearchGeneration;
+    const abort = new AbortController();
+    this.docsSearchAbort = abort;
+    this.docsRegexSearching = query.trim().length > 0;
+    this.docsRegexResult = undefined;
+    this.docsRegexResultKey = this.docsSearchKey(query, flags);
+    this.setState({ docsRegexSearchEpoch: generation } as never);
+    if (!this.docsRegexSearching) return;
+    void docsSearchBounded(DOCS_BUNDLE, query, { regex: true, flags, signal: abort.signal }).then((result) => {
+      if (generation !== this.docsSearchGeneration || abort.signal.aborted) return;
+      this.docsRegexSearching = false;
+      this.docsRegexResult = result;
+      this.setState({ docsRegexSearchEpoch: generation } as never);
+    });
+  }
+
+  private changelogSearchKey(query: string, flags: string, from: string, to: string): string {
+    return `${query}\u0000${flags}\u0000${from}\u0000${to}`;
+  }
+
+  private beginChangelogRegexSearch(query: string, flags = '', from = '', to = ''): void {
+    this.changelogSearchAbort?.abort();
+    const generation = ++this.changelogSearchGeneration;
+    const abort = new AbortController();
+    this.changelogSearchAbort = abort;
+    const fromValid = from === '' || App.isValidIsoDate(from);
+    const toValid = to === '' || App.isValidIsoDate(to);
+    const entries = filterByDate(this.changelogAllEntries, {
+      from: fromValid && from !== '' ? from : undefined,
+      to: toValid && to !== '' ? to : undefined,
+    });
+    this.changelogRegexSearching = query.trim().length > 0;
+    this.changelogRegexResult = undefined;
+    this.changelogRegexResultKey = this.changelogSearchKey(query, flags, from, to);
+    this.setState({ changelogRegexSearchEpoch: generation } as never);
+    if (!this.changelogRegexSearching) return;
+    void searchDetailedBounded(entries, query, { regex: true, flags, signal: abort.signal }).then((result) => {
+      if (generation !== this.changelogSearchGeneration || abort.signal.aborted) return;
+      this.changelogRegexSearching = false;
+      this.changelogRegexResult = result;
+      this.setState({ changelogRegexSearchEpoch: generation } as never);
+    });
+  }
+
+  private updateDocsQuery = (event: { target: { value: string } }): void => {
+    const query = event.target.value;
+    const state = this.state as { docsRegexOn?: boolean; docsRegexFlags?: string };
+    this.set('docsQuery', query);
+    if (state.docsRegexOn) this.beginDocsRegexSearch(query, state.docsRegexFlags ?? '');
+  };
+
+  private toggleDocsRegex = (): void => {
+    const state = this.state as { docsQuery?: string; docsRegexOn?: boolean; docsRegexFlags?: string };
+    const regex = !state.docsRegexOn;
+    this.set('docsRegexOn', regex);
+    if (regex) this.beginDocsRegexSearch(state.docsQuery ?? '', state.docsRegexFlags ?? '');
+    else {
+      this.docsSearchAbort?.abort();
+      this.docsSearchGeneration += 1;
+      this.docsRegexSearching = false;
+      this.docsRegexResult = undefined;
+    }
+  };
+
+  private updateChangelogQuery = (event: { target: { value: string } }): void => {
+    const query = event.target.value;
+    const state = this.state as { changelogRegexOn?: boolean; changelogRegexFlags?: string; changelogFrom?: string; changelogTo?: string };
+    this.set('changelogQuery', query);
+    if (state.changelogRegexOn) this.beginChangelogRegexSearch(query, state.changelogRegexFlags ?? '', state.changelogFrom ?? '', state.changelogTo ?? '');
+  };
+
+  private updateChangelogDate = (key: 'changelogFrom' | 'changelogTo', event: { target: { value: string } }): void => {
+    const value = event.target.value;
+    const state = this.state as { changelogQuery?: string; changelogRegexOn?: boolean; changelogRegexFlags?: string; changelogFrom?: string; changelogTo?: string };
+    this.set(key, value);
+    if (state.changelogRegexOn) {
+      this.beginChangelogRegexSearch(state.changelogQuery ?? '', state.changelogRegexFlags ?? '', key === 'changelogFrom' ? value : state.changelogFrom ?? '', key === 'changelogTo' ? value : state.changelogTo ?? '');
+    }
+  };
+
+  private toggleChangelogRegex = (): void => {
+    const state = this.state as { changelogQuery?: string; changelogRegexOn?: boolean; changelogRegexFlags?: string; changelogFrom?: string; changelogTo?: string };
+    const regex = !state.changelogRegexOn;
+    this.set('changelogRegexOn', regex);
+    if (regex) this.beginChangelogRegexSearch(state.changelogQuery ?? '', state.changelogRegexFlags ?? '', state.changelogFrom ?? '', state.changelogTo ?? '');
+    else {
+      this.changelogSearchAbort?.abort();
+      this.changelogSearchGeneration += 1;
+      this.changelogRegexSearching = false;
+      this.changelogRegexResult = undefined;
+    }
+  };
+
     /** Real values for the `docs` screen — see `docsVals` usage in `renderVals` above. */
   private docsVals(): Record<string, unknown> {
-    const state = this.state as { docsQuery?: string; docsRegexOn?: boolean; docsSelectedId?: string };
+    const state = this.state as { docsQuery?: string; docsRegexOn?: boolean; docsRegexFlags?: string; docsSelectedId?: string };
     const query = state.docsQuery ?? '';
     const allArticles = listArticles(DOCS_BUNDLE);
 
@@ -8624,6 +8919,25 @@ It is shown once. The far end needs it to register.`);
         title: article.title,
         excerpt: plainTextExcerpt(article.body, 120),
       }));
+    } else if (state.docsRegexOn) {
+      const key = this.docsSearchKey(query, state.docsRegexFlags ?? '');
+      const outcome = key === this.docsRegexResultKey ? this.docsRegexResult : undefined;
+      if (this.docsRegexSearching || outcome === undefined) {
+        queryError = 'Searching with bounded regular-expression evaluation…';
+        results = [];
+      } else if (!outcome.ok) {
+        queryError = outcome.error ?? 'The regular expression could not be evaluated.';
+        results = [];
+      } else {
+        const seen = new Set<string>();
+        results = [];
+        for (const match of outcome.matches) {
+          if (seen.has(match.articleId)) continue;
+          seen.add(match.articleId);
+          results.push({ id: match.articleId, category: match.category, title: match.title, excerpt: match.excerpt });
+        }
+        if (outcome.truncated) queryError = 'Search results were bounded to keep this pattern responsive.';
+      }
     } else {
       const outcome = docsSearch(DOCS_BUNDLE, query, { regex: !!state.docsRegexOn });
       if (!outcome.ok) {
@@ -8697,6 +9011,8 @@ It is shown once. The far end needs it to register.`);
       // control, which is why it is worth naming rather than quietly repairing.
       docsQuery: query,
       docsRegexOn: !!(this.state as { docsRegexOn?: boolean }).docsRegexOn,
+      setDocsQuery: this.updateDocsQuery,
+      toggleDocsRegex: this.toggleDocsRegex,
       docsQueryError: queryError,
       docsSelectedTitle: article?.title ?? 'No article',
       docsSelectedCategory: article?.category ?? '',
@@ -8718,12 +9034,20 @@ It is shown once. The far end needs it to register.`);
     const to = new Date();
     const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
     const iso = (d: Date) => d.toISOString().slice(0, 10);
-    this.setState({ changelogFrom: iso(from), changelogTo: iso(to) });
+    const changelogFrom = iso(from);
+    const changelogTo = iso(to);
+    this.setState({ changelogFrom, changelogTo } as never);
+    const state = this.state as { changelogQuery?: string; changelogRegexOn?: boolean; changelogRegexFlags?: string };
+    if (state.changelogRegexOn) this.beginChangelogRegexSearch(state.changelogQuery ?? '', state.changelogRegexFlags ?? '', changelogFrom, changelogTo);
   }
 
   private applyChangelogYear(): void {
     const year = new Date().getUTCFullYear();
-    this.setState({ changelogFrom: `${year}-01-01`, changelogTo: `${year}-12-31` });
+    const changelogFrom = `${year}-01-01`;
+    const changelogTo = `${year}-12-31`;
+    this.setState({ changelogFrom, changelogTo } as never);
+    const state = this.state as { changelogQuery?: string; changelogRegexOn?: boolean; changelogRegexFlags?: string };
+    if (state.changelogRegexOn) this.beginChangelogRegexSearch(state.changelogQuery ?? '', state.changelogRegexFlags ?? '', changelogFrom, changelogTo);
   }
 
   private copyChangelog(): void {
@@ -8749,11 +9073,18 @@ It is shown once. The far end needs it to register.`);
 
   /** Applies the current date range and search query to the real bundled changelog. */
   private changelogFilterResult(): { entries: ReadonlyArray<ChangelogEntry>; error?: string } {
-    const state = this.state as { changelogFrom?: string; changelogTo?: string; changelogQuery?: string; changelogRegexOn?: boolean };
+    const state = this.state as { changelogFrom?: string; changelogTo?: string; changelogQuery?: string; changelogRegexOn?: boolean; changelogRegexFlags?: string };
     const from = state.changelogFrom ?? '';
     const to = state.changelogTo ?? '';
     const fromValid = from === '' || App.isValidIsoDate(from);
     const toValid = to === '' || App.isValidIsoDate(to);
+    if (state.changelogRegexOn) {
+      const key = this.changelogSearchKey(state.changelogQuery ?? '', state.changelogRegexFlags ?? '', from, to);
+      const outcome = key === this.changelogRegexResultKey ? this.changelogRegexResult : undefined;
+      if (this.changelogRegexSearching || outcome === undefined) return { entries: [], error: 'Searching with bounded regular-expression evaluation…' };
+      if (outcome.error) return { entries: [], error: outcome.error };
+      return { entries: outcome.entries };
+    }
     return filterAndSearch(this.changelogAllEntries, {
       from: fromValid && from !== '' ? from : undefined,
       to: toValid && to !== '' ? to : undefined,
@@ -8797,6 +9128,10 @@ It is shown once. The far end needs it to register.`);
       changelogTo: to,
       changelogQuery: rawState.changelogQuery ?? '',
       changelogRegexOn: !!rawState.changelogRegexOn,
+      setChangelogQuery: this.updateChangelogQuery,
+      toggleChangelogRegex: this.toggleChangelogRegex,
+      setChangelogFrom: (event: { target: { value: string } }) => this.updateChangelogDate('changelogFrom', event),
+      setChangelogTo: (event: { target: { value: string } }) => this.updateChangelogDate('changelogTo', event),
       changelogQueryError: error ?? '',
       changelogDateError: dateError,
       changelogResultsLabel: `${entries.length} version${entries.length === 1 ? '' : 's'}`,

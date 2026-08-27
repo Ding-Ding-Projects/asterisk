@@ -56,6 +56,24 @@ interface AppInstance {
 
 const AppCtor = App as unknown as new (props: Record<string, never>) => AppInstance;
 
+/** Narration mounts the real component without ReactDOM. Its bootstrap uses both
+ * setState and forceUpdate, so mount it behind a synchronous mounted-equivalent
+ * updater instead of allowing React's unmounted queue to drop work with warnings. */
+function withSyncUpdater(instance: AppInstance): AppInstance {
+  (instance as unknown as { updater: unknown }).updater = {
+    isMounted: () => true,
+    enqueueForceUpdate() {},
+    enqueueReplaceState(publicInstance: AppInstance, state: Record<string, unknown>) { publicInstance.state = state; },
+    enqueueSetState(publicInstance: AppInstance, partial: unknown) {
+      const patch = typeof partial === 'function'
+        ? (partial as (state: Record<string, unknown>) => Record<string, unknown>)(publicInstance.state)
+        : partial as Record<string, unknown>;
+      publicInstance.state = { ...publicInstance.state, ...patch };
+    },
+  };
+  return instance;
+}
+
 interface FakeVoice { voiceURI: string; name: string; lang: string; localService: boolean }
 interface FakeUtterance {
   text: string; rate: number; pitch: number; voice: FakeVoice | null;
@@ -115,7 +133,7 @@ async function flush(rounds = 30): Promise<void> {
  *  teardown that runs its real `componentWillUnmount` (clearing every timer the mount
  *  started, and disposing the narrator) so the test process can exit. */
 async function mount(): Promise<{ app: AppInstance; unmount: () => void }> {
-  const app = new AppCtor({});
+  const app = withSyncUpdater(new AppCtor({}));
   app.componentDidMount();
   await flush(); // let durableStorage.bootstrap().then(...) -- which calls restoreNarration -- settle
   return { app, unmount: () => app.componentWillUnmount() };

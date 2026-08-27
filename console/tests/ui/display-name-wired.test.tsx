@@ -35,6 +35,24 @@ interface AppInstance {
 }
 const Base = App as unknown as new (props: unknown) => AppInstance;
 
+/** Directly constructed App instances need React's mounted updater semantics for
+ * stateful calls. The helper is intentionally synchronous because these tests inspect
+ * state in the same turn as the action they exercise. */
+function withSyncUpdater(instance: AppInstance): AppInstance {
+  (instance as unknown as { updater: unknown }).updater = {
+    isMounted: () => true,
+    enqueueForceUpdate() {},
+    enqueueReplaceState(publicInstance: AppInstance, state: Record<string, unknown>) { publicInstance.state = state; },
+    enqueueSetState(publicInstance: AppInstance, partial: unknown) {
+      const next = typeof partial === 'function'
+        ? (partial as (state: Record<string, unknown>) => Record<string, unknown>)(publicInstance.state)
+        : partial as Record<string, unknown>;
+      publicInstance.state = { ...publicInstance.state, ...next };
+    },
+  };
+  return instance;
+}
+
 /** Renders the real `App` (not the bare compiled shell) pinned on a screen, with the
  *  display name seeded into the exact storage handle the running app itself reads --
  *  the same pattern every other "-wired" test in this directory uses for its own
@@ -55,7 +73,7 @@ function renderAppScreen(screen: string, seedName?: string, overrides: Record<st
  *  -- `renderToStaticMarkup` never calls lifecycle methods, and a toast is `state`,
  *  not markup a static render would ever contain. */
 function liveApp(seedName?: string): AppInstance {
-  const instance = new Base({});
+  const instance = withSyncUpdater(new Base({}));
   if (seedName !== undefined) setDisplayName(instance.durableStorage.storage, seedName);
   return instance;
 }
@@ -180,11 +198,9 @@ test('the rename control still discloses the shipped name literally, as a static
 
 /**
  * `this.toast` is spied by direct reassignment on the instance rather than read back
- * from `state.toastText`. A bare `new App({})` -- the only construction React's own
- * `setState` outside a real mount tolerates -- has no live reconciler attached, so
- * `setState` inside `toast()` is a documented no-op-with-warning and `state` never
- * actually changes; none of the existing "-wired" tests in this project mount a real
- * DOM tree either, so there is no established way around that here. Overwriting the
+ * from `state.toastText`. Direct construction has no live reconciler attached, so
+ * the synchronous mounted-equivalent updater above keeps `setState` observable without
+ * a DOM mount. Overwriting the
  * instance's own `toast` property sidesteps `setState` entirely and observes exactly
  * what the wiring decided to say, in the exact order it said it -- which is the thing
  * these tests are actually about. */

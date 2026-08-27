@@ -12,7 +12,7 @@
  *
  * Everything here goes through the allowlisted executor, exactly as `wsl-provisioning.ts`
  * does: no shell, no concatenated command string, every command is `wsl.exe` with
- * separate arguments, and every operation is scoped to `MANAGED_DISTRIBUTION`.
+ * separate arguments, and every operation is scoped to the selected distribution.
  *
  * The one rule that matters most in this file: **a start, a stop, or a restart is never
  * reported as having worked because a command's exit code said so.** An `asterisk`
@@ -22,8 +22,8 @@
  * is verified by *asking the daemon itself* — `asterisk -rx "core show version"` — and
  * polled with a bounded timeout rather than trusted on the first try.
  */
-import { MANAGED_DISTRIBUTION } from "./wsl-provisioning.js";
 import type { ProcessExecutor } from "./executor.js";
+import { MANAGED_DISTRIBUTION } from "./wsl-provisioning.js";
 
 export type DaemonState =
   /** The distribution itself is not currently running. Asterisk cannot be either. */
@@ -37,7 +37,8 @@ export type DaemonState =
   /** The daemon answered `core show version` over its control socket. */
   | "daemonAnswering"
   /**
-   * The daemon's own process is present, but it did not answer on its control socket.
+   * The daemon's process may be present, or the target probe was inconclusive, and the
+   * control socket did not provide a valid daemon identity.
    *
    * Deliberately distinct from `daemonNotRunning`: a process that exists and is not
    * answering (still starting up, wedged, its socket not yet listening) is a different
@@ -67,6 +68,8 @@ export interface DaemonOutcome {
 
 export interface AsteriskServiceOptions {
   executor: ProcessExecutor;
+  /** Exact WSL distribution selected by the caller. */
+  distribution?: string;
   now?: () => Date;
   /** How often a start or stop polls the daemon while waiting. Default 1000ms. */
   pollIntervalMs?: number;
@@ -83,6 +86,7 @@ const firstLine = (text: string) => text.split(/\r?\n/u)[0]?.trim() ?? "";
 
 export class AsteriskService {
   readonly #executor: ProcessExecutor;
+  readonly #distribution: string;
   readonly #now: () => Date;
   readonly #pollIntervalMs: number;
   readonly #startTimeoutMs: number;
@@ -91,6 +95,8 @@ export class AsteriskService {
 
   constructor(options: AsteriskServiceOptions) {
     this.#executor = options.executor;
+    this.#distribution = (options.distribution ?? MANAGED_DISTRIBUTION).trim();
+    if (!this.#distribution) throw new Error("Asterisk daemon operations require a target distribution.");
     this.#now = options.now ?? (() => new Date());
     this.#pollIntervalMs = options.pollIntervalMs ?? 1_000;
     this.#startTimeoutMs = options.startTimeoutMs ?? 30_000;
@@ -109,7 +115,7 @@ export class AsteriskService {
    * auto-start the distribution it is asked about, so this is safe to call from a plain
    * status check.
    */
-  async #distributionRunning(signal?: AbortSignal): Promise<boolean> {
+  async #distributionState(signal?: AbortSignal): Promise<{ state: "running" | "notRunning" | "unknown"; reason?: string }> {
     const result = await this.#executor.execute({
       executable: "wsl.exe",
       args: ["--list", "--running", "--quiet"],
@@ -117,32 +123,40 @@ export class AsteriskService {
       timeoutMs: 15_000,
       maxOutputBytes: 64 * 1024,
     });
-    if (result.status !== "succeeded") return false;
-    return stripNulls(result.stdout)
+    if (result.status !== "succeeded") {
+      return { state: "unknown", reason: stripNulls(result.stderr).trim() || `Distribution discovery ended with ${result.status}.` };
+    }
+    const running = stripNulls(result.stdout)
       .split(/\r?\n/u)
       .map((line) => line.trim())
-      .includes(MANAGED_DISTRIBUTION);
+      .includes(this.#distribution);
+    return { state: running ? "running" : "notRunning" };
   }
 
-  /** Whether the `asterisk` process itself is present, independent of its control socket. */
-  async #daemonProcessAlive(signal?: AbortSignal): Promise<boolean> {
+  /** Process liveness is tri-state: an executor failure is not proof that no process exists. */
+  async #daemonProcessState(signal?: AbortSignal): Promise<{ state: "alive" | "absent" | "unknown"; reason?: string }> {
     const result = await this.#executor.execute({
       executable: "wsl.exe",
-      args: ["-d", MANAGED_DISTRIBUTION, "--user", "root", "--", "pgrep", "-x", "asterisk"],
+      args: ["-d", this.#distribution, "--user", "root", "--", "pgrep", "-x", "asterisk"],
       signal,
       timeoutMs: 15_000,
       maxOutputBytes: 4 * 1024,
     });
     /* pgrep exits 0 with matching pids on stdout when found, and exits 1 with nothing
      * printed when it finds none — the exit code alone is enough, and stdout confirms it. */
-    return result.status === "succeeded" && stripNulls(result.stdout).trim().length > 0;
+    if (result.status === "succeeded" && stripNulls(result.stdout).trim().length > 0) return { state: "alive" };
+    if (result.status === "failed" && result.exitCode === 1) return { state: "absent" };
+    return {
+      state: "unknown",
+      reason: stripNulls(result.stderr).trim() || `The process probe ended with ${result.status}.`,
+    };
   }
 
   /** Asks the daemon directly rather than trusting anything about the process around it. */
   async #version(signal?: AbortSignal): Promise<{ ok: boolean; detail: string }> {
     const result = await this.#executor.execute({
       executable: "wsl.exe",
-      args: ["-d", MANAGED_DISTRIBUTION, "--", "asterisk", "-rx", "core show version"],
+      args: ["-d", this.#distribution, "--", "asterisk", "-rx", "core show version"],
       signal,
       timeoutMs: 15_000,
       maxOutputBytes: 64 * 1024,
@@ -158,6 +172,9 @@ export class AsteriskService {
     if (/Unable to connect to remote asterisk/iu.test(stdout) || stdout.length === 0) {
       return { ok: false, detail: firstLine(stdout) || "Asterisk did not answer." };
     }
+    if (!/^Asterisk\s+\d+(?:\.\d+)+/imu.test(stdout)) {
+      return { ok: false, detail: firstLine(stdout) || "The daemon returned an invalid identity response." };
+    }
     return { ok: true, detail: stdout };
   }
 
@@ -169,11 +186,12 @@ export class AsteriskService {
    * daemon answering, and the daemon's process present but not answering.
    */
   async status(signal?: AbortSignal): Promise<DaemonStatus> {
-    if (!(await this.#distributionRunning(signal))) {
+    const distribution = await this.#distributionState(signal);
+    if (distribution.state !== "running") {
       return {
-        state: "distributionNotRunning",
-        distribution: MANAGED_DISTRIBUTION,
-        reason: "The managed distribution is not currently running.",
+        state: distribution.state === "notRunning" ? "distributionNotRunning" : "daemonUnresponsive",
+        distribution: this.#distribution,
+        reason: distribution.state === "notRunning" ? "The selected distribution is not currently running." : distribution.reason,
         observedAt: this.#stamp(),
       };
     }
@@ -181,16 +199,16 @@ export class AsteriskService {
     if (version.ok) {
       return {
         state: "daemonAnswering",
-        distribution: MANAGED_DISTRIBUTION,
+        distribution: this.#distribution,
         asteriskVersion: version.detail,
         observedAt: this.#stamp(),
       };
     }
-    const alive = await this.#daemonProcessAlive(signal);
+    const process = await this.#daemonProcessState(signal);
     return {
-      state: alive ? "daemonUnresponsive" : "daemonNotRunning",
-      distribution: MANAGED_DISTRIBUTION,
-      reason: version.detail,
+      state: process.state === "absent" ? "daemonNotRunning" : "daemonUnresponsive",
+      distribution: this.#distribution,
+      reason: process.state === "unknown" ? `${version.detail} Process state is unknown: ${process.reason}` : version.detail,
       observedAt: this.#stamp(),
     };
   }
@@ -214,7 +232,10 @@ export class AsteriskService {
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       if (signal?.aborted) return { ok: false, detail: "The operation was cancelled." };
       const version = await this.#version(signal);
-      if (!version.ok) return { ok: true, detail: "Asterisk is no longer answering on its control socket." };
+      if (!version.ok) {
+        const process = await this.#daemonProcessState(signal);
+        if (process.state === "absent") return { ok: true, detail: "Asterisk is no longer running." };
+      }
       if (attempt < maxAttempts - 1) await this.#sleep(this.#pollIntervalMs);
     }
     return { ok: false, detail: "Asterisk did not stop answering before the timeout." };
@@ -239,7 +260,7 @@ export class AsteriskService {
       return {
         status: {
           state: "daemonAnswering",
-          distribution: MANAGED_DISTRIBUTION,
+          distribution: this.#distribution,
           asteriskVersion: already.detail,
           observedAt: this.#stamp(),
         },
@@ -249,7 +270,7 @@ export class AsteriskService {
 
     const launch = await this.#executor.execute({
       executable: "wsl.exe",
-      args: ["-d", MANAGED_DISTRIBUTION, "--user", "root", "--", "asterisk", "-F"],
+      args: ["-d", this.#distribution, "--user", "root", "--", "asterisk", "-F"],
       signal,
       timeoutMs: 30_000,
       maxOutputBytes: 64 * 1024,
@@ -267,11 +288,11 @@ export class AsteriskService {
     steps.push({ name: "verify Asterisk is answering", ok: verified.ok, detail: verified.detail });
 
     if (!verified.ok) {
-      const alive = await this.#daemonProcessAlive(signal).catch(() => false);
+      const process = await this.#daemonProcessState(signal).catch(() => ({ state: "unknown" as const }));
       return {
         status: {
-          state: alive ? "daemonUnresponsive" : "daemonNotRunning",
-          distribution: MANAGED_DISTRIBUTION,
+          state: process.state === "absent" ? "daemonNotRunning" : "daemonUnresponsive",
+          distribution: this.#distribution,
           reason: verified.detail,
           observedAt: this.#stamp(),
         },
@@ -281,7 +302,7 @@ export class AsteriskService {
     return {
       status: {
         state: "daemonAnswering",
-        distribution: MANAGED_DISTRIBUTION,
+        distribution: this.#distribution,
         asteriskVersion: verified.detail,
         observedAt: this.#stamp(),
       },
@@ -301,18 +322,18 @@ export class AsteriskService {
 
     const before = await this.#version(signal);
     if (!before.ok) {
-      const alive = await this.#daemonProcessAlive(signal).catch(() => false);
+      const process = await this.#daemonProcessState(signal).catch(() => ({ state: "unknown" as const }));
       steps.push({
         name: "already stopped",
         ok: true,
-        detail: alive
-          ? "Asterisk's process is present but it was already not answering."
+        detail: process.state !== "absent"
+          ? "Asterisk's process is present or could not be proved absent, and it was already not answering."
           : "Asterisk was already not running.",
       });
       return {
         status: {
-          state: alive ? "daemonUnresponsive" : "daemonNotRunning",
-          distribution: MANAGED_DISTRIBUTION,
+          state: process.state === "absent" ? "daemonNotRunning" : "daemonUnresponsive",
+          distribution: this.#distribution,
           reason: before.detail,
           observedAt: this.#stamp(),
         },
@@ -323,7 +344,7 @@ export class AsteriskService {
     const command = force ? "core stop now" : "core stop gracefully";
     const result = await this.#executor.execute({
       executable: "wsl.exe",
-      args: ["-d", MANAGED_DISTRIBUTION, "--", "asterisk", "-rx", command],
+      args: ["-d", this.#distribution, "--", "asterisk", "-rx", command],
       signal,
       timeoutMs: 15_000,
       maxOutputBytes: 64 * 1024,
@@ -349,14 +370,14 @@ export class AsteriskService {
         status: still.ok
           ? {
               state: "daemonAnswering",
-              distribution: MANAGED_DISTRIBUTION,
+              distribution: this.#distribution,
               asteriskVersion: still.detail,
               reason: verified.detail,
               observedAt: this.#stamp(),
             }
           : {
               state: "daemonUnresponsive",
-              distribution: MANAGED_DISTRIBUTION,
+              distribution: this.#distribution,
               reason: verified.detail,
               observedAt: this.#stamp(),
             },
@@ -366,7 +387,7 @@ export class AsteriskService {
     return {
       status: {
         state: "daemonNotRunning",
-        distribution: MANAGED_DISTRIBUTION,
+        distribution: this.#distribution,
         reason: `stopped (${force ? "core stop now" : "core stop gracefully"})`,
         observedAt: this.#stamp(),
       },

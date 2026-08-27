@@ -56,7 +56,7 @@ test("setState on one server never touches another server's state", () => {
   inventory.add({ name: "Primary", connectionKind: "wsl", wslDistribution: "asterisk-1" });
   inventory.add({ name: "Backup", connectionKind: "wsl", wslDistribution: "asterisk-2" });
 
-  inventory.setState("a", "connected");
+  inventory.setState("a", "connected", undefined, { targetId: "a", operatingSystem: true, asterisk: true });
   inventory.setState("b", "unreachable", "connection refused");
 
   assert.equal(inventory.get("a")?.state, "connected");
@@ -73,7 +73,7 @@ test("one server being unreachable does not block another from being connected a
   inventory.add({ name: "Primary", connectionKind: "wsl", wslDistribution: "asterisk-1" });
   inventory.add({ name: "Backup", connectionKind: "wsl", wslDistribution: "asterisk-2" });
   inventory.setState("a", "unreachable", "timed out");
-  inventory.setState("b", "connected");
+  inventory.setState("b", "connected", undefined, { targetId: "b", operatingSystem: true, asterisk: true });
   assert.equal(inventory.get("a")?.state, "unreachable");
   assert.equal(inventory.get("b")?.state, "connected");
 });
@@ -102,7 +102,7 @@ test("setActive switches the active server and refuses an unknown id", () => {
 test("update edits connection details without touching state", () => {
   const inventory = makeInventory(["a"]);
   inventory.add({ name: "Primary", connectionKind: "wsl", wslDistribution: "asterisk-1" });
-  inventory.setState("a", "connected");
+  inventory.setState("a", "connected", undefined, { targetId: "a", operatingSystem: true, asterisk: true });
   const updated = inventory.update("a", { name: "Renamed" });
   assert.equal(updated.name, "Renamed");
   assert.equal(updated.state, "connected", "editing details does not reset the observed connection state");
@@ -138,7 +138,7 @@ test("the inventory persists across a restart through the injected store", () =>
   const store: ServerInventoryStore = new InMemoryServerInventoryStore();
   const first = new ServerInventory({ store, generateId: () => "a" });
   first.add({ name: "Primary", connectionKind: "wsl", wslDistribution: "asterisk-1" });
-  first.setState("a", "connected");
+  first.setState("a", "connected", undefined, { targetId: "a", operatingSystem: true, asterisk: true });
 
   const second = new ServerInventory({ store });
   assert.equal(second.list().length, 1);

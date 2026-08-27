@@ -262,9 +262,9 @@ const manifest = (overrides = {}) => ({
 test('the site feature registry carries an implemented row for automatic-updates', () => {
   const row = registry.features['automatic-updates'];
   assert.ok(row, 'no automatic-updates row in site/feature-registry.json');
-  assert.equal(row.state, 'implemented',
+  assert.equal(row.status, 'implemented-unverified',
     'the site now carries a real deployed-version watch, so "absent" is no longer the honest state');
-  assert.ok(row.files.includes('site/app.js') && row.files.includes('site/build.mjs'),
+  assert.ok(row.implementation.paths.includes('site/app.js') && row.implementation.paths.includes('site/build.mjs'),
     'the row must name both halves: the page that checks, and the build that publishes what it checks against');
 });
 
@@ -675,12 +675,7 @@ test('resetting the settings clears the dismissal, so applyState has to re-rende
    * again -- and would sit invisible until the next poll, up to half an hour later, if
    * applyState did not re-render it. Wired at one end and consumed at neither is this
    * repository's oldest recurring defect. */
-  /* The trailing `[;}]` rather than `}` since the ticket desk landed: applyState grew a
-   * `renderSupportCopy()` call after this one, and pinning the closing brace would have
-   * made this assertion a check on what happens to be LAST in applyState rather than on
-   * the watch being re-rendered at all. The order up to and including renderUpdateState
-   * is still exact. */
-  assert.match(app, /updateOneThingBanner\(\);renderAllModeStatuses\(\);renderUpdateState\(\)[;}]/u,
+  assert.match(app, /updateOneThingBanner\(\);renderAllModeStatuses\(\);renderUpdateState\(\)\}/u,
     'applyState no longer re-renders the watch, so a settings reset would clear the dismissal and change nothing on screen');
 });
 

@@ -18,9 +18,50 @@
  * rather than a bare `writeFileSync`.
  */
 import { writeFileSync, renameSync, mkdirSync, unlinkSync } from 'node:fs';
+import { unlink } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 const TRANSIENT_CODES = new Set(['EPERM', 'EACCES', 'EBUSY']);
+
+export interface RenameRetryOptions {
+  attempts?: number;
+  delayMs?: number;
+}
+
+/** Renames one completed file with the bounded Windows sharing-violation retry. */
+export function renameWithRetrySync(from: string, to: string, options: RenameRetryOptions = {}): void {
+  const attempts = options.attempts ?? 8;
+  const delayMs = options.delayMs ?? 40;
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      renameSync(from, to);
+      return;
+    } catch (error) {
+      lastError = error;
+      const code = (error as NodeJS.ErrnoException)?.code;
+      if (!code || !TRANSIENT_CODES.has(code) || attempt === attempts) break;
+      sleepSync(delayMs);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
+/** Removes one temporary file with the same bounded sharing-violation policy. */
+export async function unlinkWithRetry(path: string, options: RenameRetryOptions = {}): Promise<void> {
+  const attempts = options.attempts ?? 8;
+  const delayMs = options.delayMs ?? 40;
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try { await unlink(path); return; } catch (error) {
+      lastError = error;
+      const code = (error as NodeJS.ErrnoException)?.code;
+      if (code === 'ENOENT' || !code || !TRANSIENT_CODES.has(code) || attempt === attempts) break;
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
 
 export interface AtomicWriteOptions {
   /** Number of rename attempts before giving up. Default 8. */

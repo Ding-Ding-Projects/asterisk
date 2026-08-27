@@ -380,7 +380,7 @@ test('the site feature registry carries a row for app-display-name', () => {
 
 test('the registry records app-display-name as implemented, and names the files it lives in', () => {
   const row = registry.features['app-display-name'];
-  assert.equal(row.state, 'implemented');
-  assert.deepEqual([...row.files].sort(), ['site/app.js', 'site/settings.html'].sort());
+  assert.equal(row.status, 'implemented-unverified');
+  assert.deepEqual([...row.implementation.paths].sort(), ['site/app.js', 'site/settings.html'].sort());
   assert.match(row.note, /brand-name/u, 'the registry note does not say which elements the rename reaches');
 });

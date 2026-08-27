@@ -48,10 +48,13 @@ test('it is pinned to the name the application shipped under, not the name it di
   );
 });
 
-test('the pin is applied, not merely declared', () => {
+test('the pin is applied as an absolute path, not merely declared', () => {
   const applied = lineIndex(/^\s*app\.setPath\('userData',/u);
   assert.notEqual(applied, -1, 'SHIPPED_DATA_DIRECTORY is declared but nothing calls app.setPath, so it governs nothing');
-  assert.match(lines[applied], /SHIPPED_DATA_DIRECTORY/u, 'setPath does not use the pinned constant');
+  const pathConstruction = lineIndex(/^\s*const shippedUserDataPath\s*=\s*join\(app\.getPath\('appData'\), SHIPPED_DATA_DIRECTORY\);/u);
+  assert.notEqual(pathConstruction, -1, 'the shipped directory must be constructed beneath Electron\'s absolute appData root');
+  assert.match(lines[applied], /shippedUserDataPath/u, 'setPath does not use the absolute path built from the pinned constant');
+  assert.doesNotMatch(main, /^\s*app\.setPath\('userData', SHIPPED_DATA_DIRECTORY\);/mu, 'the relative folder label was passed directly to Electron');
 });
 
 test('the pin runs before anything reads the path', () => {
@@ -64,4 +67,14 @@ test('the pin runs before anything reads the path', () => {
     applied < firstRead,
     `app.setPath runs at line ${applied + 1}, after the first read at line ${firstRead + 1} — everything before it gets the moved directory`,
   );
+});
+
+test('the task-only probe override is narrower and runs after the shipped pin', () => {
+  const shippedPin = lineIndex(/^\s*app\.setPath\('userData', shippedUserDataPath\);/u);
+  const probeCondition = lineIndex(/^\s*if \(requestedProbeUserData\) \{/u);
+  const probeOverride = lines.findIndex((line, index) => index > probeCondition && /^\s*app\.setPath\('userData', resolvePath\(requestedProbeUserData\)\);/u.test(line));
+  assert.notEqual(probeCondition, -1, 'the task-only probe boundary disappeared');
+  assert.notEqual(probeOverride, -1, 'the probe no longer receives its isolated user-data path');
+  assert.ok(shippedPin < probeCondition, 'the normal installed directory must be pinned before probe handling');
+  assert.ok(probeCondition < probeOverride, 'the probe override must stay inside its explicit task-only boundary');
 });

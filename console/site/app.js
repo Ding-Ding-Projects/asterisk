@@ -593,12 +593,6 @@
   // against the shipped title rather than against the previous rename's output.
   const SHIPPED_TITLE = document.title;
   const STORAGE_KEY = 'ding-pbx-pages-v2';
-  // Named rather than written inline at each use, so the ticket desk's recovery
-  // panel can DERIVE the list of keys this page writes instead of restating it.
-  // A restated list is one that drifts the day a seventh key is added, and the
-  // panel it feeds is the one place a locked-out reader is told what to clear.
-  const VOCABULARY_CACHE_KEY = 'ding-pbx-vocabulary-cache';
-  const LOGO_CACHE_KEY = 'ding-pbx-logo-cache';
   // ---- Local version history: an append-only record, isolated in its own
   // storage key so "Reset settings" never touches it. Restoring an entry
   // writes a NEW entry rather than rewriting or deleting an earlier one, so
@@ -654,7 +648,7 @@
   const state=loadState();
   function save(){return reportWrite('this page’s settings',writeLocal(STORAGE_KEY,JSON.stringify(state)))}
   function update(key,value){state[key]=value;save();applyState();recordHistory('setting-changed',`${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`${key} now uses ${value}.`),{category:'setting',copyKey:'notifSettingSaved'})}
-  function applyState(){applySchoolMode();document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyDisplayName();applyVocabulary();applyDialogEmojis();applyNarration();updateSessionTimer();updateOneThingBanner();renderAllModeStatuses();renderUpdateState();renderSupportCopy()}
+  function applyState(){applySchoolMode();document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyDisplayName();applyVocabulary();applyDialogEmojis();applyNarration();updateSessionTimer();updateOneThingBanner();renderAllModeStatuses();renderUpdateState()}
   function updateAttention(key,value){state.attention={...state.attention,[key]:value};save();applyState();recordHistory('attention-changed',`attention.${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`attention.${key} now uses ${value}.`),{category:'setting',copyKey:'notifSettingSaved'})}
   function applyLanguage(){if(!$('language-preview'))return;document.documentElement.lang=state.language==='zh'?'zh-Hant':'en';$('language-preview').textContent=state.language==='en'?'English presentation active.':state.language==='zh'?'廣東話顯示已啟用。':'Bilingual presentation active. / 雙語顯示已啟用。'}
 
@@ -725,34 +719,6 @@
       '呢個設定會留意已發佈嘅網站有冇行前咗，有就話你知，但唔會打斷你 —— 比較嘅係呢版整出嚟嗰個 build commit，唔係旁邊嗰個版本標籤。冇嘢會安裝，亦冇嘢喺背景下載：重新載入就係攞新版嘅方法。個檢查淨係向呢個網站攞一個細版本檔案，唔會送任何嘢出去。',
       '佢會幫你望住已發佈嘅網站有冇跑咗喺你面前呢版前面，有就靜靜雞講一聲，唔會彈個對話框嚇你。佢比較嘅係 build commit，唔係嗰個好聽嘅版本標籤。冇嘢安裝，冇嘢喺背景偷偷落載，重新載入就係成個升級程序。個檢查淨係向呢個網站攞一個細版本檔案，唔會送任何嘢出去。',
       '已發佈嘅網站行咗前，佢就好有禮貌噉咳一聲。佢比較 build commit，因為兩個 build 可以掛住同一個版本標籤，然後理直氣壯噉呃你。冇嘢安裝，冇嘢喺背景偷偷落載，重新載入就係成個儀式 —— 唔使坐喺度等重啟。個檢查淨係向呢個網站攞一個細細嘅版本檔案，唔會送任何嘢去任何地方、畀任何人。'
-    ]},
-    /* The desk is a joke and the joke is allowed to move with the slider. Two
-     * facts never do, at any level and in either language: a ticket stays in
-     * this browser, and the only thing that actually clears the restricted
-     * presentation is clearing this site's storage yourself. The unmissable
-     * line saying so is SUPPORT_DISCLOSURE and is deliberately NOT a COPY key,
-     * because a disclosure a funny level can rewrite is a disclosure. */
-    supportDesc:{en:[
-      'A local ticket desk for the one thing this page can lock you out of. Nothing is sent anywhere: a ticket is written to this browser, given a number, and answered by this page. The resolution is always the same, and it is the only thing that works — clear this site’s storage yourself.',
-      'A local ticket desk for the one thing this page can lock you out of. Nothing is sent anywhere — a ticket is written to this browser, given a number, and answered by this page. The resolution is always the same, and it is the only thing that actually works: clear this site’s storage yourself.',
-      'File a ticket with a support desk that is entirely inside this page. It will take your category, note your severity, give you a number and answer within milliseconds, because it is a function. Nothing is sent anywhere. The resolution is always the same one, and it is the only thing that works: clear this site’s storage yourself.',
-      'A support desk with no staff, no queue, no inbox and remarkable response times, because it is a function in the page you are reading. It will take your ticket, assign it a number, escalate it as many times as you like, and arrive at the same resolution every time — which happens to be the only thing that actually works: clear this site’s storage yourself. Nothing is sent anywhere.'
-    ],zh:[
-      '呢個係本機嘅客服櫃檯，專門處理呢版唯一鎖得住你嘅嘢。冇任何嘢會送出去：張飛只係寫入呢個瀏覽器、俾個編號你，然後由呢版自己覆你。解決方法永遠都係同一個，亦都係唯一真係有用嗰個 —— 你自己清走呢個網站嘅儲存。',
-      '呢個係本機客服櫃檯，處理呢版唯一鎖得住你嘅嘢。冇嘢會送出去 —— 張飛寫入呢個瀏覽器、俾個編號你，然後由呢版自己覆。解決方法永遠一樣，亦都係唯一真係work嗰個：你自己清走呢個網站嘅儲存。',
-      '同一個完全喺呢版入面嘅客服櫃檯開飛。佢會收你嘅分類、記低你嘅嚴重程度、派個編號，然後幾毫秒內覆你，因為佢根本就係個函數。冇嘢會送出去。解決方法永遠都係嗰一個，亦都係唯一有用嗰個：你自己清走呢個網站嘅儲存。',
-      '一個冇員工、冇排隊、冇收件匣，但回覆速度驚人嘅客服櫃檯 —— 因為佢就係你而家睇緊呢版入面嘅一個函數。佢會收你張飛、派個編號、你想升級幾多次都得，最後每次都去到同一個結論 —— 啱啱好就係唯一真係有用嗰樣：你自己清走呢個網站嘅儲存。冇任何嘢會送出去。'
-    ]},
-    supportFirstResponse:{en:[
-      'Thank you for contacting support. Your ticket has been received and recorded in this browser. A resolution is available now: clear this site’s storage.',
-      'Thank you for contacting support. Your ticket has been received and recorded in this browser, which is as far as it goes. A resolution is available right now: clear this site’s storage.',
-      'Thank you for contacting support. Your ticket has been received, logged, numbered and filed — all of it in this browser, none of it anywhere else. Good news: a resolution is already available, and it is to clear this site’s storage.',
-      'Thank you for contacting support. Your ticket has been received and escalated to the highest tier available, which is this paragraph. Our records show a resolution is already available and has been since before you wrote in: clear this site’s storage.'
-    ],zh:[
-      '多謝你聯絡客服。你張飛已經收到，並記錄喺呢個瀏覽器入面。而家已經有解決方法：清走呢個網站嘅儲存。',
-      '多謝你聯絡客服。你張飛已經收到，記錄喺呢個瀏覽器入面 —— 去到呢度就係盡頭。而家已經有解決方法：清走呢個網站嘅儲存。',
-      '多謝你聯絡客服。你張飛已經收到、記錄、派好編號同歸檔 —— 全部喺呢個瀏覽器入面，其他地方一份都冇。好消息：解決方法已經有咗，就係清走呢個網站嘅儲存。',
-      '多謝你聯絡客服。你張飛已經收到，並且升級到本櫃檯最高層級 —— 即係你而家睇緊呢段字。根據我哋嘅紀錄，解決方法喺你寫信之前已經存在：清走呢個網站嘅儲存。'
     ]},
     heroLede:{en:[
       'Material Asterisk is a planned desktop administration experience for Asterisk. This website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
@@ -989,7 +955,7 @@
 
   function vocabularyReplacements(){
     try{
-      const raw=localStorage.getItem(VOCABULARY_CACHE_KEY);
+      const raw=localStorage.getItem('ding-pbx-vocabulary-cache');
       if(!raw)return null;
       const parsed=JSON.parse(raw);
       return Array.isArray(parsed.replacements)?parsed.replacements:null;
@@ -2309,7 +2275,7 @@
   const DEFAULT_FAVICON='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="8" fill="#82D9A5"/><text x="50%" y="58%" font-family="monospace" font-size="22" font-weight="800" text-anchor="middle" fill="#0B0F0C">D</text></svg>');
   function applyLogo(){
     let cached=null;
-    try{cached=localStorage.getItem(LOGO_CACHE_KEY)}catch{cached=null}
+    try{cached=localStorage.getItem('ding-pbx-logo-cache')}catch{cached=null}
     all('.brand-mark').forEach(el=>{
       const img=el.querySelector('img.brand-mark-image');
       if(cached){

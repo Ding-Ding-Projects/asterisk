@@ -26,6 +26,6 @@ test('no forge/GitHub publishing flow, account list, or fork/copy logic exists a
 });
 
 test('the registry records forge-publishing as absent, and the code agrees', () => {
-  assert.equal(registry.features['forge-publishing'].state, 'absent',
+  assert.equal(registry.features['forge-publishing'].status, 'absent',
     'no GitHub/forge publishing flow exists; this is a documentation/marketing site -- "absent" is the honest state');
 });

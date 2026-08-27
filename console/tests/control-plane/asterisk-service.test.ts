@@ -122,7 +122,7 @@ test('start: a launch whose exit code succeeds but never actually answers is rep
   const { executor, service } = build((r) => {
     if (isVersion(r)) return { stdout: 'Unable to connect to remote asterisk (does /var/run/asterisk/asterisk.ctl exist?)\n' };
     if (isLaunch(r)) return { status: 'succeeded' }; // exit code says success; the daemon never actually answers
-    if (isPgrep(r)) return { stdout: '' };
+    if (isPgrep(r)) return { status: 'failed', exitCode: 1, stdout: '' };
     return {};
   });
   const outcome = await service.start();
@@ -149,6 +149,7 @@ test('stop: uses graceful stop by default and says so', async () => {
   const { executor, service } = build((r, callIndex) => {
     if (isVersion(r)) return stopped ? { stdout: 'Unable to connect to remote asterisk\n' } : { stdout: 'Asterisk 23.5.0\n' };
     if (isStopGraceful(r)) { stopped = true; return {}; }
+    if (isPgrep(r)) return { status: 'failed', exitCode: 1, stdout: '' };
     return {};
   });
   const outcome = await service.stop();
@@ -165,6 +166,7 @@ test('stop: force uses "core stop now" and says so', async () => {
   const { executor, service } = build((r) => {
     if (isVersion(r)) return stopped ? { stdout: 'Unable to connect to remote asterisk\n' } : { stdout: 'Asterisk 23.5.0\n' };
     if (isStopNow(r)) { stopped = true; return {}; }
+    if (isPgrep(r)) return { status: 'failed', exitCode: 1, stdout: '' };
     return {};
   });
   const outcome = await service.stop({ force: true });
@@ -188,7 +190,7 @@ test('stop: a stop command that is accepted but never actually takes effect is r
 test('stop: already stopped reports so without issuing a stop command', async () => {
   const { executor, service } = build((r) => {
     if (isVersion(r)) return { stdout: 'Unable to connect to remote asterisk\n' };
-    if (isPgrep(r)) return { stdout: '' };
+    if (isPgrep(r)) return { status: 'failed', exitCode: 1, stdout: '' };
     return {};
   });
   const outcome = await service.stop();
@@ -205,6 +207,7 @@ test('restart: stops then starts, both verified', async () => {
     if (isVersion(r)) return stopped ? { stdout: 'Unable to connect to remote asterisk\n' } : { stdout: 'Asterisk 23.5.0\n' };
     if (isStopGraceful(r)) { stopped = true; return {}; }
     if (isLaunch(r)) { stopped = false; return {}; }
+    if (isPgrep(r)) return { status: 'failed', exitCode: 1, stdout: '' };
     return {};
   });
   const outcome = await service.restart();
@@ -232,7 +235,7 @@ test('an aborted signal stops a start from polling forever', async () => {
   const controller = new AbortController();
   const { executor, service } = build((r) => {
     if (isVersion(r)) return { stdout: 'Unable to connect to remote asterisk\n' };
-    if (isPgrep(r)) return { stdout: '' };
+    if (isPgrep(r)) return { status: 'failed', exitCode: 1, stdout: '' };
     return {};
   }, { startTimeoutMs: 1000, pollIntervalMs: 1 });
   controller.abort();

@@ -108,3 +108,41 @@ test("a snapshot request that fails leaves the cache empty rather than throwing"
   await bootstrap();
   assert.equal(storage.getItem("anything"), null);
 });
+
+test("bootstrap returns and retains a typed retryable failure, then succeeds within the bound", async () => {
+  let attempts = 0;
+  const bridge: DurableStorageBridge = {
+    controlPlane: {
+      async request(request) {
+        if (request.action !== "settings.snapshot") return { ok: true };
+        attempts += 1;
+        if (attempts === 1) throw new Error("temporary bridge failure");
+        return { ok: true, data: { values: { restored: "yes" } } };
+      },
+    },
+  };
+  const handle = createDurableStorage(bridge);
+  const first = await handle.bootstrap();
+  assert.equal(first.status, "retryable");
+  assert.deepEqual(handle.bootstrapResult(), first);
+  assert.equal(handle.storage.getItem("restored"), null);
+  const second = await handle.retryBootstrap();
+  assert.deepEqual(second, { status: "loaded", restoredKeys: 1, attempt: 2 });
+  assert.equal(handle.storage.getItem("restored"), "yes");
+});
+
+test("malformed snapshots are retained as malformed rather than becoming default-off loaded state", async () => {
+  const bridge: DurableStorageBridge = {
+    controlPlane: {
+      async request(request) {
+        if (request.action === "settings.snapshot") return { ok: true, data: { values: { broken: 7 } } };
+        return { ok: true };
+      },
+    },
+  };
+  const handle = createDurableStorage(bridge);
+  const result = await handle.bootstrap();
+  assert.deepEqual(result, { status: "malformed", reason: "invalid-values", attempt: 1 });
+  assert.deepEqual(handle.bootstrapResult(), result);
+  assert.equal(handle.storage.getItem("broken"), null);
+});

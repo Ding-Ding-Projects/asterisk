@@ -70,3 +70,6 @@ console/design-reference/vendor/*   binary
 # on a fresh Windows clone with nothing wrong with the evidence -- and a reader would have no
 # way to tell that from tampering. Pinned for the same reason the parity data above is.
 console/release/evidence/live-exchange/readings/**   text eol=lf
+# These files preserve verbatim fixed-width CLI output, including padded columns and final blank
+# output lines. Their recorded lengths and SHA-256 values bind those bytes independently.
+console/release/evidence/live-exchange/readings/**   whitespace=-trailing-space,-blank-at-eof

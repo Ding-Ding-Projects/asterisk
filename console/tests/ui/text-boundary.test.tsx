@@ -173,7 +173,7 @@ test('the personal vocabulary reaches rendered text, which it never did before',
   reset();
   const storage = createMemoryStorage();
   loadVocabularyFile(storage, JSON.stringify({
-    schemaVersion: 1, replacements: [{ from: 'Endpoints', to: 'Handsets' }],
+    version: 1, replacements: [{ from: 'Endpoints', to: 'Handsets' }],
   }));
   setVocabularyStorage(storage);
   assert.equal(transformText('Endpoints'), 'Handsets');
@@ -187,7 +187,7 @@ test('a personal replacement is the last word, applied after the translation', (
   setLanguageMode('yue');
   const storage = createMemoryStorage();
   loadVocabularyFile(storage, JSON.stringify({
-    schemaVersion: 1, replacements: [{ from: CANTONESE.Endpoints, to: '電話仔' }],
+    version: 1, replacements: [{ from: CANTONESE.Endpoints, to: '電話仔' }],
   }));
   setVocabularyStorage(storage);
   assert.equal(transformText('Endpoints'), '電話仔');

@@ -1,427 +1,215 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { UnlockLadder } from '../../app/renderer/src/unlock-ladder.ts';
-import type { Answer, Challenge, DishChallenge, MolesChallenge, SumsChallenge } from '../../app/renderer/src/unlock-ladder.ts';
+import {
+  UnlockLadder,
+  type DishChallenge,
+  type MolesChallenge,
+  type SumsChallenge,
+  type UnlockLadderAnswer,
+  type UnlockLadderChallenge,
+  type UnlockLadderIssueResult,
+  type UnlockLadderLockoutState,
+  type UnlockLadderStateStore,
+} from '../../app/renderer/src/unlock-ladder.ts';
 
 const HOUR_MS = 60 * 60 * 1000;
 
-function makeClock(startMs = 1_000_000) {
-  let current = startMs;
-  return {
-    now: () => current,
-    advance: (ms: number) => {
-      current += ms;
-      return current;
-    },
-    set: (ms: number) => {
-      current = ms;
-    },
-    get value() {
-      return current;
-    },
-  };
+function clock(start = 1_000_000) {
+  let value = start;
+  return { now: () => value, advance: (milliseconds: number) => (value += milliseconds), get value() { return value; } };
 }
 
-/** Deterministic PRNG (mulberry32) so tests never depend on real randomness. */
-function makeRandom(seed = 42) {
-  let a = seed >>> 0;
+function random(seed = 17) {
+  let state = seed >>> 0;
   return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    state |= 0;
+    state = (state + 0x6d2b79f5) | 0;
+    let value = Math.imul(state ^ (state >>> 15), 1 | state);
+    value = (value + Math.imul(value ^ (value >>> 7), 61 | value)) ^ value;
+    return ((value ^ (value >>> 14)) >>> 0) / 4_294_967_296;
   };
 }
 
-function asDish(c: Challenge): DishChallenge {
-  assert.equal(c.rung, 'dish');
-  return c as DishChallenge;
-}
-function asSums(c: Challenge): SumsChallenge {
-  assert.equal(c.rung, 'sums');
-  return c as SumsChallenge;
-}
-function asMoles(c: Challenge): MolesChallenge {
-  assert.equal(c.rung, 'moles');
-  return c as MolesChallenge;
+class MemoryStateStore implements UnlockLadderStateStore {
+  available = true;
+  readonly lockouts = new Map<string, UnlockLadderLockoutState>();
+  readonly clearedWaits = new Map<string, number[]>();
+
+  async readLockout(id: string): Promise<UnlockLadderLockoutState | undefined> {
+    const state = this.lockouts.get(id);
+    return state && { ...state };
+  }
+  async writeLockout(id: string, state: UnlockLadderLockoutState | undefined): Promise<void> {
+    if (state === undefined) this.lockouts.delete(id);
+    else this.lockouts.set(id, { ...state });
+  }
+  async readClearedWaits(id: string): Promise<ReadonlyArray<number>> {
+    return [...(this.clearedWaits.get(id) ?? [])];
+  }
+  async writeClearedWaits(id: string, timestamps: ReadonlyArray<number>): Promise<void> {
+    this.clearedWaits.set(id, [...timestamps]);
+  }
 }
 
-function correctDishAnswer(c: DishChallenge): Answer {
-  return { kind: 'dish', choiceIndex: c.payload.correctIndex };
+function fixture(options: { schoolMode?: boolean; ttl?: number; max?: number } = {}) {
+  const time = clock();
+  const store = new MemoryStateStore();
+  let nonce = 0;
+  const ladder = new UnlockLadder({
+    now: time.now,
+    // A fixed, valid source keeps the public challenge shape deterministic without exposing
+    // private expected answers through a production-only test hook.
+    random: () => 0,
+    createNonce: () => `${++nonce}`.padStart(32, 'n'),
+    stateStore: store,
+    challengeTtlMs: options.ttl,
+    maxClearedWaitsPerHour: options.max,
+  });
+  const request = (lockoutId = 'lockout-a', budgetScopeId = 'budget-a') => ({
+    lockoutId,
+    budgetScopeId,
+    schoolMode: options.schoolMode ?? false,
+  });
+  return { time, store, ladder, request };
 }
 
-function wrongDishAnswer(c: DishChallenge): Answer {
-  const wrong = ((c.payload.correctIndex + 1) % 4) as 0 | 1 | 2 | 3;
-  return { kind: 'dish', choiceIndex: wrong };
+function offered(result: UnlockLadderIssueResult): UnlockLadderChallenge {
+  assert.equal(result.offered, true);
+  return (result as Extract<UnlockLadderIssueResult, { offered: true }>).challenge;
 }
-
-function correctSumsAnswer(c: SumsChallenge): Answer {
-  return {
-    kind: 'sums',
-    answers: c.payload.problems.map((p) => (p.op === '+' ? p.a + p.b : p.a - p.b)),
-  };
-}
-
-function wrongSumsAnswer(c: SumsChallenge): Answer {
-  const answers = c.payload.problems.map((p) => (p.op === '+' ? p.a + p.b : p.a - p.b));
-  answers[0] = answers[0]! + 1;
+function dish(challenge: UnlockLadderChallenge): DishChallenge { assert.equal(challenge.rung, 'dish'); return challenge as DishChallenge; }
+function sums(challenge: UnlockLadderChallenge): SumsChallenge { assert.equal(challenge.rung, 'sums'); return challenge as SumsChallenge; }
+function moles(challenge: UnlockLadderChallenge): MolesChallenge { assert.equal(challenge.rung, 'moles'); return challenge as MolesChallenge; }
+function sumsAnswer(challenge: SumsChallenge, correct = true): UnlockLadderAnswer {
+  const answers = challenge.payload.problems.map((problem) => problem.operator === '+' ? problem.a + problem.b : problem.a - problem.b);
+  if (!correct) answers[0] = answers[0]! + 1;
   return { kind: 'sums', answers };
 }
-
-function winningMolesAnswer(c: MolesChallenge, atMs: number): Answer {
-  const hits = c.payload.spawns.slice(0, c.payload.hitsRequired).map((spawn) => ({
-    cell: spawn.cell,
-    atMs: spawn.atMs + 1,
-  }));
-  return { kind: 'moles', hits, submittedAtMs: atMs };
+function winningMoles(challenge: MolesChallenge): UnlockLadderAnswer {
+  return {
+    kind: 'moles',
+    hits: challenge.payload.spawns.slice(0, challenge.payload.hitsRequired).map((spawn) => ({
+      spawnId: spawn.spawnId,
+      cell: spawn.cell,
+      atMs: spawn.appearsAtMs + 1,
+    })),
+  };
 }
 
-function losingMolesAnswer(atMs: number): Answer {
-  return { kind: 'moles', hits: [], submittedAtMs: atMs };
+const CORRECT_DISH: UnlockLadderAnswer = { kind: 'dish', choiceIndex: 0 };
+
+async function issueDish(context: ReturnType<typeof fixture>) {
+  return dish(offered(await context.ladder.issue(context.request())));
 }
 
-// ---------------------------------------------------------------- rung 1: dish
-
-test('dish rung is offered first outside school mode', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom() });
-  const issued = ladder.issue('lockout-1');
-  assert.equal(issued.rung, 'dish');
+test('issues durable dish state, consumes a nonce once, and clears only the wait', async () => {
+  const context = fixture();
+  const challenge = await issueDish(context);
+  assert.equal((await context.store.readLockout('lockout-a'))?.rung, 'dish');
+  const result = await context.ladder.grade(challenge.nonce, CORRECT_DISH);
+  assert.equal(result.waitCleared, true);
+  assert.equal(result.authenticationGranted, false);
+  assert.equal(result.attemptsRestored, false);
+  assert.equal(result.credentialCleared, false);
+  assert.equal(await context.store.readLockout('lockout-a'), undefined);
+  assert.deepEqual(await context.store.readClearedWaits('budget-a'), [context.time.value]);
+  assert.equal((await context.ladder.grade(challenge.nonce, CORRECT_DISH)).reason, 'unknown-or-consumed-nonce');
 });
 
-test('a correct dish answer clears the wait', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom() });
-  const challenge = asDish(ladder.issue('lockout-1') as Challenge);
-  const result = ladder.grade(challenge.nonce, correctDishAnswer(challenge), clock.value);
-  assert.equal(result.cleared, true);
-});
-
-test('dish choices contain exactly one correct index among four', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom(7) });
-  const challenge = asDish(ladder.issue('lockout-1') as Challenge);
-  assert.equal(challenge.payload.choices.length, 4);
-  assert.ok(challenge.payload.correctIndex >= 0 && challenge.payload.correctIndex <= 3);
-});
-
-// ---------------------------------------------------------------- escalation: dish -> sums
-
-test('five wrong dishes escalate to sums, not fewer', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom() });
-
-  let lastRung = 'dish';
-  for (let i = 0; i < 4; i++) {
-    const challenge = asDish(ladder.issue('lockout-1') as Challenge);
-    const result = ladder.grade(challenge.nonce, wrongDishAnswer(challenge), clock.value);
-    assert.equal(result.cleared, false);
-    lastRung = result.nextRung;
-    assert.equal(lastRung, 'dish', `expected still on dish after ${i + 1} wrong answers`);
+test('wrong dishes persist through five failures and then move the same lockout to sums', async () => {
+  const context = fixture();
+  for (let count = 1; count <= 5; count += 1) {
+    const challenge = await issueDish(context);
+    const result = await context.ladder.grade(challenge.nonce, { kind: 'dish', choiceIndex: 1 });
+    assert.equal(result.nextRung, count === 5 ? 'sums' : 'dish');
+    assert.equal((await context.store.readLockout('lockout-a'))?.rung, result.nextRung);
   }
-
-  // Fifth wrong dish escalates.
-  const fifth = asDish(ladder.issue('lockout-1') as Challenge);
-  const result = ladder.grade(fifth.nonce, wrongDishAnswer(fifth), clock.value);
-  assert.equal(result.cleared, false);
-  assert.equal(result.nextRung, 'sums');
-
-  const nextIssued = ladder.issue('lockout-1');
-  assert.equal(nextIssued.rung, 'sums');
+  assert.equal(sums(offered(await context.ladder.issue(context.request()))).payload.problems.length, 10);
 });
 
-// ---------------------------------------------------------------- rung 2: sums
-
-test('a correct sums answer clears the wait', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom(), schoolMode: true });
-  const challenge = asSums(ladder.issue('lockout-1') as Challenge);
-  const result = ladder.grade(challenge.nonce, correctSumsAnswer(challenge), clock.value);
-  assert.equal(result.cleared, true);
+test('School mode starts at sums and its offered challenge contains no hidden dish payload', async () => {
+  const context = fixture({ schoolMode: true });
+  const challenge = sums(offered(await context.ladder.issue(context.request())));
+  assert.equal(challenge.rung, 'sums');
+  assert.equal('choices' in challenge.payload, false);
+  assert.equal(JSON.stringify(challenge).toLowerCase().includes('dish'), false);
 });
 
-test('sums challenge has ten problems, all single- or double-digit', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom(3), schoolMode: true });
-  const challenge = asSums(ladder.issue('lockout-1') as Challenge);
-  assert.equal(challenge.payload.problems.length, 10);
-  for (const p of challenge.payload.problems) {
-    assert.ok(p.a >= 1 && p.a <= 90);
-    assert.ok(p.b >= 1 && p.b <= 90);
+test('one wrong sum reaches moles, and a lost mole round becomes wait-only permanently', async () => {
+  const context = fixture({ schoolMode: true });
+  const sumChallenge = sums(offered(await context.ladder.issue(context.request())));
+  assert.equal((await context.ladder.grade(sumChallenge.nonce, sumsAnswer(sumChallenge, false))).nextRung, 'moles');
+  const moleChallenge = moles(offered(await context.ladder.issue(context.request())));
+  context.time.advance(moleChallenge.payload.durationMs + 1);
+  assert.equal((await context.ladder.grade(moleChallenge.nonce, { kind: 'moles', hits: [] })).nextRung, 'clock');
+  assert.deepEqual(await context.ladder.issue(context.request()), { offered: false, rung: 'clock', reason: 'lockout-clock-only', budgetRemaining: 3 });
+});
+
+test('mole grading requires a completed round and exact spawnId, cell, window, and uniqueness', async () => {
+  const context = fixture({ schoolMode: true });
+  const sumChallenge = sums(offered(await context.ladder.issue(context.request())));
+  await context.ladder.grade(sumChallenge.nonce, sumsAnswer(sumChallenge, false));
+  const early = moles(offered(await context.ladder.issue(context.request())));
+  assert.equal((await context.ladder.grade(early.nonce, winningMoles(early))).reason, 'mole-round-submitted-early');
+
+  const duplicates = fixture({ schoolMode: true });
+  const duplicateSums = sums(offered(await duplicates.ladder.issue(duplicates.request())));
+  await duplicates.ladder.grade(duplicateSums.nonce, sumsAnswer(duplicateSums, false));
+  const next = moles(offered(await duplicates.ladder.issue(duplicates.request())));
+  duplicates.time.advance(next.payload.durationMs + 1);
+  const first = next.payload.spawns[0]!;
+  const duplicate = { kind: 'moles' as const, hits: Array.from({ length: next.payload.hitsRequired }, () => ({ spawnId: first.spawnId, cell: first.cell, atMs: first.appearsAtMs + 1 })) };
+  assert.equal((await duplicates.ladder.grade(next.nonce, duplicate)).waitCleared, false);
+
+  const invalidContext = fixture({ schoolMode: true });
+  const invalidSums = sums(offered(await invalidContext.ladder.issue(invalidContext.request())));
+  await invalidContext.ladder.grade(invalidSums.nonce, sumsAnswer(invalidSums, false));
+  const final = moles(offered(await invalidContext.ladder.issue(invalidContext.request())));
+  invalidContext.time.advance(final.payload.durationMs + 1);
+  const invalid = { kind: 'moles' as const, hits: final.payload.spawns.slice(0, final.payload.hitsRequired).map((spawn) => ({ spawnId: spawn.spawnId, cell: (spawn.cell + 1) % final.payload.gridSize, atMs: spawn.appearsAtMs + 1 })) };
+  assert.equal((await invalidContext.ladder.grade(final.nonce, invalid)).waitCleared, false);
+});
+
+test('valid distinct mole hits clear a wait without producing authentication or an attempt refund', async () => {
+  const context = fixture({ schoolMode: true });
+  const sumChallenge = sums(offered(await context.ladder.issue(context.request())));
+  await context.ladder.grade(sumChallenge.nonce, sumsAnswer(sumChallenge, false));
+  const challenge = moles(offered(await context.ladder.issue(context.request())));
+  context.time.advance(challenge.payload.durationMs + 1);
+  const result = await context.ladder.grade(challenge.nonce, winningMoles(challenge));
+  assert.equal(result.waitCleared, true);
+  assert.equal(result.authenticationGranted, false);
+  assert.equal(result.attemptsRestored, false);
+  assert.equal(result.credentialCleared, false);
+});
+
+test('expired, wrong-kind, unknown, and unavailable states fail closed while consuming issued nonces', async () => {
+  const expired = fixture({ ttl: 1_000 });
+  const challenge = await issueDish(expired);
+  expired.time.advance(1_001);
+  assert.equal((await expired.ladder.grade(challenge.nonce, { kind: 'sums', answers: [] })).reason, 'expired');
+  assert.equal((await expired.ladder.grade(challenge.nonce, { kind: 'dish', choiceIndex: 0 })).reason, 'unknown-or-consumed-nonce');
+  const unavailable = fixture();
+  unavailable.store.available = false;
+  assert.deepEqual(await unavailable.ladder.issue(unavailable.request()), { offered: false, rung: 'clock', reason: 'state-store-unavailable', budgetRemaining: 0 });
+});
+
+test('the rolling budget permits exactly three clears, rejects a fourth, and refills only after the rolling hour', async () => {
+  const context = fixture();
+  for (let index = 0; index < 3; index += 1) {
+    const challenge = await issueDish(context);
+    assert.equal((await context.ladder.grade(challenge.nonce, CORRECT_DISH)).waitCleared, true);
+    context.time.advance(1);
   }
+  assert.deepEqual(await context.ladder.issue(context.request('fresh-lockout')), { offered: false, rung: 'clock', reason: 'budget-exhausted', budgetRemaining: 0 });
+  context.time.advance(HOUR_MS);
+  assert.equal(offered(await context.ladder.issue(context.request('fresh-lockout'))).rung, 'dish');
 });
 
-test('one wrong sum escalates straight to moles', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom(), schoolMode: true });
-  const challenge = asSums(ladder.issue('lockout-1') as Challenge);
-  const result = ladder.grade(challenge.nonce, wrongSumsAnswer(challenge), clock.value);
-  assert.equal(result.cleared, false);
-  assert.equal(result.nextRung, 'moles');
-
-  const nextIssued = ladder.issue('lockout-1');
-  assert.equal(nextIssued.rung, 'moles');
-});
-
-test('every sums answer must be right, not just most of them', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom(99), schoolMode: true });
-  const challenge = asSums(ladder.issue('lockout-1') as Challenge);
-  const correct = correctSumsAnswer(challenge) as { kind: 'sums'; answers: number[] };
-  // Get every problem right except the very last one.
-  const answers = [...correct.answers];
-  answers[answers.length - 1] = answers[answers.length - 1]! + 5;
-  const result = ladder.grade(challenge.nonce, { kind: 'sums', answers }, clock.value);
-  assert.equal(result.cleared, false);
-});
-
-// ---------------------------------------------------------------- rung 3: moles
-
-test('winning a mole round clears the wait', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom(), schoolMode: true });
-  // Escalate straight to moles via one wrong sum.
-  const sums = asSums(ladder.issue('lockout-1') as Challenge);
-  ladder.grade(sums.nonce, wrongSumsAnswer(sums), clock.value);
-  const moles = asMoles(ladder.issue('lockout-1') as Challenge);
-
-  const submitAt = clock.value + moles.payload.durationMs + 1;
-  const result = ladder.grade(moles.nonce, winningMolesAnswer(moles, submitAt), submitAt);
-  assert.equal(result.cleared, true);
-});
-
-test('losing a mole round falls to the clock, and the ladder is not offered again', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom(), schoolMode: true });
-  const sums = asSums(ladder.issue('lockout-1') as Challenge);
-  ladder.grade(sums.nonce, wrongSumsAnswer(sums), clock.value);
-  const moles = asMoles(ladder.issue('lockout-1') as Challenge);
-
-  const submitAt = clock.value + moles.payload.durationMs + 1;
-  const result = ladder.grade(moles.nonce, losingMolesAnswer(submitAt), submitAt);
-  assert.equal(result.cleared, false);
-  assert.equal(result.nextRung, 'clock');
-
-  const nextIssued = ladder.issue('lockout-1');
-  assert.equal(nextIssued.rung, 'clock');
-
-  // Even a fresh call some time later never resurrects the ladder for this lockout.
-  clock.advance(10_000);
-  const stillClocked = ladder.issue('lockout-1');
-  assert.equal(stillClocked.rung, 'clock');
-});
-
-test('a timed mole round cannot be won faster than it lasts', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom(), schoolMode: true });
-  const sums = asSums(ladder.issue('lockout-1') as Challenge);
-  ladder.grade(sums.nonce, wrongSumsAnswer(sums), clock.value);
-  const moles = asMoles(ladder.issue('lockout-1') as Challenge);
-
-  // Submit immediately, before the round's own duration has elapsed.
-  const tooEarly = clock.value + 5;
-  const result = ladder.grade(moles.nonce, winningMolesAnswer(moles, tooEarly), tooEarly);
-  assert.equal(result.cleared, false);
-});
-
-test('a mole hit on an empty cell does not count', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom(), schoolMode: true });
-  const sums = asSums(ladder.issue('lockout-1') as Challenge);
-  ladder.grade(sums.nonce, wrongSumsAnswer(sums), clock.value);
-  const moles = asMoles(ladder.issue('lockout-1') as Challenge);
-
-  const usedCells = new Set(moles.payload.spawns.map((s) => s.cell));
-  let emptyCell = 0;
-  while (usedCells.has(emptyCell) && emptyCell < moles.payload.grid) emptyCell++;
-
-  const submitAt = clock.value + moles.payload.durationMs + 1;
-  const hits = Array.from({ length: moles.payload.hitsRequired }, () => ({ cell: emptyCell, atMs: 1 }));
-  const result = ladder.grade(moles.nonce, { kind: 'moles', hits, submittedAtMs: submitAt }, submitAt);
-  assert.equal(result.cleared, false);
-});
-
-test('a mole hit outside its visible window does not count', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom(), schoolMode: true });
-  const sums = asSums(ladder.issue('lockout-1') as Challenge);
-  ladder.grade(sums.nonce, wrongSumsAnswer(sums), clock.value);
-  const moles = asMoles(ladder.issue('lockout-1') as Challenge);
-
-  const submitAt = clock.value + moles.payload.durationMs + 1;
-  // Hit every mole's cell, but long after its window closed.
-  const hits = moles.payload.spawns.map((spawn) => ({ cell: spawn.cell, atMs: spawn.untilMs + 5000 }));
-  const result = ladder.grade(moles.nonce, { kind: 'moles', hits, submittedAtMs: submitAt }, submitAt);
-  assert.equal(result.cleared, false);
-});
-
-test('the same mole spawn cannot be credited twice toward the hit requirement', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom(), schoolMode: true });
-  const sums = asSums(ladder.issue('lockout-1') as Challenge);
-  ladder.grade(sums.nonce, wrongSumsAnswer(sums), clock.value);
-  const moles = asMoles(ladder.issue('lockout-1') as Challenge);
-
-  const submitAt = clock.value + moles.payload.durationMs + 1;
-  const spawn = moles.payload.spawns[0]!;
-  // Tap the same spawn hitsRequired times instead of hitting distinct moles.
-  const hits = Array.from({ length: moles.payload.hitsRequired }, () => ({
-    cell: spawn.cell,
-    atMs: spawn.atMs + 1,
-  }));
-  const result = ladder.grade(moles.nonce, { kind: 'moles', hits, submittedAtMs: submitAt }, submitAt);
-  assert.equal(result.cleared, false);
-});
-
-// ---------------------------------------------------------------- nonce / expiry hygiene
-
-test('a replayed nonce is refused the second time', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom() });
-  const challenge = asDish(ladder.issue('lockout-1') as Challenge);
-  const first = ladder.grade(challenge.nonce, correctDishAnswer(challenge), clock.value);
-  assert.equal(first.cleared, true);
-
-  const replay = ladder.grade(challenge.nonce, correctDishAnswer(challenge), clock.value);
-  assert.equal(replay.cleared, false);
-  assert.equal(replay.reason, 'unknown or already-used nonce');
-});
-
-test('a wrong answer also consumes the nonce so it cannot be retried', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom() });
-  const challenge = asDish(ladder.issue('lockout-1') as Challenge);
-  ladder.grade(challenge.nonce, wrongDishAnswer(challenge), clock.value);
-
-  const retry = ladder.grade(challenge.nonce, correctDishAnswer(challenge), clock.value);
-  assert.equal(retry.cleared, false);
-  assert.equal(retry.reason, 'unknown or already-used nonce');
-});
-
-test('an unknown nonce is refused', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom() });
-  const result = ladder.grade('not-a-real-nonce', { kind: 'dish', choiceIndex: 0 }, clock.value);
-  assert.equal(result.cleared, false);
-  assert.equal(result.reason, 'unknown or already-used nonce');
-});
-
-test('an expired challenge is refused', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom(), challengeTtlMs: 1000 });
-  const challenge = asDish(ladder.issue('lockout-1') as Challenge);
-  clock.advance(5000);
-  const result = ladder.grade(challenge.nonce, correctDishAnswer(challenge), clock.value);
-  assert.equal(result.cleared, false);
-  assert.equal(result.reason, 'challenge expired');
-});
-
-test('an answer of the wrong kind is refused rather than accidentally matching', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom() });
-  const challenge = asDish(ladder.issue('lockout-1') as Challenge);
-  // A sums-shaped answer submitted against a dish challenge.
-  const result = ladder.grade(challenge.nonce, { kind: 'sums', answers: [1] }, clock.value);
-  assert.equal(result.cleared, false);
-});
-
-// ---------------------------------------------------------------- budget (rule 3)
-
-test('the budget allows exactly three skips per rolling hour', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom() });
-  assert.equal(ladder.budgetRemaining(clock.value), 3);
-
-  for (let i = 0; i < 3; i++) {
-    const challenge = asDish(ladder.issue(`lockout-${i}`) as Challenge);
-    const result = ladder.grade(challenge.nonce, correctDishAnswer(challenge), clock.value);
-    assert.equal(result.cleared, true);
-    clock.advance(60_000);
-  }
-
-  assert.equal(ladder.budgetRemaining(clock.value), 0);
-
-  const fourth = ladder.issue('lockout-fourth');
-  assert.equal(fourth.rung, 'clock');
-});
-
-test('the budget refills after a full rolling hour', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom() });
-
-  for (let i = 0; i < 3; i++) {
-    const challenge = asDish(ladder.issue(`lockout-${i}`) as Challenge);
-    ladder.grade(challenge.nonce, correctDishAnswer(challenge), clock.value);
-  }
-  assert.equal(ladder.budgetRemaining(clock.value), 0);
-
-  clock.advance(HOUR_MS + 1000);
-  assert.equal(ladder.budgetRemaining(clock.value), 3);
-
-  const issued = ladder.issue('lockout-new');
-  assert.notEqual(issued.rung, 'clock');
-});
-
-// ---------------------------------------------------------------- school mode
-
-test('school mode starts at sums, with no dish rung offered at all', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom(), schoolMode: true });
-  const issued = ladder.issue('lockout-1');
-  assert.equal(issued.rung, 'sums');
-  assert.notEqual(issued.rung, 'dish');
-});
-
-test('outside school mode the dish rung is present', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom() });
-  const issued = ladder.issue('lockout-1');
-  assert.equal(issued.rung, 'dish');
-});
-
-// ---------------------------------------------------------------- the two rules that matter most
-
-test('a cleared ladder returns nothing that could serve as an authentication token', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom() });
-  const challenge = asDish(ladder.issue('lockout-1') as Challenge);
-  const result = ladder.grade(challenge.nonce, correctDishAnswer(challenge), clock.value);
-
-  assert.equal(result.cleared, true);
-  const keys = Object.keys(result).sort();
-  // Only ever "cleared", "nextRung", and an optional "reason" — never a token, session id,
-  // credential, or anything resembling one.
-  assert.deepEqual(keys, ['cleared', 'nextRung']);
-  assert.equal('token' in result, false);
-  assert.equal('sessionId' in result, false);
-  assert.equal('credential' in result, false);
-});
-
-test('clearing the ladder does not increase the caller-side attempt budget it never touches', () => {
-  // The ladder module has no attempt-budget concept at all — it only exposes its OWN skip
-  // budget. Prove that budget goes down, never up, on a win, and that nothing about the shape
-  // of a successful clear looks like an attempt-refund.
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom() });
-  const before = ladder.budgetRemaining(clock.value);
-
-  const challenge = asDish(ladder.issue('lockout-1') as Challenge);
-  const result = ladder.grade(challenge.nonce, correctDishAnswer(challenge), clock.value);
-  assert.equal(result.cleared, true);
-
-  const after = ladder.budgetRemaining(clock.value);
-  assert.ok(after < before, 'a win must consume the ladder-skip budget, never leave it untouched or refund it');
-  assert.equal(after, before - 1);
-});
-
-test('a lost round never refunds or grants any budget either', () => {
-  const clock = makeClock();
-  const ladder = new UnlockLadder({ now: clock.now, random: makeRandom() });
-  const before = ladder.budgetRemaining(clock.value);
-  const challenge = asDish(ladder.issue('lockout-1') as Challenge);
-  ladder.grade(challenge.nonce, wrongDishAnswer(challenge), clock.value);
-  const after = ladder.budgetRemaining(clock.value);
-  assert.equal(after, before, 'a loss must not change the skip budget at all');
+test('nonce source refusal fails closed without storing a challenge', async () => {
+  const time = clock();
+  const store = new MemoryStateStore();
+  const ladder = new UnlockLadder({ now: time.now, random: random(), createNonce: () => 'bad', stateStore: store });
+  assert.deepEqual(await ladder.issue({ lockoutId: 'lockout-a', budgetScopeId: 'budget-a', schoolMode: false }), { offered: false, rung: 'clock', reason: 'nonce-source-unavailable', budgetRemaining: 3 });
 });

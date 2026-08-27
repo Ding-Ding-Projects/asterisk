@@ -1,33 +1,39 @@
 # Personal vocabulary upload
 
-Lets a user supply a local JSON file that remaps specific words in the interface to their own preferred terms, with no data leaving the device.
-
-## Behavior
-
-A file-upload control is meant to accept a bounded, versioned local JSON file of word replacements, apply it to user-facing text only, and clear back to original wording when the file is removed.
+The desktop console and documentation website each provide a local JSON upload control that lets a person replace chosen interface wording without shipping a built-in personal dictionary.
 
 ## Configuration
 
-Validation would bound file size, nesting depth, and entry count, and make no network request of any kind when loading, applying, or clearing the file.
+The only accepted top-level shapes declare exactly one version field and exactly one source field:
 
-## Current status
+```json
+{"version":1,"replacements":[{"from":"source text","to":"preferred text"}]}
+```
 
-**Desktop application:** Not implemented. The desktop application has no personal-vocabulary upload control anywhere in its settings.
+`schemaVersion` is accepted instead of `version`. `replacements` can be the array above or an object map. `terms` is accepted only as an object map. Every accepted form is normalized before caching to `{ "version": 1, "replacements": [{ "from": "…", "to": "…" }] }`.
 
-**Documentation website:** Partial. The site's settings page includes a placeholder upload control; no file validation, no applied replacement, and no clear/reset behavior are wired up behind it yet.
+The loader accepts at most 64 KiB, four nesting levels, 256 entries, 128 characters in each source term, and 256 characters in each replacement. Root objects and replacement entries reject unknown fields. Duplicate raw JSON keys, duplicate source terms, unsafe object keys, malformed JSON, incorrect version, wrong types, oversized input, and ambiguous aliases are all rejected.
 
-## Failure modes
+## Behavior
 
-A malformed or oversized uploaded file is meant to be rejected with the exact reason shown inline, and the previous vocabulary state left untouched; the placeholder control does not yet reach this validation step.
+Validation completes before the cache changes. A rejected upload leaves the last valid local cache active. Every cache read is revalidated, and a corrupt or stale cache is removed before original wording is used. Clear removes the cache and restores original wording immediately.
 
-## Accessibility and localization
+Replacements apply longest source first to user-interface copy and accessible names. They are not applied to commands, URLs, identifiers, code, paths, logs, exports, history, diagnostics, provider-authored records, or elements marked as technical boundaries. The site keeps the same boundary by excluding script, style, code, keyboard, preformatted, form, and `data-no-vocab` content.
 
-This feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.
+## Privacy and security
+
+The selected file is processed only in local browser or application storage. Neither loader performs a network request. File names, paths, mappings, cache contents, and replacement values are omitted from exports, local history, telemetry, diagnostics, captures, and public records. The ordinary settings export explicitly says that personal vocabulary was omitted.
+
+## Failure states
+
+The control states are no file loaded, loaded, invalid or rejected, replaced by a new valid file, clear/reset, and cache-corrupt fallback. Rejection text stays beside the upload control because it can quote private input. The narration path announces only that a rejection happened, not the private reason.
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+`console/app/renderer/src/personal-vocabulary.ts` validates the desktop contract with strict duplicate-key detection and canonical normalization. `console/site/tests/contracts/personal-vocabulary-upload.test.mjs` checks the site control, aliases, canonical cache, bounds, duplicate and unsafe-key refusal, retained-good-cache behavior, corrupt-cache purge, longest-first application, technical-boundary exclusion, export omission, and no-network boundary. `npm run bundle:docs` regenerates the desktop documentation bundle from this article, and the documentation drift check verifies the generated bundle stays current.
+
+The contract has source and focused test evidence. Real built-artifact interaction and capture evidence remain part of the final headless verification pass.
 
 ## Suggested articles
 
-[Language modes](language-modes.md), [Platform feature index](README.md).
+[Language modes](language-modes.md), [Funny-level sliders](funny-levels.md), [School mode](school-mode.md), [Platform feature index](README.md).

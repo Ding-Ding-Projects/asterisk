@@ -334,7 +334,7 @@ test("the canvas view is wired to both the dialplan reading and the divergence r
   assert.match(source, /^\s*const text = await transport\.readText\(DIALPLAN_FILE_RESOURCE\);$/mu);
   assert.match(
     source,
-    /^\s*value: compareDialplanToFile\(dialplan\.contexts, parseExtensionsConfSections\(text\), dialplan\.contextsReported\),$/mu,
+    /^\s*value: compareDialplanToFile\(dialplan\.contexts \?\? \[\], parseExtensionsConfSections\(text\), dialplan\.contextsReported\),$/mu,
   );
 });
 
