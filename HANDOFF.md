@@ -1,5 +1,78 @@
 # Handoff
 
+## Current shipping handoff, 2026-08-26
+
+### Published state
+
+| Item | Exact state |
+| --- | --- |
+| Default branch | `master` at `6f8f959832f7783b75167fcb6e359073f473bb54` |
+| Git server proof | `refs/heads/master` read back at the same SHA |
+| Central feature integration | `246b2bc7a5` |
+| Default-branch integration | `780eb88cb6` |
+| Local feature-history consolidation | `33c0f66b9b` |
+| Remaining remote-history consolidation | `6f8f959832` |
+
+The default branch now records every published branch tip that was present during the
+integration sweep as an ancestor. The consolidated tree contains the desktop renderer,
+PBX control plane, documentation site, updater, migration and backup flows, local Git
+history, configurable Git destinations, Asterisk and FreePBX surfaces, WSL and Docker
+deployment sources, and the sharded UI-smoke inventory.
+
+### Build evidence
+
+`build.bat /s` completed successfully against
+`6f8f959832f7783b75167fcb6e359073f473bb54`.
+
+- Dependency bootstrap completed with pinned Node.js `22.23.2` and `npm ci`.
+- Native dependencies rebuilt for Electron `43.4.1` on Windows x64.
+- Design compilation completed.
+- The offline documentation bundle contains 133 articles.
+- The changelog bundle contains 20 real tagged versions.
+- TypeScript compilation and the Vite production build completed.
+- The local update manifest records version `0.1.0` and the exact candidate SHA.
+
+This handoff does **not** claim that the current installer was packaged, installed, deployed,
+or released. It also does not claim a current-commit UI walkthrough or capture set. The
+existing untracked installer ISO predates this commit and must not be presented as current
+release evidence.
+
+### Cleanup state
+
+The integration and cleanup pass removed 47 linked worktrees, 49 local branches, and 148
+remote branches after clean-state, push, and ancestry checks. No stash exists. The following
+items were deliberately retained:
+
+- The primary checkout on `master`.
+- One detached checkout owned by another session, because ownership is uncertain.
+- The local `codex/ui-smoke-recovery` checkout at
+  `1ea934bcd65e018a0d4f71c3b5d1ca26ce793875`, because its extra commit contains a
+  159.93 MB Git blob and the server rejects that tip. The safely published predecessor is
+  `cbad600e5483e5ab19da35aa941efe923467f9f0`.
+- Remote branch `site-per-element-toy-locks` at
+  `1cadefa72b861dec5c6de5bd5c926a32db0e4e58`, because it appeared during cleanup and is
+  not an ancestor of the published default branch.
+
+### Explicit stop boundary and next owner
+
+The user requested an immediate handoff and stop. Do not start another debugging or repair
+cycle. Continue with new-feature implementation only when the user resumes the task.
+
+The next shipping actions, if explicitly resumed, are:
+
+1. Run `build-installer.bat /s` against the exact default-branch SHA.
+2. Deploy the supported WSL and Docker targets from that same candidate.
+3. Run the required cheap headless interaction pass and capture the current built artifact.
+4. Promote the evidence to the documentation, wiki, and Pages source.
+5. Publish one unique non-draft GitHub release and verify every downloadable asset.
+
+### Public tracking
+
+- Rolling progress: GitHub Discussion #2.
+- Main delivery handoff and remaining work: GitHub issue #1.
+- FreePBX apply and undo work remains tracked by GitHub issue #6 until current-build UI
+  interaction evidence exists.
+
 > [!IMPORTANT]
 > **Everything below the next rule was written on 2026-08-23 and much of it is now wrong.**
 > It is kept because a handoff that is quietly rewritten loses the record of what was
