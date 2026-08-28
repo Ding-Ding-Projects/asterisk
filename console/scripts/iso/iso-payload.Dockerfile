@@ -46,6 +46,9 @@ RUN test -n "$ASTERISK_SOURCE_REVISION" && \
 # recording the resolved digest in the ISO provenance either way.
 FROM ${CONSOLE_BUILD_BASE_IMAGE} AS console-build
 
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /console
 COPY console/package.json console/package-lock.json* ./
 RUN npm ci --no-audit --no-fund
