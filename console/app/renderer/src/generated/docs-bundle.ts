@@ -24,7 +24,7 @@ export interface DocsBundle {
 
 export const DOCS_BUNDLE: DocsBundle = {
   "generatedAt": "1970-01-01T00:00:00.000Z",
-  "articleCount": 134,
+  "articleCount": 135,
   "articles": [
     {
       "id": "agent/hub",
@@ -717,6 +717,14 @@ export const DOCS_BUNDLE: DocsBundle = {
       "headings": [],
       "links": [],
       "body": "# Forge publishing runtime\n\nThe desktop History screen now has a real provider-publishing runtime rather than a queued toast. It discovers local GitHub CLI accounts, confirms the selected login is active, proves `keyring` storage and refuses plaintext fallback, keeps only account ids and provider-supplied vault references, loads personal and organization owners from provider data with unknown organization capabilities until proven, and makes the fork and copy-and-push routes visibly distinct. Typed `gh` and `git` calls run with `shell: false`, per-request bounded deadlines, cleared inherited authentication variables, explicit GitHub host binding, exact destination identity and effective push-URL verification through `git ls-remote`, direct push to the validated URL, atomic versioned state with a CAS lock and terminal-state retirement, reloadable account and publication receipts, direct ConPTY-backed `gh auth login --web` with asynchronous reads, actual exit-code recording, immutable operation and expiry binding, ANSI stripping, a fixed no-op browser command, PID creation-identity cancellation, and explicit re-authentication outcomes based on pre and post credential state. The bundled archive and extracted CLI digests are pinned separately, and the exact no-token keyring-status fixture is included. GitLab remains an honest unavailable capability until its adapter exists. Runtime provider verification remains unrun.\n"
+    },
+    {
+      "id": "changelog/inventory-schema-recovery",
+      "category": "changelog",
+      "title": "Inventory schema recovery",
+      "headings": [],
+      "links": [],
+      "body": "# Inventory schema recovery\n\n- Restored `console/site/feature-registry.json` to schema v2. The integration merge had replaced it with a flat `{state, note, files}` file, dropping `implementation`, `registration`, `route`, `documentation`, `localization`, `persistence`, `focusedChecks`, `negativeEvidence`, `builtInteraction`, `captures` and `designParity` from all 44 rows. The restored file is a reconciliation, not a revert: every row's status is the current one, and every path, symbol and document it names was checked against this tree.\n- Repaired the symbol claims the merge invalidated. `loadLogoFromInput` and `loadVocabularyFromInput` had been renamed to `loadLogo` and `loadVocabulary`; the site converter now has a real `initConverter` mount and records `implemented-unverified`, while `initOllama` remains absent and its page records that every control is inert.\n- Added `console/site/tests/contracts/feature-registry-schema.test.mjs`, which runs the same validator the inventory check runs, requires every named file, symbol and document to resolve, and plants twelve breaks one at a time.\n- Defined `onUserMutation` on `App`. The compiled shell calls it after every control commit and nothing in the tree defined it, so changing any control threw `this.onUserMutation is not a function`. Added `console/tests/ui/shell-self-calls-resolve.test.tsx`, which reads every `this.name(` the shipped shell makes on itself and requires each to resolve on a real `App`.\n- Added `aria-modal` to the Tab search overlay in `console/scripts/extend-pbx-m3.mjs`. It was the only one of fifteen dialogs declaring `role=\"dialog\"` without it, behind a full-inset scrim that closes on click.\n- Re-anchored three guards to the code as it is now written: the narration test to the current `narratedFire` signature, the attention wiring inventory's next-action row to the attention rail input that carries the value today, and the panel-observation role counts to the shell's own.\n- Moved four changelog fragments out of the feature-article categories and gave two articles the `## Suggested articles` heading their links were sitting under as a sentence. Normalised the required headings across twelve platform articles that covered every required subject under names of their own.\n- Left open, and recorded on the roadmap: the merged shell records one user mutation where the inventory names sixty-one, so `test:inventories` remains red and says so.\n"
     },
     {
       "id": "changelog/logo-conversion",
