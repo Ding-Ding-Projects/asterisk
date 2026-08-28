@@ -92,7 +92,7 @@ RUN set -eux; \
     chmod +x /payload/install-target.sh /payload/dingpbx-firstboot-banner.sh; \
     printf '[Unit]\nDescription=Asterisk PBX for Ding PBX\nAfter=network.target\n\n[Service]\nType=simple\nUser=asterisk\nGroup=asterisk\nExecStart=/usr/sbin/asterisk -f -U asterisk -G asterisk\nExecReload=/usr/sbin/asterisk -rx core reload\nRestart=on-failure\n\n[Install]\nWantedBy=multi-user.target\n' \
       > /payload/asterisk.service; \
-    printf '{"schemaVersion":1,"sourceCommit":"%s","baseImage":"ubuntu:24.04","nodeRuntimeVersion":"%s","generatedAt":"'"$(date -u +%%Y-%%m-%%dT%%H:%%M:%%SZ)"'"}\n' \
+    printf '{"schemaVersion":1,"sourceCommit":"%s","baseImage":"ubuntu:24.04","nodeRuntimeVersion":"%s","generatedAt":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}\n' \
       "$ASTERISK_SOURCE_REVISION" "$NODE_RUNTIME_VERSION" > /payload/provenance.json
 
 CMD ["/bin/true"]
