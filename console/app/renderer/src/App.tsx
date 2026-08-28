@@ -96,6 +96,7 @@ import {
   classifyDialogKind, copyLanguageFor, styledDialog, styledToastText, type MessageStorage,
 } from './message-styling';
 import {
+  ATTENTION_MUTATION_ACTIONS,
   elapsedPhrase, isAttentionMode, MODE_SETTING_PREFIX, modeEnabled, momentumPrompt, msSinceSnooze,
   nextAction, presentationFor, setModeEnabled, setNextAction, snoozeMomentum,
   type AttentionMode, type PresentationState,
@@ -652,6 +653,34 @@ export class App extends Base {
    *  and time awareness's "since anything changed" reading both come from here. */
   private lastChangeAt = Date.now();
 
+  /**
+   * The hook the compiled shell calls after it accepts a changed value. It is part of
+   * the shell's contract with whatever subclass mounts it, not an internal helper, so
+   * it is public and must exist before any control is touched.
+   *
+   * It did not exist. `scripts/extend-pbx-m3.mjs` injects a call to this method, with a
+   * `control:`-prefixed source, into the shell's `setVal`, and no class declared the
+   * method, so every accepted control value threw
+   * `TypeError: this.onUserMutation is not a function` out of a React post-commit
+   * callback. Nothing in the suite could see it: the only test covering that call
+   * assigns its own `onUserMutation` onto the instance before calling `setVal`, and
+   * every harness that drives the real `App` stubs `enqueueSetState` and drops the
+   * `callback` argument -- which is the one argument this method runs inside.
+   *
+   * The injected call is quoted exactly in `attention-inventory.ts` rather than here,
+   * because `verifyAttentionMutationInventory` scans this file for call-shaped text
+   * without stripping comments: a comment quoting the call reads to it as a second,
+   * unlisted call site. That is its defect and not this comment's, and it is recorded
+   * on the roadmap beside the rest of that inventory's drift.
+   *
+   * `source` is deliberately unread. It names which mutation happened, for a future
+   * per-subject reading; what the attention runtime needs today is only that the user
+   * changed their own data, and that is what `lastChangeAt` records.
+   */
+  onUserMutation = (_source: string = 'unknown'): void => {
+    this.lastChangeAt = Date.now();
+  };
+
   /** Redraws the attention rail on a slow clock so the elapsed-time reading and a
    *  momentum prompt that has just become due both appear without requiring the user
    *  to touch anything else first. */
@@ -947,9 +976,33 @@ export class App extends Base {
    *  value to restore instead of only the value at the moment the setting was touched. */
   private baseSet!: (key: string, value: unknown) => void;
 
+  /**
+   * The state keys the compiled shell writes through `set()` that hold the user's own
+   * work rather than navigation, selection or a transient overlay.
+   *
+   * Built from the canonical inventory rather than restated here, so the list a person
+   * edits and the list this consults cannot drift apart. `set()` is the shell's general
+   * state writer and most of what goes through it is passive -- the screen you are
+   * looking at, which row is selected, whether an overlay is open -- so notifying for
+   * everything would make "nothing has changed" answerable by scrolling, which is the
+   * exact reading Momentum exists to give.
+   */
+  private static readonly SET_MUTATION_KEYS: ReadonlySet<string> = new Set(
+    ATTENTION_MUTATION_ACTIONS.filter((action) => action.action === 'set').map((action) => action.key),
+  );
+
   private screenTrackingSet = (key: string, value: unknown): void => {
     if (key === 'screen' && typeof value === 'string') this.rememberLastScreen(value);
+    /* Read before the write and compared, for the same reason the shell's own value
+     * writer compares: re-picking the canvas tool that is already active is not a
+     * change, and letting it move the clock would make the idle reading resettable by
+     * pressing the same button twice. */
+    const changed = App.SET_MUTATION_KEYS.has(key)
+      && !Object.is((this.state as unknown as Record<string, unknown>)[key], value);
     this.baseSet(key, value);
+    /* After the write, matching where the shell puts its own control notification --
+     * a mutation is reported once it has happened, never once it has been requested. */
+    if (changed) this.onUserMutation('set:' + key);
   };
 
   private consoleSetting<T>(id: string, fallback: T): T {
@@ -1513,7 +1566,10 @@ export class App extends Base {
       const result = loadVocabularyFile(this.vocabStorage, text);
       this.pickedFileNames.set(ctl.id, result.ok ? file.name : `${file.name} — rejected`);
       this.forceUpdate();
-      if (result.ok) this.toast(result.status);
+      if (result.ok) {
+        this.onUserMutation('vocabulary-load');
+        this.toast(result.status);
+      }
       else this.fire('Vocabulary file rejected', result.status);
     };
     reader.onerror = () => this.fire('Vocabulary file not read', 'The file could not be read from disk.');
@@ -1530,6 +1586,7 @@ export class App extends Base {
     const result = clearVocabulary(this.vocabStorage);
     this.pickedFileNames.delete(ctl.id);
     this.forceUpdate();
+    this.onUserMutation('vocabulary-clear');
     this.toast(result.status);
   };
 
@@ -1818,6 +1875,7 @@ export class App extends Base {
       this.fire('That ticket will not file', result.problems[0].message);
       return;
     }
+    this.onUserMutation('support-ticket');
     void this.openSupportTicketFolder(result);
   }
 
@@ -3719,7 +3777,10 @@ What you can do: ${offered}.` : ''}`);
     }
     const created = await this.servers.add(input as never);
     this.forceUpdate();
-    if (created) this.fire('Connection added', `${created.name} is now in the server list below.`);
+    if (created) {
+      this.onUserMutation('server-add');
+      this.fire('Connection added', `${created.name} is now in the server list below.`);
+    }
     else this.fire('Not added', 'The control plane did not accept that connection.');
   };
 
@@ -3729,7 +3790,10 @@ What you can do: ${offered}.` : ''}`);
     if (!server) { this.fire('Not found', `${name} is no longer in the server list.`); return; }
     const removed = await this.servers.remove(server.id);
     this.forceUpdate();
-    if (removed) this.fire('Connection removed', `${name} was removed from the server list.`);
+    if (removed) {
+      this.onUserMutation('server-remove');
+      this.fire('Connection removed', `${name} was removed from the server list.`);
+    }
     else this.fire('Not removed', 'The control plane did not accept that removal.');
   };
 
@@ -3788,6 +3852,7 @@ What you can do: ${offered}.` : ''}`);
     const created = await this.servers.add(input as never);
     this.forceUpdate();
     if (created) {
+      this.onUserMutation('onboarding-connect');
       this.fire('Connected', `${created.name} was added to the server list and is available on Deploy & servers.`);
       void this.discover();
       this.set('onboardOpen', false);
@@ -3866,6 +3931,7 @@ What you can do: ${offered}.` : ''}`);
               'Every changed file was backed up first and is in local history if you need to undo this.',
             ].filter(Boolean).join('\n\n'),
           );
+          this.onUserMutation('onboarding-deploy');
           this.set('onboardOpen', false);
           this.set('screen', 'servers');
           this.set('railId', 'app');
@@ -4322,6 +4388,7 @@ What you can do: ${offered}.` : ''}`);
     const account = s.lockTarget || s.lockKey || 'this element';
     const uri = pairingUri({ issuer: 'Material Asterisk', account, parameters: { secret } });
     this.setState({ totpPendingSecret: secret, totpPendingUri: uri } as never);
+    this.onUserMutation('authenticator-pair');
     this.showInfo(
       'Authenticator secret',
       `Generated on this computer just now and never sent anywhere. Base32 secret: ${secret} - `
@@ -4360,6 +4427,7 @@ What you can do: ${offered}.` : ''}`);
       ...(needsTotp ? { totpSecret: s.totpPendingSecret } : {}),
     };
     this.setState({ locks: L, lockOpen: false, totpPendingSecret: undefined, totpPendingUri: undefined } as never);
+    this.onUserMutation('lock-create');
     this.toast(`${s.lockTarget} is locked with ${s.lockMethod} -- the surface is now disabled`);
   };
 
@@ -4415,6 +4483,7 @@ What you can do: ${offered}.` : ''}`);
       locks: n, unlockOpen: false, unlockPin: '', unlockPw: '', unlockTotpDigits: '', unlockPhase: undefined,
       ladderActive: false, ladderChallenge: null,
     } as never);
+    this.onUserMutation('lock-remove');
     this.fire('Unlocked', 'Welcome back.');
   };
 
@@ -4600,6 +4669,7 @@ It is shown once. The phone needs it to register.`);
     delete this.configs.endpoints;
     this.seeded.delete('endpoints');
     this.fire(done, summary.join('\n'));
+    this.onUserMutation('endpoint-write');
     this.forceUpdate();
     return true;
   }
@@ -8373,6 +8443,7 @@ It is shown once. The far end needs it to register.`);
     this.setState((st: { values: Record<string, unknown> }) => ({
       values: { ...st.values, ap_hue: Math.floor(Math.random() * 360) },
     }));
+    this.onUserMutation('appearance-random');
     this.fire('Bold choice', 'Nobody will ever say it is boring.');
   }
 
@@ -8389,11 +8460,13 @@ It is shown once. The far end needs it to register.`);
       return { values: next };
     });
     this.applyAppearanceToDom(resetAll(this.buildAppearanceTheme(this.currentAppearanceValues())));
+    this.onUserMutation('appearance-reset');
     this.toast('Appearance reset to the design system');
   }
 
   private saveAppearance(): void {
     this.syncAppearance();
+    this.onUserMutation('appearance-save');
     this.fire('Appearance saved', 'It will still be set the next time this opens.');
   }
 

@@ -51,11 +51,14 @@ function withSyncUpdater(instance: PinnedInstance): PinnedInstance {
     isMounted: () => true,
     enqueueForceUpdate() {},
     enqueueReplaceState(publicInstance: PinnedInstance, state: Record<string, unknown>) { publicInstance.state = state; },
-    enqueueSetState(publicInstance: PinnedInstance, partial: unknown) {
+    /* React's post-commit callback, run rather than dropped -- see the note on the same
+     * stub in app-message-styling-wired.test.tsx for what dropping it hid. */
+    enqueueSetState(publicInstance: PinnedInstance, partial: unknown, callback?: () => void) {
       const patch = typeof partial === 'function'
         ? (partial as (state: Record<string, unknown>) => Record<string, unknown>)(publicInstance.state)
         : partial as Record<string, unknown>;
       publicInstance.state = { ...publicInstance.state, ...patch };
+      callback?.();
     },
   };
   return instance;

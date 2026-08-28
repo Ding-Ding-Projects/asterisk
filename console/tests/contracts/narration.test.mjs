@@ -90,12 +90,38 @@ test('voice enumeration is live and its status source is the effective channel v
   assert.match(src, /resolveVoiceStatus\(language, this\.narration\.channels\[language\]\.voiceId, this\.voices\)/);
 });
 
+/* The third parameter used to be `isError = false` and the narrator was handed a bare
+ * `{ isError }`. Both spellings changed when severity levels arrived, and the needles
+ * written for the old one matched nothing -- so this contract failed on its very first
+ * assertion and never reached the three after it. Re-derived rather than widened: the
+ * property is unchanged (the narrator speaks the STYLED text, and error priority
+ * survives the trip), only the spelling of the error indication moved.
+ *
+ * The old needles were also weaker than they read. `const styled = styledDialog(`
+ * occurs four times in App.tsx and `this.baseFire(styled.heading, styled.body);`
+ * twice, so neither said anything about THIS function -- a narratedFire that stopped
+ * styling or stopped firing would still have found both elsewhere in the file. So the
+ * field is sliced out first and every assertion is made against that slice alone. */
+const narratedFireField = (src) => {
+  const open = src.indexOf('\n  private narratedFire = (');
+  assert.notEqual(open, -1, 'App.tsx no longer declares a `private narratedFire` field');
+  const end = src.indexOf('\n  };\n', open);
+  assert.notEqual(end, -1, 'the narratedFire field is not closed by a `  };` line');
+  const slice = src.slice(open + 1, end + 5);
+  assert.ok(slice.length > 0 && slice.length < 4000, `narratedFire slice is an implausible ${slice.length} characters`);
+  return slice;
+};
+
 test('the mounted notification path is narrated and preserves the styled message plus error priority', () => {
-  const src = app();
-  assert.match(src, /private narratedFire = \(title: string, body: string, isError = false\): void => \{/);
-  assert.match(src, /const styled = styledDialog\(/);
-  assert.match(src, /this\.narrator\.enqueue\('notification', styled\.body \? `\$\{styled\.heading\}\. \$\{styled\.body\}` : styled\.heading, \{ isError \}\);/);
-  assert.match(src, /this\.baseFire\(styled\.heading, styled\.body\);/);
+  const field = narratedFireField(app());
+  assert.match(field, /^ {2}private narratedFire = \(\n {4}title: string,\n {4}body: string,\n {4}severityOrLegacyError: NotificationSeverity \| boolean = 'warning',\n {2}\): void => \{$/mu);
+  assert.match(field, /^ {4}const styled = styledDialog\(/mu);
+  assert.match(field, /^ {4}this\.narrator\.enqueue\('notification', styled\.body \? `\$\{styled\.heading\}\. \$\{styled\.body\}` : styled\.heading, \{ isError: severity === 'error' \}\);$/mu);
+  assert.match(field, /^ {4}this\.baseFire\(styled\.heading, styled\.body\);$/mu);
+  /* The legacy `fire(title, body, true)` call shape the compiled shell still uses has to
+   * keep meaning "error", or the shell's own error notices silently demote to warnings
+   * and nothing anywhere says so. */
+  assert.match(field, /^ {6}\? \(severityOrLegacyError \? 'error' : 'warning'\)$/mu);
 });
 
 test('the registry row remains an honest unresolved inventory task until the central inventory materializer records proof', () => {

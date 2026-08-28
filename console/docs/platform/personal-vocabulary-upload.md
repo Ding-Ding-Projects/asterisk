@@ -24,7 +24,7 @@ Replacements apply longest source first to user-interface copy and accessible na
 
 The selected file is processed only in local browser or application storage. Neither loader performs a network request. File names, paths, mappings, cache contents, and replacement values are omitted from exports, local history, telemetry, diagnostics, captures, and public records. The ordinary settings export explicitly says that personal vocabulary was omitted.
 
-## Failure states
+## Failure modes
 
 The control states are no file loaded, loaded, invalid or rejected, replaced by a new valid file, clear/reset, and cache-corrupt fallback. Rejection text stays beside the upload control because it can quote private input. The narration path announces only that a rejection happened, not the private reason.
 

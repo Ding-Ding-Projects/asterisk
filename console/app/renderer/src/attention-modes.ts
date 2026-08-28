@@ -226,16 +226,34 @@ function exactOwnedMarker(sources: { design: string; app: string; generated: str
   if (count !== 1) throw new Error(`${label} must have exactly one ${marker.owner} implementation match, found ${count}: ${marker.text}`);
 }
 
+/**
+ * The same check, anchored to the start of a line.
+ *
+ * A plain substring needle is satisfied by a commented-out call, and commenting a line
+ * out is how a wiring line usually dies -- somebody puts `//` in front of it while
+ * chasing something else and never takes it off. `exactOwnedMarker` would wave that
+ * through, so every marker that stands for a live call is checked this way instead.
+ */
+function exactOwnedLineMarker(sources: { design: string; app: string; generated: string; module: string }, marker: { owner: 'design' | 'app' | 'generated' | 'module'; text: string }, label: string): void {
+  const wanted = marker.text.trim();
+  const lines = sources[marker.owner].split(/\r?\n/u);
+  const count = lines.filter((line) => line.trim().startsWith(wanted)).length;
+  if (count !== 1) throw new Error(`${label} must begin exactly one ${marker.owner} line, found ${count}: ${marker.text}`);
+}
+
 /** Executable wiring Chut for the canonical per-row matrix. Every row checks its
  * own design control, construction, durable key, writer chain, setter, callback,
  * and every complete consumer marker. */
-export function verifyAttentionWiring(sources: { design: string; app: string; generated: string; module: string }, rows: readonly AttentionWiringRow[] = ATTENTION_WIRING): void {
+export function verifyAttentionWiring(sources: { design: string; app: string; generated: string; module: string }, rows: readonly AttentionWiringRow[] = ATTENTION_WIRING, actions: readonly { action: string; key: string; state: string; generatedMutation: string }[] = ATTENTION_MUTATION_ACTIONS): void {
   if (rows.length !== ATTENTION_MODES.length + 1) throw new Error('Attention wiring inventory must contain exactly six rows.');
   const controls = new Set<string>();
   for (const row of rows) {
     if (controls.has(row.control)) throw new Error(`Duplicate attention control: ${row.control}`);
     controls.add(row.control);
-    exactOwnedMarker(sources, row.designMarker, `${row.id} design control`);
+    /* "control declaration", not "design control": five of these six controls are declared
+     * in the design and the next-action field is declared by the application, so a message
+     * naming the design would send a reader to a file the control was never in. */
+    exactOwnedMarker(sources, row.controlDeclaration, `${row.id} control declaration`);
     exactOwnedMarker(sources, row.controlConstruction, `${row.id} App control construction`);
     exactOwnedMarker(sources, row.durableKey, `${row.id} durable key`);
     for (const marker of row.writerMarkers) exactOwnedMarker(sources, marker, `${row.id} writer chain`);
@@ -243,10 +261,22 @@ export function verifyAttentionWiring(sources: { design: string; app: string; ge
     for (const marker of row.consumerMarkers) exactOwnedMarker(sources, marker, `${row.id} consumer`);
   }
   if (controls.size !== 6) throw new Error('Attention wiring controls are incomplete.');
-  for (const action of ATTENTION_MUTATION_ACTIONS) {
-    const tuple = new RegExp(`action:\\s*['"]${action.action}['"]\\s*,\\s*key:\\s*['"]${action.key}['"]\\s*,\\s*state:\\s*['"]${action.state}['"]`);
-    if (!tuple.test(sources.generated)) {
-      throw new Error(`Missing exact mutation action: ${action.action}:${action.key}`);
+  /* Both halves of the shell's mutation contract, in the file that actually owns each.
+   * This used to search the compiled renderer for the inventory row's own object
+   * literal, which no version of that file has ever contained, so it reported a gap it
+   * could not have closed and said nothing about whether any of this was wired. */
+  for (const hook of ATTENTION_MUTATION_HOOK_MARKERS) exactOwnedLineMarker(sources, hook, 'attention mutation hook');
+  if (sources.generated.split(ATTENTION_COMPUTED_TOGGLE_DISPATCH).length - 1 !== 1) {
+    throw new Error('The computed-key canvas toggle dispatch is absent or duplicated in the compiled renderer.');
+  }
+  const setKeys = actions.filter((action) => action.action === 'set').map((action) => action.key);
+  if (new Set(setKeys).size !== setKeys.length) throw new Error('Duplicate attention mutation key.');
+  for (const action of actions) {
+    /* At least one, not exactly one: `dock` is written from six places and `zoom` from
+     * three, so an exact count here would break every time a menu gained an entry. What
+     * must not happen is the key becoming unreachable, and that is what this catches. */
+    if (sources.generated.split(action.generatedMutation).length - 1 < 1) {
+      throw new Error(`Mutation key ${action.key} is no longer written by the compiled renderer: ${action.generatedMutation}`);
     }
   }
 }
@@ -565,7 +595,9 @@ export const FORBIDDEN_COPY_TERMS: readonly string[] = [
 ];
 
 import {
+  ATTENTION_COMPUTED_TOGGLE_DISPATCH,
   ATTENTION_MUTATION_ACTIONS,
+  ATTENTION_MUTATION_HOOK_MARKERS,
   ATTENTION_MUTATION_INVENTORY,
   ATTENTION_MUTATION_PASSIVE_EXCLUSIONS,
   ATTENTION_SEVERITY_PRODUCERS,
@@ -575,5 +607,5 @@ import {
   type AttentionSeverityProducerSite,
   type AttentionWiringRow,
 } from './attention-inventory.ts';
-export { ATTENTION_MUTATION_ACTIONS, ATTENTION_MUTATION_INVENTORY, ATTENTION_MUTATION_PASSIVE_EXCLUSIONS, ATTENTION_SEVERITY_PRODUCERS, ATTENTION_SEVERITY_ROUTES, ATTENTION_STRUCTURED_NOTICE_PRODUCERS, ATTENTION_WIRING } from './attention-inventory.ts';
+export { ATTENTION_COMPUTED_TOGGLE_DISPATCH, ATTENTION_MUTATION_ACTIONS, ATTENTION_MUTATION_HOOK_MARKERS, ATTENTION_MUTATION_INVENTORY, ATTENTION_MUTATION_PASSIVE_EXCLUSIONS, ATTENTION_SEVERITY_PRODUCERS, ATTENTION_SEVERITY_ROUTES, ATTENTION_STRUCTURED_NOTICE_PRODUCERS, ATTENTION_WIRING } from './attention-inventory.ts';
 export type { AttentionSeverityProducerSite, AttentionWiringRow } from './attention-inventory.ts';

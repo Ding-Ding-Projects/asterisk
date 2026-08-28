@@ -225,11 +225,22 @@ test('the shell now declares roles and accessible names, so the readers below ar
    * role. It is now a CHOICE, and one nobody has revisited. Pinning the counts keeps that
    * visible instead of letting the harness quietly go on assuming a shell that no longer
    * exists. Revisiting it is on the roadmap; pretending the assumption still holds is not. */
+  /* Moved 2026-08-27, upward, and here is the why this message asks for.
+   *
+   * Roles: 32 -> 33. The Tab search overlay is built by `scripts/extend-pbx-m3.mjs`, not by
+   * the design, and the raw design compile has only 32. That overlay's own `role: dialog`
+   * was always there; what changed is that the pin was taken against a compile the
+   * extension had not run over. It is now taken against the shipped shell, which is the
+   * file the harness below actually reads.
+   *
+   * Accessible-name attributes: 26 -> 28. Two of that same overlay's attributes: its
+   * `aria-label`, for the same reason as above, and one genuinely new `aria-modal` added in
+   * this pass -- see the dialog test below for what it fixes. */
   const ROLE = 'role' + ':';
   const ARIA = 'aria' + '-';
-  assert.equal(shell.split(ROLE).length - 1, 32,
+  assert.equal(shell.split(ROLE).length - 1, 33,
     'the number of declared roles moved; say which way and why rather than editing this number to match');
-  assert.equal(shell.split(ARIA).length - 1, 26,
+  assert.equal(shell.split(ARIA).length - 1, 28,
     'the number of accessible-name attributes moved; say which way and why');
 });
 
@@ -306,13 +317,21 @@ const rendererSources = () => {
  * not a reader; the scan finds the card's own scrim, which contains it.
  */
 test('every modal surface now carries the dialog role, not just the palette card', () => {
-  /* Was exactly one. Fourteen surfaces now declare it, each paired with aria-modal, which is
+  /* Was exactly one. Fifteen surfaces now declare it, each paired with aria-modal, which is
    * the accessibility work doing what it was for rather than anything drifting. The count is
-   * pinned so losing one is loud: a dialog that stops announcing itself as a dialog is",
-   * to a screen reader, just an anonymous box of text. */
+   * pinned so losing one is loud: a dialog that stops announcing itself as a dialog is,
+   * to a screen reader, just an anonymous box of text.
+   *
+   * The fifteenth is the Tab search overlay, and it is worth recording what the second
+   * assertion below caught on 2026-08-27. That overlay had `role: dialog` and no
+   * `aria-modal`, against a scrim it paints at `inset: 0`, z-index 82, that closes it on
+   * click -- so a pointer could reach nothing behind it while a screen reader was free to
+   * walk straight out into that unreachable content. The pin read 14 against 15 and went
+   * red, which is exactly the job. Fixed in `scripts/extend-pbx-m3.mjs`, which is where
+   * that overlay is built; the generated shell is never hand-edited. */
   const dialogs = shell.split('role: `dialog`').length - 1;
   const modal = shell.split('"aria-modal"').length - 1;
-  assert.equal(dialogs, 14, `${dialogs} elements carry the dialog role, not 14`);
+  assert.equal(dialogs, 15, `${dialogs} elements carry the dialog role, not 15`);
   assert.equal(modal, dialogs,
     `${modal} elements declare aria-modal against ${dialogs} dialogs -- a modal dialog that does not say it is modal traps focus without telling anyone`);
 });

@@ -63,4 +63,13 @@ The renderer receives project and session evidence links, states and ids, but no
 
 This lane was implemented without launching tests, builds, lint, network requests, runtime interaction, or capture workflows. The decisive verification remains the later integration's typed build and server-contract checks against the exact endpoints recorded above.
 
-Suggested articles: [Status Hub](../platform/status-hub.md), [local security](../system/security.md), and [hosted authentication](../platform/in-context-recovery.md).
+## Suggested articles
+
+- [Status Hub](../platform/status-hub.md) — the surface this client feeds, and what it does with a
+  registration receipt once one exists.
+- [Local security](../system/security.md) — where the `vault://` references named above are
+  resolved, and why a resolved value never crosses into renderer code.
+- [Hosted authentication](../platform/hosted-authentication.md) — the `authRequired` state above,
+  read from the side that produces it.
+- [In-context recovery](../platform/in-context-recovery.md) — the Retry and Re-register actions, and
+  the rule that a recovery route is offered beside the failure rather than in a menu elsewhere.

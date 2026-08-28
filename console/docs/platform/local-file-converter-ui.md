@@ -5,7 +5,15 @@ surface is mounted later by `CONVERTER_SURFACE_REGISTRATION`, which accepts a ty
 `ConverterClient` and keeps the privileged file and control-plane operations outside the
 renderer component.
 
-## User flow
+## Behavior
+
+`ConverterSurface` is a renderer component and nothing more. It reads no path, launches no process
+and converts no bytes; each of those belongs to the typed `ConverterClient` a host registers. What
+the surface owns is the sequence below, the catalog rendering, the per-category searches, and the
+honest reporting of whatever the client returns — including the cases where the client returns
+nothing useful, which is most of what the rest of this article is about.
+
+### User flow
 
 1. Choose a local file through the client-provided native picker.
 2. Read the source bytes through the typed `sniff` method. The surface shows the exact
@@ -32,16 +40,47 @@ pattern, flags, bounded sample text, syntax feedback, matches, capture groups, a
 The query and pattern stay synchronized when regex mode is selected. Invalid patterns and
 oversized samples produce an explicit local error and no match result.
 
-## Queue and failure states
+## Configuration
 
-The queue uses the backend cursor contract. The surface loads at most 100 records at a
-time, offers refresh and next-page controls, and displays every returned item state and
-outcome. Start, pause, resume, and cancel invoke the corresponding typed client method.
-Progress is shown only when the client has reported a real progress event. A missing
-total is rendered as an indeterminate detail rather than an invented percentage.
+The surface takes no settings. Everything a host varies is supplied when it registers the client
+through `CONVERTER_SURFACE_REGISTRATION`, and the two numbers worth knowing are fixed by the surface
+rather than chosen by the host:
 
-All client calls use a bounded deadline. Rejected promises and timeouts become visible
-renderer error or status copy. No rejected call is turned into a success state.
+| Value | Set by | Note |
+| --- | --- | --- |
+| Queue page size | the surface | at most 100 records per load, with refresh and next-page controls, so a long queue is never collected whole into renderer state |
+| Client-call deadline | the surface | every call is bounded; a call that never settles becomes visible status copy rather than a spinner |
+| `sniff` inspection bound | the client, via `maxBytes` | the surface displays whatever format, confidence, method, byte count and detail come back |
+| Which adapters are enabled | the client's catalog | the surface renders unavailability with the client's exact reason and never hides a category |
+| Whether PDF execution exists at all | the client | the commands render from `pdfCapabilities`, and execution is offered only when the client exposes `runPdfOperation` *and* reports that capability available |
+| Whether export and editor handoff exist | the client | a missing client method leaves the control disabled with an exact reason rather than absent |
+
+## Failure modes
+
+- **A client method the host did not supply** — the control stays visible and disabled, carrying the
+  reason. This is the case the surface is most careful about, because a host registering a partial
+  client is the expected situation rather than an error.
+- **An unavailable adapter or PDF command** — visible, with the client's exact reason.
+- **A rejected promise or a deadline** — visible renderer error or status copy. No rejected call is
+  turned into a success state.
+- **A missing total on a running item** — rendered as an indeterminate detail. The surface does not
+  compute a percentage it was not given, and shows progress only once the client has reported a real
+  progress event.
+- **An invalid regular expression, or an oversized sample** — an explicit local error and no match
+  result, evaluated in the page.
+- **A destination that already exists** — overwrite approval is requested from the client. The
+  renderer never assumes a destination is absent and never sets approval on its own.
+
+## Verification
+
+Source-level only. The surface and its state machine are covered by the repository's renderer suite
+(`npm run test:renderer`) and its type check; those exercise the component against a supplied client.
+
+Nothing here has been driven in the packaged application, and there is a specific reason it would
+prove little if it were: no privileged `ConverterClient` is registered anywhere in this repository,
+so a real launch shows the surface in exactly the unavailable states listed above. That is a truthful
+screen, and it is not evidence that a conversion works. The inventory row stays
+`implemented-unverified`.
 
 ## PDF commands
 

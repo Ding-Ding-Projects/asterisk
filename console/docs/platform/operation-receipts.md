@@ -10,6 +10,31 @@ The coordinator refuses duplicate submissions while the same idempotency key is 
 
 Bulk and multi-step work returns per-item outcomes. A partial result names what succeeded, failed, was skipped, or was cancelled. Its retry action exists only when the request provides a distinct idempotency key for the unfinished work, so retry cannot replay or repeat effects that already landed. Failure, cancellation, timeout, refusal, unavailable capability, and disabled capability stay distinct so the interface can offer an accurate next action.
 
+## Configuration
+
+Nothing here reads a settings file. Every value is carried on the request or the policy object, and
+naming them exactly matters because two of them are what make a retry safe:
+
+| Field | Where | Meaning |
+| --- | --- | --- |
+| `deadlineAt` | `OperationRequest` (`shared/operations.ts:82`) | an ISO-8601 instant, not a duration. After it the coordinator stops waiting and returns a timeout receipt |
+| `idempotencyKey` | same interface | while one is pending, a second submission carrying it is refused rather than queued |
+| `retryIdempotencyKey` | same interface | a **distinct** key covering only the unfinished part of a partial result. Without it there is no retry action, because retrying under the original key would replay effects that already landed |
+| `cancellable`, `retryable` | same interface | whether those actions exist at all. A surface offers neither unless the request declared it |
+| `undo` | same interface | an inverse operation reference or a local-history revision. Undo is absent unless one is supplied |
+
+Quiet hours are configured by `NotificationQuietHoursPolicy` (`shared/notifications.ts:130`):
+`enabled`, an IANA `timeZone`, a list of `windows`, and a `mode` that is either
+`suppress-info-success-progress` or `suppress-all-toasts`. Each window carries JavaScript weekday
+numbers (Sunday 0 through Saturday 6) and local wall-clock `start` and `end` times in `HH:mm` form.
+The policy governs **presentation only**: a suppressed notification is still recorded, so quiet hours
+never cost a reader the history of what happened while they were quiet. Note what neither mode does —
+warning and error records never auto-dismiss regardless of policy.
+
+History filtering takes a `NotificationSearchQuery` (`shared/notifications.ts:136`) of optional
+`text`, `severities`, `states` and `sources`. Omitting all four is not an error; it selects
+everything.
+
 ## Notification history
 
 Notifications have stable ids and one of five severities: information, progress, success, warning, or error. Active notifications have deterministic stacking order. Dismissing one removes it from the active stack but keeps it in history. Deleting one removes it from history and is a separate command.

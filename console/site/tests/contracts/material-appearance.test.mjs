@@ -20,7 +20,11 @@ const json = (p) => JSON.parse(read(p));
 
 const app = read('app.js');
 const settingsHtml = read('settings.html');
-const everyPage = ['index', 'product', 'documentation', 'downloads', 'status', 'settings']
+/* Derived from the filesystem, not hand-copied: the six-name literal that used to sit
+ * here excluded converter.html, ollama.html and history.html, so every 'anywhere in
+ * the site' claim below searched two thirds of the site. See ./site-pages.mjs. */
+import { PAGE_NAMES } from './site-pages.mjs';
+const everyPage = PAGE_NAMES
   .map((n) => read(`${n}.html`)).join('\n');
 const registry = json('feature-registry.json');
 

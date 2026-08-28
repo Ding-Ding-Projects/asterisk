@@ -17,7 +17,11 @@ const siteRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(resolve(siteRoot, p), 'utf8').replaceAll('\r\n', '\n');
 const json = (p) => JSON.parse(read(p));
 
-const PAGES = ['index', 'product', 'documentation', 'downloads', 'status', 'settings'];
+/* Derived from the filesystem, not hand-copied: the six-name literal that used to sit
+ * here excluded converter.html, ollama.html and history.html, so every 'anywhere in
+ * the site' claim below searched two thirds of the site. See ./site-pages.mjs. */
+import { PAGE_NAMES } from './site-pages.mjs';
+const PAGES = PAGE_NAMES;
 const pageSource = Object.fromEntries(PAGES.map((name) => [name, read(`${name}.html`)]));
 const app = read('app.js');
 const appLines = app.split('\n');
@@ -120,6 +124,9 @@ test('the general settings export explicitly omits the personal vocabulary rathe
 });
 
 test('the registry records personal-vocabulary-upload as implemented, and every bound above holds', () => {
-  assert.equal(registry.features['personal-vocabulary-upload'].state, 'implemented',
+/* schema v2: the registry key is `status` with 'implemented-unverified', and the file
+ * list moved to `implementation.paths`. The site rows carry no built-artifact interaction
+ * record and no capture, which is exactly what 'implemented-unverified' says. */
+  assert.equal(registry.features['personal-vocabulary-upload'].status, 'implemented-unverified',
     'a real, bounded, local-only, duplicate-rejecting JSON upload exists on settings.html -- "implemented" is the honest state');
 });
