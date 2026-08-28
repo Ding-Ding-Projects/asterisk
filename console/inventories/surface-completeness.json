@@ -210581,7 +210581,7 @@
         },
         {
           "featureId": "local-file-converter",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -210592,7 +210592,18 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "initConverter",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "converterConvert",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
@@ -214493,7 +214504,7 @@
         },
         {
           "featureId": "local-file-converter",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -214504,7 +214515,18 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "initConverter",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "converterConvert",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
@@ -218405,7 +218427,7 @@
         },
         {
           "featureId": "local-file-converter",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -218416,7 +218438,18 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "initConverter",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "converterConvert",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
@@ -222317,7 +222350,7 @@
         },
         {
           "featureId": "local-file-converter",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -222328,7 +222361,18 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "initConverter",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "converterConvert",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
@@ -226229,7 +226273,7 @@
         },
         {
           "featureId": "local-file-converter",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -226240,7 +226284,18 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "initConverter",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "converterConvert",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
@@ -230141,7 +230196,7 @@
         },
         {
           "featureId": "local-file-converter",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -230152,7 +230207,18 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "initConverter",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "converterConvert",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",

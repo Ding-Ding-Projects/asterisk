@@ -1105,17 +1105,31 @@
       }
     },
     "local-file-converter": {
-      "status": "absent",
-      "note": "site/converter.html renders a complete-looking converter -- file picker, adapter catalogue, bounded paged queue, target-format select, cancel control, loss disclosure -- and has no implementation: site/app.js is the only script the page loads and never mentions the converter, so every control there is decorative. No page links to converter.html either, so the surface is unreachable as well as inert. Absent as a feature; the markup exists and is dead.",
+      "status": "implemented-unverified",
+      "note": "The documentation site exposes converter.html with a browser-local categorized adapter catalogue, bounded byte inspection, a paged queue, cancellation, and an adjacent regex builder. This remains implemented-unverified because no real browser file picker, build, or capture ran in this lane.",
       "implementation": {
         "paths": [
           "site/app.js",
-          "site/converter.html"
+          "site/converter.html",
+          "site/styles.css"
         ],
-        "symbols": []
+        "symbols": [
+          {
+            "path": "site/app.js",
+            "name": "initConverter",
+            "kind": "function"
+          },
+          {
+            "path": "site/app.js",
+            "name": "converterConvert",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
-        "paths": [],
+        "paths": [
+          "site/app.js"
+        ],
         "symbols": [
           {
             "path": "site/app.js",

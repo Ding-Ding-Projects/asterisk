@@ -75,7 +75,7 @@ const siteStatus = {
   'language-modes': 'partial', 'funny-levels': 'partial', 'dialog-emojis': 'implemented-unverified', 'school-mode': 'implemented-unverified',
   narration: 'implemented-unverified', 'scheduled-settings': 'partial', 'external-settings-sources': 'absent', 'dim-sum-surprise': 'absent',
   'regex-builder': 'implemented-unverified', 'non-blocking-notifications': 'implemented-unverified', 'status-hub': 'absent',
-  'material-appearance': 'partial', 'app-logo-customization': 'partial', 'local-file-converter': 'absent',
+  'material-appearance': 'partial', 'app-logo-customization': 'partial', 'local-file-converter': 'implemented-unverified',
   'ollama-suite-manager': 'absent', 'browser-style-tabs': 'absent', 'tab-groups-and-searches': 'absent', 'command-palette': 'partial',
   'destructive-action-confirmation': 'partial', 'local-version-history': 'implemented-unverified', 'changelog-viewer': 'implemented-unverified',
   'external-editor-handoff': 'absent', 'complete-exports': 'implemented-unverified', 'bulk-actions': 'implemented-unverified',
@@ -217,6 +217,7 @@ const siteImplementationSymbols = {
   'school-mode': [{ path: 'site/app.js', name: 'applySchoolMode', kind: 'function' }],
   'bounded-overlays': [{ path: 'site/app.js', name: 'openRegex', kind: 'function' }, { path: 'site/app.js', name: 'openPalette', kind: 'function' }],
   'collapsible-filters': [{ path: 'site/app.js', name: 'updateFilterStatus', kind: 'function' }],
+  'local-file-converter': [{ path: 'site/app.js', name: 'initConverter', kind: 'function' }, { path: 'site/app.js', name: 'converterConvert', kind: 'function' }],
 };
 const siteRegistrationSymbols = {
   'local-file-converter': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
@@ -368,6 +369,10 @@ function rewriteRegistry(relativePath, surface, statuses) {
         entry.note = feature.id === 'local-file-converter'
           ? 'The converter is mounted at #surface=converter through surface-mounts.tsx and the real control-plane catalog and PDF-capability seam in dispatch.ts. The source picker, queue mutations, and packaged-worker proof remain explicitly unavailable until their privileged handlers are registered; no source, output, or sample value is invented.'
           : 'The Ollama surface is mounted at #surface=ollama through surface-mounts.tsx. Its client returns an honest bridge-not-registered state until the privileged local Ollama dispatcher is registered; no model, health, catalog, pull, chat, or harness value is assumed.';
+      } else if (feature.id === 'local-file-converter') {
+        entry.implementation.paths = ['site/app.js', 'site/converter.html', 'site/styles.css'];
+        entry.registration.paths = ['site/app.js'];
+        entry.note = 'The documentation site exposes converter.html with a browser-local categorized adapter catalogue, bounded byte inspection, a paged queue, cancellation, and an adjacent regex builder. This remains implemented-unverified because no real browser file picker, build, or capture ran in this lane.';
       } else {
         /* Corrected 2026-08-27. These two notes used to say the site "exposes"
          * converter.html and ollama.html and that the converter "is implemented in
