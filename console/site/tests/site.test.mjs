@@ -178,7 +178,7 @@ test('provides 97 complete feature articles plus checked evidence records', asyn
     assert.notEqual(recordsAt,-1,`${name} has no ${CAPTURE_RECORDS_HEADING} section to scan`);
     const captureRecords=content.slice(recordsAt);
     const nextHeading=captureRecords.indexOf('\n## ',CAPTURE_RECORDS_HEADING.length);
-    const rows=[...(nextHeading===-1?captureRecords:captureRecords.slice(0,nextHeading)).matchAll(/^\|(?!\s*(?:---|\s*State))(.+)\|\s*$/gm)].map(match=>match[1]);
+    const rows=[...(nextHeading===-1?captureRecords:captureRecords.slice(0,nextHeading)).matchAll(/^\|(?!\s*(?:---|\s*State|Measurement))(.+)\|\s*$/gm)].map(match=>match[1]);
     assert.ok(rows.length>0,`${name} has a capture-records section with no rows in it`);
     for(const row of rows)assert.match(row,/[0-9a-f]{40}/,`a capture row in ${name} names no source commit: ${row.slice(0,60)}`);
     for(const match of content.matchAll(/\]\(([^)]+\.(?:md|png))\)/g)){const target=resolve(evidenceRoot,match[1]);assert.ok((await stat(target)).isFile(),`${name} -> ${match[1]}`)}
@@ -370,11 +370,11 @@ test('build composes deterministic local output without fetches', async () => {
     identity: count(path => path === 'version.json'),
   };
   assert.deepEqual(composition, {
-    docPages: 133, sitePages: 6, fontFaces: 79, fontSupport: 4,
+    docPages: 134, sitePages: 7, fontFaces: 79, fontSupport: 4,
     images: 7, script: 1, stylesheet: 1, identity: manifest.buildIdentity.resolved ? 1 : 0,
   });
   const expectedFiles = Object.values(composition).reduce((sum, part) => sum + part, 0);
-  assert.equal(expectedFiles, manifest.buildIdentity.resolved ? 232 : 231);
+  assert.equal(expectedFiles, manifest.buildIdentity.resolved ? 234 : 233);
   // The sum is asserted against the manifest's own length as well, so a file matching none of
   // the rows above cannot be published without failing here -- a composition that only counts
   // the kinds it already knows about would let a new kind through in silence.
@@ -404,7 +404,7 @@ test('the vendored fonts are published inside dist and every page reaches them',
   assert.ok(siteFiles.includes('fonts.css'), 'dist carries no site-fonts fonts.css, so Archivo/IBM Plex Mono fall back silently');
   const siteFaces = siteFiles.filter((file) => file.endsWith('.woff2')).length;
   assert.equal(siteFaces, 30, 'the published site-fonts set carries ' + siteFaces + ' faces; the vendored export declares 30 (15 Archivo weights/subsets + 15 IBM Plex Mono)');
-  for (const page of ['index.html', 'product.html', 'downloads.html', 'documentation.html', 'status.html', 'settings.html']) {
+  for (const page of ['index.html', 'product.html', 'converter.html', 'downloads.html', 'documentation.html', 'status.html', 'settings.html']) {
     const html = await readFile(join(root, 'dist', page), 'utf8');
     // Plain string checks rather than patterns: the needles here are all slashes and
     // dots, and a mangled pattern would match nothing while still reporting a pass.

@@ -180,6 +180,21 @@ const groupMenuReplacement = `${groupMenuMarker}\n            { icon:'search', l
 if (!shell.includes(groupMenuMarker)) throw new Error('PBX M3 extension could not find group search menu marker.');
 shell = shell.replace(groupMenuMarker, groupMenuReplacement);
 const searchOverlayMarker = '      (v.tabFilterOpen ? F(';
+/*
+ * The tab-search overlay.
+ *
+ * Its first child is a full-inset scrim that dismisses on click, so this dialog behaves
+ * modally whatever it declares -- and it declared `role` and an accessible name and no
+ * `aria-modal`, which was an omission rather than a decision: every other dialog in the
+ * shell pairs the two, and a modal that does not announce itself takes focus away from a
+ * screen reader without telling it why. Added on 2026-08-27, found by a pinned count in
+ * tests/scripts/panel-observation.test.mjs going one out of step.
+ *
+ * The explanation sits here rather than inside the template below, because anything in
+ * that string is emitted verbatim into the compiled shell -- and a comment there
+ * mentioning an attribute becomes a second, false match for every scan that counts
+ * attributes in the markup.
+ */
 const searchOverlay = `      (v.tabSearchOpen ? F(
         h("div", { onClick: fn(v.closeTabSearch), style: sty(\`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:82;\`) }),
         h("div", { role: \`dialog\`, "aria-modal": \`true\`, "aria-label": \`Tab search\`, style: sty(\`position:absolute; left:50%; top:92px; transform:translateX(-50%); width:560px; max-height:70vh; overflow:auto; background:#252B25; border-radius:20px; padding:20px; z-index:83;\`) },

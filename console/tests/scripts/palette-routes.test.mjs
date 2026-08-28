@@ -224,7 +224,11 @@ test('the checker is actually run by npm test, and the driver it checks is still
   const chain = Object.values(pkg.scripts).join(' ; ');
   assert.ok(chain.includes('scripts/palette-route-readings.mjs --check'),
     'the palette-route checker is no longer invoked by any npm script');
-  assert.ok(pkg.scripts.test.includes('test:inventories'),
+  /* `npm test` names its groups as bare arguments to a runner rather than as
+   * `npm run test:inventories`, so the group is looked for among those arguments. The
+   * property is unchanged: the chain holding this checker has to be one npm test runs. */
+  const runnerGroups = pkg.scripts.test.replace('node scripts/run-test-groups.mjs ', '').split(/\s+/u).filter(Boolean);
+  assert.ok(runnerGroups.includes('inventories'),
     'the chain that holds the checker is no longer reached by npm test');
 
   for (const file of [

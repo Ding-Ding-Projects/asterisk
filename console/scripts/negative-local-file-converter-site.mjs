@@ -195,7 +195,7 @@ const cases = [
   /* ---- The record. The registry and the page's own markup. ---- */
 
   ['the registry row goes back to claiming the surface is absent',
-    swap(REGISTRY, '"state": "implemented",\n      "note": "site/converter.html is wired', '"state": "absent",\n      "note": "site/converter.html is wired')],
+    swap(REGISTRY, '"status": "implemented-unverified",\n      "note": "The documentation site exposes converter.html', '"status": "absent",\n      "note": "The documentation site exposes converter.html')],
 
   ['the registry row stops naming the page it lives in',
     swap(REGISTRY, '        "site/converter.html",\n', '')],
