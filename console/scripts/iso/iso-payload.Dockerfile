@@ -50,6 +50,7 @@ WORKDIR /console
 COPY console/package.json console/package-lock.json* ./
 RUN npm ci --no-audit --no-fund
 COPY console/ ./
+COPY design/ /design/
 RUN npm run compile:design && npm run bundle:docs && npm run write:update-manifest && npx tsc -b && npx vite build
 
 # ---------------------------------------------------------------------------
