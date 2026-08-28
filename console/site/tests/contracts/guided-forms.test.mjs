@@ -124,7 +124,7 @@ test('every <select> on the site is either a fixed, hard-coded option list, or o
       'english-funny', 'language-mode', 'narration-language', 'ollama-model-select', 'theme-mode']);
   assert.deepEqual(empty.sort(), ['auth-export-format', 'changelog-export-format', 'doc-export-format',
     'export-everything-format', 'history-action-filter', 'narration-voice-en', 'narration-voice-zh',
-    'notif-export-format']);
+    'notif-export-format', 'support-category', 'support-export-format', 'support-severity']);
 });
 
 test('the five export-format selects are populated from the fixed export-format list, never from live/user data', () => {

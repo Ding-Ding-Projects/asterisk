@@ -2324,15 +2324,39 @@
       }
     },
     "support-tickets": {
-      "status": "absent",
-      "note": "No Support Tickets surface exists on the site.",
+      "status": "implemented-unverified",
+      "note": "The documentation site exposes a local Support Tickets desk from settings, its School-mode recovery disclosure, and documentation help. It records fictional tickets in browser storage, advances their status, and opens the actual browser storage guidance without sending data or deleting anything on the reader’s behalf. This remains implemented-unverified because no real browser interaction or capture ran in this lane.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": [
+          "site/app.js",
+          "site/settings.html",
+          "site/documentation.html",
+          "site/styles.css"
+        ],
+        "symbols": [
+          {
+            "path": "site/app.js",
+            "name": "openSupportTicket",
+            "kind": "function"
+          },
+          {
+            "path": "site/app.js",
+            "name": "initSupport",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
-        "paths": [],
-        "symbols": []
+        "paths": [
+          "site/app.js"
+        ],
+        "symbols": [
+          {
+            "path": "site/app.js",
+            "name": "initSupport",
+            "kind": "function"
+          }
+        ]
       },
       "route": "https://ding-ding-projects.github.io/asterisk/",
       "documentation": {

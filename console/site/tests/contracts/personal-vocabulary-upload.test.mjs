@@ -91,9 +91,18 @@ test('a validated upload is stored only in localStorage, under the documented ca
   /* Through `writeLocal` since in-context recovery landed -- the one writer every store
    * on this page goes through, so a browser refusing the write is reported where it
    * happened rather than thrown past whichever setter was in use. The property is
-   * unchanged and still exact: the validated file goes to that one local key. */
+   * unchanged and still exact: the validated file goes to that one local key.
+   *
+   * The key is ALSO declared as a named constant, because the ticket desk's recovery panel
+   * derives the list of keys this page writes from those declarations rather than
+   * restating them. So the literal here and the constant there are two spellings of one
+   * value, and the second assertion pins the constant to it: a constant quietly renamed to
+   * point somewhere else would leave the recovery panel naming a key nothing writes, and
+   * nothing above would notice. */
   assert.match(body, /writeLocal\('ding-pbx-vocabulary-cache',JSON\.stringify\(parsed\)\)/u,
     'loadVocabulary no longer caches the validated vocabulary in localStorage');
+  assert.match(app, /^ {2}const VOCABULARY_CACHE_KEY = 'ding-pbx-vocabulary-cache';$/mu,
+    'VOCABULARY_CACHE_KEY no longer names the documented vocabulary cache key, so it and the literal written above have come apart');
   assert.match(app, /function writeLocal\(key,value\)\{\s*try\{localStorage\.setItem\(key,String\(value\)\)/u,
     'writeLocal no longer writes to localStorage, so the line above no longer proves the file is cached locally');
   assert.doesNotMatch(body, /fetch\(|XMLHttpRequest|navigator\.sendBeacon/u,

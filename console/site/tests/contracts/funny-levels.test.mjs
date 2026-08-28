@@ -92,14 +92,16 @@ test('the COPY table defines a genuine four-level voice for both languages, on e
    * moved 14 -> 15 for the restricted presentation's `schoolDesc`, 13 -> 14 for the
    * spoken narrator, and 10 -> 11, 11 -> 12 and 12 -> 13 for the display-name,
    * dialog-emoji and changelog cards. An exact pin is the point: a number that drifts
-   * fails and gets explained rather than quietly widened.
+   * Support Tickets then added `supportDesc` and `supportFirstResponse`, taking the table
+   * from 22 to 24. An exact pin is the point: a number that drifts fails and gets explained
+   * rather than quietly widened.
    *
    * `schoolDesc` is the one key here whose four Cantonese variants can never render while
    * the feature they describe is switched on -- that mode forces English -- and they are
    * required all the same, because the card is read by somebody deciding whether to turn
    * it on, which is a state in which every language mode is still available. */
-  assert.equal(Object.keys(table).length, 22,
-    `expected exactly 22 COPY keys, found ${Object.keys(table).length} -- update this pin if a message was deliberately added or removed`);
+  assert.equal(Object.keys(table).length, 24,
+    `expected exactly 24 COPY keys, found ${Object.keys(table).length} -- update this pin if a message was deliberately added or removed`);
   for (const [key, counts] of Object.entries(table)) {
     assert.equal(counts.enCount, 4, `${key}: expected 4 English funny-level variants (Plain/Mild/Playful/Maximum), found ${counts.enCount}`);
     assert.equal(counts.zhCount, 4, `${key}: expected 4 Cantonese funny-level variants, found ${counts.zhCount}`);
@@ -165,7 +167,7 @@ test('every COPY key is genuinely reached from real markup or a real call site -
   }
 });
 
-test('the funny sliders reach only a small, explicitly wired subset of the six pages, not the pages themselves', () => {
+test('the funny sliders reach only a small, explicitly wired subset of the published pages, not the pages themselves', () => {
   /* This is the fact that makes "partial" the honest classification rather than
    * "implemented": the mechanism above is real, but only these six strings in the
    * whole site actually have a data-copy hook attached to them. The set last grew on
@@ -186,7 +188,7 @@ test('the funny sliders reach only a small, explicitly wired subset of the six p
   const wiredKeys = new Set([...html.matchAll(/data-copy="(\w+)"/g)].map((m) => m[1]));
   assert.deepEqual([...wiredKeys].sort(),
     ['authenticatorDesc', 'changelogDesc', 'dialogEmojisDesc', 'displayNameDesc', 'exportEverythingDesc',
-      'heroLede', 'motionDesc', 'narrationDesc', 'schoolDesc', 'themeDesc', 'updatesDesc'],
+      'heroLede', 'motionDesc', 'narrationDesc', 'schoolDesc', 'supportDesc', 'themeDesc', 'updatesDesc'],
     'the set of markup-wired funny-level strings changed -- if it grew, the "partial" classification may need revisiting');
   const totalKeys = Object.keys(copyTable()).length;
   assert.ok(wiredKeys.size < totalKeys,

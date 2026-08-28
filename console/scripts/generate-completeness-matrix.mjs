@@ -81,7 +81,7 @@ const siteStatus = {
   'destructive-action-confirmation': 'partial', 'local-version-history': 'implemented-unverified', 'changelog-viewer': 'implemented-unverified',
   'external-editor-handoff': 'absent', 'complete-exports': 'implemented-unverified', 'bulk-actions': 'implemented-unverified',
   accessibility: 'partial', 'responsive-sizing': 'partial', 'personal-vocabulary-upload': 'implemented-unverified',
-  'per-element-toy-locks': 'absent', 'support-tickets': 'absent', 'unlock-ladder': 'absent', 'built-in-authenticator': 'implemented-unverified',
+  'per-element-toy-locks': 'absent', 'support-tickets': 'implemented-unverified', 'unlock-ladder': 'absent', 'built-in-authenticator': 'implemented-unverified',
   'attention-modes': 'implemented-unverified', 'browser-extension-download-surfaces': 'absent',
   'offline-documentation-browser': 'partial', 'app-display-name': 'implemented-unverified', 'guided-forms': 'partial',
   'bounded-overlays': 'implemented-unverified', 'context-menu-shortcuts': 'implemented-unverified', 'long-operation-progress': 'implemented-unverified',
@@ -219,9 +219,11 @@ const siteImplementationSymbols = {
   'bounded-overlays': [{ path: 'site/app.js', name: 'openRegex', kind: 'function' }, { path: 'site/app.js', name: 'openPalette', kind: 'function' }],
   'collapsible-filters': [{ path: 'site/app.js', name: 'updateFilterStatus', kind: 'function' }],
   'local-file-converter': [{ path: 'site/app.js', name: 'initConverter', kind: 'function' }, { path: 'site/app.js', name: 'converterConvert', kind: 'function' }],
+  'support-tickets': [{ path: 'site/app.js', name: 'openSupportTicket', kind: 'function' }, { path: 'site/app.js', name: 'initSupport', kind: 'function' }],
 };
 const siteRegistrationSymbols = {
   'local-file-converter': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
+  'support-tickets': [{ path: 'site/app.js', name: 'initSupport', kind: 'function' }],
   'ollama-suite-manager': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
   'language-modes': [{ path: 'site/app.js', name: 'init', kind: 'function' }], 'funny-levels': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
   'scheduled-settings': [{ path: 'site/app.js', name: 'init', kind: 'function' }], 'regex-builder': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
@@ -390,6 +392,12 @@ function rewriteRegistry(relativePath, surface, statuses) {
           ? 'site/converter.html renders a complete-looking converter -- file picker, adapter catalogue, bounded paged queue, target-format select, cancel control, loss disclosure -- and has no implementation: site/app.js is the only script the page loads and never mentions the converter, so every control there is decorative. No page links to converter.html either, so the surface is unreachable as well as inert. Absent as a feature; the markup exists and is dead.'
           : 'site/ollama.html renders a complete-looking local Ollama manager -- endpoint approval, verified-model select, pull and chat controls -- and has no implementation: site/app.js is the only script the page loads and mentions neither Ollama nor its local port, so every control there is decorative. No page links to ollama.html either, so the surface is unreachable as well as inert. Absent as a feature; the markup exists and is dead.';
       }
+    }
+    if (feature.id === 'support-tickets' && surface === 'pages-site') {
+      const supportEntry = next.features[feature.id];
+      supportEntry.implementation.paths = ['site/app.js', 'site/settings.html', 'site/documentation.html', 'site/styles.css'];
+      supportEntry.registration.paths = ['site/app.js'];
+      supportEntry.note = 'The documentation site exposes a local Support Tickets desk from settings, its School-mode recovery disclosure, and documentation help. It records fictional tickets in browser storage, advances their status, and opens the actual browser storage guidance without sending data or deleting anything on the reader’s behalf. This remains implemented-unverified because no real browser interaction or capture ran in this lane.';
     }
   }
   emit(relativePath, `${JSON.stringify(next, null, 2)}\n`);
