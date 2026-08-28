@@ -21,7 +21,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -86,6 +86,10 @@ test('every row records where the feature lives in the exact shape the validator
         `${id}.${half}: schema v2 records exactly paths and symbols`);
       assert.ok(Array.isArray(row[half].paths), `${id}.${half}.paths is not an array`);
       assert.ok(Array.isArray(row[half].symbols), `${id}.${half}.symbols is not an array`);
+      for (const path of row[half].paths) {
+        assert.ok(existsSync(resolve(consoleRoot, path)),
+          `${id}.${half}.paths names a file that is not present: ${path}`);
+      }
     }
     assert.ok(typeof row.note === 'string' && row.note.length > 0,
       `${id}: the row records a status with no note explaining it`);
@@ -98,7 +102,11 @@ test('a row that claims an implementation names at least one file it lives in', 
    * judgement with no subject. */
   for (const id of canonicalIds) {
     const row = registry.features[id];
-    if (row.status === 'absent') continue;
+    if (row.status === 'absent') {
+      assert.deepEqual(row.implementation.symbols, [],
+        `${id}: an absent row names an implementation symbol, so its status and source disagree`);
+      continue;
+    }
     assert.ok(row.implementation.paths.length > 0,
       `${id}: the row claims '${row.status}' and names no implementation path`);
   }
