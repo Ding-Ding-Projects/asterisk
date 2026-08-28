@@ -52,6 +52,29 @@ The local store uses schema version 2 and a caller-provided storage adapter. The
 
 JSON export includes the complete model, drafts, presets, capability records, and safe logo rendering metadata. It does not include custom-logo bytes, filenames, paths, cache keys, or network references. A custom logo export states that the local asset was omitted.
 
+## Configuration
+
+An appearance model is not a configuration file a person edits; it is a document this core
+validates whole on every read and every write. What a host supplies is narrower than that
+document and worth naming exactly:
+
+- **The storage adapter.** `browserSettingsRuntime`-style hosts pass local storage; a test or a
+  non-browser host passes its own. Schema version 2 and the complete revalidation on read do not
+  move with the adapter, so a different host cannot store a document this model would refuse.
+- **The mounted element identifiers.** A surface opts in by carrying `data-appearance-id`, and
+  reports interaction changes through `data-appearance-state`. The adapter reports identifiers
+  that are stored but not mounted, which is the only way a stale override announces itself.
+- **The rainbow speed level.** One global level, not a per-element duration, mapped to one
+  duration every mounted rainbow surface shares. Setting it per element is what makes six
+  animated surfaces drift out of step, so this core does not offer that.
+- **Presets and imports.** A preset carries real global settings, the rainbow speed and an
+  override snapshot. An import is applied whole or not at all: a rejected document changes
+  nothing, so there is no partially-configured state to recover from.
+
+Two things are deliberately not configurable. Reduced motion resolves the rainbow marker to one
+stable hue and disables the animation regardless of the level, and the capability records below
+cannot be asserted by a caller — they are detected, and an unsupported one carries its reason.
+
 ## Capability records
 
 Runtime support is recorded explicitly for installed-font enumeration, variable font axes, eyedropper access, clipboard writes, local logo decoding and crop, rainbow animation, and direct OKLCH output. An unsupported record carries both the reason and the fallback. The interface must use these records to keep an unavailable control visible and truthful rather than showing a success notification for an operation that never ran.
