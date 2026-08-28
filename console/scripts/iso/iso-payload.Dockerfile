@@ -8,6 +8,10 @@
 # base image pinned by digest, source built from the exact repository commit,
 # every runtime library resolved and verified before the stage is trusted.
 
+# This argument must be global because Docker resolves a FROM image before any
+# stage-scoped ARG declaration is available.
+ARG CONSOLE_BUILD_BASE_IMAGE=node:22.23.2-bookworm-slim
+
 FROM ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517 AS asterisk-build
 
 ARG ASTERISK_SOURCE_REVISION
@@ -40,7 +44,6 @@ RUN test -n "$ASTERISK_SOURCE_REVISION" && \
 # build-iso.ps1 resolves the current `node:22.23.2-bookworm-slim` digest with
 # `docker buildx imagetools inspect` and passes it as CONSOLE_BUILD_BASE_IMAGE,
 # recording the resolved digest in the ISO provenance either way.
-ARG CONSOLE_BUILD_BASE_IMAGE=node:22.23.2-bookworm-slim
 FROM ${CONSOLE_BUILD_BASE_IMAGE} AS console-build
 
 WORKDIR /console
