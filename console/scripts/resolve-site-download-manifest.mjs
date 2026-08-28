@@ -3,7 +3,7 @@
  * Resolve the newest verified, already-published Material Asterisk release and write a
  * download manifest that console/site/build.mjs bakes into the published site.
  *
- * Why this exists: the Pages workflow deploys on every push to master, but the release
+ * Why this exists: the Pages workflow deploys on every push to main, but the release
  * for that exact commit is published by a separate workflow that may not have finished
  * yet (or may never finish, if packaging failed). So this never resolves "the release
  * for this commit" -- it resolves the newest release that is ALREADY published, non-

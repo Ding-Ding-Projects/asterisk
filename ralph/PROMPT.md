@@ -25,7 +25,7 @@ Recording the reason on the line is the whole point. A silent skip reads as an o
 Create a fresh worktree and branch named for the item. Never work in the primary checkout, and never touch another branch's files.
 
 ```
-git worktree add ../asterisk-full-<slug> -b <slug> master
+git worktree add ../asterisk-full-<slug> -b <slug> main
 ```
 
 ## 3. Implement it fully
@@ -59,7 +59,7 @@ Two failure modes to check for specifically:
 
 Anchor assertions to whole lines or exact boundaries. A needle `foo` is satisfied by `fooRENAMED` and by a commented-out `// foo`. Strip `\r` before multi-line matching — parts of this checkout use CRLF and a newline-only pattern silently matches nothing.
 
-If something is already failing before your change, prove it was already failing on `master` before attributing it to yourself.
+If something is already failing before your change, prove it was already failing on `main` before attributing it to yourself.
 
 ## 5. Commit
 
@@ -74,7 +74,7 @@ If something is already failing before your change, prove it was already failing
 git push -u origin <slug>
 ```
 
-Merge to `master` and push, **only if the suite is green**. Every push to `master` publishes a real, immutable, uniquely tagged release with a large installer and redeploys the site. That is intended here, and it is also why a red suite must never reach it.
+Merge to `main` and push, **only if the suite is green**. Every push to `main` publishes a real, immutable, uniquely tagged release with a large installer and redeploys the site. That is intended here, and it is also why a red suite must never reach it.
 
 Then verify the release **by observation, not prediction**: it exists, it is non-draft, it targets your exact commit, and its assets are downloadable. If the run is red, say so plainly and stop — do not tick the item and do not start another.
 
@@ -89,7 +89,7 @@ Change `- [ ]` to `- [x]` on the item you finished, commit that, and push.
 ## Absolute prohibitions
 
 - Never `git push --force`, to anything, for any reason.
-- Never push to `master` with a failing suite.
+- Never push to `main` with a failing suite.
 - Never sign anything. Code signing is permanently prohibited in this project; artifacts ship unsigned and say so.
 - Never delete a branch, a worktree, or a stash.
 - Never edit files belonging to another branch's work.

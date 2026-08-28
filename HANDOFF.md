@@ -1,13 +1,13 @@
 # Handoff
 
-## Current shipping handoff, 2026-08-26
+## Historical shipping handoff, 2026-08-26
 
 ### Published state
 
 | Item | Exact state |
 | --- | --- |
-| Default branch | `main` at `6f8f959832f7783b75167fcb6e359073f473bb54` |
-| Git server proof | `refs/heads/main` read back at the same SHA |
+| Default branch | `master` at `6f8f959832f7783b75167fcb6e359073f473bb54` |
+| Git server proof | `refs/heads/master` read back at the same SHA |
 | Central feature integration | `246b2bc7a5` |
 | Default-branch integration | `780eb88cb6` |
 | Local feature-history consolidation | `33c0f66b9b` |

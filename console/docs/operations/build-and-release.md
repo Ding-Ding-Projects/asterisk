@@ -111,7 +111,7 @@ Record the visible heading beside each image, and open one before believing any 
 
 ## Release
 
-Every push to `master` publishes a uniquely tagged non-draft release with a ~446 MB
+Every push to `main` publishes a uniquely tagged non-draft release with a ~446 MB
 installer, and redeploys the site. Verify by observation: non-draft, exact target commit,
 assets downloadable.
 

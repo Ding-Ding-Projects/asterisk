@@ -1,6 +1,6 @@
 # Why forty-eight branches are still unmerged
 
-Forty-eight branches sit beside `master`, none of them an ancestor of it, every one holding
+At the 2026-08-24 measurement, forty-eight branches sat beside `master`, none of them an ancestor of it, every one holding
 commits that are not on the default branch. That looks like a backlog nobody has got round to.
 It is not: it was measured on 2026-08-24, and the reason each group is still separate is
 recorded here so the same afternoon is not spent again.

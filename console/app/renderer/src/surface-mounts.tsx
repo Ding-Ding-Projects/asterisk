@@ -206,7 +206,7 @@ function PrimarySurfaceMounts() {
   const statusStore = useMemo(() => createStatusHubStore({
     client: createStatusHubClient({ baseUrl: 'http://127.0.0.1:8099/', fetchImpl: statusHubBridgeFetch }),
     projectId: 'asterisk',
-    registration: { projectId: 'asterisk', projectName: 'Ding PBX Console', defaultBranch: 'master', releaseChannel: 'desktop', stableUrl: 'https://ding-ding-projects.github.io/asterisk/' },
+    registration: { projectId: 'asterisk', projectName: 'Ding PBX Console', defaultBranch: 'main', releaseChannel: 'desktop', stableUrl: 'https://ding-ding-projects.github.io/asterisk/' },
     persistence: statusPersistence,
     pollReplies: true,
   }), [statusPersistence]);
