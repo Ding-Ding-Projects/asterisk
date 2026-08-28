@@ -15,7 +15,7 @@ name: Build installer ISO
 on:
   workflow_dispatch:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - 'console/scripts/iso/**'
       - 'console/scripts/build-iso.ps1'
@@ -277,7 +277,7 @@ jobs:
 
       - name: Publish and verify one non-draft release with the ISO volumes
         id: publish
-        if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/master' }}
+        if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN }}
         run: |

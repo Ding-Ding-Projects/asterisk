@@ -2,7 +2,7 @@ name: Validate console pull request
 
 on:
   pull_request:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
