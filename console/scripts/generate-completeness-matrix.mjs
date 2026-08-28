@@ -8,7 +8,8 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const root = resolve(import.meta.dirname, '..', '..');
+const rootOverride = process.argv.find((argument) => argument.startsWith('--root='));
+const root = rootOverride ? resolve(rootOverride.slice('--root='.length)) : resolve(import.meta.dirname, '..', '..');
 const baselineCommit = '088ecde1a6';
 
 const features = [
@@ -403,5 +404,5 @@ if (CHECK_ONLY) {
     console.error(`FAIL: ${differences.length} of 3 generated inventory files are out of step. Run \`node scripts/generate-completeness-matrix.mjs\` and review the diff.`);
     process.exit(1);
   }
-  console.log('PASS: the completeness matrix and both feature registries match this generator byte for byte.');
+  console.log('PASS: the canonical matrix and both feature registries match a fresh generator run.');
 }

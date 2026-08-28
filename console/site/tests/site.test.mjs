@@ -370,11 +370,11 @@ test('build composes deterministic local output without fetches', async () => {
     identity: count(path => path === 'version.json'),
   };
   assert.deepEqual(composition, {
-    docPages: 135, sitePages: 7, fontFaces: 79, fontSupport: 4,
+    docPages: 136, sitePages: 7, fontFaces: 79, fontSupport: 4,
     images: 7, script: 1, stylesheet: 1, identity: manifest.buildIdentity.resolved ? 1 : 0,
   });
   const expectedFiles = Object.values(composition).reduce((sum, part) => sum + part, 0);
-  assert.equal(expectedFiles, manifest.buildIdentity.resolved ? 235 : 234);
+  assert.equal(expectedFiles, manifest.buildIdentity.resolved ? 236 : 235);
   // The sum is asserted against the manifest's own length as well, so a file matching none of
   // the rows above cannot be published without failing here -- a composition that only counts
   // the kinds it already knows about would let a new kind through in silence.
