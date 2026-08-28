@@ -49,6 +49,26 @@ History can be filtered by text, severity, state, and source. Export projection 
 
 Bulk dismissal, deletion, and read-state changes report every changed id and every skipped id with its reason. An empty selection or a selection containing no applicable record fails explicitly.
 
+## Configuration
+
+Everything here is per request rather than per installation, because these are contracts
+rather than a settings screen. One request carries:
+
+- **The operation type and its exact target**, plus a description of the affected data.
+- **A stable idempotency key.** The coordinator refuses a duplicate submission while the
+  same key is pending, so a double click and a programmatic re-entry are both refused
+  rather than replayed. Retry for unfinished work needs a *distinct* key, which is what
+  stops a retry repeating effects that already landed.
+- **A deadline**, after which the runner's signal is aborted and a timeout receipt is
+  returned rather than the request being left open.
+- **Whether cancellation and retry are allowed**, each stated by the request. Cancellation
+  is offered only where the request permits it, so no control appears that cannot act.
+
+The notification history takes two settings of its own: a **quiet-hours policy**, which
+suppresses presentation and never suppresses recording, and a **persistence adapter**,
+whose receipt is what distinguishes a stored change from an in-memory one. Warning and
+error records are not configurable to auto-dismiss; they never do.
+
 ## Failure modes and security
 
 - Missing or malformed request identity, target details, affected-data descriptions, or timestamps are refused before dispatch.

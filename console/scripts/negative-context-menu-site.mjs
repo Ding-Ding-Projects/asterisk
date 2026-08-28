@@ -264,7 +264,7 @@ const cases = [
       '    longPress.timer=null;')],
 
   ['the registry claims the menu does not exist',
-    swap(REGISTRY, '"context-menu-shortcuts": {\n      "state": "implemented",', '"context-menu-shortcuts": {\n      "state": "absent",')],
+    swap(REGISTRY, '"context-menu-shortcuts": {\n      "status": "implemented-unverified",', '"context-menu-shortcuts": {\n      "status": "absent",')],
 
   ['the localization registry claims the menu is untranslated',
     swap(LOCALES, '"context-menu-shortcuts": {\n      "state": "localized",', '"context-menu-shortcuts": {\n      "state": "not-localized",')],

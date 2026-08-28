@@ -50,6 +50,29 @@ The renderer does not write files or launch an editor directly. A privileged des
 
 Saving and opening an export in Visual Studio Code is a two-stage operation. The save must first be confirmed with a local path. Editor detection and launch happen afterward, and the overall result remains failed, cancelled, or unavailable unless the launch is separately confirmed.
 
+## Configuration
+
+- **The output format**, from the thirteen listed above. It is a choice among formats that
+  can carry the dataset, never a choice to lose part of it: a format that cannot preserve
+  the data is unavailable with its reason rather than offered and silently lossy.
+- **The selection context**, one collection identifier and one query key. Changing either
+  creates a new empty selection on purpose, so a selection made against one result set can
+  never act on another.
+- **Whether pinned and protected records are included**, which the caller must ask for
+  explicitly; the default excludes them across page, all-match, inverse, toggle and range
+  selection alike.
+- **The per-item deadline** for execute and revert, a finite positive safe integer
+  defaulting to 30 seconds, delivered to each handler as a real `AbortSignal` from its own
+  linked controller.
+- **The platform port.** Save, download, clipboard, editor detection and editor launch all
+  arrive through an injected `ExportPlatformPort`; the domain layer has no filesystem,
+  clipboard, process or network access of its own, so there is nothing here to point at a
+  path or a host.
+
+Archive export and archive encryption take no settings because neither is available: no
+bundled, verified ZIP or 7z adapter is registered. The core refuses encryption settings
+outright rather than accepting them and producing an archive it cannot claim is protected.
+
 ## Failure modes
 
 - Unsupported values, excessive depth, excessive value count, sparse arrays, cycles, repeated object references, accessors, and class instances make preparation unavailable with an exact path and reason.

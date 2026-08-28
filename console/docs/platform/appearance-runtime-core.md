@@ -54,6 +54,30 @@ Runtime support is recorded explicitly for installed-font enumeration, variable 
 
 `appearance-runtime.ts` mounts values onto elements that expose `data-appearance-id`. A host can set `data-appearance-state` as interaction changes and remount the model. The adapter reports element identifiers that are stored but not present in the mounted surface. It also exports the stylesheet needed for hue interpolation. The central renderer must install that stylesheet and mount the adapter before these model changes become visible.
 
+## Configuration
+
+This is a model rather than a screen, so what it takes is supplied by the host that mounts
+it rather than typed by a person:
+
+- **The storage adapter**, provided by the caller. A browser host can pass local storage; a
+  test or a non-browser host can pass another adapter without the model changing, which is
+  the point of the seam. The stored document is schema version 2 and is revalidated whole
+  on every read.
+- **Global settings, rainbow speed level and override snapshots**, saved and applied as
+  named presets. One speed level maps to one duration shared by every mounted rainbow
+  surface, so two surfaces cannot drift apart by however long apart they were mounted.
+- **The mount hook**, `data-appearance-id` on each element and `data-appearance-state` as
+  interaction changes. The adapter reports identifiers that are stored but absent from the
+  mounted surface, so a stale override is named rather than silently doing nothing.
+- **Reset scope**, chosen per action: one property, one state on one element, every state
+  on one element, one global state, all global values, or the whole model. They are
+  separate precisely so resetting one colour cannot erase unrelated settings.
+
+Capability records are read rather than set. Installed-font enumeration, variable axes,
+eyedropper, clipboard, local decoding and direct OKLCH output are each recorded with a
+reason and a fallback when unavailable, and the interface must keep such a control visible
+and truthful rather than reporting a success for an operation that never ran.
+
 ## Failure modes and security
 
 - Storage read failure starts with an empty model and exposes the rejection reason.

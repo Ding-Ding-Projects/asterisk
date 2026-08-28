@@ -16,6 +16,27 @@ Setup and sign-in surfaces report checking, ready, busy, timeout, unavailable, r
 
 Successful sign-in creates a random, HMAC-signed session identifier in an `HttpOnly`, `SameSite=Strict` cookie. TLS deployments also set `Secure`. Sign-out revokes the current session. The hosted bridge also exposes a revoke-all-sessions action for the signed-in administrator.
 
+## Configuration
+
+There is deliberately very little, and none of it can weaken a boundary from outside a
+development build:
+
+- **The listener and its transport.** Password creation and sign-in are permitted over TLS,
+  or over a plain HTTP listener bound to loopback only. A plain HTTP server bound to a
+  non-loopback address is refused rather than warned about.
+- **`ServerModeOptions.allowInsecureDevelopmentAuth`**, honoured only when `NODE_ENV` is
+  exactly `development`. Production launchers and service definitions must not set it, and
+  setting it in production has no effect rather than a documented risk.
+- **The account record and the signing key**, as files on disk. Both are created with
+  restrictive permissions where the operating system supports them, and both are published
+  without replacing an existing file, so a second concurrent setup cannot overwrite the
+  first completed account.
+
+The limits below -- the 1,024-character password, the 128-character username, the scrypt
+parameters, the 1,024-session table, the 4,096-address rate table -- are fixed rather than
+configurable. That is what stops a modified record asking for unbounded scrypt work, so a
+setting that raised them would be removing the check rather than tuning it.
+
 ## Storage and limits
 
 `admin-account.json` uses schema version 1 and contains only the username, scrypt password hash, and creation time. The reader limits file size, rejects unknown or extra fields, validates exact field bounds, and accepts the original unversioned three-field record as schema version 1 for compatibility. A malformed file is corrupt, never missing.

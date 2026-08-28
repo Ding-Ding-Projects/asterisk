@@ -74,7 +74,33 @@ Replacement is available only through an explicitly classified private user-inte
 - Speech failures are retained in queue status and do not block the application or later queued lines.
 - Secrets are not part of the settings schema. Home Assistant rules store only a credential-vault account key, never credential material.
 
-## Current integration state
+## Configuration
+
+Every value here is the reader's own, and the fresh-profile defaults in **Behavior** above
+are what a new install starts from rather than a table anybody has to set. What can be
+changed, and what deliberately cannot:
+
+- **Language mode, both funny levels, dialog emojis, School mode, each attention-support
+  mode, narration, the display name, theme, density, accent, font, scale, weight and
+  motion** are all part of the schema-version-1 record and are written through
+  `update()`, which validates the whole proposed record before it replaces the stored one.
+- **Schedule rules** carry an IANA timezone, optional date bounds, a local time window,
+  weekdays and a deterministic priority. Equal start and end times mean a full day, and a
+  window crossing midnight belongs to the day it begins on -- both stated so neither has to
+  be guessed from behaviour.
+- **An external rule's active state** is not a setting at all: it stays inactive until the
+  privileged source reader supplies an explicit true, so an unreachable source leaves the
+  local value in place rather than flipping it.
+- **The personal-vocabulary file**, supplied by the reader and revalidated before every
+  application. No mapping, payload, filename or path ships in this repository.
+
+Two things are constants rather than settings, and the distinction is load-bearing. The
+package identity stays `com.dingdingprojects.ding-pbx-console` whatever display name is
+chosen, so renaming the console cannot orphan its stored profile. And no secret is part of
+the schema: a Home Assistant rule stores a credential-vault account key, never credential
+material.
+
+## Verification
 
 The settings core and public integration functions exist, but the desktop shell does not yet construct the store, subscribe to runtime snapshots, route rendered text through the vocabulary boundary, mount a platform speech engine, or apply appearance overrides. Those seams belong to the application wiring change. Until that wiring lands, these settings do not change the visible desktop interface.
 

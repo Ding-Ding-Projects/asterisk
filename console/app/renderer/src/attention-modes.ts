@@ -250,10 +250,18 @@ export function verifyAttentionWiring(sources: { design: string; app: string; ge
   for (const row of rows) {
     if (controls.has(row.control)) throw new Error(`Duplicate attention control: ${row.control}`);
     controls.add(row.control);
-    /* "control declaration", not "design control": five of these six controls are declared
-     * in the design and the next-action field is declared by the application, so a message
-     * naming the design would send a reader to a file the control was never in. */
-    exactOwnedMarker(sources, row.controlDeclaration, `${row.id} control declaration`);
+    /* A row may declare that the design draws no control for it. The one-thing field is
+     * rendered by App.tsx in the attention rail rather than as a settings ctl(), but that
+     * exception must prove the named control is absent from the design. */
+    const designMarker = row.designMarker ?? row.controlDeclaration;
+    if (!designMarker) throw new Error(`${row.id} has no design or application control declaration`);
+    if (designMarker.owner === 'none') {
+      if (!designMarker.reason.trim()) throw new Error(`${row.id} declares no design control and gives no reason`);
+      const absences = sources.design.split(designMarker.absentFromDesign).length - 1;
+      if (absences !== 0) throw new Error(`${row.id} claims the design draws no '${designMarker.absentFromDesign}' control, but the design mentions it ${absences} time(s)`);
+    } else {
+      exactOwnedMarker(sources, designMarker, `${row.id} control declaration`);
+    }
     exactOwnedMarker(sources, row.controlConstruction, `${row.id} App control construction`);
     exactOwnedMarker(sources, row.durableKey, `${row.id} durable key`);
     for (const marker of row.writerMarkers) exactOwnedMarker(sources, marker, `${row.id} writer chain`);
