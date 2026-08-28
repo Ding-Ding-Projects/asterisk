@@ -46,6 +46,8 @@ RUN test -n "$ASTERISK_SOURCE_REVISION" && \
 # recording the resolved digest in the ISO provenance either way.
 FROM ${CONSOLE_BUILD_BASE_IMAGE} AS console-build
 
+ARG ASTERISK_SOURCE_REVISION
+ENV DING_PBX_SOURCE_REVISION=$ASTERISK_SOURCE_REVISION
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git && \
     rm -rf /var/lib/apt/lists/*
 
