@@ -2253,15 +2253,73 @@
       }
     },
     "per-element-toy-locks": {
-      "status": "absent",
-      "note": "No per-element lock/unlock mechanism was found anywhere in site/app.js.",
+      "status": "implemented-unverified",
+      "note": "The documentation site exposes per-element toy locks through site/app.js, site/settings.html, and site/styles.css. It stores records under ding-pbx-pages-locks-v1, offers six ordered credential methods, anchored setup and unlock prompts, keypad and manual entry, bounded attempts, local redacted export, and storage-clear recovery. A locked element uses capture-phase interception rather than disabled state so its own unlock route remains reachable. This remains implemented-unverified because no real browser interaction or capture ran in this lane.",
       "implementation": {
-        "paths": [],
-        "symbols": []
+        "paths": [
+          "site/app.js",
+          "site/settings.html",
+          "site/styles.css"
+        ],
+        "symbols": [
+          {
+            "path": "site/app.js",
+            "name": "LOCK_POLICIES",
+            "kind": "const"
+          },
+          {
+            "path": "site/app.js",
+            "name": "lockElementKey",
+            "kind": "function"
+          },
+          {
+            "path": "site/app.js",
+            "name": "lockSetupVerdict",
+            "kind": "function"
+          },
+          {
+            "path": "site/app.js",
+            "name": "lockCredentialVerdict",
+            "kind": "function"
+          },
+          {
+            "path": "site/app.js",
+            "name": "lockAttemptVerdict",
+            "kind": "function"
+          },
+          {
+            "path": "site/app.js",
+            "name": "lockOpenVerdict",
+            "kind": "function"
+          },
+          {
+            "path": "site/app.js",
+            "name": "lockEventVerdict",
+            "kind": "function"
+          },
+          {
+            "path": "site/app.js",
+            "name": "initLocks",
+            "kind": "function"
+          }
+        ]
       },
       "registration": {
-        "paths": [],
-        "symbols": []
+        "paths": [
+          "site/app.js"
+        ],
+        "symbols": [
+          {
+            "path": "site/app.js",
+            "name": "ensureLockUI",
+            "kind": "function"
+          },
+          {
+            "path": "site/app.js",
+            "name": "initLocks",
+            "kind": "function"
+          }
+        ]
       },
       "route": "https://ding-ding-projects.github.io/asterisk/",
       "documentation": {

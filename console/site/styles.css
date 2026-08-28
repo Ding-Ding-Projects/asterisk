@@ -885,3 +885,29 @@ a.changelog-commit:hover,a.changelog-commit:focus-visible{color:var(--primary)}
 .support-note{margin:8px 0 0;color:var(--muted);font-size:.78rem}
 @media(max-width:1100px){.support-card{grid-column:span 2}}
 @media(max-width:720px){.support-card{grid-column:auto}.support-ticket{flex-direction:row}}
+
+/* ---- Per-element toy locks ------------------------------------------------
+   The affordance is a word rather than a glyph on purpose: a padlock picture
+   reaches nobody using a screen reader and nothing searching the page's own
+   text, and this site's search fields match rendered text. */
+.locked-element{position:relative}
+.locked-element[aria-disabled="true"]{opacity:.72;cursor:not-allowed}
+.lock-affordance{font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted-2);white-space:nowrap}
+.lock-list{display:flex;flex-direction:column;gap:8px;width:100%}
+.lock-entry{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid var(--outline-variant);border-radius:var(--radius-sm);background:var(--surface-0)}
+.lock-entry div{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px}
+.lock-entry strong{font-size:.92rem;overflow-wrap:anywhere}
+.lock-entry p{margin:0;font-size:.82rem;color:var(--muted-2)}
+.lock-entry small{font-family:var(--mono);font-size:.7rem;color:var(--muted-2);overflow-wrap:anywhere}
+/* Anchored beside the element rather than centred over the page, and bounded by
+   the viewport with its own scroll, exactly as the right-click menu is. */
+.lock-dialog{margin:0;border:1px solid var(--outline-variant)}
+.lock-dialog label{display:block;margin-top:10px;font-size:.78rem;color:var(--muted-2)}
+.lock-dialog input:not([type="checkbox"]),.lock-dialog select{width:100%}
+.lock-dialog [hidden]{display:none}
+.lock-keypad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.lock-keypad[hidden]{display:none}
+.lock-key{min-height:48px;min-width:48px;border:1px solid var(--outline-variant);border-radius:var(--radius-sm);background:var(--surface-1);color:var(--on-surface);font-size:1.05rem;cursor:pointer}
+.lock-key:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.lock-key-wide{grid-column:span 3;font-size:.85rem}
+@media(max-width:620px){.lock-entry{flex-wrap:wrap}.lock-dialog{width:min(420px,calc(100vw - 24px))}}

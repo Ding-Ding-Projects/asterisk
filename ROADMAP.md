@@ -407,6 +407,13 @@ this repository keeps repeating, because it produces no error and no failing tes
       shipped. Their real gap is that credentials sit in plain state rather than the operating
       system vault. It also understates appearance, where four of six symbols do write real styles
       and only theme import is dead.
+- [x] **Integrate the pages-site per-element lock lane.** `console/site/app.js` now carries the
+      six ordered methods, per-element credential records, anchored setup and unlock prompts,
+      bounded attempt handling, and the refusal path that keeps a locked control's own unlock
+      route reachable. `console/site/settings.html` and `console/site/styles.css` carry the
+      settings card and responsive controls. The v2 registry, generator, localization record,
+      guided-form and bulk-action contracts, and `console/site/tests/contracts/per-element-toy-locks.test.mjs`
+      record the implementation as `implemented-unverified` because no real browser capture ran.
 ## Controls that announce themselves instead of working
 
 - [x] **Give the missing React keys a real source.** MISDIAGNOSED WHEN THIS WAS WRITTEN, and

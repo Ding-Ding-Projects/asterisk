@@ -81,7 +81,7 @@ const siteStatus = {
   'destructive-action-confirmation': 'partial', 'local-version-history': 'implemented-unverified', 'changelog-viewer': 'implemented-unverified',
   'external-editor-handoff': 'absent', 'complete-exports': 'implemented-unverified', 'bulk-actions': 'implemented-unverified',
   accessibility: 'partial', 'responsive-sizing': 'partial', 'personal-vocabulary-upload': 'implemented-unverified',
-  'per-element-toy-locks': 'absent', 'support-tickets': 'implemented-unverified', 'unlock-ladder': 'absent', 'built-in-authenticator': 'implemented-unverified',
+  'per-element-toy-locks': 'implemented-unverified', 'support-tickets': 'implemented-unverified', 'unlock-ladder': 'absent', 'built-in-authenticator': 'implemented-unverified',
   'attention-modes': 'implemented-unverified', 'browser-extension-download-surfaces': 'absent',
   'offline-documentation-browser': 'partial', 'app-display-name': 'implemented-unverified', 'guided-forms': 'partial',
   'bounded-overlays': 'implemented-unverified', 'context-menu-shortcuts': 'implemented-unverified', 'long-operation-progress': 'implemented-unverified',
@@ -398,6 +398,26 @@ function rewriteRegistry(relativePath, surface, statuses) {
       supportEntry.implementation.paths = ['site/app.js', 'site/settings.html', 'site/documentation.html', 'site/styles.css'];
       supportEntry.registration.paths = ['site/app.js'];
       supportEntry.note = 'The documentation site exposes a local Support Tickets desk from settings, its School-mode recovery disclosure, and documentation help. It records fictional tickets in browser storage, advances their status, and opens the actual browser storage guidance without sending data or deleting anything on the reader’s behalf. This remains implemented-unverified because no real browser interaction or capture ran in this lane.';
+    }
+    if (feature.id === 'per-element-toy-locks' && surface === 'pages-site') {
+      const lockEntry = next.features[feature.id];
+      lockEntry.implementation.paths = ['site/app.js', 'site/settings.html', 'site/styles.css'];
+      lockEntry.implementation.symbols = [
+        { path: 'site/app.js', name: 'LOCK_POLICIES', kind: 'const' },
+        { path: 'site/app.js', name: 'lockElementKey', kind: 'function' },
+        { path: 'site/app.js', name: 'lockSetupVerdict', kind: 'function' },
+        { path: 'site/app.js', name: 'lockCredentialVerdict', kind: 'function' },
+        { path: 'site/app.js', name: 'lockAttemptVerdict', kind: 'function' },
+        { path: 'site/app.js', name: 'lockOpenVerdict', kind: 'function' },
+        { path: 'site/app.js', name: 'lockEventVerdict', kind: 'function' },
+        { path: 'site/app.js', name: 'initLocks', kind: 'function' },
+      ];
+      lockEntry.registration.paths = ['site/app.js'];
+      lockEntry.registration.symbols = [
+        { path: 'site/app.js', name: 'ensureLockUI', kind: 'function' },
+        { path: 'site/app.js', name: 'initLocks', kind: 'function' },
+      ];
+      lockEntry.note = 'The documentation site exposes per-element toy locks through site/app.js, site/settings.html, and site/styles.css. It stores records under ding-pbx-pages-locks-v1, offers six ordered credential methods, anchored setup and unlock prompts, keypad and manual entry, bounded attempts, local redacted export, and storage-clear recovery. A locked element uses capture-phase interception rather than disabled state so its own unlock route remains reachable. This remains implemented-unverified because no real browser interaction or capture ran in this lane.';
     }
   }
   emit(relativePath, `${JSON.stringify(next, null, 2)}\n`);

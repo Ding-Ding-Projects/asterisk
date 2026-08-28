@@ -1086,7 +1086,11 @@ test('the row survives a narrow layout rather than pushing its actions off the e
  * ------------------------------------------------------------------ */
 
 test('the settings reset says plainly that it leaves the accounts alone', () => {
-  assert.match(settings, /It also leaves your authenticator accounts alone/,
+  /* The sentence gained a second subject on 2026-08-26, when the element locks joined
+   * that paragraph for the same reason. What this file is about is unchanged and is
+   * pinned to the accounts rather than to the whole sentence, so a third thing joining
+   * the list does not read as this feature breaking. */
+  assert.match(settings, /It also leaves your authenticator accounts[^.]*\balone\b/,
     'the reset gate no longer names the authenticator among the things it deliberately does not clear');
   assert.match(settings, /losing your data rather than resetting a preference/);
 });

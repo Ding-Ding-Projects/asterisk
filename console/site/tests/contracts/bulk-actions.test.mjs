@@ -116,59 +116,85 @@ test('summariseBulk reports "nothing selected" honestly rather than a misleading
   assert.equal(summariseBulk(plan), 'Dismiss: nothing selected.');
 });
 
-test('the bulk model is wired to exactly three real surfaces: the notification history panel, the authenticator account list and the ticket desk', () => {
-  /* One surface until 2026-08-26, when the built-in authenticator made it two and the
-   * Support Tickets desk made it three on the same day. The counts are pinned exactly
-   * rather than left open because the interesting failure is a FOURTH list arriving with
-   * its own hand-rolled selection instead of this shared model, which reads as working
-   * and diverges the first time one of them is fixed. The desk's bulk action is Close
-   * rather than Dismiss or Remove and is deliberately NOT destructive -- a closed ticket
-   * can be reopened and every earlier update stays in its list -- which is why it needs
-   * no two-key gate and why summariseBulk ends its sentence with a full stop rather than
-   * "This cannot be undone." */
+/**
+ * Every list on this site somebody would want to act on in bulk, and the state object
+ * each one selects through.
+ *
+ * A table rather than one hand-written block per surface. It reached four on
+ * 2026-08-26 with the element locks, and the shape of the interesting failure has not
+ * changed: a FOURTH list arriving with its own hand-rolled selection instead of this
+ * shared model, which reads as working right up to the day one of them is fixed and
+ * the others are not.
+ */
+const BULK_SURFACES = [
+  { init: 'initNotificationBulk', state: 'notifSelection', verb: 'Dismiss', what: 'the notification panel' },
+  { init: 'initAuthenticator', state: 'authSelection', verb: 'Remove', what: 'the authenticator list' },
+  { init: 'initLocks', state: 'lockSelection', verb: 'Remove', what: 'the element-lock list' },
+  { init: 'initSupport', state: 'supportSelection', verb: 'Close', what: 'the ticket desk' },
+];
+
+/** The source of one `function name(){...}`, brace-counted so nesting survives. */
+function bodyOf(src, name) {
+  const start = src.indexOf(`function ${name}(){`);
+  assert.notEqual(start, -1, `${name}() not found`);
+  let depth = 0;
+  for (let i = src.indexOf('{', start); i < src.length; i += 1) {
+    if (src[i] === '{') depth += 1;
+    else if (src[i] === '}') { depth -= 1; if (depth === 0) return src.slice(start, i + 1); }
+  }
+  throw new Error(`${name}() is not brace-balanced`);
+}
+
+test('the bulk model is wired to every listed surface, and to nothing beside them', () => {
   const src = norm(read('site/app.js'));
-  for (const [name, expectedCalls] of [['bulkClick', 3], ['bulkSelectAll', 6], ['planBulk', 3], ['summariseBulk', 3]]) {
+  const surfaces = BULK_SURFACES.length;
+  assert.ok(surfaces > 0, 'no bulk surfaces are listed at all, so everything below would pass vacuously');
+  /* Two calls of bulkSelectAll per surface -- select-this-page and select-every-match --
+   * and one each of the rest. Derived from the table so adding a surface moves the
+   * arithmetic with it, rather than leaving four numbers to be edited by hand. */
+  for (const [name, per] of [['bulkClick', 1], ['bulkSelectAll', 2], ['planBulk', 1], ['summariseBulk', 1]]) {
     const total = src.split(`${name}(`).length - 1;
     const def = src.split(`function ${name}(`).length - 1;
     assert.equal(def, 1, `expected exactly one definition of ${name}`);
-    assert.equal(total - def, expectedCalls,
-      `${name} is now called ${total - def} time(s) outside its own definition, expected exactly ${expectedCalls} -- if this grew, bulk actions may have reached a second surface and this scope note needs revisiting`);
+    assert.equal(total - def, per * surfaces,
+      `${name} is now called ${total - def} time(s) outside its own definition, expected ${per * surfaces} for ${surfaces} listed surfaces -- if this grew, bulk actions may have reached a surface this table has not been told about`);
   }
-  const initStart = src.indexOf('function initNotificationBulk(){');
-  assert.ok(initStart !== -1, 'initNotificationBulk() not found');
-  let depth = 0, i = src.indexOf('{', initStart);
-  for (; i < src.length; i += 1) {
-    if (src[i] === '{') depth += 1;
-    else if (src[i] === '}') { depth -= 1; if (depth === 0) { i += 1; break; } }
+  for (const surface of BULK_SURFACES) {
+    const body = bodyOf(src, surface.init);
+    for (const call of [
+      `bulkClick(${surface.state}`,
+      `bulkSelectAll(${surface.state},'page'`,
+      `bulkSelectAll(${surface.state},'matches'`,
+      `planBulk('${surface.verb}'`,
+    ]) {
+      assert.ok(body.includes(call),
+        `${surface.init}() no longer calls ${call} -- the bulk model may be disconnected from ${surface.what}`);
+    }
   }
-  const body = src.slice(initStart, i);
-  for (const call of ['bulkClick(notifSelection', "bulkSelectAll(notifSelection,'page'", "bulkSelectAll(notifSelection,'matches'", "planBulk('Dismiss'"]) {
-    assert.ok(body.includes(call), `initNotificationBulk() no longer calls ${call} -- the bulk model may be disconnected from the notification panel`);
-  }
+});
 
-  const authStart = src.indexOf('function initAuthenticator(){');
-  assert.notEqual(authStart, -1, 'initAuthenticator() not found');
-  let authDepth = 0, j = src.indexOf('{', authStart);
-  for (; j < src.length; j += 1) {
-    if (src[j] === '{') authDepth += 1;
-    else if (src[j] === '}') { authDepth -= 1; if (authDepth === 0) { j += 1; break; } }
+test('the element-lock list exposes the same real select-page, select-matches, select-none and remove controls', () => {
+  const html = norm(read('site/settings.html'));
+  for (const id of ['locks-select-page', 'locks-select-matches', 'locks-select-none', 'locks-remove-selected', 'locks-confirm-yes', 'locks-confirm-cancel']) {
+    assert.match(html, new RegExp(`id="${id}"`), `#${id} control not found on the element-locks card`);
   }
-  const authBody = src.slice(authStart, j);
-  for (const call of ['bulkClick(authSelection', "bulkSelectAll(authSelection,'page'", "bulkSelectAll(authSelection,'matches'", "planBulk('Remove'"]) {
-    assert.ok(authBody.includes(call), `initAuthenticator() no longer calls ${call} -- the bulk model may be disconnected from the authenticator list`);
-  }
+  assert.match(html, /id="locks-confirm-text"/, 'the reviewable confirm-preview element (#locks-confirm-text) is missing');
+});
 
-  const deskStart = src.indexOf('function initSupport(){');
-  assert.ok(deskStart !== -1, 'initSupport() not found');
-  let deskDepth = 0, k = src.indexOf('{', deskStart);
-  for (; k < src.length; k += 1) {
-    if (src[k] === '{') deskDepth += 1;
-    else if (src[k] === '}') { deskDepth -= 1; if (deskDepth === 0) { k += 1; break; } }
-  }
-  const deskBody = src.slice(deskStart, k);
-  for (const call of ['bulkClick(supportSelection', "bulkSelectAll(supportSelection,'page'", "bulkSelectAll(supportSelection,'matches'", "planBulk('Close'"]) {
-    assert.ok(deskBody.includes(call), `initSupport() no longer calls ${call} -- the bulk model may be disconnected from the ticket desk`);
-  }
+test('the element-lock removal reports what it skipped and why, rather than silently dropping it', () => {
+  /* The one place on this site where a bulk action genuinely refuses part of what was
+   * selected: a lock that has not been opened is not removable, because a removal that
+   * ignored the lock would be the way around every lock at once. */
+  const { planBulk, summariseBulk } = loadBulkModel();
+  const src = norm(read('site/app.js'));
+  assert.match(src, /planBulk\('Remove',\[\.\.\.lockSelection\.selected\],lockRemovalVerdict,\{destructive:true\}\)/u,
+    'the lock removal no longer passes its per-item verdict to planBulk, so nothing could be skipped for a reason');
+  assert.match(src, /function lockRemovalVerdict\(key\)\{[\s\S]{0,400}?open it first/u,
+    'the lock removal verdict no longer names opening the lock as what is missing');
+  const plan = planBulk('Remove', ['open', 'shut'], (key) => (key === 'open' ? true : 'that element is still locked'));
+  assert.deepEqual(plan.affected, ['open']);
+  assert.match(summariseBulk(plan), /1 skipped \(that element is still locked\)/u,
+    'the summary no longer names the reason a selected lock was skipped');
 });
 
 test('the authenticator account list exposes the same real select-page, select-matches, select-none and remove controls', () => {
@@ -185,4 +211,12 @@ test('the notification history panel exposes real select-page, select-matches, s
     assert.match(html, new RegExp(`id="${id}"`), `#${id} control not found on the notification dialog`);
   }
   assert.match(html, /id="notif-confirm-text"/, 'the reviewable confirm-preview element (#notif-confirm-text) is missing');
+});
+
+test('the ticket desk exposes the same real select-page, select-matches, select-none and close controls', () => {
+  const html = norm(read('site/settings.html'));
+  for (const id of ['support-select-page', 'support-select-matches', 'support-select-none', 'support-close-selected']) {
+    assert.match(html, new RegExp(`id="${id}"`), `#${id} control not found on the Support Tickets dialog`);
+  }
+  assert.match(html, /id="support-count"/, 'the ticket desk has no count status for its selected or visible rows');
 });
