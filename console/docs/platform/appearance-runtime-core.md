@@ -10,6 +10,12 @@ Editing uses a per-property draft. Creating a draft does not change the mounted 
 
 Named presets contain real global settings, rainbow speed, and override snapshots. Applying a preset replaces those values and clears drafts. Saving, applying, deleting, importing, and resetting return executable inverse actions only after local persistence succeeds. A no-op reports that nothing changed, and an unavailable operation reports why it did not run.
 
+## Configuration
+
+An override is addressed by three things and configured by nothing else: a stable element identifier, one interaction state, and one property. There is no global switch that turns the system on, and no per-surface exemption -- a surface participates by exposing `data-appearance-id`, and the host sets `data-appearance-state` as interaction changes.
+
+Two values are configured globally rather than per element: the rainbow speed level, which maps to one duration shared by every mounted rainbow surface so they turn together, and the storage adapter the local store is given. The browser adapter can use local storage; a test or a non-browser host supplies another without changing the model.
+
 ## Color model
 
 The color engine accepts continuous HSL coordinates and translates bidirectionally among named colors, HEX and HEX8, RGB and RGBA, HSL and HSLA, HSV and HSB, HWB, CIELAB and LCH, OKLab and OKLCH, and CMYK. Alpha is retained in every translation, using an alpha-preserving hexadecimal fallback when no exact name exists.

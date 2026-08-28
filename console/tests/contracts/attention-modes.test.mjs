@@ -254,8 +254,18 @@ test('the attention contract keeps exactly five mode ids and its hand-written wi
   ]));
   attention.verifyAttentionMutationInventory(mutationSources);
   const first = attention.ATTENTION_MUTATION_INVENTORY[0];
+  /* Remove the call from the file that actually owns it. This used to remove it from `app`
+   * unconditionally, which was true only while the first row happened to be an App.tsx one:
+   * once the inventory's first row was a generated-shell row, the replace matched nothing,
+   * the "broken" fixture was identical to the working one, and the expected throw never came.
+   * A break that never lands reads exactly like a guard that held, so the file is derived
+   * from the row now, and the removal is asserted to have changed something. */
+  const owner = first.file === 'App.tsx' ? 'app' : 'generated';
+  const broken = mutationSources[owner].replace(`onUserMutation(${first.argument});`, '');
+  assert.notEqual(broken, mutationSources[owner],
+    'the deliberate removal did not change the fixture, so the assertion below would prove nothing');
   assert.throws(
-    () => attention.verifyAttentionMutationInventory({ ...mutationSources, app: mutationSources.app.replace(`onUserMutation(${first.argument});`, '') }),
+    () => attention.verifyAttentionMutationInventory({ ...mutationSources, [owner]: broken }),
     /Unlisted|absent/,
     'removing one listed mutation path must turn the source contract red',
   );
