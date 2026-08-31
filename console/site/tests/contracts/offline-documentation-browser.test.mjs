@@ -7,10 +7,10 @@
  * `documentation.html` plus `renderDestinations()`/`initDocumentationExport()`
  * in `site/app.js` present a real searchable documentation catalogue with
  * per-article export. The `DESTINATIONS` catalogue is a plain array literal
- * embedded directly in `app.js`, not fetched separately at runtime -- there
- * are zero `fetch(...)` calls anywhere in the file, so there is no network
- * request for the catalogue beyond the ordinary one-time load of the page's
- * own script.
+ * embedded directly in `app.js`, not fetched separately at runtime. The page
+ * also carries three explicit, user-approved loopback Ollama streams and one
+ * same-origin version-manifest check. The contract below classifies those
+ * callers instead of using a brittle blanket fetch count.
  *
  * The real gap: each result links OUT to a separate static article page
  * (`docs/${item.article}.html`) rather than rendering parsed article content
@@ -45,21 +45,32 @@ test('DESTINATIONS is a real embedded catalogue, not an empty placeholder', () =
   assert.ok(idMatches.length > 10, `expected a substantial catalogue of destination entries, found ${idMatches.length}`);
 });
 
-/* This used to read "there is zero network fetch anywhere in app.js", which proved the
- * catalogue was embedded by proving that nothing at all was fetched. On 2026-08-26 the
- * site gained its published-version watch and that ban went red for a request with
- * nothing to do with the catalogue.
- *
- * The property this row actually rests on is narrower, and is now pinned directly: the
- * catalogue is a literal in this file, the one request in the file is the version
- * manifest, and none of the bodies that browse the catalogue makes a request. Browsing
- * still reaches the network never. */
-test('the catalogue is embedded, and the single request in app.js is not part of browsing it', () => {
+/* The property this row actually rests on is narrower: the catalogue is a literal in this
+ * file, the only non-Ollama request is the same-origin version manifest, and none of the
+ * bodies that browse the catalogue makes a request. Ollama calls are permitted only through
+ * the explicit validated loopback endpoint path. */
+test('the catalogue is embedded, and runtime fetches are semantically allowlisted', () => {
   const calls = [...app.matchAll(/\bfetch\(/gu)];
-  assert.equal(calls.length, 1,
-    `expected exactly one fetch in app.js -- the published-version check -- and found ${calls.length}; a second request needs accounting for before this row's offline claim stays true`);
+  assert.equal(calls.length, 4,
+    `expected one same-origin manifest fetch plus three explicit local Ollama fetches, found ${calls.length}`);
   assert.match(app, /const response=await fetch\(url,\{cache:'no-store',credentials:'omit',signal:controller\.signal\}\);/u,
-    'the one request is no longer the published-version check -- the "browsing reaches no network" claim needs re-checking');
+    'the non-Ollama request is no longer the bounded same-origin published-version check');
+  const fetchLines=app.split('\n').filter(line=>line.includes('fetch('));
+  const localCalls=fetchLines.filter(line=>line.includes('endpoint.replace')&&line.includes('/api/'));
+  assert.equal(localCalls.length,2,
+    'the direct local Ollama stream request set changed; each one must use the validated endpoint and an explicit API path');
+  const lineFor=name=>app.split('\n').find(line=>line.includes(name))||'';
+  const endpointLine=lineFor('function validOllamaEndpoint(value)');
+  assert.ok(endpointLine.includes("protocol==='http:'")&&endpointLine.includes('localhost')&&endpointLine.includes('127.0.0.1')&&endpointLine.includes('[::1]'),
+    'Ollama calls are not protected by the localhost-only endpoint validator');
+  const jsonReader=lineFor('function ollamaJsonFetch(path,endpoint,signal)');
+  assert.ok(jsonReader.includes('endpoint.replace')&&jsonReader.includes("credentials:'omit'"),
+    'the JSON Ollama reader does not use the validated endpoint or omit credentials');
+  const functionBody=(name,next)=>{const start=app.indexOf(name);const end=app.indexOf(next,start+name.length);return app.slice(start,end<0?app.length:end)};
+  assert.ok(functionBody('async function ollamaPull()','async function ollamaChat()').includes("credentials:'omit'"),
+    'the Ollama pull stream does not omit credentials');
+  assert.ok(functionBody('async function ollamaChat()','function initOllama()').includes("credentials:'omit'"),
+    'the Ollama chat stream does not omit credentials');
   /* The bodies that browse the catalogue, checked one at a time rather than as one blob:
    * a request appearing in any of them is the defect this row exists to refuse. */
   for (const name of ['renderDestinations', 'initSearch', 'initDestinationMap']) {

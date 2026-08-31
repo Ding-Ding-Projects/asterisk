@@ -15,6 +15,7 @@
   const PRODUCT_CHANGELOG = CHANGELOG.filter(entry => entry.category === 'Release');
   const UPSTREAM_HISTORY = CHANGELOG.filter(entry => entry.category !== 'Release');
   const RELEASE_MANIFEST = window.DING_SITE_RELEASE_MANIFEST && typeof window.DING_SITE_RELEASE_MANIFEST === 'object' ? window.DING_SITE_RELEASE_MANIFEST : null;
+  const PUBLIC_REPOSITORY_URL = 'https://github.com/Ding-Ding-Projects/material-asterisk';
 
   const COPY = {
     title: 'Local delivery workspace',
@@ -23,7 +24,7 @@
   };
   const TAB_ROUTES = [
     ['home', 'Home', 'index.html'], ['product', 'Product', 'product.html'], ['documentation', 'Documentation', 'documentation.html'],
-    ['downloads', 'Downloads', 'downloads.html'], ['status', 'Status', 'status.html'], ['settings', 'Settings', 'settings.html'], ['history', 'Delivery', 'history.html'],
+    ['downloads', 'Downloads', 'downloads.html'], ['status', 'Status', 'status.html'], ['settings', 'Settings', 'settings.html'], ['ollama', 'Ollama', 'ollama.html'], ['history', 'Delivery', 'history.html'],
   ];
 
   const own = (value, fallback) => value === undefined || value === null ? fallback : value;
@@ -575,7 +576,7 @@
     const host = document.querySelector('#changelog-list');
     if (!host) return;
     const rows = filterChangelog();
-    host.innerHTML = rows.length ? rows.map(entry => `<article class="delivery-changelog-row"><div><span class="card-kicker">${escapeHtml(entry.category)} · ${escapeHtml(entry.date)}</span><h3>${escapeHtml(entry.version)}</h3><p>${escapeHtml(entry.summary)}</p></div><a class="text-button" href="https://github.com/Ding-Ding-Projects/asterisk/commit/${entry.commit}" target="_blank" rel="noopener" aria-label="Open commit ${entry.commit}">${escapeHtml(entry.commit.slice(0, 12))}</a></article>`).join('') : '<p class="empty-state">No recorded changes match this filter.</p>';
+    host.innerHTML = rows.length ? rows.map(entry => `<article class="delivery-changelog-row"><div><span class="card-kicker">${escapeHtml(entry.category)} · ${escapeHtml(entry.date)}</span><h3>${escapeHtml(entry.version)}</h3><p>${escapeHtml(entry.summary)}</p></div><a class="text-button" href="${PUBLIC_REPOSITORY_URL}/commit/${entry.commit}" target="_blank" rel="noopener" aria-label="Open commit ${entry.commit}">${escapeHtml(entry.commit.slice(0, 12))}</a></article>`).join('') : '<p class="empty-state">No recorded changes match this filter.</p>';
     const status = document.querySelector('#changelog-count');
     if (status) status.textContent = validDateRange(changelogQuery) ? `${rows.length} recorded change${rows.length === 1 ? '' : 's'} shown` : 'Invalid date range. Use ISO dates and ensure From is not after To.';
   }
@@ -749,7 +750,7 @@
     bindDateRange(changelogQuery, 'changelog-from', 'changelog-to', renderChangelog);
     bindDatePreset('changelog-preset', changelogQuery, renderChangelog);
     attachFilter('changelog-search', changelogQuery, renderChangelog);
-    document.querySelector('#changelog-export')?.addEventListener('click', () => downloadFile('ding-pbx-changelog.md', `# Changelog export\n\n${filterChangelog().map(entry => `- ${entry.version} · ${entry.date} · ${entry.summary} ([${entry.commit.slice(0, 12)}](https://github.com/Ding-Ding-Projects/asterisk/commit/${entry.commit}))`).join('\n')}\n`, 'text/markdown'));
+    document.querySelector('#changelog-export')?.addEventListener('click', () => downloadFile('ding-pbx-changelog.md', `# Changelog export\n\n${filterChangelog().map(entry => `- ${entry.version} · ${entry.date} · ${entry.summary} ([${entry.commit.slice(0, 12)}](${PUBLIC_REPOSITORY_URL}/commit/${entry.commit}))`).join('\n')}\n`, 'text/markdown'));
     document.querySelector('#changelog-copy')?.addEventListener('click', () => copyText(filterChangelog().map(entry => `${entry.version} ${entry.date} ${entry.summary} ${entry.commit}`).join('\n'), document.querySelector('#changelog-status')));
     renderChangelog();
   }

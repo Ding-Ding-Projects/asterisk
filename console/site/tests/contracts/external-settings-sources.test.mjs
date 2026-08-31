@@ -23,29 +23,27 @@ test('the site feature registry carries a row for external-settings-sources', ()
   assert.ok(registry.features['external-settings-sources'], 'no external-settings-sources row in site/feature-registry.json');
 });
 
-/* This used to read "there is zero network fetch anywhere in app.js", which was a true
- * statement and a blunt proxy for the property that matters: no setting on this site is
- * fed from somebody else's server. On 2026-08-26 the site gained its published-version
- * watch, which asks THIS origin for one small file, and the blanket ban went red for a
- * request that is not an external settings source at all.
- *
- * So the pin is now the real property, and it is a stronger one than the ban was: there
- * is exactly one request in the whole file, it is built by a resolver that refuses to
- * leave this origin, it carries no credentials, and nothing it returns is ever written
- * into a setting. A blanket ban would pass on a build where all four of those had been
- * quietly reversed and a second fetch removed. */
-test('the single request in app.js cannot leave this origin, and no absolute URL is ever fetched', () => {
-  const calls = [...app.matchAll(/\bfetch\(/gu)];
-  assert.equal(calls.length, 1,
-    `expected exactly one fetch in app.js -- the published-version check -- and found ${calls.length}; a second request needs accounting for before this row stays "absent"`);
+/* The site also carries explicit local Ollama calls. The property here is that no
+ * settings source can reach an arbitrary host, so classify the bounded callers instead
+ * of using a blanket fetch count. */
+test('settings sources stay same-origin or approved loopback, and no absolute URL is fetched', () => {
+  const calls = app.split('\n').filter(line => line.includes('fetch('));
+  assert.equal(calls.length, 4,
+    `expected one manifest fetch plus three local Ollama fetches, found ${calls.length}`);
   assert.match(app, /const url=versionManifestUrl\(BASE,document\.baseURI\);/u,
-    'the one request no longer takes its address from versionManifestUrl, which is the function that refuses an off-origin resolution');
+    'the manifest request no longer takes its address from versionManifestUrl, which is the function that refuses an off-origin resolution');
   assert.match(app, /const response=await fetch\(url,\{cache:'no-store',credentials:'omit',signal:controller\.signal\}\);/u,
-    'the one request no longer fetches that resolved address with credentials omitted');
+    'the manifest request no longer fetches that resolved address with credentials omitted');
   assert.match(app, /if\(there\.origin!==here\.origin\)return null;/u,
     'versionManifestUrl no longer refuses an address whose origin is not this document own');
   assert.doesNotMatch(app, /fetch\(\s*['"`]https?:/iu,
     'app.js now fetches an absolute URL literal -- an external settings source may have been added');
+  const localCalls = calls.filter(line => line.includes('endpoint.replace') && line.includes('/api/'));
+  assert.equal(localCalls.length, 2, 'a direct Ollama stream is not built from the approved endpoint');
+  assert.match(app, /function ollamaJsonFetch\(path,endpoint,signal\)\{[^\n]*endpoint\.replace[^\n]*credentials:'omit'/u,
+    'the JSON Ollama reader is not built from the approved endpoint with credentials omitted');
+  assert.match(app, /function validOllamaEndpoint\(value\)\{[^\n]*protocol==='http:'[^\n]*localhost[^\n]*127\.0\.0\.1[^\n]*\[::1\]/u,
+    'the Ollama endpoint allowlist is missing');
 });
 
 test('nothing the published-version check returns is ever written into a setting', () => {

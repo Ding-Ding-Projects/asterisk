@@ -883,7 +883,7 @@ test('the card is wired into the page: applied on every state change, and starte
     'applyState no longer applies the restricted presentation, so a stored record would do nothing');
   assert.match(app, /initDisplayName\(\);initNarration\(\);initSchool\(\);/u,
     'nothing starts the restricted presentation card');
-  assert.match(app, /function init\(\)\{ensureAttentionUI\(\);initSchoolWatch\(\);/u,
+  assert.match(app, /function init\(\)\{ensureBuildIdentity\(\);ensureAttentionUI\(\);initSchoolWatch\(\);/u,
     'nothing subscribes to the shared record at start-up');
 });
 

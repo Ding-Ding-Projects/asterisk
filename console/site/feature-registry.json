@@ -29,7 +29,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/language-modes.md",
         "state": "present"
@@ -77,7 +77,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -115,7 +115,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/funny-levels.md",
         "state": "present"
@@ -163,7 +163,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -202,7 +202,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/dialog-emojis.md",
         "state": "present"
@@ -250,7 +250,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -289,7 +289,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/school-mode.md",
         "state": "present"
@@ -337,7 +337,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -381,7 +381,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/narration.md",
         "state": "present"
@@ -429,7 +429,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -467,7 +467,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/scheduled-settings.md",
         "state": "present"
@@ -515,7 +515,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -538,7 +538,7 @@
         "paths": [],
         "symbols": []
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/external-settings-sources.md",
         "state": "present"
@@ -586,7 +586,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -609,7 +609,7 @@
         "paths": [],
         "symbols": []
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/dim-sum-surprise.md",
         "state": "present"
@@ -657,7 +657,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -699,7 +699,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/regex-builder.md",
         "state": "present"
@@ -747,7 +747,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -789,7 +789,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/non-blocking-notifications.md",
         "state": "present"
@@ -837,7 +837,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -862,7 +862,7 @@
         "paths": [],
         "symbols": []
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/status-hub.md",
         "state": "present"
@@ -910,7 +910,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -953,7 +953,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/material-appearance.md",
         "state": "present"
@@ -1001,7 +1001,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -1044,7 +1044,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/app-logo-customization.md",
         "state": "present"
@@ -1092,7 +1092,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -1138,7 +1138,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/local-file-converter.md",
         "state": "present"
@@ -1186,7 +1186,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -1199,8 +1199,8 @@
       }
     },
     "ollama-suite-manager": {
-      "status": "absent",
-      "note": "site/ollama.html renders a complete-looking local Ollama manager -- endpoint approval, verified-model select, pull and chat controls -- and has no implementation: site/app.js is the only script the page loads and mentions neither Ollama nor its local port, so every control there is decorative. No page links to ollama.html either, so the surface is unreachable as well as inert. Absent as a feature; the markup exists and is dead.",
+      "status": "implemented-unverified",
+      "note": "site/ollama.html is a browser-local equivalent wired by site/app.js. It validates and explicitly approves loopback endpoints, reads bounded version and installed-tag responses, persists a redacted local catalog, keeps official catalog completeness Unknown, and supports bounded capability, pull, and streamed chat requests with cancellation. No cloud model, arbitrary shell command, guessed model, or remote catalog is used. Built-artifact and live local-service evidence remain outstanding, so this row stays implemented-unverified.",
       "implementation": {
         "paths": [
           "site/app.js",
@@ -1218,7 +1218,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/ollama-suite-manager.md",
         "state": "present"
@@ -1266,7 +1266,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -1289,7 +1289,7 @@
         "paths": [],
         "symbols": []
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/browser-style-tabs.md",
         "state": "present"
@@ -1337,7 +1337,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -1360,7 +1360,7 @@
         "paths": [],
         "symbols": []
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/tab-groups-and-searches.md",
         "state": "present"
@@ -1408,7 +1408,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -1445,7 +1445,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/command-palette.md",
         "state": "present"
@@ -1493,7 +1493,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -1520,7 +1520,7 @@
         "paths": [],
         "symbols": []
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/destructive-action-confirmation.md",
         "state": "present"
@@ -1568,7 +1568,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -1612,7 +1612,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/local-version-history.md",
         "state": "present"
@@ -1660,7 +1660,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -1700,7 +1700,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/changelog-viewer.md",
         "state": "present"
@@ -1748,7 +1748,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -1771,7 +1771,7 @@
         "paths": [],
         "symbols": []
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/external-editor-handoff.md",
         "state": "present"
@@ -1819,7 +1819,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -1856,7 +1856,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/complete-exports.md",
         "state": "present"
@@ -1904,7 +1904,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -1946,7 +1946,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/bulk-actions.md",
         "state": "present"
@@ -1994,7 +1994,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -2032,7 +2032,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/accessibility.md",
         "state": "present"
@@ -2080,7 +2080,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -2106,7 +2106,7 @@
         "paths": [],
         "symbols": []
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/responsive-sizing.md",
         "state": "present"
@@ -2154,7 +2154,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -2192,7 +2192,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/personal-vocabulary-upload.md",
         "state": "present"
@@ -2240,7 +2240,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -2321,7 +2321,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/per-element-toy-locks.md",
         "state": "present"
@@ -2369,7 +2369,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -2416,7 +2416,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/support-tickets.md",
         "state": "present"
@@ -2464,7 +2464,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -2487,7 +2487,7 @@
         "paths": [],
         "symbols": []
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/unlock-ladder.md",
         "state": "present"
@@ -2535,7 +2535,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -2562,7 +2562,7 @@
         "paths": [],
         "symbols": []
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/built-in-authenticator.md",
         "state": "present"
@@ -2610,7 +2610,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -2648,7 +2648,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/attention-modes.md",
         "state": "present"
@@ -2696,7 +2696,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -2719,7 +2719,7 @@
         "paths": [],
         "symbols": []
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/browser-extension-download-surfaces.md",
         "state": "present"
@@ -2767,7 +2767,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -2805,7 +2805,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/offline-documentation-browser.md",
         "state": "present"
@@ -2853,7 +2853,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -2891,7 +2891,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/app-display-name.md",
         "state": "present"
@@ -2939,7 +2939,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -2965,7 +2965,7 @@
         "paths": [],
         "symbols": []
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/guided-forms.md",
         "state": "present"
@@ -3013,7 +3013,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -3055,7 +3055,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/bounded-overlays.md",
         "state": "present"
@@ -3103,7 +3103,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -3129,7 +3129,7 @@
         "paths": [],
         "symbols": []
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/context-menu-shortcuts.md",
         "state": "present"
@@ -3177,7 +3177,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -3204,7 +3204,7 @@
         "paths": [],
         "symbols": []
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/long-operation-progress.md",
         "state": "present"
@@ -3252,7 +3252,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -3278,7 +3278,7 @@
         "paths": [],
         "symbols": []
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/in-context-recovery.md",
         "state": "present"
@@ -3326,7 +3326,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -3365,7 +3365,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/provider-markup-rendering.md",
         "state": "present"
@@ -3413,7 +3413,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -3436,7 +3436,7 @@
         "paths": [],
         "symbols": []
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/forge-publishing.md",
         "state": "present"
@@ -3484,7 +3484,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -3522,7 +3522,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/collapsible-filters.md",
         "state": "present"
@@ -3570,7 +3570,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,
@@ -3610,7 +3610,7 @@
           }
         ]
       },
-      "route": "https://ding-ding-projects.github.io/asterisk/",
+      "route": "https://ding-ding-projects.github.io/material-asterisk/",
       "documentation": {
         "path": "console/docs/platform/automatic-updates.md",
         "state": "present"
@@ -3658,7 +3658,7 @@
       "designParity": {
         "state": "not-run",
         "referenceRoute": null,
-        "builtRoute": "https://ding-ding-projects.github.io/asterisk/",
+        "builtRoute": "https://ding-ding-projects.github.io/material-asterisk/",
         "tuple": {
           "state": null,
           "theme": null,

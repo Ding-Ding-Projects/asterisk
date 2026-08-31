@@ -33,11 +33,11 @@ const FIXTURE_MANIFEST = {
   tag: 'ding-pbx-console-v9.9.9-r1',
   sourceCommit: 'a'.repeat(40),
   publishedAt: '2026-01-01T00:00:00Z',
-  releaseUrl: 'https://github.com/Ding-Ding-Projects/asterisk/releases/tag/ding-pbx-console-v9.9.9-r1',
+  releaseUrl: 'https://github.com/Ding-Ding-Projects/material-asterisk/releases/tag/ding-pbx-console-v9.9.9-r1',
   releaseNotesMarkdown: '# Fixture release\n\n- A test-only note with a `code span`, a "quote", and a back\\slash.',
   asset: {
     name: 'Ding-PBX-Console-Setup.exe',
-    url: 'https://github.com/Ding-Ding-Projects/asterisk/releases/download/ding-pbx-console-v9.9.9-r1/Ding-PBX-Console-Setup.exe',
+    url: 'https://github.com/Ding-Ding-Projects/material-asterisk/releases/download/ding-pbx-console-v9.9.9-r1/Ding-PBX-Console-Setup.exe',
     sizeBytes: 123456789,
     sha256: 'b'.repeat(64),
   },
@@ -355,7 +355,7 @@ test('build composes deterministic local output without fetches', async () => {
   const composition = {
     // One document under docs/ becomes one HTML page. This is the row that moves most.
     docPages: count(path => path.startsWith('docs/') && path.endsWith('.html')),
-    // The six published site pages: index, product, documentation, downloads, status, settings.
+    // The nine published site pages, including converter, Ollama, and history delivery.
     sitePages: count(path => !path.startsWith('docs/') && path.endsWith('.html')),
     // 49 vendored Roboto faces plus 30 Archivo / IBM Plex Mono faces, so the published pages
     // fetch no font from anybody.
@@ -364,17 +364,17 @@ test('build composes deterministic local output without fetches', async () => {
     fontSupport: count(path => path.startsWith('assets/') && !path.endsWith('.woff2')),
     // The social preview, plus the six product screenshots the homepage names by hand.
     images: count(path => path.endsWith('.png')),
-    script: count(path => path === 'app.js'),
+    script: count(path => path.endsWith('.js')),
     stylesheet: count(path => path === 'styles.css'),
     // Conditional on the environment rather than on the source: see below.
     identity: count(path => path === 'version.json'),
   };
   assert.deepEqual(composition, {
-    docPages: 136, sitePages: 7, fontFaces: 79, fontSupport: 4,
-    images: 7, script: 1, stylesheet: 1, identity: manifest.buildIdentity.resolved ? 1 : 0,
+    docPages: 136, sitePages: 9, fontFaces: 79, fontSupport: 4,
+    images: 7, script: 2, stylesheet: 1, identity: manifest.buildIdentity.resolved ? 1 : 0,
   });
   const expectedFiles = Object.values(composition).reduce((sum, part) => sum + part, 0);
-  assert.equal(expectedFiles, manifest.buildIdentity.resolved ? 236 : 235);
+  assert.equal(expectedFiles, manifest.buildIdentity.resolved ? 239 : 238);
   // The sum is asserted against the manifest's own length as well, so a file matching none of
   // the rows above cannot be published without failing here -- a composition that only counts
   // the kinds it already knows about would let a new kind through in silence.
@@ -486,6 +486,39 @@ test('rejects a structurally invalid download manifest and falls back to the hon
     assertFallbackPublished(dist);
   } finally {
     await rm(scratch, { recursive: true, force: true });
+  }
+});
+
+test('generated documentation carries host-independent canonical and Open Graph metadata', async () => {
+  await buildWithManifest(ABSENT_MANIFEST_PATH);
+  async function collect(relative = 'docs') {
+    const entries = await readdir(join(root, 'dist', relative), { withFileTypes: true });
+    const files = [];
+    for (const entry of entries) {
+      const child = join(relative, entry.name);
+      if (entry.isDirectory()) files.push(...await collect(child));
+      else if (entry.name.endsWith('.html')) files.push(child);
+    }
+    return files;
+  }
+  const docs = await collect();
+  assert.ok(docs.length > 0, 'the generated documentation set is empty');
+  for (const relative of docs) {
+    const source = await readFile(join(root, 'dist', relative), 'utf8');
+    const meta = (attribute, key) => source.match(new RegExp(`<meta ${attribute}="${key}" content="([^"]+)"`))?.[1] || '';
+    const canonical = source.match(/<link rel="canonical" href="([^"]+)"/)?.[1] || '';
+    assert.ok(canonical, `${relative} has no canonical URL`);
+    const canonicalUrl = new URL(canonical);
+    assert.equal(canonicalUrl.protocol, 'https:', `${relative} canonical URL is not HTTPS`);
+    assert.equal(canonicalUrl.pathname, `/material-asterisk/${relative.replaceAll('\\', '/')}`, `${relative} canonical URL points at another path`);
+    const ogUrl = meta('property', 'og:url');
+    assert.equal(ogUrl, canonical, `${relative} og:url disagrees with canonical URL`);
+    const image = meta('property', 'og:image');
+    assert.equal(new URL(image).protocol, 'https:', `${relative} og:image is not HTTPS`);
+    assert.equal(meta('property', 'og:image:width'), '1280', `${relative} has no 1280px og:image width`);
+    assert.equal(meta('property', 'og:image:height'), '640', `${relative} has no 640px og:image height`);
+    assert.ok(meta('property', 'og:image:alt'), `${relative} has no og:image alt text`);
+    assert.ok(meta('name', 'theme-color'), `${relative} has no theme-color metadata`);
   }
 });
 
