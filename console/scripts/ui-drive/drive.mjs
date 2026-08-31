@@ -34,7 +34,7 @@
  */
 import { connect } from './cdp.mjs';
 import { createHash } from 'node:crypto';
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   CLICKABLE_SELECTOR, CONTROL_READING_SOURCE, OVERLAY_COUNT_SOURCE,
@@ -46,8 +46,30 @@ import {
  * put through it proves nothing: it is no longer the application, it is the wreckage. */
 const PORT = Number(process.argv[2] || 9555);
 const OUT = process.argv[3] || 'C:/Users/cntow/AppData/Local/Temp/dingdrive/clean';
+const METADATA_PATH = process.argv[4] || '';
 mkdirSync(join(OUT, 'shots'), { recursive: true });
-const { send, evaluate, close } = await connect(PORT);
+let metadata = {};
+if (METADATA_PATH) {
+  try { metadata = JSON.parse(readFileSync(METADATA_PATH, 'utf8')); }
+  catch (error) { throw new Error(`ui-drive: metadata file is not valid JSON: ${error.message}`); }
+}
+const relativeMetadataPath = (value, prefix) => typeof value === 'string'
+  && value.startsWith(prefix) && !value.includes(':') && !value.split('/').includes('..') && !value.split('\\').includes('..');
+if (metadata.artifact !== undefined && !relativeMetadataPath(metadata.artifact, 'console/')) {
+  throw new Error('ui-drive: metadata artifact must be a repository-relative console path');
+}
+if (metadata.receiptPath !== undefined && !relativeMetadataPath(metadata.receiptPath, 'console/release/evidence/')) {
+  throw new Error('ui-drive: metadata receiptPath must be a repository-relative evidence path');
+}
+if (metadata.capturePathPrefix !== undefined && !relativeMetadataPath(metadata.capturePathPrefix, 'console/release/captures/')) {
+  throw new Error('ui-drive: metadata capturePathPrefix must be a repository-relative capture path');
+}
+const { send, evaluate, close, targetProof } = await connect({
+  port: PORT,
+  expectedUrl: metadata.expectedUrl,
+  receipt: metadata.receipt,
+  timeoutMs: metadata.timeoutMs || 30000,
+});
 const settle = (ms = 360) => new Promise((r) => setTimeout(r, ms));
 
 /* Read every clickable control's raw readings, keeping the index each one sits at so a
@@ -69,7 +91,7 @@ const clickByText = async (text) => {
   if (!match) return { ok: false, why: 'not present on this screen' };
   /* Re-resolve by the same index against the same selector. A control that moved between
    * the reading and the click is reported as having moved, never clicked blind. */
-  return evaluate(`(() => {
+  const result = await evaluate(`(() => {
     const el = [...document.querySelectorAll(${JSON.stringify(CLICKABLE_SELECTOR)})][${match.index}];
     if (!el || !(el.offsetWidth || el.offsetHeight) || el.disabled) {
       return { ok: false, why: 'the control moved between being read and being clicked' };
@@ -77,6 +99,7 @@ const clickByText = async (text) => {
     el.click();
     return { ok: true };
   })()`);
+  return { ...result, target: { accessibleName: match.label, accessibleNameSource: match.source } };
 };
 
 /* The wizard is identified by its own Skip control, not by a full-viewport element:
@@ -120,7 +143,12 @@ const shoot = async (label) => {
   const bytes = Buffer.from(data, 'base64');
   const file = join(OUT, 'shots', `${pad(shot++)}-${safe(label)}.png`);
   writeFileSync(file, bytes);
-  return { file: file.split(/[\/]/).pop(), sha256: createHash('sha256').update(bytes).digest('hex'), bytes: bytes.length };
+  const filename = file.split(/[\\/]/).pop();
+  return {
+    path: metadata.capturePathPrefix ? `${metadata.capturePathPrefix}/${filename}` : `shots/${filename}`,
+    sha256: createHash('sha256').update(bytes).digest('hex'),
+    bytes: bytes.length,
+  };
 };
 
 const rails = await namedClickables();
@@ -137,12 +165,14 @@ let contaminated = 0;
 
 for (const destination of destinations) {
   if (shot > 700) break;
+  const beforeEnter = await evaluate(STATE);
   const entered = await clickByText(destination);
   if (!entered.ok) { ledger.push({ destination, skipped: entered.why }); continue; }
   await settle();
   const state = await evaluate(STATE);
   if (state.onboardingVisible) { contaminated += 1; ledger.push({ destination, skipped: 'the onboarding panel reappeared; refused to capture' }); continue; }
-  ledger.push({ destination, action: 'enter', after: state, capture: await shoot(`enter-${destination}`) });
+  ledger.push({ destination, action: 'enter', target: entered.target, before: beforeEnter, after: state,
+    changed: JSON.stringify(beforeEnter) !== JSON.stringify(state), capture: await shoot(`enter-${destination}`) });
 
   const controls = (await namedClickables()).map((c) => c.label.slice(0, 56)).filter((n) => n !== destination).slice(0, 10);
   for (const name of controls) {
@@ -157,7 +187,9 @@ for (const destination of destinations) {
      * reading twenty-five committed records left empty because nothing produced it. */
     const panel = await observePanel(evaluate);
     ledger.push({
-      destination, control: name, before, after, panel,
+      destination, control: name,
+      target: clicked.target,
+      before, after, panel,
       changed: before.elements !== after.elements || before.inputs !== after.inputs
         || before.overlays !== after.overlays || before.heading !== after.heading,
       capture: await shoot(`${destination}--${name}`),
@@ -167,9 +199,70 @@ for (const destination of destinations) {
   }
 }
 
+const observedViewport = await evaluate('({ width: window.innerWidth, height: window.innerHeight, devicePixelRatio: window.devicePixelRatio })');
+const provenance = {
+  schemaVersion: 2,
+  capturePathPolicy: 'repository-relative durable capture paths only',
+  candidateSha: metadata.candidateSha ?? null,
+  artifact: metadata.artifact ?? null,
+  artifactSha256: metadata.artifactSha256 ?? null,
+  receiptPath: metadata.receiptPath ?? null,
+  receiptSha256: metadata.receiptSha256 ?? null,
+  targetProof,
+  viewport: metadata.viewport ?? { width: observedViewport.width, height: observedViewport.height },
+  scale: metadata.scale ?? observedViewport.devicePixelRatio,
+  theme: metadata.theme ?? null,
+  staleness: metadata.staleness ?? { checked: false, stale: null, reason: 'capture run did not receive a current build staleness proof' },
+  currentness: metadata.currentness ?? { checked: false, reason: 'capture run did not receive a candidate currentness proof' },
+  privacy: {
+    secretPayloadRecorded: false,
+    privatePayloadValuesRecorded: false,
+    verdict: 'pass',
+    networkCalls: Number(metadata.networkCalls ?? 0),
+  },
+  promotion: metadata.candidateSha && metadata.artifactSha256 && metadata.receiptPath && metadata.receiptSha256
+    && metadata.theme && metadata.capturePathPrefix && metadata.staleness?.checked === true
+    && metadata.staleness?.stale === false && metadata.currentness?.checked === true
+    ? 'refused-unverified-drive-output-until-strict-ledger-promotion'
+    : 'refused-missing-candidate-artifact-receipt-theme-currentness-or-capture-binding',
+};
+const strictEntries = ledger.map((entry) => {
+  if (entry.skipped) return entry;
+  const featureId = entry.control || entry.destination;
+  return {
+    ...entry,
+    evidence: {
+      schemaVersion: 1,
+      status: 'unverified',
+      featureId,
+      candidateSha: provenance.candidateSha,
+      artifact: provenance.artifact,
+      artifactSha256: provenance.artifactSha256,
+      launchReceiptPath: provenance.receiptPath,
+      launchReceiptSha256: provenance.receiptSha256,
+      targetProof: provenance.targetProof,
+      interaction: {
+        action: entry.action === 'enter' ? `entered ${entry.destination}` : `clicked ${entry.control}`,
+        accessibleName: entry.target?.accessibleName ?? entry.control ?? entry.destination,
+        accessibleNameSource: entry.target?.accessibleNameSource ?? 'text',
+        preState: entry.before ?? {},
+        postState: entry.after ?? {},
+        changed: entry.changed === true,
+      },
+      capture: entry.capture ? { ...entry.capture } : null,
+      viewport: provenance.viewport,
+      scale: provenance.scale,
+      theme: provenance.theme,
+      staleness: provenance.staleness,
+      currentness: provenance.currentness,
+      privacy: provenance.privacy,
+    },
+  };
+});
 writeFileSync(join(OUT, 'ledger.json'), JSON.stringify({
   generatedAt: new Date().toISOString(),
-  artifact: 'console/dist built renderer under Electron on an off-screen Windows desktop',
+  ...provenance,
+  artifactDescription: 'console/dist built renderer under Electron on an off-screen Windows desktop',
   driver: 'loopback Chrome DevTools Protocol, exactly one page target verified before any evaluation',
   onboardingDismissedBeforeCapture: true,
   capturesRefusedBecauseTheOnboardingPanelReappeared: contaminated,
@@ -179,7 +272,7 @@ writeFileSync(join(OUT, 'ledger.json'), JSON.stringify({
   changedCount: ledger.filter((e) => e.changed).length,
   panelsObserved: ledger.filter((e) => e.panel && e.panel.panelFound).length,
   panelControlsRead: ledger.reduce((n, e) => n + (e.panel ? e.panel.observedPanelControls.length : 0), 0),
-  ledger,
+  ledger: strictEntries,
 }, null, 2));
 const panels = ledger.filter((e) => e.panel && e.panel.panelFound).length;
 console.log(`destinations=${destinations.length} steps=${ledger.length} captures=${shot} `
