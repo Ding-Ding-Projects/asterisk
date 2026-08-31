@@ -66,6 +66,11 @@ const packagedBroker = join(unpacked, 'resources', 'native-messaging', 'Ding-PBX
 for (const path of [packagedRootfs, packagedRootfsProvenance, packagedUpdateManifest, packagedNativeHost, packagedSecureHelper, packagedBroker]) {
   if (!existsSync(path) || !statSync(path).isFile()) throw new Error(`Packaged resource is missing from the fresh unpacked output: ${path}`);
 }
+for (const path of [packagedNativeHost, packagedSecureHelper, packagedBroker]) {
+  const sidecar = `${path}.sha256`;
+  const expected = `${digest(path)}  ${path.split(/[\\/]/u).at(-1)}`;
+  if (!existsSync(sidecar) || readFileSync(sidecar, 'utf8').trim() !== expected) throw new Error(`Packaged native resource digest proof is missing or stale: ${sidecar}`);
+}
 const rootfsProvenance = JSON.parse(readFileSync(packagedRootfsProvenance, 'utf8'));
 if (rootfsProvenance.sourceCommit !== candidateCommit || rootfsProvenance.sha256 !== digest(packagedRootfs) || rootfsProvenance.bytes !== statSync(packagedRootfs).size) {
   throw new Error('Packaged Asterisk rootfs provenance does not match the candidate commit, bytes, and digest.');
