@@ -140,3 +140,15 @@ test('packaging script clears generated output and checks fresh packaged resourc
   assert.match(source, /executable: record\(executable\)/u);
   assert.match(source, /isUnsignedPortableExecutable\(readFileSync\(setup\[0\]\.path\)\)/u);
 });
+
+test('release path invokes the target verifier and exposes a receipt-only post-install wrapper', () => {
+  const root = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..', '..');
+  const build = readFileSync(join(root, 'console', 'scripts', 'build-installer.ps1'), 'utf8');
+  assert.match(build, /verify-squirrel-artifacts\.ps1/u);
+  assert.match(build, /packaging-provenance\.json/u);
+  assert.match(build, /squirrel-artifact-receipt\.json/u);
+  assert.match(build, /RequiredPackageEntry '\*lib\/net45\/resources\/app\.asar'/u);
+  const wrapper = readFileSync(join(root, 'console', 'scripts', 'validate-squirrel-runtime-receipt.bat'), 'utf8');
+  assert.match(wrapper, /validate-squirrel-runtime-receipt\.mjs/u);
+  assert.match(wrapper, /Usage: validate-squirrel-runtime-receipt\.bat/u);
+});
