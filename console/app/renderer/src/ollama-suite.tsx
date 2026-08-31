@@ -634,6 +634,20 @@ export function OllamaSuite({ client, initialSnapshot, className = '' }: OllamaS
     return () => { active = false; unsubscribe(); };
   }, [client, initialSnapshot]);
 
+  useEffect(() => {
+    if (state.view !== 'pulls') return undefined;
+    /* The local service exposes durable pull records rather than a renderer event
+     * stream. Poll only while the pull view is open, so byte progress, cancellation,
+     * and mixed terminal outcomes become visible without inventing a background
+     * websocket or keeping the service busy when the user is elsewhere. */
+    const timer = window.setInterval(() => {
+      void client.readSnapshot().then((response) => {
+        if (response.ok) dispatch({ type: 'snapshot-loaded', snapshot: response.value });
+      });
+    }, 1_500);
+    return () => window.clearInterval(timer);
+  }, [client, state.view]);
+
   const filters = state.catalogFilters;
   const evaluateSearch = useCallback((scope: SearchScope, search: RegexBuilderState) => {
     const generation = searchGeneration.current[scope] + 1;

@@ -128,6 +128,7 @@ import {
 } from './narration';
 import { NULL_SPEECH_ENGINE, createWebSpeechEngine } from './narration-engine';
 import { HEADER_BYTES, readHeaderFacts } from '../../../control-plane/image-facts';
+import type { LogoCacheRecord, LogoConversionResult } from '../../../shared/logo';
 import {
   DEFAULT_PRESET_ID, LOGO_PRESETS, acceptLogo, chooseCustom, choosePreset, currentChoice, resetLogo,
 } from './logo-customization';
@@ -556,6 +557,8 @@ export class App extends Base {
   /** A custom mark is held as a renderer object URL only for this session. The
    * validated local cache remains the source of persistence, never this URL. */
   private logoPreviewUrl: string | undefined;
+  private logoCacheRecord: LogoCacheRecord | undefined;
+  private logoBusy = false;
 
   /* --- command palette ---------------------------------------------------------------
    * Built once: it is derived from the compiled design, which cannot change while the
@@ -1336,6 +1339,7 @@ export class App extends Base {
       this.restorePartnerSettings();
       this.applyRestoredLiveConsoleSettings();
       this.refreshLogoStatus();
+      void this.restoreLogoCache();
       this.refreshSchoolStatus();
       this.restoreAppearance();
       this.forceUpdate();
@@ -2911,6 +2915,71 @@ What you can do: ${offered}.` : ''}`);
 
   // ---------------------------------------------------------------- the console mark
 
+  private static bytesToBase64(bytes: Uint8Array): string {
+    let encoded = '';
+    for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+      encoded += String.fromCharCode(...bytes.subarray(offset, Math.min(offset + 0x8000, bytes.length)));
+    }
+    return typeof btoa === 'function' ? btoa(encoded) : '';
+  }
+
+  private static base64ToBytes(encoded: string): Uint8Array | undefined {
+    if (!/^[A-Za-z0-9+/]*={0,2}$/u.test(encoded) || encoded.length % 4 === 1 || typeof atob !== 'function') return undefined;
+    try {
+      const raw = atob(encoded);
+      const bytes = new Uint8Array(raw.length);
+      for (let index = 0; index < raw.length; index += 1) bytes[index] = raw.charCodeAt(index);
+      return bytes;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private validLogoCacheRecord(value: unknown): value is LogoCacheRecord & { assets: Array<LogoCacheRecord['assets'][number] & { bytesBase64?: string }> } {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const record = value as Partial<LogoCacheRecord>;
+    if (record.schemaVersion !== 1 || record.packageIdentity !== 'ding-pbx-console' || record.customLogoActive !== true || !Array.isArray(record.assets) || record.assets.length === 0) return false;
+    return record.assets.every((asset) => {
+      const receipt = asset?.receipt;
+      return typeof asset?.filename === 'string'
+        && !!receipt
+        && receipt.decoder === 'isolated'
+        && receipt.roundTripVerified === true
+        && typeof receipt.sha256 === 'string'
+        && /^[0-9a-f]{64}$/iu.test(receipt.sha256)
+        && Number.isSafeInteger(receipt.bytes)
+        && receipt.bytes > 0;
+    });
+  }
+
+  /** Rehydrate only service-validated cache metadata and an optional service-provided
+   * asset payload. The current service returns redacted receipt metadata, so a missing
+   * asset payload keeps the shipped mark visible rather than guessing a file URL. */
+  private async restoreLogoCache(): Promise<void> {
+    const response = await this.request('logo.cache.read', { payload: { kind: 'read', includeAssets: true } });
+    if (!response?.ok || !this.validLogoCacheRecord(response.data)) return;
+    this.logoCacheRecord = response.data;
+    const asset = response.data.assets[0] as LogoCacheRecord['assets'][number] & { bytesBase64?: string };
+    if (!asset.bytesBase64) {
+      this.logoStatusLine = 'A validated custom logo cache exists, but this renderer received no image bytes to display; the shipped mark is shown.';
+      this.forceUpdate();
+      return;
+    }
+    const bytes = App.base64ToBytes(asset.bytesBase64);
+    if (!bytes) {
+      this.logoStatusLine = 'The custom logo cache payload was not valid base64; the shipped mark is shown.';
+      this.forceUpdate();
+      return;
+    }
+    const blob = new Blob([bytes], { type: asset.filename.endsWith('.webp') ? 'image/webp' : 'image/png' });
+    if (typeof URL.createObjectURL !== 'function') return;
+    this.clearLogoPreview();
+    this.logoPreviewUrl = URL.createObjectURL(blob);
+    chooseCustom(this.durableStorage.storage, `logo/cache/${asset.filename}`);
+    this.logoStatusLine = 'A validated custom logo was restored from the local cache.';
+    this.forceUpdate();
+  }
+
   /** Resolve only a package-local preset or a validated, in-session object URL.
    * A persisted custom choice has no bytes in the renderer after relaunch, so the
    * shipped mark stays visible until the user selects that local source again. */
@@ -2947,7 +3016,9 @@ What you can do: ${offered}.` : ''}`);
    * through the check written to catch it.
    */
   private pickLogo(file: File): void {
-    void file.slice(0, HEADER_BYTES).arrayBuffer().then((head) => {
+    if (this.logoBusy) return;
+    this.logoBusy = true;
+    void file.slice(0, HEADER_BYTES).arrayBuffer().then(async (head) => {
       const bytes = new Uint8Array(head);
       const facts = readHeaderFacts(bytes);
       if (!facts) {
@@ -2965,6 +3036,40 @@ What you can do: ${offered}.` : ''}`);
         this.rejectLogo(file, verdict.problems.map((problem) => problem.message).join(' '));
         return;
       }
+      if (file.size > 8 * 1024 * 1024) {
+        this.rejectLogo(file, 'That image exceeds the local service input limit.');
+        return;
+      }
+      const fullBytes = new Uint8Array(await file.arrayBuffer());
+      const source = {
+        kind: 'local' as const,
+        bytesBase64: App.bytesToBase64(fullBytes),
+        metadata: { filename: file.name, declaredMime: file.type },
+      };
+      const inspectedResponse = await this.request('logo.inspect', { payload: source });
+      const inspected = inspectedResponse?.ok ? inspectedResponse.data as { ok?: boolean } : undefined;
+      if (!inspected?.ok) {
+        this.rejectLogo(file, inspectedResponse?.message ?? 'The local logo inspector did not accept this image.');
+        return;
+      }
+      const conversion = await this.request('logo.convert', {
+        payload: {
+          source,
+          crop: { fit: 'contain', crop: { x: 0, y: 0, width: 1, height: 1 }, focalPoint: { x: 0.5, y: 0.5 }, safeArea: { top: 0.08, right: 0.08, bottom: 0.08, left: 0.08 }, background: { kind: 'transparent' } },
+          targets: [{ format: 'png', width: 20, height: 20, alpha: true }, { format: 'png', width: 64, height: 64, alpha: true }],
+        },
+      });
+      const converted = conversion?.ok ? conversion.data as LogoConversionResult : undefined;
+      if (!converted || !converted.ok) {
+        this.rejectLogo(file, conversion?.message ?? 'The local logo converter did not accept this image.');
+        return;
+      }
+      const cached = await this.request('logo.cache.write', { payload: { kind: 'write', result: converted } });
+      if (!cached?.ok || !this.validLogoCacheRecord(cached.data)) {
+        this.rejectLogo(file, cached?.message ?? 'The validated logo could not be written to the local cache.');
+        return;
+      }
+      this.logoCacheRecord = cached.data;
       this.pickedFileNames.set('logo_pick', file.name);
       this.setLogoPreview(file);
       chooseCustom(this.durableStorage.storage, `logo/${file.name}`);
@@ -2972,7 +3077,8 @@ What you can do: ${offered}.` : ''}`);
       /* Stated before it becomes the mark rather than discovered when it looks soft in the
        * title bar. */
       for (const notice of verdict.notices) this.toast(notice);
-    }).catch(() => this.rejectLogo(file, 'That file could not be read from disk.'));
+    }).catch(() => this.rejectLogo(file, 'That file could not be read from disk or converted locally.'))
+      .finally(() => { this.logoBusy = false; });
   }
 
   /** Nothing partially applied: a rejected picture leaves the previous mark exactly as it
@@ -3507,6 +3613,13 @@ What you can do: ${offered}.` : ''}`);
     if (control?.id === 'logo_reset' && value === true) {
       resetLogo(this.durableStorage.storage);
       this.clearLogoPreview();
+      this.logoCacheRecord = undefined;
+      void this.request('logo.cache.clear', { payload: { kind: 'reset' } }).then((response) => {
+        if (!response?.ok) {
+          this.logoStatusLine = response?.message ?? 'The local logo cache could not be cleared; the shipped mark remains active for this session.';
+          this.forceUpdate();
+        }
+      });
       this.pickedFileNames.delete('logo_pick');
       this.refreshLogoStatus();
       return;
