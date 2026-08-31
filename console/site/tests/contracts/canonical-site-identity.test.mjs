@@ -1,6 +1,6 @@
 /**
  * Contract: every current site identity source agrees on the maintained repository
- * and Day Teet Hui path. Historical records may mention the former path elsewhere,
+ * and published Pages path. Historical records may mention the former path elsewhere,
  * but executable current sources and registry routes must not.
  */
 import assert from 'node:assert/strict';
@@ -28,12 +28,12 @@ test('build, history delivery, and resolver carry the maintained identity', () =
     'a current executable source still carries the retired identity');
 });
 
-test('every registry route is current and uses the canonical Day Teet Hui origin', () => {
+test('every registry route is current and uses the canonical Pages origin', () => {
   const rows = Object.values(registry.features || {});
   assert.ok(rows.length > 0, 'the site registry is empty');
   for (const row of rows) {
-    assert.equal(row.route, SITE_ORIGIN, 'a feature route does not use the maintained Day Teet Hui origin');
-    if (row.designParity?.builtRoute) assert.equal(row.designParity.builtRoute, SITE_ORIGIN, 'a built route does not use the maintained Day Teet Hui origin');
+    assert.equal(row.route, SITE_ORIGIN, 'a feature route does not use the maintained Pages origin');
+    if (row.designParity?.builtRoute) assert.equal(row.designParity.builtRoute, SITE_ORIGIN, 'a built route does not use the maintained Pages origin');
   }
   assert.equal(REPOSITORY_URL, 'https://github.com/Ding-Ding-Projects/material-asterisk');
 });

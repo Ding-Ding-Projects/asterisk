@@ -54,7 +54,7 @@ test('no live status-hub project, session card, or question-card logic exists in
 test('the status page has no polling, session key, or authenticated connection to a live hub', () => {
   /* The site now carries three explicit Ollama loopback calls in addition to the
    * same-origin version check. Count the callers semantically, so a new arbitrary
-   * network route still turns this Chut red without banning the documented local API. */
+   * network route still turns this guard red without banning the documented local API. */
   const fetchLines=app.split('\n').filter(line=>line.includes('fetch('));
   assert.equal(fetchLines.length,4,
     `expected one same-origin manifest request plus three local Ollama requests, found ${fetchLines.length}`);

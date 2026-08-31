@@ -1,7 +1,7 @@
 /**
  * Contract: the live release-manifest resolver queries the maintained repository,
  * never the retired slug. The source comments may preserve historical context, so
- * the executable scan removes comments before applying the retired-slug Chut.
+ * the executable scan removes comments before applying the retired-slug guard.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -25,7 +25,7 @@ test('the resolver names the maintained repository', () => {
   assert.match(source, /const REPO_SLUG = `\$\{OWNER\}\/\$\{REPO\}`;/u);
   assert.match(source, /const API_ROOT = 'repos\/Ding-Ding-Projects\/material-asterisk';/u);
 });
-test('every GitHui API query is explicitly bound to the maintained repository', () => {
+test('every GitHub API query is explicitly bound to the maintained repository', () => {
   assert.match(source, /execFileSync\('gh', \['api', pathAndQuery\]/u,
     'the resolver must pass the complete canonical API path as one gh api argument');
   assert.doesNotMatch(source, /\['api',\s*'-R'/u,
