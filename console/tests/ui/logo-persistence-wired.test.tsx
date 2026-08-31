@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { App } from '../../app/renderer/src/App.tsx';
+import { constrainLogoPickerValues } from '../../app/renderer/src/logo-picker-capability.ts';
 
 const appPath = new URL('../../app/renderer/src/App.tsx', import.meta.url);
 
@@ -77,4 +78,9 @@ test('restart rehydrates a service-provided validated logo payload into title-ba
   assert.match(logo.source, /^blob:/u);
   assert.equal(logo.label, 'Custom local app logo');
   assert.equal(logo.source.includes('logo-png.png'), false);
+});
+
+test('the rendered logo file input advertises only the decoder-supported PNG format', () => {
+  const groups = constrainLogoPickerValues([{ ctls: [{ id: 'logo_pick', accept: 'image/png,image/jpeg,image/webp,image/svg+xml' }] }]) as Array<{ ctls: Array<{ accept: string }> }>;
+  assert.equal(groups[0].ctls[0].accept, 'image/png,.png');
 });

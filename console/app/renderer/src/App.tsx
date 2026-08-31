@@ -92,6 +92,7 @@ import {
 } from './display-name';
 import { withTitleBarName } from './title-bar-name';
 import { LogoMark, presetLogoSource } from './logo-mark';
+import { constrainLogoPickerValues } from './logo-picker-capability';
 import { setEmojisEnabled } from './dialog-emojis';
 import {
   classifyDialogKind, copyLanguageFor, styledDialog, styledToastText, type MessageStorage,
@@ -2975,7 +2976,7 @@ What you can do: ${offered}.` : ''}`);
     if (typeof URL.createObjectURL !== 'function') return;
     this.clearLogoPreview();
     this.logoPreviewUrl = URL.createObjectURL(blob);
-    chooseCustom(this.durableStorage.storage, `logo/cache/${asset.filename}`);
+    chooseCustom(this.durableStorage.storage, `logo/cache/${asset.receipt.sha256}`);
     this.logoStatusLine = 'A validated custom logo was restored from the local cache.';
     this.forceUpdate();
   }
@@ -3036,6 +3037,10 @@ What you can do: ${offered}.` : ''}`);
         this.rejectLogo(file, verdict.problems.map((problem) => problem.message).join(' '));
         return;
       }
+      if (verdict.format !== 'png') {
+        this.rejectLogo(file, 'Only PNG custom logos are enabled because the bundled isolated decoder supports PNG derivatives only. JPEG, WebP, and SVG remain unavailable in this build.');
+        return;
+      }
       if (file.size > 8 * 1024 * 1024) {
         this.rejectLogo(file, 'That image exceeds the local service input limit.');
         return;
@@ -3072,7 +3077,12 @@ What you can do: ${offered}.` : ''}`);
       this.logoCacheRecord = cached.data;
       this.pickedFileNames.set('logo_pick', file.name);
       this.setLogoPreview(file);
-      chooseCustom(this.durableStorage.storage, `logo/${file.name}`);
+      const receiptId = cached.data.assets[0]?.receipt.sha256;
+      if (!receiptId) {
+        this.rejectLogo(file, 'The local logo cache returned no opaque derivative receipt.');
+        return;
+      }
+      chooseCustom(this.durableStorage.storage, `logo/cache/${receiptId}`);
       this.refreshLogoStatus(verdict.notices);
       /* Stated before it becomes the mark rather than discovered when it looks soft in the
        * title bar. */
@@ -8707,6 +8717,7 @@ It is shown once. The far end needs it to register.`);
     if (screen === 'servers') this.prepareServersScreen();
     if (screen === LOCAL_HISTORY_SCREEN_ID) this.prepareLocalHistoryScreen();
     const values = super.renderVals() as Record<string, unknown>;
+    values.groups = constrainLogoPickerValues(values.groups);
     const bridge = this.bridge();
     const readings = this.readings[screen];
     const note = this.note(screen);

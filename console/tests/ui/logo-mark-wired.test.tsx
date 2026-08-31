@@ -51,4 +51,3 @@ test('title-bar consumption replaces the design symbol without touching the conn
   assert.match(markup, /PBX disconnected/u);
   assert.equal(markup.includes('deployed_code'), false);
 });
-

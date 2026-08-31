@@ -152,7 +152,7 @@ test('picking a file runs it through acceptLogo before it can become the mark, a
   const body = app.slice(start, app.indexOf('\n  }', start));
   assert.match(body, /const verdict = acceptLogo\(bytes, facts, /);
   assert.match(body, /if \('problems' in verdict\) \{/);
-  assert.match(body, /chooseCustom\(this\.durableStorage\.storage, `logo\/\$\{file\.name\}`\);/);
+  assert.match(body, /chooseCustom\(this\.durableStorage\.storage, `logo\/cache\/\$\{receiptId\}`\);/);
 });
 
 test('the design renders the preset picker, the file picker, reset and a status readout, all answered', () => {
@@ -207,4 +207,19 @@ test('custom picture bytes stay in a renderer object URL and never enter control
   ].map(read).join('\n');
   assert.doesNotMatch(controlPlaneFiles, /writeFile[^(]*logo|logo[^(]*writeFile/i,
     'the control plane now writes logo bytes somewhere -- the "storedAt is a fake path" gap this pins may be fixed');
+});
+
+test('the visible picker is constrained to PNG because the packaged isolated decoder is PNG-only', () => {
+  const picker = read('app/renderer/src/logo-picker-capability.ts');
+  assert.match(picker, /PNG_ACCEPT = 'image\/png,\.png'/u);
+  assert.match(picker, /control\.id === 'logo_pick'/u);
+  assert.match(app, /verdict\.format !== 'png'/u);
+  assert.match(app, /isolated decoder supports PNG derivatives only/u);
+  assert.match(app, /JPEG, WebP, and SVG remain unavailable/u);
+});
+
+test('the durable logo marker is receipt-derived and never includes the source filename', () => {
+  assert.match(app, /const receiptId = cached\.data\.assets\[0\]\?\.receipt\.sha256/u);
+  assert.match(app, /logo\/cache\/\$\{receiptId\}/u);
+  assert.doesNotMatch(app, /chooseCustom\(this\.durableStorage\.storage, `logo\/\$\{file\.name\}`/u);
 });
