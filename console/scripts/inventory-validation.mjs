@@ -1,4 +1,3 @@
-import { existsSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
@@ -38,44 +37,9 @@ function escaped(value) { return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
  * not weakened merely because the implementation cone is absent locally. */
 const trackedSourceCache = new Map();
 const symbolValidationCache = new Set();
-const verifiedPeerCache = new Map();
-function verifiedPeerRoot(root) {
-  if (verifiedPeerCache.has(root)) return verifiedPeerCache.get(root);
-  let selected = null;
-  try {
-    const current = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
-    const listing = execFileSync('git', ['worktree', 'list', '--porcelain'], { cwd: root, encoding: 'utf8' });
-    const paths = [...listing.matchAll(/^worktree (.+)$/gmi)].map((match) => match[1].trim()).filter((path) => path !== root);
-    for (const path of paths) {
-      try {
-        if (execFileSync('git', ['rev-parse', 'HEAD'], { cwd: path, encoding: 'utf8' }).trim() !== current) continue;
-        execFileSync('git', ['diff', '--quiet', 'HEAD', '--', 'console/app', 'console/control-plane', 'console/site'], { cwd: path, stdio: 'ignore' });
-        selected = path;
-        break;
-      } catch { /* A dirty or unavailable peer cannot supply commit-bound evidence. */ }
-    }
-  } catch { /* Git-object fallback below remains authoritative. */ }
-  verifiedPeerCache.set(root, selected);
-  return selected;
-}
 function trackedSource(root, relativePath) {
   const cacheKey = `${root}\0${relativePath}`;
   if (trackedSourceCache.has(cacheKey)) return trackedSourceCache.get(cacheKey);
-  const absolute = resolve(root, relativePath);
-  if (existsSync(absolute)) {
-    const source = readFileSync(absolute, 'utf8');
-    trackedSourceCache.set(cacheKey, source);
-    return source;
-  }
-  const peerRoot = verifiedPeerRoot(root);
-  if (peerRoot) {
-    const peerAbsolute = resolve(peerRoot, relativePath);
-    if (existsSync(peerAbsolute)) {
-      const source = readFileSync(peerAbsolute, 'utf8');
-      trackedSourceCache.set(cacheKey, source);
-      return source;
-    }
-  }
   try {
     const source = execFileSync('git', ['show', `HEAD:${relativePath.replaceAll('\\', '/')}`], { cwd: root, encoding: 'utf8' });
     trackedSourceCache.set(cacheKey, source);
@@ -99,7 +63,7 @@ function sourceHasExactSymbol(root, symbol) {
   if (!(declaration.test(source) || member.test(source) || importOrMount.test(source) || imported)) throw new Error(`symbol ${symbol.path}#${symbol.name}: exact declaration or registration is absent`);
   symbolValidationCache.add(cacheKey);
 }
-function validateSymbols(value, label, root, sourceChecks = true) {
+export function validateSymbols(value, label, root, sourceChecks = true) {
   if (!Array.isArray(value)) throw new Error(`${label}: symbols array required`);
   for (const symbol of value) {
     exactKeys(symbol, ['path', 'name', 'kind'], `${label} symbol`);

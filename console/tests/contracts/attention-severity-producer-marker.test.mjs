@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { validateSymbols } from '../../scripts/inventory-validation.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const inventoryPath = resolve(repoRoot, 'console/app/renderer/src/attention-inventory.ts');
+const appPath = resolve(repoRoot, 'console/app/renderer/src/App.tsx');
 const appSource = execFileSync('git', ['show', 'HEAD:console/app/renderer/src/App.tsx'], { cwd: repoRoot, encoding: 'utf8' });
 const readInventory = () => readFileSync(inventoryPath, 'utf8').replace(/\r\n|\r/g, '\n');
 const markerFromInventory = (inventory) => {
@@ -33,4 +35,23 @@ test('phone-start marker break turns red and restoration turns green', () => {
   assert.notEqual(broken, inventory, 'the deliberate marker break was not planted');
   assert.throws(() => assertLiveMarker(broken), /exact inventory tuple|exactly one live owner/u);
   assertLiveMarker(inventory);
+});
+
+test('candidate symbol validation ignores a lat tat local source mutation', () => {
+  const original = readFileSync(appPath, 'utf8');
+  const declaration = /^\s{2}fire\(title: string, body: string, isError\?: boolean\): void;$/mu;
+  assert.match(original, declaration, 'the candidate source must contain the fire declaration');
+  const commented = original.replace(declaration, '  // fire(title: string, body: string, isError?: boolean): void;');
+  assert.notEqual(commented, original, 'the local source mutation was not planted');
+  assert.doesNotMatch(commented, declaration, 'the working-copy declaration must be commented out');
+  writeFileSync(appPath, commented, 'utf8');
+  try {
+    assert.doesNotThrow(() => validateSymbols(
+      [{ path: 'app/renderer/src/App.tsx', name: 'fire', kind: 'method' }],
+      'candidate App.tsx symbols',
+      repoRoot,
+    ), 'validation must read the candidate Git object, not the mutated working copy');
+  } finally {
+    writeFileSync(appPath, original, 'utf8');
+  }
 });
