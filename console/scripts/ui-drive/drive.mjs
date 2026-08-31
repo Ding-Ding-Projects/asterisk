@@ -165,12 +165,14 @@ let contaminated = 0;
 
 for (const destination of destinations) {
   if (shot > 700) break;
+  const beforeEnter = await evaluate(STATE);
   const entered = await clickByText(destination);
   if (!entered.ok) { ledger.push({ destination, skipped: entered.why }); continue; }
   await settle();
   const state = await evaluate(STATE);
   if (state.onboardingVisible) { contaminated += 1; ledger.push({ destination, skipped: 'the onboarding panel reappeared; refused to capture' }); continue; }
-  ledger.push({ destination, action: 'enter', target: entered.target, after: state, capture: await shoot(`enter-${destination}`) });
+  ledger.push({ destination, action: 'enter', target: entered.target, before: beforeEnter, after: state,
+    changed: JSON.stringify(beforeEnter) !== JSON.stringify(state), capture: await shoot(`enter-${destination}`) });
 
   const controls = (await namedClickables()).map((c) => c.label.slice(0, 56)).filter((n) => n !== destination).slice(0, 10);
   for (const name of controls) {
@@ -199,24 +201,64 @@ for (const destination of destinations) {
 
 const observedViewport = await evaluate('({ width: window.innerWidth, height: window.innerHeight, devicePixelRatio: window.devicePixelRatio })');
 const provenance = {
+  schemaVersion: 2,
+  capturePathPolicy: 'repository-relative durable capture paths only',
   candidateSha: metadata.candidateSha ?? null,
   artifact: metadata.artifact ?? null,
   artifactSha256: metadata.artifactSha256 ?? null,
   receiptPath: metadata.receiptPath ?? null,
+  receiptSha256: metadata.receiptSha256 ?? null,
   targetProof,
   viewport: metadata.viewport ?? { width: observedViewport.width, height: observedViewport.height },
   scale: metadata.scale ?? observedViewport.devicePixelRatio,
   theme: metadata.theme ?? null,
+  staleness: metadata.staleness ?? { checked: false, stale: null, reason: 'capture run did not receive a current build staleness proof' },
+  currentness: metadata.currentness ?? { checked: false, reason: 'capture run did not receive a candidate currentness proof' },
   privacy: {
     secretPayloadRecorded: false,
     privatePayloadValuesRecorded: false,
     verdict: 'pass',
     networkCalls: Number(metadata.networkCalls ?? 0),
   },
-  promotion: metadata.candidateSha && metadata.artifactSha256 && metadata.receiptPath && metadata.theme
-    ? 'eligible-for-record-validation'
-    : 'refused-missing-candidate-artifact-receipt-or-theme-binding',
+  promotion: metadata.candidateSha && metadata.artifactSha256 && metadata.receiptPath && metadata.receiptSha256
+    && metadata.theme && metadata.capturePathPrefix && metadata.staleness?.checked === true
+    && metadata.staleness?.stale === false && metadata.currentness?.checked === true
+    ? 'refused-unverified-drive-output-until-strict-ledger-promotion'
+    : 'refused-missing-candidate-artifact-receipt-theme-currentness-or-capture-binding',
 };
+const strictEntries = ledger.map((entry) => {
+  if (entry.skipped) return entry;
+  const featureId = entry.control || entry.destination;
+  return {
+    ...entry,
+    evidence: {
+      schemaVersion: 1,
+      status: 'unverified',
+      featureId,
+      candidateSha: provenance.candidateSha,
+      artifact: provenance.artifact,
+      artifactSha256: provenance.artifactSha256,
+      launchReceiptPath: provenance.receiptPath,
+      launchReceiptSha256: provenance.receiptSha256,
+      targetProof: provenance.targetProof,
+      interaction: {
+        action: entry.action === 'enter' ? `entered ${entry.destination}` : `clicked ${entry.control}`,
+        accessibleName: entry.target?.accessibleName ?? entry.control ?? entry.destination,
+        accessibleNameSource: entry.target?.accessibleNameSource ?? 'text',
+        preState: entry.before ?? {},
+        postState: entry.after ?? {},
+        changed: entry.changed === true,
+      },
+      capture: entry.capture ? { ...entry.capture } : null,
+      viewport: provenance.viewport,
+      scale: provenance.scale,
+      theme: provenance.theme,
+      staleness: provenance.staleness,
+      currentness: provenance.currentness,
+      privacy: provenance.privacy,
+    },
+  };
+});
 writeFileSync(join(OUT, 'ledger.json'), JSON.stringify({
   generatedAt: new Date().toISOString(),
   ...provenance,
@@ -230,7 +272,7 @@ writeFileSync(join(OUT, 'ledger.json'), JSON.stringify({
   changedCount: ledger.filter((e) => e.changed).length,
   panelsObserved: ledger.filter((e) => e.panel && e.panel.panelFound).length,
   panelControlsRead: ledger.reduce((n, e) => n + (e.panel ? e.panel.observedPanelControls.length : 0), 0),
-  ledger,
+  ledger: strictEntries,
 }, null, 2));
 const panels = ledger.filter((e) => e.panel && e.panel.panelFound).length;
 console.log(`destinations=${destinations.length} steps=${ledger.length} captures=${shot} `

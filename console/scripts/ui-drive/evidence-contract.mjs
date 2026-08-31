@@ -16,6 +16,7 @@ const LOOPBACK = new Set(['127.0.0.1', 'localhost', '::1']);
 const SECRET_KEY = /(?:secret|password|token|credential|privateKey|private_key|accessKey|access_key)/iu;
 const SAFE_SECRET_METADATA = /(?:length|bytes|sha256|hash|present|recorded|redacted|omitted|count|available|source|status|policy|verdict)/iu;
 const BASE32_SECRET = /[A-Z2-7]{26,}/u;
+const KNOWN_THEMES = new Set(['light', 'dark', 'contrast', 'high-contrast']);
 
 const problemList = (items) => items.filter((entry) => typeof entry === 'string' && entry.length > 0);
 
@@ -225,7 +226,7 @@ export function validateClickEvidence(record, {
   const viewport = record.viewport;
   if (!viewport || !Number.isInteger(viewport.width) || viewport.width <= 0 || !Number.isInteger(viewport.height) || viewport.height <= 0) problems.push('viewport is invalid');
   if (!Number.isFinite(record.scale) || record.scale <= 0 || record.scale > 4) problems.push('scale is invalid');
-  if (typeof record.theme !== 'string' || record.theme.trim().length === 0) problems.push('theme is missing');
+  if (typeof record.theme !== 'string' || !KNOWN_THEMES.has(record.theme)) problems.push('theme is missing or unknown');
   if (!record.staleness || record.staleness.checked !== true || record.staleness.stale !== false) problems.push('staleness check is missing or failed');
   if (!record.currentness || record.currentness.checked !== true
     || record.currentness.candidateSha !== current
@@ -239,6 +240,59 @@ export function validateClickEvidence(record, {
   if (!privacy || !Number.isInteger(privacy.networkCalls) || privacy.networkCalls < 0) problems.push('privacy network-call count is invalid');
   problems.push(...walkPrivateValues(record));
   return problemList([...new Set(problems)]);
+}
+
+export function validateCommittedLedger(ledger, {
+  root, receipt, candidateSha, artifactSha256, receiptSha256, targetProof, theme,
+  exists = existsSync, read = readFileSync, list = readdirSync,
+} = {}) {
+  const problems = [];
+  if (!ledger || typeof ledger !== 'object') return { verdict: 'refused', problems: ['committed ledger is missing'] };
+  if (ledger.schemaVersion !== 2) problems.push('committed ledger schemaVersion is not 2');
+  if (typeof ledger.capturePathPolicy !== 'string' || ledger.capturePathPolicy !== 'repository-relative durable capture paths only') {
+    problems.push('committed ledger does not declare the durable repository-relative capture policy');
+  }
+  const metadata = { candidateSha, artifactSha256, receiptSha256, targetProof, theme };
+  if (typeof candidateSha !== 'string' || !SHA1.test(candidateSha) || ledger.candidateSha !== candidateSha) problems.push('candidate SHA is missing, null, or not the current candidate');
+  if (typeof artifactSha256 !== 'string' || !SHA256.test(artifactSha256) || ledger.artifactSha256 !== artifactSha256) problems.push('packaged output SHA-256 is missing, null, or not the current lap sap');
+  if (typeof ledger.artifact !== 'string' || !isRelativeEvidencePath(ledger.artifact, 'console/')) problems.push('packaged output path is missing or not repository-relative');
+  if (typeof receiptSha256 !== 'string' || !SHA256.test(receiptSha256) || ledger.receiptSha256 !== receiptSha256) problems.push('launch receipt SHA-256 is missing, null, or not bound to the receipt');
+  if (!isRelativeEvidencePath(ledger.receiptPath, 'console/release/evidence/')) problems.push('launch receipt path is missing or not repository-relative');
+  if (!receipt) problems.push('launch receipt is missing or null');
+  else problems.push(...validateLaunchReceipt(receipt, { port: receipt.cdp?.port, expectedUrl: receipt.cdp?.expectedUrl }));
+  if (!targetProof || targetProof.targetCount !== 1 || targetProof.type !== 'page' || targetProof.exactUrl !== true || targetProof.loopbackSocket !== true || JSON.stringify(ledger.targetProof) !== JSON.stringify(targetProof)) {
+    problems.push('exact single-target proof is missing or differs from the ledger');
+  }
+  if (typeof theme !== 'string' || !KNOWN_THEMES.has(theme) || ledger.theme !== theme) problems.push('theme is missing or unknown');
+  if (!ledger.staleness || ledger.staleness.checked !== true || ledger.staleness.stale !== false) problems.push('staleness proof is missing or failed');
+  if (!ledger.currentness || ledger.currentness.checked !== true || ledger.currentness.candidateSha !== candidateSha || ledger.currentness.artifactSha256 !== artifactSha256) problems.push('currentness proof is missing or does not match');
+  if (!ledger.privacy || ledger.privacy.secretPayloadRecorded !== false || ledger.privacy.privatePayloadValuesRecorded !== false || ledger.privacy.verdict !== 'pass' || !Number.isInteger(ledger.privacy.networkCalls) || ledger.privacy.networkCalls < 0) problems.push('privacy proof is missing or failed');
+  problems.push(...walkPrivateValues(ledger));
+  const ledgerEntries = Array.isArray(ledger.ledger) ? ledger.ledger : [];
+  if (ledgerEntries.length === 0) problems.push('committed ledger has no entries');
+  for (const [index, entry] of ledgerEntries.entries()) {
+    if (entry?.skipped) continue;
+    if (!entry?.evidence || typeof entry.evidence !== 'object') {
+      problems.push(`ledger entry ${index} has no strict evidence record`);
+      continue;
+    }
+    if (entry.evidence.status !== 'verified') problems.push(`ledger entry ${index} is ${entry.evidence.status ?? 'unverified'}, not promotable`);
+    problems.push(...validateClickEvidence(entry.evidence, {
+      ...metadata,
+      receipt,
+      captureBytes: entry.capture?.bytes,
+      captureSha256: entry.capture?.sha256,
+    }).map((problem) => `ledger entry ${index}: ${problem}`));
+  }
+  problems.push(...verifyCaptureLedger(ledger, { root, exists, read, list }));
+  const unique = problemList([...new Set(problems)]);
+  return { verdict: unique.length > 0 ? 'refused' : 'verified', problems: unique, checkedEntries: ledgerEntries.length };
+}
+
+export function assertCommittedLedger(ledger, options = {}) {
+  const result = validateCommittedLedger(ledger, options);
+  if (result.verdict !== 'verified') throw new Error(`committed evidence ${result.verdict}: ${result.problems.join('; ')}`);
+  return result;
 }
 
 export function assertPromotableEvidence(record, options = {}) {

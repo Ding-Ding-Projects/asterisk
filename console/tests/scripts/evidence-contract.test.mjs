@@ -9,6 +9,7 @@ import {
   proveSingleCDPTarget,
   validateClickEvidence,
   validateLaunchReceipt,
+  validateCommittedLedger,
   verifyCaptureLedger,
 } from '../../scripts/ui-drive/evidence-contract.mjs';
 
@@ -157,4 +158,62 @@ test('verifyCaptureLedger rejects a missing, replaced, duplicated, or orphaned p
   assert.match(verifyCaptureLedger(honest, { root: 'C:/root', exists: () => false, read, list }).join('; '), /missing capture/u);
   assert.match(verifyCaptureLedger({ ledger: [honest.ledger[0], honest.ledger[0]] }, { root: 'C:/root', exists, read, list }).join('; '), /repeats capture/u);
   assert.match(verifyCaptureLedger(honest, { root: 'C:/root', exists, read, list: () => ['a.png', 'orphan.png'], requireNoOrphans: true }).join('; '), /unreferenced/u);
+});
+
+test('committed-ledger promotion is refused for null, stale, unknown, or private evidence', () => {
+  const capturePath = 'console/release/captures/ui-drive/a.png';
+  const digest = 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad';
+  const evidence = {
+    ...RECORD,
+    status: 'verified',
+    capture: { path: capturePath, bytes: 3, sha256: digest },
+  };
+  const ledger = {
+    schemaVersion: 2,
+    capturePathPolicy: 'repository-relative durable capture paths only',
+    candidateSha: CANDIDATE,
+    artifact: RECORD.artifact,
+    artifactSha256: ARTIFACT,
+    receiptPath: RECORD.launchReceiptPath,
+    receiptSha256: ARTIFACT,
+    targetProof: RECORD.targetProof,
+    viewport: RECORD.viewport,
+    scale: RECORD.scale,
+    theme: 'dark',
+    staleness: { checked: true, stale: false },
+    currentness: { checked: true, candidateSha: CANDIDATE, artifactSha256: ARTIFACT },
+    privacy: { secretPayloadRecorded: false, privatePayloadValuesRecorded: false, verdict: 'pass', networkCalls: 0 },
+    ledger: [{ destination: 'Regex builder', target: evidence.interaction, before: {}, after: {}, changed: true, capture: evidence.capture, evidence }],
+  };
+  const files = new Map([['C:/root/console/release/captures/ui-drive/a.png', Buffer.from('abc')]]);
+  const key = (path) => String(path).replaceAll('\\', '/');
+  const fsOptions = { root: 'C:/root', exists: (path) => files.has(key(path)), read: (path) => files.get(key(path)), list: () => ['a.png'] };
+  const validOptions = { receipt: RECEIPT, candidateSha: CANDIDATE, artifactSha256: ARTIFACT, receiptSha256: ARTIFACT, targetProof: RECORD.targetProof, theme: 'dark', ...fsOptions };
+  assert.equal(validateCommittedLedger(ledger, validOptions).verdict, 'verified');
+
+  const cases = [
+    ['null candidate', { candidateSha: null }, /candidate SHA/u],
+    ['null packaged output', { artifactSha256: null }, /packaged output SHA/u],
+    ['null receipt', { receipt: null }, /receipt/u],
+    ['missing exact target proof', { targetProof: null }, /single-target proof/u],
+    ['unknown theme', { theme: 'solarized' }, /theme/u],
+    ['stale capture', { ledger: { ...ledger, staleness: { checked: true, stale: true } } }, /staleness/u],
+    ['private payload', { ledger: { ...ledger, ledger: [{ ...ledger.ledger[0], evidence: { ...evidence, interaction: { ...evidence.interaction, password: 'plain-value' } } }] } }, /private value/u],
+  ];
+  for (const [name, change, expected] of cases) {
+    const { ledger: changedLedger = ledger, ...optionChange } = change;
+    const result = validateCommittedLedger(changedLedger, { ...validOptions, ...optionChange });
+    assert.equal(result.verdict, 'refused', `${name} should not promote`);
+    assert.ok(result.problems.some((problem) => expected.test(problem)), `${name} did not name the refusal: ${result.problems.join('; ')}`);
+  }
+});
+
+test('the committed legacy ledger entry point returns a nonzero refusal verdict', () => {
+  const root = resolve(import.meta.dirname, '..', '..', '..');
+  const legacy = JSON.parse(readFileSync(resolve(root, 'console/release/evidence/ui-drive/ledger.json'), 'utf8'));
+  const result = validateCommittedLedger(legacy, {
+    root, receipt: null, candidateSha: null, artifactSha256: null, receiptSha256: null, targetProof: null, theme: null,
+  });
+  assert.equal(result.verdict, 'refused');
+  assert.ok(result.problems.some((problem) => /schemaVersion|candidate SHA|receipt/u.test(problem)));
 });
