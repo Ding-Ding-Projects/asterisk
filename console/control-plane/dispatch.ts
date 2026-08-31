@@ -30,7 +30,7 @@ import { parseAllowlist, SETTINGS_SOURCE_ALLOWLIST_KEY } from './settings-source
 import type { ServerInventorySnapshot } from './server-inventory.js';
 import type { RawConfigReader } from './wsl-config-transport.js';
 import { ConverterRegistry } from './converter-registry.js';
-import { pdfCapabilities, validatePdfOperationRequest } from './converter-pdf.js';
+import { executePdfOperationAtomic, pdfCapabilities, planPdfOperation, validatePdfOperationRequest, type PdfOperationExecutor, type PdfOutputInspector } from './converter-pdf.js';
 import { ConverterStore } from './converter-store.js';
 import { ConverterRunner } from './converter-runner.js';
 import { ConverterQueue } from './converter-queue.js';
@@ -45,6 +45,7 @@ import { createOllamaFitHandlers } from './ollama-fit.js';
 import { OllamaHarnessManager, createOllamaHarnessHandlers, type OllamaHarnessOptions } from './ollama-harness.js';
 import { createLogoConversionHandlers } from './logo-converter.js';
 import { LogoStore, logoStoreHandlers } from './logo-store.js';
+import { PngIsolatedLogoDecoder } from './logo-decoder.js';
 import type { LogoSourceInput } from '../shared/logo.js';
 import { VocabularyStore } from './vocabulary-store.js';
 import { DownloadTransferManager } from './download-transfer-manager.js';
@@ -78,7 +79,7 @@ const CONTROL_PLANE_ACTIONS = new Set<string>([
   'settings.snapshot', 'settings.write', 'settings.remove', 'settings.source.fetch',
   'logo.inspect', 'logo.convert', 'logo.cache.read', 'logo.cache.write', 'logo.cache.clear',
   'vocabulary.status', 'vocabulary.replace', 'vocabulary.clear',
-  'converter.catalog', 'converter.pdf-capabilities', 'converter.pdf-validate', 'converter.sniff',
+  'converter.catalog', 'converter.pdf-capabilities', 'converter.pdf-validate', 'converter.pdf-execute', 'converter.sniff',
   'converter.queue.create', 'converter.queue.enqueue-one', 'converter.queue.page',
   'converter.queue.start', 'converter.queue.pause', 'converter.queue.resume', 'converter.queue.cancel',
   'ollama.snapshot',
@@ -167,6 +168,9 @@ export interface ControlPlaneDispatcherOptions {
   /** Optional allowlisted harness configuration. Without it, harness actions stay registered
    * in the request schema but return the normal unavailable-action response. */
   ollamaHarness?: Omit<OllamaHarnessOptions, 'client' | 'store'>;
+  /** An independently packaged PDF writer and inspector. Neither is inferred from PATH. */
+  pdfExecutor?: PdfOperationExecutor;
+  pdfInspector?: PdfOutputInspector;
 }
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
@@ -192,7 +196,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
   // The decoder is deliberately absent until a packaged isolated image process is
   // supplied. Inspection and cache validation remain available, while conversion
   // returns a typed decoder-unavailable result instead of pretending to convert.
-  const logoHandlers = createLogoConversionHandlers(undefined, logoStoreHandlers(logoStore));
+  const logoHandlers = createLogoConversionHandlers(new PngIsolatedLogoDecoder(), logoStoreHandlers(logoStore));
   const vocabularyStore = new VocabularyStore({ rootPath: join(userDataPath, 'vocabulary-cache') });
   const ollamaHandlers = {
     ...createOllamaRuntimeHandlers(ollamaClient),
@@ -701,7 +705,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         };
       }
 
-      if (request.action === 'converter.catalog' || request.action === 'converter.pdf-capabilities' || request.action === 'converter.pdf-validate') {
+      if (request.action === 'converter.catalog' || request.action === 'converter.pdf-capabilities' || request.action === 'converter.pdf-validate' || request.action === 'converter.pdf-execute') {
         const registry = await converterRegistry;
         if (request.action === 'converter.catalog') {
           return {
@@ -720,6 +724,18 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         }
         try {
           validatePdfOperationRequest(operation as never);
+          if (request.action === 'converter.pdf-execute') {
+            if (!options.pdfExecutor || !options.pdfInspector) {
+              return { ok: false, requestId: request.requestId, code: 'PDF_EXECUTOR_UNAVAILABLE', message: 'No independently verified offline PDF writer and inspector are configured for this build.' };
+            }
+            const acknowledgedDisclosureIds = Array.isArray(payload.acknowledgedDisclosureIds) ? payload.acknowledgedDisclosureIds.filter((value): value is string => typeof value === 'string') : [];
+            const plan = planPdfOperation(registry, operation as never, acknowledgedDisclosureIds);
+            const destinationPath = typeof payload.destinationPath === 'string' ? payload.destinationPath : '';
+            const overwriteApproved = payload.overwriteApproved === true;
+            const expectation = payload.expectation && typeof payload.expectation === 'object' && !Array.isArray(payload.expectation) ? payload.expectation : {};
+            const result = await executePdfOperationAtomic(plan, destinationPath, overwriteApproved, options.pdfExecutor, options.pdfInspector, expectation as never);
+            return { ok: true, requestId: request.requestId, data: { plan, result } };
+          }
           return { ok: true, requestId: request.requestId, data: { valid: true, request: operation, capabilities: pdfCapabilities(registry) } };
         } catch (error) {
           return { ok: false, requestId: request.requestId, code: 'PDF_REQUEST_INVALID', message: error instanceof Error ? error.message : 'The PDF operation request is invalid.' };

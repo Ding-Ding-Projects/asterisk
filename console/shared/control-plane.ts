@@ -44,7 +44,7 @@ export type ControlPlaneAction =
   | 'vocabulary.status' | 'vocabulary.replace' | 'vocabulary.clear'
   /* Local converter catalog and capability evidence. The queue and file-picker actions
    * use the same namespace so the renderer cannot invent a parallel transport. */
-  | 'converter.catalog' | 'converter.pdf-capabilities' | 'converter.pdf-validate' | 'converter.sniff'
+  | 'converter.catalog' | 'converter.pdf-capabilities' | 'converter.pdf-validate' | 'converter.pdf-execute' | 'converter.sniff'
   | 'converter.queue.create' | 'converter.queue.enqueue-one' | 'converter.queue.page'
   | 'converter.queue.start' | 'converter.queue.pause' | 'converter.queue.resume' | 'converter.queue.cancel'
   | 'ollama.snapshot' | 'ollama.health' | 'ollama.version' | 'ollama.models.installed' | 'ollama.models.running'

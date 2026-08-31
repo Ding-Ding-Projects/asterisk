@@ -22,3 +22,4 @@ export * from "./forge-publishing.js";
 export * from "./vocabulary-store.js";
 export * from "./logo-converter.js";
 export * from "./logo-store.js";
+export * from "./logo-decoder.js";

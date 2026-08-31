@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { lstat } from "node:fs/promises";
 import { isAbsolute } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   CONVERTER_CATEGORIES,
   type ConverterAdapter,
@@ -127,7 +128,8 @@ export class ConverterRegistry {
   }
 
   static async create(proofs: ConverterRegistryProofs = {}): Promise<ConverterRegistry> {
-    const fixedWorkerProof = await verifiedProof(proofs.fixedWorkerKernel, FIXED_WORKER_RUNTIME);
+    const suppliedProof = proofs.fixedWorkerKernel ?? await discoverBundledWorkerProof();
+    const fixedWorkerProof = await verifiedProof(suppliedProof, FIXED_WORKER_RUNTIME);
     return new ConverterRegistry(fixedWorkerProof);
   }
 
@@ -162,6 +164,36 @@ export class ConverterRegistry {
       throw new Error(`${adapter.label} is unavailable: ${adapter.availability.reason}`);
     }
     return adapter;
+  }
+}
+
+/**
+ * The fixed worker source is compiled beside this module and shipped inside the
+ * application bundle. In a source checkout the TypeScript module is not proof of a
+ * packaged runtime, so discovery intentionally returns no proof there. The hash is
+ * measured from the exact bundled JavaScript file each time rather than copied from
+ * a hand-maintained constant.
+ */
+async function discoverBundledWorkerProof(): Promise<ConverterBundleProof | undefined> {
+  const artifactPath = fileURLToPath(new URL('./converter-runner.js', import.meta.url));
+  if (!artifactPath.toLowerCase().endsWith('.js')) return undefined;
+  try {
+    const info = await lstat(artifactPath);
+    if (info.isSymbolicLink() || !info.isFile()) return undefined;
+    const hash = createHash('sha256');
+    for await (const chunk of createReadStream(artifactPath)) hash.update(chunk);
+    return {
+      proofId: `bundled-fixed-worker:${hash.copy().digest('hex').slice(0, 16)}`,
+      adapterRuntime: FIXED_WORKER_RUNTIME,
+      artifactPath,
+      artifactSha256: hash.digest('hex'),
+      verifiedAt: new Date().toISOString(),
+      bundled: true,
+      offline: true,
+      packagedArtifact: true,
+    };
+  } catch {
+    return undefined;
   }
 }
 

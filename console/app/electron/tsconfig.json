@@ -7,6 +7,7 @@
     "rootDir": "../..",
     "outDir": "../../dist-electron",
     "strict": true,
+    "allowJs": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true,
@@ -22,6 +23,7 @@
     "updater-runtime.ts",
     "../../shared/**/*.ts",
     "../../control-plane/**/*.ts",
+    "../../control-plane/**/*.js",
     "../../server/**/*.ts",
     "../renderer/src/display-name.ts"
   ]
