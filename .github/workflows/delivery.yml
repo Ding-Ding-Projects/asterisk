@@ -9,6 +9,8 @@ permissions:
   actions: read
   contents: write
   packages: write
+  pages: write
+  id-token: write
 
 jobs:
   build-asterisk-runtime:
@@ -184,13 +186,17 @@ jobs:
           name: asterisk-wsl-runtime-${{ github.run_id }}-${{ github.run_attempt }}
           path: console/resources
 
-      - name: Build console from pinned inputs
-        shell: cmd
-        run: build.bat /s
+      - name: Check the delivery path contract
+        shell: powershell
+        run: |
+          $nodeRecord = (Get-Content -Raw dependency-manifest.json | ConvertFrom-Json).dependencies | Where-Object id -eq 'node-win-x64'
+          $node = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) "DingPBX\toolchains\$($nodeRecord.archiveRoot)\node.exe"
+          & $node console/scripts/check-delivery-path.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Build and verify unsigned Squirrel.Windows artifacts
-        shell: cmd
-        run: build-installer.bat /s
+      - name: Build and package from pinned inputs
+        shell: powershell
+        run: powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File console/scripts/build-delivery.ps1 -Silent
 
       - name: Produce reproducible line-count evidence
         shell: powershell
@@ -300,11 +306,6 @@ jobs:
           foreach ($requiredIso in @('ding-pbx-installer.iso.sha256','ding-pbx-installer.iso.json','ding-pbx-installer.iso.REASSEMBLE.md')) {
             if (-not (Test-Path -LiteralPath (Join-Path $staging $requiredIso))) { throw "Installer ISO release payload is missing $requiredIso." }
           }
-          Remove-Item (Join-Path $staging 'SHA256SUMS.txt') -Force -ErrorAction SilentlyContinue
-          Get-ChildItem $staging -File | Sort-Object Name | ForEach-Object {
-            "{0}  {1}" -f (Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToLowerInvariant(), $_.Name
-          } | Set-Content -Encoding ascii (Join-Path $staging 'SHA256SUMS.txt')
-
           # Attach the root filesystem and the provenance that describes it, so a
           # contributor can obtain the payload for this exact commit with an ordinary
           # download. Both or neither: a tar with no provenance cannot be checked against
@@ -400,6 +401,23 @@ jobs:
             $ErrorActionPreference = $previousPreference
           }
 
+          # Hash only after every release asset, including the runtime payload and
+          # the resolved dim-sum photo, is staged. The final set is audited for
+          # duplicate names and every required non-hash asset is present exactly once.
+          $nonHashAssets = @(Get-ChildItem $staging -File | Where-Object Name -ne 'SHA256SUMS.txt')
+          $duplicates = @($nonHashAssets | Group-Object Name | Where-Object Count -ne 1)
+          if ($duplicates.Count -gt 0) { throw "Final release staging contains duplicate asset names: $($duplicates.Name -join ', ')." }
+          $requiredAssets = @('RELEASES','release-identity.json','update-manifest.json','line-count.md','line-count.json','ding-pbx-installer.iso.sha256','ding-pbx-installer.iso.json','ding-pbx-installer.iso.REASSEMBLE.md','asterisk-wsl-rootfs.tar','asterisk-wsl-rootfs.json')
+          if ($dimSum) { $requiredAssets += $dimSum.asset }
+          foreach ($requiredAsset in $requiredAssets) {
+            $matches = @($nonHashAssets | Where-Object Name -eq $requiredAsset)
+            if ($matches.Count -ne 1) { throw "Final release staging must contain exactly one $requiredAsset, found $($matches.Count)." }
+          }
+          Remove-Item (Join-Path $staging 'SHA256SUMS.txt') -Force -ErrorAction SilentlyContinue
+          $nonHashAssets | Sort-Object Name | ForEach-Object {
+            "{0}  {1}" -f (Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToLowerInvariant(), $_.Name
+          } | Set-Content -Encoding ascii (Join-Path $staging 'SHA256SUMS.txt')
+
           $started = [DateTimeOffset]::Parse('${{ needs.build-asterisk-runtime.outputs.workflow-started }}')
           $notes = @()
           $notes += '# Material Asterisk'
@@ -481,3 +499,10 @@ jobs:
           path: evidence/**
           if-no-files-found: warn
           retention-days: 30
+
+  deploy-pages:
+    name: Deploy Pages after the published release
+    needs: [release]
+    if: ${{ needs.release.result == 'success' }}
+    uses: ./.github/workflows/pages.yml
+    secrets: inherit
