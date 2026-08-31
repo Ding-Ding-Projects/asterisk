@@ -35,7 +35,15 @@ function withEvidence(mutate) {
 }
 
 const firstCaptured = (ledger) => ledger.results.find((result) => result.captured);
-const firstRefused = (ledger) => ledger.results.find((result) => !result.captured);
+const makeRefused = (ledger) => {
+  const result = firstCaptured(ledger);
+  if (!result) throw new Error('negative-design-parity-captures: no captured result available for refused-capture fixture');
+  result.captured = false;
+  result.reason = 'fixture intentionally refused before capture';
+  delete result.bytes;
+  delete result.sha256;
+  return result;
+};
 
 const cases = [
   ['a captured reference PNG has been deleted', (e) => {
@@ -50,14 +58,12 @@ const cases = [
   }],
   ['a ledger claims a capture it never took', (e) => { firstCaptured(e.reference).sha256 = '0'.repeat(64); }],
   ['a refused capture has a file sitting there anyway', (e) => {
-    const refused = firstRefused(e.built);
-    if (!refused) throw new Error('negative-design-parity-captures: the built ledger has no refused capture to plant this case on');
+    const refused = makeRefused(e.built);
     const path = resolve(root, e.inventory.evidenceTemplates.builtCapture.replaceAll('{id}', refused.id));
     e.exists = (candidate) => (candidate === path ? true : existsSync(candidate));
   }],
   ['a refused capture gives no reason', (e) => {
-    const refused = firstRefused(e.built);
-    delete refused.reason;
+    delete makeRefused(e.built).reason;
   }],
   ['an audited destination is missing from a run ledger', (e) => { e.reference.results.shift(); }],
   ['a diff record names a different destination', (e) => {

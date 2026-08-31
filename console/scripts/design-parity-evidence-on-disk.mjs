@@ -34,6 +34,13 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import {
+  captureTuplesEqual,
+  expectedSourceCommit,
+  strictParityEvidence,
+  validateEvidenceProvenance,
+} from './design-parity-contract.mjs';
 
 const ARTIFACT_KEYS = ['referenceCapture', 'builtCapture', 'sideBySide', 'visualDiff', 'regionLedger', 'chromeParity', 'materialAudit'];
 const rectKey = (rect) => `${rect?.x},${rect?.y},${rect?.width},${rect?.height}`;
@@ -49,6 +56,13 @@ export function verifyDesignParityEvidence(inventory, { root, exists = existsSyn
   const problems = [];
   let checked = 0;
   let verifiedRows = 0;
+  const strict = strictParityEvidence(inventory);
+  const expectedTuple = inventory.captureContract?.captureTuple;
+  const expectedCommit = strict ? expectedSourceCommit(inventory) : null;
+  if (strict) {
+    try { captureTuplesEqual(expectedTuple, expectedTuple, 'inventory capture tuple'); }
+    catch (error) { problems.push(error.message); }
+  }
 
   for (const destination of inventory.destinations) {
     if (destination.status !== 'verified') continue;
@@ -87,6 +101,10 @@ export function verifyDesignParityEvidence(inventory, { root, exists = existsSyn
     if (diff.destinationId !== id) {
       problems.push(`${id}: visualDiff evidence claims destination id '${diff.destinationId}', not '${id}' — this is evidence for a different row`);
     }
+    if (strict) {
+      try { validateEvidenceProvenance(diff, expectedTuple, expectedCommit, `${id} visualDiff`); }
+      catch (error) { problems.push(`${id}: ${error.message}`); }
+    }
     if (diff.verdict === 'refused') {
       problems.push(`${id}: visualDiff verdict is 'refused' (${(diff.reasons ?? []).join('; ') || 'no reason recorded'}) — the whole-frame comparison never happened, so nothing was measured to divide into chrome and data`);
     }
@@ -106,6 +124,10 @@ export function verifyDesignParityEvidence(inventory, { root, exists = existsSyn
     }
     if (ledger.destinationId !== id) {
       problems.push(`${id}: regionLedger claims destination id '${ledger.destinationId}', not '${id}' — this is a mask measured on a different screen`);
+    }
+    if (strict) {
+      try { validateEvidenceProvenance(ledger, expectedTuple, expectedCommit, `${id} regionLedger`); }
+      catch (error) { problems.push(`${id}: ${error.message}`); }
     }
     if (!Array.isArray(ledger.exclusions) || ledger.exclusions.length === 0) {
       problems.push(`${id}: regionLedger declares no exclusions — the chrome-parity bar would then be whole-frame pixel identity under a different name`);
@@ -131,6 +153,10 @@ export function verifyDesignParityEvidence(inventory, { root, exists = existsSyn
     }
     if (chrome.destinationId !== id) {
       problems.push(`${id}: chromeParity evidence claims destination id '${chrome.destinationId}', not '${id}' — this is evidence for a different row`);
+    }
+    if (strict) {
+      try { validateEvidenceProvenance(chrome, expectedTuple, expectedCommit, `${id} chromeParity`); }
+      catch (error) { problems.push(`${id}: ${error.message}`); }
     }
     if (chrome.bar !== 'chrome-parity') {
       problems.push(`${id}: chromeParity evidence records bar '${chrome.bar}', not 'chrome-parity'`);
@@ -171,6 +197,10 @@ export function verifyDesignParityEvidence(inventory, { root, exists = existsSyn
     if (audit.destinationId && audit.destinationId !== id) {
       problems.push(`${id}: materialAudit evidence claims destination id '${audit.destinationId}', not '${id}'`);
     }
+    if (strict) {
+      try { validateEvidenceProvenance(audit, expectedTuple, expectedCommit, `${id} materialAudit`); }
+      catch (error) { problems.push(`${id}: ${error.message}`); }
+    }
     if (audit.conforms !== true) {
       problems.push(`${id}: materialAudit.conforms is not exactly true — a verified row needs clean Material Design 3 conformance, not an absent verdict`);
     }
@@ -186,4 +216,11 @@ export function verifyDesignParityEvidence(inventory, { root, exists = existsSyn
   }
 
   return { checked, verifiedRows };
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const root = resolve(import.meta.dirname, '..', '..');
+  const inventory = JSON.parse(readFileSync(resolve(root, 'console/inventories/design-parity.json'), 'utf8'));
+  const summary = verifyDesignParityEvidence(inventory, { root });
+  console.log(`PASS: ${summary.verifiedRows} verified design-parity row(s) have ${summary.checked} validated evidence records.`);
 }

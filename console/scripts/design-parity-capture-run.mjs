@@ -28,8 +28,10 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { execFileSync } from 'node:child_process';
 import { compareCaptures } from './design-parity-diff.mjs';
 import { compareChrome } from './design-parity-chrome.mjs';
+import { captureTuplesEqual } from './design-parity-contract.mjs';
 import { BUILT_REGION_PROBE, REFERENCE_REGION_PROBE, buildRegionLedger, maskFromLedger } from './design-parity-regions.mjs';
 import { connectCdp, pollUntil, sleep } from './design-parity-cdp.mjs';
 import { startCaptureServer } from './design-parity-server.mjs';
@@ -44,6 +46,7 @@ const FONT_DIR = join(CONSOLE_ROOT, 'assets', 'fonts');
 const FONT_MANIFEST = JSON.parse(readFileSync(join(FONT_DIR, 'manifest.json'), 'utf8'));
 const TUPLE = INVENTORY.captureContract.captureTuple;
 const LEDGER_DIR = join(CONSOLE_ROOT, 'release', 'evidence', 'parity');
+const SOURCE_COMMIT = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf8' }).trim();
 
 const artifactPath = (key, id) => resolve(REPO_ROOT, INVENTORY.evidenceTemplates[key].replaceAll('{id}', id));
 const sha256Of = (bytes) => createHash('sha256').update(bytes).digest('hex');
@@ -62,10 +65,16 @@ const regionMeasurementsPath = (side) => join(LEDGER_DIR, `regions-${side}.json`
 function writeRegionMeasurements(side, target, measurements) {
   mkdirSync(LEDGER_DIR, { recursive: true });
   const path = regionMeasurementsPath(side);
-  const previous = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : {};
+  let previous = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : {};
+  if (previous.sourceCommit !== SOURCE_COMMIT) previous = {};
+  else {
+    try { captureTuplesEqual(TUPLE, previous.tuple, `${side} region measurement tuple`); }
+    catch { previous = {}; }
+  }
   const merged = { ...(previous.measurements ?? {}), ...measurements };
   writeFileSync(path, `${JSON.stringify({
-    generatedAt: new Date().toISOString(), side, target, tuple: TUPLE, measurements: merged,
+    generatedAt: new Date().toISOString(), generatedBy: 'console/scripts/design-parity-capture-run.mjs',
+    sourceCommit: SOURCE_COMMIT, side, target, tuple: TUPLE, measurements: merged,
   }, null, 2)}\n`);
   return Object.keys(merged).length;
 }
@@ -527,7 +536,7 @@ function chromeAll() {
       continue;
     }
     writeArtifact(artifactPath('regionLedger', entry.id), Buffer.from(`${JSON.stringify({
-      ...ledger, generatedBy: 'console/scripts/design-parity-capture-run.mjs --side=chrome',
+      ...ledger, generatedBy: 'console/scripts/design-parity-capture-run.mjs --side=chrome', sourceCommit: SOURCE_COMMIT,
     }, null, 2)}\n`, 'utf8'));
 
     const { exclusions, areas } = maskFromLedger(ledger);
@@ -544,6 +553,7 @@ function chromeAll() {
     writeArtifact(artifactPath('chromeParity', entry.id), Buffer.from(`${JSON.stringify({
       ...record,
       generatedBy: 'console/scripts/design-parity-capture-run.mjs --side=chrome',
+      sourceCommit: SOURCE_COMMIT,
       tuple: TUPLE,
       regionLedger: INVENTORY.evidenceTemplates.regionLedger.replaceAll('{id}', entry.id),
       referenceCapture: INVENTORY.evidenceTemplates.referenceCapture.replaceAll('{id}', entry.id),
@@ -612,6 +622,7 @@ function diffAll() {
     writeArtifact(artifactPath('visualDiff', entry.id), Buffer.from(`${JSON.stringify({
       ...record,
       generatedBy: 'console/scripts/design-parity-capture-run.mjs --side=diff',
+      sourceCommit: SOURCE_COMMIT,
       tuple: TUPLE,
       referenceCapture: INVENTORY.evidenceTemplates.referenceCapture.replaceAll('{id}', entry.id),
       builtCapture: INVENTORY.evidenceTemplates.builtCapture.replaceAll('{id}', entry.id),
@@ -655,7 +666,10 @@ async function main() {
   // guard checks every committed PNG against.
   const name = regionsOnly() ? `run-regions-${side}` : `run-${side}`;
   mkdirSync(LEDGER_DIR, { recursive: true });
-  writeFileSync(join(LEDGER_DIR, `${name}.json`), `${JSON.stringify({ generatedAt: new Date().toISOString(), regionsOnly: regionsOnly(), ...ledger }, null, 2)}\n`);
+  writeFileSync(join(LEDGER_DIR, `${name}.json`), `${JSON.stringify({
+    generatedAt: new Date().toISOString(), generatedBy: 'console/scripts/design-parity-capture-run.mjs',
+    sourceCommit: SOURCE_COMMIT, regionsOnly: regionsOnly(), ...ledger,
+  }, null, 2)}\n`);
   console.log(`\nwrote console/release/evidence/parity/${name}.json`);
 }
 

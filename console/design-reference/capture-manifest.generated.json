@@ -6,17 +6,25 @@
   ],
   "note": "One entry per audited destination: the exact reference route, built-app route, evidence artifact paths, and the real click-sequence navigation plan a headless driver needs to reach it deterministically. Regenerate rather than hand-edit.",
   "captureTuple": {
+    "height": 1000,
+    "scale": 1,
     "state": "default",
     "theme": "dark",
-    "width": 1440,
-    "height": 1000,
-    "scale": 1
+    "width": 1440
   },
   "destinationCount": 32,
   "destinations": [
     {
       "id": "dash",
       "rail": "pbx",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=dash&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/dash?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/dash-reference.png",
@@ -47,6 +55,14 @@
     {
       "id": "live",
       "rail": "pbx",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=live&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/live?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/live-reference.png",
@@ -77,6 +93,14 @@
     {
       "id": "endpoints",
       "rail": "pbx",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=endpoints&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/endpoints?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/endpoints-reference.png",
@@ -107,6 +131,14 @@
     {
       "id": "trunks",
       "rail": "pbx",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=trunks&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/trunks?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/trunks-reference.png",
@@ -137,6 +169,14 @@
     {
       "id": "trunkauth",
       "rail": "pbx",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=trunkauth&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/trunkauth?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/trunkauth-reference.png",
@@ -167,6 +207,14 @@
     {
       "id": "canvas",
       "rail": "pbx",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=canvas&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/canvas?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/canvas-reference.png",
@@ -197,6 +245,14 @@
     {
       "id": "ivr",
       "rail": "pbx",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=ivr&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/ivr?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/ivr-reference.png",
@@ -227,6 +283,14 @@
     {
       "id": "queues",
       "rail": "pbx",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=queues&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/queues?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/queues-reference.png",
@@ -257,6 +321,14 @@
     {
       "id": "voicemail",
       "rail": "media",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=voicemail&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/voicemail?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/voicemail-reference.png",
@@ -287,6 +359,14 @@
     {
       "id": "confbridge",
       "rail": "media",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=confbridge&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/confbridge?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/confbridge-reference.png",
@@ -317,6 +397,14 @@
     {
       "id": "moh",
       "rail": "media",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=moh&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/moh?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/moh-reference.png",
@@ -347,6 +435,14 @@
     {
       "id": "codecs",
       "rail": "media",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=codecs&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/codecs?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/codecs-reference.png",
@@ -377,6 +473,14 @@
     {
       "id": "cdr",
       "rail": "data",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=cdr&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/cdr?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/cdr-reference.png",
@@ -407,6 +511,14 @@
     {
       "id": "ami",
       "rail": "data",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=ami&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/ami?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/ami-reference.png",
@@ -437,6 +549,14 @@
     {
       "id": "modules",
       "rail": "system",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=modules&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/modules?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/modules-reference.png",
@@ -467,6 +587,14 @@
     {
       "id": "logger",
       "rail": "system",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=logger&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/logger?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/logger-reference.png",
@@ -497,6 +625,14 @@
     {
       "id": "security",
       "rail": "system",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=security&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/security?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/security-reference.png",
@@ -527,6 +663,14 @@
     {
       "id": "cli",
       "rail": "system",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=cli&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/cli?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/cli-reference.png",
@@ -557,6 +701,14 @@
     {
       "id": "memory",
       "rail": "agent",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=memory&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/memory?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/memory-reference.png",
@@ -587,6 +739,14 @@
     {
       "id": "sync",
       "rail": "agent",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=sync&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/sync?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/sync-reference.png",
@@ -617,6 +777,14 @@
     {
       "id": "skills",
       "rail": "agent",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=skills&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/skills?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/skills-reference.png",
@@ -647,6 +815,14 @@
     {
       "id": "hub",
       "rail": "agent",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=hub&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/hub?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/hub-reference.png",
@@ -677,6 +853,14 @@
     {
       "id": "vocab",
       "rail": "agent",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=vocab&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/vocab?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/vocab-reference.png",
@@ -707,6 +891,14 @@
     {
       "id": "ops",
       "rail": "agent",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=ops&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/ops?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/ops-reference.png",
@@ -737,6 +929,14 @@
     {
       "id": "secrets",
       "rail": "agent",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=secrets&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/secrets?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/secrets-reference.png",
@@ -767,6 +967,14 @@
     {
       "id": "servers",
       "rail": "app",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=servers&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/servers?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/servers-reference.png",
@@ -797,6 +1005,14 @@
     {
       "id": "arcade",
       "rail": "app",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=arcade&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/arcade?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/arcade-reference.png",
@@ -827,6 +1043,14 @@
     {
       "id": "notifications",
       "rail": "app",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=notifications&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/notifications?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/notifications-reference.png",
@@ -857,6 +1081,14 @@
     {
       "id": "history",
       "rail": "app",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=history&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/history?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/history-reference.png",
@@ -887,6 +1119,14 @@
     {
       "id": "customise",
       "rail": "app",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=customise&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/customise?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/customise-reference.png",
@@ -917,6 +1157,14 @@
     {
       "id": "appearance",
       "rail": "app",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=appearance&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/appearance?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/appearance-reference.png",
@@ -947,6 +1195,14 @@
     {
       "id": "about",
       "rail": "app",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=about&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/about?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/about-reference.png",

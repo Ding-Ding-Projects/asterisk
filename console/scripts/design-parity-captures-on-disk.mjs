@@ -26,6 +26,13 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import {
+  captureTuplesEqual,
+  expectedSourceCommit,
+  strictParityEvidence,
+  validateEvidenceProvenance,
+  validateTransientStateCoverage,
+} from './design-parity-contract.mjs';
 
 const sha256Of = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
@@ -36,6 +43,21 @@ export function verifyCapturedParityEvidence({
   const problems = [];
   const ids = manifest.destinations.map((entry) => entry.id);
   const pathFor = (key, id) => resolve(root, inventory.evidenceTemplates[key].replaceAll('{id}', id));
+  const strict = strictParityEvidence(inventory);
+  const tuple = inventory.captureContract?.captureTuple;
+  const expectedCommit = strict ? expectedSourceCommit(inventory) : null;
+  if (strict) {
+    try { captureTuplesEqual(tuple, tuple, 'inventory capture tuple'); }
+    catch (error) { problems.push(error.message); }
+    try { validateTransientStateCoverage(inventory, manifest); }
+    catch (error) { problems.push(error.message); }
+  }
+
+  for (const [side, ledger] of [['reference', reference], ['built', built], ['diff', diff]]) {
+    if (!strict) continue;
+    try { validateEvidenceProvenance(ledger, tuple, expectedCommit, `${side} run ledger`); }
+    catch (error) { problems.push(error.message); }
+  }
 
   const checkSide = (side, ledger, artifactKey) => {
     const seen = new Map();
@@ -65,7 +87,6 @@ export function verifyCapturedParityEvidence({
   checkSide('reference', reference, 'referenceCapture');
   checkSide('built', built, 'builtCapture');
 
-  const tuple = inventory.captureContract.captureTuple;
   for (const result of diff.results ?? []) {
     if (!ids.includes(result.id)) { problems.push(`diff: ledger carries '${result.id}', which is not an audited destination`); continue; }
     if (result.skipped) continue;
