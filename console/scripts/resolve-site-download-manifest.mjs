@@ -33,6 +33,7 @@ import { fileURLToPath } from 'node:url';
 const OWNER = 'Ding-Ding-Projects';
 const REPO = 'material-asterisk';
 const REPO_SLUG = `${OWNER}/${REPO}`;
+const API_ROOT = 'repos/Ding-Ding-Projects/material-asterisk';
 /* Both names, newest first. The product was renamed, so releases published before that
  * carry the old installer filename and releases after it carry the new one. A resolver
  * that knew only one of them would either refuse every release older than the rename or
@@ -66,7 +67,7 @@ function write(manifest) {
 }
 
 function ghApi(pathAndQuery) {
-  const out = execFileSync('gh', ['api', '-R', REPO_SLUG, pathAndQuery], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  const out = execFileSync('gh', ['api', pathAndQuery], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   return JSON.parse(out);
 }
 
@@ -174,9 +175,9 @@ async function evaluateRelease(release) {
 async function main() {
   let releases;
   try {
-    releases = ghApi(`repos/${REPO_SLUG}/releases?per_page=${PAGE_SIZE}&page=1`);
+    releases = ghApi(`${API_ROOT}/releases?per_page=${PAGE_SIZE}&page=1`);
     if (releases.length === PAGE_SIZE) {
-      releases = releases.concat(ghApi(`repos/${REPO_SLUG}/releases?per_page=${PAGE_SIZE}&page=2`));
+      releases = releases.concat(ghApi(`${API_ROOT}/releases?per_page=${PAGE_SIZE}&page=2`));
     }
     releases = releases.slice(0, MAX_SCANNED);
   } catch (error) {

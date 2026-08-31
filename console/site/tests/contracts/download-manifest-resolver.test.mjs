@@ -23,12 +23,15 @@ test('the resolver names the maintained repository', () => {
   assert.match(source, /const OWNER = 'Ding-Ding-Projects';/u);
   assert.match(source, /const REPO = 'material-asterisk';/u);
   assert.match(source, /const REPO_SLUG = `\$\{OWNER\}\/\$\{REPO\}`;/u);
+  assert.match(source, /const API_ROOT = 'repos\/Ding-Ding-Projects\/material-asterisk';/u);
 });
 test('every GitHui API query is explicitly bound to the maintained repository', () => {
-  assert.match(source, /execFileSync\('gh', \['api', '-R', REPO_SLUG, pathAndQuery\]/u,
-    'the resolver must pass an explicit -R repository selector to gh api');
-  assert.match(source, /ghApi\(`repos\/\$\{REPO_SLUG\}\/releases\?/u,
-    'release listing must use the maintained repository slug');
+  assert.match(source, /execFileSync\('gh', \['api', pathAndQuery\]/u,
+    'the resolver must pass the complete canonical API path as one gh api argument');
+  assert.doesNotMatch(source, /\['api',\s*'-R'/u,
+    'the installed gh api does not accept a repository flag in this invocation shape');
+  assert.match(source, /ghApi\(`\$\{API_ROOT\}\/releases\?/u,
+    'release listing must use the complete maintained repository API path');
 });
 
 test('the executable resolver path contains no retired repository slug', () => {
