@@ -49,7 +49,7 @@ RUN set -eux; \
     if find /usr/sbin/asterisk /usr/lib/asterisk/modules -type f -exec ldd '{}' ';' 2>&1 | grep -q 'not found'; then echo 'A bundled Asterisk object has an unresolved runtime library.' >&2; exit 1; fi
 
 LABEL org.opencontainers.image.title="Ding PBX Console bundled Asterisk runtime" \
-      org.opencontainers.image.source="https://github.com/Ding-Ding-Projects/asterisk" \
+      org.opencontainers.image.source="https://github.com/Ding-Ding-Projects/material-asterisk" \
       org.opencontainers.image.revision="$ASTERISK_SOURCE_REVISION"
 
 CMD ["/usr/sbin/asterisk", "-f", "-U", "asterisk", "-G", "asterisk"]

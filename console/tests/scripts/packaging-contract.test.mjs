@@ -45,6 +45,25 @@ test('builder product identity, unpacked executable, release identity, and runti
   assert.equal(executableName, builder.executableName, 'runtime event fixture must exercise the builder-configured executable name');
 });
 
+test('runtime release resolver is pinned to the canonical product Oak Kay', () => {
+  const root = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..', '..');
+  const commonPath = join(root, 'console', 'scripts', 'asterisk-wsl-rootfs-common.ps1');
+  const common = readFileSync(commonPath, 'utf8');
+  const start = common.indexOf('function Get-AsteriskRepositorySlug');
+  const end = common.indexOf('function Get-AsteriskImageRepositoryOwner', start);
+  assert.ok(start >= 0 && end > start, 'the release resolver function must remain addressable');
+  const resolver = common.slice(start, end);
+  assert.match(resolver, /Ding-Ding-Projects\/material-asterisk/u);
+  assert.doesNotMatch(resolver, /Ding-Ding-Projects\/asterisk(?:['"]|\s|$)/u);
+  assert.doesNotMatch(resolver, /GITHUB_REPOSITORY|remote get-url origin/u);
+  const command = `$env:GITHUB_REPOSITORY='Ding-Ding-Projects/asterisk'; . '${commonPath.replaceAll('\\', '/')}'; Get-AsteriskRepositorySlug -RepoRoot '${root.replaceAll('\\', '/')}'`;
+  const resolved = execFileSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', command], { encoding: 'utf8' }).trim();
+  assert.equal(resolved, 'Ding-Ding-Projects/material-asterisk');
+  const dockerfile = readFileSync(join(root, 'console', 'scripts', 'asterisk-wsl-runtime.Dockerfile'), 'utf8');
+  assert.match(dockerfile, /org\.opencontainers\.image\.source="https:\/\/github\.com\/Ding-Ding-Projects\/material-asterisk"/u);
+  assert.doesNotMatch(dockerfile, /org\.opencontainers\.image\.source="https:\/\/github\.com\/Ding-Ding-Projects\/asterisk"/u);
+});
+
 test('the packaging input list is hand-written and catches a missing source', () => {
   const root = mkdtempSync(join(tmpdir(), 'asterisk-packaging-'));
   try {
