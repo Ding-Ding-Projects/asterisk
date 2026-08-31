@@ -15,6 +15,20 @@ export const REQUIRED_PACKAGING_INPUTS = Object.freeze([
 
 const COMMIT_SHA = /^[0-9a-f]{40}$/u;
 
+export function parseBuilderIdentity(configText) {
+  if (typeof configText !== 'string') throw new Error('electron-builder configuration must be text');
+  const readScalar = (name) => {
+    const match = configText.match(new RegExp(`^${name}:\\s*(?:"([^"]+)"|'([^']+)'|([^#\\r\\n]+?))\\s*$`, 'mu'));
+    return match ? (match[1] ?? match[2] ?? match[3]).trim() : null;
+  };
+  const productName = readScalar('productName');
+  const appId = readScalar('appId');
+  if (!productName) throw new Error('electron-builder configuration is missing productName');
+  if (!appId) throw new Error('electron-builder configuration is missing appId');
+  if (/[\\/:*?"<>|]/u.test(productName)) throw new Error('electron-builder productName contains an executable-path character');
+  return Object.freeze({ productName, appId, executableName: `${productName}.exe` });
+}
+
 export function findMissingPackagingInputs(consoleRoot) {
   return REQUIRED_PACKAGING_INPUTS.filter((entry) => {
     const path = join(consoleRoot, entry);
@@ -27,13 +41,13 @@ export function sha256File(path, createHash) {
   return createHash('sha256').update(readFileSync(path)).digest('hex');
 }
 
-export function validateReleaseIdentity(identity, { version, candidateCommit, tag }) {
+export function validateReleaseIdentity(identity, { version, candidateCommit, tag, product = 'ding-pbx-console', productName, appId }) {
   const errors = [];
   if (!identity || typeof identity !== 'object' || Array.isArray(identity)) return ['release identity must be a JSON object'];
   if (identity.schemaVersion !== 1) errors.push('schemaVersion must be 1');
-  if (identity.product !== 'ding-pbx-console') errors.push('product must be ding-pbx-console');
-  if (identity.productName !== 'Ding PBX Console') errors.push('productName must be Ding PBX Console');
-  if (identity.appId !== 'org.dingdingprojects.dingpbxconsole') errors.push('appId is not the packaged app id');
+  if (identity.product !== product) errors.push(`product must be ${product}`);
+  if (productName && identity.productName !== productName) errors.push(`productName must be ${productName}`);
+  if (appId && identity.appId !== appId) errors.push(`appId must be ${appId}`);
   if (identity.version !== version) errors.push(`version must match ${version}`);
   if (identity.candidateCommit !== candidateCommit || !COMMIT_SHA.test(identity.candidateCommit ?? '')) errors.push('candidateCommit must match the full checkout SHA');
   if (identity.tag !== tag) errors.push('tag must match the requested release tag');

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -8,6 +9,7 @@ import {
   REQUIRED_PACKAGING_INPUTS,
   findMissingPackagingInputs,
   isUnsignedPortableExecutable,
+  parseBuilderIdentity,
   validateReleaseIdentity,
   validateReleasesIndex,
 } from '../../scripts/packaging-contract.mjs';
@@ -24,6 +26,24 @@ const IDENTITY = {
   tag: null,
   published: false,
 };
+
+test('builder product identity, unpacked executable, release identity, and runtime event path agree', () => {
+  const root = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..', '..');
+  const builder = parseBuilderIdentity(readFileSync(join(root, 'console', 'electron-builder.yml'), 'utf8'));
+  const identityErrors = validateReleaseIdentity({ ...IDENTITY, productName: builder.productName, appId: builder.appId }, {
+    version: VERSION,
+    candidateCommit: COMMIT,
+    tag: null,
+    productName: builder.productName,
+    appId: builder.appId,
+  });
+  assert.deepEqual(identityErrors, []);
+  const runtimeSource = execFileSync('git', ['show', 'HEAD:console/app/electron/squirrel-events.ts'], { cwd: root, encoding: 'utf8' });
+  assert.match(runtimeSource, /const exeName = basename\(host\.execPath\)/u);
+  const runtimeTest = execFileSync('git', ['show', 'HEAD:console/tests/control-plane/squirrel-events.test.ts'], { cwd: root, encoding: 'utf8' });
+  const executableName = runtimeTest.match(/execPath:\s*'[^']*[/\\]([^/\\']+\.exe)'/u)?.[1];
+  assert.equal(executableName, builder.executableName, 'runtime event fixture must exercise the builder-configured executable name');
+});
 
 test('the packaging input list is hand-written and catches a missing source', () => {
   const root = mkdtempSync(join(tmpdir(), 'asterisk-packaging-'));
@@ -42,10 +62,11 @@ test('the packaging input list is hand-written and catches a missing source', ()
 });
 
 test('release identity rejects stale candidate, product, app, and publication fields', () => {
-  assert.deepEqual(validateReleaseIdentity(IDENTITY, { version: VERSION, candidateCommit: COMMIT, tag: null }), []);
-  assert.ok(validateReleaseIdentity({ ...IDENTITY, candidateCommit: 'b'.repeat(40) }, { version: VERSION, candidateCommit: COMMIT, tag: null }).some((error) => error.includes('candidateCommit')));
-  assert.ok(validateReleaseIdentity({ ...IDENTITY, appId: 'wrong' }, { version: VERSION, candidateCommit: COMMIT, tag: null }).some((error) => error.includes('appId')));
-  assert.ok(validateReleaseIdentity({ ...IDENTITY, published: true }, { version: VERSION, candidateCommit: COMMIT, tag: null }).some((error) => error.includes('published')));
+  const expected = { version: VERSION, candidateCommit: COMMIT, tag: null, productName: IDENTITY.productName, appId: IDENTITY.appId };
+  assert.deepEqual(validateReleaseIdentity(IDENTITY, expected), []);
+  assert.ok(validateReleaseIdentity({ ...IDENTITY, candidateCommit: 'b'.repeat(40) }, expected).some((error) => error.includes('candidateCommit')));
+  assert.ok(validateReleaseIdentity({ ...IDENTITY, appId: 'wrong' }, expected).some((error) => error.includes('appId')));
+  assert.ok(validateReleaseIdentity({ ...IDENTITY, published: true }, expected).some((error) => error.includes('published')));
 });
 
 test('RELEASES must contain exactly the generated full and delta package rows', () => {

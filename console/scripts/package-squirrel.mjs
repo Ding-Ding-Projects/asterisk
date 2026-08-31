@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import {
   findMissingPackagingInputs,
   isUnsignedPortableExecutable,
+  parseBuilderIdentity,
   sha256File,
   validateReleaseIdentity,
   validateReleasesIndex,
@@ -35,6 +36,7 @@ const head = spawnSync('git', ['-C', repoRoot, 'rev-parse', 'HEAD'], { encoding:
 if (head.status !== 0 || head.stdout.trim() !== candidateCommit) throw new Error(`Candidate commit ${candidateCommit} does not match checkout HEAD ${head.stdout.trim()}.`);
 const missingInputs = findMissingPackagingInputs(consoleRoot);
 if (missingInputs.length > 0) throw new Error(`Packaging source inputs are missing or the wrong kind: ${missingInputs.join(', ')}.`);
+const builderIdentity = parseBuilderIdentity(readFileSync(join(consoleRoot, 'electron-builder.yml'), 'utf8'));
 const cli = join(consoleRoot, 'node_modules', 'electron-builder', 'cli.js');
 if (!existsSync(cli)) throw new Error(`electron-builder CLI is missing at ${cli}; run download-dependencies.bat /s first.`);
 const generatedRoot = join(consoleRoot, 'dist', 'squirrel-windows');
@@ -49,7 +51,7 @@ const output = join(consoleRoot, 'dist', 'squirrel-windows', 'squirrel-windows')
 const unpacked = join(consoleRoot, 'dist', 'squirrel-windows', 'win-unpacked');
 if (!existsSync(unpacked)) throw new Error(`electron-builder did not produce a fresh unpacked directory at ${unpacked}.`);
 const digest = (path) => sha256File(path, createHash);
-const executable = join(unpacked, 'Ding PBX Console.exe');
+const executable = join(unpacked, builderIdentity.executableName);
 if (!existsSync(executable) || !statSync(executable).isFile()) throw new Error(`Fresh unpacked output is missing the packaged executable: ${executable}`);
 const forgeGh = join(consoleRoot, 'dist', 'squirrel-windows', 'win-unpacked', 'resources', 'forge', 'gh.exe');
 const forgeHelper = join(consoleRoot, 'dist', 'squirrel-windows', 'win-unpacked', 'resources', 'forge', 'forge-device-signin.ps1');
@@ -93,9 +95,9 @@ if (!isUnsignedPortableExecutable(readFileSync(setup[0].path))) throw new Error(
 const record = (entry) => ({ name: entry.name, size: statSync(entry.path).size, sha256: digest(entry.path) });
 const identity = {
   schemaVersion: 1,
-  product: 'ding-pbx-console',
-  productName: 'Ding PBX Console',
-  appId: 'org.dingdingprojects.dingpbxconsole',
+  product: packageJson.name,
+  productName: builderIdentity.productName,
+  appId: builderIdentity.appId,
   version,
   candidateCommit,
   tag,
@@ -110,7 +112,7 @@ const identity = {
     identity: 'release-identity.json',
   },
 };
-const identityErrors = validateReleaseIdentity(identity, { version, candidateCommit, tag });
+const identityErrors = validateReleaseIdentity(identity, { version, candidateCommit, tag, product: packageJson.name, productName: builderIdentity.productName, appId: builderIdentity.appId });
 if (identityErrors.length > 0) throw new Error(`Generated release identity is invalid: ${identityErrors.join('; ')}`);
 writeFileSync(join(output, 'release-identity.json'), JSON.stringify(identity, null, 2) + '\n', 'utf8');
 const hashLines = readdirSync(output).map((name) => ({ name, path: join(output, name) })).filter((entry) => statSync(entry.path).isFile() && entry.name !== 'SHA256SUMS.txt').sort((a, b) => a.name.localeCompare(b.name)).map((entry) => `${digest(entry.path)}  ${entry.name}`);
