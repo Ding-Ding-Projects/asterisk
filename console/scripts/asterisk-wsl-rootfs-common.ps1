@@ -74,6 +74,31 @@ function Test-AsteriskRootfsTarEntries([string[]]$Entries) {
     }
 }
 
+function Test-AsteriskRootfsProvenance {
+    param(
+        [Parameter(Mandatory)][object]$Provenance,
+        [Parameter(Mandatory)][string]$BundlePath,
+        [Parameter(Mandatory)][string]$ExpectedCommit
+    )
+    if ($ExpectedCommit -notmatch '^[0-9a-f]{40}$') { throw "Expected source commit is not a full lowercase SHA: $ExpectedCommit" }
+    if ($null -eq $Provenance -or $Provenance.schemaVersion -ne $Script:AsteriskRootfsSchemaVersion) { throw 'Asterisk rootfs provenance has an unsupported schema version.' }
+    if ($Provenance.sourceCommit -ne $ExpectedCommit) { throw 'Asterisk rootfs provenance belongs to a different source commit.' }
+    if ($Provenance.sha256 -notmatch '^[0-9a-f]{64}$') { throw 'Asterisk rootfs provenance has a malformed bundle digest.' }
+    if (-not (Test-Path -LiteralPath $BundlePath -PathType Leaf)) { throw "Asterisk rootfs bundle is missing: $BundlePath" }
+    $file = Get-Item -LiteralPath $BundlePath
+    $actualDigest = Get-Sha256 $BundlePath
+    if ($Provenance.sha256 -ne $actualDigest) { throw 'Asterisk rootfs provenance digest does not match the bundle bytes.' }
+    if ([int64]$Provenance.bytes -ne [int64]$file.Length) { throw 'Asterisk rootfs provenance byte count does not match the bundle.' }
+    if ([string]::IsNullOrWhiteSpace([string]$Provenance.generatedAt) -or [DateTimeOffset]::Parse([string]$Provenance.generatedAt) -eq $null) { throw 'Asterisk rootfs provenance has no valid generatedAt timestamp.' }
+    if ($Provenance.sourceMethod -notin @('compiled', 'pulled')) { throw 'Asterisk rootfs provenance has an unknown sourceMethod.' }
+    $hasRef = -not [string]::IsNullOrWhiteSpace([string]$Provenance.imageRef)
+    $hasDigest = -not [string]::IsNullOrWhiteSpace([string]$Provenance.imageDigest)
+    if ($hasRef -ne $hasDigest) { throw 'Asterisk rootfs provenance imageRef and imageDigest are only valid as a pair.' }
+    if ($Provenance.sourceMethod -eq 'pulled' -and -not $hasDigest) { throw 'A pulled Asterisk rootfs must carry image provenance.' }
+    if ($hasDigest -and [string]$Provenance.imageDigest -notmatch '^sha256:[0-9a-f]{64}$') { throw 'Asterisk rootfs provenance imageDigest is malformed.' }
+    return $true
+}
+
 function Get-AsteriskImageRegistry {
     if ($env:DING_PBX_ASTERISK_IMAGE_REGISTRY) { return $env:DING_PBX_ASTERISK_IMAGE_REGISTRY.Trim().ToLowerInvariant() }
     return 'ghcr.io'
@@ -139,12 +164,15 @@ function New-AsteriskRootfsProvenance {
         [string]$ImageRef,
         [string]$ImageDigest
     )
+    if ($SourceCommit -notmatch '^[0-9a-f]{40}$') { throw "New-AsteriskRootfsProvenance requires a full lowercase source commit SHA; got '$SourceCommit'." }
+    if (-not (Test-Path -LiteralPath $BundlePath -PathType Leaf)) { throw "Cannot write rootfs provenance for missing bundle: $BundlePath" }
     if ($SourceMethod -eq 'pulled' -and ([string]::IsNullOrWhiteSpace($ImageRef) -or [string]::IsNullOrWhiteSpace($ImageDigest))) {
         throw "A 'pulled' rootfs must record the image reference and digest it was pulled from."
     }
     if ((-not [string]::IsNullOrWhiteSpace($ImageRef)) -ne (-not [string]::IsNullOrWhiteSpace($ImageDigest))) {
         throw 'imageRef and imageDigest must be recorded together, or not at all.'
     }
+    if (-not [string]::IsNullOrWhiteSpace($ImageDigest) -and $ImageDigest -notmatch '^sha256:[0-9a-f]{64}$') { throw 'imageDigest must be a sha256:<64 lowercase hex> digest.' }
     $file = Get-Item -LiteralPath $BundlePath
     return [ordered]@{
         schemaVersion = $Script:AsteriskRootfsSchemaVersion

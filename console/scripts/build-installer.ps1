@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [switch]$Silent,
+    [switch]$SkipBootstrap,
     [string]$Version = $env:DING_PBX_VERSION,
     [string]$CandidateCommit = $env:DING_PBX_CANDIDATE_COMMIT
 )
@@ -53,11 +54,15 @@ $env:DING_PBX_VERSION = $Version
 $env:DING_PBX_CANDIDATE_COMMIT = $CandidateCommit
 
 try {
-    Phase 'Bootstrapping all packaging dependencies.'
-    $bootstrapArgs = @()
-    if ($Silent) { $bootstrapArgs += '/s' }
-    & $bootstrap @bootstrapArgs
-    if ($LASTEXITCODE -ne 0) { throw "download-dependencies.bat exited $LASTEXITCODE" }
+    if (-not $SkipBootstrap) {
+        Phase 'Bootstrapping all packaging dependencies.'
+        $bootstrapArgs = @()
+        if ($Silent) { $bootstrapArgs += '/s' }
+        & $bootstrap @bootstrapArgs
+        if ($LASTEXITCODE -ne 0) { throw "download-dependencies.bat exited $LASTEXITCODE" }
+    } else {
+        Phase 'Using the dependency bootstrap completed by the root installer entry point.'
+    }
     $env:PATH = "$nodeRoot;$env:PATH"
     $env:CSC_IDENTITY_AUTO_DISCOVERY = 'false'
     $env:CSC_LINK = ''

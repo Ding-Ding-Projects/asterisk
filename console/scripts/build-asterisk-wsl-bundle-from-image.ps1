@@ -34,13 +34,20 @@ $bundlePath = Join-Path $resourceRoot 'asterisk-wsl-rootfs.tar'
 $provenancePath = Join-Path $resourceRoot 'asterisk-wsl-rootfs.json'
 $fallbackScript = Join-Path $PSScriptRoot 'build-asterisk-wsl-bundle.ps1'
 $sourceCommit = (& git -C $repoRoot rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or $sourceCommit -notmatch '^[0-9a-f]{40}$') { throw 'Could not resolve a full candidate commit for the Asterisk rootfs.' }
 
 if (-not $Force -and (Test-Path -LiteralPath $bundlePath) -and (Test-Path -LiteralPath $provenancePath)) {
-    $existing = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
-    if ($existing.sourceCommit -eq $sourceCommit -and $existing.sha256 -eq (Get-Sha256 $bundlePath)) {
-        $method = if ($existing.sourceMethod) { $existing.sourceMethod } else { 'unknown' }
-        Write-Host "Reusing bundled Asterisk WSL rootfs for $sourceCommit ($method)."
-        exit 0
+    try {
+        $existing = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
+        if ($existing.sourceCommit -eq $sourceCommit) {
+            Test-AsteriskRootfsProvenance -Provenance $existing -BundlePath $bundlePath -ExpectedCommit $sourceCommit | Out-Null
+            Test-AsteriskRootfsTarEntries -Entries (Get-AsteriskRootfsTarEntries -Path $bundlePath)
+            $method = if ($existing.sourceMethod) { $existing.sourceMethod } else { 'unknown' }
+            Write-Host "Reusing bundled Asterisk WSL rootfs for $sourceCommit ($method)."
+            exit 0
+        }
+    } catch {
+        Write-Warning "Existing Asterisk rootfs for $sourceCommit was refused as stale or invalid: $($_.Exception.Message). Rebuilding it."
     }
 }
 
@@ -72,6 +79,8 @@ if (-not $Force) {
                     & gh release download $candidate --repo (Get-AsteriskRepositorySlug -RepoRoot $repoRoot) --pattern 'asterisk-wsl-rootfs.tar' --dir $tmp 2>$null | Out-Host
                     $downloaded = Join-Path $tmp 'asterisk-wsl-rootfs.tar'
                     if (-not (Test-Path -LiteralPath $downloaded)) { continue }
+                    Test-AsteriskRootfsProvenance -Provenance $candidateProvenance -BundlePath $downloaded -ExpectedCommit $sourceCommit | Out-Null
+                    Test-AsteriskRootfsTarEntries -Entries (Get-AsteriskRootfsTarEntries -Path $downloaded)
                     $actual = Get-Sha256 $downloaded
                     if ($actual -ne $candidateProvenance.sha256) {
                         Write-Warning "Release asset on $candidate does not match its own recorded digest; discarding it."

@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([switch]$Silent)
+param([switch]$Silent, [switch]$SkipBootstrap)
 
 $ErrorActionPreference = 'Stop'
 $started = [DateTimeOffset]::UtcNow
@@ -12,11 +12,15 @@ $npm = Join-Path $nodeRoot 'npm.cmd'
 function Phase([string]$Message) { Write-Host ("[{0:HH:mm:ss}] {1}" -f [DateTime]::Now, $Message) }
 
 try {
-    Phase 'Bootstrapping all build dependencies.'
-    $bootstrapArgs = @()
-    if ($Silent) { $bootstrapArgs += '/s' }
-    & $bootstrap @bootstrapArgs
-    if ($LASTEXITCODE -ne 0) { throw "download-dependencies.bat exited $LASTEXITCODE" }
+    if (-not $SkipBootstrap) {
+        Phase 'Bootstrapping all build dependencies.'
+        $bootstrapArgs = @()
+        if ($Silent) { $bootstrapArgs += '/s' }
+        & $bootstrap @bootstrapArgs
+        if ($LASTEXITCODE -ne 0) { throw "download-dependencies.bat exited $LASTEXITCODE" }
+    } else {
+        Phase 'Using the dependency bootstrap completed by the root build entry point.'
+    }
     $env:PATH = "$nodeRoot;$env:PATH"
     $env:CSC_IDENTITY_AUTO_DISCOVERY = 'false'
     $env:CSC_LINK = ''
