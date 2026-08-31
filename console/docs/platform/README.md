@@ -48,8 +48,9 @@ The two surfaces referenced throughout are the desktop application (the installe
 - [Collapsible filters and statistics](collapsible-filters.md)
 - [Automatic updates](automatic-updates.md)
 - [Site history and delivery workspace](site-history-and-delivery.md)
+- [Privileged service boundaries](privileged-service-boundaries.md)
 
 ## Exemptions
 
-The local file converter and Ollama suite are now present as separate local surfaces. The desktop routes are `desktop://console/#surface=converter` and `desktop://console/#surface=ollama`; the Pages equivalents are `converter.html` and `ollama.html`. Their current evidence is `implemented-unverified`: the converter catalog and PDF capability read are mounted through the control plane, while picker and queue mutations remain explicitly unavailable until their handlers are registered. The Ollama desktop client reports a typed bridge-unregistered state until its privileged dispatcher is mounted. Neither surface invents models, health, conversion output, or sample data.
+The local file converter and Ollama suite are separate local surfaces. The desktop routes are `desktop://console/#surface=converter` and `desktop://console/#surface=ollama`; the Pages equivalents are `converter.html` and `ollama.html`. Their current evidence remains `implemented-unverified`: the converter catalog, PDF request validation, picker boundary, and queue checks are mounted through the control plane, while conversion adapters that lack packaged proof remain disabled. The Ollama runtime, catalog, fit, pull, and chat handlers are mounted; catalog refresh remains unavailable until a verified official page source is supplied, and harness actions remain unavailable until explicit allowlisted launch adapters are supplied. Neither surface invents models, health, conversion output, or sample data.
 

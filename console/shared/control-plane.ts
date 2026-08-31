@@ -40,16 +40,20 @@ export type ControlPlaneAction =
    * only for a `file://` origin and never survives a relaunch. */
   | 'settings.snapshot' | 'settings.write' | 'settings.remove'
   | 'settings.source.fetch'
+  | 'logo.inspect' | 'logo.convert' | 'logo.cache.read' | 'logo.cache.write' | 'logo.cache.clear'
+  | 'vocabulary.status' | 'vocabulary.replace' | 'vocabulary.clear'
   /* Local converter catalog and capability evidence. The queue and file-picker actions
    * use the same namespace so the renderer cannot invent a parallel transport. */
-  | 'converter.catalog' | 'converter.pdf-capabilities' | 'converter.sniff'
+  | 'converter.catalog' | 'converter.pdf-capabilities' | 'converter.pdf-validate' | 'converter.sniff'
   | 'converter.queue.create' | 'converter.queue.enqueue-one' | 'converter.queue.page'
   | 'converter.queue.start' | 'converter.queue.pause' | 'converter.queue.resume' | 'converter.queue.cancel'
   | 'ollama.snapshot' | 'ollama.health' | 'ollama.version' | 'ollama.models.installed' | 'ollama.models.running'
   | 'ollama.model.show' | 'ollama.model.delete' | 'ollama.model.copy'
+  | 'ollama.catalog.get' | 'ollama.catalog.refresh' | 'ollama.catalog.reconcile' | 'ollama.fit.evaluate'
   | 'ollama.pulls.list' | 'ollama.pulls.enqueue' | 'ollama.pulls.cancel' | 'ollama.pulls.retry' | 'ollama.pulls.reconcile'
   | 'ollama.chat.sessions' | 'ollama.chat.create' | 'ollama.chat.rename' | 'ollama.chat.delete' | 'ollama.chat.send'
   | 'ollama.chat.retry' | 'ollama.chat.regenerate' | 'ollama.chat.stop'
+  | 'ollama.harness.profiles' | 'ollama.harness.register' | 'ollama.harness.preflight' | 'ollama.harness.launch' | 'ollama.harness.restore'
   /* Live Status Hub observations and receipt-backed question delivery. */
   | 'status-hub.register' | 'status-hub.project' | 'status-hub.sessions' | 'status-hub.session'
   | 'status-hub.replies' | 'status-hub.answer'

@@ -19,3 +19,6 @@ export * from "./settings-store.js";
 export * from "./atomic-file.js";
 export * from "./download-transfer-manager.js";
 export * from "./forge-publishing.js";
+export * from "./vocabulary-store.js";
+export * from "./logo-converter.js";
+export * from "./logo-store.js";

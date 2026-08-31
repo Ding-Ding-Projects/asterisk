@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, utilityProcess, type WebContents } from 'electron';
-import { stat } from 'node:fs/promises';
+import { lstat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFile, spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
@@ -582,7 +582,8 @@ ipcMain.handle('converter:pick-file', async () => {
   const result = mainWindow ? await dialog.showOpenDialog(mainWindow, { properties: ['openFile'], title: 'Choose a local source file' }) : await dialog.showOpenDialog({ properties: ['openFile'], title: 'Choose a local source file' });
   const sourcePath = result.canceled ? undefined : result.filePaths[0];
   if (!sourcePath) return undefined;
-  const info = await stat(sourcePath);
+  const info = await lstat(sourcePath);
+  if (info.isSymbolicLink() || !info.isFile()) return undefined;
   return { sourcePath, name: sourcePath.slice(Math.max(sourcePath.lastIndexOf('\\'), sourcePath.lastIndexOf('/')) + 1), bytes: info.size };
 });
 ipcMain.handle('converter:pick-destination', async () => {
