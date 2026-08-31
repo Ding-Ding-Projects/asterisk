@@ -10,6 +10,7 @@ import {
   findMissingPackagingInputs,
   isUnsignedPortableExecutable,
   parseBuilderIdentity,
+  validateBuilderIconUrl,
   validateReleaseIdentity,
   validateReleasesIndex,
 } from '../../scripts/packaging-contract.mjs';
@@ -43,6 +44,16 @@ test('builder product identity, unpacked executable, release identity, and runti
   const runtimeTest = execFileSync('git', ['show', 'HEAD:console/tests/control-plane/squirrel-events.test.ts'], { cwd: root, encoding: 'utf8' });
   const executableName = runtimeTest.match(/execPath:\s*'[^']*[/\\]([^/\\']+\.exe)'/u)?.[1];
   assert.equal(executableName, builder.executableName, 'runtime event fixture must exercise the builder-configured executable name');
+});
+
+test('builder icon metadata uses an immutable canonical raw URL', () => {
+  const root = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..', '..');
+  const config = readFileSync(join(root, 'console', 'electron-builder.yml'), 'utf8');
+  const iconUrl = validateBuilderIconUrl(config);
+  assert.match(iconUrl, /^https:\/\/raw\.githubusercontent\.com\/Ding-Ding-Projects\/material-asterisk\/[0-9a-f]{40}\/console\/assets\/icon\.png$/u);
+  assert.doesNotMatch(iconUrl, /Ding-Ding-Projects\/asterisk\//u);
+  assert.throws(() => validateBuilderIconUrl(config.replace('Ding-Ding-Projects/material-asterisk', 'Ding-Ding-Projects/asterisk')));
+  assert.throws(() => validateBuilderIconUrl(config.replace('fcd627165ef60989cad4fbd9b71af113e52591a9', 'main')));
 });
 
 test('runtime release resolver is pinned to the canonical product Oak Kay', () => {

@@ -29,6 +29,18 @@ export function parseBuilderIdentity(configText) {
   return Object.freeze({ productName, appId, executableName: `${productName}.exe` });
 }
 
+export function validateBuilderIconUrl(configText, expectedSlug = 'Ding-Ding-Projects/material-asterisk') {
+  if (typeof configText !== 'string') throw new Error('electron-builder configuration must be text');
+  const match = configText.match(/^\s{2}iconUrl:\s*(\S+)\s*$/mu);
+  if (!match) throw new Error('electron-builder configuration is missing squirrelWindows.iconUrl');
+  const url = new URL(match[1]);
+  const expectedPath = new RegExp(`^/${expectedSlug.replace('/', '\\/')}/[0-9a-f]{40}/console/assets/icon\\.png$`, 'u');
+  if (url.protocol !== 'https:' || url.hostname !== 'raw.githubusercontent.com' || !expectedPath.test(url.pathname)) {
+    throw new Error(`squirrelWindows.iconUrl must be an immutable raw URL under ${expectedSlug}`);
+  }
+  return url.href;
+}
+
 export function findMissingPackagingInputs(consoleRoot) {
   return REQUIRED_PACKAGING_INPUTS.filter((entry) => {
     const path = join(consoleRoot, entry);

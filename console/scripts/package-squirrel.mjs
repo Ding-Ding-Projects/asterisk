@@ -8,6 +8,7 @@ import {
   findMissingPackagingInputs,
   isUnsignedPortableExecutable,
   parseBuilderIdentity,
+  validateBuilderIconUrl,
   sha256File,
   validateReleaseIdentity,
   validateReleasesIndex,
@@ -36,7 +37,9 @@ const head = spawnSync('git', ['-C', repoRoot, 'rev-parse', 'HEAD'], { encoding:
 if (head.status !== 0 || head.stdout.trim() !== candidateCommit) throw new Error(`Candidate commit ${candidateCommit} does not match checkout HEAD ${head.stdout.trim()}.`);
 const missingInputs = findMissingPackagingInputs(consoleRoot);
 if (missingInputs.length > 0) throw new Error(`Packaging source inputs are missing or the wrong kind: ${missingInputs.join(', ')}.`);
-const builderIdentity = parseBuilderIdentity(readFileSync(join(consoleRoot, 'electron-builder.yml'), 'utf8'));
+const builderConfig = readFileSync(join(consoleRoot, 'electron-builder.yml'), 'utf8');
+const builderIdentity = parseBuilderIdentity(builderConfig);
+validateBuilderIconUrl(builderConfig);
 const cli = join(consoleRoot, 'node_modules', 'electron-builder', 'cli.js');
 if (!existsSync(cli)) throw new Error(`electron-builder CLI is missing at ${cli}; run download-dependencies.bat /s first.`);
 const generatedRoot = join(consoleRoot, 'dist', 'squirrel-windows');
