@@ -56,8 +56,8 @@ function stripComments(source) {
 }
 
 /* Scan one candidate source blob using exact line-anchored declarations. Keeping
- * this separate lets the negative Chut exercise a real comment-prefixed source
- * mutation without ever reading a lat tat checkout as candidate evidence. */
+ * this separate lets the negative regression exercise a real comment-prefixed source
+ * mutation without ever reading a modified checkout as candidate evidence. */
 export function validateSymbolSource(source, symbol) {
   const code = stripComments(source);
   const name = escaped(symbol.name);
@@ -190,7 +190,7 @@ const destinationIds = ['dash', 'live', 'endpoints', 'trunks', 'trunkauth', 'can
 const transientStates = ['appearOpen', 'ceremonyOpen', 'ctxOpen', 'infoOpen', 'lockOpen', 'onboardOpen', 'paletteOpen', 'regexOpen', 'renameOpen', 'subOpen', 'sureOpen', 'tabColourOpen', 'tabFilterOpen', 'toastOpen', 'tourOpen', 'unlockOpen', 'wizardOpen'];
 // This is deliberately hand-written rather than inferred from the inventory. A template that
 // disappears from both the JSON and a discovery-based validator would otherwise disappear from
-// the Chut with it. Region-ledger and chrome-parity records are independent evidence artifacts,
+// the validation contract with it. Region-ledger and chrome-parity records are independent evidence records,
 // so both belong in the exact nine-key contract.
 const parityTemplateKeys = ['referenceRoute', 'builtRoute', 'referenceCapture', 'builtCapture', 'sideBySide', 'visualDiff', 'regionLedger', 'chromeParity', 'materialAudit'];
 // This is an evidence claim, not a free-form note. Keep the exact hand-written schema and

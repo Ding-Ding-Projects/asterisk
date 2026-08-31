@@ -37,7 +37,7 @@ test('phone-start marker break turns red and restoration turns green', () => {
   assertLiveMarker(inventory);
 });
 
-test('candidate symbol validation ignores a lat tat local source mutation', () => {
+test('candidate symbol validation ignores a modified local source mutation', () => {
   const original = readFileSync(appPath, 'utf8');
   const declaration = /^\s{2}fire\(title: string, body: string, isError\?: boolean\): void;$/mu;
   assert.match(original, declaration, 'the candidate source must contain the fire declaration');
