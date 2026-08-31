@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,6 +14,7 @@ const pages = read(join(repoRoot, '.github', 'workflows', 'pages.yml'));
 const packageJson = JSON.parse(read(join(consoleRoot, 'package.json')));
 const localBuildScript = packageJson.scripts?.build ?? '';
 const localPackageScript = packageJson.scripts?.['package:squirrel'] ?? '';
+const localInstaller = read(join(consoleRoot, 'scripts', 'build-installer.ps1'));
 
 const forbidden = [
   /npm\s+test\b/i,
@@ -44,6 +45,12 @@ if (!/node_modules[\\/]typescript[\\/]bin[\\/]tsc['"\s)]*\)?\s+-b\s+--noCheck/i.
 }
 if (!/node_modules[\\/]vite[\\/]bin[\\/]vite\.js['"\s)]*\)?\s+build/i.test(deliveryScript)) {
   throw new Error('build-delivery.ps1 must invoke the local Vite bundler directly');
+}
+if (!/package-squirrel\.mjs[\s\S]*packaging-build\.log[\s\S]*packaging-provenance\.json[\s\S]*verify-squirrel-artifacts\.ps1[\s\S]*squirrel-artifact-receipt\.json/i.test(deliveryScript)) {
+  throw new Error('delivery packaging path must emit the packaging receipt set and invoke the target-owned verifier');
+}
+if (existsSync(join(consoleRoot, 'scripts', 'verify-squirrel-artifacts.ps1')) && !/verify-squirrel-artifacts\.ps1/i.test(localInstaller)) {
+  throw new Error('local build-installer.ps1 must invoke the target-owned Squirrel verifier');
 }
 const bootstrapIndex = deliveryScript.indexOf('& $bootstrap');
 const pathCheckIndex = deliveryScript.indexOf('check-delivery-path.mjs');

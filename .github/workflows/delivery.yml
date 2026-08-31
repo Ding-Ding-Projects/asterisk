@@ -443,7 +443,7 @@ jobs:
           foreach ($asset in $nonHashAssets) { if ($asset.Length -le 0) { throw "Final release asset $($asset.Name) is empty." }; if ($asset.Length -ge 1610612736) { throw "Final release asset $($asset.Name) is at or above the 1.5 GB transfer ceiling." } }
           $duplicates = @($nonHashAssets | Group-Object Name | Where-Object Count -ne 1)
           if ($duplicates.Count -gt 0) { throw "Final release staging contains duplicate asset names: $($duplicates.Name -join ', ')." }
-          $requiredAssets = @('RELEASES','release-identity.json','update-manifest.json','line-count.md','line-count.json','ding-pbx-installer.iso.sha256','ding-pbx-installer.iso.json','ding-pbx-installer.iso.REASSEMBLE.md','asterisk-wsl-rootfs.tar','asterisk-wsl-rootfs.json')
+          $requiredAssets = @('RELEASES','release-identity.json','update-manifest.json','line-count.md','line-count.json','packaging-build.log','packaging-provenance.json','squirrel-artifact-receipt.json','ding-pbx-installer.iso.sha256','ding-pbx-installer.iso.json','ding-pbx-installer.iso.REASSEMBLE.md','asterisk-wsl-rootfs.tar','asterisk-wsl-rootfs.json')
           if ($dimSum) { $requiredAssets += $dimSum.asset }
           foreach ($requiredAsset in $requiredAssets) {
             $matches = @($nonHashAssets | Where-Object Name -eq $requiredAsset)
