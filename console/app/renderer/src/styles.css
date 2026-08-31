@@ -13,6 +13,18 @@ body {
   margin: 0;
 }
 
+/* The title-bar mark is supplied by App.tsx's renderer boundary, replacing the
+ * design's placeholder symbol with the selected bundled or validated local image. */
+.app-logo-mark {
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  border-radius: 6px;
+  object-fit: contain;
+  user-select: none;
+}
+
 /* Text fields meet the same 24px floor as every other control (accessibility-contract.ts).
  * The search fields were 22px: the row around them is comfortably bigger, but the box that
  * actually takes the click and the caret was not, and that box is what the criterion measures.
