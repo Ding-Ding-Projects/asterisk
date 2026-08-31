@@ -2,8 +2,8 @@
 
 **Material Asterisk** is a Windows desktop application for administering [Asterisk](https://www.asterisk.org/) PBX installations. It talks to a target over an allowlisted, no-shell control plane, carries its own Ubuntu WSL runtime so a target exists out of the box, and covers 32 destinations across dialplan, endpoints, trunks, queues, voicemail, security, and system administration.
 
-Install: download the latest unsigned Windows installer from the [Releases page](https://github.com/Ding-Ding-Projects/asterisk/releases/latest) and run it — it will show an unknown-publisher warning (see [Installers are unsigned](#installers-are-unsigned)).
-Documentation and downloads: **https://ding-ding-projects.github.io/asterisk/**
+Install: download the latest unsigned Windows installer from the [Releases page](https://github.com/Ding-Ding-Projects/material-asterisk/releases/latest) and run it — it will show an unknown-publisher warning (see [Installers are unsigned](#installers-are-unsigned)).
+Documentation and downloads: **https://ding-ding-projects.github.io/material-asterisk/**
 
 **Contents:** [What it is](#what-ding-pbx-console-is) · [What it looks like](#what-it-looks-like) · [Reaching a PBX](#reaching-a-pbx) · [Build and installer scripts](#build-and-installer-scripts) · [The bundled WSL runtime](#the-bundled-wsl-runtime) · [Safety model](#the-control-planes-safety-model) · [Testing](#testing) · [Documentation](#documentation) · [Contributing](#contributing) · [What is not done yet](#what-is-not-done-yet) · [This is a fork of Asterisk](#this-is-a-fork-of-asterisk) · [How long this would take a person](#how-long-this-would-take-a-person-to-write)
 
@@ -103,7 +103,7 @@ The three control-plane failures are all in the access-control-list (`acl.conf`)
 <details>
 <summary><strong>Documentation</strong></summary>
 
-The Windows application bundles all 82 feature articles offline, with search and link resolution, so the documentation ships inside the installer with no network dependency. The same content, plus product and download pages, is published as a static site with no runtime asset fetches at **https://ding-ding-projects.github.io/asterisk/**.
+The Windows application bundles all 82 feature articles offline, with search and link resolution, so the documentation ships inside the installer with no network dependency. The same content, plus product and download pages, is published as a static site with no runtime asset fetches at **https://ding-ding-projects.github.io/material-asterisk/**.
 
 </summary>
 </details>

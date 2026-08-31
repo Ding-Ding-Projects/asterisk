@@ -2,15 +2,13 @@
 
 The desktop console has a mount-ready React surface for a local Ollama installation. Neither it nor the site page described below is a cloud model store or an Ollama replacement. The desktop surface accepts an `OllamaSuiteClient` and treats observed backend data as authoritative: it never seeds sample models, simulated progress, or fake health results.
 
-**Corrected on 2026-08-27.** This paragraph used to say that "the documentation site has a
-browser-local equivalent at `ollama.html`". `console/site/ollama.html` exists as markup and is
-wired to nothing: `console/site/app.js` contains no occurrence of `ollama-probe`,
-`ollama-endpoint` or `ollama-models`, the page loads `app.js` and no other script, and
-`site/build.mjs` does not publish it, so it has no address on the site. The same is true of
-`converter.html` and `history.html`; see the corrected section in
-[Local file converter](local-file-converter.md) for the full list and the guard that now keeps
-it honest. Everything below headed "Documentation site behavior" is the intended contract for
-that page, not a description of what it does.
+The documentation site has a browser-local equivalent at `ollama.html`. It is published by
+`console/site/build.mjs` and its controls are wired in `console/site/app.js`. The page does not
+probe on load: a person must approve one loopback endpoint first. The browser surface reads the
+documented version and installed-tag endpoints, persists only a bounded redacted catalog locally,
+and keeps catalog completeness explicitly **Unknown** because a browser cannot prove an exhaustive
+official catalog. Pull and chat use bounded newline-delimited streams and can be cancelled. This
+is a truthful site equivalent, not a replacement for the desktop privileged manager.
 
 ## Behavior
 

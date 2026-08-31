@@ -14,7 +14,12 @@ Processing would be bounded and safe — validated file types, no network upload
 
 **Desktop application:** Not implemented. The desktop application shows a fixed application mark with no customization surface.
 
-**Documentation website:** Partial. Every page exposes three presets, contain/fill choice, and local PNG/JPEG upload. The loader verifies the byte signature, bounds encoded bytes and decoded pixels, revalidates the cache, applies the mark live, and retains the prior valid mark after rejection. Crop, focal point, background treatment, and multi-size output remain incomplete.
+**Documentation website:** Partial but operational. The settings surface exposes three shipped
+presets, contain/fill/original fit, focal-point controls, a local PNG/JPEG/SVG upload, a live preview,
+and a reset action. The selected data stays in browser storage and the page states that nothing was
+transmitted. Browser MIME and byte-size checks remain bounded, while cryptographic image signature
+and decoded-pixel validation are not available in this static equivalent. Multi-size platform icon
+output is not available here.
 
 ## Failure modes
 
@@ -22,11 +27,17 @@ A malformed, spoofed, oversized, or over-dimension image is rejected before stor
 
 ## Accessibility and localization
 
-This feature is expected to follow the product's standing accessibility contract: keyboard reachability, visible focus, correct roles and names, and respect for a reduced-motion preference. There are no automated tests covering the desktop application's generic feature surface at this time, so none of that is independently verified for this feature yet. Copy for this feature is expected to be available in every supported language mode once language modes exist; today all copy is fixed English.
+The site controls use native keyboard-reachable inputs and buttons, visible focus, labelled preview
+and status regions, and the site's reduced-motion preference. The generated preset controls and
+focal-point fields are still awaiting built-browser interaction evidence. The site can localize its
+surrounding settings copy, while the preset names and image-format names remain factual labels.
 
 ## Verification
 
-No automated test currently exercises this feature on either surface. Verifying it today means opening the desktop application and the documentation website and checking by hand whether the behavior described above is present; where a surface is marked not implemented above, there is nothing yet to verify there.
+The focused static contract checks the bounded upload path, local storage key, live mark application,
+and the presence of the new preset and presentation controls in `console/site/app.js`. A real browser
+drive and packaged-artifact capture remain unrun in this lane, so the site evidence is
+implemented-unverified rather than verified.
 
 ## Suggested articles
 

@@ -8,7 +8,9 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(fileURLToPath(import.meta.url));
 const docs = resolve(root, '..', 'docs');
 const output = join(root, 'dist');
-const assets = ['index.html', 'product.html', 'documentation.html', 'converter.html', 'downloads.html', 'status.html', 'settings.html', 'styles.css', 'app.js'];
+const assets = ['index.html', 'product.html', 'documentation.html', 'converter.html', 'ollama.html', 'downloads.html', 'status.html', 'settings.html', 'history.html', 'history-delivery.js', 'styles.css', 'app.js'];
+const PUBLIC_REPOSITORY = 'Ding-Ding-Projects/material-asterisk';
+const PUBLIC_SITE_ORIGIN = 'https://ding-ding-projects.github.io/material-asterisk/';
 const socialPreview = resolve(root, '..', '..', 'social-preview.png');
 
 if (process.argv.includes('--clean')) {
@@ -109,8 +111,8 @@ function replaceAllOccurrences(text, needle, replacement, expectedCount, label) 
   return text.split(needle).join(replacement);
 }
 const SETUP_ASSET_NAME = 'Ding-PBX-Console-Setup.exe';
-const RELEASE_URL_PREFIX = 'https://github.com/Ding-Ding-Projects/asterisk/releases/tag/';
-const ASSET_URL_PREFIX = 'https://github.com/Ding-Ding-Projects/asterisk/releases/download/';
+const RELEASE_URL_PREFIX = `https://github.com/${PUBLIC_REPOSITORY}/releases/tag/`;
+const ASSET_URL_PREFIX = `https://github.com/${PUBLIC_REPOSITORY}/releases/download/`;
 const SEMVER = /^\d+\.\d+\.\d+$/;
 const SHA256_HEX = /^[0-9a-f]{64}$/;
 const manifestPath = process.env.DING_PBX_SITE_RELEASE_MANIFEST ?? join(root, 'release-manifest.local.json');
@@ -412,6 +414,22 @@ const buildIdentity = resolveBuildIdentity();
 for (const asset of assets) {
   let content = await readFile(join(root, asset));
   let text = content.toString('utf8').replaceAll('../assets/fonts/', 'assets/fonts/').replaceAll('../assets/site-fonts/', 'assets/site-fonts/');
+  // Current published links use the maintained identity. Historical `/asterisk/`
+  // references remain valid evidence, but must not leak into new output.
+  text = text.replaceAll('https://ding-ding-projects.github.io/asterisk/', PUBLIC_SITE_ORIGIN)
+    .replaceAll('https://github.com/Ding-Ding-Projects/asterisk/', `https://github.com/${PUBLIC_REPOSITORY}/`);
+  const navStart = text.indexOf('<nav class="site-nav"');
+  const navEnd = navStart < 0 ? -1 : text.indexOf('</nav>', navStart);
+  if (navStart >= 0 && navEnd > navStart) {
+    const nav = text.slice(navStart, navEnd);
+    const additions = `${nav.includes('ollama.html') ? '' : '<a href="ollama.html">Ollama</a>'}${nav.includes('history.html') ? '' : '<a href="history.html">History</a>'}`;
+    text = text.slice(0, navEnd) + additions + text.slice(navEnd);
+  }
+  if (asset.endsWith('.html') && !text.includes('rel="canonical"')) {
+    const canonicalUrl = `${PUBLIC_SITE_ORIGIN}${asset}`;
+    const metadata = `<link rel="canonical" href="${canonicalUrl}"><meta name="twitter:card" content="summary_large_image">`;
+    text = text.replace('<title>', `${metadata}<title>`);
+  }
   if (asset === 'index.html') {
     text = text.replaceAll('../docs/', 'docs/').replaceAll('.md"', '.html"');
     text = replaceOnce(text, '{{DING_PBX_HOME_STATUS_LABEL}}', downloadValues.homeStatusLabel, asset);
@@ -511,6 +529,26 @@ async function composeDocs(sourceRelative='') {
   }
 }
 await composeDocs();
+
+// Docs pages are generated after the source-page loop, so apply the same identity
+// rule to their current metadata before hashing the published output.
+async function rewritePublishedIdentity(relative = '.') {
+  for (const entry of await readdir(join(output, relative), { withFileTypes: true })) {
+    const child = join(relative, entry.name);
+    if (entry.isDirectory()) { await rewritePublishedIdentity(child); continue; }
+    if (!entry.name.endsWith('.html') && !entry.name.endsWith('.js')) continue;
+    const path = join(output, child);
+    const current = await readFile(path, 'utf8');
+    let rewritten = current.replaceAll('https://ding-ding-projects.github.io/asterisk/', PUBLIC_SITE_ORIGIN)
+      .replaceAll('https://github.com/Ding-Ding-Projects/asterisk/', `https://github.com/${PUBLIC_REPOSITORY}/`);
+    if (child.endsWith('.html') && child.startsWith(`docs${String.fromCharCode(92)}`) && !rewritten.includes('rel="canonical"')) {
+      const canonicalUrl = `${PUBLIC_SITE_ORIGIN}${child.replaceAll(String.fromCharCode(92), '/')}`;
+      rewritten = rewritten.replace('<title>', `<link rel="canonical" href="${canonicalUrl}"><meta property="og:image:width" content="1280"><meta property="og:image:height" content="640"><meta property="og:image:alt" content="Material Asterisk documentation"><meta name="twitter:card" content="summary_large_image"><title>`);
+    }
+    if (rewritten !== current) await writeFile(path, rewritten, 'utf8');
+  }
+}
+await rewritePublishedIdentity();
 
 const files = [];
 async function record(relative) {
