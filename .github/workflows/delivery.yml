@@ -17,13 +17,13 @@ jobs:
     outputs:
       workflow-started: ${{ steps.started.outputs.workflow-started }}
     steps:
+      - name: Record workflow start time
+        id: started
+        run: echo "workflow-started=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
       - name: Check out the exact source commit
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Record workflow start time
-        id: started
-        run: echo "workflow-started=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
       - name: Build the complete Ubuntu root filesystem, and best-effort publish it
         shell: pwsh
         env:
