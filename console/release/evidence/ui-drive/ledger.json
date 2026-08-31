@@ -20,7 +20,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0000-enter-File.png",
+        "path": "console/release/captures/ui-drive/0000-enter-File.png",
         "sha256": "6dd11f8a499ecf2bb23e551129376d152a995212a914e4124f1e7818ce36d8f4",
         "bytes": 276813
       }
@@ -44,7 +44,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0001-File-Edit.png",
+        "path": "console/release/captures/ui-drive/0001-File-Edit.png",
         "sha256": "650308b7ff73c89f95cc87cfe4f81e0bd00d3f70ac1d143e6aaa1022691d8a7a",
         "bytes": 277298
       }
@@ -68,7 +68,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0002-File-View.png",
+        "path": "console/release/captures/ui-drive/0002-File-View.png",
         "sha256": "0a04d3f8a20a0f67f871de7675cf0f632ca72ca812bc2d0f971e7bad6f159b74",
         "bytes": 277468
       }
@@ -92,7 +92,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0003-File-PBX.png",
+        "path": "console/release/captures/ui-drive/0003-File-PBX.png",
         "sha256": "628900234078ad7f4843e569266b81356c19611e41d44cc027eecd3c658349cd",
         "bytes": 277803
       }
@@ -116,7 +116,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0004-File-Agent.png",
+        "path": "console/release/captures/ui-drive/0004-File-Agent.png",
         "sha256": "952d460811b364930fc1141e132644e5a50b7e078762bb91e0a42a1b7c70a438",
         "bytes": 277381
       }
@@ -140,7 +140,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0005-File-Window.png",
+        "path": "console/release/captures/ui-drive/0005-File-Window.png",
         "sha256": "94279d3725515a82dfce1b06059d00fae583e83e0b9d1fc4c883ee3aaca39cbb",
         "bytes": 277454
       }
@@ -164,7 +164,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0006-File-Help.png",
+        "path": "console/release/captures/ui-drive/0006-File-Help.png",
         "sha256": "e8bb4c687d234f91ed39feadf93f902e0dd1717f3af5f72aac0e99a75ce3f4be",
         "bytes": 277037
       }
@@ -188,7 +188,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0007-File-ding-pbx-console-2-local-target-s-conne.png",
+        "path": "console/release/captures/ui-drive/0007-File-ding-pbx-console-2-local-target-s-conne.png",
         "sha256": "9885f24b2fdd15f7839f20cb8afd46c35a8527b51f392caccf04117699e1225f",
         "bytes": 329653
       }
@@ -212,7 +212,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0008-File-checkBeginner.png",
+        "path": "console/release/captures/ui-drive/0008-File-checkBeginner.png",
         "sha256": "ad15f5aea7d9ba2c7fa9dc2e37411b815c34da12584cd619cde19f04ab9e7a9d",
         "bytes": 329743
       }
@@ -236,7 +236,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0009-File-Expert.png",
+        "path": "console/release/captures/ui-drive/0009-File-Expert.png",
         "sha256": "c03546f85d16ee93a628ba650a2bda12b3c60828a7f5dccf782c6142d2c46376",
         "bytes": 313870
       }
@@ -260,7 +260,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0010-File-confirmation-number3.png",
+        "path": "console/release/captures/ui-drive/0010-File-confirmation-number3.png",
         "sha256": "14bb8d75f9592afe0cd176e618d63b4b046bcfcf6346eac82c92d27d78d2cc0d",
         "bytes": 392169
       }
@@ -276,7 +276,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0011-enter-Edit.png",
+        "path": "console/release/captures/ui-drive/0011-enter-Edit.png",
         "sha256": "369246834a789e9c585c1e84ac94b429cbd595dfbefbfebbf427190677773e67",
         "bytes": 384796
       }
@@ -300,7 +300,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0012-Edit-File.png",
+        "path": "console/release/captures/ui-drive/0012-Edit-File.png",
         "sha256": "c62455f5242c41a848e96e0a6fb4581ccd48e52b5383356f30064e4f232775d8",
         "bytes": 384418
       }
@@ -324,7 +324,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0013-Edit-View.png",
+        "path": "console/release/captures/ui-drive/0013-Edit-View.png",
         "sha256": "c2fb55ee02968cce10e6f0d0e6be93b954aa12d56092ad3f1786b3c62f462a25",
         "bytes": 385169
       }
@@ -348,7 +348,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0014-Edit-PBX.png",
+        "path": "console/release/captures/ui-drive/0014-Edit-PBX.png",
         "sha256": "47ada011423e7cb997987f46efb5b0df5be6977e54ba3948dd4ed05489f30186",
         "bytes": 385467
       }
@@ -372,7 +372,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0015-Edit-Agent.png",
+        "path": "console/release/captures/ui-drive/0015-Edit-Agent.png",
         "sha256": "67d9b9da88ac563410a5fead2d6567293f006164f9ac92da8f299c0e33d79667",
         "bytes": 385157
       }
@@ -396,7 +396,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0016-Edit-Window.png",
+        "path": "console/release/captures/ui-drive/0016-Edit-Window.png",
         "sha256": "5ee4d9c8fca79b6a32bb77843504f5ab1bba33f0389cbb2e2e4b77e15af22dcb",
         "bytes": 385335
       }
@@ -420,7 +420,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0017-Edit-Help.png",
+        "path": "console/release/captures/ui-drive/0017-Edit-Help.png",
         "sha256": "9497914d648760cdb01beded9505f781b46ff79e2a2fe3b46f1a521e81f76120",
         "bytes": 384738
       }
@@ -444,7 +444,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0018-Edit-ding-pbx-console-2-local-target-s-conne.png",
+        "path": "console/release/captures/ui-drive/0018-Edit-ding-pbx-console-2-local-target-s-conne.png",
         "sha256": "3ac6266ebc27543213a2fd15cec8ce65bc294fc96f50c070ff95a9ff99dae3eb",
         "bytes": 384800
       }
@@ -468,7 +468,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0019-Edit-Beginner.png",
+        "path": "console/release/captures/ui-drive/0019-Edit-Beginner.png",
         "sha256": "48cd096e26636936a73d53b436619bd578d70122b26a0b62e2e3d986e19e1a9d",
         "bytes": 392468
       }
@@ -497,7 +497,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0020-Edit-confirmation-number3.png",
+        "path": "console/release/captures/ui-drive/0020-Edit-confirmation-number3.png",
         "sha256": "d80a9fbd1299d9654ae26d67ed5eba1f8959e123cb5305810fbca9b849ee881a",
         "bytes": 392260
       }
@@ -513,7 +513,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0021-enter-View.png",
+        "path": "console/release/captures/ui-drive/0021-enter-View.png",
         "sha256": "07f98e81a3cbb314d1ecd00df5b7ffc11bc6266c91273880fb3f8810752ffaf4",
         "bytes": 392595
       }
@@ -537,7 +537,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0022-View-File.png",
+        "path": "console/release/captures/ui-drive/0022-View-File.png",
         "sha256": "de8eb7dfd210096c4977096a8a21158432a2e9735d26f55819d139f09cb17dc0",
         "bytes": 391801
       }
@@ -561,7 +561,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0023-View-Edit.png",
+        "path": "console/release/captures/ui-drive/0023-View-Edit.png",
         "sha256": "47c20be416b77e4cb213666868aa24254eebf53d98c9fb9a2f8e723b7a29fb86",
         "bytes": 392261
       }
@@ -585,7 +585,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0024-View-PBX.png",
+        "path": "console/release/captures/ui-drive/0024-View-PBX.png",
         "sha256": "618c820b4a7ad8f4b7377d2c2cf46601b0241d02d645671b5f06d927eb014e44",
         "bytes": 392837
       }
@@ -609,7 +609,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0025-View-Agent.png",
+        "path": "console/release/captures/ui-drive/0025-View-Agent.png",
         "sha256": "025ea2561682f73b350027a94263c43ce8b36e680b9e797e6ff3fd394d02e373",
         "bytes": 392553
       }
@@ -633,7 +633,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0026-View-Window.png",
+        "path": "console/release/captures/ui-drive/0026-View-Window.png",
         "sha256": "62bb0a140cd191c1813cb491592057fc16123c6805ea8368cd72ece65c6270a3",
         "bytes": 392382
       }
@@ -657,7 +657,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0027-View-Help.png",
+        "path": "console/release/captures/ui-drive/0027-View-Help.png",
         "sha256": "a126371f5572195f13b201e8c305407f068dc4dc1cdbf0afffb22a8240b32078",
         "bytes": 392148
       }
@@ -681,7 +681,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0028-View-ding-pbx-console-2-local-target-s-conne.png",
+        "path": "console/release/captures/ui-drive/0028-View-ding-pbx-console-2-local-target-s-conne.png",
         "sha256": "fe452b82051757939c86fcad1b3e4627fc7509ad6e3c70034bb37421aa0acb61",
         "bytes": 392586
       }
@@ -705,7 +705,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0029-View-checkBeginner.png",
+        "path": "console/release/captures/ui-drive/0029-View-checkBeginner.png",
         "sha256": "64aab8a0f3bea95104af4039d9198829d5836621a51f34223acbed6060074024",
         "bytes": 392588
       }
@@ -729,7 +729,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0030-View-Expert.png",
+        "path": "console/release/captures/ui-drive/0030-View-Expert.png",
         "sha256": "8d8d2063798856e5c7c41b124566459d168a6a8c9c6832ee0df8ab47263d20e0",
         "bytes": 385394
       }
@@ -753,7 +753,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0031-View-confirmation-number3.png",
+        "path": "console/release/captures/ui-drive/0031-View-confirmation-number3.png",
         "sha256": "a0b768cc453f22eabb71c4f13cf470c7309c634cc779b93420ee3378f96433e6",
         "bytes": 385161
       }
@@ -769,7 +769,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0032-enter-PBX.png",
+        "path": "console/release/captures/ui-drive/0032-enter-PBX.png",
         "sha256": "745096ace30d29342040fd12034131715e8be5ecb1f01ad88e213006fe337a23",
         "bytes": 385462
       }
@@ -793,7 +793,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0033-PBX-File.png",
+        "path": "console/release/captures/ui-drive/0033-PBX-File.png",
         "sha256": "5cedb46f251578247e6002332f0b49365db578740ec2bc7abb074a857c0d5ef7",
         "bytes": 384416
       }
@@ -817,7 +817,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0034-PBX-Edit.png",
+        "path": "console/release/captures/ui-drive/0034-PBX-Edit.png",
         "sha256": "e584e2edb2c73f1fb1eeedacf910e77077a1f5db0fc16d6425768cd3b3507ebb",
         "bytes": 384800
       }
@@ -841,7 +841,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0035-PBX-View.png",
+        "path": "console/release/captures/ui-drive/0035-PBX-View.png",
         "sha256": "2406c2eb3cf792bdbc2ede063be06ebf45de20049ef47044c6ca82ed71ac6d8f",
         "bytes": 385170
       }
@@ -865,7 +865,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0036-PBX-Agent.png",
+        "path": "console/release/captures/ui-drive/0036-PBX-Agent.png",
         "sha256": "39d180ae785df03e723d5c48c390aa1a4a2c709a9c5a0a1d12de3a3648bf81d0",
         "bytes": 385169
       }
@@ -889,7 +889,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0037-PBX-Window.png",
+        "path": "console/release/captures/ui-drive/0037-PBX-Window.png",
         "sha256": "c52aec1e86c450c171ec87ccbb6245f416d117bccfb862321f45dc3b33afc07f",
         "bytes": 385336
       }
@@ -913,7 +913,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0038-PBX-Help.png",
+        "path": "console/release/captures/ui-drive/0038-PBX-Help.png",
         "sha256": "428e9a4fb6b1d1ca6d35f1b783213ae5e954423d5ea8bdc12466f92f55ed6531",
         "bytes": 384730
       }
@@ -937,7 +937,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0039-PBX-ding-pbx-console-2-local-target-s-connec.png",
+        "path": "console/release/captures/ui-drive/0039-PBX-ding-pbx-console-2-local-target-s-connec.png",
         "sha256": "182e905788283f74000acb2609fecd027746bdd603a35d3c3bce1f6b0a3a6816",
         "bytes": 385465
       }
@@ -961,7 +961,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0040-PBX-Beginner.png",
+        "path": "console/release/captures/ui-drive/0040-PBX-Beginner.png",
         "sha256": "ea00c18def2a1f0a953e01b5d21c64eed1305568c7c70bd3036ae64dd3ed3c59",
         "bytes": 393052
       }
@@ -990,7 +990,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0041-PBX-confirmation-number3.png",
+        "path": "console/release/captures/ui-drive/0041-PBX-confirmation-number3.png",
         "sha256": "f8c5869f116d5df100c6b78cc3a6689a741429915df5d14ce2335bda9a71965e",
         "bytes": 392822
       }
@@ -1006,7 +1006,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0042-enter-Agent.png",
+        "path": "console/release/captures/ui-drive/0042-enter-Agent.png",
         "sha256": "35fdb465849d1585638620249818a2aff5cd895a45629e7f2dc786e5a18f040c",
         "bytes": 392548
       }
@@ -1030,7 +1030,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0043-Agent-File.png",
+        "path": "console/release/captures/ui-drive/0043-Agent-File.png",
         "sha256": "d0651d2a07f4c7bc5ef3cef5bdfe7837ec9aad048708b2d68bdf3fdf27320ec8",
         "bytes": 391807
       }
@@ -1054,7 +1054,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0044-Agent-Edit.png",
+        "path": "console/release/captures/ui-drive/0044-Agent-Edit.png",
         "sha256": "f717f499db2021e4815af44c0e8cda0f56f7206c2864e97c89cdee838a4f53cf",
         "bytes": 392270
       }
@@ -1078,7 +1078,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0045-Agent-View.png",
+        "path": "console/release/captures/ui-drive/0045-Agent-View.png",
         "sha256": "c3180aa9d283de23e521367344b6a9502c575beb6e3bd15d69dc73c04cfc7ea9",
         "bytes": 392582
       }
@@ -1102,7 +1102,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0046-Agent-PBX.png",
+        "path": "console/release/captures/ui-drive/0046-Agent-PBX.png",
         "sha256": "87206b8ed3d345c1bceb9b8c85641fa0d9eab9c3c0c562a57518267149e52844",
         "bytes": 392825
       }
@@ -1126,7 +1126,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0047-Agent-Window.png",
+        "path": "console/release/captures/ui-drive/0047-Agent-Window.png",
         "sha256": "fdceec09d2d6e9a2c2973b570752b6a3997bfd93d9c1ea05ed30234cf60f3d61",
         "bytes": 392390
       }
@@ -1150,7 +1150,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0048-Agent-Help.png",
+        "path": "console/release/captures/ui-drive/0048-Agent-Help.png",
         "sha256": "121f88b07b15e047eb97a71400e62d5bc04163d927741e565ffb7464d3b3d144",
         "bytes": 392151
       }
@@ -1174,7 +1174,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0049-Agent-ding-pbx-console-2-local-target-s-conn.png",
+        "path": "console/release/captures/ui-drive/0049-Agent-ding-pbx-console-2-local-target-s-conn.png",
         "sha256": "ed8b219a7ad709b2f3e9dff49d711444ba5fda2d77c710ff795aae620df82f48",
         "bytes": 392551
       }
@@ -1198,7 +1198,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0050-Agent-checkBeginner.png",
+        "path": "console/release/captures/ui-drive/0050-Agent-checkBeginner.png",
         "sha256": "c2b57eb85f3cae727012861c26a2e12842bec7daa8bc0cc76a430a93faec9e74",
         "bytes": 392551
       }
@@ -1222,7 +1222,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0051-Agent-Expert.png",
+        "path": "console/release/captures/ui-drive/0051-Agent-Expert.png",
         "sha256": "f195b5d514f32a35fed28bd8fa183782309ea4b4ef32b0c57f097550ab4fce5c",
         "bytes": 385389
       }
@@ -1246,7 +1246,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0052-Agent-confirmation-number3.png",
+        "path": "console/release/captures/ui-drive/0052-Agent-confirmation-number3.png",
         "sha256": "65b9c7e4ae9c8f2f37a9f124176c1f7d4215c9ebca2be5915432540f0f7fd769",
         "bytes": 385165
       }
@@ -1262,7 +1262,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0053-enter-Window.png",
+        "path": "console/release/captures/ui-drive/0053-enter-Window.png",
         "sha256": "8b0ff93bf97f69d47ddc7fe74544de2b60dea6969a2aaec2fe5e73481edb5ef3",
         "bytes": 385331
       }
@@ -1286,7 +1286,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0054-Window-File.png",
+        "path": "console/release/captures/ui-drive/0054-Window-File.png",
         "sha256": "e6c2e52cb4efd498d59c1641f31884c50b993b8c51b3625ea56d5b52361053fd",
         "bytes": 384429
       }
@@ -1310,7 +1310,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0055-Window-Edit.png",
+        "path": "console/release/captures/ui-drive/0055-Window-Edit.png",
         "sha256": "4d634b6ef3c66be53a61004598af952b78ca19a50fb865c749ddde192df8e345",
         "bytes": 384805
       }
@@ -1334,7 +1334,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0056-Window-View.png",
+        "path": "console/release/captures/ui-drive/0056-Window-View.png",
         "sha256": "ffa0ada2dcd2152433c49a1e7bd6fa5caebdf6cee107d35bc61f703bc0418707",
         "bytes": 385162
       }
@@ -1358,7 +1358,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0057-Window-PBX.png",
+        "path": "console/release/captures/ui-drive/0057-Window-PBX.png",
         "sha256": "d69ae6841c7626a9d2efae0b45a7e8725e7d68ef3f0fc9970d50debdd327727f",
         "bytes": 385462
       }
@@ -1382,7 +1382,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0058-Window-Agent.png",
+        "path": "console/release/captures/ui-drive/0058-Window-Agent.png",
         "sha256": "2812325a080ab83a69511bc26dae080b41efba66542dbb0f8ccfb6014e981162",
         "bytes": 385170
       }
@@ -1406,7 +1406,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0059-Window-Help.png",
+        "path": "console/release/captures/ui-drive/0059-Window-Help.png",
         "sha256": "bf7a97083c5b8afda38d7f2248ada3d8c52b802af693d2acfcbd93fd047e33f5",
         "bytes": 384739
       }
@@ -1430,7 +1430,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0060-Window-ding-pbx-console-2-local-target-s-con.png",
+        "path": "console/release/captures/ui-drive/0060-Window-ding-pbx-console-2-local-target-s-con.png",
         "sha256": "74c9fc8d9dd924eee9b5471579536da94b2c7100f855d0cccff057185f8ede14",
         "bytes": 385330
       }
@@ -1454,7 +1454,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0061-Window-Beginner.png",
+        "path": "console/release/captures/ui-drive/0061-Window-Beginner.png",
         "sha256": "37ed87bce3d7572a1883aa96b3ed878f6fb881ea3e4458b9bf5ce9562acbba92",
         "bytes": 392592
       }
@@ -1483,7 +1483,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0062-Window-confirmation-number3.png",
+        "path": "console/release/captures/ui-drive/0062-Window-confirmation-number3.png",
         "sha256": "8146cddd59a22ed2beb350331d5615c7743ae2cffb4cdeb951f59523052fcf2c",
         "bytes": 392392
       }
@@ -1499,7 +1499,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0063-enter-Help.png",
+        "path": "console/release/captures/ui-drive/0063-enter-Help.png",
         "sha256": "e22c3df9972a44522c1b6b70ddbdd4059d03b1d98fb6854d9287d200e0e0e8e1",
         "bytes": 392148
       }
@@ -1523,7 +1523,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0064-Help-File.png",
+        "path": "console/release/captures/ui-drive/0064-Help-File.png",
         "sha256": "ab1031b888164360e8f1f071b450d8aed1a951456fcadb6e066610ce1dfe3003",
         "bytes": 391801
       }
@@ -1547,7 +1547,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0065-Help-Edit.png",
+        "path": "console/release/captures/ui-drive/0065-Help-Edit.png",
         "sha256": "f4387ae71730430c781ead53dd47d8ddc567ff39e209f92c4a82d28d1b669884",
         "bytes": 392265
       }
@@ -1571,7 +1571,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0066-Help-View.png",
+        "path": "console/release/captures/ui-drive/0066-Help-View.png",
         "sha256": "231d005ddc230a2fd706b7ef66790fed475fc33367f1ca7add383105d7a192e8",
         "bytes": 392592
       }
@@ -1595,7 +1595,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0067-Help-PBX.png",
+        "path": "console/release/captures/ui-drive/0067-Help-PBX.png",
         "sha256": "fe616665526db3e3f121162f224f088a7e0c07648e2c0f294eec023aa46ef3e0",
         "bytes": 392819
       }
@@ -1619,7 +1619,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0068-Help-Agent.png",
+        "path": "console/release/captures/ui-drive/0068-Help-Agent.png",
         "sha256": "ea8ead9b89e5cd6aa4ed1cce3c1e00c8420acdbf0c5494aeb9b632c61e765af6",
         "bytes": 392552
       }
@@ -1643,7 +1643,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0069-Help-Window.png",
+        "path": "console/release/captures/ui-drive/0069-Help-Window.png",
         "sha256": "4ef851541cc5028d8c133050744f9d8802f4490221dc67cf45d0a3413fcf851f",
         "bytes": 392390
       }
@@ -1667,7 +1667,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0070-Help-ding-pbx-console-2-local-target-s-conne.png",
+        "path": "console/release/captures/ui-drive/0070-Help-ding-pbx-console-2-local-target-s-conne.png",
         "sha256": "071526ba848ba33c46e92b40143b88c92f7b5325b2194a070d3f454e0accbfb8",
         "bytes": 392152
       }
@@ -1691,7 +1691,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0071-Help-checkBeginner.png",
+        "path": "console/release/captures/ui-drive/0071-Help-checkBeginner.png",
         "sha256": "4c96e1590e682b59ab3c29e12ef3a38ce6740bcaee31c692c246d5db59fa9737",
         "bytes": 392147
       }
@@ -1715,7 +1715,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0072-Help-Expert.png",
+        "path": "console/release/captures/ui-drive/0072-Help-Expert.png",
         "sha256": "bb6c27f4fc67464b7013d1d47cf02d2f6fe923248edd2091c4407ef3b6c4340e",
         "bytes": 384966
       }
@@ -1739,7 +1739,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0073-Help-confirmation-number3.png",
+        "path": "console/release/captures/ui-drive/0073-Help-confirmation-number3.png",
         "sha256": "3cdf1e7a1729a273ad8fc88d78a48e53138f1f300db8b35b55ac25ed21e1d39f",
         "bytes": 384735
       }
@@ -1755,7 +1755,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0074-enter-ding-pbx-console-2-local-target-s-conn.png",
+        "path": "console/release/captures/ui-drive/0074-enter-ding-pbx-console-2-local-target-s-conn.png",
         "sha256": "bf77e46295cb4617816bdc0a8065ab27d24b7be11d53ac7da6dbbdc01ecc4e67",
         "bytes": 384735
       }
@@ -1779,7 +1779,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0075-ding-pbx-console-2-local-target-s-connection.png",
+        "path": "console/release/captures/ui-drive/0075-ding-pbx-console-2-local-target-s-connection.png",
         "sha256": "01a8829072c3a40907521063627c4c60af66dc130f7c9b8e988f3f8c19c45dd8",
         "bytes": 384413
       }
@@ -1803,7 +1803,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0076-ding-pbx-console-2-local-target-s-connection.png",
+        "path": "console/release/captures/ui-drive/0076-ding-pbx-console-2-local-target-s-connection.png",
         "sha256": "3cb70d93f0d34623f3130ab895656a265445ca97cab390703f8f1eb68f3c9fd3",
         "bytes": 384811
       }
@@ -1827,7 +1827,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0077-ding-pbx-console-2-local-target-s-connection.png",
+        "path": "console/release/captures/ui-drive/0077-ding-pbx-console-2-local-target-s-connection.png",
         "sha256": "1592961f7c1458ac79a11ea8f31e71a420d332e16d3b9fee28338af459464d2a",
         "bytes": 385168
       }
@@ -1851,7 +1851,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0078-ding-pbx-console-2-local-target-s-connection.png",
+        "path": "console/release/captures/ui-drive/0078-ding-pbx-console-2-local-target-s-connection.png",
         "sha256": "1edc1209f5910b101e01c5632601a53ea4d1c22225104547125e9edd2513ea75",
         "bytes": 385451
       }
@@ -1875,7 +1875,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0079-ding-pbx-console-2-local-target-s-connection.png",
+        "path": "console/release/captures/ui-drive/0079-ding-pbx-console-2-local-target-s-connection.png",
         "sha256": "b174adeb9aef272d0e7410e86116b0ffc3ba421c4f09fb979da55e29ca6138a4",
         "bytes": 385164
       }
@@ -1899,7 +1899,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0080-ding-pbx-console-2-local-target-s-connection.png",
+        "path": "console/release/captures/ui-drive/0080-ding-pbx-console-2-local-target-s-connection.png",
         "sha256": "06a9459fab04ac3330b876cefe970a8095438ea90f5266acdbf48ea2cfea7252",
         "bytes": 385341
       }
@@ -1923,7 +1923,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0081-ding-pbx-console-2-local-target-s-connection.png",
+        "path": "console/release/captures/ui-drive/0081-ding-pbx-console-2-local-target-s-connection.png",
         "sha256": "040043da6e4942617f38b2cfca5dcf8a811005d55be0fb9dd2fe02ac2a8592e0",
         "bytes": 384736
       }
@@ -1947,7 +1947,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0082-ding-pbx-console-2-local-target-s-connection.png",
+        "path": "console/release/captures/ui-drive/0082-ding-pbx-console-2-local-target-s-connection.png",
         "sha256": "07a1a04bbbd847d0db1b73aac3e2a87b3f6ff9ae1201089e7c1a61642276b95b",
         "bytes": 392342
       }
@@ -1976,7 +1976,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0083-ding-pbx-console-2-local-target-s-connection.png",
+        "path": "console/release/captures/ui-drive/0083-ding-pbx-console-2-local-target-s-connection.png",
         "sha256": "b156bc645b755cffbcf116dde90c6712d74961918d018842d80f5756beea35e0",
         "bytes": 392158
       }
@@ -1992,7 +1992,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0084-enter-checkBeginner.png",
+        "path": "console/release/captures/ui-drive/0084-enter-checkBeginner.png",
         "sha256": "36ef6a8d612d4923022b6bb9cffbb40b6547c1afe7138be8fb69989febd34868",
         "bytes": 392154
       }
@@ -2016,7 +2016,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0085-checkBeginner-File.png",
+        "path": "console/release/captures/ui-drive/0085-checkBeginner-File.png",
         "sha256": "57131ab49ad913a90e1f542d78af3785df727fa26bb3ff1f526e6e3b8ce33684",
         "bytes": 391794
       }
@@ -2040,7 +2040,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0086-checkBeginner-Edit.png",
+        "path": "console/release/captures/ui-drive/0086-checkBeginner-Edit.png",
         "sha256": "858ba9160d7feb2d32042fd2e2b484a20238498bfcd73fbf7c873f5c50e15747",
         "bytes": 392255
       }
@@ -2064,7 +2064,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0087-checkBeginner-View.png",
+        "path": "console/release/captures/ui-drive/0087-checkBeginner-View.png",
         "sha256": "231d005ddc230a2fd706b7ef66790fed475fc33367f1ca7add383105d7a192e8",
         "bytes": 392592
       }
@@ -2088,7 +2088,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0088-checkBeginner-PBX.png",
+        "path": "console/release/captures/ui-drive/0088-checkBeginner-PBX.png",
         "sha256": "736a82e38d96bdfdbecc298d259c75d166edad9be308770be0100b69b0c5bcda",
         "bytes": 392829
       }
@@ -2112,7 +2112,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0089-checkBeginner-Agent.png",
+        "path": "console/release/captures/ui-drive/0089-checkBeginner-Agent.png",
         "sha256": "77ead8e9e365cfd15ed917babf2af462beadc6fadddf5c9e0117596bd062ed19",
         "bytes": 392549
       }
@@ -2136,7 +2136,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0090-checkBeginner-Window.png",
+        "path": "console/release/captures/ui-drive/0090-checkBeginner-Window.png",
         "sha256": "8baaa4e8a5f608caf9a72e9da08489847d68d9f0694462429c29c91a46413b59",
         "bytes": 392382
       }
@@ -2160,7 +2160,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0091-checkBeginner-Help.png",
+        "path": "console/release/captures/ui-drive/0091-checkBeginner-Help.png",
         "sha256": "e6e2a9022ce2aa958b4191c1d13c1c5421d9dec2e1b78462ffc8f56ec38699b1",
         "bytes": 392159
       }
@@ -2184,7 +2184,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0092-checkBeginner-ding-pbx-console-2-local-targe.png",
+        "path": "console/release/captures/ui-drive/0092-checkBeginner-ding-pbx-console-2-local-targe.png",
         "sha256": "7f76655f14ca54cfeb87ae03830125c1cfb42f108c205923a56615aa983cc626",
         "bytes": 392152
       }
@@ -2208,7 +2208,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0093-checkBeginner-Expert.png",
+        "path": "console/release/captures/ui-drive/0093-checkBeginner-Expert.png",
         "sha256": "270c4882eb0d2c7ec9b48e93dc218e3b3dd8f4d258b60ad1bbb68a6c50fe9aea",
         "bytes": 384939
       }
@@ -2232,7 +2232,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0094-checkBeginner-confirmation-number3.png",
+        "path": "console/release/captures/ui-drive/0094-checkBeginner-confirmation-number3.png",
         "sha256": "bf7a97083c5b8afda38d7f2248ada3d8c52b802af693d2acfcbd93fd047e33f5",
         "bytes": 384739
       }
@@ -2252,7 +2252,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0095-enter-confirmation-number3.png",
+        "path": "console/release/captures/ui-drive/0095-enter-confirmation-number3.png",
         "sha256": "646a83f9770e2981491d23806fc9477c048a8cb82637a1f4580314540703dd1e",
         "bytes": 384732
       }
@@ -2276,7 +2276,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0096-confirmation-number3-File.png",
+        "path": "console/release/captures/ui-drive/0096-confirmation-number3-File.png",
         "sha256": "6949f472af64fc2fe68b6748e08c634acc9676c025fa5c6bd954ade5f4f0fb68",
         "bytes": 384413
       }
@@ -2300,7 +2300,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0097-confirmation-number3-Edit.png",
+        "path": "console/release/captures/ui-drive/0097-confirmation-number3-Edit.png",
         "sha256": "f9d0da13d8c5bb8942a44d45d181f774ed4b42d96edf26815664d040fb3c0850",
         "bytes": 384806
       }
@@ -2324,7 +2324,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0098-confirmation-number3-View.png",
+        "path": "console/release/captures/ui-drive/0098-confirmation-number3-View.png",
         "sha256": "b1417ddf81d6bd6163286415db25c594273aec7341460e20089ac5beea007182",
         "bytes": 385162
       }
@@ -2348,7 +2348,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0099-confirmation-number3-PBX.png",
+        "path": "console/release/captures/ui-drive/0099-confirmation-number3-PBX.png",
         "sha256": "457ba89c5c13c8c30e457074e5c4c00df98b46ee2a48d043d03c1a434398abc6",
         "bytes": 385457
       }
@@ -2372,7 +2372,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0100-confirmation-number3-Agent.png",
+        "path": "console/release/captures/ui-drive/0100-confirmation-number3-Agent.png",
         "sha256": "eec5c73641c171d9530179bf5ce88ac54d262eb77451e0ba78180f6e1fcc7742",
         "bytes": 385169
       }
@@ -2396,7 +2396,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0101-confirmation-number3-Window.png",
+        "path": "console/release/captures/ui-drive/0101-confirmation-number3-Window.png",
         "sha256": "c478878c9e948a83ca99701126f29b162747877f795c7c51d00ce125be4b07b3",
         "bytes": 385332
       }
@@ -2420,7 +2420,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0102-confirmation-number3-Help.png",
+        "path": "console/release/captures/ui-drive/0102-confirmation-number3-Help.png",
         "sha256": "947d2ecb2c7afaebebaa353e0be42c73df0272ba26b54ff9544fc11dcb80e71f",
         "bytes": 384733
       }
@@ -2444,7 +2444,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0103-confirmation-number3-ding-pbx-console-2-loca.png",
+        "path": "console/release/captures/ui-drive/0103-confirmation-number3-ding-pbx-console-2-loca.png",
         "sha256": "a148970180237828d56f57fe4dc657195eb5248e4ca60d557f6c03d91ede5f78",
         "bytes": 384739
       }
@@ -2468,7 +2468,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0104-confirmation-number3-Beginner.png",
+        "path": "console/release/captures/ui-drive/0104-confirmation-number3-Beginner.png",
         "sha256": "a850db000f348f353907b96f0848ef6dcb80484fcf52795c793c0b93e358b196",
         "bytes": 392367
       }
@@ -2489,7 +2489,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0105-enter-search.png",
+        "path": "console/release/captures/ui-drive/0105-enter-search.png",
         "sha256": "280dd479ce08cfd2e9db83aabc7c65b8abfd8102410db2b3420657ad080bb2db",
         "bytes": 281847
       }
@@ -2513,7 +2513,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0106-search-File.png",
+        "path": "console/release/captures/ui-drive/0106-search-File.png",
         "sha256": "0d3604214776f6a0fd2337924647f530e752df1a34aa82c1de46e5dd3d687e6f",
         "bytes": 281683
       }
@@ -2537,7 +2537,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0107-search-Edit.png",
+        "path": "console/release/captures/ui-drive/0107-search-Edit.png",
         "sha256": "823739cf3ee45a714997d760de7839910103245d06a53640c304dbac4dc03e88",
         "bytes": 392256
       }
@@ -2561,7 +2561,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0108-search-View.png",
+        "path": "console/release/captures/ui-drive/0108-search-View.png",
         "sha256": "5a01fac9dd6a5ef8100150449ff9c59ff7689501c2765dd20cdf2b05a069bf8d",
         "bytes": 282349
       }
@@ -2585,7 +2585,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0109-search-PBX.png",
+        "path": "console/release/captures/ui-drive/0109-search-PBX.png",
         "sha256": "252336aa1cc99ad3b5366a40dd1120c30a4b3f136b08f982b68e7f59d7ed5873",
         "bytes": 392829
       }
@@ -2609,7 +2609,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0110-search-Agent.png",
+        "path": "console/release/captures/ui-drive/0110-search-Agent.png",
         "sha256": "1eb00ce4450c2d8d0cb06ea60303a69780dbe6a47dc7dbf3d3771479fb5d36b3",
         "bytes": 282247
       }
@@ -2633,7 +2633,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0111-search-Window.png",
+        "path": "console/release/captures/ui-drive/0111-search-Window.png",
         "sha256": "0ed57679ac7c7d824360d0ec38d3c3f23715e4a0dcce15d5d2761042942ea408",
         "bytes": 392382
       }
@@ -2657,7 +2657,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0112-search-Help.png",
+        "path": "console/release/captures/ui-drive/0112-search-Help.png",
         "sha256": "ff31b3f4646bd2d9b626d3a18fe5616424e63b7fe0936ff65ce3be63fb2528f1",
         "bytes": 281841
       }
@@ -2681,7 +2681,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0113-search-ding-pbx-console-2-local-target-s-con.png",
+        "path": "console/release/captures/ui-drive/0113-search-ding-pbx-console-2-local-target-s-con.png",
         "sha256": "43047e4455c1b02d7ba2e8a2a4ff3c8f601befa44fde4b4ea4377fb16a7c41f9",
         "bytes": 392160
       }
@@ -2705,7 +2705,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0114-search-checkBeginner.png",
+        "path": "console/release/captures/ui-drive/0114-search-checkBeginner.png",
         "sha256": "9a3f63ad6ab027553020beb1e0edf1e71180bfafa07c080809081183a22e1e51",
         "bytes": 281849
       }
@@ -2729,7 +2729,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0115-search-Expert.png",
+        "path": "console/release/captures/ui-drive/0115-search-Expert.png",
         "sha256": "7d4bcb2ded5ce3c3b200c3ed61adbf8cf9f9ea9f6f5b5bdc2aeaa34410db3ba4",
         "bytes": 384950
       }
@@ -2745,7 +2745,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0116-enter-close.png",
+        "path": "console/release/captures/ui-drive/0116-enter-close.png",
         "sha256": "f45adfae8eb4a53e6affd0f8dc49068b165dd7c413e2f4eb5ec8e614afd9b089",
         "bytes": 280234
       }
@@ -2769,7 +2769,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0117-close-File.png",
+        "path": "console/release/captures/ui-drive/0117-close-File.png",
         "sha256": "44b89271b0e572cc955e79aec4cf72245a7e1882ab02689b13d34f36a905607b",
         "bytes": 279850
       }
@@ -2793,7 +2793,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0118-close-Edit.png",
+        "path": "console/release/captures/ui-drive/0118-close-Edit.png",
         "sha256": "485ecbfd0cfce03eb2b0c7ed488bd29115afba8abdf0b0a69e1586ae8e025f83",
         "bytes": 278014
       }
@@ -2817,7 +2817,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0119-close-View.png",
+        "path": "console/release/captures/ui-drive/0119-close-View.png",
         "sha256": "d652bba13c4820c74605d3abebc77af954f14f5b6520ff028fb85453c803e57d",
         "bytes": 278451
       }
@@ -2841,7 +2841,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0120-close-PBX.png",
+        "path": "console/release/captures/ui-drive/0120-close-PBX.png",
         "sha256": "2b0715a94522370444a77571f9c341b0819b4366c53c13beac368cc2da70af87",
         "bytes": 278676
       }
@@ -2865,7 +2865,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0121-close-Agent.png",
+        "path": "console/release/captures/ui-drive/0121-close-Agent.png",
         "sha256": "c49b9c7ff87a619f0cc4f7fe5ea9af93a891dc8bfaf5afee94713cf719cc340b",
         "bytes": 278480
       }
@@ -2889,7 +2889,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0122-close-Window.png",
+        "path": "console/release/captures/ui-drive/0122-close-Window.png",
         "sha256": "7baa476fc5afac6fa7990ba0418670a5f91e05a20c1296c50214c6cc0849e133",
         "bytes": 278696
       }
@@ -2913,7 +2913,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0123-close-Help.png",
+        "path": "console/release/captures/ui-drive/0123-close-Help.png",
         "sha256": "5feaac1a56ea8b7f0c285166d13918f9689d530331c5eef8679b3f747317412e",
         "bytes": 278093
       }
@@ -2937,7 +2937,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0124-close-ding-pbx-console-2-local-target-s-conn.png",
+        "path": "console/release/captures/ui-drive/0124-close-ding-pbx-console-2-local-target-s-conn.png",
         "sha256": "6be1e86a865ca7137050be1fb9e4245b87c9c7547373bb964561aae3554d61d7",
         "bytes": 278103
       }
@@ -2961,7 +2961,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0125-close-Beginner.png",
+        "path": "console/release/captures/ui-drive/0125-close-Beginner.png",
         "sha256": "dda33db57355879c3f3569f378b4dbba9aa29116a6c0809ae826455a2725fe90",
         "bytes": 278119
       }
@@ -2982,7 +2982,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0126-enter-add.png",
+        "path": "console/release/captures/ui-drive/0126-enter-add.png",
         "sha256": "d5de986b2a01436621701abb2a7149967b33fa1f569d1fc77a2d2c057099da42",
         "bytes": 275915
       }
@@ -3006,7 +3006,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0127-add-File.png",
+        "path": "console/release/captures/ui-drive/0127-add-File.png",
         "sha256": "4c00cd848502cfd0e31d3f2223551214a79acccc1b0e939fe8ffe88ceb111253",
         "bytes": 268577
       }
@@ -3030,7 +3030,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0128-add-Edit.png",
+        "path": "console/release/captures/ui-drive/0128-add-Edit.png",
         "sha256": "7215d67de14e7d4adb55b6489f1467f2e821a4b871279a6ae2ae0a9ba39cfd77",
         "bytes": 256829
       }
@@ -3054,7 +3054,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0129-add-View.png",
+        "path": "console/release/captures/ui-drive/0129-add-View.png",
         "sha256": "a018f494e9fe6f870e18040256eb69ada1c636bb8b72482f22c099049822130a",
         "bytes": 280004
       }
@@ -3078,7 +3078,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0130-add-PBX.png",
+        "path": "console/release/captures/ui-drive/0130-add-PBX.png",
         "sha256": "c579bad5f5debddaaf2247aa3b060326d386a421a7ebd6dd064bca6ea2307f9a",
         "bytes": 264047
       }
@@ -3102,7 +3102,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0131-add-Agent.png",
+        "path": "console/release/captures/ui-drive/0131-add-Agent.png",
         "sha256": "82ec6c57d8dbec2b4d63e4c3026371b451c4495554fd7a773d31b41d8ac1bb7c",
         "bytes": 257383
       }
@@ -3126,7 +3126,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0132-add-Window.png",
+        "path": "console/release/captures/ui-drive/0132-add-Window.png",
         "sha256": "d80b4149f60a4db8ad62f8b35a013b2afa7c29c2f12c0d8c0271418d998e9ab5",
         "bytes": 270145
       }
@@ -3150,7 +3150,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0133-add-Help.png",
+        "path": "console/release/captures/ui-drive/0133-add-Help.png",
         "sha256": "4915b2a8657e217e9ee94197d6d9fa3bec9c5b9cbb4880232008799b5421f96d",
         "bytes": 265173
       }
@@ -3174,7 +3174,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0134-add-ding-pbx-console-2-local-target-s-connec.png",
+        "path": "console/release/captures/ui-drive/0134-add-ding-pbx-console-2-local-target-s-connec.png",
         "sha256": "90304b439df62da302b39ecb5262785a6a2eb0ec76fd38ec2c71b5b40c9eed44",
         "bytes": 336981
       }
@@ -3198,7 +3198,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0135-add-checkBeginner.png",
+        "path": "console/release/captures/ui-drive/0135-add-checkBeginner.png",
         "sha256": "a410b61f3e67fe16d22cc09af954b4230d8166fef09101664d5eed7f76b63f64",
         "bytes": 275138
       }
@@ -3222,7 +3222,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0136-add-Expert.png",
+        "path": "console/release/captures/ui-drive/0136-add-Expert.png",
         "sha256": "576ade58fd3691e1985733972eb3a6f370ce4ad291e75ea198efd0f8b9940563",
         "bytes": 282627
       }
@@ -3238,7 +3238,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0137-enter-dock-to-right.png",
+        "path": "console/release/captures/ui-drive/0137-enter-dock-to-right.png",
         "sha256": "ddf62c21d1adb6e81681403b1e95d4dfefbf528bb06a8c51a59cbbe37d8cfbf4",
         "bytes": 274971
       }
@@ -3262,7 +3262,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0138-dock-to-right-File.png",
+        "path": "console/release/captures/ui-drive/0138-dock-to-right-File.png",
         "sha256": "d91627ce204959cfe8e93f6f7ee104e274b8f12b3282302c0627181feaa8046c",
         "bytes": 272844
       }
@@ -3286,7 +3286,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0139-dock-to-right-Edit.png",
+        "path": "console/release/captures/ui-drive/0139-dock-to-right-Edit.png",
         "sha256": "6e9eb12da2f923951737caa9e862a16439352cf46eef7be3c3a444f73582b1ee",
         "bytes": 273195
       }
@@ -3310,7 +3310,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0140-dock-to-right-View.png",
+        "path": "console/release/captures/ui-drive/0140-dock-to-right-View.png",
         "sha256": "748ee81e326c016608db20a34859afde11b53a3320cc52638d191618f9a27011",
         "bytes": 273701
       }
@@ -3334,7 +3334,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0141-dock-to-right-PBX.png",
+        "path": "console/release/captures/ui-drive/0141-dock-to-right-PBX.png",
         "sha256": "d8b88fbf4d118b70dc314cb518c3775add494fd589ca66f6503ed1d1de3c7028",
         "bytes": 273866
       }
@@ -3358,7 +3358,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0142-dock-to-right-Agent.png",
+        "path": "console/release/captures/ui-drive/0142-dock-to-right-Agent.png",
         "sha256": "c7718036d3bc333b09466a5b11a1077a92cf7ec5557e7fd7303f4aaf49ce9c8b",
         "bytes": 273670
       }
@@ -3382,7 +3382,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0143-dock-to-right-Window.png",
+        "path": "console/release/captures/ui-drive/0143-dock-to-right-Window.png",
         "sha256": "430dffe53e7573b543b0b538cfb0b28c0745b2301695c4334d41f75f9f4b4492",
         "bytes": 273968
       }
@@ -3406,7 +3406,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0144-dock-to-right-Help.png",
+        "path": "console/release/captures/ui-drive/0144-dock-to-right-Help.png",
         "sha256": "c4a0d483898a1daf381a6c7c8ffdce6b5374e21352cb24dfb0edf98958cad054",
         "bytes": 273174
       }
@@ -3430,7 +3430,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0145-dock-to-right-ding-pbx-console-2-local-targe.png",
+        "path": "console/release/captures/ui-drive/0145-dock-to-right-ding-pbx-console-2-local-targe.png",
         "sha256": "583bd9b77b07336d189e7c580d7c8591d987aac45cb26cc18745fb86feccfd58",
         "bytes": 274471
       }
@@ -3454,7 +3454,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0146-dock-to-right-Beginner.png",
+        "path": "console/release/captures/ui-drive/0146-dock-to-right-Beginner.png",
         "sha256": "18391144d26f154e089025235f36b144a4cbd9dca319d14388d2a33c787b4f8c",
         "bytes": 275510
       }
@@ -3475,7 +3475,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0147-enter-dock-to-left.png",
+        "path": "console/release/captures/ui-drive/0147-enter-dock-to-left.png",
         "sha256": "0522d4e3b6b385e8349a3ba3f327d49150b00a0e00ec73b879673bf5b64da7be",
         "bytes": 299419
       }
@@ -3499,7 +3499,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0148-dock-to-left-File.png",
+        "path": "console/release/captures/ui-drive/0148-dock-to-left-File.png",
         "sha256": "2447b9f3a7950b8f8c10f587591d1b37f6ddc91b13f80471766c75e0d8d6e5c9",
         "bytes": 298275
       }
@@ -3523,7 +3523,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0149-dock-to-left-Edit.png",
+        "path": "console/release/captures/ui-drive/0149-dock-to-left-Edit.png",
         "sha256": "925bfead2f8098aba6c97a250189d5b97acfb0452dfa692cde794c92368e89d1",
         "bytes": 298581
       }
@@ -3547,7 +3547,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0150-dock-to-left-View.png",
+        "path": "console/release/captures/ui-drive/0150-dock-to-left-View.png",
         "sha256": "0e8fe1e1337f2d4d02751c7ddfb4cc38653bccc55fd2c81a6dde7023e274a01e",
         "bytes": 298990
       }
@@ -3571,7 +3571,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0151-dock-to-left-PBX.png",
+        "path": "console/release/captures/ui-drive/0151-dock-to-left-PBX.png",
         "sha256": "863559bde9dcba1ef1fcc526a508f4e205c87f7f9406df6badffcbaeeac6794c",
         "bytes": 299180
       }
@@ -3595,7 +3595,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0152-dock-to-left-Agent.png",
+        "path": "console/release/captures/ui-drive/0152-dock-to-left-Agent.png",
         "sha256": "c08582e9c18718cc43ed94d402052e43fbb00691c09990292268f25bc2a8cb95",
         "bytes": 298952
       }
@@ -3619,7 +3619,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0153-dock-to-left-Window.png",
+        "path": "console/release/captures/ui-drive/0153-dock-to-left-Window.png",
         "sha256": "34c7ff614159c617d55b66a6eb4b8d82f01d7d23907375cc65796e95ed6d8867",
         "bytes": 299280
       }
@@ -3643,7 +3643,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0154-dock-to-left-Help.png",
+        "path": "console/release/captures/ui-drive/0154-dock-to-left-Help.png",
         "sha256": "04f6781166f099781b992f028211ffc3928b989c64bf5cad4958da5cb232cd16",
         "bytes": 298565
       }
@@ -3667,7 +3667,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0155-dock-to-left-ding-pbx-console-2-local-target.png",
+        "path": "console/release/captures/ui-drive/0155-dock-to-left-ding-pbx-console-2-local-target.png",
         "sha256": "13a75fa29a6f4deb1cc5413cbbf450e667df030ded78b117dc396eaa8bf43750",
         "bytes": 299421
       }
@@ -3691,7 +3691,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0156-dock-to-left-checkBeginner.png",
+        "path": "console/release/captures/ui-drive/0156-dock-to-left-checkBeginner.png",
         "sha256": "6d9d5007083a82d423ff152769d5fbd9ba5af45f983b410897558fea11306207",
         "bytes": 299422
       }
@@ -3715,7 +3715,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0157-dock-to-left-Expert.png",
+        "path": "console/release/captures/ui-drive/0157-dock-to-left-Expert.png",
         "sha256": "c302d252ef0ffdc20f348ed30d2a34e5dab018b1d6597102d7cff9f0c60d86f0",
         "bytes": 308734
       }
@@ -3731,7 +3731,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0158-enter-dock-to-bottom.png",
+        "path": "console/release/captures/ui-drive/0158-enter-dock-to-bottom.png",
         "sha256": "9d49307a88c64fb533c99e83ebd7c8864aa7ddcc8d043fdbc15cbe93da938fa7",
         "bytes": 235576
       }
@@ -3755,7 +3755,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0159-dock-to-bottom-File.png",
+        "path": "console/release/captures/ui-drive/0159-dock-to-bottom-File.png",
         "sha256": "93693dd79645d862d8782359ef8a349670cd6a2cd5054d742a457809128bfefc",
         "bytes": 234442
       }
@@ -3779,7 +3779,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0160-dock-to-bottom-Edit.png",
+        "path": "console/release/captures/ui-drive/0160-dock-to-bottom-Edit.png",
         "sha256": "07cd4ccd72a401c65fb8831f2b94386cf7f78a0db635f36ec5280b255939ad97",
         "bytes": 234861
       }
@@ -3803,7 +3803,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0161-dock-to-bottom-View.png",
+        "path": "console/release/captures/ui-drive/0161-dock-to-bottom-View.png",
         "sha256": "cb973c2134d8393a48eac2027aef86ca73c2b660a753ab3243cb59d128c16a95",
         "bytes": 235095
       }
@@ -3827,7 +3827,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0162-dock-to-bottom-PBX.png",
+        "path": "console/release/captures/ui-drive/0162-dock-to-bottom-PBX.png",
         "sha256": "faa04d4608fc8d8bd03410a3cebcaca4d635559a7b167ab9c52b12418c317974",
         "bytes": 235430
       }
@@ -3851,7 +3851,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0163-dock-to-bottom-Agent.png",
+        "path": "console/release/captures/ui-drive/0163-dock-to-bottom-Agent.png",
         "sha256": "96833ea50a39063ef0763c1655e13a3b43bbf73dc2a61cf28d948ebe3634c4c8",
         "bytes": 235204
       }
@@ -3875,7 +3875,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0164-dock-to-bottom-Window.png",
+        "path": "console/release/captures/ui-drive/0164-dock-to-bottom-Window.png",
         "sha256": "dd683de30acfd7b92853083e1ab1d8fd91dd61e97629e7e06794a83687b6a406",
         "bytes": 235457
       }
@@ -3899,7 +3899,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0165-dock-to-bottom-Help.png",
+        "path": "console/release/captures/ui-drive/0165-dock-to-bottom-Help.png",
         "sha256": "6335db180a684ce0a21057ab3e67e6749bf2081ac98e6a6ddd2773b160a16e1a",
         "bytes": 234684
       }
@@ -3923,7 +3923,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0166-dock-to-bottom-ding-pbx-console-2-local-targ.png",
+        "path": "console/release/captures/ui-drive/0166-dock-to-bottom-ding-pbx-console-2-local-targ.png",
         "sha256": "aae7011690994eda3ce8df6bf28be4ee5f0be56b663e45d0163cb1e4cc38cb66",
         "bytes": 235574
       }
@@ -3947,7 +3947,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0167-dock-to-bottom-Beginner.png",
+        "path": "console/release/captures/ui-drive/0167-dock-to-bottom-Beginner.png",
         "sha256": "4c4c2eb5f948eeb51a879247e52b32330cb4eac4921c37296c4667d7f6e3ca42",
         "bytes": 244044
       }
@@ -3968,7 +3968,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0168-enter-width-normal.png",
+        "path": "console/release/captures/ui-drive/0168-enter-width-normal.png",
         "sha256": "d745071221ec70a51d7a52c61a960bd6d73c1d4c7a77685c9e753737ce739fda",
         "bytes": 270031
       }
@@ -3992,7 +3992,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0169-width-normal-File.png",
+        "path": "console/release/captures/ui-drive/0169-width-normal-File.png",
         "sha256": "7a814e5cd6af554a204c1c09e7b1b5790f300cc7d6eda69dcc68b5f0c6956efb",
         "bytes": 269333
       }
@@ -4016,7 +4016,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0170-width-normal-Edit.png",
+        "path": "console/release/captures/ui-drive/0170-width-normal-Edit.png",
         "sha256": "95b75ff5e7d20e60ae669d83cef80025cc622af48c30ea3697d2665292981f40",
         "bytes": 269656
       }
@@ -4040,7 +4040,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0171-width-normal-View.png",
+        "path": "console/release/captures/ui-drive/0171-width-normal-View.png",
         "sha256": "29e27295351b9ad622df558eb529fa193def5fd32d9778fddde963087695f7bf",
         "bytes": 269782
       }
@@ -4064,7 +4064,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0172-width-normal-PBX.png",
+        "path": "console/release/captures/ui-drive/0172-width-normal-PBX.png",
         "sha256": "640f1521c0c896e1e129c1116c38653e5fc3bd284df34d469188cadc80730a2b",
         "bytes": 270129
       }
@@ -4088,7 +4088,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0173-width-normal-Agent.png",
+        "path": "console/release/captures/ui-drive/0173-width-normal-Agent.png",
         "sha256": "170894a9f5e6858cc733f0dd5b12970844588dbeee711a341f5a4b84bb667451",
         "bytes": 269804
       }
@@ -4112,7 +4112,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0174-width-normal-Window.png",
+        "path": "console/release/captures/ui-drive/0174-width-normal-Window.png",
         "sha256": "3a27dae77225f4087e522e8278dd16c18dc32b8ba09adbc413b596c546a1f6b1",
         "bytes": 269802
       }
@@ -4136,7 +4136,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0175-width-normal-Help.png",
+        "path": "console/release/captures/ui-drive/0175-width-normal-Help.png",
         "sha256": "91c229489c12410b6c54ac93019877c80fe3aa52f4946277ef52d5946c370994",
         "bytes": 269389
       }
@@ -4160,7 +4160,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0176-width-normal-ding-pbx-console-2-local-target.png",
+        "path": "console/release/captures/ui-drive/0176-width-normal-ding-pbx-console-2-local-target.png",
         "sha256": "4af4e72ade31b86686de7c3292972b44184960e580e9930eb540d26606b9d503",
         "bytes": 270032
       }
@@ -4184,7 +4184,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0177-width-normal-checkBeginner.png",
+        "path": "console/release/captures/ui-drive/0177-width-normal-checkBeginner.png",
         "sha256": "471c3572447ba1fd60d56c7c6a7af406f485ad14a56f8a37025726ea9cc0e0f6",
         "bytes": 270030
       }
@@ -4208,7 +4208,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0178-width-normal-Expert.png",
+        "path": "console/release/captures/ui-drive/0178-width-normal-Expert.png",
         "sha256": "306f7375e0f2f24d63674f3ab79a4c54ef916a129db90fad45d872b48e6fc7ab",
         "bytes": 282329
       }
@@ -4224,7 +4224,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0179-enter-callPBX.png",
+        "path": "console/release/captures/ui-drive/0179-enter-callPBX.png",
         "sha256": "c5dfb1bcf3672633fb2b342f259ee855c4f826ab5923e34ef998ca1fcce1ca0d",
         "bytes": 254412
       }
@@ -4248,7 +4248,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0180-callPBX-File.png",
+        "path": "console/release/captures/ui-drive/0180-callPBX-File.png",
         "sha256": "74efd3248d9def330e7e41273822044b0521e16bc48ba9103bd12b4ffef1370a",
         "bytes": 251997
       }
@@ -4272,7 +4272,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0181-callPBX-Edit.png",
+        "path": "console/release/captures/ui-drive/0181-callPBX-Edit.png",
         "sha256": "c066adc719a2370479875abcb1d8ad39e62a662493d812de01ab514f2d0238f8",
         "bytes": 252361
       }
@@ -4296,7 +4296,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0182-callPBX-View.png",
+        "path": "console/release/captures/ui-drive/0182-callPBX-View.png",
         "sha256": "0d60b53316932f3ddeebd9c299a72c2a419977bd756f41b14313077d9e73b2c4",
         "bytes": 252547
       }
@@ -4320,7 +4320,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0183-callPBX-PBX.png",
+        "path": "console/release/captures/ui-drive/0183-callPBX-PBX.png",
         "sha256": "34cacd67b88dd2cb6dec76800b5818d6279e21711dd89c4bd71e2f5f8d2079a8",
         "bytes": 252951
       }
@@ -4344,7 +4344,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0184-callPBX-Agent.png",
+        "path": "console/release/captures/ui-drive/0184-callPBX-Agent.png",
         "sha256": "358b206f7109510437abcefaf53d5588ec9db4af51d3b039cb027ad095402d34",
         "bytes": 252734
       }
@@ -4368,7 +4368,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0185-callPBX-Window.png",
+        "path": "console/release/captures/ui-drive/0185-callPBX-Window.png",
         "sha256": "1ec38b2bc7654b2761b9a3a485110c66baf88eb5bb2b1b2a32ffcbfa686c1c90",
         "bytes": 253008
       }
@@ -4392,7 +4392,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0186-callPBX-Help.png",
+        "path": "console/release/captures/ui-drive/0186-callPBX-Help.png",
         "sha256": "5dfb2d1fead4bd3fa9ed63c88b67971037732f127350de92bacc34966ea18543",
         "bytes": 252225
       }
@@ -4416,7 +4416,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0187-callPBX-ding-pbx-console-2-local-target-s-co.png",
+        "path": "console/release/captures/ui-drive/0187-callPBX-ding-pbx-console-2-local-target-s-co.png",
         "sha256": "d0847acda391508a20e229d59cb1df4d5648cff3a828a521b0704478d75300e0",
         "bytes": 252271
       }
@@ -4440,7 +4440,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0188-callPBX-Beginner.png",
+        "path": "console/release/captures/ui-drive/0188-callPBX-Beginner.png",
         "sha256": "a1598c0c3a77a16f774807b4e1ec981b0e93a751f6838b0410ffa73dc178a7a7",
         "bytes": 256592
       }
@@ -4461,7 +4461,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0189-enter-graphic-eqMedia.png",
+        "path": "console/release/captures/ui-drive/0189-enter-graphic-eqMedia.png",
         "sha256": "5077870ac4c9c47c4ef555eeccba2bd3b7ed846fcd51f5b2e600e6e11206cb61",
         "bytes": 270170
       }
@@ -4485,7 +4485,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0190-graphic-eqMedia-File.png",
+        "path": "console/release/captures/ui-drive/0190-graphic-eqMedia-File.png",
         "sha256": "67fdc747ae70c0d1a24e9bcfb80e89eb505442e74f0ea399c50966462e30b6f2",
         "bytes": 269327
       }
@@ -4509,7 +4509,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0191-graphic-eqMedia-Edit.png",
+        "path": "console/release/captures/ui-drive/0191-graphic-eqMedia-Edit.png",
         "sha256": "70443e5731f295011e8c1dc93b346df4f51ea46c0c8366e73ce6def9e48567d0",
         "bytes": 269662
       }
@@ -4533,7 +4533,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0192-graphic-eqMedia-View.png",
+        "path": "console/release/captures/ui-drive/0192-graphic-eqMedia-View.png",
         "sha256": "808857b2c44a60929889d3d5ae792651577ad44cc178700e1f06b3f3a9b5fee8",
         "bytes": 269781
       }
@@ -4557,7 +4557,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0193-graphic-eqMedia-PBX.png",
+        "path": "console/release/captures/ui-drive/0193-graphic-eqMedia-PBX.png",
         "sha256": "330274d36ae59b356cbe9bd45179ab357ed2975c0516df044d92816188d10ea6",
         "bytes": 270127
       }
@@ -4581,7 +4581,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0194-graphic-eqMedia-Agent.png",
+        "path": "console/release/captures/ui-drive/0194-graphic-eqMedia-Agent.png",
         "sha256": "6aebb164bcadc24d419aa37940aedfc597151382d796d0206eaf02f28150ccc5",
         "bytes": 269816
       }
@@ -4605,7 +4605,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0195-graphic-eqMedia-Window.png",
+        "path": "console/release/captures/ui-drive/0195-graphic-eqMedia-Window.png",
         "sha256": "6a753ad040a388e19de92cd1cc9022f12d358a3ae61a7a57e8d61e5c95831a92",
         "bytes": 269806
       }
@@ -4629,7 +4629,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0196-graphic-eqMedia-Help.png",
+        "path": "console/release/captures/ui-drive/0196-graphic-eqMedia-Help.png",
         "sha256": "e2dd37fb49049b7b3d1cfdcd8d8b75000fd9fb7e8c7dbe4979cfee54aeb35ccc",
         "bytes": 269390
       }
@@ -4653,7 +4653,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0197-graphic-eqMedia-ding-pbx-console-2-local-tar.png",
+        "path": "console/release/captures/ui-drive/0197-graphic-eqMedia-ding-pbx-console-2-local-tar.png",
         "sha256": "40aec95c14d0b5d8e0304951b2e22b0ce0d9bf8eb32dfefac46bac3f35a66b4f",
         "bytes": 269389
       }
@@ -4677,7 +4677,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0198-graphic-eqMedia-checkBeginner.png",
+        "path": "console/release/captures/ui-drive/0198-graphic-eqMedia-checkBeginner.png",
         "sha256": "09f424e41e416a13598c6a3dc864471ff9ff87ce64c3074b6363eadebf4df251",
         "bytes": 269384
       }
@@ -4701,7 +4701,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0199-graphic-eqMedia-Expert.png",
+        "path": "console/release/captures/ui-drive/0199-graphic-eqMedia-Expert.png",
         "sha256": "d73be02b9607c7b1a0e228c3df9b407970c127bc0c21c7c8661a47df36f0ddd0",
         "bytes": 281189
       }
@@ -4717,7 +4717,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0200-enter-monitoringData.png",
+        "path": "console/release/captures/ui-drive/0200-enter-monitoringData.png",
         "sha256": "04c4d6149beda1b607c1b4fbfd7e7355078b99459ed2dfdd0acb3092c6552e9c",
         "bytes": 241077
       }
@@ -4741,7 +4741,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0201-monitoringData-File.png",
+        "path": "console/release/captures/ui-drive/0201-monitoringData-File.png",
         "sha256": "5fa23ed1fd658d123d8dc1052d77b6f088a66461d400aa4187518d1de0d5d0f2",
         "bytes": 240132
       }
@@ -4765,7 +4765,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0202-monitoringData-Edit.png",
+        "path": "console/release/captures/ui-drive/0202-monitoringData-Edit.png",
         "sha256": "33b5b2196cc974a3e638d6dd2cac8a60cabf137a12639e6fc594a64e2aa7ba27",
         "bytes": 240490
       }
@@ -4789,7 +4789,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0203-monitoringData-View.png",
+        "path": "console/release/captures/ui-drive/0203-monitoringData-View.png",
         "sha256": "15629915e956cdb1443f4d0380b6d03770fa95d84d5a1ae85817855d1d9ad9b7",
         "bytes": 240673
       }
@@ -4813,7 +4813,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0204-monitoringData-PBX.png",
+        "path": "console/release/captures/ui-drive/0204-monitoringData-PBX.png",
         "sha256": "d8a91a80d561ab48d99c1851532899edfd6fc5cd7ebac4c60fd3970024c55338",
         "bytes": 241075
       }
@@ -4837,7 +4837,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0205-monitoringData-Agent.png",
+        "path": "console/release/captures/ui-drive/0205-monitoringData-Agent.png",
         "sha256": "c762b851b83027aff807dd3af72e6c6043e701788cf73488a1d4cf4ba42751c2",
         "bytes": 240762
       }
@@ -4861,7 +4861,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0206-monitoringData-Window.png",
+        "path": "console/release/captures/ui-drive/0206-monitoringData-Window.png",
         "sha256": "c1107979760a2d4371cb1f5d957abc55e9515098a87a014668c5ae5ff0f067e2",
         "bytes": 240877
       }
@@ -4885,7 +4885,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0207-monitoringData-Help.png",
+        "path": "console/release/captures/ui-drive/0207-monitoringData-Help.png",
         "sha256": "c4e3447f1c4951449d9b81216673957fe72775422f5aed9d58ab1c4ae7f14ce0",
         "bytes": 240411
       }
@@ -4909,7 +4909,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0208-monitoringData-ding-pbx-console-2-local-targ.png",
+        "path": "console/release/captures/ui-drive/0208-monitoringData-ding-pbx-console-2-local-targ.png",
         "sha256": "223d0a67a0db469e68af287c4f765b42c42bdd7f0182925b6ad83e488fe78fd8",
         "bytes": 240411
       }
@@ -4933,7 +4933,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0209-monitoringData-Beginner.png",
+        "path": "console/release/captures/ui-drive/0209-monitoringData-Beginner.png",
         "sha256": "662e1f3fd9dc265b78d635d294bb669c70b1bbfbbf06e853f165207d56bacd8d",
         "bytes": 244295
       }
@@ -4954,7 +4954,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0210-enter-settings-applicationsSystem.png",
+        "path": "console/release/captures/ui-drive/0210-enter-settings-applicationsSystem.png",
         "sha256": "1dc5013e7d885ce7ad25e9c13441322de9045bbdd7e257ee3a4caa433a62de93",
         "bytes": 271651
       }
@@ -4978,7 +4978,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0211-settings-applicationsSystem-File.png",
+        "path": "console/release/captures/ui-drive/0211-settings-applicationsSystem-File.png",
         "sha256": "b24e3c006b760ce99ef34fc0efdd02eb58a2b985d3f277726acd6afa1e46776f",
         "bytes": 283025
       }
@@ -5002,7 +5002,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0212-settings-applicationsSystem-Edit.png",
+        "path": "console/release/captures/ui-drive/0212-settings-applicationsSystem-Edit.png",
         "sha256": "62a9e391e55100c271a5ce4c4884d15c912eff5e12ea37e1e919c7ebd1eb2ca9",
         "bytes": 283369
       }
@@ -5026,7 +5026,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0213-settings-applicationsSystem-View.png",
+        "path": "console/release/captures/ui-drive/0213-settings-applicationsSystem-View.png",
         "sha256": "b2ad631c07130111d28f351446168f97b4b501a736502e0867f2cf7f3fdee285",
         "bytes": 283450
       }
@@ -5050,7 +5050,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0214-settings-applicationsSystem-PBX.png",
+        "path": "console/release/captures/ui-drive/0214-settings-applicationsSystem-PBX.png",
         "sha256": "347c5df3d7bf549370b73316fae39b5891906f1714890c0dca42a1be03b3b56d",
         "bytes": 283875
       }
@@ -5074,7 +5074,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0215-settings-applicationsSystem-Agent.png",
+        "path": "console/release/captures/ui-drive/0215-settings-applicationsSystem-Agent.png",
         "sha256": "b64ebfe302eed9df597ea343b4e11ead23c867dd16700af4e41cec2fa60d757c",
         "bytes": 283281
       }
@@ -5098,7 +5098,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0216-settings-applicationsSystem-Window.png",
+        "path": "console/release/captures/ui-drive/0216-settings-applicationsSystem-Window.png",
         "sha256": "f7dd3094ce608d34af0621b7494aa74150bfd9c974597c899c60bc4a93e28029",
         "bytes": 283400
       }
@@ -5122,7 +5122,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0217-settings-applicationsSystem-Help.png",
+        "path": "console/release/captures/ui-drive/0217-settings-applicationsSystem-Help.png",
         "sha256": "3fc0f6e71592a93f048b59c7f1048bde221c2fe69b7aae0063e24385c4b44150",
         "bytes": 283044
       }
@@ -5146,7 +5146,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0218-settings-applicationsSystem-ding-pbx-console.png",
+        "path": "console/release/captures/ui-drive/0218-settings-applicationsSystem-ding-pbx-console.png",
         "sha256": "1ea89fba307ee4fa49537b1eeaca5679dbb6ec5e3e58390253b4c39b60f4fd44",
         "bytes": 283046
       }
@@ -5170,7 +5170,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0219-settings-applicationsSystem-checkBeginner.png",
+        "path": "console/release/captures/ui-drive/0219-settings-applicationsSystem-checkBeginner.png",
         "sha256": "70d334ae914ea99ad7ad7103b5ed15e758f6a7e32392bcb48f6cf7ed10b317f8",
         "bytes": 283044
       }
@@ -5194,7 +5194,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0220-settings-applicationsSystem-Expert.png",
+        "path": "console/release/captures/ui-drive/0220-settings-applicationsSystem-Expert.png",
         "sha256": "e831739ce5d91fafb4cc4c92a02b91523ec21c9d993b6a5a633c32966d67ec20",
         "bytes": 295865
       }
@@ -5210,7 +5210,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0221-enter-memoryAgent.png",
+        "path": "console/release/captures/ui-drive/0221-enter-memoryAgent.png",
         "sha256": "e1a66fbd31533f408c9a330006126ecbd97eded121992e4c5eabac709e20ad9d",
         "bytes": 191671
       }
@@ -5234,7 +5234,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0222-memoryAgent-File.png",
+        "path": "console/release/captures/ui-drive/0222-memoryAgent-File.png",
         "sha256": "d9c268bb1b4df7cb6769d1a3587b53686267d92551c7b7228c39b70173748f6a",
         "bytes": 190715
       }
@@ -5258,7 +5258,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0223-memoryAgent-Edit.png",
+        "path": "console/release/captures/ui-drive/0223-memoryAgent-Edit.png",
         "sha256": "5e6ca66af6237a3986fafaeec680a8f86e8235ae955765f39b9c86fe18733937",
         "bytes": 191058
       }
@@ -5282,7 +5282,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0224-memoryAgent-View.png",
+        "path": "console/release/captures/ui-drive/0224-memoryAgent-View.png",
         "sha256": "12b2d1cc6da66faf495d58d644ab52d354b250ad02ca598407253b23fa08afbe",
         "bytes": 191438
       }
@@ -5306,7 +5306,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0225-memoryAgent-PBX.png",
+        "path": "console/release/captures/ui-drive/0225-memoryAgent-PBX.png",
         "sha256": "7873cf0e4cabee4b3f53e5789a573aa3040ed69c8008c6bbf402204e1261f17e",
         "bytes": 191666
       }
@@ -5330,7 +5330,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0226-memoryAgent-Agent.png",
+        "path": "console/release/captures/ui-drive/0226-memoryAgent-Agent.png",
         "sha256": "9a081de0172a3805e49ffdbeaa355f32fdf286e819bd9723f2164782a7584989",
         "bytes": 191460
       }
@@ -5354,7 +5354,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0227-memoryAgent-Window.png",
+        "path": "console/release/captures/ui-drive/0227-memoryAgent-Window.png",
         "sha256": "d4cbe3c2bf960fe78d60f047603d471f7af1cce7174a8b6943034cdfb60ea16b",
         "bytes": 191813
       }
@@ -5378,7 +5378,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0228-memoryAgent-Help.png",
+        "path": "console/release/captures/ui-drive/0228-memoryAgent-Help.png",
         "sha256": "231a6d459da954cc5f762baa59de90ae97900b67eaadbfc285626d02e6148e80",
         "bytes": 190968
       }
@@ -5402,7 +5402,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0229-memoryAgent-ding-pbx-console-2-local-target-.png",
+        "path": "console/release/captures/ui-drive/0229-memoryAgent-ding-pbx-console-2-local-target-.png",
         "sha256": "d02ad90cf77160af49486c8ce54cf2ee14ad539017dec75f008c5f2dc45be56e",
         "bytes": 190959
       }
@@ -5426,7 +5426,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0230-memoryAgent-Beginner.png",
+        "path": "console/release/captures/ui-drive/0230-memoryAgent-Beginner.png",
         "sha256": "f6506b989c17911f79d311305e96bcab4d759934c5fb8c15d143af04a3b8feb4",
         "bytes": 194563
       }
@@ -5447,7 +5447,7 @@
         "onboardingVisible": false
       },
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0231-enter-tuneApp.png",
+        "path": "console/release/captures/ui-drive/0231-enter-tuneApp.png",
         "sha256": "59b91ded796bce56bf6141f9ac9d65386a29a088c9cff31985abd449dda89593",
         "bytes": 296210
       }
@@ -5471,7 +5471,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0232-tuneApp-File.png",
+        "path": "console/release/captures/ui-drive/0232-tuneApp-File.png",
         "sha256": "b4ffeb77eddc1ed8c54aea8f36eccf19d7204572d63c4b427b1a211a4dfbe20b",
         "bytes": 273440
       }
@@ -5495,7 +5495,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0233-tuneApp-Edit.png",
+        "path": "console/release/captures/ui-drive/0233-tuneApp-Edit.png",
         "sha256": "5a707fb906f1c4ad1891ef3559c3ebb862e9b8bf38468d14e7e69df351e016b2",
         "bytes": 299175
       }
@@ -5519,7 +5519,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0234-tuneApp-View.png",
+        "path": "console/release/captures/ui-drive/0234-tuneApp-View.png",
         "sha256": "ce6c6940cb466d7defdff9db5af846a2a80e0591eed917d4ca648df5d766522c",
         "bytes": 300502
       }
@@ -5543,7 +5543,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0235-tuneApp-PBX.png",
+        "path": "console/release/captures/ui-drive/0235-tuneApp-PBX.png",
         "sha256": "319f244cd1b0e1ea7b4d28e21b8b7bcfb985c3d1b84a54443f9a501853b927df",
         "bytes": 276686
       }
@@ -5567,7 +5567,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0236-tuneApp-Agent.png",
+        "path": "console/release/captures/ui-drive/0236-tuneApp-Agent.png",
         "sha256": "b73b8b0c8273d6b30be860f434e6b92871784be88cd81ae33c85e6225f3a1a5b",
         "bytes": 300113
       }
@@ -5591,7 +5591,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0237-tuneApp-Window.png",
+        "path": "console/release/captures/ui-drive/0237-tuneApp-Window.png",
         "sha256": "ed3fd25e5422bd478488518ec5a24673a505319d4fc959a89515a1116f97a674",
         "bytes": 288889
       }
@@ -5615,7 +5615,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0238-tuneApp-Help.png",
+        "path": "console/release/captures/ui-drive/0238-tuneApp-Help.png",
         "sha256": "bd43c47a11fa9eb960ad4b7f1300a46050105495f1fa63d4bbd71195a7f18df7",
         "bytes": 300526
       }
@@ -5639,7 +5639,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0239-tuneApp-ding-pbx-console-2-local-target-s-co.png",
+        "path": "console/release/captures/ui-drive/0239-tuneApp-ding-pbx-console-2-local-target-s-co.png",
         "sha256": "eee80e3e577cef4d108feb43b16918a3e9959c68f2b063c8efdfa9cee778336c",
         "bytes": 306776
       }
@@ -5663,7 +5663,7 @@
       },
       "changed": false,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0240-tuneApp-checkBeginner.png",
+        "path": "console/release/captures/ui-drive/0240-tuneApp-checkBeginner.png",
         "sha256": "c978d3ed146f4aac0079fe30073832400aef6162bcaf0d4169ee1d749f385c52",
         "bytes": 301882
       }
@@ -5687,7 +5687,7 @@
       },
       "changed": true,
       "capture": {
-        "file": "C:\\Users\\cntow\\AppData\\Local\\Temp\\dingdrive\\clean\\shots\\0241-tuneApp-Expert.png",
+        "path": "console/release/captures/ui-drive/0241-tuneApp-Expert.png",
         "sha256": "01265ad7fcade2fd71d8a17e76f2d974d8ca8191820e42b6628b31f31f9fad9e",
         "bytes": 309680
       }
@@ -5964,5 +5964,32 @@
       "destination": "bug_reportCapture debug bundle",
       "skipped": "not present on this screen"
     }
-  ]
+  ],
+  "capturePathPolicy": "repository-relative durable capture paths only",
+  "privacy": {
+    "secretPayloadRecorded": false,
+    "privatePayloadValuesRecorded": false,
+    "verdict": "pass",
+    "networkCalls": 0
+  },
+  "candidateSha": null,
+  "artifactSha256": null,
+  "receiptPath": null,
+  "targetProof": null,
+  "viewport": {
+    "width": 1440,
+    "height": 922
+  },
+  "scale": 1,
+  "theme": null,
+  "staleness": {
+    "checked": false,
+    "stale": null,
+    "reason": "legacy ledger predates receipt-bound evidence"
+  },
+  "currentness": {
+    "checked": false,
+    "reason": "legacy ledger predates candidate-bound evidence"
+  },
+  "promotion": "refused-unbound-legacy-ledger"
 }

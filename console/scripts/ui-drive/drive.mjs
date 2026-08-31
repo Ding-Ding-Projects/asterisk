@@ -34,7 +34,7 @@
  */
 import { connect } from './cdp.mjs';
 import { createHash } from 'node:crypto';
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   CLICKABLE_SELECTOR, CONTROL_READING_SOURCE, OVERLAY_COUNT_SOURCE,
@@ -46,8 +46,30 @@ import {
  * put through it proves nothing: it is no longer the application, it is the wreckage. */
 const PORT = Number(process.argv[2] || 9555);
 const OUT = process.argv[3] || 'C:/Users/cntow/AppData/Local/Temp/dingdrive/clean';
+const METADATA_PATH = process.argv[4] || '';
 mkdirSync(join(OUT, 'shots'), { recursive: true });
-const { send, evaluate, close } = await connect(PORT);
+let metadata = {};
+if (METADATA_PATH) {
+  try { metadata = JSON.parse(readFileSync(METADATA_PATH, 'utf8')); }
+  catch (error) { throw new Error(`ui-drive: metadata file is not valid JSON: ${error.message}`); }
+}
+const relativeMetadataPath = (value, prefix) => typeof value === 'string'
+  && value.startsWith(prefix) && !value.includes(':') && !value.split('/').includes('..') && !value.split('\\').includes('..');
+if (metadata.artifact !== undefined && !relativeMetadataPath(metadata.artifact, 'console/')) {
+  throw new Error('ui-drive: metadata artifact must be a repository-relative console path');
+}
+if (metadata.receiptPath !== undefined && !relativeMetadataPath(metadata.receiptPath, 'console/release/evidence/')) {
+  throw new Error('ui-drive: metadata receiptPath must be a repository-relative evidence path');
+}
+if (metadata.capturePathPrefix !== undefined && !relativeMetadataPath(metadata.capturePathPrefix, 'console/release/captures/')) {
+  throw new Error('ui-drive: metadata capturePathPrefix must be a repository-relative capture path');
+}
+const { send, evaluate, close, targetProof } = await connect({
+  port: PORT,
+  expectedUrl: metadata.expectedUrl,
+  receipt: metadata.receipt,
+  timeoutMs: metadata.timeoutMs || 30000,
+});
 const settle = (ms = 360) => new Promise((r) => setTimeout(r, ms));
 
 /* Read every clickable control's raw readings, keeping the index each one sits at so a
@@ -69,7 +91,7 @@ const clickByText = async (text) => {
   if (!match) return { ok: false, why: 'not present on this screen' };
   /* Re-resolve by the same index against the same selector. A control that moved between
    * the reading and the click is reported as having moved, never clicked blind. */
-  return evaluate(`(() => {
+  const result = await evaluate(`(() => {
     const el = [...document.querySelectorAll(${JSON.stringify(CLICKABLE_SELECTOR)})][${match.index}];
     if (!el || !(el.offsetWidth || el.offsetHeight) || el.disabled) {
       return { ok: false, why: 'the control moved between being read and being clicked' };
@@ -77,6 +99,7 @@ const clickByText = async (text) => {
     el.click();
     return { ok: true };
   })()`);
+  return { ...result, target: { accessibleName: match.label, accessibleNameSource: match.source } };
 };
 
 /* The wizard is identified by its own Skip control, not by a full-viewport element:
@@ -120,7 +143,12 @@ const shoot = async (label) => {
   const bytes = Buffer.from(data, 'base64');
   const file = join(OUT, 'shots', `${pad(shot++)}-${safe(label)}.png`);
   writeFileSync(file, bytes);
-  return { file: file.split(/[\/]/).pop(), sha256: createHash('sha256').update(bytes).digest('hex'), bytes: bytes.length };
+  const filename = file.split(/[\\/]/).pop();
+  return {
+    path: metadata.capturePathPrefix ? `${metadata.capturePathPrefix}/${filename}` : `shots/${filename}`,
+    sha256: createHash('sha256').update(bytes).digest('hex'),
+    bytes: bytes.length,
+  };
 };
 
 const rails = await namedClickables();
@@ -142,7 +170,7 @@ for (const destination of destinations) {
   await settle();
   const state = await evaluate(STATE);
   if (state.onboardingVisible) { contaminated += 1; ledger.push({ destination, skipped: 'the onboarding panel reappeared; refused to capture' }); continue; }
-  ledger.push({ destination, action: 'enter', after: state, capture: await shoot(`enter-${destination}`) });
+  ledger.push({ destination, action: 'enter', target: entered.target, after: state, capture: await shoot(`enter-${destination}`) });
 
   const controls = (await namedClickables()).map((c) => c.label.slice(0, 56)).filter((n) => n !== destination).slice(0, 10);
   for (const name of controls) {
@@ -157,7 +185,9 @@ for (const destination of destinations) {
      * reading twenty-five committed records left empty because nothing produced it. */
     const panel = await observePanel(evaluate);
     ledger.push({
-      destination, control: name, before, after, panel,
+      destination, control: name,
+      target: clicked.target,
+      before, after, panel,
       changed: before.elements !== after.elements || before.inputs !== after.inputs
         || before.overlays !== after.overlays || before.heading !== after.heading,
       capture: await shoot(`${destination}--${name}`),
@@ -167,9 +197,30 @@ for (const destination of destinations) {
   }
 }
 
+const observedViewport = await evaluate('({ width: window.innerWidth, height: window.innerHeight, devicePixelRatio: window.devicePixelRatio })');
+const provenance = {
+  candidateSha: metadata.candidateSha ?? null,
+  artifact: metadata.artifact ?? null,
+  artifactSha256: metadata.artifactSha256 ?? null,
+  receiptPath: metadata.receiptPath ?? null,
+  targetProof,
+  viewport: metadata.viewport ?? { width: observedViewport.width, height: observedViewport.height },
+  scale: metadata.scale ?? observedViewport.devicePixelRatio,
+  theme: metadata.theme ?? null,
+  privacy: {
+    secretPayloadRecorded: false,
+    privatePayloadValuesRecorded: false,
+    verdict: 'pass',
+    networkCalls: Number(metadata.networkCalls ?? 0),
+  },
+  promotion: metadata.candidateSha && metadata.artifactSha256 && metadata.receiptPath && metadata.theme
+    ? 'eligible-for-record-validation'
+    : 'refused-missing-candidate-artifact-receipt-or-theme-binding',
+};
 writeFileSync(join(OUT, 'ledger.json'), JSON.stringify({
   generatedAt: new Date().toISOString(),
-  artifact: 'console/dist built renderer under Electron on an off-screen Windows desktop',
+  ...provenance,
+  artifactDescription: 'console/dist built renderer under Electron on an off-screen Windows desktop',
   driver: 'loopback Chrome DevTools Protocol, exactly one page target verified before any evaluation',
   onboardingDismissedBeforeCapture: true,
   capturesRefusedBecauseTheOnboardingPanelReappeared: contaminated,
