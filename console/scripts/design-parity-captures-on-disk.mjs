@@ -35,6 +35,15 @@ import {
 } from './design-parity-contract.mjs';
 
 const sha256Of = (bytes) => createHash('sha256').update(bytes).digest('hex');
+const rectKey = (rect) => `${rect?.x},${rect?.y},${rect?.width},${rect?.height}`;
+function validRectangle(rect, tuple) {
+  return Number.isInteger(rect?.x) && Number.isInteger(rect?.y)
+    && Number.isInteger(rect?.width) && Number.isInteger(rect?.height)
+    && rect.width > 0 && rect.height > 0
+    && rect.x >= 0 && rect.y >= 0
+    && rect.x + rect.width <= tuple.width
+    && rect.y + rect.height <= tuple.height;
+}
 
 export function verifyCapturedParityEvidence({
   root, manifest, inventory, reference, built, diff, exists = existsSync, read = readFileSync,
@@ -46,6 +55,23 @@ export function verifyCapturedParityEvidence({
   const strict = strictParityEvidence(inventory);
   const tuple = inventory.captureContract?.captureTuple;
   const expectedCommit = strict ? expectedSourceCommit(inventory) : null;
+  const entryById = new Map();
+  const requiredManifestPaths = ['referenceCapture', 'builtCapture', 'sideBySide', 'visualDiff', 'regionLedger', 'chromeParity', 'materialAudit'];
+  const manifestPathOwners = new Map();
+  for (const entry of manifest.destinations ?? []) {
+    if (entryById.has(entry.id)) problems.push(`manifest: '${entry.id}' appears more than once`);
+    entryById.set(entry.id, entry);
+    for (const key of requiredManifestPaths) {
+      if (typeof entry[key] !== 'string' || entry[key].length === 0 || entry[key].includes('{id}')) {
+        problems.push(`manifest: '${entry.id}' ${key} path is missing or unresolved`);
+      } else if (key === 'regionLedger' || key === 'chromeParity') {
+        const ownerKey = `${key}:${entry[key]}`;
+        const owner = manifestPathOwners.get(ownerKey);
+        if (owner) problems.push(`manifest: ${key} path '${entry[key]}' is reused by '${owner}' and '${entry.id}'`);
+        else manifestPathOwners.set(ownerKey, entry.id);
+      }
+    }
+  }
   if (strict) {
     try { captureTuplesEqual(tuple, tuple, 'inventory capture tuple'); }
     catch (error) { problems.push(error.message); }
@@ -113,10 +139,92 @@ export function verifyCapturedParityEvidence({
     try { record = JSON.parse(read(diffPath, "utf8")); } catch (error) { problems.push(`diff: '${result.id}' record is not valid JSON (${error.message})`); continue; }
     if (record.destinationId !== result.id) problems.push(`diff: the record at ${result.id} names destination '${record.destinationId}' — this is evidence for a different row`);
     if (record.verdict !== result.verdict) problems.push(`diff: '${result.id}' record says '${record.verdict}' while the ledger says '${result.verdict}'`);
+    const entry = entryById.get(result.id);
+    if (typeof record.generatedBy !== 'string' || record.generatedBy.trim() === '') problems.push(`diff: '${result.id}' generator provenance is missing`);
+    if (strict) {
+      try { validateEvidenceProvenance(record, tuple, expectedCommit, `diff ${result.id}`); }
+      catch (error) { problems.push(error.message); }
+    } else {
+      try { captureTuplesEqual(tuple, record.tuple, `diff ${result.id} tuple`); }
+      catch (error) { problems.push(error.message); }
+    }
+    if (record.referenceCapture !== entry.referenceCapture) problems.push(`diff: '${result.id}' references '${record.referenceCapture}', not the manifest reference capture`);
+    if (record.builtCapture !== entry.builtCapture) problems.push(`diff: '${result.id}' references '${record.builtCapture}', not the manifest built capture`);
+    for (const [key, artifactKey] of [['referenceCaptureSha256', 'referenceCapture'], ['builtCaptureSha256', 'builtCapture']]) {
+      const expectedHash = record[key];
+      if (strict && !/^[0-9a-f]{64}$/i.test(String(expectedHash ?? ''))) {
+        problems.push(`diff: '${result.id}' ${key} is missing or not a SHA-256 digest`);
+      } else if (expectedHash) {
+        const rawPath = pathFor(artifactKey, result.id);
+        try {
+          if (sha256Of(read(rawPath)) !== String(expectedHash).toLowerCase()) problems.push(`diff: '${result.id}' ${key} does not match ${artifactKey}`);
+        } catch (error) { problems.push(`diff: '${result.id}' cannot read ${artifactKey} for hash validation (${error.message})`); }
+      }
+    }
     for (const which of ['reference', 'built']) {
       const dimensions = record.dimensions?.[which];
       if (!dimensions || dimensions.width !== tuple.width || dimensions.height !== tuple.height) {
         problems.push(`diff: '${result.id}' ${which} capture is ${dimensions?.width}x${dimensions?.height}, not the capture tuple's ${tuple.width}x${tuple.height}`);
+      }
+    }
+  }
+
+  for (const id of ids) {
+    const entry = entryById.get(id);
+    for (const [kind, manifestKey, bar] of [['region', 'regionLedger', 'chrome-parity'], ['chrome', 'chromeParity', 'chrome-parity']]) {
+      const path = resolve(root, entry[manifestKey]);
+      if (!exists(path)) { problems.push(`${kind}: '${id}' record is absent at ${entry[manifestKey]}`); continue; }
+      let record;
+      try { record = JSON.parse(read(path, 'utf8')); }
+      catch (error) { problems.push(`${kind}: '${id}' record is not valid JSON (${error.message})`); continue; }
+      if (record.destinationId !== id) problems.push(`${kind}: '${id}' record names destination '${record.destinationId}'`);
+      if (record.bar !== bar) problems.push(`${kind}: '${id}' record has bar '${record.bar}', not '${bar}'`);
+      try { captureTuplesEqual(tuple, record.tuple, `${kind} ${id} tuple`); }
+      catch (error) { problems.push(error.message); }
+      if (strict) {
+        try { validateEvidenceProvenance(record, tuple, expectedCommit, `${kind} ${id}`); }
+        catch (error) { problems.push(error.message); }
+      }
+      if (typeof record.generatedBy !== 'string' || record.generatedBy.trim() === '') problems.push(`${kind}: '${id}' generator provenance is missing`);
+      if (kind === 'region') {
+        if (!Array.isArray(record.exclusions) || record.exclusions.length === 0) problems.push(`${kind}: '${id}' record has no measured exclusions`);
+        for (const rectangle of record.exclusions ?? []) {
+          if (!validRectangle(rectangle, tuple)) problems.push(`${kind}: '${id}' has an invalid or out-of-viewport exclusion rectangle`);
+        }
+      }
+      if (kind !== 'chrome') continue;
+      if (!Array.isArray(record.excluded?.rectangles) || record.excluded.rectangles.length === 0) problems.push(`chrome: '${id}' record has no applied exclusion rectangles`);
+      for (const rectangle of record.excluded?.rectangles ?? []) {
+        if (!validRectangle(rectangle, tuple)) problems.push(`chrome: '${id}' has an invalid or out-of-viewport applied exclusion rectangle`);
+      }
+      for (const which of ['reference', 'built']) {
+        const dimensions = record.dimensions?.[which];
+        if (!dimensions || dimensions.width !== tuple.width || dimensions.height !== tuple.height) {
+          problems.push(`chrome: '${id}' ${which} dimensions do not match the capture tuple`);
+        }
+      }
+      if (typeof record.comparedFraction !== 'number' || record.comparedFraction <= 0 || record.comparedFraction > 1) problems.push(`chrome: '${id}' comparedFraction is missing or outside (0,1]`);
+      if (record.stalenessCheck?.checked !== true || record.stalenessCheck?.stale !== false) problems.push(`chrome: '${id}' staleness check is missing or did not pass`);
+      if (record.regionLedger !== entry.regionLedger) problems.push(`chrome: '${id}' references '${record.regionLedger}', not the manifest region ledger`);
+      if (record.referenceCapture !== entry.referenceCapture) problems.push(`chrome: '${id}' references '${record.referenceCapture}', not the manifest reference capture`);
+      if (record.builtCapture !== entry.builtCapture) problems.push(`chrome: '${id}' references '${record.builtCapture}', not the manifest built capture`);
+      const ledgerPath = resolve(root, entry.regionLedger);
+      let ledger;
+      try { ledger = JSON.parse(read(ledgerPath, 'utf8')); }
+      catch (error) { problems.push(`chrome: '${id}' cannot read its region ledger (${error.message})`); continue; }
+      const applied = (record.excluded?.rectangles ?? []).map(rectKey).sort().join(' | ');
+      const measured = (ledger.exclusions ?? []).map(rectKey).sort().join(' | ');
+      if (applied !== measured) problems.push(`chrome: '${id}' excluded rectangles differ from its region ledger`);
+      for (const [key, artifactKey] of [['referenceCaptureSha256', 'referenceCapture'], ['builtCaptureSha256', 'builtCapture']]) {
+        const expectedHash = record[key];
+        if (strict && !/^[0-9a-f]{64}$/i.test(String(expectedHash ?? ''))) {
+          problems.push(`chrome: '${id}' ${key} is missing or not a SHA-256 digest`);
+        } else if (expectedHash) {
+          const rawPath = pathFor(artifactKey, id);
+          try {
+            if (sha256Of(read(rawPath)) !== String(expectedHash).toLowerCase()) problems.push(`chrome: '${id}' ${key} does not match ${artifactKey}`);
+          } catch (error) { problems.push(`chrome: '${id}' cannot read ${artifactKey} for hash validation (${error.message})`); }
+        }
       }
     }
   }

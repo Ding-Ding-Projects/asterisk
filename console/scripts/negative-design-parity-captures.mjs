@@ -34,6 +34,15 @@ function withEvidence(mutate) {
   return evidence;
 }
 
+function overrideJson(evidence, relativePath, mutate) {
+  const target = resolve(root, relativePath);
+  const originalRead = evidence.read;
+  evidence.read = (candidate, encoding) => {
+    if (candidate !== target) return originalRead(candidate, encoding);
+    return JSON.stringify(mutate(JSON.parse(readFileSync(candidate, 'utf8'))));
+  };
+}
+
 const firstCaptured = (ledger) => ledger.results.find((result) => result.captured);
 const makeRefused = (ledger) => {
   const result = firstCaptured(ledger);
@@ -61,6 +70,36 @@ const cases = [
   ['the diff ledger repeats an audited destination', (e) => { e.diff.results.push({ ...e.diff.results[0] }); }],
   ['the diff ledger carries an unknown destination', (e) => { e.diff.results.push({ id: 'not-audited', skipped: 'fixture' }); }],
   ['the diff ledger is empty', (e) => { e.diff.results = []; }],
+  ['a region ledger is absent from the manifest path', (e) => {
+    const path = resolve(root, e.manifest.destinations[0].regionLedger);
+    e.exists = (candidate) => (candidate === path ? false : existsSync(candidate));
+  }],
+  ['a region ledger records a different destination', (e) => {
+    const entry = e.manifest.destinations[0];
+    overrideJson(e, entry.regionLedger, (record) => ({ ...record, destinationId: 'not-dash' }));
+  }],
+  ['a stale region ledger carries a different tuple', (e) => {
+    const entry = e.manifest.destinations[0];
+    overrideJson(e, entry.regionLedger, (record) => ({ ...record, tuple: { ...record.tuple, width: 1280 } }));
+  }],
+  ['two destinations reuse one region ledger record', (e) => {
+    e.manifest.destinations[1].regionLedger = e.manifest.destinations[0].regionLedger;
+  }],
+  ['a chrome-parity record is absent from the manifest path', (e) => {
+    const path = resolve(root, e.manifest.destinations[0].chromeParity);
+    e.exists = (candidate) => (candidate === path ? false : existsSync(candidate));
+  }],
+  ['a chrome-parity record records a different destination', (e) => {
+    const entry = e.manifest.destinations[0];
+    overrideJson(e, entry.chromeParity, (record) => ({ ...record, destinationId: 'not-dash' }));
+  }],
+  ['a stale chrome-parity record carries a different tuple', (e) => {
+    const entry = e.manifest.destinations[0];
+    overrideJson(e, entry.chromeParity, (record) => ({ ...record, tuple: { ...record.tuple, scale: 1.5 } }));
+  }],
+  ['two destinations reuse one chrome-parity record', (e) => {
+    e.manifest.destinations[1].chromeParity = e.manifest.destinations[0].chromeParity;
+  }],
   ['a refused capture has a file sitting there anyway', (e) => {
     const refused = makeRefused(e.built);
     const path = resolve(root, e.inventory.evidenceTemplates.builtCapture.replaceAll('{id}', refused.id));

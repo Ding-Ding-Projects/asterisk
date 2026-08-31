@@ -540,9 +540,11 @@ function chromeAll() {
     }, null, 2)}\n`, 'utf8'));
 
     const { exclusions, areas } = maskFromLedger(ledger);
+    const referenceBytes = readFileSync(referencePath);
+    const builtBytes = readFileSync(builtPath);
     const record = compareChrome({
-      reference: readFileSync(referencePath),
-      built: readFileSync(builtPath),
+      reference: referenceBytes,
+      built: builtBytes,
       destinationId: entry.id,
       exclusions,
       areas,
@@ -555,6 +557,8 @@ function chromeAll() {
       generatedBy: 'console/scripts/design-parity-capture-run.mjs --side=chrome',
       sourceCommit: SOURCE_COMMIT,
       tuple: TUPLE,
+      referenceCaptureSha256: sha256Of(referenceBytes),
+      builtCaptureSha256: sha256Of(builtBytes),
       regionLedger: INVENTORY.evidenceTemplates.regionLedger.replaceAll('{id}', entry.id),
       referenceCapture: INVENTORY.evidenceTemplates.referenceCapture.replaceAll('{id}', entry.id),
       builtCapture: INVENTORY.evidenceTemplates.builtCapture.replaceAll('{id}', entry.id),
@@ -609,9 +613,11 @@ function diffAll() {
       console.log(`diff ${entry.id}: skipped, a capture is absent`);
       continue;
     }
+    const referenceBytes = readFileSync(referencePath);
+    const builtBytes = readFileSync(builtPath);
     const comparison = compareCaptures({
-      reference: readFileSync(referencePath),
-      built: readFileSync(builtPath),
+      reference: referenceBytes,
+      built: builtBytes,
       destinationId: entry.id,
       builtCaptureMtimeMs: statSync(builtPath).mtimeMs,
       builtSourceMtimesMs: sourceMtimes,
@@ -624,6 +630,8 @@ function diffAll() {
       generatedBy: 'console/scripts/design-parity-capture-run.mjs --side=diff',
       sourceCommit: SOURCE_COMMIT,
       tuple: TUPLE,
+      referenceCaptureSha256: sha256Of(referenceBytes),
+      builtCaptureSha256: sha256Of(builtBytes),
       referenceCapture: INVENTORY.evidenceTemplates.referenceCapture.replaceAll('{id}', entry.id),
       builtCapture: INVENTORY.evidenceTemplates.builtCapture.replaceAll('{id}', entry.id),
     }, null, 2)}\n`, 'utf8'));
