@@ -414,10 +414,6 @@ const buildIdentity = resolveBuildIdentity();
 for (const asset of assets) {
   let content = await readFile(join(root, asset));
   let text = content.toString('utf8').replaceAll('../assets/fonts/', 'assets/fonts/').replaceAll('../assets/site-fonts/', 'assets/site-fonts/');
-  // Current published links use the maintained identity. Historical `/asterisk/`
-  // references remain valid evidence, but must not leak into new output.
-  text = text.replaceAll('https://ding-ding-projects.github.io/asterisk/', PUBLIC_SITE_ORIGIN)
-    .replaceAll('https://github.com/Ding-Ding-Projects/asterisk/', `https://github.com/${PUBLIC_REPOSITORY}/`);
   const navStart = text.indexOf('<nav class="site-nav"');
   const navEnd = navStart < 0 ? -1 : text.indexOf('</nav>', navStart);
   if (navStart >= 0 && navEnd > navStart) {
@@ -524,7 +520,7 @@ async function composeDocs(sourceRelative='') {
     if(!entry.name.endsWith('.md'))continue;
     const markdown=await readFile(join(docs,child),'utf8'), title=markdown.match(/^#\s+(.+)$/m)?.[1]||'Material Asterisk documentation';
     const htmlRelative=child.replace(/\.md$/,'.html'), destination=join(output,'docs',htmlRelative), depth=htmlRelative.split(/[\\/]/).length;
-    const back='../'.repeat(depth), sections=[...markdown.matchAll(/^##\s+(.+)$/gm)].map(match=>({title:match[1],id:match[1].toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')})), sectionNav=sections.map(section=>`<a href="#${section.id}">${escapeHtml(section.title)}</a>`).join(''), page=`<!doctype html>\n<html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${escapeHtml(title)} documentation for Material Asterisk."><meta property="og:title" content="${escapeHtml(title)} · Material Asterisk"><meta property="og:description" content="Focused Material Asterisk feature documentation."><meta property="og:url" content="https://ding-ding-projects.github.io/asterisk/docs/${htmlRelative.replaceAll('\\','/')}"><meta property="og:image" content="https://ding-ding-projects.github.io/asterisk/social-preview.png"><meta name="twitter:card" content="summary_large_image"><title>${escapeHtml(title)} · Material Asterisk</title><link rel="stylesheet" href="${back}styles.css"></head><body><a class="skip-link" href="#article-content">Skip to article</a><main class="documentation-page"><nav aria-label="Documentation breadcrumb"><a href="${back}index.html">Material Asterisk</a> · <a href="${back}documentation.html">Documentation map</a> · <a href="${back}docs/README.html">Category index</a></nav><div class="article-shell"><nav class="article-nav" aria-label="Article sections">${sectionNav||'<a href="#article-content">Article</a>'}</nav><article id="article-content">${renderMarkdown(markdown)}</article></div><footer><p>This documentation website is not the installed desktop application and is not a PBX runtime.</p></footer></main></body></html>\n`;
+    const back='../'.repeat(depth), sections=[...markdown.matchAll(/^##\s+(.+)$/gm)].map(match=>({title:match[1],id:match[1].toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')})), sectionNav=sections.map(section=>`<a href="#${section.id}">${escapeHtml(section.title)}</a>`).join(''), page=`<!doctype html>\n<html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${escapeHtml(title)} documentation for Material Asterisk."><meta property="og:title" content="${escapeHtml(title)} · Material Asterisk"><meta property="og:description" content="Focused Material Asterisk feature documentation."><meta property="og:url" content="${PUBLIC_SITE_ORIGIN}docs/${htmlRelative.replaceAll('\\','/')}"><meta property="og:image" content="${PUBLIC_SITE_ORIGIN}social-preview.png"><meta name="twitter:card" content="summary_large_image"><title>${escapeHtml(title)} · Material Asterisk</title><link rel="stylesheet" href="${back}styles.css"></head><body><a class="skip-link" href="#article-content">Skip to article</a><main class="documentation-page"><nav aria-label="Documentation breadcrumb"><a href="${back}index.html">Material Asterisk</a> · <a href="${back}documentation.html">Documentation map</a> · <a href="${back}docs/README.html">Category index</a></nav><div class="article-shell"><nav class="article-nav" aria-label="Article sections">${sectionNav||'<a href="#article-content">Article</a>'}</nav><article id="article-content">${renderMarkdown(markdown)}</article></div><footer><p>This documentation website is not the installed desktop application and is not a PBX runtime.</p></footer></main></body></html>\n`;
     await mkdir(dirname(destination),{recursive:true});await writeFile(destination,page,'utf8');
   }
 }
@@ -539,8 +535,7 @@ async function rewritePublishedIdentity(relative = '.') {
     if (!entry.name.endsWith('.html') && !entry.name.endsWith('.js')) continue;
     const path = join(output, child);
     const current = await readFile(path, 'utf8');
-    let rewritten = current.replaceAll('https://ding-ding-projects.github.io/asterisk/', PUBLIC_SITE_ORIGIN)
-      .replaceAll('https://github.com/Ding-Ding-Projects/asterisk/', `https://github.com/${PUBLIC_REPOSITORY}/`);
+    let rewritten = current;
     const publishedPath = child.replaceAll(String.fromCharCode(92), '/');
     if (publishedPath.endsWith('.html') && publishedPath.startsWith('docs/') && !rewritten.includes('rel="canonical"')) {
       const canonicalUrl = `${PUBLIC_SITE_ORIGIN}${publishedPath}`;
