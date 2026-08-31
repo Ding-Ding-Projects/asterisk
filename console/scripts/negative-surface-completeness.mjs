@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
-import { validateSurfaceInventory } from './inventory-validation.mjs';
+import { validateSurfaceInventory, validateSymbolSource } from './inventory-validation.mjs';
 
 const root = resolve(import.meta.dirname, '..', '..');
 const source = JSON.parse(readFileSync(resolve(root, 'console/inventories/surface-completeness.json'), 'utf8'));
@@ -17,6 +17,14 @@ function mustFail(name, mutate, options = {}) {
   catch (error) { console.log(`RED: ${name}: ${error.message}`); return; }
   finally { restore(); }
   throw new Error(`${name}: deliberate break stayed green`);
+}
+
+function mustFailSource(name, mutate, symbol, source) {
+  const broken = mutate(source);
+  if (broken === source) throw new Error(`${name}: deliberate source break was not planted`);
+  try { validateSymbolSource(broken, symbol); }
+  catch (error) { console.log(`RED: ${name}: ${error.message}`); validateSymbolSource(source, symbol); return; }
+  throw new Error(`${name}: deliberate source break stayed green`);
 }
 
 function makeVerified(row) {
@@ -51,12 +59,12 @@ mustFail('renamed-symbol', (data) => {
   symbol.name = 'NarratorRenamed';
   return () => { symbol.name = name; };
 }, { sourceChecks: true });
-mustFail('commented-symbol', (data) => {
-  const symbol = firstRow(data).implementation.symbols[0];
-  const name = symbol.name;
-  symbol.name = 'CommentedNarrator';
-  return () => { symbol.name = name; };
-}, { sourceChecks: true });
+const sourceFixture = `${execFileSync('git', ['show', 'HEAD:console/app/renderer/src/App.tsx'], { cwd: root, encoding: 'utf8' }).replace(/\r\n|\r/g, '\n')}\nfunction candidateMarkerFixture() {}\ncandidateMarkerFixture();\n`;
+const sourceFixtureSymbol = { path: 'app/renderer/src/App.tsx', name: 'candidateMarkerFixture', kind: 'function' };
+const sourceFixtureDeclaration = /^function candidateMarkerFixture\(\) \{\}$/mu;
+if (!sourceFixtureDeclaration.test(sourceFixture)) throw new Error('commented-symbol fixture has no live candidate declaration and call');
+validateSymbolSource(sourceFixture, sourceFixtureSymbol);
+mustFailSource('commented-symbol', (source) => source.replace(sourceFixtureDeclaration, '  // fire(title: string, body: string, isError?: boolean): void;'), sourceFixtureSymbol, sourceFixture);
 mustFail('stale-commit', (data) => {
   const row = firstRow(data);
   const original = structuredClone(row);

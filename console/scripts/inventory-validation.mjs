@@ -49,18 +49,35 @@ function trackedSource(root, relativePath) {
   }
 }
 
+function stripComments(source) {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//gu, (comment) => comment.replace(/[^\n]/gu, ' '))
+    .replace(/^\s*\/\/[^\r\n]*/gmu, '');
+}
+
+/* Scan one candidate source blob using exact line-anchored declarations. Keeping
+ * this separate lets the negative Chut exercise a real comment-prefixed source
+ * mutation without ever reading a lat tat checkout as candidate evidence. */
+export function validateSymbolSource(source, symbol) {
+  const code = stripComments(source);
+  const name = escaped(symbol.name);
+  const declaration = new RegExp(`^\\s*(?:export\\s+)?(?:async\\s+)?(?:function|class|const|let|var)\\s+${name}\\b`, 'm');
+  const member = new RegExp(`^\\s*(?:(?:public|private|protected|static|async)\\s+)*${name}\\s*(?::|=|\\()`, 'm');
+  const importOrMount = new RegExp(`^\\s*(?:import[^\\n]*\\b${name}\\b|.*\\b${name}\\b.*(?:mount|render|createRoot))`, 'm');
+  const imported = symbol.kind === 'import' && new RegExp(`^\\s*import\\b[^;]*\\b${name}\\b[^;]*\\bfrom\\b`, 'ms').test(code);
+  const declared = ['class', 'const', 'function'].includes(symbol.kind) && declaration.test(code);
+  const memberDeclared = symbol.kind === 'method' && member.test(code);
+  const mounted = symbol.kind === 'mount' && importOrMount.test(code);
+  if (!(declared || memberDeclared || mounted || imported)) throw new Error(`symbol ${symbol.path}#${symbol.name}: exact declaration or registration is absent`);
+}
+
 function sourceHasExactSymbol(root, symbol) {
   if (!root) return true;
   const relativePath = `console/${symbol.path}`;
   const cacheKey = `${root}\0${relativePath}\0${symbol.kind}\0${symbol.name}`;
   if (symbolValidationCache.has(cacheKey)) return;
   const source = trackedSource(root, relativePath).replace(/\r\n|\r/g, '\n');
-  const name = escaped(symbol.name);
-  const declaration = new RegExp(`^\\s*(?:export\\s+)?(?:async\\s+)?(?:function|class|const|let|var)\\s+${name}\\b`, 'm');
-  const member = new RegExp(`^\\s*(?:(?:public|private|protected|static|async)\\s+)*${name}\\s*(?::|=|\\()`, 'm');
-  const importOrMount = new RegExp(`^\\s*(?:import[^\\n]*\\b${name}\\b|.*\\b${name}\\b.*(?:mount|render|createRoot))`, 'm');
-  const imported = symbol.kind === 'import' && new RegExp(`^\\s*import\\b[^;]*\\b${name}\\b[^;]*\\bfrom\\b`, 'ms').test(source);
-  if (!(declaration.test(source) || member.test(source) || importOrMount.test(source) || imported)) throw new Error(`symbol ${symbol.path}#${symbol.name}: exact declaration or registration is absent`);
+  validateSymbolSource(source, symbol);
   symbolValidationCache.add(cacheKey);
 }
 export function validateSymbols(value, label, root, sourceChecks = true) {
