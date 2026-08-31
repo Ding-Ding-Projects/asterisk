@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
 const CANONICAL_FEATURE_IDS = [
@@ -32,26 +32,62 @@ function exactKeys(record, expected, label) {
 }
 function escaped(value) { return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
-function sourceHasExactSymbol(root, symbol) {
-  if (!root) return true;
-  const absolute = resolve(root, 'console', symbol.path);
-  if (!existsSync(absolute)) throw new Error(`symbol ${symbol.path}#${symbol.name}: source path is absent`);
-  const source = readFileSync(absolute, 'utf8').replace(/\r\n|\r/g, '\n');
+/* Inventory lanes may use an intentional sparse checkout. The
+ * source contract still has to be checked against the pinned commit in that case,
+ * not weakened merely because the implementation cone is absent locally. */
+const trackedSourceCache = new Map();
+const symbolValidationCache = new Set();
+function trackedSource(root, relativePath) {
+  const cacheKey = `${root}\0${relativePath}`;
+  if (trackedSourceCache.has(cacheKey)) return trackedSourceCache.get(cacheKey);
+  try {
+    const source = execFileSync('git', ['show', `HEAD:${relativePath.replaceAll('\\', '/')}`], { cwd: root, encoding: 'utf8' });
+    trackedSourceCache.set(cacheKey, source);
+    return source;
+  } catch {
+    throw new Error(`source ${relativePath}: absent from the checkout and pinned HEAD`);
+  }
+}
+
+function stripComments(source) {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//gu, (comment) => comment.replace(/[^\n]/gu, ' '))
+    .replace(/^\s*\/\/[^\r\n]*/gmu, '');
+}
+
+/* Scan one candidate source blob using exact line-anchored declarations. Keeping
+ * this separate lets the negative regression exercise a real comment-prefixed source
+ * mutation without ever reading a modified checkout as candidate evidence. */
+export function validateSymbolSource(source, symbol) {
+  const code = stripComments(source);
   const name = escaped(symbol.name);
   const declaration = new RegExp(`^\\s*(?:export\\s+)?(?:async\\s+)?(?:function|class|const|let|var)\\s+${name}\\b`, 'm');
   const member = new RegExp(`^\\s*(?:(?:public|private|protected|static|async)\\s+)*${name}\\s*(?::|=|\\()`, 'm');
   const importOrMount = new RegExp(`^\\s*(?:import[^\\n]*\\b${name}\\b|.*\\b${name}\\b.*(?:mount|render|createRoot))`, 'm');
-  const imported = symbol.kind === 'import' && new RegExp(`^\\s*import\\b[^;]*\\b${name}\\b[^;]*\\bfrom\\b`, 'ms').test(source);
-  if (!(declaration.test(source) || member.test(source) || importOrMount.test(source) || imported)) throw new Error(`symbol ${symbol.path}#${symbol.name}: exact declaration or registration is absent`);
+  const imported = symbol.kind === 'import' && new RegExp(`^\\s*import\\b[^;]*\\b${name}\\b[^;]*\\bfrom\\b`, 'ms').test(code);
+  const declared = ['class', 'const', 'function'].includes(symbol.kind) && declaration.test(code);
+  const memberDeclared = symbol.kind === 'method' && member.test(code);
+  const mounted = symbol.kind === 'mount' && importOrMount.test(code);
+  if (!(declared || memberDeclared || mounted || imported)) throw new Error(`symbol ${symbol.path}#${symbol.name}: exact declaration or registration is absent`);
 }
-function validateSymbols(value, label, root) {
+
+function sourceHasExactSymbol(root, symbol) {
+  if (!root) return true;
+  const relativePath = `console/${symbol.path}`;
+  const cacheKey = `${root}\0${relativePath}\0${symbol.kind}\0${symbol.name}`;
+  if (symbolValidationCache.has(cacheKey)) return;
+  const source = trackedSource(root, relativePath).replace(/\r\n|\r/g, '\n');
+  validateSymbolSource(source, symbol);
+  symbolValidationCache.add(cacheKey);
+}
+export function validateSymbols(value, label, root, sourceChecks = true) {
   if (!Array.isArray(value)) throw new Error(`${label}: symbols array required`);
   for (const symbol of value) {
     exactKeys(symbol, ['path', 'name', 'kind'], `${label} symbol`);
     if (typeof symbol.path !== 'string' || !/^[^\\/].*\.[cm]?[jt]sx?$/u.test(symbol.path)) throw new Error(`${label}: invalid symbol path`);
     if (typeof symbol.name !== 'string' || !/^[A-Za-z_$][A-Za-z0-9_$]*$/u.test(symbol.name)) throw new Error(`${label}: invalid exact symbol name`);
     if (!SYMBOL_KINDS.includes(symbol.kind)) throw new Error(`${label}: invalid symbol kind '${symbol.kind}'`);
-    sourceHasExactSymbol(root, symbol);
+    if (sourceChecks) sourceHasExactSymbol(root, symbol);
   }
 }
 function validateEvidence(row, label, currentCommit) {
@@ -74,7 +110,7 @@ function validateEvidence(row, label, currentCommit) {
     if (currentCommit && (row.builtInteraction.commit !== currentCommit || row.captures.currentCommit !== currentCommit)) throw new Error(`${label}: evidence is stale for current commit ${currentCommit}`);
   }
 }
-function validateRow(row, featureId, surface, { root, currentCommit }) {
+function validateRow(row, featureId, surface, { root, currentCommit, sourceChecks = true }) {
   exactKeys(row, ['featureId', 'status', 'demoState', 'dataProvenance', 'implementation', 'registration', 'route', 'documentation', 'localization', 'persistence', 'focusedChecks', 'negativeEvidence', 'builtInteraction', 'captures', 'designParity'], `${surface.id}.${featureId}`);
   if (row.featureId !== featureId) throw new Error(`${surface.id}: feature row identifier drift`);
   if (!STATUS_VALUES.includes(row.status)) throw new Error(`${surface.id}.${featureId}: invalid status '${row.status}'`);
@@ -82,7 +118,7 @@ function validateRow(row, featureId, surface, { root, currentCommit }) {
   for (const field of ['implementation', 'registration']) {
     exactKeys(row[field], ['registry', 'paths', 'symbols'], `${surface.id}.${featureId}.${field}`);
     if (!Array.isArray(row[field].paths)) throw new Error(`${surface.id}.${featureId}.${field}.paths: array required`);
-    validateSymbols(row[field].symbols, `${surface.id}.${featureId}.${field}`, root);
+    validateSymbols(row[field].symbols, `${surface.id}.${featureId}.${field}`, root, sourceChecks);
   }
   if (row.status !== 'absent' && !row.implementation.registry && row.implementation.symbols.length === 0 && row.implementation.paths.length === 0) throw new Error(`${surface.id}.${featureId}: route-only prose cannot claim an implemented state`);
   exactKeys(row.documentation, ['state', 'path', 'section'], `${surface.id}.${featureId}.documentation`);
@@ -90,10 +126,18 @@ function validateRow(row, featureId, surface, { root, currentCommit }) {
   validateEvidence(row, `${surface.id}.${featureId}`, currentCommit);
 }
 
-export function validateSurfaceInventory(data, { allowUnverified = false, root, currentCommit } = {}) {
+export function validateSurfaceInventory(data, { allowUnverified = false, root, currentCommit, sourceChecks = true, checkBaseline = true } = {}) {
   if (data?.schemaVersion !== 2) throw new Error('surface inventory: schemaVersion 2 required');
   if (data.source !== 'hand-written-canonical-requirements') throw new Error('surface inventory: canonical source marker drift');
   if (!/^[0-9a-f]{10}$/u.test(data.baselineCommit)) throw new Error('surface inventory: baseline commit must be a short hexadecimal revision');
+  if (root && checkBaseline) {
+    try {
+      execFileSync('git', ['cat-file', '-e', `${data.baselineCommit}^{commit}`], { cwd: root, stdio: 'ignore' });
+      if (currentCommit) execFileSync('git', ['merge-base', '--is-ancestor', data.baselineCommit, currentCommit], { cwd: root, stdio: 'ignore' });
+    } catch {
+      throw new Error(`surface inventory: baseline commit ${data.baselineCommit} is not an ancestor of current commit ${currentCommit ?? '<unknown>'}`);
+    }
+  }
   exactSet(data.features?.map((feature) => feature.id), CANONICAL_FEATURE_IDS, 'canonical feature identifiers');
   exactSet(data.statusValues, STATUS_VALUES, 'status values');
   if (!Array.isArray(data.requirementSet) || data.requirementSet.length !== 12) throw new Error('surface inventory: complete requirement set required');
@@ -112,7 +156,11 @@ export function validateSurfaceInventory(data, { allowUnverified = false, root, 
     exactKeys(surface, ['id', 'kind', 'route', 'registry', 'rows'], `${surface.id} surface`);
     if (!data.surfaceCatalog.some((entry) => entry.id === surface.id && entry.kind === surface.kind && entry.route === surface.route)) throw new Error(`${surface.id}: catalog route mismatch`);
     exactSet(surface.rows.map((row) => row.featureId), CANONICAL_FEATURE_IDS, `${surface.id}.rows`);
-    for (const row of surface.rows) { validateRow(row, row.featureId, surface, { root, currentCommit }); if (!allowUnverified && row.status !== 'verified') throw new Error(`${surface.id}.${row.featureId}: evidence remains ${row.status}`); }
+    for (const row of surface.rows) {
+      if (row.dataProvenance?.sourceRevision !== data.baselineCommit) throw new Error(`${surface.id}.${row.featureId}: provenance sourceRevision is not bound to matrix baseline ${data.baselineCommit}`);
+      validateRow(row, row.featureId, surface, { root, currentCommit, sourceChecks });
+      if (!allowUnverified && row.status !== 'verified') throw new Error(`${surface.id}.${row.featureId}: evidence remains ${row.status}`);
+    }
   }
   exactKeys(data.negativeRegression, ['script', 'cases', 'state'], 'negative regression declaration');
   if (data.negativeRegression.script !== 'console/scripts/negative-surface-completeness.mjs') throw new Error('negative regression script drift');
@@ -142,7 +190,7 @@ const destinationIds = ['dash', 'live', 'endpoints', 'trunks', 'trunkauth', 'can
 const transientStates = ['appearOpen', 'ceremonyOpen', 'ctxOpen', 'infoOpen', 'lockOpen', 'onboardOpen', 'paletteOpen', 'regexOpen', 'renameOpen', 'subOpen', 'sureOpen', 'tabColourOpen', 'tabFilterOpen', 'toastOpen', 'tourOpen', 'unlockOpen', 'wizardOpen'];
 // This is deliberately hand-written rather than inferred from the inventory. A template that
 // disappears from both the JSON and a discovery-based validator would otherwise disappear from
-// the Chut with it. Region-ledger and chrome-parity records are independent evidence artifacts,
+// the validation contract with it. Region-ledger and chrome-parity records are independent evidence records,
 // so both belong in the exact nine-key contract.
 const parityTemplateKeys = ['referenceRoute', 'builtRoute', 'referenceCapture', 'builtCapture', 'sideBySide', 'visualDiff', 'regionLedger', 'chromeParity', 'materialAudit'];
 // This is an evidence claim, not a free-form note. Keep the exact hand-written schema and
