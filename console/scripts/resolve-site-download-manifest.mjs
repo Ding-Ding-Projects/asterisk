@@ -31,7 +31,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const OWNER = 'Ding-Ding-Projects';
-const REPO = 'asterisk';
+const REPO = 'material-asterisk';
 const REPO_SLUG = `${OWNER}/${REPO}`;
 /* Both names, newest first. The product was renamed, so releases published before that
  * carry the old installer filename and releases after it carry the new one. A resolver
@@ -66,7 +66,7 @@ function write(manifest) {
 }
 
 function ghApi(pathAndQuery) {
-  const out = execFileSync('gh', ['api', pathAndQuery], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  const out = execFileSync('gh', ['api', '-R', REPO_SLUG, pathAndQuery], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   return JSON.parse(out);
 }
 
