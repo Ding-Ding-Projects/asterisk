@@ -455,7 +455,7 @@ test('capture-manifest.generated.json covers every audited destination exactly o
 test('capture-manifest.generated.json: every entry carries a resolved route and every evidence path, with {id} fully substituted', () => {
   const manifest = JSON.parse(readFileSync(resolve(root, 'console/design-reference/capture-manifest.generated.json'), 'utf8'));
   for (const entry of manifest.destinations) {
-    for (const key of ['referenceRoute', 'builtRoute', 'referenceCapture', 'builtCapture', 'sideBySide', 'visualDiff', 'materialAudit']) {
+    for (const key of ['referenceRoute', 'builtRoute', 'referenceCapture', 'builtCapture', 'sideBySide', 'visualDiff', 'regionLedger', 'chromeParity', 'materialAudit']) {
       assert.ok(typeof entry[key] === 'string' && entry[key].length > 0, `${entry.id}: ${key} is missing`);
       assert.equal(entry[key].includes('{id}'), false, `${entry.id}: ${key} still has an unsubstituted {id} placeholder`);
     }
