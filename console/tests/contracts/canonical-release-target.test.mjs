@@ -9,7 +9,7 @@ const read = path => readFileSync(resolve(root, path), 'utf8').replace(/\r\n/gu,
 const retiredTarget = 'Ding-Ding-Projects/asterisk';
 const canonicalTarget = 'Ding-Ding-Projects/material-asterisk';
 
-test('live updater and deploy service point to the maintained canonical Oak Kay', () => {
+test('live updater and deploy service point to the maintained canonical repository', () => {
   const updater = read('app/electron/updater-runtime.ts');
   const service = read('server/deploy/ding-pbx-console.service');
   for (const source of [updater, service]) {
