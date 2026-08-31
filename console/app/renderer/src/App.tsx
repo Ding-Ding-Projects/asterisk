@@ -1,4 +1,4 @@
-import type { Component, ReactNode } from 'react';
+import { createElement, type Component, type ReactNode } from 'react';
 import ConsoleShell, { APPEAR_GROUPS, ONBOARD, ORDER, SCREENS } from './generated/console';
 import { h } from './dc-runtime';
 import {
@@ -91,6 +91,7 @@ import {
   resetDisplayName, setDisplayName,
 } from './display-name';
 import { withTitleBarName } from './title-bar-name';
+import { LogoMark, presetLogoSource } from './logo-mark';
 import { setEmojisEnabled } from './dialog-emojis';
 import {
   classifyDialogKind, copyLanguageFor, styledDialog, styledToastText, type MessageStorage,
@@ -551,6 +552,10 @@ export class App extends Base {
 
   /** Read by the compiled `text`-kind control marked `action:'logo-status'`. */
   private logoStatusLine = 'The shipped mark.';
+
+  /** A custom mark is held as a renderer object URL only for this session. The
+   * validated local cache remains the source of persistence, never this URL. */
+  private logoPreviewUrl: string | undefined;
 
   /* --- command palette ---------------------------------------------------------------
    * Built once: it is derived from the compiled design, which cannot change while the
@@ -1394,6 +1399,7 @@ export class App extends Base {
     this.stopDeepLinkListener = undefined;
     this.stopPaletteKeys?.();
     this.stopPaletteKeys = undefined;
+    this.clearLogoPreview();
     /* Cancels anything mid-utterance and drops the voice-list subscription the narrator
      * holds internally — the same "torn down on unmount" rule as every listener above. */
     this.narrator.dispose();
@@ -2636,7 +2642,12 @@ What you can do: ${offered}.` : ''}`);
      * title-bar-name.ts), and `.attn-content` wraps the result so Focus dimming is scoped
      * to it and can never reach the rail or the palette, neither of which is "the rest of
      * the interface" the mode exists to push back. */
-    const shell = withTitleBarName(super.render(), nameFor('titleBar', this.durableStorage.storage));
+    const shell = withTitleBarName(
+      super.render(),
+      nameFor('titleBar', this.durableStorage.storage),
+      8,
+      createElement(LogoMark, this.logoForTitleBar()),
+    );
     const presentation = this.attentionPresentation();
     return h('div', { className: 'app-root' },
       h('div', { className: 'attn-content' },
@@ -2879,6 +2890,32 @@ What you can do: ${offered}.` : ''}`);
 
   // ---------------------------------------------------------------- the console mark
 
+  /** Resolve only a package-local preset or a validated, in-session object URL.
+   * A persisted custom choice has no bytes in the renderer after relaunch, so the
+   * shipped mark stays visible until the user selects that local source again. */
+  private logoForTitleBar(): { source: string; label: string } {
+    const choice = currentChoice(this.durableStorage.storage);
+    if (choice.kind === 'custom' && this.logoPreviewUrl) {
+      return { source: this.logoPreviewUrl, label: 'Custom local app logo' };
+    }
+    return presetLogoSource(choice.presetId);
+  }
+
+  private clearLogoPreview(): void {
+    if (!this.logoPreviewUrl) return;
+    if (typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
+      URL.revokeObjectURL(this.logoPreviewUrl);
+    }
+    this.logoPreviewUrl = undefined;
+  }
+
+  private setLogoPreview(file: File): void {
+    if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+      this.clearLogoPreview();
+      this.logoPreviewUrl = URL.createObjectURL(file);
+    }
+  }
+
   /**
    * Decides whether a chosen picture may become the mark.
    *
@@ -2908,6 +2945,7 @@ What you can do: ${offered}.` : ''}`);
         return;
       }
       this.pickedFileNames.set('logo_pick', file.name);
+      this.setLogoPreview(file);
       chooseCustom(this.durableStorage.storage, `logo/${file.name}`);
       this.refreshLogoStatus(verdict.notices);
       /* Stated before it becomes the mark rather than discovered when it looks soft in the
@@ -2932,7 +2970,9 @@ What you can do: ${offered}.` : ''}`);
     const chosenName = this.pickedFileNames.get('logo_pick');
     const preset = LOGO_PRESETS.find((candidate) => candidate.id === (choice.presetId ?? DEFAULT_PRESET_ID));
     this.logoStatusLine = choice.kind === 'custom'
-      ? [`Your own picture is in use${chosenName ? `: ${chosenName}` : ''}.`, ...notices].join(' ')
+      ? this.logoPreviewUrl
+        ? [`Your own picture is in use${chosenName ? `: ${chosenName}` : ''}.`, ...notices].join(' ')
+        : 'A custom mark is selected in local settings, but its source is unavailable in this session; the shipped mark is shown.'
       : `The shipped mark is in use: ${preset?.label ?? 'Ding'}.`;
     this.forceUpdate();
   }
@@ -3433,7 +3473,10 @@ What you can do: ${offered}.` : ''}`);
       /* Matched by LABEL because that is what the picker offers; the stable id is what
        * gets stored, so a renamed label never orphans somebody's choice. */
       const preset = LOGO_PRESETS.find((candidate) => candidate.label === value);
-      if (preset) choosePreset(this.durableStorage.storage, preset.id);
+      if (preset) {
+        this.clearLogoPreview();
+        choosePreset(this.durableStorage.storage, preset.id);
+      }
       this.refreshLogoStatus();
       /* Falls through to baseSetVal deliberately. Returning here would apply the change and
        * leave the picker showing the old value -- a control you operate that visibly does
@@ -3442,6 +3485,7 @@ What you can do: ${offered}.` : ''}`);
     }
     if (control?.id === 'logo_reset' && value === true) {
       resetLogo(this.durableStorage.storage);
+      this.clearLogoPreview();
       this.pickedFileNames.delete('logo_pick');
       this.refreshLogoStatus();
       return;

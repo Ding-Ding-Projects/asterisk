@@ -164,16 +164,25 @@ test('the design renders the preset picker, the file picker, reset and a status 
   assert.match(app, /if \(action === 'logo-status'\) return this\.logoStatusLine;/);
 });
 
-/* --- PIN: nothing ever renders the chosen mark; only its name is reported as text ----- */
+/* --- visible renderer consumption ----------------------------------------------------- */
 
-test('PIN: currentChoice is read only to build a status line, never to render a picture anywhere', () => {
-  /* Every call site of currentChoice() in App.tsx, and everywhere it is used. If a real
-   * <img>, window-icon, or title-bar consumer is ever added, this test should start failing
-   * and be replaced with a check that the rendered mark actually matches the stored choice. */
+test('the renderer consumes the current choice through the title-bar logo boundary', () => {
+  const mark = read('app/renderer/src/logo-mark.tsx');
+  const titleBar = read('app/renderer/src/title-bar-name.ts');
   const callSites = [...app.matchAll(/currentChoice\(this\.durableStorage\.storage\)/g)];
   assert.ok(callSites.length >= 2, 'currentChoice is called from fewer places than expected -- re-check this pin');
-  assert.doesNotMatch(app, /<img[^>]*(logo|mark|LOGO_PRESETS)/i,
-    'an <img> now references the logo choice -- the "nothing renders the mark" gap this pins may be fixed');
+  assert.match(app, /createElement\(LogoMark, this\.logoForTitleBar\(\)\)/u,
+    'App no longer supplies the selected logo to the title-bar boundary');
+  assert.match(app, /private logoForTitleBar\(\)/u,
+    'the title-bar logo resolver is missing');
+  assert.match(mark, /data-app-logo="true"/u,
+    'LogoMark no longer renders a real, inspectable image consumer');
+  assert.match(mark, /alt=\{props\.label\}/u,
+    'the visible logo has no accessible name');
+  assert.match(titleBar, /brand\?: ReactNode/u,
+    'title-bar-name no longer accepts the real logo boundary');
+  assert.match(titleBar, /cloneElement\(brand/u,
+    'title-bar-name no longer replaces the design placeholder icon');
 });
 
 test('PIN: no window icon, title bar, taskbar mark or nativeImage anywhere reads the stored logo choice', () => {
@@ -182,11 +191,16 @@ test('PIN: no window icon, title bar, taskbar mark or nativeImage anywhere reads
     'main.ts now reads the logo setting to set a real window/app icon -- update this pin');
 });
 
-test('PIN: a "custom" picture is never actually written to disk -- only the file name is remembered as a fake path', () => {
-  /* chooseCustom is handed `logo/${file.name}` as `storedAt` (asserted above), which is a
-   * synthetic label rather than a real path -- nothing anywhere writes the picture's bytes
-   * to that location or to any location. Confirmed by absence: no write call in the whole
-   * control-plane keyed on "logo". */
+test('custom picture bytes stay in a renderer object URL and never enter control-plane storage', () => {
+  /* chooseCustom still receives the redacted local label for the existing settings record,
+   * while the visible session preview uses URL.createObjectURL only after validation. The
+   * control-plane cache remains a separate future persistence seam and never receives bytes. */
+  assert.match(app, /this\.setLogoPreview\(file\)/u,
+    'accepted custom files no longer reach the local preview boundary');
+  assert.match(app, /URL\.createObjectURL\(file\)/u,
+    'custom files are not rendered from a validated object URL');
+  assert.match(app, /URL\.revokeObjectURL\(this\.logoPreviewUrl\)/u,
+    'custom object URLs are not revoked on replacement or unmount');
   const controlPlaneFiles = [
     'control-plane/dispatch.ts',
     'control-plane/image-facts.ts',

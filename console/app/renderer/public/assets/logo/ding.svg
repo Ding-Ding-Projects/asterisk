@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-labelledby="title">
+  <title>Ding app logo</title>
+  <rect width="32" height="32" rx="9" fill="#005230"/>
+  <path d="M9 8h8.4c3.1 0 5.6 2.5 5.6 5.6v4.8c0 3.1-2.5 5.6-5.6 5.6H9V8Zm4 4v8h4.2c1 0 1.8-.8 1.8-1.8v-4.4c0-1-.8-1.8-1.8-1.8H13Z" fill="#9FF7C4"/>
+  <circle cx="23.7" cy="8.3" r="2" fill="#FFB224"/>
+</svg>
