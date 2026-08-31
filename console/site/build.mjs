@@ -426,7 +426,7 @@ for (const asset of assets) {
     text = text.slice(0, navEnd) + additions + text.slice(navEnd);
   }
   if (asset.endsWith('.html') && !text.includes('rel="canonical"')) {
-    const canonicalUrl = `${PUBLIC_SITE_ORIGIN}${asset}`;
+    const canonicalUrl = `${PUBLIC_SITE_ORIGIN}${asset === 'index.html' ? '' : asset}`;
     const metadata = `<link rel="canonical" href="${canonicalUrl}"><meta name="twitter:card" content="summary_large_image">`;
     text = text.replace('<title>', `${metadata}<title>`);
   }

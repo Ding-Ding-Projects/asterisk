@@ -1,6 +1,6 @@
 /**
- * Contract: app-logo-customization. Real for upload, bounds, and clear;
- * absent for editing and presets. `site/app.js`'s `loadLogo()` genuinely
+ * Contract: app-logo-customization. Real for upload, bounds, clear, presets,
+ * and presentation controls. `site/app.js`'s `loadLogo()` genuinely
  * rejects a file over 128 KiB, rejects anything outside `image/png`,
  * `image/jpeg`, or `image/svg+xml`, reads the accepted file as a data URL,
  * and stores it in `localStorage` -- local-only, "No data was transmitted."
@@ -8,9 +8,8 @@
  * settings page's `logo-clear` button removes the cache and restores the
  * default mark.
  *
- * What does not exist: no crop/fit/focal-point editor, no background-colour
- * control, no multi-size generation, and no shipped preset gallery -- there is
- * exactly one custom-upload slot and nothing else.
+ * What remains outside this browser surface is cryptographic decoded-pixel
+ * validation and multi-size platform icon generation.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -83,12 +82,14 @@ test('applyLogo genuinely swaps every .brand-mark image element, and clearing re
     'the logo-clear handler no longer removes the cached logo');
 });
 
-test('there is no crop/fit/background editor and no shipped preset gallery -- one upload slot, nothing else', () => {
-  assert.doesNotMatch(app, /logo-crop|logo-fit|logo-preset|logo-background/iu,
-    'a crop/fit/preset editor now exists for the logo -- update this row');
+test('the site exposes presets and real presentation controls', () => {
+  for (const token of ['logo-fit', 'logo-preset', 'logo-background', 'logo-focal-x', 'logo-focal-y']) {
+    assert.match(app, new RegExp(token, 'u'), `the logo studio is missing ${token}`);
+  }
+  assert.match(app, /function initLogoStudio\(\)/u);
 });
 
-test('the registry records app-logo-customization as partial', () => {
+test('the registry records app-logo-customization as partial for the browser boundary', () => {
   assert.equal(registry.features['app-logo-customization'].status, 'partial',
     'a real, bounded, local-only upload and clear path exists, but no editor or preset gallery exists behind it');
 });
