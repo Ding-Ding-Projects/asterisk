@@ -49,6 +49,8 @@ const output = join(consoleRoot, 'dist', 'squirrel-windows', 'squirrel-windows')
 const unpacked = join(consoleRoot, 'dist', 'squirrel-windows', 'win-unpacked');
 if (!existsSync(unpacked)) throw new Error(`electron-builder did not produce a fresh unpacked directory at ${unpacked}.`);
 const digest = (path) => sha256File(path, createHash);
+const executable = join(unpacked, 'Ding PBX Console.exe');
+if (!existsSync(executable) || !statSync(executable).isFile()) throw new Error(`Fresh unpacked output is missing the packaged executable: ${executable}`);
 const forgeGh = join(consoleRoot, 'dist', 'squirrel-windows', 'win-unpacked', 'resources', 'forge', 'gh.exe');
 const forgeHelper = join(consoleRoot, 'dist', 'squirrel-windows', 'win-unpacked', 'resources', 'forge', 'forge-device-signin.ps1');
 const dependencyManifest = JSON.parse(readFileSync(join(repoRoot, 'dependency-manifest.json'), 'utf8'));
@@ -101,6 +103,7 @@ const identity = {
   artifacts: {
     setup: record(setup[0]),
     releases: record(releases[0]),
+    executable: record(executable),
     fullPackages: fullPackages.map(record),
     deltaPackages: deltaPackages.map(record),
     sha256sums: 'SHA256SUMS.txt',
