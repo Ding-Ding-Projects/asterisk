@@ -14,11 +14,16 @@ jobs:
   build-asterisk-runtime:
     name: Build complete Asterisk WSL runtime
     runs-on: ubuntu-24.04
+    outputs:
+      workflow-started: ${{ steps.started.outputs.workflow-started }}
     steps:
       - name: Check out the exact source commit
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Record workflow start time
+        id: started
+        run: echo "workflow-started=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
       - name: Build the complete Ubuntu root filesystem, and best-effort publish it
         shell: pwsh
         env:
@@ -83,13 +88,15 @@ jobs:
           retention-days: 14
 
       - name: Upload the pinned WSL runtime for Windows packaging
+        if: ${{ always() }}
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: asterisk-wsl-runtime-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             console/resources/asterisk-wsl-rootfs.tar
             console/resources/asterisk-wsl-rootfs.json
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 2
 
   resolve-runner:
@@ -177,7 +184,7 @@ jobs:
           name: asterisk-wsl-runtime-${{ github.run_id }}-${{ github.run_attempt }}
           path: console/resources
 
-      - name: Build console without tests or lint
+      - name: Build console from pinned inputs
         shell: cmd
         run: build.bat /s
 
@@ -226,9 +233,14 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  build-installer-iso:
+    name: Build installer ISO volumes
+    uses: ./.github/workflows/installer-iso.yml
+    secrets: inherit
+
   release:
     name: Publish unique console release
-    needs: [resolve-runner, build-package]
+    needs: [resolve-runner, build-asterisk-runtime, build-package, build-installer-iso]
     runs-on: windows-2025
     env:
       DING_PBX_VERSION: 0.1.${{ github.run_number }}
@@ -245,6 +257,12 @@ jobs:
         with:
           name: ding-pbx-console-${{ github.run_id }}-${{ github.run_attempt }}
           path: downloaded
+
+      - name: Download the exact installer ISO outputs
+        uses: actions/download-artifact@v4
+        with:
+          name: installer-iso-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: downloaded-iso
 
       # The root filesystem itself, attached to the release. A release asset is a plain
       # HTTPS download that needs no container engine and no registry credential, which
@@ -270,6 +288,22 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $tag = $env:DING_PBX_RELEASE_TAG
           $staging = Resolve-Path 'downloaded/release-staging'
+
+          $isoStaging = Join-Path $PWD 'downloaded-iso/release-staging'
+          if (-not (Test-Path -LiteralPath $isoStaging)) { throw 'The installer ISO release payload is missing.' }
+          Copy-Item (Join-Path $isoStaging '*') -Destination $staging -Force
+          $isoParts = @(Get-ChildItem $staging -File -Filter 'ding-pbx-installer.iso.part*')
+          if ($isoParts.Count -lt 1) { throw 'The installer ISO release payload has no numbered volumes.' }
+          foreach ($part in $isoParts) {
+            if ($part.Length -gt 1258291200) { throw "Installer ISO volume $($part.Name) exceeds the 1.25 GiB safety ceiling." }
+          }
+          foreach ($requiredIso in @('ding-pbx-installer.iso.sha256','ding-pbx-installer.iso.json','ding-pbx-installer.iso.REASSEMBLE.md')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $staging $requiredIso))) { throw "Installer ISO release payload is missing $requiredIso." }
+          }
+          Remove-Item (Join-Path $staging 'SHA256SUMS.txt') -Force -ErrorAction SilentlyContinue
+          Get-ChildItem $staging -File | Sort-Object Name | ForEach-Object {
+            "{0}  {1}" -f (Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToLowerInvariant(), $_.Name
+          } | Set-Content -Encoding ascii (Join-Path $staging 'SHA256SUMS.txt')
 
           # Attach the root filesystem and the provenance that describes it, so a
           # contributor can obtain the payload for this exact commit with an ordinary
@@ -297,12 +331,14 @@ jobs:
           $identityRecord = Get-Content -Raw $identity[0].FullName | ConvertFrom-Json
           if ($identityRecord.schemaVersion -ne 1 -or $identityRecord.product -ne 'ding-pbx-console' -or $identityRecord.version -ne $env:DING_PBX_VERSION -or $identityRecord.candidateCommit -ne $env:DING_PBX_CANDIDATE_COMMIT -or $identityRecord.tag -ne $tag) { throw 'Packaged release identity does not match the exact candidate, version, and tag.' }
           if ($identityRecord.published -ne $true) { throw 'Published release identity must be marked published.' }
+          $signature = Get-AuthenticodeSignature -LiteralPath $setup[0].FullName
+          if ($signature.Status -ne 'NotSigned') { throw "Setup executable signature status is $($signature.Status), expected NotSigned." }
           $releaseText = Get-Content -Raw $releases[0].FullName
           foreach ($package in $full) { if ($releaseText -notmatch [regex]::Escape($package.Name)) { throw "RELEASES does not reference $($package.Name)." } }
           $previousPreference = $ErrorActionPreference
           try {
             $ErrorActionPreference = 'Continue'
-            $existingRelease = gh release view $tag --json tagName 2>$null
+            $existingRelease = gh release view -R Ding-Ding-Projects/material-asterisk $tag --json tagName 2>$null
             $releaseProbeExit = $LASTEXITCODE
           } finally {
             $ErrorActionPreference = $previousPreference
@@ -325,8 +361,8 @@ jobs:
             # release workflow that commits is a release workflow that triggers itself.
             $usedPath = Join-Path $PWD 'used-code-names.txt'
             $bodies = @()
-            foreach ($previousTag in (gh release list --limit 200 --json tagName --jq '.[].tagName' 2>$null)) {
-              $bodies += (gh release view $previousTag --json body --jq .body 2>$null)
+            foreach ($previousTag in (gh release list -R Ding-Ding-Projects/material-asterisk --limit 200 --json tagName --jq '.[].tagName' 2>$null)) {
+              $bodies += (gh release view -R Ding-Ding-Projects/material-asterisk $previousTag --json body --jq .body 2>$null)
             }
             [System.IO.File]::WriteAllText($usedPath, ($bodies -join "`n"), (New-Object System.Text.UTF8Encoding $false))
             $dimSumPath = Join-Path $PWD 'dim-sum.json'
@@ -364,7 +400,7 @@ jobs:
             $ErrorActionPreference = $previousPreference
           }
 
-          $started = [DateTimeOffset]::Parse('${{ needs.resolve-runner.outputs.workflow-started }}')
+          $started = [DateTimeOffset]::Parse('${{ needs.build-asterisk-runtime.outputs.workflow-started }}')
           $notes = @()
           $notes += '# Material Asterisk'
           $notes += ''
@@ -373,6 +409,7 @@ jobs:
           $notes += ''
           $notes += "- Target commit: ``${{ github.sha }}``"
           $notes += '- Automated checks: none. GitHub Actions builds, packages, publishes, and attaches evidence only.'
+          $notes += "- Installer ISO volumes: $($isoParts.Count), each capped below 1.25 GiB; see the numbered parts and reassembly manifest attached below."
           if ($dimSum) { $notes += "- Code name: **$($dimSum.codeName)** (``$($dimSum.id)``)" }
           $notes += "- Workflow started: ``$($started.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'))``"
           $notes += '- Workflow completed: pending final publication timestamp'
@@ -397,7 +434,7 @@ jobs:
           [System.IO.File]::WriteAllText($notesPath, ($notes -join "`n"), (New-Object System.Text.UTF8Encoding $false))
 
           $assets = Get-ChildItem $staging -File | ForEach-Object FullName
-          gh release create $tag @assets --target '${{ github.sha }}' --title "Material Asterisk $tag" --notes-file $notesPath --verify-tag=false
+          gh release create -R Ding-Ding-Projects/material-asterisk $tag @assets --target '${{ github.sha }}' --title "Material Asterisk $tag" --notes-file $notesPath --verify-tag=false
           if ($LASTEXITCODE -ne 0) { throw "gh release create exited $LASTEXITCODE" }
 
           $completed = [DateTimeOffset]::UtcNow
@@ -407,10 +444,10 @@ jobs:
           $body = $body.Replace('- Workflow completed: pending final publication timestamp', "- Workflow completed: ``$($completed.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'))``")
           $body = $body.Replace('- Workflow duration: pending final publication timestamp', "- Workflow duration: ``$durationText``")
           [System.IO.File]::WriteAllText($notesPath, $body, (New-Object System.Text.UTF8Encoding $false))
-          gh release edit $tag --notes-file $notesPath
+          gh release edit -R Ding-Ding-Projects/material-asterisk $tag --notes-file $notesPath
           if ($LASTEXITCODE -ne 0) { throw "gh release edit exited $LASTEXITCODE" }
 
-          $release = gh release view $tag --json tagName,isDraft,targetCommitish,assets,url | ConvertFrom-Json
+          $release = gh release view -R Ding-Ding-Projects/material-asterisk $tag --json tagName,isDraft,targetCommitish,assets,url | ConvertFrom-Json
           if ($release.isDraft) { throw 'Published release is unexpectedly a draft.' }
           if ($release.targetCommitish -ne '${{ github.sha }}') { throw "Release target $($release.targetCommitish) is not ${{ github.sha }}." }
           foreach ($asset in $assets) {
