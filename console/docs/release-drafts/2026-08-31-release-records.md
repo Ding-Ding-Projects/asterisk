@@ -12,8 +12,8 @@
 
 Started: `2026-08-31T00:00:00-04:00` (replace with the actual start timestamp before posting).
 The documentation and records lane is refreshing `README.md`, `ROADMAP.md`, `HANDOFF.md`, the
-categorized feature indexes, and the current public record drafts. The lane is on
-`yum-tong/docs` at `7c6e0c6c9520c6fd421cabf73bcbb6af15a18c60`. It changes only documentation and
+categorized feature indexes, and the current public record drafts. The lane is on the
+documentation branch at `7c6e0c6c9520c6fd421cabf73bcbb6af15a18c60`. It changes only documentation and
 reports only documentation and link checks. Runtime interaction and current capture evidence
 remain pending in the owning lanes.
 
@@ -23,7 +23,7 @@ remain pending in the owning lanes.
 
 開始時間：`2026-08-31T00:00:00-04:00`（發佈前請換成真實開始時間）。文件同紀錄 lane 更新
 `README.md`、`ROADMAP.md`、`HANDOFF.md`、分類文件索引，同埋公開紀錄草稿。工作喺
-`yum-tong/docs`，候選 source commit 係 `7c6e0c6c9520c6fd421cabf73bcbb6af15a18c60`。
+documentation branch，候選 source commit 係 `7c6e0c6c9520c6fd421cabf73bcbb6af15a18c60`。
 呢條 lane 只改文件，同埋只報告文件同連結檢查；Runtime interaction 同最新 capture 證據
 仍然等緊負責 lane。
 
