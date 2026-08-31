@@ -13,6 +13,7 @@ rem distribution somebody else made - or the console's own.
 setlocal EnableExtensions EnableDelayedExpansion
 set "SCRIPT_ROOT=%~dp0"
 set "PS_ARGS="
+set "NEEDS_BOOTSTRAP=1"
 
 :parse
 if "%~1"=="" goto run
@@ -28,11 +29,13 @@ if /I "%~1"=="--silent" (
 )
 if /I "%~1"=="/remove" (
   set "PS_ARGS=!PS_ARGS! -Remove"
+  set "NEEDS_BOOTSTRAP=0"
   shift
   goto parse
 )
 if /I "%~1"=="--remove" (
   set "PS_ARGS=!PS_ARGS! -Remove"
+  set "NEEDS_BOOTSTRAP=0"
   shift
   goto parse
 )
@@ -61,5 +64,10 @@ exit /b 2
 
 :run
 if "%SILENT%"=="1" set "PS_ARGS=!PS_ARGS! -Silent"
+if "%NEEDS_BOOTSTRAP%"=="1" (
+  call "%SCRIPT_ROOT%download-dependencies.bat" /s
+  set "BOOTSTRAP_RESULT=!ERRORLEVEL!"
+  if not "!BOOTSTRAP_RESULT!"=="0" exit /b !BOOTSTRAP_RESULT!
+)
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_ROOT%console\scripts\build-wsl-throwaway.ps1"!PS_ARGS!
 exit /b %ERRORLEVEL%

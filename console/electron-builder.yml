@@ -33,4 +33,4 @@ win:
 forceCodeSigning: false
 squirrelWindows:
   artifactName: Material-Asterisk-Setup.${ext}
-  iconUrl: https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/ffa7f362830eed405e52e891ef8516df8715da6c/console/assets/icon.png
+  iconUrl: https://raw.githubusercontent.com/Ding-Ding-Projects/material-asterisk/fcd627165ef60989cad4fbd9b71af113e52591a9/console/assets/icon.png
