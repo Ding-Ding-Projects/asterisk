@@ -41,7 +41,7 @@ jobs:
           # provenance and evidence steps below record honestly whether it happened.
           DING_PBX_PUBLISH_ASTERISK_IMAGE: '1'
           DING_PBX_ASTERISK_IMAGE_REGISTRY: ghcr.io
-          DING_PBX_ASTERISK_IMAGE_REPOSITORY: ${{ github.repository }}
+          DING_PBX_ASTERISK_IMAGE_REPOSITORY: Ding-Ding-Projects/material-asterisk
           DING_PBX_REGISTRY_USER: ${{ github.actor }}
           # Deliberately the workflow token, not the personal-access-token chain the API
           # calls elsewhere use. Login with that chain succeeds and the push is then
@@ -118,7 +118,7 @@ jobs:
           "workflow-started=$started" >> $env:GITHUB_OUTPUT
           $selected = $null
           try {
-            $inventory = gh api "repos/${{ github.repository }}/actions/runners?per_page=100" | ConvertFrom-Json
+            $inventory = gh api "repos/Ding-Ding-Projects/material-asterisk/actions/runners?per_page=100" | ConvertFrom-Json
             $selected = $inventory.runners |
               Where-Object {
                 $_.status -eq 'online' -and -not $_.busy -and
@@ -302,6 +302,7 @@ jobs:
           if ($isoParts.Count -lt 1) { throw 'The installer ISO release payload has no numbered volumes.' }
           foreach ($part in $isoParts) {
             if ($part.Length -gt 1258291200) { throw "Installer ISO volume $($part.Name) exceeds the 1.25 GiB safety ceiling." }
+            if ($part.Length -le 0) { throw "Installer ISO volume $($part.Name) is empty." }
           }
           foreach ($requiredIso in @('ding-pbx-installer.iso.sha256','ding-pbx-installer.iso.json','ding-pbx-installer.iso.REASSEMBLE.md')) {
             if (-not (Test-Path -LiteralPath (Join-Path $staging $requiredIso))) { throw "Installer ISO release payload is missing $requiredIso." }
@@ -312,20 +313,53 @@ jobs:
           # anything, and a provenance with no tar describes something nobody has.
           $runtimeTar = Join-Path $PWD 'downloaded-runtime/asterisk-wsl-rootfs.tar'
           $runtimeJson = Join-Path $PWD 'downloaded-runtime/asterisk-wsl-rootfs.json'
-          if ((Test-Path -LiteralPath $runtimeTar) -and (Test-Path -LiteralPath $runtimeJson)) {
-            $recorded = ([System.IO.File]::ReadAllText($runtimeJson, [System.Text.Encoding]::UTF8) | ConvertFrom-Json)
-            $measured = (Get-FileHash -Algorithm SHA256 -LiteralPath $runtimeTar).Hash.ToLowerInvariant()
-            if ($recorded.sha256 -ne $measured) { throw "The runtime payload does not match its own recorded digest; refusing to publish it." }
-            if ($recorded.sourceCommit -ne $env:GITHUB_SHA) { throw "The runtime payload was built from $($recorded.sourceCommit), not from this commit; refusing to publish it." }
-            Copy-Item $runtimeTar -Destination $staging -Force
-            Copy-Item $runtimeJson -Destination $staging -Force
-            Write-Host "Attached the pinned root filesystem ($measured) to this release."
-          } else {
-            Write-Host "No runtime payload was produced for this run; the release ships without it."
+          if (-not (Test-Path -LiteralPath $runtimeTar) -or -not (Test-Path -LiteralPath $runtimeJson)) { throw 'The required runtime payload or provenance is missing.' }
+          $recorded = ([System.IO.File]::ReadAllText($runtimeJson, [System.Text.Encoding]::UTF8) | ConvertFrom-Json)
+          $measured = (Get-FileHash -Algorithm SHA256 -LiteralPath $runtimeTar).Hash.ToLowerInvariant()
+          if ($recorded.sha256 -ne $measured) { throw "The runtime payload does not match its own recorded digest; refusing to publish it." }
+          if ($recorded.sourceCommit -ne $env:GITHUB_SHA) { throw "The runtime payload was built from $($recorded.sourceCommit), not from this commit; refusing to publish it." }
+          if ((Get-Item -LiteralPath $runtimeTar).Length -le 0) { throw 'The required runtime payload is empty.' }
+          Copy-Item $runtimeTar -Destination $staging -Force
+          Copy-Item $runtimeJson -Destination $staging -Force
+          Write-Host "Attached the pinned root filesystem ($measured) to this release."
+
+          $isoManifestPath = Join-Path $staging 'ding-pbx-installer.iso.json'
+          $isoHashPath = Join-Path $staging 'ding-pbx-installer.iso.sha256'
+          $isoReassemblyPath = Join-Path $staging 'ding-pbx-installer.iso.REASSEMBLE.md'
+          $isoManifest = Get-Content -Raw -LiteralPath $isoManifestPath | ConvertFrom-Json
+          if ($isoManifest.sourceCommit -ne $env:GITHUB_SHA) { throw "ISO provenance sourceCommit $($isoManifest.sourceCommit) is not this commit." }
+          if ($isoManifest.partCount -ne $isoParts.Count) { throw "ISO provenance lists $($isoManifest.partCount) parts, but $($isoParts.Count) are staged." }
+          if ($isoManifest.bytes -le 0 -or $isoManifest.sha256 -notmatch '^[0-9a-f]{64}$') { throw 'ISO provenance has invalid size or SHA-256.' }
+          $isoHashLine = (Get-Content -LiteralPath $isoHashPath | Where-Object { $_ -match 'ding-pbx-installer\.iso$' } | Select-Object -First 1)
+          if ($isoHashLine -notmatch '^(?<hash>[0-9a-f]{64})\s+ding-pbx-installer\.iso$' -or $Matches.hash -ne $isoManifest.sha256) { throw 'ISO reassembled SHA-256 does not match its provenance.' }
+          $isoRows = @{}
+          foreach ($row in (Get-Content -LiteralPath $isoReassemblyPath)) {
+            if ($row -match '^(?<hash>[0-9a-f]{64})\s+(?<name>ding-pbx-installer\.iso\.part\d+)$') { $isoRows[$Matches.name] = $Matches.hash }
           }
+          foreach ($part in $isoParts) {
+            if (-not $isoRows.ContainsKey($part.Name)) { throw "ISO reassembly manifest is missing $($part.Name)." }
+            $partHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $part.FullName).Hash.ToLowerInvariant()
+            if ($isoRows[$part.Name] -ne $partHash) { throw "ISO part $($part.Name) does not match its reassembly-manifest digest." }
+          }
+          $isoAlgorithm = [System.Security.Cryptography.SHA256]::Create()
+          $isoBuffer = New-Object byte[] (1024 * 1024)
+          try {
+            foreach ($part in ($isoParts | Sort-Object Name)) {
+              $partStream = [System.IO.File]::OpenRead($part.FullName)
+              try {
+                while (($readCount = $partStream.Read($isoBuffer, 0, $isoBuffer.Length)) -gt 0) {
+                  $isoAlgorithm.TransformBlock($isoBuffer, 0, $readCount, $isoBuffer, 0) | Out-Null
+                }
+              } finally { $partStream.Dispose() }
+            }
+            $isoAlgorithm.TransformFinalBlock([byte[]]::new(0), 0, 0) | Out-Null
+            $reassembledHash = ([System.BitConverter]::ToString($isoAlgorithm.Hash)).Replace('-', '').ToLowerInvariant()
+          } finally { $isoAlgorithm.Dispose() }
+          if ($reassembledHash -ne $isoManifest.sha256) { throw 'The reassembled ISO bytes do not match ISO provenance.' }
           $setup = @(Get-ChildItem $staging -File -Filter '*Setup.exe')
           $releases = @(Get-ChildItem $staging -File -Filter 'RELEASES')
           $full = @(Get-ChildItem $staging -File -Filter '*-full.nupkg')
+          $delta = @(Get-ChildItem $staging -File -Filter '*-delta.nupkg')
           $identity = @(Get-ChildItem $staging -File -Filter 'release-identity.json')
           $sums = @(Get-ChildItem $staging -File -Filter 'SHA256SUMS.txt')
           if ($setup.Count -ne 1 -or $releases.Count -ne 1 -or $full.Count -lt 1 -or $identity.Count -ne 1 -or $sums.Count -ne 1) { throw 'Required Squirrel.Windows release identity assets are incomplete.' }
@@ -335,7 +369,11 @@ jobs:
           $signature = Get-AuthenticodeSignature -LiteralPath $setup[0].FullName
           if ($signature.Status -ne 'NotSigned') { throw "Setup executable signature status is $($signature.Status), expected NotSigned." }
           $releaseText = Get-Content -Raw $releases[0].FullName
-          foreach ($package in $full) { if ($releaseText -notmatch [regex]::Escape($package.Name)) { throw "RELEASES does not reference $($package.Name)." } }
+          foreach ($package in @($full + $delta)) { if ($releaseText -notmatch [regex]::Escape($package.Name)) { throw "RELEASES does not reference $($package.Name)." } }
+          $allStagedAssets = @(Get-ChildItem $staging -File)
+          foreach ($asset in $allStagedAssets) { if ($asset.Length -le 0) { throw "Final release asset $($asset.Name) is empty." }; if ($asset.Length -ge 1610612736) { throw "Final release asset $($asset.Name) is at or above the 1.5 GB transfer ceiling." } }
+          $existingByCommit = @(gh release list -R Ding-Ding-Projects/material-asterisk --limit 1000 --json tagName,isDraft,isPrerelease,targetCommitish | ConvertFrom-Json | Where-Object { -not $_.isDraft -and -not $_.isPrerelease -and $_.targetCommitish -eq '${{ github.sha }}' })
+          if ($existingByCommit.Count -gt 0) { throw "A non-draft release already targets candidate commit ${{ github.sha }}: $($existingByCommit.tagName -join ', ')." }
           $previousPreference = $ErrorActionPreference
           try {
             $ErrorActionPreference = 'Continue'
@@ -418,7 +456,10 @@ jobs:
             "{0}  {1}" -f (Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToLowerInvariant(), $_.Name
           } | Set-Content -Encoding ascii (Join-Path $staging 'SHA256SUMS.txt')
 
-          $started = [DateTimeOffset]::Parse('${{ needs.build-asterisk-runtime.outputs.workflow-started }}')
+          $jobInventory = gh api "repos/Ding-Ding-Projects/material-asterisk/actions/runs/${{ github.run_id }}/jobs?per_page=100" | ConvertFrom-Json
+          $earliestJob = @($jobInventory.jobs | Where-Object { $_.started_at } | Sort-Object { [DateTimeOffset]$_.started_at } | Select-Object -First 1)
+          if ($earliestJob.Count -ne 1) { throw 'Could not resolve the earliest actual workflow job started_at timestamp.' }
+          $started = [DateTimeOffset]::Parse($earliestJob[0].started_at)
           $notes = @()
           $notes += '# Material Asterisk'
           $notes += ''
@@ -439,7 +480,7 @@ jobs:
           $notes += '```'
           $notes += ''
           if ($dimSum) {
-            $photoUrl = "https://github.com/${{ github.repository }}/releases/download/$tag/$($dimSum.asset)"
+            $photoUrl = "https://github.com/Ding-Ding-Projects/material-asterisk/releases/download/$tag/$($dimSum.asset)"
             $notes += '## Code name'
             $notes += "![$($dimSum.alt)]($photoUrl)"
             $notes += ''
@@ -465,12 +506,32 @@ jobs:
           gh release edit -R Ding-Ding-Projects/material-asterisk $tag --notes-file $notesPath
           if ($LASTEXITCODE -ne 0) { throw "gh release edit exited $LASTEXITCODE" }
 
-          $release = gh release view -R Ding-Ding-Projects/material-asterisk $tag --json tagName,isDraft,targetCommitish,assets,url | ConvertFrom-Json
+          $release = gh release view -R Ding-Ding-Projects/material-asterisk $tag --json tagName,isDraft,isPrerelease,targetCommitish,assets,url | ConvertFrom-Json
           if ($release.isDraft) { throw 'Published release is unexpectedly a draft.' }
+          if ($release.isPrerelease) { throw 'Published release is unexpectedly a prerelease.' }
           if ($release.targetCommitish -ne '${{ github.sha }}') { throw "Release target $($release.targetCommitish) is not ${{ github.sha }}." }
+          $verifyDir = Join-Path $PWD 'download-verification'
+          New-Item -ItemType Directory -Force -Path $verifyDir | Out-Null
           foreach ($asset in $assets) {
             $name = Split-Path -Leaf $asset
-            if ($name -notin $release.assets.name) { throw "Published release is missing $name." }
+            $published = @($release.assets | Where-Object name -eq $name)
+            if ($published.Count -ne 1) { throw "Published release must contain exactly one $name." }
+            if ([int64]$published[0].size -le 0) { throw "Published release asset $name is empty." }
+            gh release download -R Ding-Ding-Projects/material-asterisk $tag --pattern $name --dir $verifyDir --clobber
+            if ($LASTEXITCODE -ne 0) { throw "Authenticated download of $name failed." }
+            $downloaded = Join-Path $verifyDir $name
+            if (-not (Test-Path -LiteralPath $downloaded)) { throw "Authenticated download did not produce $name." }
+            if ((Get-Item -LiteralPath $downloaded).Length -ne [int64]$published[0].size) { throw "Downloaded $name has a different size from the published asset." }
+            $localHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $asset).Hash.ToLowerInvariant()
+            $downloadedHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $downloaded).Hash.ToLowerInvariant()
+            if ($localHash -ne $downloadedHash) { throw "Downloaded $name does not match the staged SHA-256." }
+          }
+          $sumLines = Get-Content -LiteralPath (Join-Path $staging 'SHA256SUMS.txt')
+          foreach ($asset in ($assets | Where-Object { (Split-Path -Leaf $_) -ne 'SHA256SUMS.txt' })) {
+            $name = Split-Path -Leaf $asset
+            $expectedHash = ($sumLines | Where-Object { $_ -match ('^(?<hash>[0-9a-f]{64})\s+' + [regex]::Escape($name) + '$') } | Select-Object -First 1)
+            if ($expectedHash -notmatch '^(?<hash>[0-9a-f]{64})\s+') { throw "SHA256SUMS.txt is missing an exact row for $name." }
+            if ($Matches.hash -ne (Get-FileHash -Algorithm SHA256 -LiteralPath $asset).Hash.ToLowerInvariant()) { throw "SHA256SUMS.txt has a wrong digest for $name." }
           }
           "tag=$tag" >> $env:GITHUB_OUTPUT
           "url=$($release.url)" >> $env:GITHUB_OUTPUT

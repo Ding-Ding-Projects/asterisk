@@ -10,6 +10,9 @@ const delivery = read(join(repoRoot, '.github', 'workflows', 'delivery.yml'));
 const iso = read(join(consoleRoot, 'scripts', 'iso', 'iso-payload.Dockerfile'));
 const deliveryScript = read(join(consoleRoot, 'scripts', 'build-delivery.ps1'));
 const pages = read(join(repoRoot, '.github', 'workflows', 'pages.yml'));
+const packageJson = JSON.parse(read(join(consoleRoot, 'package.json')));
+const localBuildScript = packageJson.scripts?.build ?? '';
+const localPackageScript = packageJson.scripts?.['package:squirrel'] ?? '';
 
 const forbidden = [
   /npm\s+test\b/i,
@@ -29,6 +32,12 @@ const assertAbsent = (text, label, patterns) => {
 assertAbsent(delivery, 'delivery.yml', forbidden);
 assertAbsent(iso, 'iso-payload.Dockerfile', forbidden);
 assertAbsent(deliveryScript, 'build-delivery.ps1', forbidden.filter((pattern) => !/tsc/.test(String(pattern))));
+if (!/tsc\s+-b\b/i.test(localBuildScript) || !/npm\s+run\s+build\b/i.test(localPackageScript)) {
+  throw new Error('local package scripts no longer expose the quality paths this checker must keep out of Der Machine');
+}
+if (/npm\s+run\s+build\b|build\.bat\b|build-installer\.bat\b|package:squirrel\b/i.test(deliveryScript)) {
+  throw new Error('build-delivery.ps1 reaches an indirect local quality path');
+}
 if (!/node_modules[\\/]typescript[\\/]bin[\\/]tsc['"\s)]*\)?\s+-b\s+--noCheck/i.test(deliveryScript)) {
   throw new Error('build-delivery.ps1 must use TypeScript emission with --noCheck');
 }
