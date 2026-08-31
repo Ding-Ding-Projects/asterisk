@@ -57,6 +57,10 @@ const cases = [
     e.read = (candidate, encoding) => (candidate === path ? Buffer.concat([readFileSync(candidate), Buffer.from('!')]) : readFileSync(candidate, encoding));
   }],
   ['a ledger claims a capture it never took', (e) => { firstCaptured(e.reference).sha256 = '0'.repeat(64); }],
+  ['the diff ledger omits an audited destination', (e) => { e.diff.results.shift(); }],
+  ['the diff ledger repeats an audited destination', (e) => { e.diff.results.push({ ...e.diff.results[0] }); }],
+  ['the diff ledger carries an unknown destination', (e) => { e.diff.results.push({ id: 'not-audited', skipped: 'fixture' }); }],
+  ['the diff ledger is empty', (e) => { e.diff.results = []; }],
   ['a refused capture has a file sitting there anyway', (e) => {
     const refused = makeRefused(e.built);
     const path = resolve(root, e.inventory.evidenceTemplates.builtCapture.replaceAll('{id}', refused.id));

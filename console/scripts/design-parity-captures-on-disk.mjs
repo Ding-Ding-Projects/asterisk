@@ -87,6 +87,21 @@ export function verifyCapturedParityEvidence({
   checkSide('reference', reference, 'referenceCapture');
   checkSide('built', built, 'builtCapture');
 
+  const diffSeen = new Map();
+  for (const result of diff.results ?? []) {
+    if (diffSeen.has(result.id)) problems.push(`diff: '${result.id}' appears more than once in the ledger`);
+    diffSeen.set(result.id, result);
+  }
+  for (const id of ids) {
+    if (!diffSeen.has(id)) problems.push(`diff: audited destination '${id}' is absent from the run ledger`);
+  }
+  for (const id of diffSeen.keys()) {
+    if (!ids.includes(id)) problems.push(`diff: ledger carries '${id}', which is not one of the ${ids.length} audited destinations`);
+  }
+  if (diff.results?.length !== ids.length) {
+    problems.push(`diff: ledger has ${diff.results?.length ?? 0} result(s), expected exactly ${ids.length}`);
+  }
+
   for (const result of diff.results ?? []) {
     if (!ids.includes(result.id)) { problems.push(`diff: ledger carries '${result.id}', which is not an audited destination`); continue; }
     if (result.skipped) continue;

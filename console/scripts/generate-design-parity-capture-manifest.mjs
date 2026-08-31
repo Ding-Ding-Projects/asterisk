@@ -67,6 +67,8 @@ const entries = inventory.destinations.map((destination) => {
     builtCapture: pathFor('builtCapture', id),
     sideBySide: pathFor('sideBySide', id),
     visualDiff: pathFor('visualDiff', id),
+    regionLedger: pathFor('regionLedger', id),
+    chromeParity: pathFor('chromeParity', id),
     materialAudit: pathFor('materialAudit', id),
     navigationPlan: plan,
   };
