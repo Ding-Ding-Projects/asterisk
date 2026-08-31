@@ -1566,9 +1566,9 @@ export class App extends Base {
    *  loader in `personal-vocabulary.ts`, and — only on success — cached locally. */
   onFilePicked = (ctl: { id: string }, file: File): void => {
     if (ctl.id === 'logo_pick') { this.pickLogo(file); return; }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const text = typeof reader.result === 'string' ? reader.result : '';
+    this.pickedFileNames.set(ctl.id, `${file.name} — reading`);
+    this.forceUpdate();
+    const apply = (text: string): void => {
       const result = loadVocabularyFile(this.vocabStorage, text);
       this.pickedFileNames.set(ctl.id, result.ok ? file.name : `${file.name} — rejected`);
       this.forceUpdate();
@@ -1578,7 +1578,28 @@ export class App extends Base {
       }
       else this.fire('Vocabulary file rejected', result.status);
     };
-    reader.onerror = () => this.fire('Vocabulary file not read', 'The file could not be read from disk.');
+    const localText = (file as File & { text?: () => Promise<string> }).text;
+    if (typeof localText === 'function') {
+      void localText.call(file).then(apply).catch(() => {
+        this.pickedFileNames.set(ctl.id, `${file.name} — could not read`);
+        this.forceUpdate();
+        this.fire('Vocabulary file not read', 'The file could not be read from disk.');
+      });
+      return;
+    }
+    if (typeof FileReader === 'undefined') {
+      this.pickedFileNames.set(ctl.id, `${file.name} — could not read`);
+      this.forceUpdate();
+      this.fire('Vocabulary file not read', 'This renderer has no local file reader.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => apply(typeof reader.result === 'string' ? reader.result : '');
+    reader.onerror = () => {
+      this.pickedFileNames.set(ctl.id, `${file.name} — could not read`);
+      this.forceUpdate();
+      this.fire('Vocabulary file not read', 'The file could not be read from disk.');
+    };
     reader.readAsText(file);
   };
 
