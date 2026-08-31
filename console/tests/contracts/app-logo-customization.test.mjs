@@ -182,15 +182,12 @@ test('PIN: no window icon, title bar, taskbar mark or nativeImage anywhere reads
     'main.ts now reads the logo setting to set a real window/app icon -- update this pin');
 });
 
-test('PIN: a "custom" picture is never actually written to disk -- only the file name is remembered as a fake path', () => {
-  /* chooseCustom is handed `logo/${file.name}` as `storedAt` (asserted above), which is a
-   * synthetic label rather than a real path -- nothing anywhere writes the picture's bytes
-   * to that location or to any location. Confirmed by absence: no write call in the whole
-   * control-plane keyed on "logo". */
-  const controlPlaneFiles = [
-    'control-plane/dispatch.ts',
-    'control-plane/image-facts.ts',
-  ].map(read).join('\n');
-  assert.doesNotMatch(controlPlaneFiles, /writeFile[^(]*logo|logo[^(]*writeFile/i,
-    'the control plane now writes logo bytes somewhere -- the "storedAt is a fake path" gap this pins may be fixed');
+test('the privileged logo boundary stores only validated local derivatives and exposes clear/reset actions', () => {
+  const dispatch = read('control-plane/dispatch.ts');
+  const store = read('control-plane/logo-store.ts');
+  assert.match(dispatch, /logo\.inspect|logo\.convert|logo\.cache\.read|logo\.cache\.write|logo\.cache\.clear/u);
+  assert.match(dispatch, /logo-cache/u);
+  assert.match(store, /validAssetBytes|sha256|manifest\.json|recursive: true/u);
+  assert.doesNotMatch(store, /sourcePath|sourceBytes|file\.name/u,
+    'the private cache must not retain the selected source path or source bytes');
 });

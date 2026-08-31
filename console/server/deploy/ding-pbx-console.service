@@ -9,7 +9,7 @@
 [Unit]
 Description=Ding PBX Console (server mode)
 After=network.target
-Documentation=https://github.com/Ding-Ding-Projects/asterisk
+Documentation=https://github.com/Ding-Ding-Projects/material-asterisk
 
 [Service]
 Type=simple

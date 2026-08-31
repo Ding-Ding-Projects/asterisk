@@ -51,16 +51,17 @@ test('the local client constrains loopback transport, payloads, deadlines, and s
   assert.match(client, /api\/chat/u);
 });
 
-test('dispatcher wires observed runtime, pull, and chat seams without inventing catalog, fit, or harness integration', () => {
+test('dispatcher wires runtime, catalog, fit, pull, chat, and optional harness seams', () => {
   for (const symbol of ['OllamaClient', 'OllamaStore', 'OllamaPullQueue', 'OllamaChat']) {
     assert.match(dispatch, new RegExp(symbol, 'u'));
   }
-  for (const factory of ['createOllamaRuntimeHandlers', 'createOllamaPullHandlers', 'createOllamaChatHandlers']) {
+  for (const factory of ['createOllamaRuntimeHandlers', 'createOllamaPullHandlers', 'createOllamaChatHandlers', 'createOllamaCatalogHandlers', 'createOllamaFitHandlers', 'createOllamaHarnessHandlers']) {
     assert.match(dispatch, new RegExp(factory, 'u'));
   }
-  for (const factory of ['createOllamaCatalogHandlers', 'createOllamaFitHandlers', 'createOllamaHarnessHandlers']) {
-    assert.doesNotMatch(dispatch, new RegExp(factory, 'u'));
+  for (const action of ['ollama.catalog.get', 'ollama.catalog.refresh', 'ollama.catalog.reconcile', 'ollama.fit.evaluate', 'ollama.harness.profiles', 'ollama.harness.register', 'ollama.harness.preflight', 'ollama.harness.launch', 'ollama.harness.restore']) {
+    assert.match(dispatch, new RegExp(action.replaceAll('.', '\\.'), 'u'));
   }
+  assert.match(dispatch, /No verified official Ollama catalogue transport is configured/u);
   assert.match(mounts, /OLLAMA_ACTION_UNAVAILABLE|unavailable/u);
 });
 

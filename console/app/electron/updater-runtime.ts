@@ -8,7 +8,7 @@ import { basename, dirname, join } from 'node:path';
 import { spawn } from 'node:child_process';
 import type { DownloadedFile, GitHubRelease, ReleaseAsset, ReleaseIdentity, ResolvedUpdate } from '../../control-plane/updater.js';
 
-const RELEASES_API = 'https://api.github.com/repos/Ding-Ding-Projects/asterisk/releases?per_page=20';
+const RELEASES_API = 'https://api.github.com/repos/Ding-Ding-Projects/material-asterisk/releases?per_page=20';
 const TEMP_PREFIX = 'ding-pbx-console-update-';
 const REQUEST_TIMEOUT_MS = 30_000;
 const STREAM_READ_TIMEOUT_MS = 30_000;
