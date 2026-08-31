@@ -23,3 +23,4 @@ export * from "./vocabulary-store.js";
 export * from "./logo-converter.js";
 export * from "./logo-store.js";
 export * from "./logo-decoder.js";
+export * from "./pdf-adapter.js";

@@ -46,12 +46,13 @@ import { OllamaHarnessManager, createOllamaHarnessHandlers, type OllamaHarnessOp
 import { createLogoConversionHandlers } from './logo-converter.js';
 import { LogoStore, logoStoreHandlers } from './logo-store.js';
 import { PngIsolatedLogoDecoder } from './logo-decoder.js';
+import { PdfLibExecutor, PdfLibInspector } from './pdf-adapter.js';
 import type { LogoSourceInput } from '../shared/logo.js';
 import { VocabularyStore } from './vocabulary-store.js';
 import { DownloadTransferManager } from './download-transfer-manager.js';
 import { createStatusHubClient, createVaultReference, type StatusHubClient } from './status-hub-client.js';
 import type { StatusHubCredentialReferences, StatusHubProjectRegistrationRequest } from '../shared/status-hub.js';
-import type { ConverterRequest, ConverterSniffResult } from '../shared/converter.js';
+import type { ConverterRequest, ConverterSniffResult, PdfOperationRequest } from '../shared/converter.js';
 import { FORGE_CONPTY_HELPER_SHA256, FORGE_GH_SHA256, FileForgeStateStore, ForgePublisher } from './forge-publishing.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery, isAllowedCommandLine } from './index.js';
 import type { ChangePlan, ReadOnlyCommand, ReadOnlyCommandLine, TargetProfile, ConfigValue } from './index.js';
@@ -725,15 +726,22 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         try {
           validatePdfOperationRequest(operation as never);
           if (request.action === 'converter.pdf-execute') {
-            if (!options.pdfExecutor || !options.pdfInspector) {
-              return { ok: false, requestId: request.requestId, code: 'PDF_EXECUTOR_UNAVAILABLE', message: 'No independently verified offline PDF writer and inspector are configured for this build.' };
-            }
+            const pdfAdapter = registry.adapter('pdf-toolkit');
+            const packagedPdfAvailable = pdfAdapter?.availability.state === 'enabled';
+            const pdfExecutor = options.pdfExecutor ?? (packagedPdfAvailable ? new PdfLibExecutor() : undefined);
+            const pdfInspector = options.pdfInspector ?? (packagedPdfAvailable ? new PdfLibInspector() : undefined);
+            if (!pdfExecutor || !pdfInspector) return { ok: false, requestId: request.requestId, code: 'PDF_EXECUTOR_UNAVAILABLE', message: 'No independently verified offline PDF writer and inspector are configured for this build.' };
             const acknowledgedDisclosureIds = Array.isArray(payload.acknowledgedDisclosureIds) ? payload.acknowledgedDisclosureIds.filter((value): value is string => typeof value === 'string') : [];
             const plan = planPdfOperation(registry, operation as never, acknowledgedDisclosureIds);
             const destinationPath = typeof payload.destinationPath === 'string' ? payload.destinationPath : '';
             const overwriteApproved = payload.overwriteApproved === true;
             const expectation = payload.expectation && typeof payload.expectation === 'object' && !Array.isArray(payload.expectation) ? payload.expectation : {};
-            const result = await executePdfOperationAtomic(plan, destinationPath, overwriteApproved, options.pdfExecutor, options.pdfInspector, expectation as never);
+            const pdfRequest = operation as PdfOperationRequest;
+            if (pdfRequest.operation === 'inspect') {
+              const inspected = await pdfInspector.inspect(pdfRequest.sourcePaths[0]!);
+              return { ok: true, requestId: request.requestId, data: { plan, result: inspected } };
+            }
+            const result = await executePdfOperationAtomic(plan, destinationPath, overwriteApproved, pdfExecutor, pdfInspector, expectation as never);
             return { ok: true, requestId: request.requestId, data: { plan, result } };
           }
           return { ok: true, requestId: request.requestId, data: { valid: true, request: operation, capabilities: pdfCapabilities(registry) } };
@@ -973,7 +981,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
               data: await logoHandlers.convert({ source: localLogoSource(sourceValue), crop: payload.crop as never, targets: targets as never }),
             };
           }
-          if (request.action === 'logo.cache.read') return { ok: true, requestId: request.requestId, data: await logoHandlers.cache.read({ kind: 'read' }) };
+          if (request.action === 'logo.cache.read') return { ok: true, requestId: request.requestId, data: await logoStore.readForRenderer() };
           if (request.action === 'logo.cache.clear') {
             await logoHandlers.cache.clear({ kind: payload.kind === 'reset' ? 'reset' : 'clear' });
             return { ok: true, requestId: request.requestId, data: { cleared: true } };

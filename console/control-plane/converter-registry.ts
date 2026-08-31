@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { lstat } from "node:fs/promises";
+import { lstat, readFile } from "node:fs/promises";
 import { isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import {
   CONVERTER_CATEGORIES,
   type ConverterAdapter,
@@ -52,12 +53,13 @@ const FIXED_WORKER_RUNTIME = "fixed-worker-kernel-v1";
 
 export interface ConverterRegistryProofs {
   fixedWorkerKernel?: ConverterBundleProof;
+  pdfTool?: ConverterBundleProof;
 }
 
 export class ConverterRegistry {
   readonly #adapters: ReadonlyArray<ConverterAdapter>;
 
-  private constructor(fixedWorkerProof?: ConverterBundleProof) {
+  private constructor(fixedWorkerProof?: ConverterBundleProof, pdfToolProof?: ConverterBundleProof) {
     this.#adapters = [
       builtinAdapter(
         "utf8-to-base64",
@@ -115,7 +117,7 @@ export class ConverterRegistry {
         "Line endings become LF and a final newline is added. Byte order marks are removed; all other Unicode text is preserved.",
         true,
       ),
-      unavailableAdapter("pdf-toolkit", "PDF inspect, split, merge, extract, reorder, rotate, and metadata", "documents-pdf", ["application/pdf"], "application/pdf", "qpdf or another packaged PDF toolkit", "The packaged application does not contain a verified PDF toolkit. PDF operations stay disabled until a bundled offline adapter is proven in the packaged artifact.", ["inspect", "split", "merge", "extract", "reorder", "rotate", "metadata"]),
+      pdfAdapter(pdfToolProof),
       unavailableAdapter("office-to-pdf", "Office documents to PDF", "documents-pdf", ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"], "application/pdf", "LibreOffice headless runtime", "No verified LibreOffice runtime is bundled. A PATH installation or network service is never treated as an available adapter."),
       unavailableAdapter("image-raster", "PNG, JPEG, and WebP conversion", "images", ["image/png", "image/jpeg", "image/webp"], "image/png", "Sharp/libvips image runtime", "No verified Sharp/libvips runtime is bundled, so image conversion is unavailable rather than delegated to a machine-wide tool."),
       unavailableAdapter("audio-transcode", "Audio transcoding", "audio", ["audio/wav", "audio/ogg", "audio/flac"], "audio/wav", "FFmpeg audio runtime", "No verified FFmpeg runtime is bundled. PATH discovery and remote conversion services are intentionally ignored."),
@@ -130,7 +132,9 @@ export class ConverterRegistry {
   static async create(proofs: ConverterRegistryProofs = {}): Promise<ConverterRegistry> {
     const suppliedProof = proofs.fixedWorkerKernel ?? await discoverBundledWorkerProof();
     const fixedWorkerProof = await verifiedProof(suppliedProof, FIXED_WORKER_RUNTIME);
-    return new ConverterRegistry(fixedWorkerProof);
+    const suppliedPdfProof = proofs.pdfTool ?? await discoverBundledPdfProof();
+    const pdfToolProof = await verifiedProof(suppliedPdfProof, 'pdf-lib@1.17.1');
+    return new ConverterRegistry(fixedWorkerProof, pdfToolProof);
   }
 
   categories(): ReadonlyArray<ConverterCategoryDescriptor> {
@@ -185,6 +189,32 @@ async function discoverBundledWorkerProof(): Promise<ConverterBundleProof | unde
     return {
       proofId: `bundled-fixed-worker:${hash.copy().digest('hex').slice(0, 16)}`,
       adapterRuntime: FIXED_WORKER_RUNTIME,
+      artifactPath,
+      artifactSha256: hash.digest('hex'),
+      verifiedAt: new Date().toISOString(),
+      bundled: true,
+      offline: true,
+      packagedArtifact: true,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+async function discoverBundledPdfProof(): Promise<ConverterBundleProof | undefined> {
+  try {
+    const require = createRequire(import.meta.url);
+    const artifactPath = require.resolve('pdf-lib');
+    const packagePath = require.resolve('pdf-lib/package.json');
+    const packageJson = JSON.parse(await readFile(packagePath, 'utf8')) as { version?: unknown; license?: unknown };
+    if (packageJson.version !== '1.17.1' || packageJson.license !== 'MIT') return undefined;
+    const info = await lstat(artifactPath);
+    if (info.isSymbolicLink() || !info.isFile()) return undefined;
+    const hash = createHash('sha256');
+    for await (const chunk of createReadStream(artifactPath)) hash.update(chunk);
+    return {
+      proofId: `bundled-pdf-lib:${hash.copy().digest('hex').slice(0, 16)}`,
+      adapterRuntime: 'pdf-lib@1.17.1',
       artifactPath,
       artifactSha256: hash.digest('hex'),
       verifiedAt: new Date().toISOString(),
@@ -276,6 +306,37 @@ function builtinAdapter(
     disclosures: [disclosure],
     metadataBehavior: "No file metadata is copied to the destination. The source file is never modified.",
     encodingBehavior: disclosure,
+  };
+}
+
+function pdfAdapter(proof: ConverterBundleProof | undefined): ConverterAdapter {
+  const unavailable = unavailableAdapter(
+    "pdf-toolkit",
+    "PDF inspect, split, merge, extract, reorder, rotate, and metadata",
+    "documents-pdf",
+    ["application/pdf"],
+    "application/pdf",
+    "pdf-lib@1.17.1",
+    "The packaged application does not contain a verified pdf-lib adapter. PDF operations stay disabled until the bundled MIT-licensed pdf-lib runtime is present and hashed.",
+    ["inspect", "split", "merge", "extract", "reorder", "rotate", "metadata"],
+  );
+  if (!proof) return unavailable;
+  return {
+    ...unavailable,
+    availability: { state: "enabled", proof },
+    sandbox: { kind: "allowlisted-process", network: "disabled", shell: false, allowedExecutable: process.execPath },
+    limits: {
+      maxInputBytes: 64 * 1024 * 1024,
+      maxOutputBytes: 64 * 1024 * 1024,
+      timeoutMs: 30_000,
+      memoryMb: 256,
+      maxPages: 10_000,
+      maxTemporaryBytes: 128 * 1024 * 1024,
+    },
+    outputValidation: { kind: "pdf-reopen" },
+    lossy: false,
+    metadataBehavior: "pdf-lib preserves supported document metadata and rejects unknown metadata fields.",
+    encodingBehavior: "PDF object streams are disabled for deterministic independent reopen validation.",
   };
 }
 
