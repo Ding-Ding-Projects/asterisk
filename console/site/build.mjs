@@ -541,9 +541,10 @@ async function rewritePublishedIdentity(relative = '.') {
     const current = await readFile(path, 'utf8');
     let rewritten = current.replaceAll('https://ding-ding-projects.github.io/asterisk/', PUBLIC_SITE_ORIGIN)
       .replaceAll('https://github.com/Ding-Ding-Projects/asterisk/', `https://github.com/${PUBLIC_REPOSITORY}/`);
-    if (child.endsWith('.html') && child.startsWith(`docs${String.fromCharCode(92)}`) && !rewritten.includes('rel="canonical"')) {
-      const canonicalUrl = `${PUBLIC_SITE_ORIGIN}${child.replaceAll(String.fromCharCode(92), '/')}`;
-      rewritten = rewritten.replace('<title>', `<link rel="canonical" href="${canonicalUrl}"><meta property="og:image:width" content="1280"><meta property="og:image:height" content="640"><meta property="og:image:alt" content="Material Asterisk documentation"><meta name="twitter:card" content="summary_large_image"><title>`);
+    const publishedPath = child.replaceAll(String.fromCharCode(92), '/');
+    if (publishedPath.endsWith('.html') && publishedPath.startsWith('docs/') && !rewritten.includes('rel="canonical"')) {
+      const canonicalUrl = `${PUBLIC_SITE_ORIGIN}${publishedPath}`;
+      rewritten = rewritten.replace('<title>', `<link rel="canonical" href="${canonicalUrl}"><meta property="og:type" content="article"><meta property="og:site_name" content="Material Asterisk"><meta property="og:image:width" content="1280"><meta property="og:image:height" content="640"><meta property="og:image:alt" content="Material Asterisk documentation"><meta name="twitter:card" content="summary_large_image"><meta name="theme-color" content="#0B0F0C"><title>`);
     }
     if (rewritten !== current) await writeFile(path, rewritten, 'utf8');
   }

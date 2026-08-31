@@ -52,7 +52,7 @@ const EXPECTED_STATUS = {
   'material-appearance': 'partial',
   'app-logo-customization': 'partial',
   'local-file-converter': 'implemented-unverified',
-  'ollama-suite-manager': 'absent',
+  'ollama-suite-manager': 'implemented-unverified',
   'browser-style-tabs': 'absent',
   'tab-groups-and-searches': 'absent',
   'command-palette': 'partial',

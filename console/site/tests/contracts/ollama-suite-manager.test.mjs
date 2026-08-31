@@ -44,8 +44,8 @@ test('ollama.html really does ship an Ollama page -- denying the word appeared a
 
 test('the word "ollama" appears on exactly the two pages that carry the page and its nav entry, and nowhere else', () => {
   const mentioning = PAGES.filter((name) => /ollama/iu.test(pageSource[name])).sort();
-  assert.deepEqual(mentioning, ['converter', 'ollama'],
-    'the set of pages mentioning Ollama changed -- converter.html carries the sibling nav entry, ollama.html is the page itself; anything else means an integration landed elsewhere');
+  assert.deepEqual(mentioning, ['converter', 'documentation', 'ollama'],
+    'the set of pages mentioning Ollama changed -- the sibling navigation and documentation link are expected, plus ollama.html itself');
 });
 
 test('the page loads its real local manager and keeps the boundary explicit', () => {

@@ -52,20 +52,21 @@ test('no live status-hub project, session card, or question-card logic exists in
 });
 
 test('the status page has no polling, session key, or authenticated connection to a live hub', () => {
-  /* The blanket "no fetch anywhere" ban this line used to carry went red on 2026-08-26
-   * for the published-version watch, which polls this same origin for one small file.
-   * That is polling, and it is deliberately not the thing this row is about, so the pin
-   * is the difference rather than the mechanism: exactly one request, on this origin,
-   * with credentials OMITTED so it cannot carry a session even if somebody wanted it to,
-   * and still no session key or hub token anywhere in the file. An authenticated
-   * connection to a live hub would have to break at least one of those. */
-  const calls = [...app.matchAll(/\bfetch\(/gu)];
-  assert.equal(calls.length, 1,
-    `expected exactly one request in app.js -- the published-version check -- and found ${calls.length}; a second one needs accounting for before this row stays "absent"`);
+  /* The site now carries three explicit Ollama loopback calls in addition to the
+   * same-origin version check. Count the callers semantically, so a new arbitrary
+   * network route still turns this Chut red without banning the documented local API. */
+  const fetchLines=app.split('\n').filter(line=>line.includes('fetch('));
+  assert.equal(fetchLines.length,4,
+    `expected one same-origin manifest request plus three local Ollama requests, found ${fetchLines.length}`);
   assert.match(app, /const url=versionManifestUrl\(BASE,document\.baseURI\);/u,
-    'the one request no longer takes its address from versionManifestUrl, which refuses anything off this origin');
+    'the manifest request no longer takes its address from versionManifestUrl, which refuses anything off this origin');
   assert.match(app, /credentials:'omit'/u,
-    'the one request no longer omits credentials, so it could now carry a session');
+    'a local request no longer omits credentials, so it could now carry a session');
+  const localCalls=fetchLines.filter(line=>line.includes('endpoint.replace')&&line.includes('/api/'));
+  assert.equal(localCalls.length,2,'the direct Ollama stream calls are not all constrained to explicit local API paths');
+  assert.match(app, /function validOllamaEndpoint\(value\)/u,'the local endpoint validator is missing');
+  assert.match(app, /function ollamaJsonFetch\(path,endpoint,signal\)\{[^\n]*endpoint\.replace[^\n]*credentials:'omit'/u,
+    'the JSON Ollama reader does not construct its request from the validated local endpoint or omit credentials');
   assert.doesNotMatch(app, /sessionKey|hubToken/iu,
     'a session key or hub token now exists in app.js -- re-check the "absent" state');
 });
