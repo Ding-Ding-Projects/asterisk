@@ -1,5 +1,21 @@
 # Ding PBX delivery roadmap
 
+## Current release boundary, measured 2026-08-31
+
+This short section records the current facts before the historical checklist below. A checked
+box means the referenced external record was read back, not that the whole product is complete.
+
+- [x] `main` at `7c6e0c6c9520c6fd421cabf73bcbb6af15a18c60` is present locally and `refs/heads/main` on the Git server reads back to the same SHA.
+- [x] Console release `ding-pbx-console-v0.0.300-r1` is non-draft and targets the exact current SHA, with downloadable Squirrel.Windows outputs and release evidence.
+- [x] Installer ISO release `ding-pbx-installer-iso-v0.0.7-r1` is non-draft and targets the exact current SHA, with two numbered volumes, reassembly instructions, and checksum evidence.
+- [x] Pages composition and deployment run [33210571949](https://github.com/Ding-Ding-Projects/material-asterisk/actions/runs/33210571949) completed successfully for the current SHA.
+- [ ] Run the local documentation and link checks after this record refresh, then commit and push the documentation branch.
+- [ ] Run the complete local test, accessibility, built-artifact interaction, current capture, and design-parity passes against the current SHA. The delivery workflows do not run those checks.
+- [ ] Reconcile the Pages API source-branch record, which currently reports `master` while the repository default branch is `main`.
+- [ ] Resolve issue [#1](https://github.com/Ding-Ding-Projects/material-asterisk/issues/1) only after the remaining runtime and built-artifact evidence exists.
+- [ ] Resolve issue [#6](https://github.com/Ding-Ding-Projects/material-asterisk/issues/6) only after its apply-and-undo implementation is integrated into `main` and independently verified.
+- [ ] Post the prepared public drafts only after the final runtime evidence is observed. Drafts are kept in `console/docs/release-drafts/2026-08-31-release-records.md`.
+
 ## Get the suite back to green before anything else
 
 **`npm test` exits 1 on `master` and has for several integration merges. Nothing can be landed until it does not.** Read this section before picking any item below it: the whole point of it being here is that two passes have now independently rediscovered the same failures from scratch, because what they learned lived only in the commit messages of branches that were never merged.

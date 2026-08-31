@@ -2,13 +2,14 @@
 
 **Material Asterisk** is a Windows desktop application for administering [Asterisk](https://www.asterisk.org/) PBX installations. It talks to a target over an allowlisted, no-shell control plane, carries its own Ubuntu WSL runtime so a target exists out of the box, and covers 32 destinations across dialplan, endpoints, trunks, queues, voicemail, security, and system administration.
 
-Install: download the latest unsigned Windows installer from the [Releases page](https://github.com/Ding-Ding-Projects/asterisk/releases/latest) and run it — it will show an unknown-publisher warning (see [Installers are unsigned](#installers-are-unsigned)).
-Documentation and downloads: **https://ding-ding-projects.github.io/asterisk/**
+Install: download the latest unsigned Windows installer from the [Releases page](https://github.com/Ding-Ding-Projects/material-asterisk/releases/latest) and run it, it will show an unknown-publisher warning (see [Installers are unsigned](#installers-are-unsigned)).
+Documentation and downloads: **https://ding-ding-projects.github.io/material-asterisk/**
 
 **Contents:** [What it is](#what-ding-pbx-console-is) · [What it looks like](#what-it-looks-like) · [Reaching a PBX](#reaching-a-pbx) · [Build and installer scripts](#build-and-installer-scripts) · [The bundled WSL runtime](#the-bundled-wsl-runtime) · [Safety model](#the-control-planes-safety-model) · [Testing](#testing) · [Documentation](#documentation) · [Contributing](#contributing) · [What is not done yet](#what-is-not-done-yet) · [This is a fork of Asterisk](#this-is-a-fork-of-asterisk) · [How long this would take a person](#how-long-this-would-take-a-person-to-write)
 
 ---
 
+<a id="what-ding-pbx-console-is"></a>
 <details>
 <summary><strong>What Material Asterisk is</strong></summary>
 
@@ -21,6 +22,7 @@ The interface is organized into six navigation rails covering 32 destinations, w
 </summary>
 </details>
 
+<a id="reaching-a-pbx"></a>
 <details>
 <summary><strong>Reaching a PBX</strong></summary>
 
@@ -35,6 +37,7 @@ Every one of those routes goes through the same bounded control plane described 
 </summary>
 </details>
 
+<a id="build-and-installer-scripts"></a>
 <details>
 <summary><strong>Build and installer scripts (repository root)</strong></summary>
 
@@ -52,6 +55,7 @@ Every script installs what it needs itself — no separate "install X first" ste
 </summary>
 </details>
 
+<a id="the-bundled-wsl-runtime"></a>
 <details>
 <summary><strong>The bundled WSL runtime</strong></summary>
 
@@ -62,6 +66,7 @@ Currently the runtime image is compiled locally by `build-wsl-throwaway.bat`, wh
 </summary>
 </details>
 
+<a id="the-control-planes-safety-model"></a>
 <details>
 <summary><strong>The control plane's safety model</strong></summary>
 
@@ -75,6 +80,7 @@ There is no free-text command execution and no path that lets the interface cons
 </summary>
 </details>
 
+<a id="testing"></a>
 <details>
 <summary><strong>Testing</strong></summary>
 
@@ -84,30 +90,31 @@ From `console/`:
 npm test
 ```
 
-This runs the renderer, control-plane, and static-site suites, then the design-parity and completeness inventory validators together with their negative regressions (which deliberately break each guard and confirm it goes red, then confirm restoring it goes green).
+The committed command runs the renderer, control-plane, and static-site suites, then the design-parity and completeness inventory validators together with their negative regressions. The current GitHub Actions delivery runs do not execute tests or lint. This documentation-only lane ran only documentation and link checks, so it makes no fresh test claim.
 
-Measured on this tree at the commit below:
+The latest published delivery evidence is bound to `7c6e0c6c9520c6fd421cabf73bcbb6af15a18c60`:
 
-| Suite | Tests | Pass | Fail |
-| --- | ---: | ---: | ---: |
-| Inventory / drift | 12 | 12 | 0 |
-| Renderer | 424 | 424 | 0 |
-| Control plane | 348 | 345 | **3** |
-| Static site | 10 | 10 | 0 |
+| Delivery surface | Run | State |
+| --- | --- | --- |
+| Console build, package, and release | [33210571775](https://github.com/Ding-Ding-Projects/material-asterisk/actions/runs/33210571775) | successful |
+| Installer ISO build and release | [33210571840](https://github.com/Ding-Ding-Projects/material-asterisk/actions/runs/33210571840) | successful |
+| Pages composition and deployment | [33210571949](https://github.com/Ding-Ding-Projects/material-asterisk/actions/runs/33210571949) | successful |
 
-The three control-plane failures are all in the access-control-list (`acl.conf`) address-matching tests (`evaluate returns the matching rule index for a permitted address`, `... a denied address`, and `... an IPv6 address`) — expected, since access-control-rule editing is one of the largest unimplemented gaps (see below) and its evaluator is still under construction. Every other suite is fully green, and both inventory negative regressions were confirmed red-then-green on this run.
+The delivery workflows attach build and release evidence only. They do not establish local test, accessibility, UI interaction, design-parity, or runtime verification. Those states remain open until a fresh local run records them against the candidate commit.
 
 </summary>
 </details>
 
+<a id="documentation"></a>
 <details>
 <summary><strong>Documentation</strong></summary>
 
-The Windows application bundles all 82 feature articles offline, with search and link resolution, so the documentation ships inside the installer with no network dependency. The same content, plus product and download pages, is published as a static site with no runtime asset fetches at **https://ding-ding-projects.github.io/asterisk/**.
+The Windows application bundles the tracked feature articles offline, with search and link resolution, so the documentation ships inside the installer with no network dependency. The same content, plus product and download pages, is published as a static site with no runtime asset fetches at **https://ding-ding-projects.github.io/material-asterisk/**. The exact generated article count belongs to the build record for the release that produced it.
 
 </summary>
 </details>
 
+<a id="contributing"></a>
 <details>
 <summary><strong>Contributing</strong></summary>
 
@@ -120,6 +127,7 @@ The Windows application bundles all 82 feature articles offline, with search and
 </summary>
 </details>
 
+<a id="what-is-not-done-yet"></a>
 <details>
 <summary><strong>What is not done yet</strong></summary>
 
@@ -129,8 +137,8 @@ Stated plainly, from `ROADMAP.md` and `HANDOFF.md`:
 - **16 of 32 destinations are backed by live data.** The rest render honestly empty screens rather than sample content.
 - **48 of 130 bound controls remain deliberately unwired.** Each screen states how many of its own controls are not yet connected — a wrong binding doesn't fail loudly, it writes the wrong setting to a telephone exchange and looks like it worked.
 - **The desktop interface has no accessibility attributes at all**, and nothing under its application directory is covered by a test.
-- **Large gaps in Asterisk coverage remain**, including access control rules (`acl.conf`), sound prompt management, TLS/certificate management, hardware trunks, database/realtime backends, fax, channel event logging, STIR/SHAKEN attestation, and several more — see `ROADMAP.md` for the full list.
-- **No screenshots or built-artifact captures exist yet** for most of the interface. Where a picture would normally go here, none is included rather than fabricated or borrowed from elsewhere; producing a real capture set from the built application is open work.
+- **Large gaps in Asterisk coverage remain**, including sound prompt management, hardware trunks, database/realtime backends, fax, channel event logging, and several more. Access control rules and call attestation are now marked complete in `ROADMAP.md`; the remaining list there is authoritative.
+- **The repository contains a committed capture gallery, but most surfaces still lack current-commit built-artifact proof.** The gallery links above name the records that exist. A current screen recording is not present yet, and producing one from the current built application remains open work.
 
 </summary>
 </details>
@@ -145,7 +153,7 @@ Every image below is a capture of the real built application, driven on an off-s
 <details>
 <summary><strong>Dashboard</strong></summary>
 
-![Dashboard in Material Asterisk. Live counters read from the running system rather than a configuration file: active channels, endpoints up, queues waiting and uptime, each labelled with the command it came from.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/00-dashboard.png)
+![Dashboard in Material Asterisk. Live counters read from the running system rather than a configuration file: active channels, endpoints up, queues waiting and uptime, each labelled with the command it came from.](https://raw.githubusercontent.com/Ding-Ding-Projects/material-asterisk/main/console/release/captures/gallery/00-dashboard.png)
 
 Live counters read from the running system rather than a configuration file: active channels, endpoints up, queues waiting and uptime, each labelled with the command it came from.
 
@@ -154,7 +162,7 @@ Live counters read from the running system rather than a configuration file: act
 <details>
 <summary><strong>Confirmation credits</strong></summary>
 
-![Confirmation credits in Material Asterisk. The arcade. Credits earned here skip one confirmation ceremony -- but never one above the danger line, because some mistakes deserve friction.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/01-confirmation-credits.png)
+![Confirmation credits in Material Asterisk. The arcade. Credits earned here skip one confirmation ceremony -- but never one above the danger line, because some mistakes deserve friction.](https://raw.githubusercontent.com/Ding-Ding-Projects/material-asterisk/main/console/release/captures/gallery/01-confirmation-credits.png)
 
 The arcade. Credits earned here skip one confirmation ceremony -- but never one above the danger line, because some mistakes deserve friction.
 
@@ -163,7 +171,7 @@ The arcade. Credits earned here skip one confirmation ceremony -- but never one 
 <details>
 <summary><strong>Voicemail boxes</strong></summary>
 
-![Voicemail boxes in Material Asterisk. Mailboxes as the target reports them.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/02-voicemail-boxes.png)
+![Voicemail boxes in Material Asterisk. Mailboxes as the target reports them.](https://raw.githubusercontent.com/Ding-Ding-Projects/material-asterisk/main/console/release/captures/gallery/02-voicemail-boxes.png)
 
 Mailboxes as the target reports them.
 
@@ -172,7 +180,7 @@ Mailboxes as the target reports them.
 <details>
 <summary><strong>Call records</strong></summary>
 
-![Call records in Material Asterisk. Call detail and channel event logging, with the tracked events and applications each backend records.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/03-call-records.png)
+![Call records in Material Asterisk. Call detail and channel event logging, with the tracked events and applications each backend records.](https://raw.githubusercontent.com/Ding-Ding-Projects/material-asterisk/main/console/release/captures/gallery/03-call-records.png)
 
 Call detail and channel event logging, with the tracked events and applications each backend records.
 
@@ -181,7 +189,7 @@ Call detail and channel event logging, with the tracked events and applications 
 <details>
 <summary><strong>Modules</strong></summary>
 
-![Modules in Material Asterisk. Loaded modules and their state.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/04-modules.png)
+![Modules in Material Asterisk. Loaded modules and their state.](https://raw.githubusercontent.com/Ding-Ding-Projects/material-asterisk/main/console/release/captures/gallery/04-modules.png)
 
 Loaded modules and their state.
 
@@ -190,7 +198,7 @@ Loaded modules and their state.
 <details>
 <summary><strong>Memory console</strong></summary>
 
-![Memory console in Material Asterisk. The agent-facing surface, deliberately empty of any private corpus.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/05-memory-console.png)
+![Memory console in Material Asterisk. The agent-facing surface, deliberately empty of any private corpus.](https://raw.githubusercontent.com/Ding-Ding-Projects/material-asterisk/main/console/release/captures/gallery/05-memory-console.png)
 
 The agent-facing surface, deliberately empty of any private corpus.
 
@@ -199,7 +207,7 @@ The agent-facing surface, deliberately empty of any private corpus.
 <details>
 <summary><strong>Deploy a server</strong></summary>
 
-![Deploy a server in Material Asterisk. Creating, verifying, stopping and removing the console own bundled distribution. It refuses to touch any distribution it did not create.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/06-deploy-a-server.png)
+![Deploy a server in Material Asterisk. Creating, verifying, stopping and removing the console own bundled distribution. It refuses to touch any distribution it did not create.](https://raw.githubusercontent.com/Ding-Ding-Projects/material-asterisk/main/console/release/captures/gallery/06-deploy-a-server.png)
 
 Creating, verifying, stopping and removing the console own bundled distribution. It refuses to touch any distribution it did not create.
 
@@ -208,7 +216,7 @@ Creating, verifying, stopping and removing the console own bundled distribution.
 <details>
 <summary><strong>Live channels</strong></summary>
 
-![Live channels in Material Asterisk. Calls in flight, refreshed continuously, empty when nothing is up.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/drive-live-channels.png)
+![Live channels in Material Asterisk. Calls in flight, refreshed continuously, empty when nothing is up.](https://raw.githubusercontent.com/Ding-Ding-Projects/material-asterisk/main/console/release/captures/gallery/drive-live-channels.png)
 
 Calls in flight, refreshed continuously, empty when nothing is up.
 
@@ -219,7 +227,7 @@ Calls in flight, refreshed continuously, empty when nothing is up.
 <details>
 <summary><strong>PJSIP endpoints</strong></summary>
 
-![PJSIP endpoints in Material Asterisk. One row per endpoint, read from the target rather than invented. An empty table is honest; a made-up one is not.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/drive-pjsip-endpoints.png)
+![PJSIP endpoints in Material Asterisk. One row per endpoint, read from the target rather than invented. An empty table is honest; a made-up one is not.](https://raw.githubusercontent.com/Ding-Ding-Projects/material-asterisk/main/console/release/captures/gallery/drive-pjsip-endpoints.png)
 
 One row per endpoint, read from the target rather than invented. An empty table is honest; a made-up one is not.
 
@@ -230,7 +238,7 @@ One row per endpoint, read from the target rather than invented. An empty table 
 <details>
 <summary><strong>Trunks & registrations</strong></summary>
 
-![Trunks & registrations in Material Asterisk. Outbound trunks and their registration state, read from the same source the dashboard counts.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/drive-trunks-registrations.png)
+![Trunks & registrations in Material Asterisk. Outbound trunks and their registration state, read from the same source the dashboard counts.](https://raw.githubusercontent.com/Ding-Ding-Projects/material-asterisk/main/console/release/captures/gallery/drive-trunks-registrations.png)
 
 Outbound trunks and their registration state, read from the same source the dashboard counts.
 
@@ -241,7 +249,7 @@ Outbound trunks and their registration state, read from the same source the dash
 <details>
 <summary><strong>Trunk authentication</strong></summary>
 
-![Trunk authentication in Material Asterisk. Authentication sections as the target actually has them.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/drive-trunk-authentication.png)
+![Trunk authentication in Material Asterisk. Authentication sections as the target actually has them.](https://raw.githubusercontent.com/Ding-Ding-Projects/material-asterisk/main/console/release/captures/gallery/drive-trunk-authentication.png)
 
 Authentication sections as the target actually has them.
 
@@ -252,7 +260,7 @@ Authentication sections as the target actually has them.
 <details>
 <summary><strong>Feature codes</strong></summary>
 
-![Feature codes in Material Asterisk. Transfer, pickup and recording codes from features.conf, and parking from res_parking.conf where Asterisk 12 moved it.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/drive-feature-codes.png)
+![Feature codes in Material Asterisk. Transfer, pickup and recording codes from features.conf, and parking from res_parking.conf where Asterisk 12 moved it.](https://raw.githubusercontent.com/Ding-Ding-Projects/material-asterisk/main/console/release/captures/gallery/drive-feature-codes.png)
 
 Transfer, pickup and recording codes from features.conf, and parking from res_parking.conf where Asterisk 12 moved it.
 
@@ -263,7 +271,7 @@ Transfer, pickup and recording codes from features.conf, and parking from res_pa
 <details>
 <summary><strong>IAX peers</strong></summary>
 
-![IAX peers in Material Asterisk. IAX2 peers, currently a reading surface rather than an editing one.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/drive-iax-peers.png)
+![IAX peers in Material Asterisk. IAX2 peers, currently a reading surface rather than an editing one.](https://raw.githubusercontent.com/Ding-Ding-Projects/material-asterisk/main/console/release/captures/gallery/drive-iax-peers.png)
 
 IAX2 peers, currently a reading surface rather than an editing one.
 
@@ -274,7 +282,7 @@ IAX2 peers, currently a reading surface rather than an editing one.
 <details>
 <summary><strong>Dialplan canvas</strong></summary>
 
-![Dialplan canvas in Material Asterisk. The dialplan drawn from the target own output, with a step inspector and the connections between contexts.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/drive-dialplan-canvas.png)
+![Dialplan canvas in Material Asterisk. The dialplan drawn from the target own output, with a step inspector and the connections between contexts.](https://raw.githubusercontent.com/Ding-Ding-Projects/material-asterisk/main/console/release/captures/gallery/drive-dialplan-canvas.png)
 
 The dialplan drawn from the target own output, with a step inspector and the connections between contexts.
 
@@ -285,7 +293,7 @@ The dialplan drawn from the target own output, with a step inspector and the con
 <details>
 <summary><strong>IVR menus</strong></summary>
 
-![IVR menus in Material Asterisk. Menu structure and the prompts each option plays.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/drive-ivr-menus.png)
+![IVR menus in Material Asterisk. Menu structure and the prompts each option plays.](https://raw.githubusercontent.com/Ding-Ding-Projects/material-asterisk/main/console/release/captures/gallery/drive-ivr-menus.png)
 
 Menu structure and the prompts each option plays.
 
@@ -296,7 +304,7 @@ Menu structure and the prompts each option plays.
 <details>
 <summary><strong>Queues & agents</strong></summary>
 
-![Queues & agents in Material Asterisk. Queue membership and agent state.](https://raw.githubusercontent.com/Ding-Ding-Projects/asterisk/master/console/release/captures/gallery/drive-queues-agents.png)
+![Queues & agents in Material Asterisk. Queue membership and agent state.](https://raw.githubusercontent.com/Ding-Ding-Projects/material-asterisk/main/console/release/captures/gallery/drive-queues-agents.png)
 
 Queue membership and agent state.
 
@@ -305,6 +313,16 @@ Queue membership and agent state.
 </details>
 
 ---
+
+## Screen recording and capture matrix
+
+The capture gallery above is a compact index of the checked-in visual records. A current
+screen recording of the built application is not present in this documentation lane, so no
+recording is linked or presented as shipped. The required recording must be produced from the
+real built application through the approved headless route, bound to its source commit, and
+added with the same provenance and privacy checks as the still captures. The full capture and
+design-parity matrix remains an open evidence task in `HANDOFF.md` and `ROADMAP.md`.
+
 ## Installers are unsigned
 
 Every published Windows installer is **deliberately unsigned** — code signing is out of scope for this project by policy — so Windows will show an unknown-publisher warning (SmartScreen) when you run it. This is expected and does not indicate tampering; verify the SHA-256 against the `SHA256SUMS.txt` asset on the same release if you want independent confirmation.
@@ -321,7 +339,7 @@ If you are looking for Asterisk the PBX platform rather than this console, the u
 
 ## How long this would take a person to write
 
-**Estimate: roughly 6–10 months** for one experienced developer, working alone, to reach the current state of the console (excluding the inherited Asterisk source tree itself).
+**Estimate: roughly 22–36 person-years** for one experienced developer, working alone, to reproduce the tracked project surface at the current release boundary. This is an estimate, not a measurement of elapsed time.
 
-Method: the committed line counter (`console/scripts/count-lines.mjs`) reports **30,282 hand-written project lines** (source, tests, and markup actually written for this project, excluding generated output and vendored/inherited code) as of commit `53ba00d1b`. At a sustained rate of roughly 100–160 net lines per working day for original application code, tests, and hand-written markup of this kind — a rate that accounts for the design-parity compiler work, the control-plane safety machinery, and the two negative-regression test suites, all of which cost far more time per line than routine CRUD screens — that comes out to about 190–300 working days, or **roughly 6–10 months** of full-time solo work. This is an estimate derived from a line count, not a measurement of actual elapsed time, and it is deliberately given as a range rather than a single figure.
+Method: release `ding-pbx-console-v0.0.300-r1` publishes the committed line-count table measured at `7c6e0c6c9520c6fd421cabf73bcbb6af15a18c60`. Its source, test, and markup rows total **894,967 lines**, excluding generated and external/vendor rows. At a sustained rate of roughly 100–160 net lines per working day, that is 5,593–8,950 working days, or roughly 22–36 years. The arithmetic describes the complete tracked surface, including documentation and tests, rather than claiming that a person has actually taken that long.
 
