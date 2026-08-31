@@ -36,6 +36,10 @@ try {
     if (-not [string]::IsNullOrWhiteSpace($Version)) { $env:DING_PBX_VERSION = $Version }
     if (-not [string]::IsNullOrWhiteSpace($CandidateCommit)) { $env:DING_PBX_CANDIDATE_COMMIT = $CandidateCommit }
 
+    Phase 'Checking the cold delivery call graph and installed gh field contract.'
+    & $node (Join-Path $consoleRoot 'scripts\check-delivery-path.mjs') --verify-gh-fields
+    if ($LASTEXITCODE -ne 0) { throw "check-delivery-path.mjs exited $LASTEXITCODE" }
+
     Push-Location $consoleRoot
     try {
         Invoke-NpmScript 'rebuild:native'

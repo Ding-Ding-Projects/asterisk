@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -44,6 +45,12 @@ if (!/node_modules[\\/]typescript[\\/]bin[\\/]tsc['"\s)]*\)?\s+-b\s+--noCheck/i.
 if (!/node_modules[\\/]vite[\\/]bin[\\/]vite\.js['"\s)]*\)?\s+build/i.test(deliveryScript)) {
   throw new Error('build-delivery.ps1 must invoke the local Vite bundler directly');
 }
+const bootstrapIndex = deliveryScript.indexOf('& $bootstrap');
+const pathCheckIndex = deliveryScript.indexOf('check-delivery-path.mjs');
+const verifyFlagIndex = deliveryScript.indexOf('--verify-gh-fields');
+if (bootstrapIndex < 0 || pathCheckIndex < 0 || verifyFlagIndex < pathCheckIndex || verifyFlagIndex < bootstrapIndex) {
+  throw new Error('the delivery path Chut must run after dependency bootstrap on a cold Gay Hay');
+}
 if (!/build-installer-iso:[\s\S]*?uses:\s+\.\/\.github\/workflows\/installer-iso\.yml[\s\S]*?secrets:\s+inherit/i.test(delivery)) {
   throw new Error('delivery.yml must call the reusable ISO build lane');
 }
@@ -53,9 +60,31 @@ if (!/release:[\s\S]*?needs:\s*\[[^\]]*build-installer-iso[^\]]*\]/i.test(delive
 if (!/deploy-pages:[\s\S]*?needs:\s*\[release\][\s\S]*?uses:\s+\.\/\.github\/workflows\/pages\.yml/i.test(delivery)) {
   throw new Error('Pages deployment must wait for the successful release job');
 }
+const idempotencyBlockStart = delivery.indexOf('$releaseTags');
+const idempotencyBlockEnd = delivery.indexOf('$previousPreference', idempotencyBlockStart);
+const idempotencyBlock = delivery.slice(idempotencyBlockStart, idempotencyBlockEnd < 0 ? undefined : idempotencyBlockEnd);
+if (/gh release list[^\r\n]*targetCommitish/i.test(idempotencyBlock)) {
+  throw new Error('gh release list must not request unsupported targetCommitish fields');
+}
+if (!/gh release list[^\r\n]*--json tagName[^\r\n]*\r?\n[\s\S]*?gh release view[^\r\n]*--json targetCommitish,isDraft,isPrerelease/i.test(idempotencyBlock)) {
+  throw new Error('candidate-SHA idempotency must list tags, then inspect supported fields with gh release view');
+}
 if (/^\s{2}(push|workflow_dispatch):/m.test(pages)) {
   throw new Error('pages.yml must be callable only from the delivery workflow');
 }
 const publisherCount = (delivery.match(/^\s*gh release create\b/gim) ?? []).length;
 if (publisherCount !== 1) throw new Error(`expected exactly one executable release publisher, found ${publisherCount}`);
+if (process.argv.includes('--verify-gh-fields')) {
+  const list = spawnSync('gh', ['release', 'list', '-R', 'Ding-Ding-Projects/material-asterisk', '--limit', '1', '--json', 'tagName', '--jq', '.[].tagName'], { encoding: 'utf8', shell: false });
+  if (list.status !== 0) throw new Error(`installed gh release list field contract failed with exit ${list.status}`);
+  const tag = list.stdout.trim().split(/\r?\n/).find(Boolean);
+  if (tag) {
+    const view = spawnSync('gh', ['release', 'view', '-R', 'Ding-Ding-Projects/material-asterisk', tag, '--json', 'targetCommitish,isDraft,isPrerelease'], { encoding: 'utf8', shell: false });
+    if (view.status !== 0) throw new Error(`installed gh release view field contract failed with exit ${view.status}`);
+    const parsed = JSON.parse(view.stdout);
+    for (const field of ['targetCommitish', 'isDraft', 'isPrerelease']) {
+      if (!(field in parsed)) throw new Error(`installed gh release view omitted ${field}`);
+    }
+  }
+}
 console.log('delivery-path-contract: PASS');
