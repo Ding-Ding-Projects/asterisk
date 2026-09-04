@@ -15,6 +15,7 @@ import {
   inspectLogoBytes,
   validateLogoCrop,
   type LogoCacheAssetMetadata,
+  type LogoCacheAsset,
   type LogoCacheClearRequest,
   type LogoCacheRecord,
   type LogoCacheWriteRequest,
@@ -126,7 +127,10 @@ export class LogoStore {
     if (!cacheShape(parsed)) return undefined;
     const cropCheck = validateLogoCrop(parsed.crop);
     if (!cropCheck.ok) return undefined;
+    let totalBytes = 0;
     for (const asset of parsed.assets) {
+      totalBytes += asset.receipt.bytes;
+      if (totalBytes > LOGO_MAX_OUTPUT_BYTES) return undefined;
       try {
         const bytes = new Uint8Array(await readFile(this.assetPath(asset.filename)));
         if (!validAssetBytes(bytes, asset)) return undefined;
@@ -147,6 +151,21 @@ export class LogoStore {
     } catch {
       return undefined;
     }
+  }
+
+  /** Return cached derivatives only after independent digest, signature, dimension,
+   * alpha, and byte-count validation. Source paths and source bytes never enter this
+   * renderer-facing response. */
+  async readForRenderer(): Promise<import('../shared/logo.js').LogoCacheReadResult | undefined> {
+    const record = await this.read();
+    if (!record) return undefined;
+    const assets: LogoCacheAsset[] = [];
+    for (const metadata of record.assets) {
+      const bytes = await this.readAsset(record, metadata.filename);
+      if (!bytes) return undefined;
+      assets.push({ ...metadata, bytesBase64: Buffer.from(bytes).toString('base64') });
+    }
+    return { ...record, assets };
   }
 
   async write(request: LogoCacheWriteRequest): Promise<LogoCacheRecord> {

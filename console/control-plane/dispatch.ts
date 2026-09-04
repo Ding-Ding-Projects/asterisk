@@ -30,7 +30,7 @@ import { parseAllowlist, SETTINGS_SOURCE_ALLOWLIST_KEY } from './settings-source
 import type { ServerInventorySnapshot } from './server-inventory.js';
 import type { RawConfigReader } from './wsl-config-transport.js';
 import { ConverterRegistry } from './converter-registry.js';
-import { pdfCapabilities } from './converter-pdf.js';
+import { executePdfOperationAtomic, pdfCapabilities, planPdfOperation, validatePdfOperationRequest, type PdfOperationExecutor, type PdfOutputInspector } from './converter-pdf.js';
 import { ConverterStore } from './converter-store.js';
 import { ConverterRunner } from './converter-runner.js';
 import { ConverterQueue } from './converter-queue.js';
@@ -40,10 +40,19 @@ import { createOllamaRuntimeHandlers } from './ollama-client.js';
 import { OllamaStore } from './ollama-store.js';
 import { OllamaPullQueue, createOllamaPullHandlers } from './ollama-pulls.js';
 import { OllamaChat, createOllamaChatHandlers } from './ollama-chat.js';
+import { OllamaCatalog, createOllamaCatalogHandlers, type OllamaCatalogPageSource } from './ollama-catalog.js';
+import { createOllamaFitHandlers } from './ollama-fit.js';
+import { OllamaHarnessManager, createOllamaHarnessHandlers, type OllamaHarnessOptions } from './ollama-harness.js';
+import { createLogoConversionHandlers } from './logo-converter.js';
+import { LogoStore, logoStoreHandlers } from './logo-store.js';
+import { PngIsolatedLogoDecoder } from './logo-decoder.js';
+import { PdfLibExecutor, PdfLibInspector } from './pdf-adapter.js';
+import type { LogoSourceInput } from '../shared/logo.js';
+import { VocabularyStore } from './vocabulary-store.js';
 import { DownloadTransferManager } from './download-transfer-manager.js';
 import { createStatusHubClient, createVaultReference, type StatusHubClient } from './status-hub-client.js';
 import type { StatusHubCredentialReferences, StatusHubProjectRegistrationRequest } from '../shared/status-hub.js';
-import type { ConverterRequest, ConverterSniffResult } from '../shared/converter.js';
+import type { ConverterRequest, ConverterSniffResult, PdfOperationRequest } from '../shared/converter.js';
 import { FORGE_CONPTY_HELPER_SHA256, FORGE_GH_SHA256, FileForgeStateStore, ForgePublisher } from './forge-publishing.js';
 import { AsteriskReadings, DialplanReadings, LocalAsteriskCliGateway, NodeProcessExecutor, READ_ONLY_COMMANDS, TargetDiscovery, isAllowedCommandLine } from './index.js';
 import type { ChangePlan, ReadOnlyCommand, ReadOnlyCommandLine, TargetProfile, ConfigValue } from './index.js';
@@ -69,13 +78,17 @@ const CONTROL_PLANE_ACTIONS = new Set<string>([
   'history.list', 'history.restore', 'media.list', 'media.upload', 'media.remove',
   'local-history.list', 'local-history.record', 'local-history.restore',
   'settings.snapshot', 'settings.write', 'settings.remove', 'settings.source.fetch',
-  'converter.catalog', 'converter.pdf-capabilities', 'converter.sniff',
+  'logo.inspect', 'logo.convert', 'logo.cache.read', 'logo.cache.write', 'logo.cache.clear',
+  'vocabulary.status', 'vocabulary.replace', 'vocabulary.clear',
+  'converter.catalog', 'converter.pdf-capabilities', 'converter.pdf-validate', 'converter.pdf-execute', 'converter.sniff',
   'converter.queue.create', 'converter.queue.enqueue-one', 'converter.queue.page',
   'converter.queue.start', 'converter.queue.pause', 'converter.queue.resume', 'converter.queue.cancel',
   'ollama.snapshot',
   'ollama.health', 'ollama.version', 'ollama.models.installed', 'ollama.models.running', 'ollama.model.show', 'ollama.model.delete', 'ollama.model.copy',
+  'ollama.catalog.get', 'ollama.catalog.refresh', 'ollama.catalog.reconcile', 'ollama.fit.evaluate',
   'ollama.pulls.list', 'ollama.pulls.enqueue', 'ollama.pulls.cancel', 'ollama.pulls.retry', 'ollama.pulls.reconcile',
   'ollama.chat.sessions', 'ollama.chat.create', 'ollama.chat.rename', 'ollama.chat.delete', 'ollama.chat.send', 'ollama.chat.retry', 'ollama.chat.regenerate', 'ollama.chat.stop',
+  'ollama.harness.profiles', 'ollama.harness.register', 'ollama.harness.preflight', 'ollama.harness.launch', 'ollama.harness.restore',
   'status-hub.register', 'status-hub.project', 'status-hub.sessions', 'status-hub.session', 'status-hub.replies', 'status-hub.answer',
   'dim-sum.cache.read',
 ]);
@@ -107,6 +120,33 @@ function validateRequestSchema(request: ControlPlaneRequest): string | undefined
   return undefined;
 }
 
+function decodeLocalBytes(value: unknown, label: string, maximumBytes: number): Uint8Array {
+  if (typeof value !== 'string' || value.length === 0 || value.length > Math.ceil(maximumBytes / 3) * 4 + 4 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(value)) {
+    throw new Error(`${label} must be canonical bounded Base64 text.`);
+  }
+  const bytes = new Uint8Array(Buffer.from(value, 'base64'));
+  if (bytes.byteLength === 0 || bytes.byteLength > maximumBytes || Buffer.from(bytes).toString('base64') !== value) {
+    throw new Error(`${label} is empty, oversized, or not canonical Base64.`);
+  }
+  return bytes;
+}
+
+function localLogoSource(payload: Record<string, unknown>): LogoSourceInput {
+  const metadataValue = payload.metadata;
+  const metadata = metadataValue !== null && typeof metadataValue === 'object' && !Array.isArray(metadataValue)
+    ? metadataValue as Record<string, unknown>
+    : undefined;
+  return {
+    kind: 'local',
+    bytes: decodeLocalBytes(payload.bytesBase64, 'Logo source bytes', 8 * 1024 * 1024),
+    metadata: metadata ? {
+      filename: typeof metadata.filename === 'string' ? metadata.filename.slice(0, 256) : undefined,
+      declaredMime: typeof metadata.declaredMime === 'string' ? metadata.declaredMime.slice(0, 128) : undefined,
+      declaredExtension: typeof metadata.declaredExtension === 'string' ? metadata.declaredExtension.slice(0, 32) : undefined,
+    } : undefined,
+  };
+}
+
 export interface ControlPlaneDispatcherOptions {
   /** Where per-installation state (server inventory, local history) is written. */
   userDataPath: string;
@@ -123,6 +163,15 @@ export interface ControlPlaneDispatcherOptions {
   statusHubCredentials?: StatusHubCredentialReferences;
   allowedSettingsSourceHosts?: readonly string[];
   readSettingsSourceToken?: (credentialKey: string) => Promise<string | undefined>;
+  /** Optional verified official catalogue transport. The default is explicitly unavailable,
+   * because Ollama's loopback API does not expose an exhaustive online catalogue. */
+  ollamaCatalogSource?: OllamaCatalogPageSource;
+  /** Optional allowlisted harness configuration. Without it, harness actions stay registered
+   * in the request schema but return the normal unavailable-action response. */
+  ollamaHarness?: Omit<OllamaHarnessOptions, 'client' | 'store'>;
+  /** An independently packaged PDF writer and inspector. Neither is inferred from PATH. */
+  pdfExecutor?: PdfOperationExecutor;
+  pdfInspector?: PdfOutputInspector;
 }
 
 export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOptions) {
@@ -132,10 +181,31 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
   const ollamaStore = new OllamaStore(join(userDataPath, 'ollama-state.json'));
   const ollamaPullQueue = new OllamaPullQueue({ client: ollamaClient, store: ollamaStore });
   const ollamaChat = new OllamaChat({ client: ollamaClient });
+  const ollamaCatalog = new OllamaCatalog({
+    client: ollamaClient,
+    store: ollamaStore,
+    source: options.ollamaCatalogSource ?? {
+      readPage: async () => {
+        throw new Error('No verified official Ollama catalogue transport is configured for this build.');
+      },
+    },
+  });
+  const ollamaHarness = options.ollamaHarness
+    ? new OllamaHarnessManager({ client: ollamaClient, store: ollamaStore, ...options.ollamaHarness })
+    : undefined;
+  const logoStore = new LogoStore({ rootPath: join(userDataPath, 'logo-cache') });
+  // The decoder is deliberately absent until a packaged isolated image process is
+  // supplied. Inspection and cache validation remain available, while conversion
+  // returns a typed decoder-unavailable result instead of pretending to convert.
+  const logoHandlers = createLogoConversionHandlers(new PngIsolatedLogoDecoder(), logoStoreHandlers(logoStore));
+  const vocabularyStore = new VocabularyStore({ rootPath: join(userDataPath, 'vocabulary-cache') });
   const ollamaHandlers = {
     ...createOllamaRuntimeHandlers(ollamaClient),
     ...createOllamaPullHandlers(ollamaPullQueue),
     ...createOllamaChatHandlers(ollamaChat),
+    ...createOllamaCatalogHandlers(ollamaCatalog),
+    ...createOllamaFitHandlers(),
+    ...(ollamaHarness ? createOllamaHarnessHandlers(ollamaHarness) : {}),
   };
   const ollamaReady = ollamaPullQueue.initialize();
   const downloadTransfers = new DownloadTransferManager(userDataPath);
@@ -636,7 +706,7 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         };
       }
 
-      if (request.action === 'converter.catalog' || request.action === 'converter.pdf-capabilities') {
+      if (request.action === 'converter.catalog' || request.action === 'converter.pdf-capabilities' || request.action === 'converter.pdf-validate' || request.action === 'converter.pdf-execute') {
         const registry = await converterRegistry;
         if (request.action === 'converter.catalog') {
           return {
@@ -645,7 +715,39 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
             data: { categories: registry.categories(), formats: registry.formats(), adapters: registry.adapters() },
           };
         }
-        return { ok: true, requestId: request.requestId, data: pdfCapabilities(registry) };
+        if (request.action === 'converter.pdf-capabilities') return { ok: true, requestId: request.requestId, data: pdfCapabilities(registry) };
+        const payload = request.payload && typeof request.payload === 'object' && !Array.isArray(request.payload)
+          ? request.payload as Record<string, unknown>
+          : {};
+        const operation = payload.request;
+        if (!operation || typeof operation !== 'object' || Array.isArray(operation)) {
+          return { ok: false, requestId: request.requestId, code: 'PDF_REQUEST_REQUIRED', message: 'A PDF operation request is required.' };
+        }
+        try {
+          validatePdfOperationRequest(operation as never);
+          if (request.action === 'converter.pdf-execute') {
+            const pdfAdapter = registry.adapter('pdf-toolkit');
+            const packagedPdfAvailable = pdfAdapter?.availability.state === 'enabled';
+            const pdfExecutor = options.pdfExecutor ?? (packagedPdfAvailable ? new PdfLibExecutor() : undefined);
+            const pdfInspector = options.pdfInspector ?? (packagedPdfAvailable ? new PdfLibInspector() : undefined);
+            if (!pdfExecutor || !pdfInspector) return { ok: false, requestId: request.requestId, code: 'PDF_EXECUTOR_UNAVAILABLE', message: 'No independently verified offline PDF writer and inspector are configured for this build.' };
+            const acknowledgedDisclosureIds = Array.isArray(payload.acknowledgedDisclosureIds) ? payload.acknowledgedDisclosureIds.filter((value): value is string => typeof value === 'string') : [];
+            const plan = planPdfOperation(registry, operation as never, acknowledgedDisclosureIds);
+            const destinationPath = typeof payload.destinationPath === 'string' ? payload.destinationPath : '';
+            const overwriteApproved = payload.overwriteApproved === true;
+            const expectation = payload.expectation && typeof payload.expectation === 'object' && !Array.isArray(payload.expectation) ? payload.expectation : {};
+            const pdfRequest = operation as PdfOperationRequest;
+            if (pdfRequest.operation === 'inspect') {
+              const inspected = await pdfInspector.inspect(pdfRequest.sourcePaths[0]!);
+              return { ok: true, requestId: request.requestId, data: { plan, result: inspected } };
+            }
+            const result = await executePdfOperationAtomic(plan, destinationPath, overwriteApproved, pdfExecutor, pdfInspector, expectation as never);
+            return { ok: true, requestId: request.requestId, data: { plan, result } };
+          }
+          return { ok: true, requestId: request.requestId, data: { valid: true, request: operation, capabilities: pdfCapabilities(registry) } };
+        } catch (error) {
+          return { ok: false, requestId: request.requestId, code: 'PDF_REQUEST_INVALID', message: error instanceof Error ? error.message : 'The PDF operation request is invalid.' };
+        }
       }
       if (request.action === 'converter.sniff') {
         const sourcePath = typeof request.payload?.sourcePath === 'string' ? request.payload.sourcePath : '';
@@ -656,10 +758,11 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       }
       if (request.action === 'ollama.snapshot') {
         const observedAt = new Date().toISOString();
-        const [health, version, installed, running] = await Promise.all([
+        const [health, version, installed, running, catalog] = await Promise.all([
           ollamaClient.health(), ollamaClient.version(), ollamaClient.installedModels(), ollamaClient.runningModels(),
+          ollamaCatalog.get(),
         ]);
-        return { ok: true, requestId: request.requestId, data: { observedAt, endpoint: ollamaClient.endpoint, health, version, installed, running } };
+        return { ok: true, requestId: request.requestId, data: { observedAt, endpoint: ollamaClient.endpoint, health, version, installed, running, catalog } };
       }
       if (request.action === 'dim-sum.cache.read') {
         const cachePath = join(userDataPath, 'dim-sum-cache.json');
@@ -857,6 +960,56 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           return { ok: true, requestId: request.requestId, data: { key } };
         } catch (error) {
           return { ok: false, requestId: request.requestId, code: 'SETTING_REMOVE_FAILED', message: error instanceof Error ? error.message : 'Could not remove the setting.' };
+        }
+      }
+      if (request.action.startsWith('logo.')) {
+        const payload = request.payload && typeof request.payload === 'object' && !Array.isArray(request.payload)
+          ? request.payload as Record<string, unknown>
+          : {};
+        try {
+          if (request.action === 'logo.inspect') {
+            return { ok: true, requestId: request.requestId, data: logoHandlers.inspect(localLogoSource(payload)) };
+          }
+          if (request.action === 'logo.convert') {
+            const sourceValue = payload.source && typeof payload.source === 'object' && !Array.isArray(payload.source)
+              ? payload.source as Record<string, unknown>
+              : payload;
+            const targets = Array.isArray(payload.targets) ? payload.targets : [];
+            return {
+              ok: true,
+              requestId: request.requestId,
+              data: await logoHandlers.convert({ source: localLogoSource(sourceValue), crop: payload.crop as never, targets: targets as never }),
+            };
+          }
+          if (request.action === 'logo.cache.read') return { ok: true, requestId: request.requestId, data: await logoStore.readForRenderer() };
+          if (request.action === 'logo.cache.clear') {
+            await logoHandlers.cache.clear({ kind: payload.kind === 'reset' ? 'reset' : 'clear' });
+            return { ok: true, requestId: request.requestId, data: { cleared: true } };
+          }
+          if (request.action === 'logo.cache.write') {
+            if (!payload.result || typeof payload.result !== 'object' || Array.isArray(payload.result)) {
+              return { ok: false, requestId: request.requestId, code: 'LOGO_CACHE_INPUT_INVALID', message: 'A validated logo conversion result is required.' };
+            }
+            const selectedPresetId = typeof payload.selectedPresetId === 'string' ? payload.selectedPresetId : undefined;
+            return { ok: true, requestId: request.requestId, data: await logoHandlers.cache.write({ kind: 'write', result: payload.result as never, selectedPresetId }) };
+          }
+        } catch (error) {
+          return { ok: false, requestId: request.requestId, code: 'LOGO_OPERATION_FAILED', message: error instanceof Error ? error.message : 'The local logo operation failed.' };
+        }
+      }
+      if (request.action.startsWith('vocabulary.')) {
+        try {
+          if (request.action === 'vocabulary.status') {
+            return { ok: true, requestId: request.requestId, data: await vocabularyStore.status() };
+          }
+          if (request.action === 'vocabulary.clear') {
+            return { ok: true, requestId: request.requestId, data: await vocabularyStore.clear() };
+          }
+          const rawText = typeof request.payload?.text === 'string' ? request.payload.text : undefined;
+          if (rawText === undefined) return { ok: false, requestId: request.requestId, code: 'VOCABULARY_TEXT_REQUIRED', message: 'A local vocabulary JSON file is required.' };
+          return { ok: true, requestId: request.requestId, data: await vocabularyStore.replace(rawText) };
+        } catch (error) {
+          return { ok: false, requestId: request.requestId, code: 'VOCABULARY_OPERATION_FAILED', message: error instanceof Error ? error.message : 'The local vocabulary operation failed.' };
         }
       }
       if (request.action === 'settings.source.fetch') {
