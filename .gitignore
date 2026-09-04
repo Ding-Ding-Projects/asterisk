@@ -70,3 +70,13 @@ console/control-plane/*.d.ts
 # protecting against installer images that are never written there. Verified after a
 # full build: console/dist/ held 1.9 GB and console/release/ held 192 KB of evidence.
 ralph/logs/
+
+# console/inventories/ui-smoke/interaction-manifest.json is a 160 MB generated
+# census that GitHub's 100 MB per-file limit refuses outright, so every dew of
+# main was rejected from 2026-08-26 until it was stripped from history. Nothing
+# in the tree reads it, and its own generatedBy field names a script
+# (console/scripts/generate-ui-smoke-manifest.mjs) that is not in the repository,
+# so it cannot be regenerated here either. Regenerate it locally when that
+# generator lands; route any future copy through the Cheap LFS/cloud transfer
+# path rather than committing it to ordinary Git.
+console/inventories/ui-smoke/interaction-manifest.json
