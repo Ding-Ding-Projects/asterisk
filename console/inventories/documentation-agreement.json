@@ -1,0 +1,314 @@
+{
+  "schemaVersion": 1,
+  "what": "Every one of the 88 surface-feature pairs, comparing what the surface's own implementation registry records against what that feature's documentation article says, so the set of contradictions between the two cannot change without a build failing.",
+  "whyPinned": "Pinned by exact membership in both directions. A new disagreement fails immediately rather than joining a pile nobody counts, and a resolved one fails until it is struck off here, because a list that quietly shrinks is not a record of what remains.",
+  "whyNeitherRecordWins": "Both records have been found stale in this tree, in opposite directions, so no pass may resolve a pair by preferring one of them. `language-modes` has an article reading 'not implemented' against a registry that records the day the mechanism landed and names it. `app-display-name` has a registry note reading 'CORRECTED 2026-08-25: nameFor(surface, storage) is never called anywhere' against code that calls it at App.tsx:2368, App.tsx:2987, App.tsx:3030 and display-name.ts:155, and an article that describes exactly those sites. Resolving a pair means reading the code for that one feature.",
+  "measuredOn": "2026-08-26",
+  "registrySources": {
+    "windows-console": "console/app/feature-registry.json",
+    "pages-site": "console/site/feature-registry.json"
+  },
+  "stateToStatus": {
+    "absent": "not implemented",
+    "partial": "partial",
+    "implemented": "implemented"
+  },
+  "totals": {
+    "pairs": 88,
+    "agree": 40,
+    "disagree": 40,
+    "undeclared": 8
+  },
+  "disagreements": [
+    {
+      "surface": "windows-console",
+      "feature": "language-modes",
+      "registryState": "partial",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "funny-levels",
+      "registryState": "implemented",
+      "articleStatus": "partial"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "dialog-emojis",
+      "registryState": "implemented",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "narration",
+      "registryState": "partial",
+      "articleStatus": "implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "scheduled-settings",
+      "registryState": "partial",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "external-settings-sources",
+      "registryState": "implemented",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "status-hub",
+      "registryState": "partial",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "app-logo-customization",
+      "registryState": "implemented",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "browser-style-tabs",
+      "registryState": "implemented",
+      "articleStatus": "partial"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "tab-groups-and-searches",
+      "registryState": "partial",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "command-palette",
+      "registryState": "implemented",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "destructive-action-confirmation",
+      "registryState": "implemented",
+      "articleStatus": "partial"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "local-version-history",
+      "registryState": "partial",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "changelog-viewer",
+      "registryState": "partial",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "external-editor-handoff",
+      "registryState": "partial",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "complete-exports",
+      "registryState": "partial",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "bulk-actions",
+      "registryState": "partial",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "accessibility",
+      "registryState": "implemented",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "personal-vocabulary-upload",
+      "registryState": "implemented",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "support-tickets",
+      "registryState": "implemented",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "built-in-authenticator",
+      "registryState": "partial",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "attention-modes",
+      "registryState": "partial",
+      "articleStatus": "implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "offline-documentation-browser",
+      "registryState": "partial",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "bounded-overlays",
+      "registryState": "implemented",
+      "articleStatus": "partial"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "context-menu-shortcuts",
+      "registryState": "partial",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "long-operation-progress",
+      "registryState": "implemented",
+      "articleStatus": "partial"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "in-context-recovery",
+      "registryState": "implemented",
+      "articleStatus": "partial"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "provider-markup-rendering",
+      "registryState": "partial",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "forge-publishing",
+      "registryState": "partial",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "windows-console",
+      "feature": "collapsible-filters",
+      "registryState": "partial",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "pages-site",
+      "feature": "scheduled-settings",
+      "registryState": "partial",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "pages-site",
+      "feature": "regex-builder",
+      "registryState": "implemented",
+      "articleStatus": "partial"
+    },
+    {
+      "surface": "pages-site",
+      "feature": "destructive-action-confirmation",
+      "registryState": "partial",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "pages-site",
+      "feature": "local-version-history",
+      "registryState": "implemented",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "pages-site",
+      "feature": "complete-exports",
+      "registryState": "implemented",
+      "articleStatus": "partial"
+    },
+    {
+      "surface": "pages-site",
+      "feature": "bulk-actions",
+      "registryState": "implemented",
+      "articleStatus": "not implemented"
+    },
+    {
+      "surface": "pages-site",
+      "feature": "personal-vocabulary-upload",
+      "registryState": "implemented",
+      "articleStatus": "partial"
+    },
+    {
+      "surface": "pages-site",
+      "feature": "attention-modes",
+      "registryState": "implemented",
+      "articleStatus": "partial"
+    },
+    {
+      "surface": "pages-site",
+      "feature": "bounded-overlays",
+      "registryState": "implemented",
+      "articleStatus": "partial"
+    },
+    {
+      "surface": "pages-site",
+      "feature": "collapsible-filters",
+      "registryState": "implemented",
+      "articleStatus": "partial"
+    }
+  ],
+  "undeclared": [
+    {
+      "surface": "windows-console",
+      "feature": "local-file-converter",
+      "registryState": "absent",
+      "articleStatus": null
+    },
+    {
+      "surface": "windows-console",
+      "feature": "ollama-suite-manager",
+      "registryState": "absent",
+      "articleStatus": null
+    },
+    {
+      "surface": "windows-console",
+      "feature": "app-display-name",
+      "registryState": "partial",
+      "articleStatus": null
+    },
+    {
+      "surface": "windows-console",
+      "feature": "automatic-updates",
+      "registryState": "implemented",
+      "articleStatus": null
+    },
+    {
+      "surface": "pages-site",
+      "feature": "local-file-converter",
+      "registryState": "absent",
+      "articleStatus": null
+    },
+    {
+      "surface": "pages-site",
+      "feature": "ollama-suite-manager",
+      "registryState": "absent",
+      "articleStatus": null
+    },
+    {
+      "surface": "pages-site",
+      "feature": "app-display-name",
+      "registryState": "absent",
+      "articleStatus": null
+    },
+    {
+      "surface": "pages-site",
+      "feature": "automatic-updates",
+      "registryState": "absent",
+      "articleStatus": null
+    }
+  ]
+}

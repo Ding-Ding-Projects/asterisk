@@ -245,7 +245,14 @@ test('build composes deterministic local output without fetches', async () => {
   // no registered scheme, no argument read, no navigation -- and what resolving it now does,
   // does not do, and deliberately refuses.
   // One article in, one HTML page out.
-  assert.equal(manifest.outputFiles.length, 192);
+  // 193 from 2026-08-26, for a fifth evidence record:
+  // docs/evidence/surface-evidence-integrity.md, which records what a `verified`
+  // surface-completeness row now has to survive beyond its six artifacts merely existing, and
+  // the contradiction that turned up underneath: 40 of the 88 surface-feature pairs have a
+  // documentation article and an implementation registry that disagree about whether the
+  // feature exists, with each record found stale in a different pair.
+  // One article in, one HTML page out.
+  assert.equal(manifest.outputFiles.length, 193);
   assert.ok(manifest.outputFiles.some(file => file.path === 'social-preview.png'));
   assert.ok((await stat(join(root, 'dist', 'docs', 'README.html'))).isFile());
   const built = await readFile(join(root, 'dist', 'index.html'), 'utf8');

@@ -72,7 +72,7 @@
         },
         {
           "id": "school-mode",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "narration",
@@ -88,7 +88,7 @@
         },
         {
           "id": "dim-sum-surprise",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "regex-builder",
@@ -96,7 +96,7 @@
         },
         {
           "id": "non-blocking-notifications",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "status-hub",
@@ -104,7 +104,7 @@
         },
         {
           "id": "material-appearance",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "app-logo-customization",
@@ -160,7 +160,7 @@
         },
         {
           "id": "responsive-sizing",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "personal-vocabulary-upload",
@@ -168,7 +168,7 @@
         },
         {
           "id": "per-element-toy-locks",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "support-tickets",
@@ -200,7 +200,7 @@
         },
         {
           "id": "guided-forms",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "bounded-overlays",
@@ -232,7 +232,7 @@
         },
         {
           "id": "automatic-updates",
-          "status": "verified"
+          "status": "unverified"
         }
       ]
     },
