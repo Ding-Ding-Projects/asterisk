@@ -588,6 +588,7 @@ of this, so every one of them already had an accessible name; the gap was always
 ## Release readiness
 
 - [x] Verify `download-dependencies.bat /s` from a clean user-scoped toolchain cache.
+- [x] Reconcile the UI-smoke source census to the current checked-in design/runtime sources: 940 executable controls, 5,486 action cases, 16,458 language-mode control rows, 669 route/equivalent proofs, and 17,127 total rows. Runtime evidence remains unrun.
 - [x] Verify `build.bat /s` at the merged candidate commit.
 - [x] Verify `build-installer.bat /s` produces an unsigned installable Squirrel.Windows set.
 - [x] Bundle a complete Ubuntu WSL root filesystem containing Asterisk and every runtime dependency inside the installer.
