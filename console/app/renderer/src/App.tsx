@@ -99,6 +99,11 @@ import {
   activateSchoolMode, deactivateSchoolMode, hasCredential, renameSchoolMode,
   schoolModeActive, schoolModeName, setCredential, type CredentialMethod,
 } from './school-mode';
+import {
+  dimSumSurpriseAllowed, effectiveTextLanguageMode, hiddenScreenStrings, schoolModeStorageView,
+  effectiveNarrationSettings, hiddenScreenKeys, visibleControlValue, visibleGroups, vocabularyStorageFor,
+  withoutHiddenEntries, type CapabilityGroup,
+} from './school-mode-view';
 import { attemptMessage, consumeCredential } from './credential-field';
 import { isFunnyLevel, setFunnyLevel, type CopyLanguage } from './funny-levels';
 import { recoveryFor, type FailureKind } from './in-context-recovery';
@@ -175,6 +180,29 @@ registerLocalHistoryScreen();
  *  whatever `SCREENS.servers.groups` currently holds -- appending on every render
  *  would duplicate the maintenance group on every `forceUpdate`. */
 const SERVERS_BASE_GROUPS = ((SCREENS as unknown as Record<string, { groups?: unknown[] }>).servers?.groups ?? []).slice();
+
+/**
+ * Every screen's design-authored groups, captured at module load for the same reason
+ * `SERVERS_BASE_GROUPS` is: School mode filters groups out of a screen, and filtering a
+ * screen that was already filtered would have nothing to put back when the mode goes off.
+ * Filtering always starts from this frozen base and assigns the result, so the operation
+ * is idempotent and reversible rather than cumulative.
+ */
+const SCHOOL_BASE_GROUPS: ReadonlyMap<string, readonly CapabilityGroup[]> = new Map(
+  Object.entries(SCREENS as unknown as Record<string, { groups?: CapabilityGroup[] } | undefined>)
+    .filter(([, screen]) => Array.isArray(screen?.groups))
+    .map(([key, screen]) => [key, (screen!.groups as CapabilityGroup[]).slice()]),
+);
+
+/**
+ * The two screens whose groups are rebuilt from scratch on every render, by
+ * `prepareServersScreen` and `prepareLocalHistoryScreen`. Their live array is what School
+ * mode filters, because the module-load snapshot above is stale for them by construction.
+ * Neither currently holds a hidden-capability control; `school-mode-consumed.test.tsx`
+ * asserts that both are nonetheless covered, so the day one of them grows one it is
+ * filtered rather than quietly exempt.
+ */
+const RUNTIME_GROUP_SCREENS: ReadonlySet<string> = new Set(['servers', LOCAL_HISTORY_SCREEN_ID]);
 
 /**
  * The two step sequences `WslProvisioning` can emit through its shared `onStep` callback
@@ -440,6 +468,10 @@ export class App extends Base {
   private static readonly LANGUAGE_CHOICES: Record<string, LanguageMode> = {
     English: 'en', '廣東話': 'yue', 'English + 廣東話': 'both',
   };
+
+  /** The same three labels in the order the design draws them, which is what School
+   *  mode's option filter needs to answer "and what is left". */
+  private static readonly LANGUAGE_OPTION_LABELS: readonly string[] = Object.keys(App.LANGUAGE_CHOICES);
 
   private static readonly LANGUAGE_SETTING = 'console.languageMode';
 
@@ -744,9 +776,16 @@ export class App extends Base {
 
   /** `this.durableStorage.storage` typed for what the styling pipeline actually reads:
    *  both the two funny-level keys and the one dialog-emoji key, which is every one of
-   *  those settings this console persists. */
+   *  those settings this console persists.
+   *
+   *  Handed through School mode's read-time view, which is the whole of how the mode
+   *  reaches dialog and message-box copy: while it is on, both funny-level keys answer at
+   *  their effective level and every reader below this seam -- `styledMessageText`,
+   *  `buildDialog`, and anything either grows a caller for -- gets it without knowing the
+   *  mode exists. Off, this is `this.durableStorage.storage` and nothing else. Nothing
+   *  here writes a level, so the levels somebody chose survive the mode untouched. */
   private get messageStorage(): MessageStorage {
-    return this.durableStorage.storage;
+    return schoolModeStorageView(this.durableStorage.storage) as MessageStorage;
   }
 
   /** Wraps the shell's own `fire` (a celebratory title/body popup): the title and body
@@ -1115,7 +1154,7 @@ export class App extends Base {
     /* Until this runs the boundary applies language only. Wiring it here rather than
      * at construction keeps the uploaded file and the rendered text reading from one
      * storage handle instead of two that can disagree. */
-    setVocabularyStorage(this.vocabStorage);
+    setVocabularyStorage(vocabularyStorageFor(this.durableStorage.storage, this.vocabStorage));
     void this.durableStorage.bootstrap().then(() => {
       this.restoreLanguageMode();
       this.restoreDisplayName();
@@ -1541,6 +1580,25 @@ export class App extends Base {
   private prepareServersScreen(): void {
     const screens = SCREENS as unknown as Record<string, { groups?: unknown[] }>;
     screens.servers!.groups = [...SERVERS_BASE_GROUPS, this.runtimeMaintenanceGroup()];
+  }
+
+  /**
+   * Removes this screen's hidden-capability controls, or puts them back.
+   *
+   * Runs for whatever screen is about to render rather than for a list of screen names,
+   * so a control that moves to another screen keeps being filtered and a screen that
+   * grows one starts being filtered without anybody remembering to add it here. Always
+   * assigns from a base rather than filtering in place, so the operation is idempotent
+   * across renders and reverses cleanly when the mode goes off.
+   */
+  private prepareSchoolModeScreen(screen: string): void {
+    const screens = SCREENS as unknown as Record<string, { groups?: CapabilityGroup[] } | undefined>;
+    const entry = screens[screen];
+    if (!Array.isArray(entry?.groups)) return;
+    const base = RUNTIME_GROUP_SCREENS.has(screen)
+      ? entry.groups
+      : SCHOOL_BASE_GROUPS.get(screen) ?? entry.groups;
+    entry.groups = visibleGroups(this.durableStorage.storage, base);
   }
 
   // ---------------------------------------------------------------- local history
@@ -1976,6 +2034,11 @@ What you can do: ${offered}.` : ''}`);
     const name = schoolModeName(this.durableStorage.storage);
     if (on) {
       activateSchoolMode(this.durableStorage.storage);
+      /* Before the status line, because the status line is the least of what changes:
+       * this is what forces English, drops the vocabulary handle and puts the language
+       * control in step. Without it the switch moves and nothing else does, which is
+       * exactly the state this console shipped in. */
+      this.applySchoolMode();
       this.refreshSchoolStatus();
       this.toast(`${name} is on.`);
       return;
@@ -1990,7 +2053,12 @@ What you can do: ${offered}.` : ''}`);
       return;
     }
     const result = deactivateSchoolMode(this.durableStorage.storage, secret);
-    this.setState({ values } as never);
+    /* Unconditionally, not only when the unlock was accepted: a rejected attempt has to
+     * leave the console in exactly the suppressed state it was already in, and running
+     * the same seam either way is what makes that true rather than assumed. The blanked
+     * values object is handed straight in, so this one `setState` both clears the
+     * credential field and puts the language control in step. */
+    this.applySchoolMode(values);
     this.refreshSchoolStatus();
     this.fire(name, attemptMessage(result.ok ? 'accepted' : 'rejected', name));
   }
@@ -2653,7 +2721,7 @@ What you can do: ${offered}.` : ''}`);
      * switch, the language, either voice, rate and pitch -- rather than only on the
      * next restart. This is the one line that makes the seven `nar_*` controls above
      * actually reach something that speaks instead of only reaching localStorage. */
-    this.narrator.setSettings(next);
+    this.narrator.setSettings(effectiveNarrationSettings(this.durableStorage.storage, next));
     this.refreshNarrationStatus();
   }
 
@@ -2681,7 +2749,7 @@ What you can do: ${offered}.` : ''}`);
      * branch above. The narrator's own field default happens to already match
      * `defaultNarrationSettings()`, but this makes that an explicit guarantee instead
      * of leaving two independently-constructed defaults to keep agreeing by accident. */
-    this.narrator.setSettings(this.narration);
+    this.narrator.setSettings(effectiveNarrationSettings(this.durableStorage.storage, this.narration));
     this.refreshNarrationStatus();
   }
 
@@ -2995,6 +3063,67 @@ What you can do: ${offered}.` : ''}`);
   private restoreLanguageMode(): void {
     const saved = this.durableStorage.storage.getItem(App.LANGUAGE_SETTING);
     if (isLanguageMode(saved)) setLanguageMode(saved);
+    /* Whatever was just restored is then passed through School mode, which may override
+     * it to English without disturbing the stored value that was read a line above. */
+    this.applySchoolMode();
+  }
+
+  /** The label the language control shows for a stored mode. `LANGUAGE_CHOICES` read
+   *  backwards rather than a second table, so the two cannot disagree. */
+  private static languageLabel(mode: LanguageMode): string {
+    const found = Object.keys(App.LANGUAGE_CHOICES).find((label) => App.LANGUAGE_CHOICES[label] === mode);
+    return found ?? 'English';
+  }
+
+  /**
+   * Applies School mode to everything that is decided once rather than per render.
+   *
+   * The text boundary's language and the vocabulary handle both live in module state
+   * inside `text-boundary.ts`, so they are set here on mount and again the moment the
+   * switch moves -- the two seams the mode reaches that a render pass cannot.
+   *
+   * The stored language is read and never written. The vocabulary cache is not cleared;
+   * the boundary is simply not handed a way to it, so the shipped wording renders and
+   * the uploaded file is still there when the mode goes off. The visible language
+   * control is put in step through component state only, which is not persisted.
+   */
+  private applySchoolMode(base?: Record<string, unknown>): void {
+    const storage = this.durableStorage.storage;
+    const saved = storage.getItem(App.LANGUAGE_SETTING);
+    const stored: LanguageMode = isLanguageMode(saved) ? saved : 'en';
+    setLanguageMode(effectiveTextLanguageMode(storage, stored));
+    setVocabularyStorage(vocabularyStorageFor(storage, this.vocabStorage));
+    /* A narrator already speaking Cantonese has to stop the moment the mode goes on, or
+     * the console would hide every Cantonese control and keep talking through them. */
+    this.narrator.setSettings(effectiveNarrationSettings(storage, this.narration));
+    /* `base` is passed by the unlock path, which has just blanked the credential field in
+     * a values object React has not committed yet. Reading `this.state` there would put
+     * the typed secret straight back, which is the one thing `consumeCredential` exists
+     * to prevent. */
+    const values = { ...(base ?? (this.state as { values?: Record<string, unknown> }).values ?? {}) };
+    values['lang_mode'] = visibleControlValue(
+      storage, { id: 'lang_mode', options: App.LANGUAGE_OPTION_LABELS }, App.languageLabel(stored));
+
+    /* A destination that is open in a tab has to close, or the whole suppression amounts
+     * to hiding one rail entry while the screen itself sits one click away. Closed by
+     * KEY rather than by label: a tab the user renamed still carries its key, and the
+     * label match `renderVals` uses for the rail would miss it.
+     *
+     * Turning the mode off does not reopen it. A closed tab is a closed tab, and putting
+     * one back that the person did not ask for is a worse surprise than leaving it shut
+     * -- the destination is in the rail and the palette again the moment the mode is off. */
+    const shell = this.state as { screen?: string; tabs?: string[] };
+    const hidden = new Set(hiddenScreenKeys(storage));
+    const patch: Record<string, unknown> = { values };
+    if (hidden.size > 0) {
+      const tabs = (shell.tabs ?? []).filter((key) => !hidden.has(key));
+      if (tabs.length !== (shell.tabs ?? []).length) patch['tabs'] = tabs.length > 0 ? tabs : ['dash'];
+      if (shell.screen !== undefined && hidden.has(shell.screen)) {
+        const next = (patch['tabs'] as string[] | undefined) ?? shell.tabs ?? [];
+        patch['screen'] = next[0] ?? 'dash';
+      }
+    }
+    this.setState(patch as never);
   }
 
   /** Every control change routes through the compiled shell's `setVal`; this notices
@@ -3184,9 +3313,13 @@ What you can do: ${offered}.` : ''}`);
     }
     if (control?.id === 'lang_mode') {
       const mode = App.LANGUAGE_CHOICES[String(value)];
-      if (mode && mode !== languageMode()) {
-        setLanguageMode(mode);
+      if (mode) {
+        /* The choice is stored whatever School mode says, because storing it is what
+         * makes it come back afterwards. What reaches the boundary is the effective
+         * mode, so a choice made while the mode is on is remembered and not obeyed. */
         this.durableStorage.storage.setItem(App.LANGUAGE_SETTING, mode);
+        const effective = effectiveTextLanguageMode(this.durableStorage.storage, mode);
+        if (effective !== languageMode()) setLanguageMode(effective);
       }
     }
     this.baseSetVal(control, value);
@@ -7576,7 +7709,25 @@ It is shown once. The far end needs it to register.`);
     this.syncAppearance();
     if (screen === 'servers') this.prepareServersScreen();
     if (screen === LOCAL_HISTORY_SCREEN_ID) this.prepareLocalHistoryScreen();
+    /* Last of the three, because the two above rebuild their screen's groups outright and
+     * this filters whatever a screen ends up holding. */
+    this.prepareSchoolModeScreen(screen);
     const values = super.renderVals() as Record<string, unknown>;
+    /* The rail and the palette are built inside the compiled shell from every screen it
+     * knows about, so a hidden destination is removed on the way out rather than by
+     * editing the shell -- which is compiled from the design and never hand-edited. */
+    const hiddenScreens = hiddenScreenStrings(
+      this.durableStorage.storage, SCREENS as unknown as Record<string, { label?: string; title?: string }>);
+    if (hiddenScreens.size > 0) {
+      /* `sections` and `paletteItems` only. The tab strip is deliberately NOT filtered
+       * here, because a tab's label can be one the user typed -- `tabNames[k]` -- so a
+       * renamed tab would slip straight through a label match and read as the feature
+       * half-working. Open tabs are closed by key instead, in `applySchoolMode`. */
+      for (const key of ['sections', 'paletteItems'] as const) {
+        const entries = values[key];
+        if (Array.isArray(entries)) values[key] = withoutHiddenEntries(hiddenScreens, entries as { label?: string }[]);
+      }
+    }
     const bridge = this.bridge();
     const readings = this.readings[screen];
     const note = this.note(screen);
