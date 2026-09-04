@@ -3,9 +3,8 @@
  *
  * Every other contract file here reads a hand-written list of six pages -- index, product,
  * documentation, downloads, status, settings. The site publishes NINE. The three the list
- * has never mentioned are converter.html, ollama.html and history.html. The converter is now
- * wired and published, while ollama.html remains an honest unavailable surface and history.html
- * is a bare mount point for a module no page loads.
+ * has never mentioned are converter.html, ollama.html and history.html. All three are now
+ * published routes, and their controls are wired or mounted by the scripts they load.
  *
  * That is how `local-file-converter` and `ollama-suite-manager` came to be recorded absent
  * while their pages sat in the primary navigation of all nine: the check that re-derived
@@ -16,9 +15,8 @@
  * exceptions to be declared with their reasons. A page that gets wired turns this red and
  * the declaration has to go; a page that quietly stops being wired turns it red too.
  *
- * Nothing here says an inert page should be deleted or that the Ollama page should be built.
- * Both are product decisions. This only refuses to let the site publish a control that
- * does nothing without that being written down somewhere a person will find it.
+ * The inert-page list is empty now. A future intentionally unavailable surface must be
+ * declared with its reason rather than silently left unwired.
  *
  * Plain `.mjs`, no bundler, no build step -- this is the `localCheck` evidence column
  * and must run standalone against the published sources.
@@ -74,17 +72,13 @@ const referenced = (id) => everyScript.includes(`"${id}"`) || everyScript.includ
  * Pages whose own controls no script reaches. Each entry is a recorded decision, not a
  * to-do list: the reason is what a reader gets instead of a page that looks finished.
  */
-const INERT_PAGES = {
-  ollama: 'ollama.html ships an endpoint field, approve and probe buttons, a model search and select, a prompt field, a chat control and a cancel button, and site/app.js contains the string "ollama" zero times. Recorded absent in feature-registry.json under ollama-suite-manager, while the page remains a documented unavailable surface.',
-  history: 'history.html is a single empty mount point, <div id="history-delivery-page">, and the module written to fill it -- site/history-delivery.js -- is loaded by no page at all. The page therefore renders its header, its footer and nothing between them. It carries no controls of its own, so it appears here for the mount point rather than for a dead control.',
-};
+const INERT_PAGES = {};
 
 /**
  * Scripts this site ships that no page loads. Same rule as the pages above: declared with
  * a reason, and required to stay unloaded until somebody deliberately wires them.
  */
 const UNLOADED_SCRIPTS = {
-  'history-delivery.js': 'The local delivery workspace behind history.html. No page has a <script src> for it, so nothing on the site runs it.',
   'changelog-data.js': 'Generated changelog data read through window.DING_SITE_CHANGELOG by history-delivery.js, which is itself never loaded.',
   'release-manifest.js': 'Generated release manifest read through window.DING_SITE_RELEASE_MANIFEST by history-delivery.js, which is itself never loaded.',
   'full-builder.js': 'A second regular-expression builder implementation. site/app.js carries the builder the pages actually use.',
@@ -128,13 +122,12 @@ test('a page declared inert really is inert, so the declaration cannot outlive t
 });
 
 test('converter.html and ollama.html carry the controls this record says they carry', () => {
-  // Named exactly, because the converter is wired while the Ollama page remains unavailable,
-  // and a count is what makes both states checkable.
+  // Named exactly, because a count makes both local surfaces checkable.
   assert.deepEqual(ownControls('converter'),
     ['converter-cancel', 'converter-convert-listed', 'converter-files', 'converter-format-search', 'converter-next', 'converter-prev', 'converter-target-format']);
   assert.equal(ownControls('ollama').length, 11);
   assert.equal(scripts['app.js'].includes('converter'), true, 'site/app.js does not mention the wired converter');
-  assert.equal(scripts['app.js'].includes('ollama'), false, 'site/app.js now mentions Ollama -- re-derive the absent record');
+  assert.equal(scripts['app.js'].includes('ollama'), true, 'site/app.js does not mention the wired Ollama surface');
 });
 
 test('every shipped script is either loaded by a page or declared unloaded, with a reason', () => {
@@ -157,11 +150,11 @@ test('every declared unloaded script is a file this site actually ships', () => 
   }
 });
 
-test('history.html is the mount point this record says it is, and nothing fills it', () => {
+test('history.html is a live mount point for its delivery module', () => {
   assert.match(pages.history, /<div id="history-delivery-page"><\/div>/u,
     'history.html no longer carries the empty mount point this record describes');
   assert.ok(scripts['history-delivery.js'].includes('history-delivery-page'),
     'site/history-delivery.js no longer names the mount point it was written for -- this record describes the wrong module');
-  assert.equal(everyScript.includes('history-delivery-page'), false,
-    'a LOADED script now fills the history mount point -- history.html is no longer inert, so re-derive its record');
+  assert.equal(everyScript.includes('history-delivery-page'), true,
+    'the loaded delivery module no longer reaches the history mount point');
 });

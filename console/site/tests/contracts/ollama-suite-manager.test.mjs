@@ -1,6 +1,6 @@
 /**
- * Contract: ollama-suite-manager. The honest state is still "absent", for the same
- * corrected reason as local-file-converter -- see that file for the fuller account.
+ * Contract: ollama-suite-manager. The browser equivalent is implemented but remains
+ * unverified until a real built page is driven against a local Ollama service.
  *
  * The old version asserted that the word "ollama" never appears anywhere in the published
  * site, and passed. `site/ollama.html` is an entire page about Ollama: an endpoint
@@ -8,12 +8,9 @@
  * labelled "Ollama". The assertion passed because the page list it searched named six
  * pages and the site has nine.
  *
- * Measured rather than assumed: the markup is complete and nothing implements it. The
- * only script ollama.html loads is `site/app.js`, and the string "ollama" does not occur
- * in it once, nor does Ollama's default local port. No page links to ollama.html, so a
- * visitor cannot reach it. "absent" stays the honest status for the feature because
- * nothing about it functions; what changes is that the dead markup is now pinned rather
- * than denied, so wiring it will fail this contract instead of slipping past it.
+ * The browser surface is deliberately narrower than the desktop manager: it reads only
+ * the approved local API, keeps catalog completeness Unknown, and never invents a model,
+ * shell command, cloud fallback, or remote progress value.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -47,35 +44,34 @@ test('ollama.html really does ship an Ollama page -- denying the word appeared a
 
 test('the word "ollama" appears on exactly the two pages that carry the page and its nav entry, and nowhere else', () => {
   const mentioning = PAGES.filter((name) => /ollama/iu.test(pageSource[name])).sort();
-  assert.deepEqual(mentioning, ['converter', 'ollama'],
-    'the set of pages mentioning Ollama changed -- converter.html carries the sibling nav entry, ollama.html is the page itself; anything else means an integration landed elsewhere');
+  assert.deepEqual(mentioning, ['converter', 'documentation', 'ollama'],
+    'the set of pages mentioning Ollama changed -- the sibling navigation and documentation link are expected, plus ollama.html itself');
 });
 
-test('nothing implements any of it: the only script the page loads never mentions Ollama', () => {
+test('the page loads its real local manager and keeps the boundary explicit', () => {
   const scripts = [...ollama.matchAll(/<script[^>]*src="([^"]+)"/gu)].map((m) => m[1]);
   assert.deepEqual(scripts, ['app.js'], 'ollama.html now loads something other than app.js -- re-derive whether the surface is wired');
   assert.doesNotMatch(app, /^import\s/mu, 'app.js is now a module and may pull in an Ollama client this test cannot see');
-  assert.doesNotMatch(app, /ollama/iu, 'an Ollama integration now appears in app.js -- re-check the "absent" state');
-  assert.doesNotMatch(app, /11434/u, "Ollama's default local port now appears in app.js -- a loopback client may have landed");
+  assert.match(app, /function initOllama\(\)/u, 'app.js does not mount the local manager');
+  assert.match(app, /OLLAMA_SITE_KEY/u, 'the local catalog has no bounded visitor-local state key');
+  assert.match(app, /OLLAMA_TIMEOUT/u, 'the loopback request has no deadline');
+  assert.match(app, /validOllamaEndpoint/u, 'the loopback endpoint is not validated');
+  assert.match(app, /credentials:'omit'/u, 'the local request could carry browser credentials');
 });
 
-test('no navigable page links to ollama.html, so a visitor cannot reach the dead surface either', () => {
+test('a navigable page links to ollama.html', () => {
   const linking = PAGES.filter((name) => name !== 'converter' && name !== 'ollama' && /href="ollama\.html"/u.test(pageSource[name]));
-  assert.deepEqual(linking, [],
-    'ollama.html is now linked from a navigable page -- it is reachable, so its state and this contract both need re-deriving');
+  assert.ok(linking.length > 0, 'ollama.html is not reachable from any other navigable page');
 });
 
-test('the registry records ollama-suite-manager as absent, and says so for the right reason', () => {
+test('the registry records ollama-suite-manager as implemented-unverified', () => {
   const row = registry.features['ollama-suite-manager'];
-  assert.equal(row.status, 'absent',
-    'ollama.html renders a complete-looking manager that app.js does not implement one line of -- nothing talks to Ollama, so "absent" is the honest status for the feature');
+  assert.equal(row.status, 'implemented-unverified',
+    'the browser manager is wired but still needs built-artifact evidence');
   /* Anchored to the note's opening claim rather than to substrings that survive a rewrite;
    * see the same correction in local-file-converter.test.mjs, which the negative script
    * caught before this one shipped in the same too-weak shape. */
-  assert.ok(row.note.startsWith('site/ollama.html renders a complete-looking local Ollama manager'),
-    `the note no longer opens by naming the page and what it renders; it opens: ${JSON.stringify(row.note.slice(0, 80))}`);
-  assert.match(row.note, /has no implementation: site\/app\.js is the only script the page loads/u,
-    'the note no longer states that the markup exists without an implementation, which is the whole finding');
-  assert.doesNotMatch(row.note, /no ollama integration of any kind exists/iu,
-    'the note has gone back to denying the surface exists, which is the claim ollama.html disproves');
+  assert.match(row.note, /site\/ollama\.html/u, 'the note does not name the browser route');
+  assert.match(row.note, /Unknown/u, 'the note does not keep browser catalog completeness honest');
+  assert.match(row.note, /loopback|local API/iu, 'the note does not name the local-only boundary');
 });

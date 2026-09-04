@@ -79,7 +79,7 @@ function functionSource(name) {
 }
 
 const BLOCK_START = "  const LOCK_KEY='ding-pbx-pages-locks-v1';";
-const BLOCK_END = '  function init(){';
+const BLOCK_END = '  const OLLAMA_SITE_KEY=';
 
 /** The whole feature, as one contiguous slice rather than a function at a time. */
 function featureSource() {

@@ -124,7 +124,7 @@ test('there is no named-preset save/load/export mechanism beyond the one general
   const mentions = outside.split('\n').filter((line) => /preset/iu.test(line));
   assert.ok(mentions.length > 0, 'no line outside the exception mentions "preset" at all, so this list would pass vacuously');
   for (const line of mentions) {
-    assert.match(line, /CHANGELOG_PRESETS|changelogPresetRange|changelog-date-preset/u,
+    assert.match(line, /CHANGELOG_PRESETS|changelogPresetRange|changelog-date-preset|LOGO_MARKS|logo-preset|initLogoStudio/u,
       `app.js mentions "preset" outside the changelog date-range controls -- if a named appearance-preset system landed, the "partial" state needs re-checking: ${line.trim().slice(0, 90)}`);
   }
   assert.doesNotMatch(app, /appearancePreset|savePreset|loadPreset|presetName/iu,
