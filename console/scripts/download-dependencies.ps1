@@ -56,8 +56,9 @@ try {
     $usable = (Test-Path -LiteralPath $nodeExe -PathType Leaf) -and (Test-Path -LiteralPath $npmCmd -PathType Leaf)
     if ($usable) {
         $actual = (& $nodeExe --version).TrimStart('v')
-        if ($actual -ne [string]$node.version) {
-            Write-Phase "Cached Node.js reports $actual; pinned version is $($node.version), so it will be replaced."
+        $actualDigest = Get-Sha256 $nodeExe
+        if ($actual -ne [string]$node.version -or $actualDigest -ne $node.sha256.ToLowerInvariant()) {
+            Write-Phase "Cached Node.js is not the pinned executable (version $actual, sha256 $actualDigest); it will be replaced."
             $usable = $false
         }
     }

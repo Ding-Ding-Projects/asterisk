@@ -28,12 +28,19 @@ $bundlePath = Join-Path $resourceRoot 'asterisk-wsl-rootfs.tar'
 $provenancePath = Join-Path $resourceRoot 'asterisk-wsl-rootfs.json'
 $dockerfile = Join-Path $PSScriptRoot 'asterisk-wsl-runtime.Dockerfile'
 $sourceCommit = (& git -C $repoRoot rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or $sourceCommit -notmatch '^[0-9a-f]{40}$') { throw 'Could not resolve a full candidate commit for the Asterisk rootfs.' }
 
 if (-not $Force -and (Test-Path -LiteralPath $bundlePath) -and (Test-Path -LiteralPath $provenancePath)) {
-    $existing = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
-    if ($existing.sourceCommit -eq $sourceCommit -and $existing.sha256 -eq (Get-Sha256 $bundlePath)) {
-        Write-Host "Reusing bundled Asterisk WSL rootfs for $sourceCommit."
-        exit 0
+    try {
+        $existing = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
+        if ($existing.sourceCommit -eq $sourceCommit) {
+            Test-AsteriskRootfsProvenance -Provenance $existing -BundlePath $bundlePath -ExpectedCommit $sourceCommit | Out-Null
+            Test-AsteriskRootfsTarEntries -Entries (Get-AsteriskRootfsTarEntries -Path $bundlePath)
+            Write-Host "Reusing bundled Asterisk WSL rootfs for $sourceCommit."
+            exit 0
+        }
+    } catch {
+        Write-Warning "Existing Asterisk rootfs for $sourceCommit was refused as stale or invalid: $($_.Exception.Message). Rebuilding it."
     }
 }
 

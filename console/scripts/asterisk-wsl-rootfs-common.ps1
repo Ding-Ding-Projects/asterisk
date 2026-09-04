@@ -74,33 +74,42 @@ function Test-AsteriskRootfsTarEntries([string[]]$Entries) {
     }
 }
 
+function Test-AsteriskRootfsProvenance {
+    param(
+        [Parameter(Mandatory)][object]$Provenance,
+        [Parameter(Mandatory)][string]$BundlePath,
+        [Parameter(Mandatory)][string]$ExpectedCommit
+    )
+    if ($ExpectedCommit -notmatch '^[0-9a-f]{40}$') { throw "Expected source commit is not a full lowercase SHA: $ExpectedCommit" }
+    if ($null -eq $Provenance -or $Provenance.schemaVersion -ne $Script:AsteriskRootfsSchemaVersion) { throw 'Asterisk rootfs provenance has an unsupported schema version.' }
+    if ($Provenance.sourceCommit -ne $ExpectedCommit) { throw 'Asterisk rootfs provenance belongs to a different source commit.' }
+    if ($Provenance.sha256 -notmatch '^[0-9a-f]{64}$') { throw 'Asterisk rootfs provenance has a malformed bundle digest.' }
+    if (-not (Test-Path -LiteralPath $BundlePath -PathType Leaf)) { throw "Asterisk rootfs bundle is missing: $BundlePath" }
+    $file = Get-Item -LiteralPath $BundlePath
+    $actualDigest = Get-Sha256 $BundlePath
+    if ($Provenance.sha256 -ne $actualDigest) { throw 'Asterisk rootfs provenance digest does not match the bundle bytes.' }
+    if ([int64]$Provenance.bytes -ne [int64]$file.Length) { throw 'Asterisk rootfs provenance byte count does not match the bundle.' }
+    if ([string]::IsNullOrWhiteSpace([string]$Provenance.generatedAt) -or [DateTimeOffset]::Parse([string]$Provenance.generatedAt) -eq $null) { throw 'Asterisk rootfs provenance has no valid generatedAt timestamp.' }
+    if ($Provenance.sourceMethod -notin @('compiled', 'pulled')) { throw 'Asterisk rootfs provenance has an unknown sourceMethod.' }
+    $hasRef = -not [string]::IsNullOrWhiteSpace([string]$Provenance.imageRef)
+    $hasDigest = -not [string]::IsNullOrWhiteSpace([string]$Provenance.imageDigest)
+    if ($hasRef -ne $hasDigest) { throw 'Asterisk rootfs provenance imageRef and imageDigest are only valid as a pair.' }
+    if ($Provenance.sourceMethod -eq 'pulled' -and -not $hasDigest) { throw 'A pulled Asterisk rootfs must carry image provenance.' }
+    if ($hasDigest -and [string]$Provenance.imageDigest -notmatch '^sha256:[0-9a-f]{64}$') { throw 'Asterisk rootfs provenance imageDigest is malformed.' }
+    return $true
+}
+
 function Get-AsteriskImageRegistry {
     if ($env:DING_PBX_ASTERISK_IMAGE_REGISTRY) { return $env:DING_PBX_ASTERISK_IMAGE_REGISTRY.Trim().ToLowerInvariant() }
     return 'ghcr.io'
 }
 
 function Get-AsteriskRepositorySlug([string]$RepoRoot) {
-    # owner/repo as GitHub spells it, for the release command line -- deliberately NOT
-    # lowercased, unlike the image-repository owner below. A registry path must be
-    # lowercase; a repository slug is matched case-insensitively but is clearer left as
-    # written, and the two are different enough that one shared helper would eventually
-    # get one of them wrong.
-    #
-    # Split rather than match. A pattern written into this file through a shell arrived
-    # truncated once already, and a broken pattern here would silently stop finding the
-    # published root filesystem and quietly fall back to a four-minute compile.
-    if ($env:GITHUB_REPOSITORY) { return $env:GITHUB_REPOSITORY }
-    $remote = $null
-    try { $remote = (& git -C $RepoRoot remote get-url origin 2>$null) } catch { $remote = $null }
-    if ($remote) {
-        $trimmed = $remote.Trim()
-        if ($trimmed.EndsWith(".git")) { $trimmed = $trimmed.Substring(0, $trimmed.Length - 4) }
-        $parts = $trimmed.Split(@("/", ":"), [System.StringSplitOptions]::RemoveEmptyEntries)
-        if ($parts.Count -ge 2) {
-            return "{0}/{1}" -f $parts[$parts.Count - 2], $parts[$parts.Count - 1]
-        }
-    }
-    return "Ding-Ding-Projects/asterisk"
+    # Release asset lookup is deliberately pinned to the maintained product identity.
+    # Do not derive this from environment or Git remotes: a checkout can retain a
+    # historical redirect or an upstream source remote, and either would query the
+    # wrong release collection without producing a useful error.
+    return 'Ding-Ding-Projects/material-asterisk'
 }
 function Get-AsteriskImageRepositoryOwner([string]$RepoRoot) {
     # OCI registries require an all-lowercase repository path even when the GitHub
@@ -139,12 +148,15 @@ function New-AsteriskRootfsProvenance {
         [string]$ImageRef,
         [string]$ImageDigest
     )
+    if ($SourceCommit -notmatch '^[0-9a-f]{40}$') { throw "New-AsteriskRootfsProvenance requires a full lowercase source commit SHA; got '$SourceCommit'." }
+    if (-not (Test-Path -LiteralPath $BundlePath -PathType Leaf)) { throw "Cannot write rootfs provenance for missing bundle: $BundlePath" }
     if ($SourceMethod -eq 'pulled' -and ([string]::IsNullOrWhiteSpace($ImageRef) -or [string]::IsNullOrWhiteSpace($ImageDigest))) {
         throw "A 'pulled' rootfs must record the image reference and digest it was pulled from."
     }
     if ((-not [string]::IsNullOrWhiteSpace($ImageRef)) -ne (-not [string]::IsNullOrWhiteSpace($ImageDigest))) {
         throw 'imageRef and imageDigest must be recorded together, or not at all.'
     }
+    if (-not [string]::IsNullOrWhiteSpace($ImageDigest) -and $ImageDigest -notmatch '^sha256:[0-9a-f]{64}$') { throw 'imageDigest must be a sha256:<64 lowercase hex> digest.' }
     $file = Get-Item -LiteralPath $BundlePath
     return [ordered]@{
         schemaVersion = $Script:AsteriskRootfsSchemaVersion
