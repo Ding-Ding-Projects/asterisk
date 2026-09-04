@@ -7,6 +7,7 @@ import {
   createLaunchGate, decideDimSumSurprise, type LaunchGate, type RuntimeSignals,
 } from './dim-sum-surprise-context';
 import type { Dish, Surprise } from './dim-sum-surprise';
+import { dimSumSurpriseAllowed } from './school-mode-view';
 
 /**
  * One gate for the whole running process, exactly like the update banner's own status
@@ -99,6 +100,14 @@ export function DimSumSurprise(props: DimSumSurpriseProps = {}) {
         bridge ? bridge.updater.getStatus().catch((): UpdaterStatusForRenderer | undefined => undefined) : Promise.resolve(undefined),
       ]);
       if (cancelled) return;
+      /* School mode's contract is that dim sum behaves as if it were NOT INSTALLED, so
+       * this returns before the launch marker below is consumed as well as before
+       * anything is drawn. A feature that is not installed does not quietly spend the
+       * one first launch it is allowed, and the surprise is therefore still waiting the
+       * first time the mode is off rather than having been used up behind the person's
+       * back. `dimSumSurpriseAllowed` is `capabilityVisible(storage, 'dimSum')` and
+       * nothing else -- the decision stays in school-mode.ts. */
+      if (!dimSumSurpriseAllowed(storageHandle.storage)) return;
       /* Consumed only once the async signals above have actually resolved, so a
        * cancelled (unmounted-before-settled) attempt never marks the launch seen
        * without ever having decided anything. */
