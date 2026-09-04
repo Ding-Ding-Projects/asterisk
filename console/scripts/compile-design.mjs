@@ -183,6 +183,7 @@ const HINT_PREFIX = 'hint-';
 const EVENTS = new Set([
   'onClick', 'onInput', 'onChange', 'onContextMenu', 'onMouseDown', 'onMouseUp',
   'onMouseEnter', 'onMouseLeave', 'onDrop', 'onDragStart', 'onDragOver', 'onDragEnd',
+  'onKeyDown',
 ]);
 
 // ---------------------------------------------------------------- hover / active styles
