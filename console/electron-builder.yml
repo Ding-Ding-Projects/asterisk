@@ -7,6 +7,14 @@ files:
   - dist-electron/**/*
   - app/electron/preload.cjs
   - app/electron/preload-probe.cjs
+  # probe-path.cjs is the only one of these three reached by ES module resolution:
+  # main.js does `import ... from './probe-path.cjs'`, which resolves relative to the
+  # COMPILED file under dist-electron, while the two preload files are handed to Electron
+  # as absolute paths and so never cared where they sat. Copied as a source path alone it
+  # landed in app/electron/ and the packaged application threw ERR_MODULE_NOT_FOUND on
+  # launch -- packaging green, installer built, suite green, application dead.
+  - from: app/electron/probe-path.cjs
+    to: dist-electron/app/electron/probe-path.cjs
   - app/electron/probe-path.cjs
 asarUnpack:
   - node_modules/keytar/**
