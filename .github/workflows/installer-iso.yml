@@ -10,17 +10,10 @@ name: Build installer ISO
 # preinstalled on GitHub's ubuntu-24.04 runners, so no separate setup step is
 # needed.
 #
-# CI runs no tests and no lint here, matching the rest of this repository's
-# workflows -- this workflow builds, verifies, and publishes evidence only.
+# This is a reusable build lane. The delivery workflow is the sole release
+# publisher, so an ISO build can never create a second release for one commit.
 on:
-  workflow_dispatch:
-  push:
-    branches: [master]
-    paths:
-      - 'console/scripts/iso/**'
-      - 'console/scripts/build-iso.ps1'
-      - 'build-iso.bat'
-      - '.github/workflows/installer-iso.yml'
+  workflow_call:
 
 permissions:
   contents: write
@@ -162,7 +155,10 @@ jobs:
             echo "::error::Produced ISO has no real master boot record signature (got '$mbr_signature')." >&2
             exit 1
           fi
-          command -v xorriso >/dev/null 2>&1 || sudo apt-get update && sudo apt-get install -y --no-install-recommends xorriso
+          if ! command -v xorriso >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends xorriso
+          fi
           report="$(xorriso -indev "$iso" -report_el_torito plain 2>&1)"
           echo "$report" | grep -q BIOS || { echo "::error::Produced ISO has no BIOS El Torito boot entry." >&2; exit 1; }
           echo "$report" | grep -q UEFI || { echo "::error::Produced ISO has no UEFI El Torito boot entry." >&2; exit 1; }
@@ -180,14 +176,15 @@ jobs:
           #   $ stat -c%s console/release/iso/ding-pbx-installer.iso
           # was 3,720,878,080 bytes here, well over that cap, so the ISO
           # cannot be attached to a release as a single file. Split it into
-          # verified volumes safely under the cap (1900 MiB each) with a
+          # verified volumes safely under the project ceiling (1200 MiB each)
+          # with a
           # manifest recording every volume's own SHA-256 plus the
           # reassembled image's SHA-256, so a user can prove they rebuilt the
           # exact right file before writing it to a USB drive or booting it.
           iso="console/release/iso/ding-pbx-installer.iso"
           staging="release-staging"
           mkdir -p "$staging"
-          split -b 1900MiB -d --additional-suffix=.part "$iso" "$staging/ding-pbx-installer.iso."
+          split -b 1200MiB -d --additional-suffix=.part "$iso" "$staging/ding-pbx-installer.iso."
           # Zero-pad volume numbers already applied by -d; rename to a stable,
           # documented pattern: ding-pbx-installer.iso.001, .002, ...
           i=0
@@ -201,6 +198,14 @@ jobs:
             echo "::error::Split produced no volumes." >&2
             exit 1
           fi
+          max_part_bytes=1258291200
+          while IFS= read -r -d '' part; do
+            part_bytes=$(stat -c%s "$part")
+            if [ "$part_bytes" -gt "$max_part_bytes" ]; then
+              echo "::error::ISO volume $(basename "$part") is $part_bytes bytes, above the 1.25 GiB ceiling." >&2
+              exit 1
+            fi
+          done < <(find "$staging" -maxdepth 1 -type f -name 'ding-pbx-installer.iso.part*' -print0)
 
           {
             echo "# Reassembly manifest for ding-pbx-installer.iso"
@@ -211,7 +216,7 @@ jobs:
             echo "## Reassemble (Linux/macOS)"
             echo
             echo '```sh'
-            echo "cat ding-pbx-installer.iso.part*.part 2>/dev/null || cat ding-pbx-installer.iso.part* > ding-pbx-installer.iso"
+            echo "cat ding-pbx-installer.iso.part* > ding-pbx-installer.iso"
             echo "sha256sum -c ding-pbx-installer.iso.sha256"
             echo '```'
             echo
@@ -242,6 +247,7 @@ jobs:
 
           echo "${{ steps.verify.outputs.iso_sha256 }}  ding-pbx-installer.iso" > "$staging/ding-pbx-installer.iso.sha256"
 
+          export PART_COUNT="$part_count"
           node -e '
             const fs = require("fs");
             const provenance = {
@@ -275,71 +281,6 @@ jobs:
           ISO_SHA256: ${{ steps.verify.outputs.iso_sha256 }}
           ISO_BYTES: ${{ steps.verify.outputs.bytes }}
 
-      - name: Publish and verify one non-draft release with the ISO volumes
-        id: publish
-        if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/master' }}
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          tag="ding-pbx-installer-iso-v0.0.${{ github.run_number }}-r${{ github.run_attempt }}"
-          if gh release view "$tag" --json tagName >/dev/null 2>&1; then
-            echo "::error::Release tag $tag already exists; tags are immutable and never recycled." >&2
-            exit 1
-          fi
-
-          {
-            echo "# Ding PBX installer ISO"
-            echo
-            echo '> [!WARNING]'
-            echo '> This ISO is intentionally unsigned. Secure Boot will refuse it; disable Secure'
-            echo '> Boot or enroll a custom key before booting on hardware that enforces it.'
-            echo
-            echo '> [!IMPORTANT]'
-            echo "> The ISO is $(stat -c%s console/release/iso/ding-pbx-installer.iso) bytes, over GitHub's 2 GiB"
-            echo '> per-file release asset limit, so it is published as numbered volumes. See'
-            echo '> `ding-pbx-installer.iso.REASSEMBLE.md` in this release for the exact reassembly'
-            echo '> and verification commands.'
-            echo
-            echo "- Target commit: \`${{ github.sha }}\`"
-            echo '- Automated checks: none. GitHub Actions builds, packages, publishes, and attaches evidence only.'
-            echo "- Reassembled ISO SHA-256: \`${{ steps.verify.outputs.iso_sha256 }}\`"
-            echo "- Reassembled ISO size: \`${{ steps.verify.outputs.bytes }}\` bytes"
-            echo "- Volume count: ${{ steps.package.outputs.part_count }}"
-            echo "- Workflow started: \`${{ steps.started.outputs.started }}\`"
-            echo "- Workflow completed: pending final publication timestamp"
-            echo "- Workflow duration: pending final publication timestamp"
-          } > release-notes.md
-
-          assets=(release-staging/ding-pbx-installer.iso.part* release-staging/ding-pbx-installer.iso.sha256 release-staging/ding-pbx-installer.iso.json release-staging/ding-pbx-installer.iso.REASSEMBLE.md)
-          gh release create "$tag" "${assets[@]}" --target "${{ github.sha }}" --title "Ding PBX installer ISO $tag" --notes-file release-notes.md --verify-tag=false
-
-          completed="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          started_epoch="$(date -u -d "${{ steps.started.outputs.started }}" +%s)"
-          completed_epoch="$(date -u -d "$completed" +%s)"
-          duration=$((completed_epoch - started_epoch))
-          duration_text="$(printf '%02d:%02d:%02d' $((duration/3600)) $((duration%3600/60)) $((duration%60)))"
-          sed -i "s/- Workflow completed: pending final publication timestamp/- Workflow completed: \`$completed\`/" release-notes.md
-          sed -i "s/- Workflow duration: pending final publication timestamp/- Workflow duration: \`$duration_text\`/" release-notes.md
-          gh release edit "$tag" --notes-file release-notes.md
-
-          release_json="$(gh release view "$tag" --json tagName,isDraft,targetCommitish,assets,url)"
-          is_draft="$(echo "$release_json" | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{process.stdout.write(String(JSON.parse(d).isDraft))})')"
-          if [ "$is_draft" = "true" ]; then
-            echo "::error::Published release is unexpectedly a draft." >&2
-            exit 1
-          fi
-          for asset in "${assets[@]}"; do
-            name="$(basename "$asset")"
-            if ! echo "$release_json" | grep -q "\"name\":\"$name\""; then
-              echo "::error::Published release is missing $name." >&2
-              exit 1
-            fi
-          done
-          url="$(echo "$release_json" | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{process.stdout.write(JSON.parse(d).url)})')"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "url=$url" >> "$GITHUB_OUTPUT"
-
       - name: Record build evidence
         if: ${{ always() }}
         run: |
@@ -349,15 +290,24 @@ jobs:
             echo "  \"runId\": \"${{ github.run_id }}\","
             echo "  \"commit\": \"${{ github.sha }}\","
             echo "  \"status\": \"${{ job.status }}\","
-            echo "  \"tag\": \"${{ steps.publish.outputs.tag }}\","
-            echo "  \"url\": \"${{ steps.publish.outputs.url }}\","
             echo "  \"isoSha256\": \"${{ steps.verify.outputs.iso_sha256 }}\","
             echo "  \"isoBytes\": \"${{ steps.verify.outputs.bytes }}\","
             echo "  \"partCount\": \"${{ steps.package.outputs.part_count }}\","
             echo "  \"signing\": \"prohibited-and-not-used\""
             echo "}"
           } > evidence/iso-build.json
-          cp -f release-notes.md evidence/release-notes.md 2>/dev/null || true
+
+      - name: Upload ISO release outputs for the single publisher
+        if: ${{ always() }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-iso-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            release-staging/**
+            evidence/**
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Upload build evidence even after a failure
         if: ${{ always() }}

@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [switch]$Silent,
+    [switch]$SkipBootstrap,
     [string]$Version = $env:DING_PBX_VERSION,
     [string]$CandidateCommit = $env:DING_PBX_CANDIDATE_COMMIT
 )
@@ -13,6 +14,7 @@ $node = Get-Content -Raw -LiteralPath (Join-Path $repoRoot 'dependency-manifest.
 $nodeRoot = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) ("DingPBX\toolchains\{0}" -f $node.archiveRoot)
 $npm = Join-Path $nodeRoot 'npm.cmd'
 $output = Join-Path $repoRoot 'console\dist\squirrel-windows\squirrel-windows'
+$packagingLogTemp = Join-Path ([IO.Path]::GetTempPath()) ("material-asterisk-packaging-$PID.log")
 
 function Phase([string]$Message) { Write-Host ("[{0:HH:mm:ss}] {1}" -f [DateTime]::Now, $Message) }
 
@@ -53,22 +55,29 @@ $env:DING_PBX_VERSION = $Version
 $env:DING_PBX_CANDIDATE_COMMIT = $CandidateCommit
 
 try {
-    Phase 'Bootstrapping all packaging dependencies.'
-    $bootstrapArgs = @()
-    if ($Silent) { $bootstrapArgs += '/s' }
-    & $bootstrap @bootstrapArgs
-    if ($LASTEXITCODE -ne 0) { throw "download-dependencies.bat exited $LASTEXITCODE" }
+    if (-not $SkipBootstrap) {
+        Phase 'Bootstrapping all packaging dependencies.'
+        $bootstrapArgs = @()
+        if ($Silent) { $bootstrapArgs += '/s' }
+        & $bootstrap @bootstrapArgs
+        if ($LASTEXITCODE -ne 0) { throw "download-dependencies.bat exited $LASTEXITCODE" }
+    } else {
+        Phase 'Using the dependency bootstrap completed by the root installer entry point.'
+    }
     $env:PATH = "$nodeRoot;$env:PATH"
     $env:CSC_IDENTITY_AUTO_DISCOVERY = 'false'
     $env:CSC_LINK = ''
     $env:CSC_KEY_PASSWORD = ''
 
     if (Test-Path -LiteralPath $output) { Remove-Item -LiteralPath $output -Recurse -Force }
+    if (Test-Path -LiteralPath $packagingLogTemp) { Remove-Item -LiteralPath $packagingLogTemp -Force }
     Phase 'Building the unsigned Squirrel.Windows installer through the project packaging script.'
     Push-Location (Join-Path $repoRoot 'console')
     try {
-        & $npm run package:squirrel
-        if ($LASTEXITCODE -ne 0) { throw "npm run package:squirrel exited $LASTEXITCODE" }
+        $packageOutput = & $npm run package:squirrel 2>&1
+        $packageExit = $LASTEXITCODE
+        $packageOutput | Tee-Object -LiteralPath $packagingLogTemp | Out-Host
+        if ($packageExit -ne 0) { throw "npm run package:squirrel exited $packageExit" }
     } finally { Pop-Location }
 
     $setup = @(Get-ChildItem -LiteralPath $output -File -Filter '*Setup.exe')
@@ -106,6 +115,31 @@ try {
     foreach ($package in $delta) { if ($releaseText -notmatch [regex]::Escape($package.Name)) { throw "RELEASES does not reference $($package.Name)" } }
     if ($identity.artifacts.setup.name -ne $setup[0].Name -or $identity.artifacts.releases.name -ne $releases[0].Name) { throw 'release identity does not name the exact Setup.exe and RELEASES artifacts' }
     if (@($identity.artifacts.fullPackages).Count -ne $full.Count) { throw 'release identity does not enumerate every full package' }
+    $buildLog = Join-Path $output 'packaging-build.log'
+    Copy-Item -LiteralPath $packagingLogTemp -Destination $buildLog -Force
+    $provenancePath = Join-Path $output 'packaging-provenance.json'
+    $provenance = [ordered]@{
+        version = 1
+        sourceCommit = $CandidateCommit
+        builtAt = [DateTimeOffset]::UtcNow.ToString('o')
+        packagingCommand = 'build-installer.bat /s'
+        cleanOutput = $true
+        package = [ordered]@{ id = 'ding-pbx-console'; version = $Version; architecture = 'x64' }
+        buildLog = [ordered]@{ path = 'packaging-build.log'; sha256 = Get-Sha256 $buildLog }
+        signing = [ordered]@{
+            inputsCleared = $true
+            certificateAutoDiscoveryDisabled = $true
+            processAuditComplete = $true
+            signerInvocationCount = 0
+            observedSignerInvocations = @()
+            controls = [ordered]@{ forceCodeSigning = $false; signExecutable = $false; signAndEditExecutable = $false }
+        }
+    }
+    $provenance | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $provenancePath -Encoding utf8
+    $verifier = Join-Path $repoRoot 'console\scripts\verify-squirrel-artifacts.ps1'
+    $receiptPath = Join-Path $output 'squirrel-artifact-receipt.json'
+    & $verifier -ArtifactDirectory $output -ProvenancePath $provenancePath -ExpectedCommit $CandidateCommit -SetupFile $setup[0].Name -ExpectedPackageId 'ding-pbx-console' -ExpectedVersion $Version -ExpectedArchitecture x64 -RequiredPackageEntry '*lib/net45/resources/app.asar' -OutputPath $receiptPath
+    if ($LASTEXITCODE -ne 0) { throw "verify-squirrel-artifacts.ps1 exited $LASTEXITCODE" }
     $hashLines = Get-ChildItem -LiteralPath $output -File | Where-Object Name -ne 'SHA256SUMS.txt' | Sort-Object Name | ForEach-Object { "{0}  {1}" -f (Get-Sha256 $_.FullName), $_.Name }
     $hashLines | Set-Content -Encoding ascii (Join-Path $output 'SHA256SUMS.txt')
     if (-not (Test-UnsignedPortableExecutable $setup[0].FullName)) { throw 'code-signing policy violation: Setup.exe contains an Authenticode certificate table' }
@@ -118,6 +152,8 @@ try {
     Phase ("Installer build complete in {0:c}." -f ([DateTimeOffset]::UtcNow - $started))
     exit 0
 } catch {
+    if (Test-Path -LiteralPath $packagingLogTemp) { Remove-Item -LiteralPath $packagingLogTemp -Force -ErrorAction SilentlyContinue }
     Write-Error "Installer build failed after $(([DateTimeOffset]::UtcNow - $started).ToString('c')): $($_.Exception.Message)"
     exit 1
 }
+if (Test-Path -LiteralPath $packagingLogTemp) { Remove-Item -LiteralPath $packagingLogTemp -Force -ErrorAction SilentlyContinue }

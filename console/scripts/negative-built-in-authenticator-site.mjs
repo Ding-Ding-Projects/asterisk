@@ -354,8 +354,12 @@ const cases = [
   ['the card loses its settings-search terms',
     swap(SETTINGS, 'data-search="authenticator totp otp one-time code two factor 2fa pairing qr secret account codes security"', 'data-search=""')],
 
+  /* The anchor gained a second subject on 2026-08-26, when the element locks joined the
+   * same sentence for the same reason. Reported by this script as a FAILED CASE rather
+   * than passing on an anchor that had quietly stopped existing. */
   ['the reset gate stops naming the accounts among the things it deliberately does not clear',
-    swap(SETTINGS, 'It also leaves your authenticator accounts alone', 'It also leaves some things alone')],
+    swap(SETTINGS, 'It also leaves your authenticator accounts and your element locks alone',
+      'It also leaves your element locks alone')],
 
   ['Export everything stops saying which record set it does not write',
     swap(SETTINGS, '<p id="export-everything-excluded" class="setting-note">', '<p id="export-everything-unnamed" class="setting-note">')],
@@ -369,7 +373,7 @@ const cases = [
   // ---- The registries and the article ----
 
   ['the registry claims the feature is still absent',
-    swap(REGISTRY, '"state": "implemented",\n      "note": "Built on 2026-08-26. site/settings.html carries a SECURITY card', '"state": "absent",\n      "note": "Built on 2026-08-26. site/settings.html carries a SECURITY card')],
+    swap(REGISTRY, '"status": "implemented-unverified",\n      "note": "Built on 2026-08-26. site/settings.html carries a SECURITY card', '"status": "absent",\n      "note": "Built on 2026-08-26. site/settings.html carries a SECURITY card')],
 
   ['the localization registry claims the card is untranslated',
     swap(LOCALES, '"state": "localized",\n      "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",\n      "copyKeys": [\n        "authenticatorDesc"\n      ],',

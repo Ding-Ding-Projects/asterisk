@@ -43,7 +43,11 @@ const repoConsole = resolve(siteRoot, '..');
 const read = (p) => readFileSync(resolve(siteRoot, p), 'utf8').replaceAll('\r\n', '\n');
 const json = (p) => JSON.parse(read(p));
 
-const PAGES = ['index', 'product', 'documentation', 'downloads', 'status', 'settings'];
+/* Derived from the filesystem, not hand-copied: the six-name literal that used to sit
+ * here excluded converter.html, ollama.html and history.html, so every 'anywhere in
+ * the site' claim below searched two thirds of the site. See ./site-pages.mjs. */
+import { PAGE_NAMES } from './site-pages.mjs';
+const PAGES = PAGE_NAMES;
 const pageSource = Object.fromEntries(PAGES.map((name) => [name, read(`${name}.html`)]));
 const app = read('app.js');
 const css = read('styles.css');
@@ -793,8 +797,19 @@ test('the one capability the canon names that this site cannot suppress is recor
    * the scan below match this feature's own explanation of why the scan exists. */
   const combined = [app.replace(schoolBlock(), ''), css, ...PAGES.map((name) => pageSource[name])].join('\n');
   assert.ok(combined.length > 20000, 'the combined source is too small to trust a "not found" result from it');
+  /* Re-derived on 2026-08-26. This was a `Math.random` needle, which read as proof
+   * that nothing on this site drew a random number and stopped being that the moment
+   * something reached for a different generator -- the element locks' shuffled PIN
+   * keypad did, using the cryptographic one. What actually matters here is narrower
+   * and is checked instead: a per-launch surprise needs a draw at LOAD, and every draw
+   * this site makes happens inside a function that runs when somebody asks for it.
+   * The dim-sum contract keeps the full accounting of where every draw lives. */
   assert.doesNotMatch(app, /Math\.random/u,
-    'site/app.js now draws a random number -- a per-launch surprise may exist, and the mode would have to remove it');
+    'site/app.js now draws a random number the ordinary way -- a per-launch surprise may exist, and the mode would have to remove it');
+  const initLine = app.split('\n').find((line) => /^\s*function init\(\)\{/u.test(line));
+  assert.ok(initLine, 'init() was not found as a single source line');
+  assert.doesNotMatch(initLine, /random/iu,
+    'init() now reaches for a random number as the page loads -- a per-launch surprise may exist');
   for (const pattern of [/\bdumplings?\b/giu, /har[\s-]?gow/giu, /\bsurprise\b/giu]) {
     assert.deepEqual([...combined.matchAll(pattern)].map((m) => m[0]), [],
       'a per-launch surprise may have been added to this site -- the restricted presentation would have to remove it');
@@ -868,7 +883,7 @@ test('the card is wired into the page: applied on every state change, and starte
     'applyState no longer applies the restricted presentation, so a stored record would do nothing');
   assert.match(app, /initDisplayName\(\);initNarration\(\);initSchool\(\);/u,
     'nothing starts the restricted presentation card');
-  assert.match(app, /function init\(\)\{ensureAttentionUI\(\);initSchoolWatch\(\);/u,
+  assert.match(app, /function init\(\)\{ensureBuildIdentity\(\);ensureAttentionUI\(\);initSchoolWatch\(\);/u,
     'nothing subscribes to the shared record at start-up');
 });
 

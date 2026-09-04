@@ -33,11 +33,11 @@ const FIXTURE_MANIFEST = {
   tag: 'ding-pbx-console-v9.9.9-r1',
   sourceCommit: 'a'.repeat(40),
   publishedAt: '2026-01-01T00:00:00Z',
-  releaseUrl: 'https://github.com/Ding-Ding-Projects/asterisk/releases/tag/ding-pbx-console-v9.9.9-r1',
+  releaseUrl: 'https://github.com/Ding-Ding-Projects/material-asterisk/releases/tag/ding-pbx-console-v9.9.9-r1',
   releaseNotesMarkdown: '# Fixture release\n\n- A test-only note with a `code span`, a "quote", and a back\\slash.',
   asset: {
     name: 'Ding-PBX-Console-Setup.exe',
-    url: 'https://github.com/Ding-Ding-Projects/asterisk/releases/download/ding-pbx-console-v9.9.9-r1/Ding-PBX-Console-Setup.exe',
+    url: 'https://github.com/Ding-Ding-Projects/material-asterisk/releases/download/ding-pbx-console-v9.9.9-r1/Ding-PBX-Console-Setup.exe',
     sizeBytes: 123456789,
     sha256: 'b'.repeat(64),
   },
@@ -125,14 +125,29 @@ test('contains exactly 32 destination definitions in six declared groups', () =>
     'arcade','notifications','history','customise','appearance','about',
   ]);
 });
-test('provides 78 complete feature articles plus checked evidence records', async () => {
+test('provides 97 complete feature articles plus checked evidence records', async () => {
   const docsRoot=resolve(root,'..','docs'), categories=['pbx','media','data','system','agent','app','platform'];
   const articles=[];
-  for(const category of categories)for(const name of await readdir(join(docsRoot,category)))if(name.endsWith('.md')&&name!=='README.md')articles.push(join(docsRoot,category,name));
-  // 32 destination articles (pbx/media/data/system/agent/app) plus 45 platform articles,
-  // plus one more: docs/pbx/iaxpeers.md, the IAX peers screen's own previously missing
-  // documentation article, added alongside the Trunks/IVR deepening pass.
-  assert.equal(articles.length,78);
+  const byCategory=new Map();
+  for(const category of categories){
+    const names=(await readdir(join(docsRoot,category))).filter(name=>name.endsWith('.md')&&name!=='README.md');
+    byCategory.set(category,names.length);
+    for(const name of names)articles.push(join(docsRoot,category,name));
+  }
+  // Write the arithmetic out per category rather than pinning one total nobody can check.
+  // A single number tells the next reader that it moved and nothing about where, which is
+  // exactly how this pin sat at 78 against 101 on disk while the console feature integration
+  // added 36 documents underneath it.
+  assert.deepEqual([...byCategory].map(([category,count])=>`${category}:${count}`), [
+    'pbx:10','media:4','data:2','system:4','agent:8','app:8','platform:61',
+  ]);
+  // 36 of the 32-destination-plus-platform corpus arrived with the console feature
+  // integration. Four of those were changelog entries filed into feature categories -- a
+  // lane's "Added ..." bullets, which the "## Behavior" rule below would distort rather
+  // than improve -- and they now live in docs/changelog/ beside their three siblings,
+  // which is outside `categories` for the same reason docs/evidence is.
+  assert.equal(articles.length,97);
+  assert.equal(articles.length,[...byCategory.values()].reduce((sum,count)=>sum+count,0));
   // An evidence record is a different genre from a feature article: it says what was
   // captured, from which commit, and by what method, and forcing "## Behavior" onto it
   // would distort a document that is doing its job. So it lives in its own category --
@@ -163,7 +178,7 @@ test('provides 78 complete feature articles plus checked evidence records', asyn
     assert.notEqual(recordsAt,-1,`${name} has no ${CAPTURE_RECORDS_HEADING} section to scan`);
     const captureRecords=content.slice(recordsAt);
     const nextHeading=captureRecords.indexOf('\n## ',CAPTURE_RECORDS_HEADING.length);
-    const rows=[...(nextHeading===-1?captureRecords:captureRecords.slice(0,nextHeading)).matchAll(/^\|(?!\s*(?:---|\s*State))(.+)\|\s*$/gm)].map(match=>match[1]);
+    const rows=[...(nextHeading===-1?captureRecords:captureRecords.slice(0,nextHeading)).matchAll(/^\|(?!\s*(?:---|\s*State|Measurement))(.+)\|\s*$/gm)].map(match=>match[1]);
     assert.ok(rows.length>0,`${name} has a capture-records section with no rows in it`);
     for(const row of rows)assert.match(row,/[0-9a-f]{40}/,`a capture row in ${name} names no source commit: ${row.slice(0,60)}`);
     for(const match of content.matchAll(/\]\(([^)]+\.(?:md|png))\)/g)){const target=resolve(evidenceRoot,match[1]);assert.ok((await stat(target)).isFile(),`${name} -> ${match[1]}`)}
@@ -328,7 +343,41 @@ test('build composes deterministic local output without fetches', async () => {
   // made outside a git checkout cannot name its own commit, deliberately writes no manifest
   // rather than one carrying a placeholder, and bakes no identity into app.js -- so that
   // page reports itself unbuilt instead of asking for a file that was never published.
-  const expectedFiles = manifest.buildIdentity.resolved ? 196 : 195;
+  //
+  // Re-derived on 2026-08-27 rather than nudged: the ledger above had reached 196 while the
+  // build published 232, because the console feature integration added 36 documents under
+  // docs/ and one document is one page. Adding 36 to the running total would have restored a
+  // green check and preserved the thing that made it drift -- a single number nobody can take
+  // apart. So the pin is now a composition, and the total is asserted to equal the sum of its
+  // own parts. A future arrival lands in exactly one row, and the failure message says which.
+  const outputPaths = manifest.outputFiles.map(file => file.path);
+  const count = (predicate) => outputPaths.filter(predicate).length;
+  const composition = {
+    // One document under docs/ becomes one HTML page. This is the row that moves most.
+    docPages: count(path => path.startsWith('docs/') && path.endsWith('.html')),
+    // The nine published site pages, including converter, Ollama, and history delivery.
+    sitePages: count(path => !path.startsWith('docs/') && path.endsWith('.html')),
+    // 49 vendored Roboto faces plus 30 Archivo / IBM Plex Mono faces, so the published pages
+    // fetch no font from anybody.
+    fontFaces: count(path => path.endsWith('.woff2')),
+    // Each vendored set carries its own fonts.css and manifest.json.
+    fontSupport: count(path => path.startsWith('assets/') && !path.endsWith('.woff2')),
+    // The social preview, plus the six product screenshots the homepage names by hand.
+    images: count(path => path.endsWith('.png')),
+    script: count(path => path.endsWith('.js')),
+    stylesheet: count(path => path === 'styles.css'),
+    // Conditional on the environment rather than on the source: see below.
+    identity: count(path => path === 'version.json'),
+  };
+  assert.deepEqual(composition, {
+    docPages: 136, sitePages: 9, fontFaces: 79, fontSupport: 4,
+    images: 7, script: 2, stylesheet: 1, identity: manifest.buildIdentity.resolved ? 1 : 0,
+  });
+  const expectedFiles = Object.values(composition).reduce((sum, part) => sum + part, 0);
+  assert.equal(expectedFiles, manifest.buildIdentity.resolved ? 239 : 238);
+  // The sum is asserted against the manifest's own length as well, so a file matching none of
+  // the rows above cannot be published without failing here -- a composition that only counts
+  // the kinds it already knows about would let a new kind through in silence.
   assert.equal(manifest.outputFiles.length, expectedFiles);
   assert.equal(
     manifest.outputFiles.some(file => file.path === 'version.json'),
@@ -355,7 +404,7 @@ test('the vendored fonts are published inside dist and every page reaches them',
   assert.ok(siteFiles.includes('fonts.css'), 'dist carries no site-fonts fonts.css, so Archivo/IBM Plex Mono fall back silently');
   const siteFaces = siteFiles.filter((file) => file.endsWith('.woff2')).length;
   assert.equal(siteFaces, 30, 'the published site-fonts set carries ' + siteFaces + ' faces; the vendored export declares 30 (15 Archivo weights/subsets + 15 IBM Plex Mono)');
-  for (const page of ['index.html', 'product.html', 'downloads.html', 'documentation.html', 'status.html', 'settings.html']) {
+  for (const page of ['index.html', 'product.html', 'converter.html', 'downloads.html', 'documentation.html', 'status.html', 'settings.html']) {
     const html = await readFile(join(root, 'dist', page), 'utf8');
     // Plain string checks rather than patterns: the needles here are all slashes and
     // dots, and a mangled pattern would match nothing while still reporting a pass.
@@ -437,6 +486,39 @@ test('rejects a structurally invalid download manifest and falls back to the hon
     assertFallbackPublished(dist);
   } finally {
     await rm(scratch, { recursive: true, force: true });
+  }
+});
+
+test('generated documentation carries host-independent canonical and Open Graph metadata', async () => {
+  await buildWithManifest(ABSENT_MANIFEST_PATH);
+  async function collect(relative = 'docs') {
+    const entries = await readdir(join(root, 'dist', relative), { withFileTypes: true });
+    const files = [];
+    for (const entry of entries) {
+      const child = join(relative, entry.name);
+      if (entry.isDirectory()) files.push(...await collect(child));
+      else if (entry.name.endsWith('.html')) files.push(child);
+    }
+    return files;
+  }
+  const docs = await collect();
+  assert.ok(docs.length > 0, 'the generated documentation set is empty');
+  for (const relative of docs) {
+    const source = await readFile(join(root, 'dist', relative), 'utf8');
+    const meta = (attribute, key) => source.match(new RegExp(`<meta ${attribute}="${key}" content="([^"]+)"`))?.[1] || '';
+    const canonical = source.match(/<link rel="canonical" href="([^"]+)"/)?.[1] || '';
+    assert.ok(canonical, `${relative} has no canonical URL`);
+    const canonicalUrl = new URL(canonical);
+    assert.equal(canonicalUrl.protocol, 'https:', `${relative} canonical URL is not HTTPS`);
+    assert.equal(canonicalUrl.pathname, `/material-asterisk/${relative.replaceAll('\\', '/')}`, `${relative} canonical URL points at another path`);
+    const ogUrl = meta('property', 'og:url');
+    assert.equal(ogUrl, canonical, `${relative} og:url disagrees with canonical URL`);
+    const image = meta('property', 'og:image');
+    assert.equal(new URL(image).protocol, 'https:', `${relative} og:image is not HTTPS`);
+    assert.equal(meta('property', 'og:image:width'), '1280', `${relative} has no 1280px og:image width`);
+    assert.equal(meta('property', 'og:image:height'), '640', `${relative} has no 640px og:image height`);
+    assert.ok(meta('property', 'og:image:alt'), `${relative} has no og:image alt text`);
+    assert.ok(meta('name', 'theme-color'), `${relative} has no theme-color metadata`);
   }
 });
 

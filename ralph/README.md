@@ -35,7 +35,7 @@ Delete the file to resume.
 
 1. Halt if `ralph/STOP` exists.
 2. Exit 0 if no unchecked items remain.
-3. Fetch and fast-forward `master` — non-destructive by construction, so the agent never starts from a stale base.
+3. Fetch and fast-forward `main` — non-destructive by construction, so the agent never starts from a stale base.
 4. Run the agent against `ralph/PROMPT.md`.
 5. Log to `ralph/logs/iteration-NNNN-<stamp>.log`.
 6. Report whether the open-item count actually went down.
@@ -47,7 +47,7 @@ That last step matters. An iteration may legitimately tick nothing — recording
 The prohibitions live in `PROMPT.md`, which the agent reads, and are repeated here so a person deciding whether to start this can see them without opening it:
 
 - never `git push --force`, to anything;
-- never push to `master` with a failing suite;
+- never push to `main` with a failing suite;
 - never sign anything (code signing is permanently prohibited in this project);
 - never delete a branch, worktree or stash;
 - never hand-edit `console/app/renderer/src/generated/` — it is compiled from `design/`;
@@ -56,7 +56,7 @@ The prohibitions live in `PROMPT.md`, which the agent reads, and are repeated he
 
 ## What it costs
 
-**Every push to `master` publishes a real, immutable release** with a large installer and redeploys the site. That is intended in this repository. It also means an uncapped run publishes a release per completed item, and immutable means they cannot be tidied away afterwards. Use `-Max` if that is not what you want.
+**Every push to `main` publishes a real, immutable release** with a large installer and redeploys the site. That is intended in this repository. It also means an uncapped run publishes a release per completed item, and immutable means they cannot be tidied away afterwards. Use `-Max` if that is not what you want.
 
 Uncapped also means no spending ceiling. `ralph/STOP` is the brake.
 

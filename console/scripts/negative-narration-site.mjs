@@ -73,8 +73,12 @@ const cases = [
   // applyState stops applying it, so the card shows whatever the markup shipped with and
   // a stored setting is a stored setting and nothing more. This is the defect this
   // repository has shipped most often, and it is invisible from the markup.
+  /* The anchor moved on 2026-08-26, when applyLocks() landed between these two calls.
+   * Worth recording that this script REPORTED the move as a FAILED CASE rather than
+   * letting a break that never landed read as a guard that held -- which is the whole
+   * reason the exactly-once check above exists. */
   ['applyState no longer applies the narration settings',
-    swap(APP, 'applyDialogEmojis();applyNarration();', 'applyDialogEmojis();')],
+    swap(APP, 'applyLocks();applyNarration();', 'applyLocks();')],
 
   // Commented out rather than deleted, because that is how a wiring line usually dies --
   // and because a bare substring needle is satisfied by the comment.
@@ -318,7 +322,7 @@ const cases = [
   /* ---- The registries. ---- */
 
   ['the registry claims the feature is still absent',
-    swap(REGISTRY, '"narration": {\n      "state": "implemented",', '"narration": {\n      "state": "absent",')],
+    swap(REGISTRY, '"narration": {\n      "status": "implemented-unverified",', '"narration": {\n      "status": "absent",')],
 
   ['the registry stops recording the vocabulary boundary',
     swap(REGISTRY, 'narrationTextFor() reads copyLevel(), the per-language copy before vocabulary substitution',

@@ -165,8 +165,10 @@ window origin, matching the built side.
 
 ## Why every row is still `compiled`
 
-`design-parity-evidence-on-disk.mjs` will only accept a `verified` row whose visual diff records a
-`match`, and `compareCaptures` calls a match only when the two captures are pixel-identical.
+`design-parity-evidence-on-disk.mjs` accepts a `verified` row only when the whole-frame visual diff
+is a real comparison and the separate chrome-parity record is a zero-difference match outside the
+declared data regions. `compareCaptures` calls a whole-frame match only when the two captures are
+pixel-identical.
 
 That bar is unreachable here **by deliberate product decision**. This project removed the design's
 sample rows, dashboard tiles, health bars, nav badges, history, agent-rail and trunk-authentication
@@ -177,7 +179,7 @@ side-by-side images show the same chrome beside different data.
 
 Moving a row to `verified` therefore needs two things beyond the captures: a parity bar that
 compares chrome and layout with the data-bearing regions excluded, and a real Material Design 3
-conformance audit per destination. **Both now exist.** The bar is described in
+conformance audit per destination. **Both now exist and are required by the verifier.** The bar is described in
 [docs/evidence/design-parity-chrome-bar.md](../docs/evidence/design-parity-chrome-bar.md); the audit
 in [docs/evidence/design-parity-material-audit.md](../docs/evidence/design-parity-material-audit.md).
 

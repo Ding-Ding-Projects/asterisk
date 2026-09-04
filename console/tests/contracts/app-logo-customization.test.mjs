@@ -152,7 +152,7 @@ test('picking a file runs it through acceptLogo before it can become the mark, a
   const body = app.slice(start, app.indexOf('\n  }', start));
   assert.match(body, /const verdict = acceptLogo\(bytes, facts, /);
   assert.match(body, /if \('problems' in verdict\) \{/);
-  assert.match(body, /chooseCustom\(this\.durableStorage\.storage, `logo\/\$\{file\.name\}`\);/);
+  assert.match(body, /chooseCustom\(this\.durableStorage\.storage, `logo\/cache\/\$\{receiptId\}`\);/);
 });
 
 test('the design renders the preset picker, the file picker, reset and a status readout, all answered', () => {
@@ -164,16 +164,25 @@ test('the design renders the preset picker, the file picker, reset and a status 
   assert.match(app, /if \(action === 'logo-status'\) return this\.logoStatusLine;/);
 });
 
-/* --- PIN: nothing ever renders the chosen mark; only its name is reported as text ----- */
+/* --- visible renderer consumption ----------------------------------------------------- */
 
-test('PIN: currentChoice is read only to build a status line, never to render a picture anywhere', () => {
-  /* Every call site of currentChoice() in App.tsx, and everywhere it is used. If a real
-   * <img>, window-icon, or title-bar consumer is ever added, this test should start failing
-   * and be replaced with a check that the rendered mark actually matches the stored choice. */
+test('the renderer consumes the current choice through the title-bar logo boundary', () => {
+  const mark = read('app/renderer/src/logo-mark.tsx');
+  const titleBar = read('app/renderer/src/title-bar-name.ts');
   const callSites = [...app.matchAll(/currentChoice\(this\.durableStorage\.storage\)/g)];
   assert.ok(callSites.length >= 2, 'currentChoice is called from fewer places than expected -- re-check this pin');
-  assert.doesNotMatch(app, /<img[^>]*(logo|mark|LOGO_PRESETS)/i,
-    'an <img> now references the logo choice -- the "nothing renders the mark" gap this pins may be fixed');
+  assert.match(app, /createElement\(LogoMark, this\.logoForTitleBar\(\)\)/u,
+    'App no longer supplies the selected logo to the title-bar boundary');
+  assert.match(app, /private logoForTitleBar\(\)/u,
+    'the title-bar logo resolver is missing');
+  assert.match(mark, /data-app-logo="true"/u,
+    'LogoMark no longer renders a real, inspectable image consumer');
+  assert.match(mark, /alt=\{props\.label\}/u,
+    'the visible logo has no accessible name');
+  assert.match(titleBar, /brand\?: ReactNode/u,
+    'title-bar-name no longer accepts the real logo boundary');
+  assert.match(titleBar, /cloneElement\(brand/u,
+    'title-bar-name no longer replaces the design placeholder icon');
 });
 
 test('PIN: no window icon, title bar, taskbar mark or nativeImage anywhere reads the stored logo choice', () => {
@@ -182,15 +191,27 @@ test('PIN: no window icon, title bar, taskbar mark or nativeImage anywhere reads
     'main.ts now reads the logo setting to set a real window/app icon -- update this pin');
 });
 
-test('PIN: a "custom" picture is never actually written to disk -- only the file name is remembered as a fake path', () => {
-  /* chooseCustom is handed `logo/${file.name}` as `storedAt` (asserted above), which is a
-   * synthetic label rather than a real path -- nothing anywhere writes the picture's bytes
-   * to that location or to any location. Confirmed by absence: no write call in the whole
-   * control-plane keyed on "logo". */
-  const controlPlaneFiles = [
-    'control-plane/dispatch.ts',
-    'control-plane/image-facts.ts',
-  ].map(read).join('\n');
-  assert.doesNotMatch(controlPlaneFiles, /writeFile[^(]*logo|logo[^(]*writeFile/i,
-    'the control plane now writes logo bytes somewhere -- the "storedAt is a fake path" gap this pins may be fixed');
+test('the privileged logo boundary stores only validated local derivatives and exposes clear/reset actions', () => {
+  const dispatch = read('control-plane/dispatch.ts');
+  const store = read('control-plane/logo-store.ts');
+  assert.match(dispatch, /logo\.inspect|logo\.convert|logo\.cache\.read|logo\.cache\.write|logo\.cache\.clear/u);
+  assert.match(dispatch, /logo-cache/u);
+  assert.match(store, /validAssetBytes|sha256|manifest\.json|recursive: true/u);
+  assert.doesNotMatch(store, /sourcePath|sourceBytes|file\.name/u,
+    'the private cache must not retain the selected source path or source bytes');
+});
+
+test('the visible picker is constrained to PNG because the packaged isolated decoder is PNG-only', () => {
+  const picker = read('app/renderer/src/logo-picker-capability.ts');
+  assert.match(picker, /PNG_ACCEPT = 'image\/png,\.png'/u);
+  assert.match(picker, /control\.id === 'logo_pick'/u);
+  assert.match(app, /verdict\.format !== 'png'/u);
+  assert.match(app, /isolated decoder supports PNG derivatives only/u);
+  assert.match(app, /JPEG, WebP, and SVG remain unavailable/u);
+});
+
+test('the durable logo marker is receipt-derived and never includes the source filename', () => {
+  assert.match(app, /const receiptId = cached\.data\.assets\[0\]\?\.receipt\.sha256/u);
+  assert.match(app, /logo\/cache\/\$\{receiptId\}/u);
+  assert.doesNotMatch(app, /chooseCustom\(this\.durableStorage\.storage, `logo\/\$\{file\.name\}`/u);
 });

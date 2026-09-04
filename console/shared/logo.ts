@@ -193,7 +193,7 @@ export interface LogoHandlerDescriptor {
 export const LOGO_HANDLER_DESCRIPTORS: readonly LogoHandlerDescriptor[] = Object.freeze([
   { action: 'logo.inspect', localOnly: true, input: 'LogoSourceInput', output: 'LogoInspectionResult' },
   { action: 'logo.convert', localOnly: true, input: 'LogoConversionRequest', output: 'LogoConversionResult' },
-  { action: 'logo.cache.read', localOnly: true, input: 'LogoCacheReadRequest', output: 'LogoCacheRecord | undefined' },
+  { action: 'logo.cache.read', localOnly: true, input: 'LogoCacheReadRequest', output: 'LogoCacheReadResult | undefined' },
   { action: 'logo.cache.write', localOnly: true, input: 'LogoCacheWriteRequest', output: 'LogoCacheRecord' },
   { action: 'logo.cache.clear', localOnly: true, input: 'LogoCacheClearRequest', output: 'void' },
 ]);
@@ -395,6 +395,12 @@ export interface LogoCacheAssetMetadata {
   readonly receipt: LogoOutputReceipt;
 }
 
+/** Renderer-facing cache read shape. Bytes are returned only after independent
+ * receipt validation and only over the local privileged bridge. */
+export interface LogoCacheAsset extends LogoCacheAssetMetadata {
+  readonly bytesBase64: string;
+}
+
 export interface LogoCacheRecord {
   readonly schemaVersion: typeof LOGO_SCHEMA_VERSION;
   readonly packageIdentity: typeof LOGO_PACKAGE_IDENTITY;
@@ -403,6 +409,10 @@ export interface LogoCacheRecord {
   readonly crop: LogoCropModel;
   readonly assets: readonly LogoCacheAssetMetadata[];
   readonly updatedAt: string;
+}
+
+export interface LogoCacheReadResult extends Omit<LogoCacheRecord, 'assets'> {
+  readonly assets: readonly LogoCacheAsset[];
 }
 
 export interface LogoCacheReadRequest { readonly kind: 'read' }

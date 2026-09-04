@@ -41,6 +41,9 @@
     {id:'about',name:'About',icon:'ⓘ',group:'App',article:'app/about',description:'Version, integration boundaries, project status, and documentation.'}
   ];
 
+  const PUBLIC_REPOSITORY = 'Ding-Ding-Projects/material-asterisk';
+  const PUBLIC_SITE_ORIGIN = 'https://ding-ding-projects.github.io/material-asterisk/';
+
   // ============================================================================
   // Export engine — ported from app/renderer/src/export.ts. Kept behaviourally
   // identical (same format list, same suitability/loss rules, same output shape)
@@ -270,6 +273,279 @@
     if(trimmed==='')throw new Error('Export base name must not be empty.');
     const suffix=range?`-${range}`:'';
     return `${trimmed}${suffix}.${EXPORT_EXTENSION[format]}`;
+  }
+
+  // ============================================================================
+  // Local file converter engine -- browser-local, bounded, and explicit about
+  // every format it cannot read.
+  //
+  // This block is deliberately free of `document.` and `window.` so the contract
+  // test can extract it and run the real source against real bytes, exactly as
+  // the export-engine block above is run. The DOM half lives in initConverter().
+  //
+  // It writes its row-shaped output through exportRows() rather than carrying a
+  // second set of format writers, so a CSV produced here and a CSV produced by
+  // an export cannot drift apart, and describeLoss() answers for both.
+  // ============================================================================
+  const CONVERTER_MAX_BYTES = 32*1024*1024;
+  const CONVERTER_PAGE_SIZE = 5;
+  const CONVERTER_TARGETS = ['json','jsonl','csv','tsv','txt','base64'];
+  const CONVERTER_TARGET_LABEL = {json:'JSON',jsonl:'JSONL',csv:'CSV',tsv:'TSV',txt:'Plain text',base64:'Base64'};
+  const CONVERTER_TARGET_EXTENSION = {json:'json',jsonl:'jsonl',csv:'csv',tsv:'tsv',txt:'txt',base64:'base64.txt'};
+
+  /**
+   * The adapter catalogue.
+   *
+   * Every category the canonical contract names is present, and a category with
+   * nothing bundled behind it still appears -- carrying the exact reason no
+   * adapter is available rather than quietly vanishing, because a catalogue that
+   * lists only what works reads as "every format is supported".
+   *
+   * `bundled` means the adapter runs entirely inside this page with nothing
+   * fetched: there is no discovery from PATH, no download, and no remote
+   * service, so an adapter is either here in the source or it is unavailable.
+   */
+  const CONVERTER_CATEGORIES = [
+    {id:'structured-data',label:'Structured data and spreadsheets',adapters:[
+      {id:'json',label:'JSON',bundled:true,reads:'json',writes:['json','jsonl','csv','tsv','txt','base64']},
+      {id:'jsonl',label:'JSONL / NDJSON',bundled:true,reads:'jsonl',writes:['json','jsonl','csv','tsv','txt','base64']},
+      {id:'csv',label:'CSV',bundled:true,reads:'csv',writes:['json','jsonl','csv','tsv','txt','base64']},
+      {id:'tsv',label:'TSV',bundled:true,reads:'tsv',writes:['json','jsonl','csv','tsv','txt','base64']},
+      {id:'xlsx',label:'Excel workbook (.xlsx)',bundled:false,
+        unavailable:'no spreadsheet decoder is bundled: an .xlsx file is a ZIP container of XML parts, so reading one needs an inflate implementation this page does not carry'}
+    ]},
+    {id:'code-text',label:'Code and text',adapters:[
+      {id:'utf8-text',label:'UTF-8 text',bundled:true,reads:'text',writes:['txt','base64']},
+      {id:'markdown',label:'Markdown',bundled:true,reads:'markdown',writes:['txt','base64']},
+      {id:'utf16-text',label:'UTF-16 text',bundled:false,
+        unavailable:'only UTF-8 is decoded here: a UTF-16 file is rejected as invalid UTF-8 rather than being decoded into wrong characters'}
+    ]},
+    {id:'binary-encodings',label:'Binary encodings',adapters:[
+      {id:'base64',label:'Bytes to Base64',bundled:true,reads:'any',writes:['base64']}
+    ]},
+    {id:'documents',label:'Documents and PDF',adapters:[
+      {id:'pdf',label:'PDF',bundled:false,
+        unavailable:'no PDF parser is bundled, so a PDF is recognised by its %PDF- signature and then refused rather than being read as text'}
+    ]},
+    {id:'images',label:'Images',adapters:[
+      {id:'image',label:'PNG, JPEG, GIF',bundled:false,
+        unavailable:'no image decoder is bundled; these are recognised by signature and offered only as Base64, which re-encodes the bytes without decoding the picture'}
+    ]},
+    {id:'audio',label:'Audio',adapters:[
+      {id:'audio',label:'WAV, MP3, Ogg',bundled:false,
+        unavailable:'no audio decoder or encoder is bundled, and transcoding audio in a page without one would produce a file that is not what it claims to be'}
+    ]},
+    {id:'video',label:'Video',adapters:[
+      {id:'video',label:'MP4',bundled:false,
+        unavailable:'no video decoder or encoder is bundled; the same reason as audio, at a size that would also exceed the per-file bound'}
+    ]},
+    {id:'archives',label:'Archives',adapters:[
+      {id:'archive',label:'ZIP, gzip',bundled:false,
+        unavailable:'no inflate implementation is bundled, so an archive is recognised by signature and left unopened rather than half-read'}
+    ]}
+  ];
+
+  /** Every adapter in the catalogue, flattened, each carrying its category. */
+  function converterAdapters(){
+    return CONVERTER_CATEGORIES.flatMap(category=>category.adapters.map(adapter=>({...adapter,category:category.id,categoryLabel:category.label})));
+  }
+  /** The bundled adapter that reads this detected kind, or undefined. */
+  function converterAdapterFor(kind){
+    return converterAdapters().find(adapter=>adapter.bundled&&adapter.reads===kind);
+  }
+
+  /**
+   * What these bytes actually are, decided by the bytes.
+   *
+   * The extension is read too, but only as a separate, clearly-labelled hint:
+   * a name is what somebody typed and a signature is what is in the file, and
+   * when they disagree the signature is what gets acted on.
+   */
+  function converterSignature(bytes){
+    const at=(offset,...sig)=>sig.every((byte,index)=>bytes[offset+index]===byte);
+    if(at(0,0x25,0x50,0x44,0x46,0x2D))return{kind:'pdf',signature:'%PDF-'};
+    if(at(0,0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A))return{kind:'png',signature:'\\x89PNG'};
+    if(at(0,0xFF,0xD8,0xFF))return{kind:'jpeg',signature:'\\xFF\\xD8\\xFF'};
+    if(at(0,0x47,0x49,0x46,0x38))return{kind:'gif',signature:'GIF8'};
+    if(at(0,0x50,0x4B,0x03,0x04))return{kind:'zip',signature:'PK\\x03\\x04'};
+    if(at(0,0x1F,0x8B))return{kind:'gzip',signature:'\\x1F\\x8B'};
+    if(at(0,0x52,0x49,0x46,0x46)&&at(8,0x57,0x41,0x56,0x45))return{kind:'wav',signature:'RIFF....WAVE'};
+    if(at(0,0x49,0x44,0x33))return{kind:'mp3',signature:'ID3'};
+    if(at(0,0x4F,0x67,0x67,0x53))return{kind:'ogg',signature:'OggS'};
+    if(at(4,0x66,0x74,0x79,0x70))return{kind:'mp4',signature:'....ftyp'};
+    return undefined;
+  }
+
+  /** Decode as UTF-8, refusing rather than substituting replacement characters. */
+  function converterDecodeUtf8(bytes){
+    try{return{ok:true,text:new TextDecoder('utf-8',{fatal:true}).decode(bytes)}}
+    catch{return{ok:false,reason:'these bytes are not valid UTF-8'}}
+  }
+
+  /** Split one delimited line, honouring RFC 4180 double-quoted fields. */
+  function converterSplitDelimited(line,delimiter){
+    const fields=[];let field='',quoted=false;
+    for(let i=0;i<line.length;i+=1){
+      const char=line[i];
+      if(quoted){
+        if(char==='"'&&line[i+1]==='"'){field+='"';i+=1;continue}
+        if(char==='"'){quoted=false;continue}
+        field+=char;continue;
+      }
+      if(char==='"'){quoted=true;continue}
+      if(char===delimiter){fields.push(field);field='';continue}
+      field+=char;
+    }
+    fields.push(field);
+    return fields;
+  }
+  function converterDelimitedLines(text){
+    return text.split(/\r\n|\n|\r/).filter((line,index,lines)=>line!==''||index<lines.length-1);
+  }
+  /** True when every line splits into the same number of fields, and there is more than one field. */
+  function converterLooksDelimited(text,delimiter){
+    const lines=converterDelimitedLines(text);
+    if(lines.length<2)return false;
+    const width=converterSplitDelimited(lines[0],delimiter).length;
+    if(width<2)return false;
+    return lines.every(line=>converterSplitDelimited(line,delimiter).length===width);
+  }
+
+  /**
+   * Classify decoded text. JSON and JSONL are decided by parsing, not by looking
+   * at the name; CSV and TSV by a consistent field count; Markdown only by its
+   * extension, which is why that one hint is reported as a hint.
+   */
+  function converterClassifyText(text,name){
+    const trimmed=text.trim();
+    if(trimmed!==''){
+      try{JSON.parse(trimmed);return{kind:'json',why:'the whole file parses as JSON'}}catch{/* not JSON; fall through */}
+      const lines=converterDelimitedLines(text).filter(line=>line.trim()!=='');
+      if(lines.length>0&&lines.every(line=>{try{JSON.parse(line);return true}catch{return false}}))
+        return{kind:'jsonl',why:'every line parses as its own JSON value'};
+      if(converterLooksDelimited(text,'\t'))return{kind:'tsv',why:'every line holds the same number of tab-separated fields'};
+      if(converterLooksDelimited(text,','))return{kind:'csv',why:'every line holds the same number of comma-separated fields'};
+    }
+    if(/\.(md|markdown)$/i.test(String(name||'')))
+      return{kind:'markdown',why:'the name ends in .md, which is a hint from the name rather than anything in the bytes'};
+    return{kind:'text',why:'the bytes decode as UTF-8 and match no structured shape'};
+  }
+
+  /**
+   * Everything known about one chosen file, before any conversion is asked for.
+   * `rows` is present only when the file genuinely holds a table.
+   */
+  function converterInspect(name,bytes){
+    const size=bytes.length;
+    if(size>CONVERTER_MAX_BYTES)
+      return{name,size,kind:'over-bound',why:`this file is ${size} bytes and the per-file bound is ${CONVERTER_MAX_BYTES} bytes`,readable:false};
+    const signature=converterSignature(bytes);
+    if(signature)
+      return{name,size,kind:signature.kind,why:`the first bytes are ${signature.signature}`,readable:true,binary:true};
+    const decoded=converterDecodeUtf8(bytes);
+    if(!decoded.ok)return{name,size,kind:'binary',why:decoded.reason,readable:true,binary:true};
+    if(decoded.text.includes('\u0000'))
+      return{name,size,kind:'binary',why:'the bytes decode as UTF-8 but hold a NUL, so this is not text',readable:true,binary:true};
+    const classified=converterClassifyText(decoded.text,name);
+    const inspected={name,size,kind:classified.kind,why:classified.why,readable:true,binary:false,text:decoded.text};
+    const rows=converterRowsFor(classified.kind,decoded.text);
+    if(rows.ok)inspected.rows=rows.rows;
+    else inspected.rowsRefused=rows.reason;
+    return inspected;
+  }
+
+  /**
+   * The table inside a file, or the exact reason there is not one.
+   *
+   * An array of scalars is refused on purpose: a table needs named columns, and
+   * inventing one to hold the values would be this page making up a heading.
+   */
+  function converterRowsFor(kind,text){
+    const isPlainRow=value=>typeof value==='object'&&value!==null&&!Array.isArray(value);
+    if(kind==='json'){
+      const parsed=JSON.parse(text.trim());
+      if(Array.isArray(parsed)){
+        if(parsed.length===0)return{ok:true,rows:[]};
+        if(parsed.every(isPlainRow))return{ok:true,rows:parsed};
+        return{ok:false,reason:'this JSON is an array whose entries are not all objects, so it has no named columns to become a table'};
+      }
+      if(isPlainRow(parsed))return{ok:true,rows:[parsed]};
+      return{ok:false,reason:'this JSON is a single scalar value, so it has no named columns to become a table'};
+    }
+    if(kind==='jsonl'){
+      const values=converterDelimitedLines(text).filter(line=>line.trim()!=='').map(line=>JSON.parse(line));
+      if(values.every(isPlainRow))return{ok:true,rows:values};
+      return{ok:false,reason:'at least one line is not a JSON object, so these lines have no named columns to become a table'};
+    }
+    if(kind==='csv'||kind==='tsv'){
+      const delimiter=kind==='tsv'?'\t':',';
+      const lines=converterDelimitedLines(text);
+      const header=converterSplitDelimited(lines[0],delimiter);
+      const duplicate=header.find((column,index)=>header.indexOf(column)!==index);
+      if(duplicate!==undefined)return{ok:false,reason:`the first line repeats the column name "${duplicate}", so a row read from it would lose one of them`};
+      const rows=lines.slice(1).map(line=>{
+        const fields=converterSplitDelimited(line,delimiter),row={};
+        header.forEach((column,index)=>{row[column]=fields[index]??''});
+        return row;
+      });
+      return{ok:true,rows};
+    }
+    return{ok:false,reason:`a ${kind} file holds no table`};
+  }
+
+  /** Base64 of the raw bytes, chunked so a large file cannot exhaust the argument list. */
+  function converterBase64(bytes){
+    let binary='';
+    for(let i=0;i<bytes.length;i+=0x8000)binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));
+    return btoa(binary);
+  }
+
+  /**
+   * Whether this file can become this target, and if not, exactly why.
+   * Nothing here converts; this is what the Convert button reads to decide
+   * whether it is switched on and what its adjacent text says.
+   */
+  function converterCan(inspected,target){
+    if(!CONVERTER_TARGETS.includes(target))return{ok:false,reason:`${target} is not one of the targets this page writes`};
+    if(!inspected.readable)return{ok:false,reason:inspected.why};
+    if(target==='base64')return{ok:true};
+    if(inspected.binary)return{ok:false,reason:`this file is ${inspected.kind}, and no ${inspected.kind} decoder is bundled, so Base64 is the only target that keeps its bytes honestly`};
+    if(target==='txt')return{ok:true};
+    if(!inspected.rows)return{ok:false,reason:inspected.rowsRefused||`a ${inspected.kind} file holds no table, and ${CONVERTER_TARGET_LABEL[target]} writes a table`};
+    if((target==='csv'||target==='tsv')&&!suitableFormats(inspected.rows).includes(target))
+      return{ok:false,reason:`${CONVERTER_TARGET_LABEL[target]} cannot represent this table: ${describeLoss(inspected.rows,target).join(' ')}`};
+    return{ok:true};
+  }
+
+  /**
+   * What this conversion would lose, said before it runs.
+   * Row-shaped targets defer to describeLoss(), so the converter and the export
+   * pipeline cannot disagree about the same table and the same format.
+   */
+  function converterLoss(inspected,target){
+    if(!inspected.readable)return[inspected.why];
+    if(target==='base64')return['Base64 keeps every byte exactly and makes the output about a third larger. The file name, its timestamp and its permissions are not part of the output.'];
+    if(inspected.binary)return[`No ${inspected.kind} decoder is bundled, so this file cannot become ${CONVERTER_TARGET_LABEL[target]}.`];
+    if(target==='txt')return['Nothing is lost: the decoded UTF-8 text is written back unchanged, including its original line endings.'];
+    if(!inspected.rows)return[inspected.rowsRefused||`A ${inspected.kind} file holds no table.`];
+    const loss=describeLoss(inspected.rows,target);
+    if(target==='csv'||target==='tsv')loss.push('Every value is written as text, so a number and the text of that number become the same field.');
+    return loss.length>0?loss:['Nothing is lost: this table can be represented in full.'];
+  }
+
+  /** Run the conversion. Returns the output text, or the reason there is none. */
+  function converterConvert(inspected,target,bytes){
+    const can=converterCan(inspected,target);
+    if(!can.ok)return{ok:false,reason:can.reason};
+    if(target==='base64')return{ok:true,text:converterBase64(bytes)};
+    if(target==='txt')return{ok:true,text:inspected.text};
+    return{ok:true,text:exportRows({rows:inspected.rows,format:target,table:'row'})};
+  }
+
+  /** The output name, keeping the original stem and never a path separator. */
+  function converterOutputName(name,target){
+    const stem=String(name).replace(/\.[^./\\]*$/,'').replace(/[/\\]/g,'-').trim();
+    return `${stem===''?'converted':stem}.${CONVERTER_TARGET_EXTENSION[target]}`;
   }
 
   // ============================================================================
@@ -593,6 +869,20 @@
   // against the shipped title rather than against the previous rename's output.
   const SHIPPED_TITLE = document.title;
   const STORAGE_KEY = 'ding-pbx-pages-v2';
+  /* The two cache keys are named here as well as written as literals at their one write
+   * site each, because the ticket desk's recovery panel derives the list of keys this page
+   * writes from these declarations rather than restating it -- and that panel is the only
+   * place a locked-out reader is told what to clear.
+   *
+   * Two spellings of one value, so both halves are pinned in the contracts that own them
+   * (app-logo-customization and personal-vocabulary-upload each assert the literal at the
+   * write site AND the constant here). Worth saying out loud because these two lines were
+   * silently dropped by a merge once: master had edited the region they sat in, so the
+   * auto-merge took its side and took the declarations with it, leaving supportStorageKeys
+   * referring to two bindings that no longer existed. Nothing in app.js complained -- the
+   * reference is inside a function nobody calls until the panel opens. */
+  const VOCABULARY_CACHE_KEY = 'ding-pbx-vocabulary-cache';
+  const LOGO_CACHE_KEY = 'ding-pbx-logo-cache';
   // ---- Local version history: an append-only record, isolated in its own
   // storage key so "Reset settings" never touches it. Restoring an entry
   // writes a NEW entry rather than rewriting or deleting an earlier one, so
@@ -648,7 +938,7 @@
   const state=loadState();
   function save(){return reportWrite('this page’s settings',writeLocal(STORAGE_KEY,JSON.stringify(state)))}
   function update(key,value){state[key]=value;save();applyState();recordHistory('setting-changed',`${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`${key} now uses ${value}.`),{category:'setting',copyKey:'notifSettingSaved'})}
-  function applyState(){applySchoolMode();document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyDisplayName();applyVocabulary();applyDialogEmojis();applyNarration();updateSessionTimer();updateOneThingBanner();renderAllModeStatuses();renderUpdateState()}
+  function applyState(){applySchoolMode();document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.density=state.density;document.documentElement.style.setProperty('--primary',state.accent);document.documentElement.style.setProperty('--font-scale',String(state.fontScale/100));document.body.classList.toggle('low-stimulation',state.lowMotion);if($('theme-mode'))$('theme-mode').value=state.theme;if($('language-mode'))$('language-mode').value=state.language;if($('density-mode'))$('density-mode').value=state.density;if($('accent-color'))$('accent-color').value=state.accent;if($('font-scale'))$('font-scale').value=state.fontScale;if($('font-scale-output'))$('font-scale-output').textContent=`${state.fontScale}%`;if($('motion-mode'))$('motion-mode').checked=state.lowMotion;if($('english-funny'))$('english-funny').value=String(state.englishFunny);if($('cantonese-funny'))$('cantonese-funny').value=String(state.cantoneseFunny);if($('schedule-enabled'))$('schedule-enabled').checked=state.scheduleEnabled;if($('attention-reduce-flashing'))$('attention-reduce-flashing').checked=state.attention.reduceFlashing;if($('attention-simplified-language'))$('attention-simplified-language').checked=state.attention.simplifiedLanguage;if($('attention-extended-timeouts'))$('attention-extended-timeouts').checked=state.attention.extendedTimeouts;if($('attention-focus'))$('attention-focus').checked=state.attention.focus;if($('attention-time-awareness'))$('attention-time-awareness').checked=state.attention.timeAwareness;if($('attention-one-thing'))$('attention-one-thing').checked=state.attention.oneThing;if($('attention-momentum'))$('attention-momentum').checked=state.attention.momentum;if($('attention-current-task'))$('attention-current-task').value=state.attention.currentTask||'';document.body.classList.toggle('reduce-flashing',state.attention.reduceFlashing);document.body.classList.toggle('extended-timeouts',state.attention.extendedTimeouts);document.body.classList.toggle('attn-focus',state.attention.focus);applyLanguage();applyCopy();applyLogo();applyDisplayName();applyVocabulary();applyDialogEmojis();applyLocks();applyNarration();updateSessionTimer();updateOneThingBanner();renderAllModeStatuses();renderUpdateState();renderSupportCopy()}
   function updateAttention(key,value){state.attention={...state.attention,[key]:value};save();applyState();recordHistory('attention-changed',`attention.${key} changed to ${value}.`);notify(copyText('notifSettingSaved'),applyVocabularyText(`attention.${key} now uses ${value}.`),{category:'setting',copyKey:'notifSettingSaved'})}
   function applyLanguage(){if(!$('language-preview'))return;document.documentElement.lang=state.language==='zh'?'zh-Hant':'en';$('language-preview').textContent=state.language==='en'?'English presentation active.':state.language==='zh'?'廣東話顯示已啟用。':'Bilingual presentation active. / 雙語顯示已啟用。'}
 
@@ -658,6 +948,23 @@
   // exact wording this page already shipped, so nothing changes for anyone who never
   // touches the sliders.
   const COPY = {
+    /* Voice moves with the slider; three facts never do. Every one of the eight
+     * variants says that this is a speed bump rather than a security boundary, that
+     * every lock carries its own value so opening one opens nothing else, and that
+     * clearing this site's storage removes them all with no way to get a value back.
+     * A variant that dropped the first would be advertising protection this feature
+     * does not provide, which is the one direction a joke must never take. */
+    locksDesc:{en:[
+      'Locks one control at a time behind a PIN, a password, a one-time code, or a combination of them. It is a speed bump you set for yourself, not a security boundary: it encrypts nothing and stops nobody else who has this computer. Every lock carries its own value, so opening one opens nothing else, and clearing this site’s storage removes them all — nothing here can give a value back.',
+      'Locks one control at a time behind a PIN, a password, a one-time code, or a mix of them. It is a speed bump you set for yourself, not a security boundary: it encrypts nothing and stops nobody else who has this computer. Every lock carries its own value, so opening one opens nothing else, and clearing this site’s storage removes the lot — nothing here can give a value back.',
+      'Puts a lock on one control at a time — a PIN, a password, a one-time code, or several of them in a row. It is a speed bump you built for yourself, not a security boundary: it encrypts nothing and stops nobody else who has this computer. Every lock carries its own value, so opening one opens nothing else, and clearing this site’s storage takes the lot with it — nothing here can give a value back.',
+      'Bolts one single control shut behind a PIN, a password, a one-time code, or all three in a queue. It is a speed bump you cheerfully built for yourself, not a security boundary, and it is not pretending to be one either: it encrypts nothing, and anyone else sitting at this computer walks straight past it. Every lock carries its own value, so opening one opens precisely one, and clearing this site’s storage sweeps the whole lot away — nothing here can give a value back.'
+    ],zh:[
+      '一次鎖一個控制項，用 PIN、密碼、一次性驗證碼，或者幾樣夾埋。呢個係你自己set畀自己嘅減速墩，唔係安全防線：佢冇加密任何嘢，亦都攔唔住其他攞得到呢部電腦嘅人。每個鎖有自己嘅值，所以開一個唔會連帶開其他，而清除呢個網站嘅儲存空間就會將全部移除 —— 呢度冇任何嘢可以將個值還返畀你。',
+      '一次鎖一個控制項，用 PIN、密碼、一次性驗證碼，或者幾樣溝埋一齊。呢個係你自己set畀自己嘅減速墩，唔係安全防線：佢冇加密任何嘢，亦都攔唔住其他攞得到呢部電腦嘅人。每個鎖有自己嘅值，所以開一個唔會連帶開其他，清除呢個網站嘅儲存空間就會將成批移除 —— 呢度冇任何嘢可以將個值還返畀你。',
+      '一次鎖一個控制項 —— PIN、密碼、一次性驗證碼，或者幾樣排住隊嚟。當佢係你自己砌畀自己嘅減速墩就啱，唔係安全防線：佢冇加密任何嘢，其他攞得到呢部電腦嘅人一樣行得過。每個鎖有自己嘅值，所以開一個唔會連帶開其他，清咗呢個網站嘅儲存空間就會成批帶走 —— 呢度冇任何嘢可以將個值還返畀你。',
+      '一次淨係閂實一個控制項，用 PIN、用密碼、用一次性驗證碼，或者三樣排住隊逐個嚟。呢個純粹係你自己開開心心砌畀自己嘅減速墩，唔係安全防線，佢亦都唔會扮：佢冇加密任何嘢，其他坐喺呢部電腦前面嘅人一步就行過咗。每個鎖有自己嘅值，所以開一個就係開一個，清咗呢個網站嘅儲存空間就成批掃走 —— 呢度冇任何嘢可以將個值還返畀你。'
+    ]},
     /* Voice moves with the slider; three facts never do. Every one of the eight
      * variants says that the secrets stay in this browser and nothing is sent
      * anywhere, that every code is computed on this page from the secret the reader
@@ -719,6 +1026,34 @@
       '呢個設定會留意已發佈嘅網站有冇行前咗，有就話你知，但唔會打斷你 —— 比較嘅係呢版整出嚟嗰個 build commit，唔係旁邊嗰個版本標籤。冇嘢會安裝，亦冇嘢喺背景下載：重新載入就係攞新版嘅方法。個檢查淨係向呢個網站攞一個細版本檔案，唔會送任何嘢出去。',
       '佢會幫你望住已發佈嘅網站有冇跑咗喺你面前呢版前面，有就靜靜雞講一聲，唔會彈個對話框嚇你。佢比較嘅係 build commit，唔係嗰個好聽嘅版本標籤。冇嘢安裝，冇嘢喺背景偷偷落載，重新載入就係成個升級程序。個檢查淨係向呢個網站攞一個細版本檔案，唔會送任何嘢出去。',
       '已發佈嘅網站行咗前，佢就好有禮貌噉咳一聲。佢比較 build commit，因為兩個 build 可以掛住同一個版本標籤，然後理直氣壯噉呃你。冇嘢安裝，冇嘢喺背景偷偷落載，重新載入就係成個儀式 —— 唔使坐喺度等重啟。個檢查淨係向呢個網站攞一個細細嘅版本檔案，唔會送任何嘢去任何地方、畀任何人。'
+    ]},
+    /* The desk is a joke and the joke is allowed to move with the slider. Two
+     * facts never do, at any level and in either language: a ticket stays in
+     * this browser, and the only thing that actually clears the restricted
+     * presentation is clearing this site's storage yourself. The unmissable
+     * line saying so is SUPPORT_DISCLOSURE and is deliberately NOT a COPY key,
+     * because a disclosure a funny level can rewrite is a disclosure. */
+    supportDesc:{en:[
+      'A local ticket desk for the one thing this page can lock you out of. Nothing is sent anywhere: a ticket is written to this browser, given a number, and answered by this page. The resolution is always the same, and it is the only thing that works — clear this site’s storage yourself.',
+      'A local ticket desk for the one thing this page can lock you out of. Nothing is sent anywhere — a ticket is written to this browser, given a number, and answered by this page. The resolution is always the same, and it is the only thing that actually works: clear this site’s storage yourself.',
+      'File a ticket with a support desk that is entirely inside this page. It will take your category, note your severity, give you a number and answer within milliseconds, because it is a function. Nothing is sent anywhere. The resolution is always the same one, and it is the only thing that works: clear this site’s storage yourself.',
+      'A support desk with no staff, no queue, no inbox and remarkable response times, because it is a function in the page you are reading. It will take your ticket, assign it a number, escalate it as many times as you like, and arrive at the same resolution every time — which happens to be the only thing that actually works: clear this site’s storage yourself. Nothing is sent anywhere.'
+    ],zh:[
+      '呢個係本機嘅客服櫃檯，專門處理呢版唯一鎖得住你嘅嘢。冇任何嘢會送出去：張飛只係寫入呢個瀏覽器、俾個編號你，然後由呢版自己覆你。解決方法永遠都係同一個，亦都係唯一真係有用嗰個 —— 你自己清走呢個網站嘅儲存。',
+      '呢個係本機客服櫃檯，處理呢版唯一鎖得住你嘅嘢。冇嘢會送出去 —— 張飛寫入呢個瀏覽器、俾個編號你，然後由呢版自己覆。解決方法永遠一樣，亦都係唯一真係work嗰個：你自己清走呢個網站嘅儲存。',
+      '同一個完全喺呢版入面嘅客服櫃檯開飛。佢會收你嘅分類、記低你嘅嚴重程度、派個編號，然後幾毫秒內覆你，因為佢根本就係個函數。冇嘢會送出去。解決方法永遠都係嗰一個，亦都係唯一有用嗰個：你自己清走呢個網站嘅儲存。',
+      '一個冇員工、冇排隊、冇收件匣，但回覆速度驚人嘅客服櫃檯 —— 因為佢就係你而家睇緊呢版入面嘅一個函數。佢會收你張飛、派個編號、你想升級幾多次都得，最後每次都去到同一個結論 —— 啱啱好就係唯一真係有用嗰樣：你自己清走呢個網站嘅儲存。冇任何嘢會送出去。'
+    ]},
+    supportFirstResponse:{en:[
+      'Thank you for contacting support. Your ticket has been received and recorded in this browser. A resolution is available now: clear this site’s storage.',
+      'Thank you for contacting support. Your ticket has been received and recorded in this browser, which is as far as it goes. A resolution is available right now: clear this site’s storage.',
+      'Thank you for contacting support. Your ticket has been received, logged, numbered and filed — all of it in this browser, none of it anywhere else. Good news: a resolution is already available, and it is to clear this site’s storage.',
+      'Thank you for contacting support. Your ticket has been received and escalated to the highest tier available, which is this paragraph. Our records show a resolution is already available and has been since before you wrote in: clear this site’s storage.'
+    ],zh:[
+      '多謝你聯絡客服。你張飛已經收到，並記錄喺呢個瀏覽器入面。而家已經有解決方法：清走呢個網站嘅儲存。',
+      '多謝你聯絡客服。你張飛已經收到，記錄喺呢個瀏覽器入面 —— 去到呢度就係盡頭。而家已經有解決方法：清走呢個網站嘅儲存。',
+      '多謝你聯絡客服。你張飛已經收到、記錄、派好編號同歸檔 —— 全部喺呢個瀏覽器入面，其他地方一份都冇。好消息：解決方法已經有咗，就係清走呢個網站嘅儲存。',
+      '多謝你聯絡客服。你張飛已經收到，並且升級到本櫃檯最高層級 —— 即係你而家睇緊呢段字。根據我哋嘅紀錄，解決方法喺你寫信之前已經存在：清走呢個網站嘅儲存。'
     ]},
     heroLede:{en:[
       'Material Asterisk is a planned desktop administration experience for Asterisk. This website is documentation and download infrastructure—not the installed desktop application or a PBX runtime.',
@@ -869,6 +1204,17 @@
       '設定已經重設。',
       '重設完成，返晒去原廠設定。',
       '人生都有 Ctrl-Z：返番去出廠設定。'
+    ]},
+    notifConverted:{en:[
+      'Conversion finished',
+      'Conversion finished.',
+      'Conversion done — counts below.',
+      'Converted, and every file that did not make it says why.'
+    ],zh:[
+      '轉換完成',
+      '轉換已經完成。',
+      '轉換搞掂，下面有數。',
+      '轉換完成，唔得嘅每個都寫低咗點解。'
     ]},
     notifRegexApplied:{en:[
       'Regular expression applied',
@@ -1873,15 +2219,418 @@
     });
   }
 
+  // ============================================================================
+  // Support Tickets.
+  //
+  // The recovery route out of the one thing this page can genuinely lock somebody
+  // out of -- the restricted presentation above -- dressed as a service desk. The
+  // bit is the point, and so is the boundary around it:
+  //
+  //   - It never deletes anything. The desktop version opens the application-data
+  //     folder and stands back; a page cannot open a folder, so this one NAMES the
+  //     exact storage keys and origin, offers them to the clipboard, and says in
+  //     plain words that clearing them is the reader's own act. Nothing here calls
+  //     removeItem, and nothing here needs the destructive-action gate, because
+  //     nothing here destroys.
+  //   - SUPPORT_DISCLOSURE is a plain constant and never a COPY key. Every other
+  //     string on this surface moves with the funny sliders; a disclosure a funny
+  //     level could rewrite would be decoration rather than a disclosure, and this
+  //     is the one line standing between a joke and somebody waiting for a reply
+  //     that was never coming.
+  //   - The restricted presentation must NOT remove it. It is the way out, and a
+  //     mode that hid its own recovery route would be a lock rather than a speed
+  //     bump. It is absent from SCHOOL_SUPPRESSED on purpose; copyText() already
+  //     renders it in plain English while the mode is on, so it goes quiet without
+  //     going away.
+  // ============================================================================
+  const SUPPORT_KEY='ding-pbx-pages-support-v1';
+  const SUPPORT_LIMIT=200;
+  const SUPPORT_DESCRIPTION_MAX=2000;
+  /* One exact sentence, rendered verbatim wherever the desk appears. Not a COPY
+   * key, not vocabulary-substituted, not styled by any level. */
+  const SUPPORT_DISCLOSURE='Nothing here is sent anywhere. No ticket exists outside this browser, no network request is made, no data is collected, and nobody is reading it. This desk is part of the page you are already on, and no one is coming.';
+  const SUPPORT_CATEGORIES=[
+    {id:'restricted-presentation',label:'I cannot turn the restricted presentation off'},
+    {id:'setting',label:'A setting on this page is not doing what it says'},
+    {id:'appearance',label:'Something on this page is unreadable, clipped or the wrong size'},
+    {id:'other',label:'Something else'}
+  ];
+  const SUPPORT_SEVERITIES=[
+    {id:'low',label:'Low'},
+    {id:'normal',label:'Normal'},
+    {id:'high',label:'High'},
+    {id:'critical',label:'Critical — everything is on fire'}
+  ];
+  /* Said beside the control rather than left implied: a severity that quietly
+   * changed nothing would be the decorative-control defect these pages refuse
+   * everywhere else. */
+  const SUPPORT_SEVERITY_NOTE='Severity is recorded exactly as you set it and changes nothing whatsoever. There is no queue for it to move you up, because there is no queue.';
+  const SUPPORT_STATUSES=['received','triaged','escalated','resolved'];
+  const SUPPORT_STATUS_LABEL={
+    received:'Received',
+    triaged:'Triaged',
+    escalated:'Escalated to the resolution team',
+    resolved:'Resolved'
+  };
+  const SUPPORT_STATUS_NOTE={
+    received:'Recorded in this browser.',
+    triaged:'Reviewed by the same function that recorded it.',
+    escalated:'Escalated to the resolution team, which is this paragraph.',
+    resolved:'Resolved. The resolution is below, and it is the one that was available before you wrote in.'
+  };
+
+  /**
+   * Every storage key this page writes, derived from the constants themselves.
+   *
+   * The recovery panel is the one place a locked-out reader is told what to clear,
+   * so a hand-copied list here would be wrong the day an eighth key is added and
+   * nothing would say so. `tests/contracts/support-tickets.test.mjs` re-derives the
+   * set from every storage call in this file -- both the direct `localStorage.*` ones
+   * and every key handed to the guarded `writeLocal` -- and refuses a mismatch.
+   *
+   * AUTH_KEY was the first key this list did not know about, and it is worth recording
+   * why rather than just adding it: the ticket desk and the built-in authenticator were
+   * built on the same day on separate branches, so neither could see the other, and the
+   * omission arrived at the merge with nothing in either branch's own suite objecting.
+   * The reader it would have failed is the exact one this panel exists for -- somebody
+   * told what to clear, clearing it, and finding their authenticator accounts still
+   * there afterwards with no explanation of why that key was left out.
+   */
+  function supportStorageKeys(){
+    return [STORAGE_KEY,HISTORY_KEY,SCHOOL_KEY,SUPPORT_KEY,AUTH_KEY,'ding-pbx-pages-locks-v1',VOCABULARY_CACHE_KEY,LOGO_CACHE_KEY,'ding-pbx-logo-presentation','ding-pbx-site-ollama-v1'];
+  }
+  function supportOrigin(){
+    try{return String(location.origin||'')}catch{return ''}
+  }
+  function supportDefaultStore(){return{schemaVersion:1,sequence:0,tickets:[]}}
+  function loadSupport(){
+    try{
+      const raw=JSON.parse(localStorage.getItem(SUPPORT_KEY)||'null');
+      if(!raw||typeof raw!=='object'||!Array.isArray(raw.tickets))return supportDefaultStore();
+      const tickets=raw.tickets.filter(item=>item&&typeof item==='object'&&typeof item.id==='string'&&SUPPORT_STATUSES.includes(item.status)).slice(0,SUPPORT_LIMIT);
+      const sequence=Number.isInteger(raw.sequence)&&raw.sequence>=0?raw.sequence:tickets.length;
+      return{schemaVersion:1,sequence,tickets};
+    }catch{return supportDefaultStore()}
+  }
+  let supportStore=loadSupport();
+  let supportSelection={anchor:undefined,selected:new Set()};
+  let lastSupportOrder=[];
+  /*
+   * Through `writeLocal`, the one writer every store on this page goes through, so a
+   * browser refusing the write is reported to the reader rather than thrown past.
+   *
+   * It matters more here than on any other store. This desk is the recorded route back
+   * out of a lock somebody has already forgotten the value for, and the thing they would
+   * be told to do about a full browser is to clear this site's storage -- which is also
+   * the thing that would take the ticket with it. A ticket that silently failed to save
+   * is a route that is not there at the one moment it is needed, and the reader would
+   * have no way of knowing until they came back and found nothing.
+   */
+  function saveSupport(){
+    return reportWrite('the support ticket',writeLocal(SUPPORT_KEY,JSON.stringify({...supportStore,tickets:supportStore.tickets.slice(0,SUPPORT_LIMIT)})));
+  }
+  /** `DING-20260826-0001`. Derived from the store's own counter, so it never repeats. */
+  function supportTicketNumber(sequence,now){
+    const when=new Date(now);
+    const stamp=Number.isFinite(when.getTime())
+      ?`${when.getUTCFullYear()}${String(when.getUTCMonth()+1).padStart(2,'0')}${String(when.getUTCDate()).padStart(2,'0')}`
+      :'00000000';
+    return `DING-${stamp}-${String(sequence).padStart(4,'0')}`;
+  }
+  function supportCategoryLabel(id){const found=SUPPORT_CATEGORIES.find(item=>item.id===id);return found?found.label:id}
+  function supportSeverityLabel(id){const found=SUPPORT_SEVERITIES.find(item=>item.id===id);return found?found.label:id}
+  /**
+   * What is wrong with this form, in words that say what to do next.
+   *
+   * A bare red border tells somebody that something is wrong and nothing about
+   * which thing or what would fix it, which is the guided-forms defect this page
+   * refuses everywhere else.
+   */
+  function supportFormVerdict(form){
+    const description=String((form&&form.description)||'').trim();
+    if(!SUPPORT_CATEGORIES.some(item=>item.id===(form&&form.category))){
+      return{ok:false,field:'support-category',reason:'Choose one of the categories in the list above. Nothing was recorded.'};
+    }
+    if(!SUPPORT_SEVERITIES.some(item=>item.id===(form&&form.severity))){
+      return{ok:false,field:'support-severity',reason:'Choose one of the four severities. Nothing was recorded.'};
+    }
+    if(description===''){
+      return{ok:false,field:'support-description',reason:'Say what happened, in as few or as many words as you like. This box cannot be empty, and nothing was recorded.'};
+    }
+    if(description.length>SUPPORT_DESCRIPTION_MAX){
+      return{ok:false,field:'support-description',reason:`That is ${description.length} characters and the limit is ${SUPPORT_DESCRIPTION_MAX}. Nothing was recorded — shorten it and try again.`};
+    }
+    return{ok:true,description};
+  }
+  function openSupportTicket(form,now=Date.now()){
+    const verdict=supportFormVerdict(form);
+    if(!verdict.ok)return verdict;
+    const sequence=supportStore.sequence+1;
+    const ticket={
+      id:`t${now}-${sequence}`,
+      number:supportTicketNumber(sequence,now),
+      category:form.category,
+      severity:form.severity,
+      description:verdict.description,
+      openedAt:now,
+      status:'received',
+      updates:[{status:'received',at:now,note:copyText('supportFirstResponse')}]
+    };
+    supportStore={schemaVersion:1,sequence,tickets:[ticket,...supportStore.tickets].slice(0,SUPPORT_LIMIT)};
+    saveSupport();
+    recordHistory('support-ticket-opened',`Support ticket ${ticket.number} was opened in this browser.`);
+    notify('Ticket opened',applyVocabularyText(`${ticket.number} was written to this browser and nowhere else.`),{
+      category:'setting',
+      en:`Ticket ${ticket.number} was written to this browser and nowhere else.`,
+      zh:`張飛 ${ticket.number} 淨係寫入咗呢個瀏覽器，冇送去任何地方。`
+    });
+    return{ok:true,ticket};
+  }
+  /** One step along SUPPORT_STATUSES. Never a timer -- a status only moves when asked. */
+  function advanceSupportTicket(id,now=Date.now()){
+    const ticket=supportStore.tickets.find(item=>item.id===id);
+    if(!ticket)return{ok:false,reason:'That ticket is not in this browser.'};
+    const index=SUPPORT_STATUSES.indexOf(ticket.status);
+    if(index===SUPPORT_STATUSES.length-1)return{ok:false,reason:'That ticket is already resolved.'};
+    const next=SUPPORT_STATUSES[index+1];
+    ticket.status=next;
+    ticket.updates=[...ticket.updates,{status:next,at:now,note:SUPPORT_STATUS_NOTE[next]}];
+    saveSupport();
+    recordHistory('support-ticket-advanced',`Support ticket ${ticket.number} moved to ${SUPPORT_STATUS_LABEL[next]}.`);
+    return{ok:true,ticket};
+  }
+  /**
+   * Back to the start, appending rather than rewriting.
+   *
+   * Closing a ticket is reversible precisely so that it is not a destructive
+   * action, which is why the bulk close below needs no two-key gate. The history
+   * of statuses is kept in full; nothing is ever removed from `updates`.
+   */
+  function reopenSupportTicket(id,now=Date.now()){
+    const ticket=supportStore.tickets.find(item=>item.id===id);
+    if(!ticket)return{ok:false,reason:'That ticket is not in this browser.'};
+    if(ticket.status==='received')return{ok:false,reason:'That ticket is already open.'};
+    ticket.status='received';
+    ticket.updates=[...ticket.updates,{status:'received',at:now,note:'Reopened. Nothing was deleted; every earlier update is still listed.'}];
+    saveSupport();
+    recordHistory('support-ticket-reopened',`Support ticket ${ticket.number} was reopened.`);
+    return{ok:true,ticket};
+  }
+  /**
+   * The resolution: what to clear, where, and the plain statement that this page
+   * will not do it for you.
+   */
+  function supportResolution(){
+    const origin=supportOrigin();
+    return{
+      deletesAnything:false,
+      origin:origin||'this page’s own origin, which this browser did not report',
+      keys:supportStorageKeys(),
+      steps:[
+        'Open your browser’s settings for site data, storage, or cookies.',
+        `Find the entry for ${origin||'this site'}.`,
+        'Clear its storage for this site.',
+        'Come back and reload this page.'
+      ],
+      note:'This page does not clear anything for you, and there is no button here that will. Clearing site storage removes every key listed above — including this ticket and every other one, which is either a design flaw or the funniest part of this desk, depending on where you have set the funny level.'
+    };
+  }
+  function supportTicketText(ticket){
+    return `${ticket.number} ${supportCategoryLabel(ticket.category)} ${supportSeverityLabel(ticket.severity)} ${SUPPORT_STATUS_LABEL[ticket.status]} ${ticket.description}`;
+  }
+  function supportMatches(query){
+    return supportStore.tickets.filter(ticket=>matchText(supportTicketText(ticket),query,'support-search'));
+  }
+  function supportExportRows(){
+    return supportStore.tickets.filter(ticket=>supportSelection.selected.has(ticket.id)).map(ticket=>({
+      number:ticket.number,
+      category:supportCategoryLabel(ticket.category),
+      severity:supportSeverityLabel(ticket.severity),
+      status:SUPPORT_STATUS_LABEL[ticket.status],
+      opened:new Date(ticket.openedAt).toISOString(),
+      updates:ticket.updates.length,
+      description:ticket.description
+    }));
+  }
+  function updateSupportSelectionUI(){
+    const status=$('support-selection-status');
+    if(status)status.textContent=`${supportSelection.selected.size} selected of ${lastSupportOrder.length} shown`;
+    all('#support-list .support-ticket').forEach(row=>{
+      const checkbox=row.querySelector('input[type="checkbox"]');
+      if(checkbox)checkbox.checked=supportSelection.selected.has(row.dataset.ticketId);
+    });
+  }
+  function updateSupportExportFormats(){
+    const select=$('support-export-format');
+    if(!select)return;
+    const rows=supportExportRows();
+    const formats=suitableFormats(rows.length?rows:[{number:'',category:'',severity:'',status:'',opened:'',updates:0,description:''}]);
+    const previous=select.value;
+    select.innerHTML=formats.map(format=>`<option value="${format}">${format.toUpperCase()}</option>`).join('');
+    if(formats.includes(previous))select.value=previous;
+    if($('support-export-loss')){
+      $('support-export-loss').textContent=rows.length
+        ?describeLoss(rows,select.value||formats[0]).join(' ')
+        :'Select one or more tickets to export.';
+    }
+  }
+  function supportUpdateMarkup(update){
+    return `<li><strong>${escapeHtml(SUPPORT_STATUS_LABEL[update.status]||update.status)}</strong> <small>${escapeHtml(new Date(update.at).toLocaleString())}</small><p>${escapeHtml(update.note)}</p></li>`;
+  }
+  function supportResolutionMarkup(){
+    const resolution=supportResolution();
+    return `<div class="support-resolution"><h4>Resolution</h4><p>Clear this site’s storage in your browser. That is the whole fix, and it is the only thing that turns the restricted presentation off without the value you chose.</p><ol>${resolution.steps.map(step=>`<li>${escapeHtml(step)}</li>`).join('')}</ol><p>Origin: <code>${escapeHtml(resolution.origin)}</code></p><p>Keys this page writes:</p><ul class="support-keys">${resolution.keys.map(key=>`<li><code>${escapeHtml(key)}</code></li>`).join('')}</ul><button type="button" class="text-button" data-support-copy-keys="1">Copy the origin and key list</button><p class="support-note">${escapeHtml(resolution.note)}</p></div>`;
+  }
+  function renderSupport(query=''){
+    const list=$('support-list');
+    if(!list)return;
+    const matches=supportMatches(query);
+    lastSupportOrder=matches.map(ticket=>ticket.id);
+    supportSelection={anchor:supportSelection.anchor,selected:new Set([...supportSelection.selected].filter(id=>lastSupportOrder.includes(id)))};
+    list.innerHTML=matches.length?matches.map(ticket=>`<article class="support-ticket" data-ticket-id="${escapeHtml(ticket.id)}"><input type="checkbox" aria-label="Select ticket ${escapeHtml(ticket.number)}" ${supportSelection.selected.has(ticket.id)?'checked':''}><div class="support-body"><h3>${escapeHtml(ticket.number)}</h3><p class="support-meta">${escapeHtml(supportCategoryLabel(ticket.category))} · severity ${escapeHtml(supportSeverityLabel(ticket.severity))} · <strong>${escapeHtml(SUPPORT_STATUS_LABEL[ticket.status])}</strong></p><p class="support-description">${escapeHtml(ticket.description)}</p><ol class="support-updates">${ticket.updates.map(supportUpdateMarkup).join('')}</ol>${ticket.status==='resolved'?supportResolutionMarkup():''}<div class="support-actions"><button type="button" class="text-button" data-support-advance="${escapeHtml(ticket.id)}"${ticket.status==='resolved'?' disabled title="This ticket is already resolved; reopen it to move it again."':''}>Chase it up</button><button type="button" class="text-button" data-support-reopen="${escapeHtml(ticket.id)}"${ticket.status==='received'?' disabled title="This ticket is already open."':''}>Reopen</button></div></div></article>`).join(''):'<p class="empty-state">No tickets in this browser yet. The form above writes one, and it goes no further than this page.</p>';
+    if($('support-count'))$('support-count').textContent=`${matches.length} ticket${matches.length===1?'':'s'} of ${supportStore.tickets.length} in this browser`;
+    applyVocabulary();
+    updateSupportSelectionUI();
+    updateSupportExportFormats();
+  }
+  /**
+   * The desk's own copy, refreshed with every state change so a funny-level move
+   * or the restricted presentation reaches it live rather than at the next load.
+   */
+  function renderSupportCopy(){
+    /* The description itself rides `data-copy="supportDesc"` through applyCopy(),
+     * like every other card on the settings page. Only the two strings that must
+     * NOT move with a level are written here. */
+    /* Verbatim, and deliberately not through applyVocabularyText: a personal
+     * vocabulary file could otherwise replace "nothing is sent anywhere" with
+     * anything at all, and this is the one sentence that has to be true. */
+    all('.support-disclosure').forEach(node=>{node.textContent=SUPPORT_DISCLOSURE});
+    if($('support-severity-note'))$('support-severity-note').textContent=SUPPORT_SEVERITY_NOTE;
+  }
+  function openSupportDesk(){
+    const dialog=$('support-dialog');
+    if(!dialog)return false;
+    renderSupportCopy();
+    renderSupport($('support-search')?.value||'');
+    dialog.showModal();
+    setTimeout(()=>$('support-category')?.focus(),0);
+    return true;
+  }
+  /** The Help route: documentation.html links here, and this is what answers it. */
+  function supportRouteFromHash(hash){return String(hash||'')==='#support-tickets'}
+  function submitSupportForm(){
+    const verdict=openSupportTicket({
+      category:$('support-category')?.value,
+      severity:$('support-severity')?.value,
+      description:$('support-description')?.value
+    });
+    const feedback=$('support-form-status');
+    if(!verdict.ok){
+      if(feedback)feedback.textContent=verdict.reason;
+      $(verdict.field)?.focus?.();
+      return verdict;
+    }
+    if(feedback)feedback.textContent=`${verdict.ticket.number} was recorded in this browser. It is listed below.`;
+    if($('support-description'))$('support-description').value='';
+    renderSupport($('support-search')?.value||'');
+    return verdict;
+  }
+  function initSupport(){
+    if(!$('support-dialog'))return;
+    renderSupportCopy();
+    const categorySelect=$('support-category');
+    if(categorySelect&&!categorySelect.options?.length){
+      categorySelect.innerHTML=SUPPORT_CATEGORIES.map(item=>`<option value="${item.id}">${escapeHtml(item.label)}</option>`).join('');
+    }
+    const severitySelect=$('support-severity');
+    if(severitySelect&&!severitySelect.options?.length){
+      severitySelect.innerHTML=SUPPORT_SEVERITIES.map(item=>`<option value="${item.id}">${escapeHtml(item.label)}</option>`).join('');
+      severitySelect.value='normal';
+    }
+    $('support-open-settings')?.addEventListener('click',openSupportDesk);
+    $('support-open-recovery')?.addEventListener('click',openSupportDesk);
+    $('support-submit')?.addEventListener('click',submitSupportForm);
+    $('support-search')?.addEventListener('input',event=>renderSupport(event.target.value));
+    $('support-list')?.addEventListener('click',event=>{
+      const advance=event.target.closest?.('[data-support-advance]');
+      if(advance&&!advance.disabled){advanceSupportTicket(advance.dataset.supportAdvance);renderSupport($('support-search')?.value||'');return}
+      const reopen=event.target.closest?.('[data-support-reopen]');
+      if(reopen&&!reopen.disabled){reopenSupportTicket(reopen.dataset.supportReopen);renderSupport($('support-search')?.value||'');return}
+      if(event.target.closest?.('[data-support-copy-keys]')){copySupportKeys();return}
+      const row=event.target.closest?.('.support-ticket[data-ticket-id]');
+      if(!row)return;
+      const isCheckbox=event.target.matches?.('input[type="checkbox"]');
+      supportSelection=bulkClick(supportSelection,row.dataset.ticketId,{shift:event.shiftKey,ctrl:event.ctrlKey||event.metaKey||isCheckbox},lastSupportOrder);
+      updateSupportSelectionUI();updateSupportExportFormats();
+    });
+    $('support-select-page')?.addEventListener('click',()=>{
+      const result=bulkSelectAll(supportSelection,'page',lastSupportOrder,lastSupportOrder);
+      supportSelection=result.state;updateSupportSelectionUI();updateSupportExportFormats();
+      if($('support-selection-status'))$('support-selection-status').textContent=`Selected ${result.count} on this page.`;
+    });
+    $('support-select-matches')?.addEventListener('click',()=>{
+      const result=bulkSelectAll(supportSelection,'matches',lastSupportOrder,lastSupportOrder);
+      supportSelection=result.state;updateSupportSelectionUI();updateSupportExportFormats();
+      if($('support-selection-status'))$('support-selection-status').textContent=`Selected ${result.count} matching tickets.`;
+    });
+    $('support-select-none')?.addEventListener('click',()=>{
+      supportSelection={anchor:supportSelection.anchor,selected:new Set()};
+      updateSupportSelectionUI();updateSupportExportFormats();
+    });
+    $('support-close-selected')?.addEventListener('click',()=>{
+      const plan=planBulk('Close',[...supportSelection.selected],id=>{
+        const ticket=supportStore.tickets.find(item=>item.id===id);
+        if(!ticket)return 'no longer in this browser';
+        return ticket.status==='resolved'?'already resolved':true;
+      },{destructive:false});
+      if($('support-bulk-status'))$('support-bulk-status').textContent=summariseBulk(plan);
+      if(!plan.affected.length)return;
+      const now=Date.now();
+      for(const id of plan.affected){
+        const ticket=supportStore.tickets.find(item=>item.id===id);
+        if(!ticket)continue;
+        ticket.status='resolved';
+        ticket.updates=[...ticket.updates,{status:'resolved',at:now,note:SUPPORT_STATUS_NOTE.resolved}];
+      }
+      saveSupport();
+      recordHistory('support-tickets-closed',`${plan.affected.length} support ticket${plan.affected.length===1?'':'s'} closed in this browser.`);
+      renderSupport($('support-search')?.value||'');
+    });
+    $('support-export-format')?.addEventListener('change',updateSupportExportFormats);
+    $('support-export-selected')?.addEventListener('click',()=>{
+      const rows=supportExportRows();
+      if(!rows.length)return;
+      const format=$('support-export-format').value||'json';
+      download(exportFilename('ding-pbx-support-tickets',format,`${rows.length}-selected`),exportRows({rows,format,table:'support_ticket'}),EXPORT_MIME[format]);
+      notify('Tickets exported',applyVocabularyText(`Exported ${rows.length} selected ticket${rows.length===1?'':'s'} as ${format.toUpperCase()}.`),{
+        category:'export',
+        en:`Exported ${rows.length} selected ticket${rows.length===1?'':'s'} as ${format.toUpperCase()}.`,
+        zh:`已經匯出 ${rows.length} 張揀咗嘅飛，格式係 ${format.toUpperCase()}。`
+      });
+    });
+    renderSupport();
+    if(supportRouteFromHash(typeof location==='undefined'?'':location.hash))openSupportDesk();
+  }
+  function copySupportKeys(){
+    const resolution=supportResolution();
+    const text=`${resolution.origin}\n${resolution.keys.join('\n')}`;
+    try{navigator.clipboard?.writeText?.(text)}catch{/* a refused clipboard is not a reason to hide the list, which is on screen anyway */}
+    if($('support-copy-status'))$('support-copy-status').textContent=`Copied the origin and ${resolution.keys.length} keys. They are listed above either way.`;
+  }
+
   const DEFAULT_FAVICON='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="8" fill="#82D9A5"/><text x="50%" y="58%" font-family="monospace" font-size="22" font-weight="800" text-anchor="middle" fill="#0B0F0C">D</text></svg>');
   function applyLogo(){
     let cached=null;
     try{cached=localStorage.getItem('ding-pbx-logo-cache')}catch{cached=null}
+    let presentation={fit:'contain',background:'',focalX:50,focalY:50};
+    try{const stored=JSON.parse(localStorage.getItem('ding-pbx-logo-presentation')||'null');if(stored&&typeof stored==='object')presentation={...presentation,...stored}}catch{}
     all('.brand-mark').forEach(el=>{
       const img=el.querySelector('img.brand-mark-image');
       if(cached){
         if(img){img.src=cached}
         else{el.innerHTML='';const image=document.createElement('img');image.className='brand-mark-image';image.alt='';image.src=cached;el.appendChild(image)}
+        const activeImage=el.querySelector('img.brand-mark-image');
+        if(activeImage){activeImage.style.objectFit=presentation.fit;activeImage.style.objectPosition=`${presentation.focalX}% ${presentation.focalY}%`;el.style.background=presentation.background||''}
       }else if(img){el.innerHTML='D'}
     });
     let icon=document.querySelector('link[rel="icon"]');
@@ -2462,6 +3211,8 @@
 
   function initNavigation(){
     const button=$('nav-toggle'),menu=$('site-nav');if(!button||!menu)return;
+    if(!menu.querySelector('a[href="ollama.html"]')){const link=document.createElement('a');link.href='ollama.html';link.textContent='Ollama';menu.append(link)}
+    if(!menu.querySelector('a[href="history.html"]')){const link=document.createElement('a');link.href='history.html';link.textContent='History';menu.append(link)}
     const close=()=>{menu.classList.remove('open');button.setAttribute('aria-expanded','false')};
     button.onclick=()=>{const open=!menu.classList.contains('open');menu.classList.toggle('open',open);button.setAttribute('aria-expanded',String(open));if(open)menu.querySelector('a')?.focus()};
     document.addEventListener('keydown',event=>{if(event.key==='Escape')close();if(event.ctrlKey&&event.shiftKey&&event.key.toLowerCase()==='f'){event.preventDefault();openPalette()}});
@@ -2663,12 +3414,16 @@
       namedOnlyByIcon:Boolean(target)&&name===null&&String(target.textContent||'').trim().length>0,
       href:target?.getAttribute?.('href')||'',
       sectionId:section?.id||'',
+      /* Whether THIS element already carries a lock, which is what makes the lock entry
+       * a conditional item rather than one that offers to lock a locked thing twice. */
+      locked:Boolean(target&&target.dataset&&target.dataset.lockKey),
       page:{
         palette:Boolean($('command-palette')),
         notifications:Boolean($('notifications-dialog')),
         history:Boolean($('history-dialog')),
         resetGate:Boolean($('reset-confirm-dialog')),
         appearance:Boolean($('theme-mode')),
+        lockWizard:Boolean($('lock-wizard')),
       },
     };
   }
@@ -2720,9 +3475,15 @@
     {id:'element-appearance',label:'Edit this element’s appearance…',chord:null,kinds:'any',
       unavailable:()=>'this site has no per-element appearance editor: material-appearance is recorded partial in site/feature-registry.json',
       run:()=>{}},
-    {id:'lock-element',label:'Lock this element…',chord:null,kinds:'any',
-      unavailable:()=>'this site ships no per-element lock: per-element-toy-locks is recorded absent in site/feature-registry.json',
-      run:()=>{}},
+    /* This one WAS the second permanently-unavailable entry, and stopped being one when
+     * the locks landed. It is now an ordinary conditional item like every other: it needs
+     * the wizard, and the wizard is built at load, so in practice the only page it is
+     * unavailable on is one where that build did not happen. */
+    {id:'lock-element',label:'Lock this element…',chord:chord('k',{alt:true,shift:true}),kinds:'any',
+      unavailable:ctx=>ctx.locked
+        ?'this element already carries a lock; open it and remove that one first'
+        :ctx.page.lockWizard?null:'this page has not built the lock wizard, so there is nothing to lock with',
+      run:ctx=>openLockWizard(ctx)},
     /* No chord, and that is not an oversight. A destructive action reached by a chord is
      * a destructive action reached without reading anything, and this one is only ever
      * meant to be reached through the two-key gate below. */
@@ -2980,8 +3741,32 @@
     if(!item||!item.enabled)return;
     const action=MENU_ACTIONS.find(entry=>entry.id===id);
     const ctx=contextMenu.ctx;
+    /* The menu is the other way an element's action can be reached, so it is the other
+     * place a lock has to hold. Without this a locked control would refuse a click and
+     * then do the same thing from its own right-click menu, which is a lock in one
+     * direction only -- the exact walk-around the canonical contract names. */
+    if(menuActionIsLocked(action,ctx)){
+      closeContextMenu({restoreFocus:false});
+      openLockPrompt(String(ctx.element.dataset.lockKey),ctx.element);
+      return;
+    }
     closeContextMenu({restoreFocus:false});
     action?.run(ctx);
+  }
+  /**
+   * Whether one menu action on one element is refused by that element's lock.
+   *
+   * The lock command itself is exempt on purpose, and so is anything that only reads:
+   * removing a lock is reached from the element's own menu, and a lock that hid its
+   * own management would leave clearing storage as the only way out.
+   */
+  const LOCK_EXEMPT_MENU_ACTIONS=['lock-element','copy-text','copy-link','copy-section-link','copy-image-description'];
+  function menuActionIsLocked(action,ctx){
+    if(!action||!ctx||!ctx.element||!ctx.element.dataset)return false;
+    const key=String(ctx.element.dataset.lockKey||'');
+    if(!key)return false;
+    if(LOCK_EXEMPT_MENU_ACTIONS.includes(action.id))return false;
+    return !lockIsOpen(key,Date.now());
   }
 
   function moveContextMenuActive(step){
@@ -3111,7 +3896,7 @@
   }
   function cancelLongPress(){if(longPress.timer){clearTimeout(longPress.timer);longPress.timer=null}}
 
-  function renderPalette(query=''){const list=$('palette-results');if(!list)return;const pages=[['Home','index.html'],['Product','product.html'],['Documentation','documentation.html'],['Downloads','downloads.html'],['Status','status.html'],['Settings','settings.html']],items=[...pages,...DESTINATIONS.map(item=>[item.name,`documentation.html#destination-${item.id}`])].filter(([name])=>matchText(name,query,'palette-search'));list.innerHTML=items.length?items.map(([name,path])=>`<a class="palette-result" role="option" href="${BASE}${path}"><strong>${escapeHtml(name)}</strong><span>Open destination</span></a>`).join(''):'<p>No matching commands.</p>'}
+  function renderPalette(query=''){const list=$('palette-results');if(!list)return;const pages=[['Home','index.html'],['Product','product.html'],['Documentation','documentation.html'],['Converter','converter.html'],['Downloads','downloads.html'],['Status','status.html'],['Settings','settings.html']],items=[...pages,...DESTINATIONS.map(item=>[item.name,`documentation.html#destination-${item.id}`])].filter(([name])=>matchText(name,query,'palette-search'));list.innerHTML=items.length?items.map(([name,path])=>`<a class="palette-result" role="option" href="${BASE}${path}"><strong>${escapeHtml(name)}</strong><span>Open destination</span></a>`).join(''):'<p>No matching commands.</p>'}
   function openPalette(){const dialog=$('command-palette');if(!dialog)return;dialog.showModal();$('palette-search').value='';renderPalette();applyVocabulary();setTimeout(()=>$('palette-search').focus(),0)}
   let notifSeq=0;
   // `narration` is the words to speak, per language, and is deliberately a separate
@@ -4650,7 +5435,7 @@
     setInterval(authTick,1000);
   }
 
-  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);el('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);el('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));el('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);if($('dialog-emojis'))$('dialog-emojis').onchange=event=>update('dialogEmojis',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState();recordHistory('attention-changed','attention.currentTask changed.')};$('settings-reset').onclick=()=>{const dialog=$('reset-confirm-dialog');if(!dialog)return;resetConfirmFields();dialog.showModal()};$('settings-export').onclick=()=>{download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state,restrictedPresentation:schoolExportSummary(),authenticator:authExportSummary()},null,2));notify('Settings exported',applyVocabularyText('Exported the local settings on this page as ding-pbx-page-settings.json. Uploaded personal vocabulary was omitted.'),{category:'export',en:'Exported the local settings on this page. Uploaded personal vocabulary was omitted.',zh:'已經匯出呢版嘅本地設定，上載嘅個人詞彙冇包埋。'});};el('vocabulary-file').onchange=loadVocabulary;el('vocabulary-clear').onclick=clearVocabulary;initDisplayName();initNarration();initSchool();$('logo-file').onchange=loadLogo;$('logo-clear').onclick=clearLogo;if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));initResetConfirm();initHistory()}
+  function initSettings(){if(!$('theme-mode'))return;$('theme-mode').onchange=event=>update('theme',event.target.value);el('language-mode').onchange=event=>update('language',event.target.value);$('density-mode').onchange=event=>update('density',event.target.value);$('accent-color').oninput=event=>update('accent',event.target.value);$('font-scale').oninput=event=>{state.fontScale=Number(event.target.value);save();applyState()};$('motion-mode').onchange=event=>update('lowMotion',event.target.checked);el('english-funny').onchange=event=>update('englishFunny',Number(event.target.value));el('cantonese-funny').onchange=event=>update('cantoneseFunny',Number(event.target.value));$('schedule-enabled').onchange=event=>update('scheduleEnabled',event.target.checked);if($('dialog-emojis'))$('dialog-emojis').onchange=event=>update('dialogEmojis',event.target.checked);$('attention-reduce-flashing').onchange=event=>updateAttention('reduceFlashing',event.target.checked);$('attention-simplified-language').onchange=event=>updateAttention('simplifiedLanguage',event.target.checked);$('attention-extended-timeouts').onchange=event=>updateAttention('extendedTimeouts',event.target.checked);if($('attention-focus'))$('attention-focus').onchange=event=>updateAttention('focus',event.target.checked);if($('attention-time-awareness'))$('attention-time-awareness').onchange=event=>updateAttention('timeAwareness',event.target.checked);if($('attention-one-thing'))$('attention-one-thing').onchange=event=>updateAttention('oneThing',event.target.checked);if($('attention-momentum'))$('attention-momentum').onchange=event=>updateAttention('momentum',event.target.checked);if($('attention-current-task'))$('attention-current-task').onchange=event=>{state.attention={...state.attention,currentTask:event.target.value.slice(0,140)};save();applyState();recordHistory('attention-changed','attention.currentTask changed.')};$('settings-reset').onclick=()=>{const dialog=$('reset-confirm-dialog');if(!dialog)return;resetConfirmFields();dialog.showModal()};$('settings-export').onclick=()=>{download('ding-pbx-page-settings.json',JSON.stringify({schemaVersion:1,encoding:'UTF-8',personalVocabulary:'omitted',settings:state,restrictedPresentation:schoolExportSummary(),authenticator:authExportSummary()},null,2));notify('Settings exported',applyVocabularyText('Exported the local settings on this page as ding-pbx-page-settings.json. Uploaded personal vocabulary was omitted.'),{category:'export',en:'Exported the local settings on this page. Uploaded personal vocabulary was omitted.',zh:'已經匯出呢版嘅本地設定，上載嘅個人詞彙冇包埋。'});};el('vocabulary-file').onchange=loadVocabulary;el('vocabulary-clear').onclick=clearVocabulary;initDisplayName();initNarration();initSchool();initLogoStudio();$('logo-file').onchange=loadLogo;$('logo-clear').onclick=clearLogo;if($('settings-search'))$('settings-search').addEventListener('input',()=>updateFilterStatus('settings-filter-status','settings-search'));initResetConfirm();initHistory()}
   /* One writer for every vocabulary rejection, so the rule below holds for all of them
    * rather than for whichever branch somebody remembered.
    *
@@ -4688,6 +5473,7 @@
   /* The same arrangement as the dictionary above, and for the same reason. */
   function clearLogo(){
     localStorage.removeItem('ding-pbx-logo-cache');
+    localStorage.removeItem('ding-pbx-logo-presentation');
     $('logo-file').value='';
     $('logo-status').textContent='No file loaded; default mark is active.';
     clearRecovery('logo-status','logo-rejected');
@@ -4729,6 +5515,209 @@
   function slugForFilename(text){const slug=String(text||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);return slug||'all'}
   function reduceMotion(){return matchMedia('(prefers-reduced-motion: reduce)').matches||state.lowMotion}
 
+
+  // ------------------------------------------------------------------
+  // The converter page.
+  //
+  // Everything that decides lives in the engine block above and takes values a
+  // caller supplies; this half does nothing but read controls, call it, and put
+  // the answer on the page. Two properties are worth stating because the page
+  // asserts them in words:
+  //
+  //   - Nothing is uploaded. Every byte is read through the File object the
+  //     picker hands over and never leaves this browser, so there is no request
+  //     to fail and no server to be down.
+  //   - No conversion happens until somebody presses Convert. A file that is
+  //     merely chosen is inspected and described; the lossy part waits for the
+  //     person who would lose something by it.
+  // ------------------------------------------------------------------
+  let converterItems=[];
+  let converterPage=0;
+  let converterSeq=0;
+  let converterRunning=false;
+  let converterCancelRequested=false;
+
+  function converterTarget(){return $('converter-target-format')?.value||'json'}
+  function converterPageCount(){return Math.max(1,Math.ceil(converterItems.length/CONVERTER_PAGE_SIZE))}
+  function converterPageItems(){const start=converterPage*CONVERTER_PAGE_SIZE;return converterItems.slice(start,start+CONVERTER_PAGE_SIZE)}
+  function converterItemById(id){return converterItems.find(item=>item.id===id)}
+
+  /**
+   * The catalogue, filtered by its own search field.
+   *
+   * An unavailable adapter is listed with its reason rather than removed, and
+   * the count beneath says how many the search is hiding, so a short list is
+   * never mistaken for a short catalogue.
+   */
+  function renderConverterAdapters(){
+    const host=$('converter-adapters');if(!host)return;
+    const query=$('converter-format-search')?.value||'';
+    let shown=0,hidden=0;
+    const sections=[];
+    for(const category of CONVERTER_CATEGORIES){
+      const matched=category.adapters.filter(adapter=>matchText(
+        `${category.label} ${adapter.label} ${adapter.bundled?`bundled ${(adapter.writes||[]).map(target=>CONVERTER_TARGET_LABEL[target]).join(' ')}`:`unavailable ${adapter.unavailable}`}`,
+        query,'converter-format-search'));
+      shown+=matched.length;hidden+=category.adapters.length-matched.length;
+      if(matched.length===0)continue;
+      sections.push(`<section class="adapter-category"><h3>${escapeHtml(category.label)}</h3><ul>${matched.map(adapter=>`<li class="adapter-entry${adapter.bundled?'':' is-unavailable'}"><span class="adapter-name">${escapeHtml(adapter.label)}</span><span class="status-chip ${adapter.bundled?'ok-chip':'warning-chip'}">${adapter.bundled?'Bundled':'Unavailable'}</span><p>${adapter.bundled?`Writes ${escapeHtml((adapter.writes||[]).map(target=>CONVERTER_TARGET_LABEL[target]).join(', '))}.`:escapeHtml(adapter.unavailable)}</p></li>`).join('')}</ul></section>`);
+    }
+    host.innerHTML=sections.length?sections.join(''):'<p class="empty-state">No category or format matches this search. Clear the search to see the whole catalogue again.</p>';
+    const status=$('converter-format-status');
+    if(status)status.textContent=`${shown} of ${shown+hidden} formats listed${hidden>0?`, ${hidden} hidden by this search`:''}. ${converterRunning?'Cancel stops the batch before the next file.':'Cancel is switched off because no conversion is running.'}`;
+    const cancel=$('converter-cancel');
+    if(cancel)cancel.disabled=!converterRunning;
+  }
+
+  /**
+   * The one writer of the picker's status line.
+   *
+   * The claim it carries -- that every byte was read here and nothing was uploaded --
+   * is the only thing on this page a reader cannot check for themselves, so it lives
+   * in exactly one place and travels with every rewrite of the line rather than being
+   * copied into each caller and quietly lost from one of them.
+   */
+  function converterInputStatus(extra){
+    const node=$('converter-input-status');if(!node)return;
+    node.textContent=`${converterItems.length} file${converterItems.length===1?'':'s'} in the queue. Every byte was read in this browser and nothing was uploaded.${extra?` ${extra}`:''}`;
+  }
+  /** Read the chosen files here in the browser, and say what was refused. */
+  async function converterAddFiles(fileList){
+    const files=[...(fileList||[])];
+    if(files.length===0)return;
+    const refused=[];
+    for(const file of files){
+      if(file.size>CONVERTER_MAX_BYTES){refused.push(`${file.name} is ${file.size} bytes, over the ${CONVERTER_MAX_BYTES}-byte per-file bound`);continue}
+      let bytes;
+      try{bytes=new Uint8Array(await file.arrayBuffer())}
+      catch(error){refused.push(`${file.name} could not be read: ${String(error&&error.message||'the browser refused it')}`);continue}
+      converterSeq+=1;
+      converterItems.push({id:`c${converterSeq}`,name:file.name,bytes,inspected:converterInspect(file.name,bytes),state:'queued',reason:'',output:'',outputName:''});
+    }
+    converterPage=0;
+    renderConverterQueue();
+    updateConverterLoss();
+    converterInputStatus(refused.length>0?`${refused.length} refused: ${refused.join('; ')}.`:'');
+  }
+
+  /** One queue row: what the file is, what it can become, and what it became. */
+  function converterItemMarkup(item,target){
+    const can=converterCan(item.inspected,target);
+    const stateLabel={queued:'Queued',converted:'Converted',skipped:'Skipped',failed:'Failed',cancelled:'Cancelled'}[item.state]||item.state;
+    const stateChip=item.state==='converted'?'ok-chip':item.state==='queued'?'warning-chip':'warning-chip';
+    const reason=item.reason||(can.ok?'':can.reason);
+    return `<article class="converter-item" data-item="${escapeHtml(item.id)}">`
+      +`<div class="converter-item-head"><strong>${escapeHtml(item.name)}</strong><span class="status-chip ${stateChip}">${escapeHtml(stateLabel)}</span></div>`
+      +`<p class="converter-item-facts">${item.inspected.size} bytes · read as <strong>${escapeHtml(item.inspected.kind)}</strong> because ${escapeHtml(item.inspected.why)}.</p>`
+      +(reason?`<p class="converter-item-reason">${escapeHtml(reason)}</p>`:'')
+      +`<div class="converter-item-actions">`
+      +`<button type="button" class="secondary-button" data-convert="${escapeHtml(item.id)}"${can.ok?'':' disabled'}>Convert to ${escapeHtml(CONVERTER_TARGET_LABEL[target])}</button>`
+      +(item.state==='converted'?`<button type="button" class="text-button" data-download="${escapeHtml(item.id)}">Download ${escapeHtml(item.outputName)}</button>`:'')
+      +`<button type="button" class="text-button" data-remove="${escapeHtml(item.id)}">Remove from queue</button>`
+      +`</div>`
+      +(item.state==='converted'?`<pre class="converter-preview">${escapeHtml(item.output.slice(0,600))}${item.output.length>600?'\n…':''}</pre>`:'')
+      +`</article>`;
+  }
+
+  function renderConverterQueue(){
+    const host=$('converter-queue');if(!host)return;
+    if(converterPage>converterPageCount()-1)converterPage=converterPageCount()-1;
+    const target=converterTarget();
+    const items=converterPageItems();
+    host.innerHTML=items.length>0
+      ?items.map(item=>converterItemMarkup(item,target)).join('')
+      :'<p class="empty-state">No file has been chosen yet. Nothing is read, and nothing is converted, until you choose one.</p>';
+    const first=converterPage*CONVERTER_PAGE_SIZE;
+    const status=$('converter-page-status');
+    if(status)status.textContent=converterItems.length===0
+      ?'The queue is empty, so both page buttons are switched off.'
+      :`Showing ${first+1}-${Math.min(first+CONVERTER_PAGE_SIZE,converterItems.length)} of ${converterItems.length}.${converterPage===0?' Previous is switched off because this is the first page.':''}${converterPage>=converterPageCount()-1?' Next is switched off because this is the last page.':''}`;
+    if($('converter-prev'))$('converter-prev').disabled=converterPage===0;
+    if($('converter-next'))$('converter-next').disabled=converterPage>=converterPageCount()-1;
+    const listed=$('converter-convert-listed');
+    if(listed){
+      const convertible=items.filter(item=>converterCan(item.inspected,target).ok).length;
+      listed.disabled=converterRunning||convertible===0;
+      listed.textContent=`Convert the ${convertible} convertible file${convertible===1?'':'s'} listed here`;
+    }
+  }
+
+  /** Everything the current page of the queue would lose, said before Convert. */
+  function updateConverterLoss(){
+    const node=$('converter-loss');if(!node)return;
+    const target=converterTarget();
+    const items=converterPageItems();
+    node.textContent=items.length===0
+      ?'Select a file to see conversion limits and loss disclosure.'
+      :items.map(item=>`${item.name} → ${CONVERTER_TARGET_LABEL[target]}: ${converterLoss(item.inspected,target).join(' ')}`).join(' ');
+  }
+
+  function converterConvertItem(item){
+    const target=converterTarget();
+    const result=converterConvert(item.inspected,target,item.bytes);
+    if(!result.ok){item.state='skipped';item.reason=result.reason;item.output='';item.outputName='';return false}
+    item.state='converted';item.reason='';item.output=result.text;item.outputName=converterOutputName(item.name,target);
+    return true;
+  }
+
+  /**
+   * Convert the files listed on this page, one at a time, checking for a cancel
+   * between each. A cancelled file is left saying so rather than silently
+   * staying queued, and the count reported at the end distinguishes all three
+   * outcomes instead of calling the batch a success.
+   */
+  async function converterConvertListed(){
+    if(converterRunning)return;
+    converterRunning=true;converterCancelRequested=false;
+    renderConverterAdapters();renderConverterQueue();
+    let converted=0,skipped=0,cancelled=0;
+    for(const item of converterPageItems()){
+      if(converterCancelRequested){item.state='cancelled';item.reason='the batch was cancelled before this file was reached';item.output='';cancelled+=1;continue}
+      if(converterConvertItem(item))converted+=1;else skipped+=1;
+      await new Promise(resolve=>setTimeout(resolve,0));
+    }
+    converterRunning=false;converterCancelRequested=false;
+    renderConverterAdapters();renderConverterQueue();updateConverterLoss();
+    const summary=`${converted} converted, ${skipped} skipped, ${cancelled} cancelled.`;
+    recordHistory('files-converted',`Converted files to ${CONVERTER_TARGET_LABEL[converterTarget()]}: ${summary}`);
+    notify(copyText('notifConverted'),applyVocabularyText(summary),{category:'export',copyKey:'notifConverted'});
+  }
+
+  function initConverter(){
+    if(!$('converter-files'))return;
+    $('converter-files').addEventListener('change',event=>{const chosen=event.target.files;event.target.value='';converterAddFiles(chosen)});
+    $('converter-target-format')?.addEventListener('change',()=>{
+      for(const item of converterItems){if(item.state!=='queued'){item.state='queued';item.reason='';item.output='';item.outputName=''}}
+      renderConverterQueue();updateConverterLoss();
+    });
+    $('converter-format-search')?.addEventListener('input',renderConverterAdapters);
+    $('converter-cancel')?.addEventListener('click',()=>{if(converterRunning)converterCancelRequested=true});
+    $('converter-convert-listed')?.addEventListener('click',converterConvertListed);
+    $('converter-prev')?.addEventListener('click',()=>{if(converterPage===0)return;converterPage-=1;renderConverterQueue();updateConverterLoss()});
+    $('converter-next')?.addEventListener('click',()=>{if(converterPage>=converterPageCount()-1)return;converterPage+=1;renderConverterQueue();updateConverterLoss()});
+    $('converter-queue')?.addEventListener('click',event=>{
+      const button=event.target.closest('[data-convert],[data-download],[data-remove]');
+      if(!button)return;
+      if(button.dataset.convert!==undefined){
+        const item=converterItemById(button.dataset.convert);
+        if(!item)return;
+        converterConvertItem(item);renderConverterQueue();updateConverterLoss();
+        return;
+      }
+      if(button.dataset.download!==undefined){
+        const item=converterItemById(button.dataset.download);
+        if(!item||item.state!=='converted')return;
+        download(item.outputName,item.output,'text/plain;charset=utf-8');
+        return;
+      }
+      const item=converterItemById(button.dataset.remove);
+      if(!item)return;
+      converterItems=converterItems.filter(entry=>entry.id!==item.id);
+      renderConverterQueue();updateConverterLoss();
+      converterInputStatus('');
+    });
+    renderConverterAdapters();renderConverterQueue();updateConverterLoss();
+  }
 
   function initHeroCanvas(){
     const canvas=$('hero-canvas');if(!canvas||!canvas.getContext)return;
@@ -4857,6 +5846,52 @@
   /** The build identity this page is running. Empty commit means it was never built. */
   function runningBuild(){return {version:SITE_BUILD_VERSION,commit:SITE_BUILD_COMMIT,builtAt:SITE_BUILD_AT}}
   function shortCommit(commit){return String(commit||'').slice(0,7)}
+
+  function formatBuildTime(value){
+    const date=new Date(value);
+    if(!Number.isFinite(date.getTime()))return 'updated-at unavailable';
+    return new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'medium',timeZoneName:'short'}).format(date);
+  }
+
+  const LOGO_MARKS={
+    mark:'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"%3E%3Crect width="80" height="80" rx="16" fill="%2382D9A5"/%3E%3Cpath d="M21 57V22h13l7 13 7-13h13v35H50V38l-9 15-9-15v19z" fill="%230B0F0C"/%3E%3C/svg%3E',
+    signal:'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"%3E%3Crect width="80" height="80" rx="16" fill="%231A3224"/%3E%3Cpath d="M16 44h10l7-18 10 35 8-24 5 7h8" fill="none" stroke="%2382D9A5" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/%3E%3C/svg%3E',
+    route:'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"%3E%3Crect width="80" height="80" rx="16" fill="%23D9A582"/%3E%3Cpath d="M18 25h18a8 8 0 0 1 8 8v14a8 8 0 0 1-8 8H29l-11 9V25zm27 8h10a8 8 0 0 1 8 8v14a8 8 0 0 1-8 8H44" fill="none" stroke="%230B0F0C" stroke-width="6" stroke-linejoin="round"/%3E%3C/svg%3E'
+  };
+  function saveLogoPresentation(next){const current={fit:'contain',background:'',focalX:50,focalY:50,...next};if(reportWrite('the logo presentation',writeLocal('ding-pbx-logo-presentation',JSON.stringify(current)))){applyLogo();recordHistory('logo-presentation-changed',`Logo presentation changed to ${current.fit}.`)}}
+  function initLogoStudio(){const card=document.querySelector('.logo-card');if(!card||card.dataset.logoStudioReady==='true')return;card.dataset.logoStudioReady='true';card.innerHTML='<div><span class="card-kicker">LOCAL PRIVACY</span><h2>Logo studio</h2><p>Choose a shipped mark or add a local PNG, JPEG, or SVG. The source never leaves this browser.</p><p id="logo-status" role="status">No custom logo loaded; the shipped mark is active.</p></div><div class="logo-studio"><div class="logo-preview" id="logo-preview" aria-label="Live logo preview">D</div><div><div class="preset-row" role="group" aria-label="Logo presets"><button class="logo-preset" type="button" data-logo-preset="mark">Material mark</button><button class="logo-preset" type="button" data-logo-preset="signal">Signal</button><button class="logo-preset" type="button" data-logo-preset="route">Call route</button></div><label>Custom logo<input id="logo-file" type="file" accept="image/png,image/jpeg,image/svg+xml,.png,.jpg,.jpeg,.svg"></label><div class="inline-controls"><label>Fit<select id="logo-fit"><option value="contain">Contain</option><option value="cover">Fill</option><option value="none">Original size</option></select></label><label>Background<input id="logo-background" type="color" value="#82D9A5"></label></div><div class="inline-controls"><label>Focal point X<input id="logo-focal-x" type="range" min="0" max="100" value="50"><output id="logo-focal-x-value">50%</output></label><label>Focal point Y<input id="logo-focal-y" type="range" min="0" max="100" value="50"><output id="logo-focal-y-value">50%</output></label></div><button id="logo-clear" class="text-button" type="button">Reset to shipped mark</button></div></div>';let presentation={fit:'contain',background:'#82D9A5',focalX:50,focalY:50};try{presentation={...presentation,...JSON.parse(localStorage.getItem('ding-pbx-logo-presentation')||'{}')}}catch{};for(const[id,value]of [['logo-fit',presentation.fit],['logo-background',presentation.background],['logo-focal-x',presentation.focalX],['logo-focal-y',presentation.focalY]])if($(id))$(id).value=value;const preview=$('logo-preview');const renderPreview=()=>{if(!preview)return;let cached=null;try{cached=localStorage.getItem(LOGO_CACHE_KEY)}catch{};preview.replaceChildren();if(cached){const image=document.createElement('img');image.src=cached;image.alt='Selected local logo';preview.append(image)}else preview.textContent='D';preview.style.background=$('logo-background')?.value||'';if(preview.firstElementChild){preview.firstElementChild.style.objectFit=$('logo-fit')?.value||'contain';preview.firstElementChild.style.objectPosition=`${$('logo-focal-x')?.value||50}% ${$('logo-focal-y')?.value||50}%`}};document.querySelectorAll('[data-logo-preset]').forEach(button=>button.addEventListener('click',()=>{const data=LOGO_MARKS[button.dataset.logoPreset];if(data&&reportWrite('the selected logo preset',writeLocal(LOGO_CACHE_KEY,data))){$('logo-status').textContent='Preset applied locally. No data was transmitted.';renderPreview();applyLogo()}}));for(const id of ['logo-fit','logo-background','logo-focal-x','logo-focal-y'])$(id)?.addEventListener('input',()=>{if($('logo-focal-x-value'))$('logo-focal-x-value').textContent=`${$('logo-focal-x').value}%`;if($('logo-focal-y-value'))$('logo-focal-y-value').textContent=`${$('logo-focal-y').value}%`;saveLogoPresentation({fit:$('logo-fit').value,background:$('logo-background').value,focalX:Number($('logo-focal-x').value),focalY:Number($('logo-focal-y').value)});renderPreview()});renderPreview()}
+
+  function ensureCanonicalMetadata(){
+    const canonicalUrl=new URL(location.pathname.split('/').pop()||'',PUBLIC_SITE_ORIGIN).href;
+    const values={
+      'og:url':canonicalUrl,
+      'og:image':`${PUBLIC_SITE_ORIGIN}social-preview.png`,
+    };
+    for(const[property,content]of Object.entries(values)){
+      const node=document.head.querySelector(`meta[property="${property}"]`);
+      if(node)node.content=content;
+    }
+    let canonical=document.head.querySelector('link[rel="canonical"]');
+    if(!canonical){canonical=document.createElement('link');canonical.rel='canonical';document.head.append(canonical)}
+    canonical.href=canonicalUrl;
+  }
+
+  function ensureBuildIdentity(){
+    ensureCanonicalMetadata();
+    const running=runningBuild();
+    const text=running.commit
+      ? `Version ${running.version}, updated ${formatBuildTime(running.builtAt)} (${running.commit}).`
+      : 'Version and updated-at are unavailable until this page is composed from a build.';
+    document.querySelectorAll('.site-build-identity').forEach(node=>{node.textContent=text;node.title=running.commit?`Build commit ${running.commit}`:''});
+    if(document.querySelector('.site-build-identity'))return;
+    const brand=document.querySelector('.brand');
+    if(!brand)return;
+    const identity=document.createElement('small');
+    identity.className='site-build-identity';
+    identity.setAttribute('role','status');
+    identity.textContent=text;
+    brand.append(identity);
+  }
 
   /**
    * Where the published manifest lives, or null when that is not this origin.
@@ -5137,6 +6172,1115 @@
     sync();
   }
 
-  function init(){ensureAttentionUI();initSchoolWatch();ensureContextMenuUI();applyState();initContextMenu();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initUpdates();initExportEverything();initTimeAwareness();initMomentum();initAuthenticator();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
+
+  // ============================================================================
+  // Per-element toy locks.
+  //
+  // A lock a reader puts on one control, for themselves, on purpose. It is not a
+  // security boundary and every surface it draws says so in those words: it
+  // encrypts nothing, it stops nobody else who has this computer, and clearing
+  // this site's storage removes every one of them without the value.
+  //
+  // Three properties are what make it worth having at all, and each is checked
+  // rather than asserted:
+  //
+  //   - Per element means PER ELEMENT. Every lock carries its own policy and its
+  //     own credential set. Opening one opens exactly one; there is no master
+  //     value and no inheritance, so a reader who wants one value everywhere gets
+  //     there by typing it again rather than by this page assuming it.
+  //   - A locked element is refused, and is still the way in. Its action does not
+  //     run, and activating it opens that element's own prompt instead. A native
+  //     `disabled` attribute would do the first half and destroy the second, so
+  //     the refusal is an interception and the element stays operable.
+  //   - Nothing here can give a value back. The recovery route is the reader's own
+  //     browser storage, named in full wherever a value is asked for, because a
+  //     for-fun lock that can strand somebody is not for fun.
+  //
+  // One fixed storage key holds a map of records rather than one key per element:
+  // a key built from an element is a key an element's rename orphans, and an
+  // unbounded set of them is a store nothing can enumerate to clear.
+  // ============================================================================
+  const LOCK_KEY='ding-pbx-pages-locks-v1';
+  const LOCK_ENTRY_LIMIT=64;
+  const LOCK_PIN_MIN=4;
+  const LOCK_PIN_MAX=12;
+  const LOCK_PASSWORD_MIN=4;
+  const LOCK_PASSWORD_MAX=128;
+  const LOCK_DIGEST='SHA-256';
+  const LOCK_ATTEMPT_BUDGET=5;
+  const LOCK_ATTEMPT_WINDOW_MS=60000;
+  const LOCK_TOTP_SKEW_STEPS=1;
+  const LOCK_MINUTES_MIN=1;
+  const LOCK_MINUTES_MAX=120;
+  const LOCK_MINUTES_DEFAULT=5;
+  /**
+   * The six canonical policies, each an ORDERED list of factors.
+   *
+   * Ordered because the prompt walks them one at a time and says which step it is
+   * on. A set would render in whatever order the object happened to enumerate,
+   * and the reader would be told to enter a different thing on different visits.
+   */
+  const LOCK_POLICIES=[
+    {id:'pin',label:'A PIN',factors:['pin']},
+    {id:'password',label:'A password',factors:['password']},
+    {id:'pin+password',label:'A PIN, then a password',factors:['pin','password']},
+    {id:'password+totp',label:'A password, then a one-time code',factors:['password','totp']},
+    {id:'pin+totp',label:'A PIN, then a one-time code',factors:['pin','totp']},
+    {id:'password+pin+totp',label:'A password, then a PIN, then a one-time code',factors:['password','pin','totp']}
+  ];
+  const LOCK_FACTOR_LABEL={pin:'PIN',password:'password',totp:'one-time code'};
+  /**
+   * How long one successful unlock lasts.
+   *
+   * All three are held in memory and nothing writes them down, so a reload
+   * relocks everything whichever one was chosen. That is the canonical
+   * locked-on-launch default arriving as a property of the code rather than as a
+   * fourth option somebody has to pick.
+   */
+  const LOCK_DURATIONS=[
+    {id:'once',label:'Just this once'},
+    {id:'minutes',label:'For a number of minutes'},
+    {id:'session',label:'Until this page is closed'}
+  ];
+  const LOCK_TOY_LINE='This is a speed bump you set for yourself, not a security boundary. It encrypts nothing, it protects nothing from anyone else who has this computer, and clearing this site’s storage removes it without the value.';
+  const LOCK_RECOVERY_LINE='Forgotten it? Nothing on this page can give it back. Clear this site’s storage in your browser: every lock here goes with it, along with the rest of this page’s local data.';
+
+  function lockPolicy(id){return LOCK_POLICIES.find(entry=>entry.id===id)||null}
+  function lockDuration(id){return LOCK_DURATIONS.find(entry=>entry.id===id)||null}
+
+  // ------------------------------------------------------------------ naming an element
+  //
+  // A key has to survive a reload, and an element that carries an id gets one that
+  // survives a re-layout too. Everything else falls back to its structural position,
+  // which is honest rather than clever: it is the best a page can do for an element
+  // nobody gave a name to, and it stops being right the moment the markup moves. The
+  // list on the settings card says which locks no longer resolve here, rather than
+  // leaving a record pointing at nothing.
+  function lockPageId(){return String(document.body&&document.body.dataset&&document.body.dataset.page||'page')}
+  function lockElementPath(element){
+    const parts=[];
+    let node=element;
+    while(node&&node.tagName&&String(node.tagName).toLowerCase()!=='body'){
+      const tag=String(node.tagName).toLowerCase();
+      const parent=node.parentElement;
+      if(!parent){parts.unshift(tag);break}
+      const siblings=[...parent.children].filter(child=>String(child.tagName).toLowerCase()===tag);
+      const index=siblings.indexOf(node);
+      parts.unshift(siblings.length>1&&index>=0?`${tag}[${index+1}]`:tag);
+      node=parent;
+    }
+    return parts.join('/');
+  }
+  function lockElementKey(element,page){
+    if(!element||!element.tagName)return '';
+    const where=String(page||lockPageId());
+    const id=String(element.id||'');
+    if(id)return `${where}::#${id}`;
+    const path=lockElementPath(element);
+    return path?`${where}::${path}`:'';
+  }
+  function lockKeyPage(key){const at=String(key||'').indexOf('::');return at===-1?'':String(key).slice(0,at)}
+  /** The selector one key resolves through on the page it belongs to, or '' when it cannot. */
+  function lockKeySelector(key){
+    const at=String(key||'').indexOf('::');
+    if(at===-1)return '';
+    const tail=String(key).slice(at+2);
+    if(!tail)return '';
+    if(tail.startsWith('#'))return /^#[A-Za-z][\w-]*$/.test(tail)?tail:'';
+    const steps=tail.split('/').map(part=>{
+      const parsed=part.match(/^([a-z][a-z0-9-]*)(?:\[(\d+)\])?$/);
+      if(!parsed)return '';
+      return parsed[2]?`${parsed[1]}:nth-of-type(${parsed[2]})`:parsed[1];
+    });
+    if(steps.some(step=>!step))return '';
+    return `body > ${steps.join(' > ')}`;
+  }
+  function lockResolveElement(key){
+    if(lockKeyPage(key)!==lockPageId())return null;
+    const selector=lockKeySelector(key);
+    if(!selector)return null;
+    try{return document.querySelector(selector)}catch{return null}
+  }
+
+  // ------------------------------------------------------------------ credentials
+  //
+  // A PIN and a password are kept as a salted digest and never as themselves. A
+  // one-time-code factor is different in kind and the difference is stated rather
+  // than hidden: a shared secret cannot be hashed, because this page has to compute
+  // codes from it, so that one really is kept in this browser as the reader supplied
+  // it -- exactly like the authenticator card's accounts, in its own storage key,
+  // out of `state`, and out of every export that does not say it is writing secrets.
+  function lockCryptoApi(){
+    const api=typeof crypto==='undefined'?null:crypto;
+    if(!api||typeof api.getRandomValues!=='function')return null;
+    if(!api.subtle||typeof api.subtle.digest!=='function')return null;
+    return api;
+  }
+  function lockHex(bytes){return [...bytes].map(byte=>byte.toString(16).padStart(2,'0')).join('')}
+  function lockSalt(){const api=lockCryptoApi();return api?lockHex(api.getRandomValues(new Uint8Array(16))):''}
+  async function lockDigestOf(value,saltHex){
+    const api=lockCryptoApi();
+    if(!api||!saltHex)return null;
+    const data=new TextEncoder().encode(`${saltHex}:${String(value)}`);
+    return lockHex(new Uint8Array(await api.subtle.digest(LOCK_DIGEST,data)));
+  }
+  /**
+   * Whether one offered digest opens one stored factor, and why when it does not.
+   *
+   * Every character is compared rather than stopping at the first difference, so
+   * how long it takes says nothing about how much of the value was right.
+   */
+  function lockCredentialVerdict(stored,digestHex){
+    if(!stored||typeof stored.digestHex!=='string'||!stored.digestHex)return{open:false,why:'no-credential'};
+    if(typeof digestHex!=='string'||!digestHex)return{open:false,why:'no-digest'};
+    if(digestHex.length!==stored.digestHex.length)return{open:false,why:'wrong-value'};
+    let difference=0;
+    for(let index=0;index<digestHex.length;index+=1)difference|=digestHex.charCodeAt(index)^stored.digestHex.charCodeAt(index);
+    return difference===0?{open:true,why:'match'}:{open:false,why:'wrong-value'};
+  }
+
+  // ------------------------------------------------------------------ the store
+  function lockNormaliseFactorDigest(raw){
+    if(!raw||typeof raw!=='object')return null;
+    if(typeof raw.saltHex!=='string'||!raw.saltHex)return null;
+    if(typeof raw.digestHex!=='string'||!raw.digestHex)return null;
+    return{algorithm:String(raw.algorithm||LOCK_DIGEST),saltHex:raw.saltHex,digestHex:raw.digestHex};
+  }
+  function lockNormaliseRecord(raw){
+    if(!raw||typeof raw!=='object')return null;
+    const policy=lockPolicy(raw.policy);
+    if(!policy)return null;
+    const key=String(raw.key||'');
+    if(!key||!lockKeySelector(key))return null;
+    const factors={};
+    for(const factor of policy.factors){
+      if(factor==='totp'){
+        const totp=raw.factors&&raw.factors.totp;
+        if(!totp||typeof totp!=='object')return null;
+        try{
+          const secret=String(totp.secret||'').replace(/\s+/g,'').toUpperCase();
+          authDecodeBase32(secret);
+          factors.totp={secret,algorithm:authNormaliseAlgorithm(totp.algorithm),digits:authNormaliseDigits(totp.digits),period:authNormalisePeriod(totp.period)};
+        }catch{return null}
+        continue;
+      }
+      const digest=lockNormaliseFactorDigest(raw.factors&&raw.factors[factor]);
+      if(!digest)return null;
+      factors[factor]=digest;
+    }
+    const duration=lockDuration(raw.duration)?String(raw.duration):'once';
+    const minutes=Math.min(LOCK_MINUTES_MAX,Math.max(LOCK_MINUTES_MIN,Number(raw.minutes)||LOCK_MINUTES_DEFAULT));
+    return{
+      key,
+      page:lockKeyPage(key),
+      name:String(raw.name||'').slice(0,120),
+      kind:String(raw.kind||'element'),
+      policy:policy.id,
+      factors,
+      duration,
+      minutes,
+      /* Off unless the reader asked for it, per lock. A shuffled keypad nobody chose
+       * is slower for everybody and safer for nobody, on a lock that protects nothing
+       * from anybody. */
+      shuffle:Boolean(raw.shuffle),
+      created:Number.isFinite(Number(raw.created))?Number(raw.created):0
+    };
+  }
+  /**
+   * Every record, keyed by element, refusing anything malformed rather than
+   * half-trusting it.
+   *
+   * A record that cannot be read falls out rather than locking an element behind a
+   * credential nothing can check -- which would be an element nobody could ever
+   * open again, from a store whose whole promise is that it is only a speed bump.
+   */
+  function lockLoadRecords(){
+    try{
+      const raw=JSON.parse(localStorage.getItem(LOCK_KEY)||'{}');
+      if(!raw||typeof raw!=='object'||Array.isArray(raw))return{records:{},dropped:0};
+      const records={};
+      let dropped=0;
+      for(const[key,value]of Object.entries(raw).slice(0,LOCK_ENTRY_LIMIT)){
+        const record=lockNormaliseRecord({...value,key:String(value&&value.key||key)});
+        if(record&&record.key===key)records[key]=record;else dropped+=1;
+      }
+      return{records,dropped:dropped+Math.max(0,Object.keys(raw).length-LOCK_ENTRY_LIMIT)};
+    }catch{return{records:{},dropped:0}}
+  }
+  let lockLoaded=lockLoadRecords();
+  let lockRecords=lockLoaded.records;
+  let lockDroppedOnLoad=lockLoaded.dropped;
+  /* Through the one guarded writer, like every other store on this page. A browser
+   * with no room left refuses the write, and a lock the reader just created would
+   * otherwise be gone at the next load with nothing having said so -- which for
+   * this feature reads as the lock having silently unlocked itself. */
+  function lockSaveRecords(){return reportWrite('your element locks',writeLocal(LOCK_KEY,JSON.stringify(lockRecords)))}
+  function lockRecordFor(key){return Object.hasOwn(lockRecords,key)?lockRecords[key]:null}
+  function lockCount(){return Object.keys(lockRecords).length}
+  /** What a redacted export and the settings export both say about this store. */
+  function lockExportSummary(){return{locks:lockCount(),credentials:'omitted',storedSeparatelyIn:LOCK_KEY}}
+  function lockExportRows(keys){
+    const wanted=keys instanceof Set?keys:new Set(keys||[]);
+    return Object.values(lockRecords).filter(record=>wanted.has(record.key)).map(record=>({
+      element:record.name||record.key,
+      page:record.page,
+      kind:record.kind,
+      method:record.policy,
+      unlockLasts:record.duration==='minutes'?`${record.minutes} minutes`:record.duration,
+      credentials:'omitted'
+    }));
+  }
+
+  // ------------------------------------------------------------------ creating one
+  const LOCK_SETUP_REASON={
+    'no-policy':'Choose one of the six methods.',
+    'no-element':'This element cannot be named in a way that would survive a reload, so a lock on it could not be found again.',
+    'already-locked':'This element already carries a lock. Remove that one first.',
+    'too-many':`This page keeps at most ${LOCK_ENTRY_LIMIT} locks and it already has that many. Remove one first.`,
+    'no-digest-available':'This browser gives this page no cryptographic digest here, which happens when the page is not served over a secure connection. Without one the value could only be kept in the clear, so nothing is locked at all rather than locked with a value stored as itself.',
+    'pin-not-digits':'A PIN is digits only.',
+    'pin-too-short':`Choose at least ${LOCK_PIN_MIN} digits.`,
+    'pin-too-long':`Choose at most ${LOCK_PIN_MAX} digits.`,
+    'pin-mismatch':'The two PINs are not the same. Nothing was locked.',
+    'password-too-short':`Choose at least ${LOCK_PASSWORD_MIN} characters.`,
+    'password-too-long':`Choose at most ${LOCK_PASSWORD_MAX} characters.`,
+    'password-mismatch':'The two passwords are not the same. Nothing was locked.',
+    'totp-missing':'Paste an otpauth:// link or type the base32 secret your authenticator gave you. Nothing is generated here.',
+    'totp-unreadable':'That secret is not readable base32, so no code could ever be computed from it.',
+    'no-duration':'Choose how long one unlock should last.'
+  };
+  /**
+   * The one refusal reason for a proposed lock, or `ready`. Pure.
+   *
+   * Pure so the wizard's status line and the create path cannot come to disagree
+   * about whether something is acceptable -- both ask this, and the button is
+   * disabled from the same answer the sentence beneath it is written from.
+   */
+  function lockSetupVerdict(input){
+    const policy=lockPolicy(input&&input.policy);
+    if(!policy)return{ok:false,why:'no-policy'};
+    if(!input.key||!lockKeySelector(input.key))return{ok:false,why:'no-element'};
+    if(input.alreadyLocked)return{ok:false,why:'already-locked'};
+    if(Number(input.count||0)>=LOCK_ENTRY_LIMIT)return{ok:false,why:'too-many'};
+    if(!input.hasDigest)return{ok:false,why:'no-digest-available'};
+    if(policy.factors.includes('pin')){
+      const pin=String(input.pin||'');
+      if(!/^\d+$/.test(pin))return{ok:false,why:'pin-not-digits'};
+      if(pin.length<LOCK_PIN_MIN)return{ok:false,why:'pin-too-short'};
+      if(pin.length>LOCK_PIN_MAX)return{ok:false,why:'pin-too-long'};
+      if(pin!==String(input.pinConfirm||''))return{ok:false,why:'pin-mismatch'};
+    }
+    if(policy.factors.includes('password')){
+      const password=String(input.password||'');
+      if(password.length<LOCK_PASSWORD_MIN)return{ok:false,why:'password-too-short'};
+      if(password.length>LOCK_PASSWORD_MAX)return{ok:false,why:'password-too-long'};
+      if(password!==String(input.passwordConfirm||''))return{ok:false,why:'password-mismatch'};
+    }
+    if(policy.factors.includes('totp')){
+      const secret=String(input.totpSecret||'').replace(/\s+/g,'').toUpperCase();
+      if(!secret)return{ok:false,why:'totp-missing'};
+      try{authDecodeBase32(secret)}catch{return{ok:false,why:'totp-unreadable'}}
+    }
+    if(!lockDuration(input.duration))return{ok:false,why:'no-duration'};
+    return{ok:true,why:'ready'};
+  }
+
+  // ------------------------------------------------------------------ attempts
+  //
+  // Bounded, and honest about being bounded. A wrong value costs one of a small
+  // number of tries inside a short window and then the prompt waits; nothing is
+  // deleted, nothing escalates, and the wait is stated in seconds rather than
+  // implied. A for-fun lock that punished a wrong guess would be neither.
+  const lockAttempts=new Map();
+  function lockAttemptVerdict(entry,nowMs){
+    if(!entry)return{allowed:true,remaining:LOCK_ATTEMPT_BUDGET,waitMs:0};
+    if(Number(entry.blockedUntil||0)>nowMs)return{allowed:false,remaining:0,waitMs:entry.blockedUntil-nowMs};
+    if(nowMs-Number(entry.firstAt||0)>LOCK_ATTEMPT_WINDOW_MS)return{allowed:true,remaining:LOCK_ATTEMPT_BUDGET,waitMs:0};
+    const remaining=Math.max(0,LOCK_ATTEMPT_BUDGET-Number(entry.count||0));
+    return{allowed:remaining>0,remaining,waitMs:0};
+  }
+  function lockNoteAttempt(key,nowMs){
+    const existing=lockAttempts.get(key);
+    const fresh=!existing||nowMs-Number(existing.firstAt||0)>LOCK_ATTEMPT_WINDOW_MS;
+    const entry=fresh?{count:0,firstAt:nowMs,blockedUntil:0}:{...existing};
+    entry.count+=1;
+    if(entry.count>=LOCK_ATTEMPT_BUDGET)entry.blockedUntil=nowMs+LOCK_ATTEMPT_WINDOW_MS;
+    lockAttempts.set(key,entry);
+    return lockAttemptVerdict(entry,nowMs);
+  }
+  function lockClearAttempts(key){lockAttempts.delete(key)}
+
+  // ------------------------------------------------------------------ being open
+  const lockOpened=new Map();
+  function lockOpenVerdict(entry,nowMs){
+    if(!entry)return{open:false,why:'locked'};
+    if(entry.mode==='once')return Number(entry.uses||0)>0?{open:false,why:'used'}:{open:true,why:'once'};
+    if(entry.mode==='session')return{open:true,why:'session'};
+    if(entry.mode==='minutes')return nowMs<Number(entry.until||0)?{open:true,why:'timed',msLeft:entry.until-nowMs}:{open:false,why:'expired'};
+    return{open:false,why:'unknown-mode'};
+  }
+  function lockGrant(key,record,nowMs){
+    const mode=record&&record.duration||'once';
+    const minutes=Math.min(LOCK_MINUTES_MAX,Math.max(LOCK_MINUTES_MIN,Number(record&&record.minutes)||LOCK_MINUTES_DEFAULT));
+    lockOpened.set(key,{mode,uses:0,until:mode==='minutes'?nowMs+minutes*60000:0});
+    lockClearAttempts(key);
+  }
+  function lockNoteUse(key){
+    const entry=lockOpened.get(key);
+    if(!entry)return;
+    lockOpened.set(key,{...entry,uses:Number(entry.uses||0)+1});
+  }
+  function lockRelock(key){lockOpened.delete(key)}
+  function lockIsOpen(key,nowMs){return lockOpenVerdict(lockOpened.get(key),nowMs).open}
+
+  // ------------------------------------------------------------------ the refusal
+  //
+  // A locked element is refused and is still the way in. `disabled` would do the
+  // first and destroy the second: a disabled control receives no events at all, so
+  // clicking it would do nothing and say nothing, which is the decorative-refusal
+  // defect rather than a lock. So the element keeps its events, announces itself
+  // as disabled to assistive technology, and every route that could run its action
+  // is intercepted before anything else sees the event.
+  const LOCK_GUARDED_EVENTS=['pointerdown','mousedown','click','keydown','input','change','dragstart','paste','contextmenu'];
+  const LOCK_PROMPTING_EVENTS=['click'];
+  /**
+   * The nearest element carrying a lock, open or shut.
+   *
+   * Deliberately `[data-lock-key]` rather than `[data-locked="1"]`. An OPEN lock still
+   * has to be found, because that is how a one-use unlock gets its one use counted --
+   * looking only for the shut marker made "just this once" mean "until the page is
+   * reloaded", which is a different duration wearing the right label.
+   */
+  function lockedAncestor(element){
+    if(!element||typeof element.closest!=='function')return null;
+    return element.closest('[data-lock-key]');
+  }
+  /**
+   * What one event on one element does. Pure, so both halves are testable without
+   * a browser: whether the event is refused, and whether it opens the prompt.
+   *
+   * `contextmenu` is deliberately NOT refused. Right-clicking a locked element is
+   * how its lock is removed once it has been opened, and a lock that hid its own
+   * management is a lock with no way out but clearing storage.
+   */
+  function lockEventVerdict(input){
+    const key=String(input&&input.elementKey||'');
+    if(!key)return{refuse:false,prompt:false,why:'not-locked'};
+    if(input.type==='contextmenu')return{refuse:false,prompt:false,why:'menu'};
+    if(input.open)return{refuse:false,prompt:false,why:'open'};
+    if(input.insidePrompt)return{refuse:false,prompt:false,why:'prompt'};
+    const prompt=LOCK_PROMPTING_EVENTS.includes(String(input.type))
+      ||(input.type==='keydown'&&(input.eventKey==='Enter'||input.eventKey===' '));
+    return{refuse:true,prompt,why:'locked'};
+  }
+
+  // ------------------------------------------------------------------ the keypad
+  //
+  // Ten digits in their ordinary order, or shuffled -- and shuffled only because
+  // the reader asked for it. A randomised keypad nobody chose is a keypad that is
+  // slower to use for everybody and safer for nobody, on a lock that protects
+  // nothing from anybody in the first place.
+  /**
+   * A number below `bound`, from this browser's cryptographic generator or not at all.
+   *
+   * The ordinary arithmetic generator is deliberately not used, and not because a
+   * shuffled keypad needs a good one -- it does not. It is because two of this site's
+   * own contracts scan for a per-launch random draw, and a second source of randomness
+   * arriving quietly would make the one they scan for prove less than it says. Both
+   * scans were widened to name this function in the same change. A browser with no
+   * cryptographic generator does not shuffle, rather than falling back to a weaker one.
+   *
+   * The remainder is very slightly biased towards the low digits. On a ten-key pad
+   * that nobody's security depends on it is not worth the rejection loop, and saying
+   * so here is better than a comment implying it is uniform.
+   */
+  function lockRandomBelow(bound){
+    const api=lockCryptoApi();
+    const limit=Math.max(1,Math.floor(Number(bound)||1));
+    if(!api)return 0;
+    return api.getRandomValues(new Uint32Array(1))[0]%limit;
+  }
+  function lockKeypadDigits(shuffle,draw){
+    const digits=['1','2','3','4','5','6','7','8','9','0'];
+    if(!shuffle)return digits;
+    const pick=typeof draw==='function'?draw:lockRandomBelow;
+    const out=[...digits];
+    for(let index=out.length-1;index>0;index-=1){
+      const at=Math.max(0,Math.min(index,Math.floor(pick(index+1))));
+      const swap=out[index];out[index]=out[at];out[at]=swap;
+    }
+    return out;
+  }
+
+  // ------------------------------------------------------------------ verifying
+  async function lockVerifyFactor(record,factor,offered,nowMs){
+    if(!record||!record.factors)return false;
+    if(factor==='totp'){
+      const totp=record.factors.totp;
+      if(!totp)return false;
+      try{return await authVerifyCode(totp,String(offered||'').replace(/\s+/g,''),nowMs,LOCK_TOTP_SKEW_STEPS)}
+      catch{return false}
+    }
+    const stored=record.factors[factor];
+    if(!stored)return false;
+    const digestHex=await lockDigestOf(offered,stored.saltHex);
+    return lockCredentialVerdict(stored,digestHex).open;
+  }
+
+  // ------------------------------------------------------------------ the surfaces
+  //
+  // Both dialogs are built here rather than written into every page's markup, for the
+  // same reason the right-click menu is: the lock command is offered on every page,
+  // so its wizard has to exist on every page, and six copies of one dialog in six
+  // documents is six places for one of them to drift.
+  //
+  // The consequence is worth naming rather than leaving as a silence: the dialog-emoji
+  // decoration table names surfaces by id and reads them out of the published markup,
+  // so a dialog this page creates at load is not in it. These two carry no decoration,
+  // exactly as the right-click menu does not, and for the same reason.
+  let lockWizard={key:'',element:null,opener:null,name:'',kind:'element'};
+  let lockPrompt={key:'',element:null,opener:null,factors:[],step:0};
+  let lockSelection={anchor:undefined,selected:new Set()};
+  let lockOrder=[];
+
+  function lockAppend(parent,tag,options){
+    const node=document.createElement(tag);
+    const settings=options||{};
+    if(settings.id)node.id=settings.id;
+    if(settings.className)node.className=settings.className;
+    if(settings.text)node.textContent=settings.text;
+    for(const[name,value]of Object.entries(settings.attributes||{}))node.setAttribute(name,value);
+    parent.append(node);
+    return node;
+  }
+  function lockField(parent,id,labelText,type,extra){
+    const label=lockAppend(parent,'label',{text:labelText,attributes:{for:id}});
+    const input=lockAppend(parent,'input',{id,attributes:{type,autocomplete:'off',...(extra||{})}});
+    return{label,input};
+  }
+  function lockHeading(dialog,titleId,titleText,closeId,closeLabel){
+    const bar=lockAppend(dialog,'div',{className:'dialog-heading'});
+    lockAppend(bar,'h2',{id:titleId,text:titleText});
+    lockAppend(bar,'button',{id:closeId,className:'icon-button',text:'×',attributes:{type:'button','aria-label':closeLabel}});
+  }
+
+  function ensureLockUI(){
+    if(!document.body||$('lock-wizard'))return;
+
+    const wizard=document.createElement('dialog');
+    wizard.id='lock-wizard';wizard.className='overlay-card lock-dialog';
+    wizard.setAttribute('aria-labelledby','lock-wizard-title');
+    lockHeading(wizard,'lock-wizard-title','Lock this element','lock-wizard-close','Close the lock wizard');
+    lockAppend(wizard,'p',{id:'lock-wizard-target'});
+    lockAppend(wizard,'p',{id:'lock-wizard-toy',className:'setting-note',text:LOCK_TOY_LINE});
+    lockAppend(wizard,'label',{text:'Method',attributes:{for:'lock-wizard-policy'}});
+    const policy=lockAppend(wizard,'select',{id:'lock-wizard-policy',attributes:{'aria-label':'Lock method'}});
+    for(const entry of LOCK_POLICIES)lockAppend(policy,'option',{text:entry.label,attributes:{value:entry.id}});
+
+    const pinBlock=lockAppend(wizard,'div',{id:'lock-wizard-pin-block'});
+    lockField(pinBlock,'lock-wizard-pin',`A PIN of ${LOCK_PIN_MIN} to ${LOCK_PIN_MAX} digits`,'password',{inputmode:'numeric',maxlength:String(LOCK_PIN_MAX)});
+    lockField(pinBlock,'lock-wizard-pin-confirm','The same PIN again','password',{inputmode:'numeric',maxlength:String(LOCK_PIN_MAX)});
+    lockAppend(pinBlock,'label',{}).append(
+      Object.assign(document.createElement('input'),{id:'lock-wizard-shuffle',type:'checkbox'}),
+      document.createTextNode(' Shuffle the keypad when this asks for the PIN')
+    );
+
+    const passwordBlock=lockAppend(wizard,'div',{id:'lock-wizard-password-block'});
+    lockField(passwordBlock,'lock-wizard-password',`A password of at least ${LOCK_PASSWORD_MIN} characters`,'password',{maxlength:String(LOCK_PASSWORD_MAX)});
+    lockField(passwordBlock,'lock-wizard-password-confirm','The same password again','password',{maxlength:String(LOCK_PASSWORD_MAX)});
+
+    const totpBlock=lockAppend(wizard,'div',{id:'lock-wizard-totp-block'});
+    lockAppend(totpBlock,'p',{id:'lock-wizard-totp-note',className:'setting-note',
+      text:'Nothing is generated here. Bring a secret your own authenticator already holds, by pasting its otpauth:// link or typing its base32 secret. This page draws no QR code, because a code drawn here would pair a phone to a factor nobody else could use.'});
+    const uri=lockField(totpBlock,'lock-wizard-totp-uri','Paste an otpauth:// link','text',{spellcheck:'false'});
+    uri.input.placeholder='otpauth://totp/Example:you@example.com?secret=…';
+    lockAppend(totpBlock,'button',{id:'lock-wizard-totp-apply',className:'text-button',text:'Read the link',attributes:{type:'button'}});
+    lockField(totpBlock,'lock-wizard-totp-secret','Or the base32 secret','password',{spellcheck:'false'});
+    lockAppend(totpBlock,'p',{id:'lock-wizard-totp-status',attributes:{role:'status'}});
+
+    lockAppend(wizard,'label',{text:'One unlock lasts',attributes:{for:'lock-wizard-duration'}});
+    const duration=lockAppend(wizard,'select',{id:'lock-wizard-duration',attributes:{'aria-label':'How long one unlock lasts'}});
+    for(const entry of LOCK_DURATIONS)lockAppend(duration,'option',{text:entry.label,attributes:{value:entry.id}});
+    const minutesRow=lockAppend(wizard,'div',{id:'lock-wizard-minutes-row',className:'inline-controls'});
+    lockField(minutesRow,'lock-wizard-minutes','Minutes','number',{min:String(LOCK_MINUTES_MIN),max:String(LOCK_MINUTES_MAX),value:String(LOCK_MINUTES_DEFAULT)});
+    lockAppend(wizard,'p',{id:'lock-wizard-relock',className:'setting-note',
+      text:'Whichever you choose, reloading this page locks it again: nothing about an unlock is written down.'});
+    lockAppend(wizard,'p',{id:'lock-wizard-recovery',className:'setting-note',text:LOCK_RECOVERY_LINE});
+    lockAppend(wizard,'p',{id:'lock-wizard-status',attributes:{role:'status'}});
+    const wizardActions=lockAppend(wizard,'div',{className:'dialog-actions'});
+    lockAppend(wizardActions,'button',{id:'lock-wizard-create',className:'primary-button',text:'Lock it',attributes:{type:'button'}});
+    lockAppend(wizardActions,'button',{id:'lock-wizard-cancel',className:'text-button',text:'Cancel',attributes:{type:'button'}});
+    document.body.append(wizard);
+
+    const prompt=document.createElement('dialog');
+    prompt.id='lock-unlock';prompt.className='overlay-card lock-dialog';
+    prompt.setAttribute('aria-labelledby','lock-unlock-title');
+    lockHeading(prompt,'lock-unlock-title','Unlock this element','lock-unlock-close','Close without unlocking');
+    lockAppend(prompt,'p',{id:'lock-unlock-target'});
+    lockAppend(prompt,'p',{id:'lock-unlock-step'});
+    lockAppend(prompt,'label',{id:'lock-unlock-label',attributes:{for:'lock-unlock-value'}});
+    lockAppend(prompt,'input',{id:'lock-unlock-value',attributes:{type:'password',autocomplete:'off',spellcheck:'false'}});
+    lockAppend(prompt,'div',{id:'lock-unlock-keypad',className:'lock-keypad',attributes:{role:'group','aria-label':'PIN keypad'}});
+    lockAppend(prompt,'p',{id:'lock-unlock-toy',className:'setting-note',text:LOCK_TOY_LINE});
+    lockAppend(prompt,'p',{id:'lock-unlock-recovery',className:'setting-note',text:LOCK_RECOVERY_LINE});
+    lockAppend(prompt,'p',{id:'lock-unlock-status',attributes:{role:'status','aria-live':'polite'}});
+    const promptActions=lockAppend(prompt,'div',{className:'dialog-actions'});
+    lockAppend(promptActions,'button',{id:'lock-unlock-submit',className:'primary-button',text:'Unlock',attributes:{type:'button'}});
+    lockAppend(promptActions,'button',{id:'lock-unlock-cancel',className:'text-button',text:'Cancel',attributes:{type:'button'}});
+    document.body.append(prompt);
+  }
+
+  /**
+   * Put one of these dialogs beside the element it is about, inside the viewport.
+   *
+   * The same clamp the right-click menu uses, for the same reason: an anchored
+   * surface that paints off the bottom of a short window is an anchored surface
+   * nobody can reach the buttons of.
+   */
+  function lockAnchor(dialog,element){
+    if(!dialog||!dialog.getBoundingClientRect)return;
+    const box=element&&element.getBoundingClientRect?element.getBoundingClientRect():{left:CONTEXT_MENU_MARGIN,bottom:CONTEXT_MENU_MARGIN};
+    const own=dialog.getBoundingClientRect();
+    const placed=clampMenuPosition({
+      x:box.left||CONTEXT_MENU_MARGIN,
+      y:box.bottom||CONTEXT_MENU_MARGIN,
+      menuWidth:own.width||CONTEXT_MENU_WIDTH,
+      menuHeight:own.height||CONTEXT_MENU_MIN_HEIGHT,
+      viewWidth:window.innerWidth||0,
+      viewHeight:window.innerHeight||0
+    });
+    dialog.style.position='fixed';
+    dialog.style.left=`${placed.left}px`;
+    dialog.style.top=`${placed.top}px`;
+    dialog.style.maxHeight=`${placed.maxHeight}px`;
+    dialog.style.overflowY=placed.scrolls?'auto':'';
+  }
+
+  // ------------------------------------------------------------------ the wizard
+  function lockWizardFields(){
+    return{
+      policy:$('lock-wizard-policy')?.value||'',
+      pin:$('lock-wizard-pin')?.value||'',
+      pinConfirm:$('lock-wizard-pin-confirm')?.value||'',
+      password:$('lock-wizard-password')?.value||'',
+      passwordConfirm:$('lock-wizard-password-confirm')?.value||'',
+      totpSecret:$('lock-wizard-totp-secret')?.value||'',
+      duration:$('lock-wizard-duration')?.value||'',
+      minutes:Number($('lock-wizard-minutes')?.value||LOCK_MINUTES_DEFAULT),
+      shuffle:Boolean($('lock-wizard-shuffle')?.checked),
+      key:lockWizard.key,
+      alreadyLocked:Boolean(lockRecordFor(lockWizard.key)),
+      count:lockCount(),
+      hasDigest:Boolean(lockCryptoApi())
+    };
+  }
+  /** Show only the factor blocks the chosen method actually asks for. */
+  function renderLockWizard(){
+    const fields=lockWizardFields();
+    const policy=lockPolicy(fields.policy);
+    const factors=policy?policy.factors:[];
+    const show=(id,on)=>{const node=$(id);if(node)node.hidden=!on};
+    show('lock-wizard-pin-block',factors.includes('pin'));
+    show('lock-wizard-password-block',factors.includes('password'));
+    show('lock-wizard-totp-block',factors.includes('totp'));
+    show('lock-wizard-minutes-row',fields.duration==='minutes');
+    const verdict=lockSetupVerdict(fields);
+    const button=$('lock-wizard-create');
+    if(button)button.disabled=!verdict.ok;
+    const status=$('lock-wizard-status');
+    if(status){
+      status.textContent=verdict.ok
+        ?`Ready. This locks one element and nothing else: ${policy.label.toLowerCase()}, checked only against the value you are choosing now.`
+        :(LOCK_SETUP_REASON[verdict.why]||'This cannot be locked yet.');
+    }
+  }
+  function openLockWizard(ctx){
+    ensureLockUI();
+    const dialog=$('lock-wizard');
+    if(!dialog)return null;
+    const element=ctx&&ctx.element?ctx.element:null;
+    lockWizard={
+      key:lockElementKey(element),
+      element,
+      opener:element,
+      name:(ctx&&ctx.name)||accessibleName(element)||'',
+      kind:(ctx&&ctx.kind)||'element'
+    };
+    for(const id of ['lock-wizard-pin','lock-wizard-pin-confirm','lock-wizard-password','lock-wizard-password-confirm','lock-wizard-totp-uri','lock-wizard-totp-secret']){
+      const field=$(id);if(field)field.value='';
+    }
+    if($('lock-wizard-shuffle'))$('lock-wizard-shuffle').checked=false;
+    if($('lock-wizard-minutes'))$('lock-wizard-minutes').value=String(LOCK_MINUTES_DEFAULT);
+    if($('lock-wizard-totp-status'))$('lock-wizard-totp-status').textContent='';
+    const target=$('lock-wizard-target');
+    if(target){
+      target.textContent=lockWizard.name
+        ?`This locks the ${lockWizard.kind} named “${lockWizard.name}”, and only that one. Every lock on this site carries its own value; opening one opens nothing else.`
+        :`This locks one ${lockWizard.kind} on this page, and only that one. Every lock on this site carries its own value; opening one opens nothing else.`;
+    }
+    if(dialog.show)dialog.show();
+    renderLockWizard();
+    lockAnchor(dialog,element);
+    $('lock-wizard-policy')?.focus?.();
+    return lockWizard;
+  }
+  function closeLockWizard(){
+    const dialog=$('lock-wizard');
+    if(dialog&&dialog.close)dialog.close();
+    for(const id of ['lock-wizard-pin','lock-wizard-pin-confirm','lock-wizard-password','lock-wizard-password-confirm','lock-wizard-totp-secret']){
+      const field=$(id);if(field)field.value='';
+    }
+    const opener=lockWizard.opener;
+    lockWizard={key:'',element:null,opener:null,name:'',kind:'element'};
+    opener?.focus?.();
+  }
+  async function createLockFromWizard(){
+    const fields=lockWizardFields();
+    const verdict=lockSetupVerdict(fields);
+    if(!verdict.ok){renderLockWizard();return null}
+    const policy=lockPolicy(fields.policy);
+    const factors={};
+    for(const factor of policy.factors){
+      if(factor==='totp'){
+        const secret=String(fields.totpSecret).replace(/\s+/g,'').toUpperCase();
+        factors.totp={secret,algorithm:'SHA-1',digits:6,period:30};
+        continue;
+      }
+      const saltHex=lockSalt();
+      // eslint-disable-next-line no-await-in-loop
+      const digestHex=await lockDigestOf(factor==='pin'?fields.pin:fields.password,saltHex);
+      if(!digestHex){renderLockWizard();return null}
+      factors[factor]={algorithm:LOCK_DIGEST,saltHex,digestHex};
+    }
+    const record=lockNormaliseRecord({
+      key:fields.key,name:lockWizard.name,kind:lockWizard.kind,policy:policy.id,factors,
+      duration:fields.duration,minutes:fields.minutes,shuffle:fields.shuffle,created:Date.now()
+    });
+    if(!record){renderLockWizard();return null}
+    lockRecords={...lockRecords,[record.key]:record};
+    lockSaveRecords();
+    applyLocks();
+    renderLocksCard($('locks-search')?.value||'');
+    /* The summary names the element and the method and never the value, because a
+     * history entry is a record somebody else can read. */
+    recordHistory('lock-created',`Locked ${record.name?`“${record.name}”`:`one ${record.kind}`} on the ${record.page} page behind ${policy.label.toLowerCase()}.`);
+    notify('Element locked',applyVocabularyText(`${record.name||`One ${record.kind}`} now asks for ${policy.label.toLowerCase()} before it will do anything. It is a speed bump, not a security boundary.`),
+      {category:'setting',en:`One element is now locked behind ${policy.label.toLowerCase()}.`,zh:`有一個元素而家鎖咗，要${policy.label}先郁得。`});
+    closeLockWizard();
+    return record;
+  }
+
+  // ------------------------------------------------------------------ the prompt
+  function lockPromptFactor(){
+    return lockPrompt.factors[lockPrompt.step]||'';
+  }
+  function renderLockKeypad(){
+    const pad=$('lock-unlock-keypad');
+    if(!pad)return;
+    pad.textContent='';
+    const record=lockRecordFor(lockPrompt.key);
+    const wanted=lockPromptFactor()==='pin';
+    pad.hidden=!wanted;
+    if(!wanted)return;
+    for(const digit of lockKeypadDigits(Boolean(record&&record.shuffle))){
+      lockAppend(pad,'button',{className:'lock-key',text:digit,attributes:{type:'button','data-lock-digit':digit,'aria-label':`Digit ${digit}`}});
+    }
+    lockAppend(pad,'button',{id:'lock-key-back',className:'lock-key lock-key-wide',text:'Backspace',attributes:{type:'button'}});
+    lockAppend(pad,'button',{id:'lock-key-clear',className:'lock-key lock-key-wide',text:'Clear',attributes:{type:'button'}});
+  }
+  function renderLockPrompt(message){
+    const record=lockRecordFor(lockPrompt.key);
+    const policy=record?lockPolicy(record.policy):null;
+    const target=$('lock-unlock-target');
+    if(target&&record){
+      target.textContent=record.name
+        ? `“${record.name}” is locked. This value opens that one element and nothing else.`
+        : `This ${record.kind} is locked. This value opens that one element and nothing else.`;
+    }
+    const factor=lockPromptFactor();
+    const step=$('lock-unlock-step');
+    if(step&&policy){
+      step.textContent=policy.factors.length===1
+        ?`It asks for one thing: its ${LOCK_FACTOR_LABEL[factor]||factor}.`
+        :`Step ${lockPrompt.step+1} of ${policy.factors.length}: its ${LOCK_FACTOR_LABEL[factor]||factor}.`;
+    }
+    const label=$('lock-unlock-label');
+    if(label)label.textContent=factor==='totp'
+      ?'The current code from your authenticator'
+      :factor==='pin'?'Its PIN':'Its password';
+    const value=$('lock-unlock-value');
+    if(value){
+      value.value='';
+      value.setAttribute('inputmode',factor==='pin'||factor==='totp'?'numeric':'text');
+      value.setAttribute('type',factor==='totp'?'text':'password');
+    }
+    renderLockKeypad();
+    const status=$('lock-unlock-status');
+    if(status)status.textContent=message||'';
+  }
+  function openLockPrompt(key,opener){
+    ensureLockUI();
+    const record=lockRecordFor(key);
+    const dialog=$('lock-unlock');
+    if(!record||!dialog)return null;
+    const policy=lockPolicy(record.policy);
+    lockPrompt={key,element:lockResolveElement(key),opener:opener||lockResolveElement(key),factors:policy?[...policy.factors]:[],step:0};
+    if(dialog.show)dialog.show();
+    const verdict=lockAttemptVerdict(lockAttempts.get(key),Date.now());
+    renderLockPrompt(verdict.allowed?'':`Too many wrong tries. This waits ${Math.ceil(verdict.waitMs/1000)} more seconds. Nothing was deleted.`);
+    lockAnchor(dialog,lockPrompt.element);
+    $('lock-unlock-value')?.focus?.();
+    return lockPrompt;
+  }
+  function closeLockPrompt(){
+    const dialog=$('lock-unlock');
+    if(dialog&&dialog.close)dialog.close();
+    const value=$('lock-unlock-value');
+    if(value)value.value='';
+    const opener=lockPrompt.opener;
+    lockPrompt={key:'',element:null,opener:null,factors:[],step:0};
+    opener?.focus?.();
+  }
+  /**
+   * One step of one prompt.
+   *
+   * The keypad and the text field are the same submission: the keypad writes into
+   * that field and this is the only thing that reads it, so the two routes cannot
+   * come to disagree about what is acceptable or spend different budgets.
+   */
+  async function submitLockStep(){
+    const key=lockPrompt.key;
+    const record=lockRecordFor(key);
+    if(!record)return{ok:false,why:'no-record'};
+    const now=Date.now();
+    const before=lockAttemptVerdict(lockAttempts.get(key),now);
+    if(!before.allowed){
+      renderLockPrompt(`Too many wrong tries. This waits ${Math.ceil(before.waitMs/1000)} more seconds. Nothing was deleted, and nothing has escalated.`);
+      return{ok:false,why:'rate-limited'};
+    }
+    const factor=lockPromptFactor();
+    const offered=$('lock-unlock-value')?.value||'';
+    const matched=await lockVerifyFactor(record,factor,offered,now);
+    if(!matched){
+      /* Every wrong step starts the whole thing again. A factor verified a moment ago
+       * is kept only for the attempt it belongs to, so a half-remembered password
+       * cannot be banked while somebody works on the code. */
+      lockPrompt.step=0;
+      const after=lockNoteAttempt(key,now);
+      renderLockPrompt(after.allowed
+        ? `That ${LOCK_FACTOR_LABEL[factor]||factor} did not match. ${after.remaining} ${after.remaining===1?'try':'tries'} left before this waits a minute. Nothing was deleted.`
+        : `That ${LOCK_FACTOR_LABEL[factor]||factor} did not match, and this now waits ${Math.round(LOCK_ATTEMPT_WINDOW_MS/1000)} seconds. Nothing was deleted, and nothing has escalated.`);
+      return{ok:false,why:'wrong-value'};
+    }
+    if(lockPrompt.step+1<lockPrompt.factors.length){
+      lockPrompt.step+=1;
+      renderLockPrompt('That one matched. One more thing before this opens.');
+      $('lock-unlock-value')?.focus?.();
+      return{ok:true,why:'next-step'};
+    }
+    lockGrant(key,record,now);
+    applyLocks();
+    renderLocksCard($('locks-search')?.value||'');
+    const element=lockPrompt.element;
+    closeLockPrompt();
+    notify('Element unlocked',applyVocabularyText(lockOpenDescription(record)),
+      {category:'setting',en:'One element was unlocked on this page.',zh:'有一個元素解鎖咗。'});
+    element?.focus?.();
+    return{ok:true,why:'open'};
+  }
+  function lockOpenDescription(record){
+    if(!record)return '';
+    if(record.duration==='once')return 'It is open for one use. It locks itself again straight after.';
+    if(record.duration==='minutes')return `It stays open for ${record.minutes} minute${record.minutes===1?'':'s'}, or until this page is reloaded.`;
+    return 'It stays open until this page is closed or reloaded.';
+  }
+
+  // ------------------------------------------------------------------ applying
+  //
+  // Marking, not disabling. `aria-disabled` says what a listener needs to hear while
+  // leaving the element able to receive the click that opens its own prompt, and the
+  // affordance beside it is a word rather than a glyph so a search over the page's
+  // own text still finds a locked control by the word locked.
+  function applyLocks(){
+    for(const marked of all('[data-locked="1"],[data-lock-key]')){
+      marked.removeAttribute('data-locked');
+      marked.removeAttribute('data-lock-key');
+      marked.removeAttribute('aria-disabled');
+      marked.classList.remove('locked-element');
+      marked.querySelector?.('.lock-affordance')?.remove();
+    }
+    const now=Date.now();
+    for(const record of Object.values(lockRecords)){
+      const element=lockResolveElement(record.key);
+      if(!element)continue;
+      const open=lockIsOpen(record.key,now);
+      element.dataset.lockKey=record.key;
+      element.classList.add('locked-element');
+      if(open){
+        element.setAttribute('aria-disabled','false');
+        continue;
+      }
+      element.dataset.locked='1';
+      element.setAttribute('aria-disabled','true');
+      if(element.querySelector&&!element.querySelector('.lock-affordance')){
+        const badge=document.createElement('span');
+        badge.className='lock-affordance';
+        badge.textContent=' (locked)';
+        badge.setAttribute('data-no-vocab','');
+        element.append(badge);
+      }
+    }
+    if($('locks-status')){
+      const total=lockCount();
+      const openNow=Object.keys(lockRecords).filter(key=>lockIsOpen(key,now)).length;
+      /* The dropped count is reported in BOTH states. It was appended only to the
+       * "some locks" sentence at first, which meant a browser holding nothing but
+       * unreadable records said "nothing on this site is locked" -- true of what it
+       * could read, and silent about the records it had thrown away. */
+      const dropped=lockDroppedOnLoad?` ${lockDroppedOnLoad} unreadable record${lockDroppedOnLoad===1?' was':'s were'} dropped at load.`:'';
+      $('locks-status').textContent=total===0
+        ? `Nothing on this site is locked. Right-click any control and choose “Lock this element…” to lock one.${dropped}`
+        : `${total} element${total===1?'':'s'} locked on this site, ${openNow} of them open right now.${dropped}`;
+    }
+  }
+
+  // ------------------------------------------------------------------ the guard
+  function lockGuard(event){
+    const element=lockedAncestor(event.target);
+    if(!element)return;
+    const key=String(element.dataset&&element.dataset.lockKey||'');
+    const verdict=lockEventVerdict({
+      type:event.type,
+      eventKey:event.key,
+      elementKey:key,
+      open:lockIsOpen(key,Date.now()),
+      insidePrompt:Boolean(event.target?.closest?.('#lock-unlock,#lock-wizard'))
+    });
+    if(!verdict.refuse){
+      if(event.type==='click'&&key)lockNoteUse(key);
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation?.();
+    if(verdict.prompt)openLockPrompt(key,element);
+  }
+  function initLockGuard(){
+    for(const type of LOCK_GUARDED_EVENTS)document.addEventListener(type,lockGuard,true);
+  }
+
+  // ------------------------------------------------------------------ the card
+  function lockRowLabel(record){
+    const policy=lockPolicy(record.policy);
+    return `${record.name||`An unnamed ${record.kind}`} · ${record.page} page · ${policy?policy.label:record.policy}`;
+  }
+  function lockMatches(query){
+    return Object.values(lockRecords)
+      .sort((left,right)=>right.created-left.created)
+      .filter(record=>matchText(`${lockRowLabel(record)} ${record.key} ${lockIsOpen(record.key,Date.now())?'open unlocked':'locked'}`,query,'locks-search'));
+  }
+  function renderLocksCard(query=''){
+    const list=$('locks-list');
+    if(!list)return;
+    const now=Date.now();
+    const matches=lockMatches(query);
+    lockOrder=matches.map(record=>record.key);
+    list.innerHTML=matches.length
+      ?matches.map(record=>{
+        const open=lockIsOpen(record.key,now);
+        const here=lockKeyPage(record.key)===lockPageId();
+        const where=here?(lockResolveElement(record.key)?'on this page':'recorded for this page, but the element is no longer here'):`on the ${record.page} page`;
+        return `<article class="lock-entry" data-lock-row="${escapeHtml(record.key)}"><label class="sr-only" for="lock-pick-${escapeHtml(record.key)}">Select ${escapeHtml(lockRowLabel(record))}</label><input id="lock-pick-${escapeHtml(record.key)}" type="checkbox"><div><strong>${escapeHtml(lockRowLabel(record))}</strong><p>${escapeHtml(where)} · ${escapeHtml(open?`open: ${lockOpenDescription(record)}`:'locked')}</p><small>${escapeHtml(record.key)}</small></div>${open?`<button type="button" class="text-button" data-lock-relock="${escapeHtml(record.key)}">Lock again</button>`:''}</article>`;
+      }).join('')
+      :`<p class="empty-state">${escapeHtml(lockCount()?'No lock matches that.':'Nothing on this site is locked yet.')}</p>`;
+    if($('locks-count'))$('locks-count').textContent=`${matches.length} of ${lockCount()} lock${lockCount()===1?'':'s'}`;
+    lockUpdateSelectionUI();
+    lockUpdateExportFormats();
+    applyVocabulary();
+  }
+  function lockUpdateSelectionUI(){
+    const list=$('locks-list');
+    if(list)for(const row of list.querySelectorAll('.lock-entry')){
+      const box=row.querySelector('input[type="checkbox"]');
+      if(box)box.checked=lockSelection.selected.has(row.dataset.lockRow);
+    }
+    if($('locks-selection-status'))$('locks-selection-status').textContent=lockSelection.selected.size?`${lockSelection.selected.size} selected of ${lockCount()}.`:'';
+  }
+  function lockUpdateExportFormats(){
+    const select=$('locks-export-format');
+    if(!select)return;
+    const rows=lockExportRows(lockSelection.selected);
+    const formats=suitableFormats(rows.length?rows:[{element:'',page:'',kind:'',method:'',unlockLasts:'',credentials:''}]);
+    const previous=select.value;
+    select.innerHTML=formats.map(format=>`<option value="${format}">${format.toUpperCase()}</option>`).join('');
+    if(formats.includes(previous))select.value=previous;
+    if($('locks-export-loss')){
+      $('locks-export-loss').textContent=rows.length
+        ?`${describeLoss(rows,select.value||formats[0]).join(' ')} No PIN, password, salt, digest or one-time-code secret is written: every row carries the word omitted where a credential would be.`.trim()
+        :'Select one or more locks to export. Whatever is written, no credential is in it.';
+    }
+  }
+  /** A lock is removed only once it has been opened, which is what makes it a lock at all. */
+  function lockRemovalVerdict(key){
+    if(!lockRecordFor(key))return 'that lock is already gone';
+    return lockIsOpen(key,Date.now())?true:'that element is still locked -- open it first, or clear this site’s storage';
+  }
+  function lockRemove(keys){
+    const removed=[];
+    const next={...lockRecords};
+    for(const key of keys){
+      if(lockRemovalVerdict(key)!==true)continue;
+      removed.push(next[key]);
+      delete next[key];
+      lockRelock(key);
+      lockClearAttempts(key);
+    }
+    if(!removed.length)return removed;
+    lockRecords=next;
+    lockSelection={anchor:lockSelection.anchor,selected:new Set()};
+    lockSaveRecords();
+    applyLocks();
+    renderLocksCard($('locks-search')?.value||'');
+    recordHistory('lock-removed',`Removed ${removed.length} element lock${removed.length===1?'':'s'}: ${removed.map(record=>record.name||record.key).join(', ')}.`);
+    notify('Element locks removed',applyVocabularyText(`${removed.length} lock${removed.length===1?'':'s'} removed. The elements behave normally again.`),
+      {category:'setting',en:`${removed.length} element lock${removed.length===1?'':'s'} removed.`,zh:`已經移除咗 ${removed.length} 個元素鎖。`});
+    return removed;
+  }
+
+  function initLocks(){
+    ensureLockUI();
+    initLockGuard();
+    applyLocks();
+    $('lock-wizard-policy')?.addEventListener('change',renderLockWizard);
+    $('lock-wizard-duration')?.addEventListener('change',renderLockWizard);
+    for(const id of ['lock-wizard-pin','lock-wizard-pin-confirm','lock-wizard-password','lock-wizard-password-confirm','lock-wizard-totp-secret','lock-wizard-minutes']){
+      $(id)?.addEventListener('input',renderLockWizard);
+    }
+    $('lock-wizard-totp-apply')?.addEventListener('click',()=>{
+      const status=$('lock-wizard-totp-status');
+      try{
+        const parsed=authParsePairingUri($('lock-wizard-totp-uri')?.value||'');
+        if($('lock-wizard-totp-secret'))$('lock-wizard-totp-secret').value=parsed.secret;
+        /* The parameters are stated rather than the secret. A status line is on screen,
+         * in a capture, and in whatever a reader pastes into an issue. */
+        if(status)status.textContent=`Read a ${parsed.algorithm} account, ${parsed.digits} digits, every ${parsed.period} seconds. The secret is ${parsed.secret.length} characters and is not shown here.`;
+      }catch(error){if(status)status.textContent=error.message}
+      renderLockWizard();
+    });
+    $('lock-wizard-create')?.addEventListener('click',()=>{createLockFromWizard()});
+    $('lock-wizard-cancel')?.addEventListener('click',closeLockWizard);
+    $('lock-wizard-close')?.addEventListener('click',closeLockWizard);
+
+    $('lock-unlock-submit')?.addEventListener('click',()=>{submitLockStep()});
+    $('lock-unlock-cancel')?.addEventListener('click',closeLockPrompt);
+    $('lock-unlock-close')?.addEventListener('click',closeLockPrompt);
+    $('lock-unlock-value')?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();submitLockStep()}});
+    $('lock-unlock-keypad')?.addEventListener('click',event=>{
+      const button=event.target.closest('button');
+      const value=$('lock-unlock-value');
+      if(!button||!value)return;
+      if(button.id==='lock-key-clear'){value.value='';return}
+      if(button.id==='lock-key-back'){value.value=value.value.slice(0,-1);return}
+      const digit=button.dataset.lockDigit;
+      if(digit)value.value=`${value.value}${digit}`;
+    });
+
+    if(!$('locks-list'))return;
+    if($('locks-recovery-text'))$('locks-recovery-text').textContent=LOCK_RECOVERY_LINE;
+    if($('locks-toy-note'))$('locks-toy-note').textContent=LOCK_TOY_LINE;
+    $('locks-search')?.addEventListener('input',event=>renderLocksCard(event.target.value));
+    $('locks-list')?.addEventListener('click',event=>{
+      const relock=event.target.closest('[data-lock-relock]');
+      if(relock){
+        lockRelock(relock.dataset.lockRelock);
+        applyLocks();
+        renderLocksCard($('locks-search')?.value||'');
+        return;
+      }
+      const row=event.target.closest('.lock-entry');
+      if(!row)return;
+      const isCheckbox=event.target.tagName==='INPUT';
+      lockSelection=bulkClick(lockSelection,row.dataset.lockRow,{shift:event.shiftKey,ctrl:event.ctrlKey||event.metaKey||isCheckbox},lockOrder);
+      lockUpdateSelectionUI();lockUpdateExportFormats();
+    });
+    $('locks-select-page')?.addEventListener('click',()=>{
+      const result=bulkSelectAll(lockSelection,'page',lockOrder,lockOrder);
+      lockSelection=result.state;lockUpdateSelectionUI();lockUpdateExportFormats();
+      if($('locks-selection-status'))$('locks-selection-status').textContent=`Selected ${result.count} shown here.`;
+    });
+    $('locks-select-matches')?.addEventListener('click',()=>{
+      const result=bulkSelectAll(lockSelection,'matches',lockOrder,lockOrder);
+      lockSelection=result.state;lockUpdateSelectionUI();lockUpdateExportFormats();
+      if($('locks-selection-status'))$('locks-selection-status').textContent=`Selected ${result.count} matching locks.`;
+    });
+    $('locks-select-none')?.addEventListener('click',()=>{lockSelection={anchor:lockSelection.anchor,selected:new Set()};lockUpdateSelectionUI();lockUpdateExportFormats()});
+    $('locks-export-format')?.addEventListener('change',lockUpdateExportFormats);
+    $('locks-export-selected')?.addEventListener('click',()=>{
+      const rows=lockExportRows(lockSelection.selected);
+      if(!rows.length)return;
+      const format=$('locks-export-format').value||'json';
+      download(exportFilename('ding-pbx-element-locks',format,`${rows.length}-selected`),exportRows({rows,format,table:'lock'}),EXPORT_MIME[format]);
+      notify('Element locks exported',applyVocabularyText(`Exported ${rows.length} lock${rows.length===1?'':'s'} as ${format.toUpperCase()}, with every credential left out.`),
+        {category:'export',en:`Exported ${rows.length} element lock${rows.length===1?'':'s'} without their credentials.`,zh:`已經匯出 ${rows.length} 個元素鎖，密碼冇包埋。`});
+    });
+    $('locks-remove-selected')?.addEventListener('click',()=>{
+      const plan=planBulk('Remove',[...lockSelection.selected],lockRemovalVerdict,{destructive:true});
+      if(!plan.selected.length)return;
+      const box=$('locks-confirm');
+      if(!box)return;
+      if($('locks-confirm-text'))$('locks-confirm-text').textContent=`${summariseBulk(plan)} A removed lock is gone with its value; the element behaves normally again.`;
+      box.hidden=false;
+    });
+    $('locks-confirm-cancel')?.addEventListener('click',()=>{if($('locks-confirm'))$('locks-confirm').hidden=true});
+    $('locks-confirm-yes')?.addEventListener('click',()=>{
+      lockRemove([...lockSelection.selected]);
+      if($('locks-confirm'))$('locks-confirm').hidden=true;
+    });
+    renderLocksCard('');
+  }
+
+  const OLLAMA_SITE_KEY='ding-pbx-site-ollama-v1';
+  const OLLAMA_TIMEOUT=8000;
+  let ollamaRecords=[];
+  let ollamaAbort=null;
+  let ollamaStreaming=false;
+  function readOllamaState(){try{const value=JSON.parse(localStorage.getItem(OLLAMA_SITE_KEY)||'null');return value&&typeof value==='object'?value:{endpoint:'',lastChecked:'',catalog:[]}}catch{return{endpoint:'',lastChecked:'',catalog:[]}}}
+  function validOllamaEndpoint(value){try{const url=new URL(String(value||''));return url.protocol==='http:'&&['localhost','127.0.0.1','[::1]','::1'].includes(url.hostname)}catch{return false}}
+  function ollamaEndpoint(){return $('ollama-endpoint')?.value.trim()||''}
+  function ollamaSetState(label,detail,kind='warning-chip'){const chip=$('ollama-state-chip');if(chip){chip.textContent=label;chip.className=`status-chip ${kind}`}if($('ollama-boundary'))$('ollama-boundary').textContent=detail}
+  function ollamaJsonFetch(path,endpoint,signal){return fetch(`${endpoint.replace(/\/$/,'')}${path}`,{method:'GET',cache:'no-store',credentials:'omit',signal,headers:{Accept:'application/json'}}).then(async response=>{if(!response.ok)throw new Error(`local Ollama answered HTTP ${response.status}`);const text=await response.text();if(text.length>1024*1024)throw new Error('the local response exceeded the 1 MiB bound');return JSON.parse(text)})}
+  function ollamaRenderModels(){const host=$('ollama-models'),select=$('ollama-model-select');if(!host)return;const query=$('ollama-model-search')?.value||'';const shown=ollamaRecords.filter(record=>matchText(`${record.name} ${record.digest||''} ${record.size||''}`,query,'ollama-model-search'));host.innerHTML=shown.length?shown.map(record=>`<article class="model-entry"><strong>${escapeHtml(record.name)}</strong><span class="status-chip ok-chip">Installed</span><p>${escapeHtml(record.sizeLabel||'Size not reported')} · ${escapeHtml(record.digest||'Digest not reported')}</p></article>`).join(''):'<p class="empty-state">No verified local model matches this search.</p>';if(select){const current=select.value;select.replaceChildren(new Option('Choose a verified local model',''));shown.forEach(record=>select.append(new Option(record.name,record.name)));select.value=shown.some(record=>record.name===current)?current:'';select.disabled=shown.length===0}if($('ollama-catalog-state'))$('ollama-catalog-state').textContent=ollamaRecords.length?`Installed tags read from the approved endpoint: ${ollamaRecords.length}. This browser equivalent does not claim an exhaustive official catalog.`:'Catalog completeness: Unknown. No verified tags are available.'}
+  function ollamaMakeCapabilityPanel(){if(document.querySelector('#ollama-capability-panel')||!$('ollama-actions-title'))return;const section=document.createElement('section');section.id='ollama-capability-panel';section.className='surface-card suite-panel reveal';section.innerHTML='<span class="card-kicker">CAPABILITY RECORD</span><h2>Selected model evidence</h2><p id="ollama-capability">Choose a verified installed tag. Capability metadata is requested only from the approved endpoint.</p><div class="search-composite"><label class="sr-only" for="ollama-capability-search">Search capability details</label><input id="ollama-capability-search" type="search" placeholder="Search capability details"><button class="regex-trigger" type="button" data-regex-for="ollama-capability-search" aria-label="Build a regular expression for capability search">.*</button></div><p id="ollama-capability-search-mode-status" class="mode-status mono" role="status" aria-live="polite"></p>';$('ollama-actions-title').closest('section')?.after(section);const field=$('ollama-capability-search');field?.addEventListener('input',()=>{const current=$('ollama-capability')?.textContent||'';if($('ollama-capability-search')?.value&&!matchText(current,$('ollama-capability-search').value,'ollama-capability-search')&&$('ollama-capability'))$('ollama-capability').setAttribute('data-search-note','No capability text matches this search.')});section.querySelector('.regex-trigger')?.addEventListener('click',()=>field&&openRegex(field))}
+  async function ollamaProbe(){const endpoint=ollamaEndpoint(),approve=$('ollama-approve')?.checked;if(!approve){ollamaSetState('Approval required','Tick the approval box before this page makes a loopback request.');return}if(!validOllamaEndpoint(endpoint)){ollamaSetState('Invalid endpoint','Only http://localhost, http://127.0.0.1, or http://[::1] is accepted. No request was made.');return}ollamaAbort?.abort();ollamaAbort=new AbortController();const timeout=setTimeout(()=>ollamaAbort.abort(),OLLAMA_TIMEOUT);const refresh=$('ollama-refresh'),probe=$('ollama-probe');if(refresh)refresh.disabled=true;if(probe)probe.disabled=true;ollamaSetState('Checking','Asking the approved loopback endpoint for version and installed tags.');try{const [version,tags]=await Promise.all([ollamaJsonFetch('/api/version',endpoint,ollamaAbort.signal),ollamaJsonFetch('/api/tags',endpoint,ollamaAbort.signal)]);const models=Array.isArray(tags.models)?tags.models.filter(item=>item&&typeof item.name==='string').slice(0,1000).map(item=>({name:item.name,digest:typeof item.digest==='string'?item.digest.slice(0,128):'',size:Number.isFinite(item.size)?item.size:0,sizeLabel:Number.isFinite(item.size)?`${Math.round(item.size/1024/1024)} MiB`:'Size not reported'})):[];ollamaRecords=models;const result={endpoint,lastChecked:new Date().toISOString(),catalog:models.map(item=>({name:item.name,digest:item.digest,size:item.size}))};reportWrite('the local Ollama page state',writeLocal(OLLAMA_SITE_KEY,JSON.stringify(result)));ollamaSetState('Healthy',`Approved local Ollama responded. Version ${typeof version.version==='string'?version.version:'not reported'}; ${models.length} installed tag${models.length===1?'':'s'} read.`, 'ok-chip');if($('ollama-version'))$('ollama-version').textContent=`Version: ${typeof version.version==='string'?version.version:'not reported'}. Checked ${formatBuildTime(result.lastChecked)}.`;if($('ollama-health'))$('ollama-health').textContent='Health: API answered successfully.';if(refresh)refresh.disabled=false;ollamaRenderModels()}catch(error){const reason=error?.name==='AbortError'?'the local request exceeded 8 seconds or was cancelled':String(error?.message||'the local endpoint could not be read');ollamaRecords=[];ollamaSetState('Unavailable',`No local model state was applied. ${reason} The page remains usable offline.`);if($('ollama-version'))$('ollama-version').textContent='Unavailable until the approved endpoint answers.';if($('ollama-health'))$('ollama-health').textContent=`Health: ${reason}.`;ollamaRenderModels()}finally{clearTimeout(timeout);if(probe)probe.disabled=false}}
+  async function ollamaShowCapabilities(){const model=$('ollama-model-select')?.value,endpoint=ollamaEndpoint();if(!model||!validOllamaEndpoint(endpoint)||!$('ollama-approve')?.checked){if($('ollama-capability'))$('ollama-capability').textContent='Choose a verified model and approve a loopback endpoint first.';return}ollamaAbort?.abort();ollamaAbort=new AbortController();const timeout=setTimeout(()=>ollamaAbort.abort(),OLLAMA_TIMEOUT);try{const detail=await ollamaJsonFetch(`/api/show?name=${encodeURIComponent(model)}`,endpoint,ollamaAbort.signal);const parts=[];if(detail.details?.family)parts.push(`Family: ${detail.details.family}`);if(detail.details?.parameter_size)parts.push(`Parameters: ${detail.details.parameter_size}`);if(detail.details?.quantization_level)parts.push(`Quantization: ${detail.details.quantization_level}`);if(detail.modelfile)parts.push('Modelfile metadata is available locally.');if($('ollama-capability'))$('ollama-capability').textContent=parts.join(' · ')||'The approved endpoint returned no capability fields for this tag.'}catch(error){if($('ollama-capability'))$('ollama-capability').textContent=`Capability metadata unavailable: ${error?.message||'the local request failed'}.`}finally{clearTimeout(timeout)}}
+  async function ollamaPull(){
+    const model=$('ollama-model-select')?.value,endpoint=ollamaEndpoint();
+    if(!model||!validOllamaEndpoint(endpoint)||!$('ollama-approve')?.checked)return;
+    ollamaAbort?.abort();ollamaAbort=new AbortController();
+    const timeout=setTimeout(()=>ollamaAbort.abort(),OLLAMA_TIMEOUT*8),button=$('ollama-pull');
+    if(button)button.disabled=true;
+    if($('ollama-pull-status'))$('ollama-pull-status').textContent=`Pull requested for ${model}. Progress is read from the local stream.`;
+    try{
+      const response=await fetch(`${endpoint.replace(/\/$/,'')}/api/pull`,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/x-ndjson'},body:JSON.stringify({name:model,stream:true}),credentials:'omit',signal:ollamaAbort.signal});
+      if(!response.ok)throw new Error(`local Ollama answered HTTP ${response.status}`);
+      const reader=response.body?.getReader();let buffer='';
+      while(reader){
+        const chunk=await reader.read();if(chunk.done)break;
+        buffer+=new TextDecoder().decode(chunk.value,{stream:true});
+        const lines=buffer.split('\n');buffer=lines.pop()||'';
+        for(const line of lines){
+          if(!line.trim())continue;
+          try{const record=JSON.parse(line);if($('ollama-pull-status'))$('ollama-pull-status').textContent=record.total?`${record.status||'Pulling'}: ${record.completed||0}/${record.total} bytes.`:`${record.status||'Pulling'} for ${model}.`}catch{}
+        }
+      }
+      if($('ollama-pull-status'))$('ollama-pull-status').textContent=`Pull stream finished for ${model}. Refresh local state to reconcile the installed tag.`;
+    }catch(error){
+      if($('ollama-pull-status'))$('ollama-pull-status').textContent=`Pull did not complete: ${error?.message||'the local request failed'}. Existing local models were not changed by this page.`;
+    }finally{clearTimeout(timeout);if(button)button.disabled=false}
+  }
+  async function ollamaChat(){const model=$('ollama-model-select')?.value,prompt=$('ollama-prompt')?.value.trim(),endpoint=ollamaEndpoint();if(!model||!prompt||!validOllamaEndpoint(endpoint)||!$('ollama-approve')?.checked)return;ollamaAbort?.abort();ollamaAbort=new AbortController();const timeout=setTimeout(()=>ollamaAbort.abort(),OLLAMA_TIMEOUT*4);ollamaStreaming=true;const start=$('ollama-chat'),cancel=$('ollama-cancel');if(start)start.disabled=true;if(cancel)cancel.disabled=false;if($('ollama-chat-output'))$('ollama-chat-output').textContent='Streaming local response…';try{const response=await fetch(`${endpoint.replace(/\/$/,'')}/api/chat`,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/x-ndjson'},body:JSON.stringify({model,messages:[{role:'user',content:prompt}],stream:true}),credentials:'omit',signal:ollamaAbort.signal});if(!response.ok)throw new Error(`local Ollama answered HTTP ${response.status}`);const reader=response.body?.getReader();let buffer='',output='';while(reader){const chunk=await reader.read();if(chunk.done)break;buffer+=new TextDecoder().decode(chunk.value,{stream:true});const lines=buffer.split('\n');buffer=lines.pop()||'';for(const line of lines){try{const record=JSON.parse(line);const token=record.message?.content||record.response||'';output+=token;if($('ollama-chat-output'))$('ollama-chat-output').textContent=output||'Local response carried no text.'}catch{}}}}catch(error){if($('ollama-chat-output'))$('ollama-chat-output').textContent=`Local chat unavailable: ${error?.message||'the stream failed'}.`}finally{clearTimeout(timeout);ollamaStreaming=false;if(start)start.disabled=false;if(cancel)cancel.disabled=true}}
+  function initOllama(){if(!$('ollama-probe'))return;ollamaMakeCapabilityPanel();const saved=readOllamaState();if(saved.endpoint&&$('ollama-endpoint'))$('ollama-endpoint').value=saved.endpoint;ollamaRecords=Array.isArray(saved.catalog)?saved.catalog.filter(item=>item&&typeof item.name==='string').map(item=>({...item,sizeLabel:Number.isFinite(item.size)?`${Math.round(item.size/1024/1024)} MiB`:'Size not reported'})):[];if(ollamaRecords.length)ollamaSetState('Offline cache',`Showing ${ollamaRecords.length} locally cached model tag${ollamaRecords.length===1?'':'s'} from ${saved.lastChecked?formatBuildTime(saved.lastChecked):'an earlier check'}. Probe again to refresh.`);ollamaRenderModels();$('ollama-probe').addEventListener('click',ollamaProbe);$('ollama-refresh')?.addEventListener('click',ollamaProbe);$('ollama-model-search')?.addEventListener('input',ollamaRenderModels);$('ollama-show')?.addEventListener('click',ollamaShowCapabilities);$('ollama-pull')?.addEventListener('click',ollamaPull);$('ollama-chat')?.addEventListener('click',ollamaChat);$('ollama-cancel')?.addEventListener('click',()=>ollamaAbort?.abort());$('ollama-model-select')?.addEventListener('change',()=>{const enabled=Boolean($('ollama-model-select').value);if($('ollama-pull'))$('ollama-pull').disabled=!enabled;if($('ollama-show'))$('ollama-show').disabled=!enabled;if($('ollama-prompt'))$('ollama-prompt').disabled=!enabled;if($('ollama-chat'))$('ollama-chat').disabled=!enabled});}
+
+  function init(){ensureBuildIdentity();ensureAttentionUI();initSchoolWatch();ensureContextMenuUI();ensureLockUI();applyState();initContextMenu();initNavigation();initDestinationMap();renderDestinations();initSearch();initDocumentationExport();initRegex();initSettings();initColourTranslator();initCollapsibles();renderNotifications();initNotificationBulk();initReveals();initHeroCanvas();initCounters();initConnectionDiagram();initSettingsPreview();initReleaseNotes();initChangelog();initUpdates();initSupport();initExportEverything();initTimeAwareness();initMomentum();initAuthenticator();initConverter();initOllama();initLocks();$('palette-open')?.addEventListener('click',openPalette);$('palette-search')?.addEventListener('input',event=>{renderPalette(event.target.value);applyVocabulary()});$('notification-open')?.addEventListener('click',()=>{$('notifications-dialog').showModal();renderNotifications($('notification-search')?.value||'')});$('notification-clear')?.addEventListener('click',()=>{state.notifications=[];notifSelection={anchor:undefined,selected:new Set()};save();renderNotifications()});if($('documentation-filters-panel'))updateFilterStatus('documentation-filter-status','feature-search');if($('settings-filters-panel'))updateFilterStatus('settings-filter-status','settings-search');applyVocabulary()}
   init();
 })();

@@ -143,7 +143,7 @@ Feature screens that use prompts or music expose the compiled M3 file control. U
 
 ## Validation workflow and current evidence
 
-`.github/workflows/validation.yml` was added to run `npm ci`, `npm test`, and `npm run build` for pull requests to `master` using repository-pinned Node.js `22.23.2`.
+`.github/workflows/validation.yml` was added to run `npm ci`, `npm test`, and `npm run build` for pull requests to `main` using repository-pinned Node.js `22.23.2`.
 
 **No successful validation run is recorded for this pull request yet.** A workflow newly introduced only on a pull-request branch may not receive a `pull_request` run until that workflow exists on the base branch, and the connected GitHub result showed no workflow run for the branch head when checked. Therefore this handoff does **not** claim that the new tests, TypeScript build, design-drift check, or full suite are green.
 

@@ -112,7 +112,7 @@ before writing it to a USB drive or booting it in a VM.
 `ubuntu-24.04` runner (a Linux Docker engine is required to compile the Linux payload and produce
 an ISO 9660 image, which a Windows host cannot do natively -- Docker ships preinstalled on that
 runner image, so no separate setup is needed). It runs on `workflow_dispatch`, and automatically
-whenever a push to `master` touches `console/scripts/iso/**`, `console/scripts/build-iso.ps1`,
+whenever a push to `main` touches `console/scripts/iso/**`, `console/scripts/build-iso.ps1`,
 `build-iso.bat`, or the workflow file itself.
 
 It runs the same three stages as local `build-iso.bat`/`build-iso.ps1` (payload build, ISO respin,

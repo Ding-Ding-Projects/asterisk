@@ -1,6 +1,6 @@
 /**
- * Contract: app-logo-customization. Real for upload, bounds, and clear;
- * absent for editing and presets. `site/app.js`'s `loadLogo()` genuinely
+ * Contract: app-logo-customization. Real for upload, bounds, clear, presets,
+ * and presentation controls. `site/app.js`'s `loadLogo()` genuinely
  * rejects a file over 128 KiB, rejects anything outside `image/png`,
  * `image/jpeg`, or `image/svg+xml`, reads the accepted file as a data URL,
  * and stores it in `localStorage` -- local-only, "No data was transmitted."
@@ -8,9 +8,8 @@
  * settings page's `logo-clear` button removes the cache and restores the
  * default mark.
  *
- * What does not exist: no crop/fit/focal-point editor, no background-colour
- * control, no multi-size generation, and no shipped preset gallery -- there is
- * exactly one custom-upload slot and nothing else.
+ * What remains outside this browser surface is cryptographic decoded-pixel
+ * validation and multi-size platform icon generation.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -49,8 +48,16 @@ test('the accepted file is stored locally with an honest "no data transmitted" s
   /* Through `writeLocal` since in-context recovery landed, which is the one writer every
    * store on this page now goes through so a browser refusing the write is reported
    * rather than thrown past. The property this pins is unchanged and is still exact: the
-   * accepted image goes to that one local key and nowhere else. */
+   * accepted image goes to that one local key and nowhere else.
+   *
+   * The same key is ALSO declared as a named constant, because the ticket desk's recovery
+   * panel derives the keys this page writes from those declarations rather than restating
+   * them. That makes the literal here and the constant there two spellings of one value,
+   * so both are pinned: a constant renamed to point somewhere else would leave that panel
+   * naming a key nothing writes, and the assertion above would not notice. */
   assert.match(app, /writeLocal\('ding-pbx-logo-cache',dataUrl\)/u, 'the logo cache is no longer stored in localStorage');
+  assert.match(app, /^ {2}const LOGO_CACHE_KEY = 'ding-pbx-logo-cache';$/mu,
+    'LOGO_CACHE_KEY no longer names the documented logo cache key, so it and the literal written above have come apart');
   assert.match(app, /function writeLocal\(key,value\)\{\s*try\{localStorage\.setItem\(key,String\(value\)\)/u,
     'writeLocal no longer writes to localStorage, so the line above no longer proves the image is stored locally');
   assert.match(app, /No data was transmitted\./u, 'the local-only disclosure copy no longer appears');
@@ -75,12 +82,14 @@ test('applyLogo genuinely swaps every .brand-mark image element, and clearing re
     'the logo-clear handler no longer removes the cached logo');
 });
 
-test('there is no crop/fit/background editor and no shipped preset gallery -- one upload slot, nothing else', () => {
-  assert.doesNotMatch(app, /logo-crop|logo-fit|logo-preset|logo-background/iu,
-    'a crop/fit/preset editor now exists for the logo -- update this row');
+test('the site exposes presets and real presentation controls', () => {
+  for (const token of ['logo-fit', 'logo-preset', 'logo-background', 'logo-focal-x', 'logo-focal-y']) {
+    assert.match(app, new RegExp(token, 'u'), `the logo studio is missing ${token}`);
+  }
+  assert.match(app, /function initLogoStudio\(\)/u);
 });
 
-test('the registry records app-logo-customization as partial', () => {
+test('the registry records app-logo-customization as partial for the browser boundary', () => {
   assert.equal(registry.features['app-logo-customization'].status, 'partial',
     'a real, bounded, local-only upload and clear path exists, but no editor or preset gallery exists behind it');
 });

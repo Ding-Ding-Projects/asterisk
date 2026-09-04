@@ -27,6 +27,7 @@
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
@@ -46,6 +47,7 @@ const root = resolve(import.meta.dirname, '..');
 const repoRoot = resolve(root, '..');
 const inventory = JSON.parse(readFileSync(resolve(root, 'inventories/design-parity.json'), 'utf8'));
 const evidenceDir = resolve(root, 'release/evidence/parity');
+const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim();
 
 const only = (process.argv.find((argument) => argument.startsWith('--only=')) ?? '').slice('--only='.length);
 const wanted = only.length > 0 ? new Set(only.split(',').map((id) => id.trim()).filter(Boolean)) : null;
@@ -120,6 +122,9 @@ for (const id of targets) {
       method: 'static audit of the rendered markup and the effective stylesheet — see notMeasured for what that structurally cannot decide',
     },
   });
+  record.tuple = inventory.captureContract.captureTuple;
+  record.sourceCommit = sourceCommit;
+  record.generatedBy = 'console/scripts/audit-design-parity-material.mjs';
   if (!checkOnly) writeFileSync(pathFor(id), serializeAudit(record));
   records.push(record);
 }
@@ -142,6 +147,10 @@ if (checkOnly) {
   }
 } else {
   const ledger = {
+    generatedAt: new Date().toISOString(),
+    generatedBy: 'console/scripts/audit-design-parity-material.mjs',
+    sourceCommit,
+    tuple: inventory.captureContract.captureTuple,
     bar: 'material-design-3',
     audited: records.length,
     conforming,

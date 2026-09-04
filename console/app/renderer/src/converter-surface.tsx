@@ -239,8 +239,15 @@ export function ConverterSurface({ client, className }: ConverterSurfaceProps) {
       return;
     }
     const updated = await run(`Updating converter queue (${action})`, client[action]({ queueId: state.queue.id }));
-    if (updated) setState((current) => ({ ...current, queue: updated, statusMessage: `Queue state is now ${updated.state}.` }));
-  }, [client, run, state.queue]);
+    if (updated) {
+      setState((current) => ({ ...current, queue: updated, statusMessage: `Queue state is now ${updated.state}.` }));
+      /* Queue execution returns a record only after the backend has finished its
+       * bounded worker pass. Read the durable page immediately afterwards so
+       * converted, skipped, cancelled, and failed per-file outcomes replace the
+       * old queued rows instead of leaving the review panel looking decorative. */
+      await loadQueuePage(state.queue.id);
+    }
+  }, [client, loadQueuePage, run, state.queue]);
 
   const setSearch = useCallback((category: ConverterCategory, value: string) => {
     setState((current) => ({

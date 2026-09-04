@@ -1,6 +1,56 @@
 # Handoff
 
-## Current shipping handoff, 2026-08-26
+## Current shipping state, measured 2026-08-31
+
+This section is authoritative for the current checkout. Sections below are historical records,
+retained for traceability, and must not override the evidence here.
+
+| Item | Exact state |
+| --- | --- |
+| Default branch | `main` |
+| Local commit | `7c6e0c6c9520c6fd421cabf73bcbb6af15a18c60` |
+| Git server proof | `refs/heads/main` reads back to the same SHA |
+| Console release | [`ding-pbx-console-v0.0.300-r1`](https://github.com/Ding-Ding-Projects/material-asterisk/releases/tag/ding-pbx-console-v0.0.300-r1), non-draft, target SHA exact |
+| Installer ISO release | [`ding-pbx-installer-iso-v0.0.7-r1`](https://github.com/Ding-Ding-Projects/material-asterisk/releases/tag/ding-pbx-installer-iso-v0.0.7-r1), non-draft, target SHA exact |
+| Console delivery run | [33210571775](https://github.com/Ding-Ding-Projects/material-asterisk/actions/runs/33210571775), successful |
+| Installer ISO run | [33210571840](https://github.com/Ding-Ding-Projects/material-asterisk/actions/runs/33210571840), successful |
+| Pages run | [33210571949](https://github.com/Ding-Ding-Projects/material-asterisk/actions/runs/33210571949), successful |
+| Published Pages URL | https://ding-ding-projects.github.io/material-asterisk/ |
+| Current local lane | Documentation and record refresh only, uncommitted at handoff start |
+
+The console release contains `Material-Asterisk-Setup.exe`, `RELEASES`, the full
+`ding-pbx-console-0.1.300-full.nupkg`, release identity, update manifest, SHA-256 records,
+line-count records, WSL runtime records, and the published dim-sum image asset. The release
+notes record code name `Yellow Sugar Sponge Cake · 黃糖糕`, workflow timing `00:16:24`, and
+that automated checks were not run by GitHub Actions. The ISO release contains two numbered
+volumes, reassembly instructions, and a reassembled SHA-256 record. Both releases state that
+their Windows outputs are unsigned and may trigger an unknown-publisher or SmartScreen warning.
+
+The Pages deployment is verified for the candidate SHA, but the Pages API currently reports
+its source branch as `master` while the repository default branch is `main`. That external
+configuration mismatch remains recorded for the release owner to reconcile. The current
+documentation lane does not change it.
+
+No current-commit built-application walkthrough, new UI capture, design-parity verdict, or
+local test result is claimed by this lane. The rolling public drafts prepared in
+`console/docs/release-drafts/2026-08-31-release-records.md` are intentionally not posted
+until runtime evidence is final.
+
+### Current open records
+
+- GitHub issue [#1](https://github.com/Ding-Ding-Projects/material-asterisk/issues/1) remains open for the overall desktop, control-plane, and documentation delivery. Its current evidence boundary still requires fresh runtime and built-artifact proof before completion.
+- GitHub issue [#6](https://github.com/Ding-Ding-Projects/material-asterisk/issues/6) remains open. Its apply-and-undo repair has source-stage evidence on a task branch, but no final disposition is recorded on `main` by this documentation lane.
+- The only open issue found in `Ding-Ding-Projects/agent-global-memory` is issue #4, an instruction and workflow request. It was read during this session and is not implemented in this repository lane.
+
+### Documentation lane result
+
+The documentation lane is limited to `console/docs/**` and root guidance records. It repaired
+the canonical repository and Pages links in `README.md`, corrected one broken changelog article
+link, refreshed the current release and evidence boundary, and prepared public-safe bilingual
+drafts without posting them. Documentation and link checks run after these edits. No workflow,
+inventory, evidence, parity, packaging, or implementation file is changed here.
+
+## Historical shipping handoff, 2026-08-26
 
 ### Published state
 
@@ -125,7 +175,7 @@ Two branches are not ancestors of master, and neither should be merged as it sta
 
 The `codex/mount-status-downloads` lane mounts `#surface=status` plus `#surface=download/start`, `#surface=download/progress`, and `#surface=download/complete`. The Status Hub client and store remain receipt-led and derive rows only from the configured external service. The privileged dispatcher exposes `status-hub.*` actions and accepts the non-secret `STATUS_HUB_URL` origin configuration. An absent or unreachable service remains a typed unavailable or offline state.
 
-The browser-extension handoff enters through the packaged submission-only `Ding-PBX-Console-NativeMessagingHost.exe`, registered under reverse-domain host name `com.dingdingprojects.asterisk.downloads` and authenticated with the shipped 32-character extension id `dnpkplcgjmipnndmghkhljjoefjhidab`. The native host is built through `build-native-host.ps1`, and `register-native-host.ps1` writes the absolute manifest path for both Chrome and Edge, verifies executable and manifest ownership, stable digest, protected challenge config, current-user ACL, registry values, and returns a typed registration receipt. The primary shell exposes the first-run Register extension ingress action and typed ready, starting, unavailable, or retry state; successful registration hot-reloads the listener. The host crosses the bounded random local named pipe with the installation challenge into `download:submit-handoff`, can submit one validated handoff and receive its receipt, and exposes no transfer command, snapshot, queue, or credential operation. Handoffs are persisted in an ordered pending queue with transfer snapshots in `download-transfers.json`. The primary shell only offers a passive open-window action, while dedicated always-on-top BrowserWindows are the sole owners of Start, Downloading, and Complete surfaces and events, each bound to one exact handoff or transfer id. The native picker or a persisted approved root supplies the destination, and the manager rejects mismatched handoff replay, non-absolute paths, containment escapes, and symlink or reparse components immediately before writing. It rechecks the parent after directory creation before opening the temporary file. The packaged native helper contract opens the verified parent with `FILE_FLAG_OPEN_REPARSE_POINT` and no delete sharing before no-follow temporary creation. It streams HTTPS bytes into a unique adjacent temporary file, applies header, body-idle, and total deadlines, validates bytes, records exact complete size and SHA-256, and publishes through the shared Windows rename retry helper. A full-body publication failure keeps the same complete temporary file available for retry publication only after size and digest revalidation, never requesting Range at EOF. Range pause and resume use recorded validators when supported, while unsupported controls stay disabled with an exact reason. Startup reconciliation turns interrupted work into partial or failed state, and retry or discard outcomes remain explicit. Durable Status Hub receipt read and write failures stay visibly warned while the live registration remains usable, and stale or not-found receipts get one bounded clear and re-registration attempt. The preload exposes only dedicated-window transfer actions. The companion extension capture itself is not part of this Oak Kay, so no browser extension source was added.
+The browser-extension handoff enters through the packaged submission-only `Ding-PBX-Console-NativeMessagingHost.exe`, registered under reverse-domain host name `com.dingdingprojects.asterisk.downloads` and authenticated with the shipped 32-character extension id `dnpkplcgjmipnndmghkhljjoefjhidab`. The native host is built through `build-native-host.ps1`, and `register-native-host.ps1` writes the absolute manifest path for both Chrome and Edge, verifies executable and manifest ownership, stable digest, protected challenge config, current-user ACL, registry values, and returns a typed registration receipt. The primary shell exposes the first-run Register extension ingress action and typed ready, starting, unavailable, or retry state; successful registration hot-reloads the listener. The host crosses the bounded random local named pipe with the installation challenge into `download:submit-handoff`, can submit one validated handoff and receive its receipt, and exposes no transfer command, snapshot, queue, or credential operation. Handoffs are persisted in an ordered pending queue with transfer snapshots in `download-transfers.json`. The primary shell only offers a passive open-window action, while dedicated always-on-top BrowserWindows are the sole owners of Start, Downloading, and Complete surfaces and events, each bound to one exact handoff or transfer id. The native picker or a persisted approved root supplies the destination, and the manager rejects mismatched handoff replay, non-absolute paths, containment escapes, and symlink or reparse components immediately before writing. It rechecks the parent after directory creation before opening the temporary file. The packaged native helper contract opens the verified parent with `FILE_FLAG_OPEN_REPARSE_POINT` and no delete sharing before no-follow temporary creation. It streams HTTPS bytes into a unique adjacent temporary file, applies header, body-idle, and total deadlines, validates bytes, records exact complete size and SHA-256, and publishes through the shared Windows rename retry helper. A full-body publication failure keeps the same complete temporary file available for retry publication only after size and digest revalidation, never requesting Range at EOF. Range pause and resume use recorded validators when supported, while unsupported controls stay disabled with an exact reason. Startup reconciliation turns interrupted work into partial or failed state, and retry or discard outcomes remain explicit. Durable Status Hub receipt read and write failures stay visibly warned while the live registration remains usable, and stale or not-found receipts get one bounded clear and re-registration attempt. The preload exposes only dedicated-window transfer actions. The companion extension capture itself is not part of this repository, so no browser extension source was added.
 
 This lane intentionally ran no tests, lint, type checks, builds, packaging, runtime interaction, external service calls, extension launch, or captures. The next owner must run the focused control-plane and renderer checks, then verify the built desktop routes with a real configured Status Hub and a real extension handoff. The feature registry and platform articles record this unverified boundary.
 
@@ -592,7 +642,7 @@ Ordered by what actually blocks the next claim.
 2. **Produce the completeness inventory's evidence.** 42 features across two surfaces need
    six artifacts each. Documentation is complete for all 42; the implementation registry,
    localization registry and contract-test directory do not exist, and there is one
-   built-interaction record and one capture. This is what blocks a yum tong pass.
+   built-interaction record and one capture. This is what blocks the release-grade closeout.
 3. **Build the localization mechanism.** The application has no i18n of any kind, so the
    three language modes and both funny-level sliders do not exist. It blocks a whole
    evidence column and is a product contract in its own right.

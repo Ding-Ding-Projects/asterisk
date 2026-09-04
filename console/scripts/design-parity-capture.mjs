@@ -20,6 +20,8 @@
  * (destination-labels.generated.json), never guessed or hand-typed.
  */
 
+import { normalizeCaptureTuple } from './design-parity-contract.mjs';
+
 export const DEFAULT_TUPLE = Object.freeze({ state: 'default', theme: 'dark', width: 1440, height: 1000, scale: 1 });
 const VALID_THEMES = new Set(['dark', 'light']);
 
@@ -38,7 +40,7 @@ export function parseCaptureTuple(queryString) {
   if (!destination) throw new Error("parseCaptureTuple: 'destination' is required and was not supplied");
   const theme = params.get('theme') ?? DEFAULT_TUPLE.theme;
   if (!VALID_THEMES.has(theme)) throw new Error(`parseCaptureTuple: 'theme' must be one of ${[...VALID_THEMES].join(', ')}, got '${theme}'`);
-  return {
+  const tuple = {
     destination,
     state: params.get('state') ?? DEFAULT_TUPLE.state,
     theme,
@@ -46,21 +48,25 @@ export function parseCaptureTuple(queryString) {
     height: positiveNumber(params, 'height', DEFAULT_TUPLE.height),
     scale: positiveNumber(params, 'scale', DEFAULT_TUPLE.scale),
   };
+  if (params.has('locale')) tuple.locale = params.get('locale');
+  return tuple;
 }
 
 function fillRoute(template, id, tuple) {
   if (typeof template !== 'string' || !template.includes('{id}')) {
     throw new Error(`fillRoute: template must contain the '{id}' placeholder, got '${template}'`);
   }
+  const normalizedTuple = normalizeCaptureTuple(tuple ?? DEFAULT_TUPLE, 'capture route tuple');
   const filled = template.replaceAll('{id}', id);
   const questionMark = filled.indexOf('?');
   const path = questionMark === -1 ? filled : filled.slice(0, questionMark);
   const params = new URLSearchParams(questionMark === -1 ? '' : filled.slice(questionMark + 1));
-  params.set('state', tuple.state ?? DEFAULT_TUPLE.state);
-  params.set('theme', tuple.theme ?? DEFAULT_TUPLE.theme);
-  params.set('width', String(tuple.width ?? DEFAULT_TUPLE.width));
-  params.set('height', String(tuple.height ?? DEFAULT_TUPLE.height));
-  params.set('scale', String(tuple.scale ?? DEFAULT_TUPLE.scale));
+  params.set('state', normalizedTuple.state);
+  params.set('theme', normalizedTuple.theme);
+  params.set('width', String(normalizedTuple.width));
+  params.set('height', String(normalizedTuple.height));
+  params.set('scale', String(normalizedTuple.scale));
+  if (normalizedTuple.locale !== undefined) params.set('locale', normalizedTuple.locale);
   return `${path}?${params.toString()}`;
 }
 

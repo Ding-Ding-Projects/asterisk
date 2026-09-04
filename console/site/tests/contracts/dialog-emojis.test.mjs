@@ -34,7 +34,11 @@ const siteRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(resolve(siteRoot, p), 'utf8').replaceAll('\r\n', '\n');
 const json = (p) => JSON.parse(read(p));
 
-const PAGES = ['index', 'product', 'documentation', 'downloads', 'status', 'settings'];
+/* Derived from the filesystem, not hand-copied: the six-name literal that used to sit
+ * here excluded converter.html, ollama.html and history.html, so every 'anywhere in
+ * the site' claim below searched two thirds of the site. See ./site-pages.mjs. */
+import { PAGE_NAMES } from './site-pages.mjs';
+const PAGES = PAGE_NAMES;
 const pageSource = Object.fromEntries(PAGES.map((name) => [name, read(`${name}.html`)]));
 const app = read('app.js');
 const css = read('styles.css');

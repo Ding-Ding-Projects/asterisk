@@ -7,14 +7,15 @@ import { fileURLToPath } from 'node:url';
 const consoleRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const repositoryRoot = join(consoleRoot, '..');
 const packageJson = JSON.parse(readFileSync(join(consoleRoot, 'package.json'), 'utf8'));
-const head = execFileSync('git', ['-C', repositoryRoot, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+const suppliedSourceRevision = process.env.DING_PBX_SOURCE_REVISION?.trim() || null;
+const head = suppliedSourceRevision ?? execFileSync('git', ['-C', repositoryRoot, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const candidateCommit = process.env.DING_PBX_CANDIDATE_COMMIT ?? head;
 const version = process.env.DING_PBX_VERSION ?? packageJson.version;
 const runAttempt = process.env.GITHUB_RUN_ATTEMPT;
 const runNumberText = process.env.GITHUB_RUN_NUMBER;
 const inferredTag = runNumberText && runAttempt ? `ding-pbx-console-v0.0.${runNumberText}-r${runAttempt}` : null;
 const tag = process.env.DING_PBX_RELEASE_TAG ?? inferredTag;
-if (!/^[0-9a-f]{40}$/u.test(candidateCommit) || candidateCommit !== head) throw new Error('The candidate commit must be the exact checkout HEAD.');
+if (!/^[0-9a-f]{40}$/u.test(candidateCommit) || (suppliedSourceRevision ? candidateCommit !== suppliedSourceRevision : candidateCommit !== head)) throw new Error('The candidate commit must be the exact checkout HEAD or the explicitly supplied source revision.');
 if (!/^\d+\.\d+\.\d+$/u.test(version)) throw new Error('The package version must be numeric semantic version text.');
 const publishing = process.env.GITHUB_ACTIONS === 'true' || tag !== null;
 if (publishing) {

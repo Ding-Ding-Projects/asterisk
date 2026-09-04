@@ -123,7 +123,7 @@ while ($true) {
     Push-Location $RepoRoot
     try {
         & git fetch origin --quiet
-        & git merge --ff-only origin/master 2>&1 | Out-Null
+        & git merge --ff-only origin/main 2>&1 | Out-Null
     } finally {
         Pop-Location
     }

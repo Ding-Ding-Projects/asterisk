@@ -39,7 +39,13 @@ param(
   # fight on two fronts at once: the shell's own quoting, and PowerShell binding each '-flag'
   # as a parameter name of its own. A file has neither problem. Its contents are used verbatim
   # as the command-line tail.
-  [string]$ArgumentsFile = ''
+  [string]$ArgumentsFile = '',
+  # A receipt binds process identity, desktop, debugger endpoint, and output roots to one launch.
+  [string]$ReceiptPath = '',
+  [string]$RunRoot = '',
+  [string]$OutputRoot = '',
+  [int]$CdpPort = 0,
+  [string]$ExpectedUrl = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -102,4 +108,42 @@ if (-not $created) {
 
 [void][DingParity.Native]::CloseHandle($processInformation.hThread)
 [void][DingParity.Native]::CloseHandle($processInformation.hProcess)
+
+if ($ReceiptPath) {
+  if (-not $RunRoot -or -not $OutputRoot -or $CdpPort -lt 1 -or -not $ExpectedUrl) {
+    throw 'launch-on-hidden-desktop: -ReceiptPath requires -RunRoot, -OutputRoot, -CdpPort, and -ExpectedUrl'
+  }
+  try {
+    $parsedUrl = [Uri]$ExpectedUrl
+    if ($parsedUrl.UserInfo) { throw 'the expected URL must not carry credentials' }
+    if ($parsedUrl.Scheme -notin @('file', 'http', 'https')) { throw 'the expected URL uses an unsupported protocol' }
+  } catch {
+    throw "launch-on-hidden-desktop: invalid -ExpectedUrl: $($_.Exception.Message)"
+  }
+  $process = Get-CimInstance -ClassName Win32_Process -Filter ("ProcessId=" + $processInformation.dwProcessId)
+  if (-not $process) { throw 'launch-on-hidden-desktop: launched process identity could not be read for the receipt' }
+  $receipt = [ordered]@{
+    version = 1
+    desktop = $Desktop
+    pid = [int]$processInformation.dwProcessId
+    process = [ordered]@{
+      pid = [int]$process.ProcessId
+      parentPid = [int]$process.ParentProcessId
+      creationDate = [string]$process.CreationDate
+      executablePath = [string]$process.ExecutablePath
+    }
+    arguments = $Arguments
+    workingDirectory = if ($WorkingDirectory) { $WorkingDirectory } else { Split-Path -Parent $FilePath }
+    runRoot = [IO.Path]::GetFullPath($RunRoot)
+    outputRoot = [IO.Path]::GetFullPath($OutputRoot)
+    cleaned = $false
+    cdp = [ordered]@{ port = $CdpPort; expectedUrl = $ExpectedUrl }
+  }
+  $receiptFullPath = [IO.Path]::GetFullPath($ReceiptPath)
+  $receiptParent = Split-Path -Parent $receiptFullPath
+  if (-not (Test-Path -LiteralPath $receiptParent)) { New-Item -ItemType Directory -Path $receiptParent -Force | Out-Null }
+  $receiptTemp = Join-Path $receiptParent ('.receipt.' + [Guid]::NewGuid().ToString('N') + '.tmp')
+  $receipt | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $receiptTemp -Encoding UTF8
+  Move-Item -LiteralPath $receiptTemp -Destination $receiptFullPath -Force
+}
 Write-Output ("PID=" + $processInformation.dwProcessId + " DESKTOP=" + $Desktop)

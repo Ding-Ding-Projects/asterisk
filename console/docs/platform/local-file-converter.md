@@ -2,7 +2,21 @@
 
 The converter backend and documentation-site equivalent are separate local surfaces. Both keep source bytes local, detect types from bounded bytes rather than extensions, and leave the source unchanged. Neither uses PATH discovery, a remote converter, or guessed output.
 
-## Desktop backend contract
+## Behavior
+
+There are two independent implementations here, and the difference between them is the point rather
+than an accident of history. The desktop side is a **typed contract plus a renderer surface**: a
+catalog, a queue seam and a set of fixed worker kernels, with no privileged process registered
+against it yet. The site side is a **working browser-local converter** whose adapters are limited to
+what a browser can honestly do without a bundled runtime. Both keep source bytes local, classify a
+file from bounded bytes rather than from its extension, leave the source untouched, and refuse to
+enable an adapter through PATH discovery, a remote service, or a guess.
+
+Read the two subsections below as answering different questions: the first is what the desktop side
+*would* do when a privileged backend is registered against the contract, and the second is what the
+published page does today.
+
+### Desktop backend contract
 
 The backend defines a bounded, offline conversion catalog and a persistent queue. It always exposes Documents and PDF, Images, Audio, Video, Archives, Structured Data and Spreadsheets, Code and Text, and Binary Encodings, including when every adapter in a category is unavailable. Unavailable adapters remain visible with the exact missing bundled dependency and reason.
 
@@ -18,19 +32,66 @@ The queue consumes an `AsyncIterable` one path at a time and persists each item 
 
 PDF adapters are cataloged but disabled until a packaged offline tool is proven. A valid adapter must reopen its output and verify page count, order, rotations, metadata, and opaque capability limits before replacement. Encrypted, signed, malformed, and unsupported inputs remain explicit facts.
 
-## Documentation site surface
+### Documentation site surface
 
 The site exposes `converter.html` as a browser-local equivalent. Its catalog is categorized as Documents/PDF, Images, Audio, Video, Archives, Structured Data/Spreadsheets, Code/Text, and Binary Encodings. Browser-bundled adapters are limited to UTF-8 text, Markdown, JSON, JSONL, CSV, TSV, and Base64 output. Other entries stay visible as unavailable with their missing-adapter reason.
 
-The site queue stores file handles and bounded metadata, reads one file at a time, pages visible results, and reports queued, reading, ready, skipped, failed, or cancelled state. A Blob is offered only after conversion succeeds, preview text is capped, cancellation is honored at safe boundaries, and one failed item never marks another successful. Adapter search is plain text by default with its own adjacent regex builder. Pattern evaluation and file bytes stay in the browser.
+**The paragraph that used to sit here described behaviour the page did not have, and the correction is recorded rather than written over.** From the commit that added `converter.html` until 2026-08-27 the page shipped a file picker, an adapter catalogue, a target select, a queue, a pager and a cancel button, and not one of those control ids appeared anywhere in `site/app.js`, which is the only script the page loads. Nothing read a file, nothing converted anything, and the classes the markup used had no rules behind them either, so every card rendered as an unstyled block. The old text described a queue with `reading` and `ready` states that had never existed in any source. What follows is what the page actually does.
 
-## Privacy and failure modes
+`initConverter()` in `site/app.js` wires every control. A chosen file is read through its own `File` object and identified by its bytes: a `%PDF-`, PNG, JPEG, GIF, ZIP, gzip, WAV, MP3, Ogg or MP4 signature decides first, then a strict UTF-8 decode that refuses rather than substituting replacement characters, then a classification that parses -- JSON if the whole file parses, JSONL if every line does, CSV or TSV on a consistent quoted field count. Markdown is the one kind decided by the file name, and its own reason says so out loud. A file over the 32 MiB bound is refused before anything reads it, and the refusal names the bound.
 
-Conversion is local-only. Paths must be absolute and null-free, symbolic-link sources and destination components are refused, and no adapter is enabled through PATH discovery. Inputs, outputs, memory, time, temporary storage, and concurrency are bounded. Existing destinations require explicit overwrite approval. The backend and site report unavailable adapters, malformed encodings, source mismatches, missing disclosures, resource limits, storage shortages, cancellation, output validation mismatches, and destination conflicts without writing guessed or partial output.
+The queue reports queued, converted, skipped, failed or cancelled, five files to a page, with Convert, Download and Remove on each row and one batch button for the files currently listed. Conversion waits for an explicit press: choosing a file only inspects and describes it. What a conversion would lose is stated first, per target, and the row-shaped targets defer to the same `describeLoss()` the exports use, so the converter and an export cannot disagree about the same table and the same format. Cancel is checked between files and a cancelled file says so instead of staying queued; the batch reports converted, skipped and cancelled separately rather than calling itself a success. Two refusals are deliberate: a JSON array of scalars will not become a table, because naming its column would be this page inventing a heading, and a CSV whose header repeats a column is refused because a row read from it would lose one of them. Adapter search is plain text by default with its own adjacent regex builder. No `fetch` and no `XMLHttpRequest` appears anywhere in the block, and the page says in words that nothing was uploaded.
+
+## Configuration
+
+There is no configuration file and no environment variable. What a caller may vary is what the typed
+seam takes, and the list is deliberately short (`console/shared/converter.ts:247-258`):
+
+| Call | Caller-supplied |
+| --- | --- |
+| `sniff` | `sourcePath`, and an optional `maxBytes` bounding how much of the file is inspected |
+| `createQueue` | a `label` |
+| `enqueueOne` | one `queueId` and one `ConverterRequest` — **one item per call**, so a transport can stream a selection instead of collecting an unlimited path list in memory |
+| `queuePage` | `queueId`, an optional `cursor`, an optional `limit` |
+| `startQueue`, `pauseQueue`, `resumeQueue`, `cancelQueue` | a `queueId` |
+
+The eight categories are fixed in `CONVERTER_CATEGORIES` (`shared/converter.ts:1`) and are always
+shown whole, including a category in which every adapter is unavailable. That is a contract rather
+than a default: a category that vanished when it had nothing to offer would read as a converter that
+supports fewer kinds of file than it does, instead of one whose runtime is not bundled.
+
+Which adapters are enabled is **not** a setting either. An adapter becomes enabled only with a
+packaged-artifact proof carrying an absolute path, a SHA-256, a verification time, an offline
+declaration and an exact runtime identity. Presence in the source tree is not proof, and there is no
+switch that overrides it.
+
+Two honest gaps in the section above, recorded here rather than left to be discovered: the
+bounded-shard and 1-to-8 concurrency behaviour it describes has **no counterpart in this
+repository**. `ConverterBackendHandlers` exposes no concurrency or shard field, and no privileged
+process implements it — `shared/converter.ts` is a seam, `app/renderer/src/converter-surface.tsx` is
+its renderer, and nothing else in the tree references either. The site queue, by contrast, is real.
+
+## Failure modes
+
+The backend and site both report unavailable adapters, malformed encodings, source mismatches,
+missing disclosures, resource limits, storage shortages, cancellation, output validation mismatches
+and destination conflicts — without writing guessed or partial output. A failed item never becomes a
+false batch success, and cancellation removes temporary output and leaves the destination unchanged.
+
+## Privacy
+
+Conversion is local-only. Paths must be absolute and null-free, symbolic-link sources and destination
+components are refused, and no adapter is enabled through PATH discovery. Inputs, outputs, memory,
+time, temporary storage, and concurrency are bounded. Existing destinations require explicit
+overwrite approval.
 
 ## Verification boundary
 
-This lane did not run tests, lint, type checks, builds, packaging, runtime execution, browser sessions, network requests, or screen captures. The desktop and site surfaces remain implemented but unverified until the required built-artifact and focused verification passes run.
+The desktop backend half of this article is unchanged and carries the boundary it was written with: that lane ran no tests, lint, type checks, builds, packaging, runtime execution, browser sessions, network requests, or captures, so the desktop backend remains implemented but unverified.
+
+The site half now has a focused contract of its own. `site/tests/contracts/local-file-converter.test.mjs` extracts the real DOM-free converter block out of `site/app.js` and runs it against real bytes -- a `%PDF-` header, a PNG signature, invalid UTF-8, a quoted CSV, a duplicated header column, a nested JSON value, an array of scalars -- and checks the Base64 output against an encoder it did not write. The wiring half is pinned separately by whole-line anchors, because a correct engine nothing calls is precisely the state this page was already in, and a substring needle is satisfied by a commented-out call.
+
+**What that contract does not claim.** Nothing here has been opened in a browser. No real file picker has been operated, no real `File` has been read, no download has been offered by a real browser, and no capture of the working surface exists. It is proved against the real extracted source and against the page's own markup, and no further -- so the registry row for `local-file-converter` records the surface as implemented while the two artifacts that need a running program remain absent.
 
 ## Suggested articles
 

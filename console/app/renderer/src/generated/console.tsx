@@ -2694,7 +2694,7 @@ function Template(v: any) {
         ) : null),
       (v.tabSearchOpen ? F(
         h("div", { onClick: fn(v.closeTabSearch), style: sty(`position:absolute; inset:0; background:rgba(0,0,0,.45); z-index:82;`) }),
-        h("div", { role: `dialog`, "aria-label": `Tab search`, style: sty(`position:absolute; left:50%; top:92px; transform:translateX(-50%); width:560px; max-height:70vh; overflow:auto; background:#252B25; border-radius:20px; padding:20px; z-index:83;`) },
+        h("div", { role: `dialog`, "aria-modal": `true`, "aria-label": `Tab search`, style: sty(`position:absolute; left:50%; top:92px; transform:translateX(-50%); width:560px; max-height:70vh; overflow:auto; background:#252B25; border-radius:20px; padding:20px; z-index:83;`) },
           h("div", { style: sty(`display:flex; gap:6px; flex-wrap:wrap;`) }, A(v.tabSearchScopes).map(($scope, $scope$i) => R($scope$i, h("button", { onClick: fn($scope.pick), style: sty(`background:#141A15; color:#DFE4DC; border:1px solid #414942; border-radius:8px; padding:7px 10px;`) }, S($scope.label))))),
           h("div", { style: sty(`display:flex; gap:8px; margin-top:12px;`) },
             h("input", { type: `text`, value: v.tabSearchQuery, onChange: fn(v.onTabSearchQuery), onInput: fn(v.onTabSearchQuery), placeholder: `Search tabs`, style: sty(`flex:1;`) }),

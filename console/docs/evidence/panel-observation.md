@@ -24,10 +24,20 @@ Contract: [`tests/scripts/panel-observation.test.mjs`](../../tests/scripts/panel
 Both are measured off the compiled shell by the contract test rather than remembered here, so a
 change to either fails the suite rather than quietly changing what the harness means.
 
-**This application declares almost no roles, and exactly one dialog role.** The compiled shell —
-6,277 lines, effectively the whole console interface — contains zero `role` attributes and zero
-accessible-name attributes. Outside it, the hand-written components declare eleven roles in total,
-and exactly one of them is `dialog`: the command palette's card, in `App.tsx`.
+**This application used to declare almost no roles, and exactly one dialog role.** When this
+harness was designed, the compiled shell — effectively the whole console interface — contained zero
+`role` attributes and zero accessible-name attributes, and the only `dialog` role anywhere was the
+command palette's card in `App.tsx`. That is what forced the reader below to fall through to
+`textContent`.
+
+> **Corrected again on 2026-08-27.** The sentence above was left in the present tense after
+> accessibility work landed, so this article went on saying "zero" while
+> [`tests/scripts/panel-observation.test.mjs`](../../tests/scripts/panel-observation.test.mjs)
+> pinned **33** declared roles, **28** accessible-name attributes and **15** dialog roles in the
+> same file. The counts live in the test, measured off the shell on every run; this article keeps
+> the reasoning and no longer keeps a copy of the numbers, because a second copy is a second thing
+> to go stale. What has *not* changed is the consequence: the fall-through to `textContent` is now
+> a choice nobody has revisited rather than a necessity.
 
 > **Corrected on 2026-08-26.** This section used to say that *no* element anywhere carried the
 > dialog role, so a selector for it "matches nothing under any state" and a count of it "can only

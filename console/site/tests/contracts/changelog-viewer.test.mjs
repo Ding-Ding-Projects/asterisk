@@ -43,7 +43,11 @@ const read = (p) => readFileSync(resolve(siteRoot, p), 'utf8').replaceAll('\r\n'
 const readConsole = (p) => readFileSync(resolve(consoleRoot, p), 'utf8').replaceAll('\r\n', '\n');
 const json = (p) => JSON.parse(read(p));
 
-const PAGES = ['index', 'product', 'documentation', 'downloads', 'status', 'settings'];
+/* Derived from the filesystem, not hand-copied: the six-name literal that used to sit
+ * here excluded converter.html, ollama.html and history.html, so every 'anywhere in
+ * the site' claim below searched two thirds of the site. See ./site-pages.mjs. */
+import { PAGE_NAMES } from './site-pages.mjs';
+const PAGES = PAGE_NAMES;
 const pageSource = Object.fromEntries(PAGES.map((name) => [name, read(`${name}.html`)]));
 const app = read('app.js');
 const build = read('build.mjs');
@@ -524,11 +528,64 @@ test('every exported row states the range of the export it came from', () => {
   const rows = api.changelogExportRows(entries);
   assert.ok(rows.every((row) => row.exportedRange === expected),
     'not every exported row states the same range, so the file does not state its own range');
-  /* And a narrowed export states the NARROWED range, not the whole history's. */
+  /* And a narrowed export states the NARROWED range, not the whole history's.
+   *
+   * The narrowed entry has to carry a date the whole history does not, or this proves
+   * nothing. This repository ships many releases in one day -- all twenty in the current
+   * generated history are dated 2026-08-26 -- so `changelogRangeLabel(everything)` and a
+   * single real entry's own date are the same string, and an export that wrongly claimed
+   * the whole range would read as correct. That is not hypothetical: it left this exact
+   * assertion unable to see a deliberately planted break. So the narrowed entry is given
+   * a date of its own, and the fixture is asserted to be discriminating before it is
+   * trusted. */
   const one = entries.find((entry) => entry.changes.length > 0);
-  const narrowed = api.changelogExportRows([one]);
-  assert.ok(narrowed.length > 0 && narrowed.every((row) => row.exportedRange === one.date),
+  assert.ok(one, 'no real entry carries a change, so the narrowing below would prove nothing');
+  const OUTSIDE_THE_HISTORY = '2000-01-01';
+  assert.notEqual(OUTSIDE_THE_HISTORY, expected,
+    'the narrowed date is the whole history\'s own range label, so this check cannot tell them apart');
+  const narrowed = api.changelogExportRows([{ ...one, date: OUTSIDE_THE_HISTORY }]);
+  assert.ok(narrowed.length > 0 && narrowed.every((row) => row.exportedRange === OUTSIDE_THE_HISTORY),
     'a filtered export still claims the range of the unfiltered history');
+});
+
+/*
+ * The assertion above is the right one and, against the real release history, it cannot
+ * fail. Every release in the generated bundle is currently dated the same day, so the
+ * whole history's range label and any single entry's date are the same string -- and an
+ * export that computed its range from the whole history instead of from what it was
+ * handed would produce identical output. That was not a hypothetical: it was found by
+ * planting exactly that defect and watching the assertion stay green.
+ *
+ * So the narrowing property is proved here against a fixture built to have two distinct
+ * dates. This is the one place in this file that does not use the real history, and the
+ * reason is the opposite of convenience: the real history cannot distinguish the two
+ * behaviours, so testing only against it proves nothing about this property at all.
+ */
+test('a narrowed export states its own range even when the whole history spans more days', () => {
+  const api = loadChangelog();
+  const sha = (digit) => String(digit).repeat(40);
+  const twoDays = [
+    '## 9.9.9-r1 — 2026-05-02',
+    '',
+    '### General',
+    `- The later change (${sha(1)})`,
+    '',
+    '## 9.9.8-r1 — 2026-05-01',
+    '',
+    '### General',
+    `- The earlier change (${sha(2)})`,
+    '',
+  ].join('\n');
+  const { entries } = api.parseChangelog(twoDays);
+  assert.equal(entries.length, 2, 'the two-date fixture no longer parses as two versions');
+  assert.equal(api.changelogRangeLabel(entries), '2026-05-01 to 2026-05-02',
+    'the two-date fixture no longer spans two days, so the assertion below could not fail');
+
+  const later = entries.find((entry) => entry.date === '2026-05-02');
+  const narrowed = api.changelogExportRows([later]);
+  assert.ok(narrowed.length > 0, 'the narrowed export produced no rows');
+  assert.ok(narrowed.every((row) => row.exportedRange === '2026-05-02'),
+    'a filtered export states the range of the whole history rather than of what was exported');
 });
 
 test('the export honours the current search and date range rather than dumping everything', () => {

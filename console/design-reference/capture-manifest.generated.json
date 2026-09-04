@@ -6,23 +6,33 @@
   ],
   "note": "One entry per audited destination: the exact reference route, built-app route, evidence artifact paths, and the real click-sequence navigation plan a headless driver needs to reach it deterministically. Regenerate rather than hand-edit.",
   "captureTuple": {
+    "height": 1000,
+    "scale": 1,
     "state": "default",
     "theme": "dark",
-    "width": 1440,
-    "height": 1000,
-    "scale": 1
+    "width": 1440
   },
   "destinationCount": 32,
   "destinations": [
     {
       "id": "dash",
       "rail": "pbx",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=dash&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/dash?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/dash-reference.png",
       "builtCapture": "console/release/captures/parity/dash-built.png",
       "sideBySide": "console/release/captures/parity/dash-comparison.png",
       "visualDiff": "console/release/evidence/parity/dash-diff.json",
+      "regionLedger": "console/release/evidence/parity/dash-regions.json",
+      "chromeParity": "console/release/evidence/parity/dash-chrome.json",
       "materialAudit": "console/release/evidence/parity/dash-material.json",
       "navigationPlan": {
         "destinationId": "dash",
@@ -47,12 +57,22 @@
     {
       "id": "live",
       "rail": "pbx",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=live&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/live?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/live-reference.png",
       "builtCapture": "console/release/captures/parity/live-built.png",
       "sideBySide": "console/release/captures/parity/live-comparison.png",
       "visualDiff": "console/release/evidence/parity/live-diff.json",
+      "regionLedger": "console/release/evidence/parity/live-regions.json",
+      "chromeParity": "console/release/evidence/parity/live-chrome.json",
       "materialAudit": "console/release/evidence/parity/live-material.json",
       "navigationPlan": {
         "destinationId": "live",
@@ -77,12 +97,22 @@
     {
       "id": "endpoints",
       "rail": "pbx",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=endpoints&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/endpoints?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/endpoints-reference.png",
       "builtCapture": "console/release/captures/parity/endpoints-built.png",
       "sideBySide": "console/release/captures/parity/endpoints-comparison.png",
       "visualDiff": "console/release/evidence/parity/endpoints-diff.json",
+      "regionLedger": "console/release/evidence/parity/endpoints-regions.json",
+      "chromeParity": "console/release/evidence/parity/endpoints-chrome.json",
       "materialAudit": "console/release/evidence/parity/endpoints-material.json",
       "navigationPlan": {
         "destinationId": "endpoints",
@@ -107,12 +137,22 @@
     {
       "id": "trunks",
       "rail": "pbx",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=trunks&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/trunks?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/trunks-reference.png",
       "builtCapture": "console/release/captures/parity/trunks-built.png",
       "sideBySide": "console/release/captures/parity/trunks-comparison.png",
       "visualDiff": "console/release/evidence/parity/trunks-diff.json",
+      "regionLedger": "console/release/evidence/parity/trunks-regions.json",
+      "chromeParity": "console/release/evidence/parity/trunks-chrome.json",
       "materialAudit": "console/release/evidence/parity/trunks-material.json",
       "navigationPlan": {
         "destinationId": "trunks",
@@ -137,12 +177,22 @@
     {
       "id": "trunkauth",
       "rail": "pbx",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=trunkauth&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/trunkauth?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/trunkauth-reference.png",
       "builtCapture": "console/release/captures/parity/trunkauth-built.png",
       "sideBySide": "console/release/captures/parity/trunkauth-comparison.png",
       "visualDiff": "console/release/evidence/parity/trunkauth-diff.json",
+      "regionLedger": "console/release/evidence/parity/trunkauth-regions.json",
+      "chromeParity": "console/release/evidence/parity/trunkauth-chrome.json",
       "materialAudit": "console/release/evidence/parity/trunkauth-material.json",
       "navigationPlan": {
         "destinationId": "trunkauth",
@@ -167,12 +217,22 @@
     {
       "id": "canvas",
       "rail": "pbx",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=canvas&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/canvas?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/canvas-reference.png",
       "builtCapture": "console/release/captures/parity/canvas-built.png",
       "sideBySide": "console/release/captures/parity/canvas-comparison.png",
       "visualDiff": "console/release/evidence/parity/canvas-diff.json",
+      "regionLedger": "console/release/evidence/parity/canvas-regions.json",
+      "chromeParity": "console/release/evidence/parity/canvas-chrome.json",
       "materialAudit": "console/release/evidence/parity/canvas-material.json",
       "navigationPlan": {
         "destinationId": "canvas",
@@ -197,12 +257,22 @@
     {
       "id": "ivr",
       "rail": "pbx",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=ivr&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/ivr?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/ivr-reference.png",
       "builtCapture": "console/release/captures/parity/ivr-built.png",
       "sideBySide": "console/release/captures/parity/ivr-comparison.png",
       "visualDiff": "console/release/evidence/parity/ivr-diff.json",
+      "regionLedger": "console/release/evidence/parity/ivr-regions.json",
+      "chromeParity": "console/release/evidence/parity/ivr-chrome.json",
       "materialAudit": "console/release/evidence/parity/ivr-material.json",
       "navigationPlan": {
         "destinationId": "ivr",
@@ -227,12 +297,22 @@
     {
       "id": "queues",
       "rail": "pbx",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=queues&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/queues?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/queues-reference.png",
       "builtCapture": "console/release/captures/parity/queues-built.png",
       "sideBySide": "console/release/captures/parity/queues-comparison.png",
       "visualDiff": "console/release/evidence/parity/queues-diff.json",
+      "regionLedger": "console/release/evidence/parity/queues-regions.json",
+      "chromeParity": "console/release/evidence/parity/queues-chrome.json",
       "materialAudit": "console/release/evidence/parity/queues-material.json",
       "navigationPlan": {
         "destinationId": "queues",
@@ -257,12 +337,22 @@
     {
       "id": "voicemail",
       "rail": "media",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=voicemail&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/voicemail?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/voicemail-reference.png",
       "builtCapture": "console/release/captures/parity/voicemail-built.png",
       "sideBySide": "console/release/captures/parity/voicemail-comparison.png",
       "visualDiff": "console/release/evidence/parity/voicemail-diff.json",
+      "regionLedger": "console/release/evidence/parity/voicemail-regions.json",
+      "chromeParity": "console/release/evidence/parity/voicemail-chrome.json",
       "materialAudit": "console/release/evidence/parity/voicemail-material.json",
       "navigationPlan": {
         "destinationId": "voicemail",
@@ -287,12 +377,22 @@
     {
       "id": "confbridge",
       "rail": "media",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=confbridge&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/confbridge?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/confbridge-reference.png",
       "builtCapture": "console/release/captures/parity/confbridge-built.png",
       "sideBySide": "console/release/captures/parity/confbridge-comparison.png",
       "visualDiff": "console/release/evidence/parity/confbridge-diff.json",
+      "regionLedger": "console/release/evidence/parity/confbridge-regions.json",
+      "chromeParity": "console/release/evidence/parity/confbridge-chrome.json",
       "materialAudit": "console/release/evidence/parity/confbridge-material.json",
       "navigationPlan": {
         "destinationId": "confbridge",
@@ -317,12 +417,22 @@
     {
       "id": "moh",
       "rail": "media",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=moh&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/moh?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/moh-reference.png",
       "builtCapture": "console/release/captures/parity/moh-built.png",
       "sideBySide": "console/release/captures/parity/moh-comparison.png",
       "visualDiff": "console/release/evidence/parity/moh-diff.json",
+      "regionLedger": "console/release/evidence/parity/moh-regions.json",
+      "chromeParity": "console/release/evidence/parity/moh-chrome.json",
       "materialAudit": "console/release/evidence/parity/moh-material.json",
       "navigationPlan": {
         "destinationId": "moh",
@@ -347,12 +457,22 @@
     {
       "id": "codecs",
       "rail": "media",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=codecs&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/codecs?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/codecs-reference.png",
       "builtCapture": "console/release/captures/parity/codecs-built.png",
       "sideBySide": "console/release/captures/parity/codecs-comparison.png",
       "visualDiff": "console/release/evidence/parity/codecs-diff.json",
+      "regionLedger": "console/release/evidence/parity/codecs-regions.json",
+      "chromeParity": "console/release/evidence/parity/codecs-chrome.json",
       "materialAudit": "console/release/evidence/parity/codecs-material.json",
       "navigationPlan": {
         "destinationId": "codecs",
@@ -377,12 +497,22 @@
     {
       "id": "cdr",
       "rail": "data",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=cdr&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/cdr?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/cdr-reference.png",
       "builtCapture": "console/release/captures/parity/cdr-built.png",
       "sideBySide": "console/release/captures/parity/cdr-comparison.png",
       "visualDiff": "console/release/evidence/parity/cdr-diff.json",
+      "regionLedger": "console/release/evidence/parity/cdr-regions.json",
+      "chromeParity": "console/release/evidence/parity/cdr-chrome.json",
       "materialAudit": "console/release/evidence/parity/cdr-material.json",
       "navigationPlan": {
         "destinationId": "cdr",
@@ -407,12 +537,22 @@
     {
       "id": "ami",
       "rail": "data",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=ami&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/ami?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/ami-reference.png",
       "builtCapture": "console/release/captures/parity/ami-built.png",
       "sideBySide": "console/release/captures/parity/ami-comparison.png",
       "visualDiff": "console/release/evidence/parity/ami-diff.json",
+      "regionLedger": "console/release/evidence/parity/ami-regions.json",
+      "chromeParity": "console/release/evidence/parity/ami-chrome.json",
       "materialAudit": "console/release/evidence/parity/ami-material.json",
       "navigationPlan": {
         "destinationId": "ami",
@@ -437,12 +577,22 @@
     {
       "id": "modules",
       "rail": "system",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=modules&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/modules?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/modules-reference.png",
       "builtCapture": "console/release/captures/parity/modules-built.png",
       "sideBySide": "console/release/captures/parity/modules-comparison.png",
       "visualDiff": "console/release/evidence/parity/modules-diff.json",
+      "regionLedger": "console/release/evidence/parity/modules-regions.json",
+      "chromeParity": "console/release/evidence/parity/modules-chrome.json",
       "materialAudit": "console/release/evidence/parity/modules-material.json",
       "navigationPlan": {
         "destinationId": "modules",
@@ -467,12 +617,22 @@
     {
       "id": "logger",
       "rail": "system",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=logger&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/logger?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/logger-reference.png",
       "builtCapture": "console/release/captures/parity/logger-built.png",
       "sideBySide": "console/release/captures/parity/logger-comparison.png",
       "visualDiff": "console/release/evidence/parity/logger-diff.json",
+      "regionLedger": "console/release/evidence/parity/logger-regions.json",
+      "chromeParity": "console/release/evidence/parity/logger-chrome.json",
       "materialAudit": "console/release/evidence/parity/logger-material.json",
       "navigationPlan": {
         "destinationId": "logger",
@@ -497,12 +657,22 @@
     {
       "id": "security",
       "rail": "system",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=security&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/security?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/security-reference.png",
       "builtCapture": "console/release/captures/parity/security-built.png",
       "sideBySide": "console/release/captures/parity/security-comparison.png",
       "visualDiff": "console/release/evidence/parity/security-diff.json",
+      "regionLedger": "console/release/evidence/parity/security-regions.json",
+      "chromeParity": "console/release/evidence/parity/security-chrome.json",
       "materialAudit": "console/release/evidence/parity/security-material.json",
       "navigationPlan": {
         "destinationId": "security",
@@ -527,12 +697,22 @@
     {
       "id": "cli",
       "rail": "system",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=cli&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/cli?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/cli-reference.png",
       "builtCapture": "console/release/captures/parity/cli-built.png",
       "sideBySide": "console/release/captures/parity/cli-comparison.png",
       "visualDiff": "console/release/evidence/parity/cli-diff.json",
+      "regionLedger": "console/release/evidence/parity/cli-regions.json",
+      "chromeParity": "console/release/evidence/parity/cli-chrome.json",
       "materialAudit": "console/release/evidence/parity/cli-material.json",
       "navigationPlan": {
         "destinationId": "cli",
@@ -557,12 +737,22 @@
     {
       "id": "memory",
       "rail": "agent",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=memory&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/memory?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/memory-reference.png",
       "builtCapture": "console/release/captures/parity/memory-built.png",
       "sideBySide": "console/release/captures/parity/memory-comparison.png",
       "visualDiff": "console/release/evidence/parity/memory-diff.json",
+      "regionLedger": "console/release/evidence/parity/memory-regions.json",
+      "chromeParity": "console/release/evidence/parity/memory-chrome.json",
       "materialAudit": "console/release/evidence/parity/memory-material.json",
       "navigationPlan": {
         "destinationId": "memory",
@@ -587,12 +777,22 @@
     {
       "id": "sync",
       "rail": "agent",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=sync&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/sync?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/sync-reference.png",
       "builtCapture": "console/release/captures/parity/sync-built.png",
       "sideBySide": "console/release/captures/parity/sync-comparison.png",
       "visualDiff": "console/release/evidence/parity/sync-diff.json",
+      "regionLedger": "console/release/evidence/parity/sync-regions.json",
+      "chromeParity": "console/release/evidence/parity/sync-chrome.json",
       "materialAudit": "console/release/evidence/parity/sync-material.json",
       "navigationPlan": {
         "destinationId": "sync",
@@ -617,12 +817,22 @@
     {
       "id": "skills",
       "rail": "agent",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=skills&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/skills?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/skills-reference.png",
       "builtCapture": "console/release/captures/parity/skills-built.png",
       "sideBySide": "console/release/captures/parity/skills-comparison.png",
       "visualDiff": "console/release/evidence/parity/skills-diff.json",
+      "regionLedger": "console/release/evidence/parity/skills-regions.json",
+      "chromeParity": "console/release/evidence/parity/skills-chrome.json",
       "materialAudit": "console/release/evidence/parity/skills-material.json",
       "navigationPlan": {
         "destinationId": "skills",
@@ -647,12 +857,22 @@
     {
       "id": "hub",
       "rail": "agent",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=hub&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/hub?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/hub-reference.png",
       "builtCapture": "console/release/captures/parity/hub-built.png",
       "sideBySide": "console/release/captures/parity/hub-comparison.png",
       "visualDiff": "console/release/evidence/parity/hub-diff.json",
+      "regionLedger": "console/release/evidence/parity/hub-regions.json",
+      "chromeParity": "console/release/evidence/parity/hub-chrome.json",
       "materialAudit": "console/release/evidence/parity/hub-material.json",
       "navigationPlan": {
         "destinationId": "hub",
@@ -677,12 +897,22 @@
     {
       "id": "vocab",
       "rail": "agent",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=vocab&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/vocab?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/vocab-reference.png",
       "builtCapture": "console/release/captures/parity/vocab-built.png",
       "sideBySide": "console/release/captures/parity/vocab-comparison.png",
       "visualDiff": "console/release/evidence/parity/vocab-diff.json",
+      "regionLedger": "console/release/evidence/parity/vocab-regions.json",
+      "chromeParity": "console/release/evidence/parity/vocab-chrome.json",
       "materialAudit": "console/release/evidence/parity/vocab-material.json",
       "navigationPlan": {
         "destinationId": "vocab",
@@ -707,12 +937,22 @@
     {
       "id": "ops",
       "rail": "agent",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=ops&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/ops?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/ops-reference.png",
       "builtCapture": "console/release/captures/parity/ops-built.png",
       "sideBySide": "console/release/captures/parity/ops-comparison.png",
       "visualDiff": "console/release/evidence/parity/ops-diff.json",
+      "regionLedger": "console/release/evidence/parity/ops-regions.json",
+      "chromeParity": "console/release/evidence/parity/ops-chrome.json",
       "materialAudit": "console/release/evidence/parity/ops-material.json",
       "navigationPlan": {
         "destinationId": "ops",
@@ -737,12 +977,22 @@
     {
       "id": "secrets",
       "rail": "agent",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=secrets&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/secrets?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/secrets-reference.png",
       "builtCapture": "console/release/captures/parity/secrets-built.png",
       "sideBySide": "console/release/captures/parity/secrets-comparison.png",
       "visualDiff": "console/release/evidence/parity/secrets-diff.json",
+      "regionLedger": "console/release/evidence/parity/secrets-regions.json",
+      "chromeParity": "console/release/evidence/parity/secrets-chrome.json",
       "materialAudit": "console/release/evidence/parity/secrets-material.json",
       "navigationPlan": {
         "destinationId": "secrets",
@@ -767,12 +1017,22 @@
     {
       "id": "servers",
       "rail": "app",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=servers&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/servers?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/servers-reference.png",
       "builtCapture": "console/release/captures/parity/servers-built.png",
       "sideBySide": "console/release/captures/parity/servers-comparison.png",
       "visualDiff": "console/release/evidence/parity/servers-diff.json",
+      "regionLedger": "console/release/evidence/parity/servers-regions.json",
+      "chromeParity": "console/release/evidence/parity/servers-chrome.json",
       "materialAudit": "console/release/evidence/parity/servers-material.json",
       "navigationPlan": {
         "destinationId": "servers",
@@ -797,12 +1057,22 @@
     {
       "id": "arcade",
       "rail": "app",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=arcade&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/arcade?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/arcade-reference.png",
       "builtCapture": "console/release/captures/parity/arcade-built.png",
       "sideBySide": "console/release/captures/parity/arcade-comparison.png",
       "visualDiff": "console/release/evidence/parity/arcade-diff.json",
+      "regionLedger": "console/release/evidence/parity/arcade-regions.json",
+      "chromeParity": "console/release/evidence/parity/arcade-chrome.json",
       "materialAudit": "console/release/evidence/parity/arcade-material.json",
       "navigationPlan": {
         "destinationId": "arcade",
@@ -827,12 +1097,22 @@
     {
       "id": "notifications",
       "rail": "app",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=notifications&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/notifications?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/notifications-reference.png",
       "builtCapture": "console/release/captures/parity/notifications-built.png",
       "sideBySide": "console/release/captures/parity/notifications-comparison.png",
       "visualDiff": "console/release/evidence/parity/notifications-diff.json",
+      "regionLedger": "console/release/evidence/parity/notifications-regions.json",
+      "chromeParity": "console/release/evidence/parity/notifications-chrome.json",
       "materialAudit": "console/release/evidence/parity/notifications-material.json",
       "navigationPlan": {
         "destinationId": "notifications",
@@ -857,12 +1137,22 @@
     {
       "id": "history",
       "rail": "app",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=history&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/history?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/history-reference.png",
       "builtCapture": "console/release/captures/parity/history-built.png",
       "sideBySide": "console/release/captures/parity/history-comparison.png",
       "visualDiff": "console/release/evidence/parity/history-diff.json",
+      "regionLedger": "console/release/evidence/parity/history-regions.json",
+      "chromeParity": "console/release/evidence/parity/history-chrome.json",
       "materialAudit": "console/release/evidence/parity/history-material.json",
       "navigationPlan": {
         "destinationId": "history",
@@ -887,12 +1177,22 @@
     {
       "id": "customise",
       "rail": "app",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=customise&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/customise?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/customise-reference.png",
       "builtCapture": "console/release/captures/parity/customise-built.png",
       "sideBySide": "console/release/captures/parity/customise-comparison.png",
       "visualDiff": "console/release/evidence/parity/customise-diff.json",
+      "regionLedger": "console/release/evidence/parity/customise-regions.json",
+      "chromeParity": "console/release/evidence/parity/customise-chrome.json",
       "materialAudit": "console/release/evidence/parity/customise-material.json",
       "navigationPlan": {
         "destinationId": "customise",
@@ -917,12 +1217,22 @@
     {
       "id": "appearance",
       "rail": "app",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=appearance&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/appearance?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/appearance-reference.png",
       "builtCapture": "console/release/captures/parity/appearance-built.png",
       "sideBySide": "console/release/captures/parity/appearance-comparison.png",
       "visualDiff": "console/release/evidence/parity/appearance-diff.json",
+      "regionLedger": "console/release/evidence/parity/appearance-regions.json",
+      "chromeParity": "console/release/evidence/parity/appearance-chrome.json",
       "materialAudit": "console/release/evidence/parity/appearance-material.json",
       "navigationPlan": {
         "destinationId": "appearance",
@@ -947,12 +1257,22 @@
     {
       "id": "about",
       "rail": "app",
+      "state": "default",
+      "tuple": {
+        "height": 1000,
+        "scale": 1,
+        "state": "default",
+        "theme": "dark",
+        "width": 1440
+      },
       "referenceRoute": "console/design-reference/index.html?destination=about&state=default&theme=dark&width=1440&height=1000&scale=1",
       "builtRoute": "ding-pbx://destination/about?state=default&theme=dark&width=1440&height=1000&scale=1",
       "referenceCapture": "console/release/captures/parity/about-reference.png",
       "builtCapture": "console/release/captures/parity/about-built.png",
       "sideBySide": "console/release/captures/parity/about-comparison.png",
       "visualDiff": "console/release/evidence/parity/about-diff.json",
+      "regionLedger": "console/release/evidence/parity/about-regions.json",
+      "chromeParity": "console/release/evidence/parity/about-chrome.json",
       "materialAudit": "console/release/evidence/parity/about-material.json",
       "navigationPlan": {
         "destinationId": "about",

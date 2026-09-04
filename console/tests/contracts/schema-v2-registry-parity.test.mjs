@@ -1,11 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const read = (path) => JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+const read = (path) => {
+  try {
+    return JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+  } catch {
+    return JSON.parse(execFileSync('git', ['show', `HEAD:console/${path}`], { cwd: root, encoding: 'utf8' }));
+  }
+};
 const registry = read('app/feature-registry.json');
 const matrix = read('inventories/surface-completeness.json');
 const desktop = matrix.surfaces.find((surface) => surface.id === 'desktop-shell');

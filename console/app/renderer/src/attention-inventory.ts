@@ -4,38 +4,151 @@ export type AttentionSeverity = 'info' | 'warning' | 'error';
 export type AttentionClockEffect = 'recorded' | 'passive';
 export type AttentionSourceOwner = 'design' | 'app' | 'generated' | 'module';
 export interface AttentionMarker { readonly owner:AttentionSourceOwner; readonly text:string; }
-export interface AttentionWiringRow { readonly id:string; readonly control:string; readonly mode:string|null; readonly designMarker:AttentionMarker; readonly controlConstruction:AttentionMarker; readonly durableKey:AttentionMarker; readonly writerMarkers:readonly AttentionMarker[]; readonly setterMarkers:readonly AttentionMarker[]; readonly consumerMarkers:readonly AttentionMarker[]; }
+/** A row whose control is rendered outside the checked-in design still records why. */
+export interface NoDesignControl { readonly owner:'none'; readonly reason:string; readonly absentFromDesign:string; }
+export interface AttentionWiringRow { readonly id:string; readonly control:string; readonly mode:string|null; readonly controlDeclaration?:AttentionMarker; readonly designMarker?:AttentionMarker|NoDesignControl; readonly controlConstruction:AttentionMarker; readonly durableKey:AttentionMarker; readonly writerMarkers:readonly AttentionMarker[]; readonly setterMarkers:readonly AttentionMarker[]; readonly consumerMarkers:readonly AttentionMarker[]; }
 const marker = (owner:AttentionSourceOwner, text:string): AttentionMarker => ({ owner, text });
 export const ATTENTION_WIRING: readonly AttentionWiringRow[] = [
-  { id:'focus', control:'att_focus', mode:'focus', designMarker:marker('design',"ctl('att_focus','Focus','switch',false"), controlConstruction:marker('app',"'att_focus': 'focus'"), durableKey:marker('module',"focus: 'console.attention.focus'"), writerMarkers:[marker('app',"control?.id?.startsWith('att_') && typeof value === 'boolean'"), marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);"), marker('app',"this.attentionWrite(`${MODE_SETTING_PREFIX}${mode}`, value ? 'on' : 'off');"), marker('generated',"this.onUserMutation('control:' + (c.id || 'unknown'));" )], setterMarkers:[marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);")], consumerMarkers:[marker('module',"dimInactive: modeEnabled(storage, 'focus'),"), marker('app','[data-attention-inactive="true"] { opacity'), marker('app',"element.dataset.attentionInactive = presentation.dimInactive ? 'true' : 'false';")] },
-  { id:'low-stimulation', control:'att_low', mode:'lowStimulation', designMarker:marker('design',"ctl('att_low','Low stimulation','switch',false"), controlConstruction:marker('app',"'att_low': 'lowStimulation'"), durableKey:marker('module',"lowStimulation: 'console.attention.lowStimulation'"), writerMarkers:[marker('app',"control?.id?.startsWith('att_') && typeof value === 'boolean'"), marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);"), marker('app',"this.attentionWrite(`${MODE_SETTING_PREFIX}${mode}`, value ? 'on' : 'off');"), marker('generated',"this.onUserMutation('control:' + (c.id || 'unknown'));" )], setterMarkers:[marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);")], consumerMarkers:[marker('module',"reduceMotion: low || platform.prefersReducedMotion === true,"), marker('module',"quietNotifications: low,"), marker('app',"document.body.classList.toggle('attention-low-stimulation', presentation.quietNotifications);"), marker('app',"private gatedToast = (message: string, severity: NotificationSeverity = 'info'): void => {"), marker('app',"const suppressed = this.consoleSetting<boolean>('nt_toast', true) === false\n      || (severity === 'info' && this.attentionPresentation().quietNotifications);"), marker('app',"this.recordNotification('toast', message, severity, suppressed ? 'suppressed' : 'delivered');"), marker('app',"private narratedFire = ("), marker('app',"const suppressed = severity === 'info' && this.attentionPresentation().quietNotifications;"), marker('app',"this.recordNotification('notice', message, severity, suppressed ? 'suppressed' : 'delivered');")] },
-  { id:'time-awareness', control:'att_time', mode:'timeAwareness', designMarker:marker('design',"ctl('att_time','Time awareness','switch',false"), controlConstruction:marker('app',"'att_time': 'timeAwareness'"), durableKey:marker('module',"timeAwareness: 'console.attention.timeAwareness'"), writerMarkers:[marker('app',"control?.id?.startsWith('att_') && typeof value === 'boolean'"), marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);"), marker('app',"this.attentionWrite(`${MODE_SETTING_PREFIX}${mode}`, value ? 'on' : 'off');"), marker('generated',"this.onUserMutation('control:' + (c.id || 'unknown'));" )], setterMarkers:[marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);")], consumerMarkers:[marker('module',"showElapsedTime: modeEnabled(storage, 'timeAwareness'),"), marker('app',"!presentation.showElapsedTime ? null : h('p', { className: 'attn-rail-time' },"), marker('app','Open for'), marker('app','Last change')] },
-  { id:'one-thing', control:'att_one', mode:'oneThing', designMarker:marker('design',"ctl('att_one','One thing at a time','switch',false"), controlConstruction:marker('app',"'att_one': 'oneThing'"), durableKey:marker('module',"oneThing: 'console.attention.oneThing'"), writerMarkers:[marker('app',"control?.id?.startsWith('att_') && typeof value === 'boolean'"), marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);"), marker('app',"this.attentionWrite(`${MODE_SETTING_PREFIX}${mode}`, value ? 'on' : 'off');"), marker('generated',"this.onUserMutation('control:' + (c.id || 'unknown'));" )], setterMarkers:[marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);")], consumerMarkers:[marker('module',"showNextAction: modeEnabled(storage, 'oneThing'),"), marker('app',"!presentation.showNextAction ? null : h('div', { className: 'attn-rail-next' },"), marker('app',"value: nextAction(storage),"), marker('app',"setNextAction(storage, event.target.value);")] },
-  { id:'momentum', control:'att_momentum', mode:'momentum', designMarker:marker('design',"ctl('att_momentum','Momentum','switch',false"), controlConstruction:marker('app',"'att_momentum': 'momentum'"), durableKey:marker('module',"momentum: 'console.attention.momentum'"), writerMarkers:[marker('app',"control?.id?.startsWith('att_') && typeof value === 'boolean'"), marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);"), marker('app',"this.attentionWrite(`${MODE_SETTING_PREFIX}${mode}`, value ? 'on' : 'off');"), marker('generated',"this.onUserMutation('control:' + (c.id || 'unknown'));" )], setterMarkers:[marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);")], consumerMarkers:[marker('module',"if (!modeEnabled(storage, 'momentum')) return quiet;"), marker('app',"const prompt = momentumPrompt("), marker('app',"onClick: () => { snoozeMomentum(storage); this.forceUpdate(); },"), marker('app',"className: 'attn-rail-momentum-dismiss'")] },
-  { id:'next-action', control:'att_next', mode:null, designMarker:marker('design',"ctl('att_next','Current next action','text',''"), controlConstruction:marker('app',"'att_next': 'nextAction'"), durableKey:marker('module',"nextAction: 'console.attention.nextAction'"), writerMarkers:[marker('app',"onUserMutation = (_source = 'unknown')"), marker('generated',"this.onUserMutation('control:' + (c.id || 'unknown'));" )], setterMarkers:[marker('app',"if (control?.id === 'att_next' && typeof value === 'string') {"), marker('app',"setNextAction(this.durableStorage.storage, value);"), marker('app',"this.attentionWrite(NEXT_ACTION_SETTING_KEY, value.trim().slice(0, NEXT_ACTION_MAX_LENGTH) || null);")], consumerMarkers:[marker('app',"const chosen = nextAction(this.durableStorage.storage);"), marker('app',"action.textContent = chosen ? `Next action: ${chosen}` : 'Next action: none chosen yet.';")] }
+  { id:'focus', control:'att_focus', mode:'focus', controlDeclaration:marker('design',"ctl('att_focus','Focus','switch',false"), controlConstruction:marker('app',"'att_focus': 'focus'"), durableKey:marker('module',"focus: 'console.attention.focus'"), writerMarkers:[marker('app',"control?.id?.startsWith('att_') && typeof value === 'boolean'"), marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);"), marker('app',"this.attentionWrite(`${MODE_SETTING_PREFIX}${mode}`, value ? 'on' : 'off');"), marker('generated',"this.onUserMutation('control:' + (c.id || 'unknown'));" )], setterMarkers:[marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);")], consumerMarkers:[marker('module',"dimInactive: modeEnabled(storage, 'focus'),"), marker('app','[data-attention-inactive="true"] { opacity'), marker('app',"element.dataset.attentionInactive = presentation.dimInactive ? 'true' : 'false';")] },
+  { id:'low-stimulation', control:'att_low', mode:'lowStimulation', controlDeclaration:marker('design',"ctl('att_low','Low stimulation','switch',false"), controlConstruction:marker('app',"'att_low': 'lowStimulation'"), durableKey:marker('module',"lowStimulation: 'console.attention.lowStimulation'"), writerMarkers:[marker('app',"control?.id?.startsWith('att_') && typeof value === 'boolean'"), marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);"), marker('app',"this.attentionWrite(`${MODE_SETTING_PREFIX}${mode}`, value ? 'on' : 'off');"), marker('generated',"this.onUserMutation('control:' + (c.id || 'unknown'));" )], setterMarkers:[marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);")], consumerMarkers:[marker('module',"reduceMotion: low || platform.prefersReducedMotion === true,"), marker('module',"quietNotifications: low,"), marker('app',"document.body.classList.toggle('attention-low-stimulation', presentation.quietNotifications);"), marker('app',"private gatedToast = (message: string, severity: NotificationSeverity = 'info'): void => {"), marker('app',"const suppressed = this.consoleSetting<boolean>('nt_toast', true) === false\n      || (severity === 'info' && this.attentionPresentation().quietNotifications);"), marker('app',"this.recordNotification('toast', message, severity, suppressed ? 'suppressed' : 'delivered');"), marker('app',"private narratedFire = ("), marker('app',"const suppressed = severity === 'info' && this.attentionPresentation().quietNotifications;"), marker('app',"this.recordNotification('notice', message, severity, suppressed ? 'suppressed' : 'delivered');")] },
+  { id:'time-awareness', control:'att_time', mode:'timeAwareness', controlDeclaration:marker('design',"ctl('att_time','Time awareness','switch',false"), controlConstruction:marker('app',"'att_time': 'timeAwareness'"), durableKey:marker('module',"timeAwareness: 'console.attention.timeAwareness'"), writerMarkers:[marker('app',"control?.id?.startsWith('att_') && typeof value === 'boolean'"), marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);"), marker('app',"this.attentionWrite(`${MODE_SETTING_PREFIX}${mode}`, value ? 'on' : 'off');"), marker('generated',"this.onUserMutation('control:' + (c.id || 'unknown'));" )], setterMarkers:[marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);")], consumerMarkers:[marker('module',"showElapsedTime: modeEnabled(storage, 'timeAwareness'),"), marker('app',"!presentation.showElapsedTime ? null : h('p', { className: 'attn-rail-time' },"), marker('app','Open for'), marker('app','Last change')] },
+  { id:'one-thing', control:'att_one', mode:'oneThing', controlDeclaration:marker('design',"ctl('att_one','One thing at a time','switch',false"), controlConstruction:marker('app',"'att_one': 'oneThing'"), durableKey:marker('module',"oneThing: 'console.attention.oneThing'"), writerMarkers:[marker('app',"control?.id?.startsWith('att_') && typeof value === 'boolean'"), marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);"), marker('app',"this.attentionWrite(`${MODE_SETTING_PREFIX}${mode}`, value ? 'on' : 'off');"), marker('generated',"this.onUserMutation('control:' + (c.id || 'unknown'));" )], setterMarkers:[marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);")], consumerMarkers:[marker('module',"showNextAction: modeEnabled(storage, 'oneThing'),"), marker('app',"!presentation.showNextAction ? null : h('div', { className: 'attn-rail-next' },"), marker('app',"value: nextAction(storage),"), marker('app',"setNextAction(storage, event.target.value);")] },
+  { id:'momentum', control:'att_momentum', mode:'momentum', controlDeclaration:marker('design',"ctl('att_momentum','Momentum','switch',false"), controlConstruction:marker('app',"'att_momentum': 'momentum'"), durableKey:marker('module',"momentum: 'console.attention.momentum'"), writerMarkers:[marker('app',"control?.id?.startsWith('att_') && typeof value === 'boolean'"), marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);"), marker('app',"this.attentionWrite(`${MODE_SETTING_PREFIX}${mode}`, value ? 'on' : 'off');"), marker('generated',"this.onUserMutation('control:' + (c.id || 'unknown'));" )], setterMarkers:[marker('app',"setModeEnabled(this.durableStorage.storage, mode, value);")], consumerMarkers:[marker('module',"if (!modeEnabled(storage, 'momentum')) return quiet;"), marker('app',"const prompt = momentumPrompt("), marker('app',"onClick: () => { snoozeMomentum(storage); this.forceUpdate(); },"), marker('app',"className: 'attn-rail-momentum-dismiss'")] },
+  /* Re-derived 2026-08-27 against the control that exists. Every one of this row's six
+   * markers named text that occurs nowhere in the tree: there is no `att_next` control in
+   * the design, none in App.tsx, and none in the compiled renderer. The row described a
+   * design text control nobody ever built, and it was never caught because
+   * `verifyAttentionWiring` sits behind `verify-inventories.mjs`, which was failing on the
+   * site registry's schema long before it reached here.
+   *
+   * The FEATURE is real and this row now points at it. "One thing at a time" renders its
+   * next-action field itself, in the attention rail in App.tsx -- `attn-rail-next-input`,
+   * shown when `showNextAction` is on, reading `nextAction(storage)` and writing through
+   * `setNextAction`. It is not a design `ctl()` and never was, which is why the field this
+   * marker sits in is named `controlDeclaration` rather than `designMarker`: five of these
+   * six controls are declared in the design and this one is declared by the application. */
+  /* The one-thing field is rendered by App.tsx in the attention rail, not as a design ctl(). */
+  { id:'next-action', control:'attn-rail-next-input', mode:null, designMarker:{ owner:'none', reason:"the one-thing field is rendered by App.tsx inside the attention rail, not drawn as a ctl() on the Attention settings screen, so the design has no control for it to name", absentFromDesign:'att_next' }, controlConstruction:marker('app',"className: 'attn-rail-next-input',"), durableKey:marker('module',"nextAction: 'console.attention.nextAction'"), writerMarkers:[marker('app',"setNextAction(storage, event.target.value);")], setterMarkers:[marker('module',"export function setNextAction(storage: ModeStorage, value: string): void {"), marker('module',"const trimmed = value.trim().slice(0, NEXT_ACTION_MAX_LENGTH);")], consumerMarkers:[marker('app',"value: nextAction(storage),"), marker('app',"'aria-label': 'The one thing you are doing right now',"), marker('module',"export function nextAction(storage: ModeStorage | undefined): string {")] }
 ];
+/**
+ * The twelve state keys the compiled shell writes through `set()` that hold the user's
+ * own work, each beside the exact text in the compiled renderer that mutates it.
+ *
+ * `generatedMutation` is what makes this a record rather than a wish. The rows used to
+ * carry only the three name fields, and the check searched the compiled renderer for the
+ * literal `action: 'set', key: 'canvasTool', state: 'canvasTool'` -- an object shape that
+ * appears in no commit of that file, ever, so the check could not pass and had never run
+ * against anything real. Behind the unpassable shape was a real gap, and a larger one
+ * than the list suggested: nothing called `onUserMutation` for any of these keys, and
+ * the method the compiled shell calls was declared nowhere at all.
+ *
+ * Four of the twelve are toggled through a computed key, `this.set(t.k, !s[t.k])`, which
+ * is why grepping the renderer for `set('grid'` finds nothing and why an earlier reading
+ * concluded that only eight of the twelve went through `set()`. All twelve do. Those four
+ * record the control declaration that supplies the key instead, and the one dispatch they
+ * share is checked separately below.
+ */
 export const ATTENTION_MUTATION_ACTIONS = [
-  { action:'set', key:'canvasTool', state:'canvasTool' }, { action:'set', key:'grid', state:'grid' }, { action:'set', key:'snap', state:'snap' }, { action:'set', key:'guides', state:'guides' }, { action:'set', key:'minimap', state:'minimap' }, { action:'set', key:'layer', state:'layer' }, { action:'set', key:'zoom', state:'zoom' }, { action:'set', key:'pinned', state:'pinned' }, { action:'set', key:'dock', state:'dock' }, { action:'set', key:'fullscreen', state:'fullscreen' }, { action:'set', key:'branch', state:'branch' }, { action:'set', key:'sortList', state:'sortList' },
+  { action:'set', key:'canvasTool', state:'canvasTool', generatedMutation:"this.set('canvasTool'" },
+  { action:'set', key:'grid', state:'grid', generatedMutation:"label:'Grid', k:'grid'" },
+  { action:'set', key:'snap', state:'snap', generatedMutation:"label:'Snap', k:'snap'" },
+  { action:'set', key:'guides', state:'guides', generatedMutation:"label:'Guides', k:'guides'" },
+  { action:'set', key:'minimap', state:'minimap', generatedMutation:"label:'Minimap', k:'minimap'" },
+  { action:'set', key:'layer', state:'layer', generatedMutation:"this.set('layer'" },
+  { action:'set', key:'zoom', state:'zoom', generatedMutation:"this.set('zoom'" },
+  { action:'set', key:'pinned', state:'pinned', generatedMutation:"this.set('pinned'" },
+  { action:'set', key:'dock', state:'dock', generatedMutation:"this.set('dock'" },
+  { action:'set', key:'fullscreen', state:'fullscreen', generatedMutation:"this.set('fullscreen'" },
+  { action:'set', key:'branch', state:'branch', generatedMutation:"this.set('branch'" },
+  { action:'set', key:'sortList', state:'sortList', generatedMutation:"this.set('sortList'" },
 ] as const;
+/** The single dispatch the four computed-key toggles above share. Checked on its own,
+ *  because no per-key marker can stand for a call that never names a key. */
+export const ATTENTION_COMPUTED_TOGGLE_DISPATCH = 'pick:() => this.set(t.k, !s[t.k])';
+/**
+ * The subclass half of the compiled shell's mutation contract, in the exact text each
+ * part must have. The shell calls `onUserMutation`; `App` has to declare it and to route
+ * `set()` through it, and neither of those was true.
+ */
+export const ATTENTION_MUTATION_HOOK_MARKERS: readonly AttentionMarker[] = [
+  marker('generated', "this.onUserMutation('control:' + (c.id || 'unknown'));"),
+  marker('app', "onUserMutation = (_source: string = 'unknown'): void => {"),
+  marker('app', 'private static readonly SET_MUTATION_KEYS: ReadonlySet<string> = new Set('),
+  marker('app', "ATTENTION_MUTATION_ACTIONS.filter((action) => action.action === 'set').map((action) => action.key),"),
+  marker('app', 'const changed = App.SET_MUTATION_KEYS.has(key)'),
+  marker('app', "if (changed) this.onUserMutation('set:' + key);"),
+];
 export interface AttentionMutationInventoryRow { readonly file:string; readonly line:number; readonly argument:string; readonly occurrence:number; readonly state:string; readonly clockEffect:AttentionClockEffect; }
 export const ATTENTION_MUTATION_INVENTORY: readonly AttentionMutationInventoryRow[] = [
-  { file: 'App.tsx', line: 375, argument: "'attention-history-clear'", occurrence: 1, state: 'noticeHistory', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 899, argument: "'vocabulary-load'", occurrence: 1, state: 'vocabularyCache', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 912, argument: "'vocabulary-clear'", occurrence: 1, state: 'vocabularyCache', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 975, argument: "'support-ticket'", occurrence: 1, state: 'supportTickets', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 1105, argument: "'server-add'", occurrence: 1, state: 'servers', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 1118, argument: "'server-remove'", occurrence: 1, state: 'servers', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 1179, argument: "'onboarding-connect'", occurrence: 1, state: 'servers', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 1255, argument: "'onboarding-deploy'", occurrence: 1, state: 'runtimeConfiguration', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 1429, argument: "'authenticator-pair'", occurrence: 1, state: 'authenticator', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 1468, argument: "'lock-create'", occurrence: 1, state: 'locks', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 1527, argument: "'lock-remove'", occurrence: 1, state: 'locks', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 1610, argument: "'endpoint-write'", occurrence: 1, state: 'endpointConfiguration', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 2164, argument: "'appearance-random'", occurrence: 1, state: 'appearance', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 2181, argument: "'appearance-reset'", occurrence: 1, state: 'appearance', clockEffect: 'recorded' },
-  { file: 'App.tsx', line: 2187, argument: "'appearance-save'", occurrence: 1, state: 'appearance', clockEffect: 'recorded' },
+  /* Fourteen of these fifteen rows named a call `App.tsx` did not contain, and the reason
+   * turned out to be worth more than the drift: the calls were not aspirational, they were
+   * LOST. `git show 83ec555d0:console/app/renderer/src/App.tsx` has every one of them, at
+   * the same handlers, and the consolidation merge that produced `246b2bc7a` dropped all
+   * fourteen while leaving this inventory behind as their only surviving record. That is
+   * the same accident, in the same merge, that took `onUserMutation` itself.
+   *
+   * They are restored, at the handlers they came from, and the line numbers here are
+   * re-measured against the current file rather than carried over. What each one costs
+   * when it is missing is concrete: adding a server, writing an endpoint, filing a ticket
+   * or pairing an authenticator would not reset the attention clock, so Momentum would
+   * prompt "nothing has changed here for 40 minutes" at somebody who had just done the
+   * most substantial thing this application does.
+   *
+   * One row is deliberately NOT restored, and its absence is the honest one. */
+  { file: 'App.tsx', line: 1005, argument: "'set:' + key", occurrence: 1, state: 'canvasAndLayoutKeys', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 1570, argument: "'vocabulary-load'", occurrence: 1, state: 'vocabularyCache', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 1589, argument: "'vocabulary-clear'", occurrence: 1, state: 'vocabularyCache', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 1878, argument: "'support-ticket'", occurrence: 1, state: 'supportTickets', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 3781, argument: "'server-add'", occurrence: 1, state: 'servers', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 3794, argument: "'server-remove'", occurrence: 1, state: 'servers', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 3855, argument: "'onboarding-connect'", occurrence: 1, state: 'servers', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 3934, argument: "'onboarding-deploy'", occurrence: 1, state: 'runtimeConfiguration', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 4391, argument: "'authenticator-pair'", occurrence: 1, state: 'authenticator', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 4430, argument: "'lock-create'", occurrence: 1, state: 'locks', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 4486, argument: "'lock-remove'", occurrence: 1, state: 'locks', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 4672, argument: "'endpoint-write'", occurrence: 1, state: 'endpointConfiguration', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 8446, argument: "'appearance-random'", occurrence: 1, state: 'appearance', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 8463, argument: "'appearance-reset'", occurrence: 1, state: 'appearance', clockEffect: 'recorded' },
+  { file: 'App.tsx', line: 8469, argument: "'appearance-save'", occurrence: 1, state: 'appearance', clockEffect: 'recorded' },
+  /* The row that was here was `'attention-history-clear'`, against `state: 'noticeHistory'`.
+   * It is not restored because there is nothing to restore it INTO: the whole attention
+   * notice-history feature it belonged to is gone from this tree. `attentionClearHistory`,
+   * `attentionRecordNotice`, `attentionNoticeHistory` and `attentionExportHistory` were
+   * added by `b64c3dbd6` -- searchable, clearable, exportable warning and error history --
+   * and no longer exist anywhere in `app/renderer/src`. Only the storage key survives, in
+   * `attention-modes.ts` as `ATTENTION_STORAGE_KEYS.noticeHistory`.
+   *
+   * Keeping the row would have meant either a permanently red gate or a verifier taught to
+   * tolerate a row it cannot find, and the second is how a completeness check quietly stops
+   * checking. The loss is recorded on the roadmap as its own item instead, which is a place
+   * somebody reads on purpose rather than a comment beside a list it is not on. */
+  { file: 'generated/console.tsx', line: 4647, argument: "'control:' + (c.id || 'unknown')", occurrence: 1, state: 'controlValues', clockEffect: 'recorded' },
+];
+
+/**
+ * The forty-five generated-shell mutation call sites that a consolidation merge deleted.
+ *
+ * This is a record, not an inventory: nothing here is expected to exist, and the test beside
+ * it asserts that none of it does. Deleting these rows outright would have been the tidy
+ * thing to do and would have destroyed the only surviving description of what was lost, so
+ * they are kept as data a check can read rather than as a paragraph nobody can verify.
+ *
+ * How they were lost, measured rather than guessed. Commits 83ec555d0 and b64c3dbd6 carry 46
+ * and 47 onUserMutation calls in generated/console.tsx; 246b2bc7a carries 1, and so does
+ * every commit after it. Neither compile-design.mjs nor extend-pbx-m3.mjs injected a single
+ * one of them at those commits -- so the generated file had been HAND-EDITED, which
+ * is exactly what the drift check now forbids, and regenerating it swept every edit away.
+ * That is worth stating plainly: the merge did not introduce this defect on its own. It
+ * removed edits that could not have survived the first honest recompile either way.
+ *
+ * Restoring them therefore means adding an anchored patch per call to extend-pbx-m3.mjs,
+ * forty-five times, each one proved against the compiled output. That is its own pass and it
+ * is on the roadmap. Until it runs, the attention clock is reset by ordinary control changes
+ * and by the fifteen App-side mutations above, and NOT by the shell-owned ones listed here --
+ * canvas moves, tab and group operations, layout docking, preset picks.
+ */
+export const ATTENTION_MUTATION_INVENTORY_LOST: readonly AttentionMutationInventoryRow[] = [
   { file: 'generated/console.tsx', line: 4022, argument: "'set:' + k", occurrence: 1, state: 'generatedUserMutationKey', clockEffect: 'recorded' },
-  { file: 'generated/console.tsx', line: 4045, argument: "'control:' + (c.id || 'unknown')", occurrence: 1, state: 'controlValues', clockEffect: 'recorded' },
   { file: 'generated/console.tsx', line: 4160, argument: "'layout:resize'", occurrence: 1, state: 'dlgSize', clockEffect: 'recorded' },
   { file: 'generated/console.tsx', line: 4167, argument: "'layout:move'", occurrence: 1, state: 'dlgPos', clockEffect: 'recorded' },
   { file: 'generated/console.tsx', line: 4222, argument: "'layout:dock'", occurrence: 1, state: 'dlgDock', clockEffect: 'recorded' },
@@ -79,7 +192,7 @@ export const ATTENTION_MUTATION_INVENTORY: readonly AttentionMutationInventoryRo
   { file: 'generated/console.tsx', line: 5376, argument: "'tabs:group-by-area'", occurrence: 1, state: 'groupsAndTabs', clockEffect: 'recorded' },
   { file: 'generated/console.tsx', line: 5419, argument: "'tabs:new-here'", occurrence: 1, state: 'tabs', clockEffect: 'recorded' },
   { file: 'generated/console.tsx', line: 5519, argument: "'appearance:reset'", occurrence: 1, state: 'values', clockEffect: 'recorded' },
-  { file: 'generated/console.tsx', line: 5617, argument: "'preset:super-easy'", occurrence: 1, state: 'valuesAndOnboarding', clockEffect: 'recorded' }
+  { file: 'generated/console.tsx', line: 5617, argument: "'preset:super-easy'", occurrence: 1, state: 'valuesAndOnboarding', clockEffect: 'recorded' },
 ];
 export const ATTENTION_MUTATION_PASSIVE_EXCLUSIONS = [
   { id:'navigation', description:'screen and rail navigation does not change user data' }, { id:'passive-read', description:'PBX reads and refresh timers do not change user data' }, { id:'selection', description:'row, tab, and palette selection does not persist user data' }, { id:'overlay', description:'opening, closing, and moving transient overlays is not a durable mutation' }, { id:'timer', description:'elapsed-time and notification timers do not change user data' },
@@ -268,7 +381,7 @@ const LEGACY_GENERATED_SEVERITY_PRODUCER_SITES = [
 ] as const;
 type SeverityProducerTuple = readonly [number, number, string, AttentionSeverity, boolean, string];
 const APP_SEVERITY_PRODUCER_SITES: readonly SeverityProducerTuple[] = [
-  [905, 12, 'notifyEvent', 'error', false, "notifyEvent('The phone system did not start'"],
+  [905, 12, 'fire', 'error', false, "this.fire('The phone system did not start'"],
   [939, 14, 'notifyMessage', 'info', false, "this.onUserMutation('vocabulary-load');\n        this.notifyMessage(result.status);"],
   [941, 17, 'notifyEvent', 'error', false, "notifyEvent('Vocabulary file rejected'"],
   [943, 33, 'notifyEvent', 'error', false, "notifyEvent('Vocabulary file not read'"],

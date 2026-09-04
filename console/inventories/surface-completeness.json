@@ -210581,7 +210581,7 @@
         },
         {
           "featureId": "local-file-converter",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -210592,7 +210592,18 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "initConverter",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "converterConvert",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
@@ -211647,7 +211658,7 @@
         },
         {
           "featureId": "responsive-sizing",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -211821,7 +211832,7 @@
         },
         {
           "featureId": "per-element-toy-locks",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -211902,7 +211913,7 @@
         },
         {
           "featureId": "support-tickets",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -211913,12 +211924,29 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "openSupportTicket",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "initSupport",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "initSupport",
+                "kind": "function"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/",
           "documentation": {
@@ -212064,7 +212092,7 @@
         },
         {
           "featureId": "built-in-authenticator",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -212505,7 +212533,7 @@
         },
         {
           "featureId": "guided-forms",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -212684,7 +212712,7 @@
         },
         {
           "featureId": "context-menu-shortcuts",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -212765,7 +212793,7 @@
         },
         {
           "featureId": "long-operation-progress",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -212846,7 +212874,7 @@
         },
         {
           "featureId": "in-context-recovery",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -214493,7 +214521,7 @@
         },
         {
           "featureId": "local-file-converter",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -214504,7 +214532,18 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "initConverter",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "converterConvert",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
@@ -215559,7 +215598,7 @@
         },
         {
           "featureId": "responsive-sizing",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -215733,7 +215772,7 @@
         },
         {
           "featureId": "per-element-toy-locks",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -215814,7 +215853,7 @@
         },
         {
           "featureId": "support-tickets",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -215825,12 +215864,29 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "openSupportTicket",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "initSupport",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "initSupport",
+                "kind": "function"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/product.html",
           "documentation": {
@@ -215976,7 +216032,7 @@
         },
         {
           "featureId": "built-in-authenticator",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -216417,7 +216473,7 @@
         },
         {
           "featureId": "guided-forms",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -216596,7 +216652,7 @@
         },
         {
           "featureId": "context-menu-shortcuts",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -216677,7 +216733,7 @@
         },
         {
           "featureId": "long-operation-progress",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -216758,7 +216814,7 @@
         },
         {
           "featureId": "in-context-recovery",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -218405,7 +218461,7 @@
         },
         {
           "featureId": "local-file-converter",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -218416,7 +218472,18 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "initConverter",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "converterConvert",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
@@ -219471,7 +219538,7 @@
         },
         {
           "featureId": "responsive-sizing",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -219645,7 +219712,7 @@
         },
         {
           "featureId": "per-element-toy-locks",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -219726,7 +219793,7 @@
         },
         {
           "featureId": "support-tickets",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -219737,12 +219804,29 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "openSupportTicket",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "initSupport",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "initSupport",
+                "kind": "function"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/documentation.html",
           "documentation": {
@@ -219888,7 +219972,7 @@
         },
         {
           "featureId": "built-in-authenticator",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -220329,7 +220413,7 @@
         },
         {
           "featureId": "guided-forms",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -220508,7 +220592,7 @@
         },
         {
           "featureId": "context-menu-shortcuts",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -220589,7 +220673,7 @@
         },
         {
           "featureId": "long-operation-progress",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -220670,7 +220754,7 @@
         },
         {
           "featureId": "in-context-recovery",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -222317,7 +222401,7 @@
         },
         {
           "featureId": "local-file-converter",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -222328,7 +222412,18 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "initConverter",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "converterConvert",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
@@ -223383,7 +223478,7 @@
         },
         {
           "featureId": "responsive-sizing",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -223557,7 +223652,7 @@
         },
         {
           "featureId": "per-element-toy-locks",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -223638,7 +223733,7 @@
         },
         {
           "featureId": "support-tickets",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -223649,12 +223744,29 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "openSupportTicket",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "initSupport",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "initSupport",
+                "kind": "function"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/downloads.html",
           "documentation": {
@@ -223800,7 +223912,7 @@
         },
         {
           "featureId": "built-in-authenticator",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -224241,7 +224353,7 @@
         },
         {
           "featureId": "guided-forms",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -224420,7 +224532,7 @@
         },
         {
           "featureId": "context-menu-shortcuts",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -224501,7 +224613,7 @@
         },
         {
           "featureId": "long-operation-progress",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -224582,7 +224694,7 @@
         },
         {
           "featureId": "in-context-recovery",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -226229,7 +226341,7 @@
         },
         {
           "featureId": "local-file-converter",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -226240,7 +226352,18 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "initConverter",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "converterConvert",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
@@ -227295,7 +227418,7 @@
         },
         {
           "featureId": "responsive-sizing",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -227469,7 +227592,7 @@
         },
         {
           "featureId": "per-element-toy-locks",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -227550,7 +227673,7 @@
         },
         {
           "featureId": "support-tickets",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -227561,12 +227684,29 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "openSupportTicket",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "initSupport",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "initSupport",
+                "kind": "function"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/status.html",
           "documentation": {
@@ -227712,7 +227852,7 @@
         },
         {
           "featureId": "built-in-authenticator",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -228153,7 +228293,7 @@
         },
         {
           "featureId": "guided-forms",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -228332,7 +228472,7 @@
         },
         {
           "featureId": "context-menu-shortcuts",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -228413,7 +228553,7 @@
         },
         {
           "featureId": "long-operation-progress",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -228494,7 +228634,7 @@
         },
         {
           "featureId": "in-context-recovery",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -230141,7 +230281,7 @@
         },
         {
           "featureId": "local-file-converter",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -230152,7 +230292,18 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "initConverter",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "converterConvert",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.local-file-converter",
@@ -231207,7 +231358,7 @@
         },
         {
           "featureId": "responsive-sizing",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -231381,7 +231532,7 @@
         },
         {
           "featureId": "per-element-toy-locks",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -231462,7 +231613,7 @@
         },
         {
           "featureId": "support-tickets",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -231473,12 +231624,29 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "openSupportTicket",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "initSupport",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "initSupport",
+                "kind": "function"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/settings.html",
           "documentation": {
@@ -231624,7 +231792,7 @@
         },
         {
           "featureId": "built-in-authenticator",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -232065,7 +232233,7 @@
         },
         {
           "featureId": "guided-forms",
-          "status": "absent",
+          "status": "partial",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -232244,7 +232412,7 @@
         },
         {
           "featureId": "context-menu-shortcuts",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -232325,7 +232493,7 @@
         },
         {
           "featureId": "long-operation-progress",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -232406,7 +232574,7 @@
         },
         {
           "featureId": "in-context-recovery",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",

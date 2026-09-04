@@ -108,7 +108,7 @@ while :; do
   # Reconcile before handing over, so the agent never starts from a stale base and
   # never has to guess whether it is behind. Non-destructive by construction: a
   # fast-forward or nothing.
-  ( cd "$REPO_ROOT" && git fetch origin --quiet && git merge --ff-only origin/master >/dev/null 2>&1 ) || true
+  ( cd "$REPO_ROOT" && git fetch origin --quiet && git merge --ff-only origin/main >/dev/null 2>&1 ) || true
 
   before="$(open_count)"
 

@@ -1,6 +1,14 @@
 # Why forty-eight branches are still unmerged
 
-Forty-eight branches sit beside `master`, none of them an ancestor of it, every one holding
+## Current boundary
+
+The current default branch is `main` at
+`7c6e0c6c9520c6fd421cabf73bcbb6af15a18c60`, and the Git server ref was read back at that SHA.
+The branch inventory and measurements below are a historical snapshot from 2026-08-24. They are
+retained as evidence of that pass and do not describe the current branch inventory. See the current
+section at the top of `HANDOFF.md` for the latest release and integration state.
+
+At the 2026-08-24 measurement, forty-eight branches sat beside `master`, none of them an ancestor of it, every one holding
 commits that are not on the default branch. That looks like a backlog nobody has got round to.
 It is not: it was measured on 2026-08-24, and the reason each group is still separate is
 recorded here so the same afternoon is not spent again.
@@ -28,7 +36,7 @@ same lines. It says nothing about whether the result compiles, and here it does 
 Nothing here is configurable. Reproduce the measurement with:
 
 ```
-git merge-tree --write-tree origin/master <branch>
+git merge-tree --write-tree origin/main <branch>
 ```
 
 for the conflict split, then merge the clean ones onto a scratch branch and run the ordinary
@@ -66,7 +74,7 @@ does not fail loudly — it writes a line that looks correct and the exchange ob
 
 ## Verification
 
-`git merge-base --is-ancestor <branch> origin/master` is the proof that must pass before any
+`git merge-base --is-ancestor <branch> origin/main` is the proof that must pass before any
 branch is removed. On 2026-08-24 it passed for none of them, which is exactly why the cleanup
 half of that pass deleted nothing.
 

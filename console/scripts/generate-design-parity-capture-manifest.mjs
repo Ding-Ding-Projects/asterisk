@@ -21,6 +21,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { DEFAULT_TUPLE, referenceRouteFor, builtRouteFor, navigationPlanFor } from './design-parity-capture.mjs';
+import { normalizeCaptureTuple } from './design-parity-contract.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const inventoryPath = resolve(root, 'inventories/design-parity.json');
@@ -30,6 +31,7 @@ const outPath = resolve(root, 'design-reference/capture-manifest.generated.json'
 const inventory = JSON.parse(readFileSync(inventoryPath, 'utf8'));
 const labelsFile = JSON.parse(readFileSync(labelsPath, 'utf8'));
 const labels = labelsFile.labels;
+const captureTuple = normalizeCaptureTuple(inventory.captureContract?.captureTuple ?? DEFAULT_TUPLE, 'inventory capture tuple');
 
 if (labelsFile.destinationCount !== inventory.destinations.length) {
   throw new Error(`generate-design-parity-capture-manifest: destination-labels.generated.json covers ${labelsFile.destinationCount} destinations, inventory has ${inventory.destinations.length} — regenerate the labels file first`);
@@ -57,12 +59,16 @@ const entries = inventory.destinations.map((destination) => {
   return {
     id,
     rail,
-    referenceRoute: referenceRouteFor(inventory, id, DEFAULT_TUPLE),
-    builtRoute: builtRouteFor(inventory, id, DEFAULT_TUPLE),
+    state: captureTuple.state,
+    tuple: captureTuple,
+    referenceRoute: referenceRouteFor(inventory, id, captureTuple),
+    builtRoute: builtRouteFor(inventory, id, captureTuple),
     referenceCapture: pathFor('referenceCapture', id),
     builtCapture: pathFor('builtCapture', id),
     sideBySide: pathFor('sideBySide', id),
     visualDiff: pathFor('visualDiff', id),
+    regionLedger: pathFor('regionLedger', id),
+    chromeParity: pathFor('chromeParity', id),
     materialAudit: pathFor('materialAudit', id),
     navigationPlan: plan,
   };
@@ -75,7 +81,7 @@ const generated = {
     'console/design-reference/destination-labels.generated.json (rail/label/title per destination)',
   ],
   note: 'One entry per audited destination: the exact reference route, built-app route, evidence artifact paths, and the real click-sequence navigation plan a headless driver needs to reach it deterministically. Regenerate rather than hand-edit.',
-  captureTuple: DEFAULT_TUPLE,
+  captureTuple,
   destinationCount: entries.length,
   destinations: entries,
 };

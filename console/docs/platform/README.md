@@ -1,5 +1,13 @@
 # Platform feature contracts
 
+## Current evidence boundary
+
+The current source commit is `7c6e0c6c9520c6fd421cabf73bcbb6af15a18c60` on `main`. The
+platform articles below describe the intended contract and the state that was actually observed
+for each surface. The latest console release and Pages deployment target this SHA, but the release
+workflows do not run local tests, accessibility checks, UI interaction, or design-parity checks.
+Those evidence columns remain unverified until a dedicated run records them.
+
 This category documents the canonical platform feature contracts this product is expected to implement, and states plainly, per surface, which of them are actually built today.
 
 The two surfaces referenced throughout are the desktop application (the installed Windows console) and the documentation website (this published site).
@@ -48,8 +56,9 @@ The two surfaces referenced throughout are the desktop application (the installe
 - [Collapsible filters and statistics](collapsible-filters.md)
 - [Automatic updates](automatic-updates.md)
 - [Site history and delivery workspace](site-history-and-delivery.md)
+- [Privileged service boundaries](privileged-service-boundaries.md)
 
 ## Exemptions
 
-The local file converter and Ollama suite are now present as separate local surfaces. The desktop routes are `desktop://console/#surface=converter` and `desktop://console/#surface=ollama`; the Pages equivalents are `converter.html` and `ollama.html`. Their current evidence is `implemented-unverified`: the converter catalog and PDF capability read are mounted through the control plane, while picker and queue mutations remain explicitly unavailable until their handlers are registered. The Ollama desktop client reports a typed bridge-unregistered state until its privileged dispatcher is mounted. Neither surface invents models, health, conversion output, or sample data.
+The local file converter and Ollama suite are separate local surfaces. The desktop routes are `desktop://console/#surface=converter` and `desktop://console/#surface=ollama`; the Pages equivalents are `converter.html` and `ollama.html`. Their current evidence remains `implemented-unverified`: the converter catalog, PDF request validation, picker boundary, and queue checks are mounted through the control plane, while conversion adapters that lack packaged proof remain disabled. The Ollama runtime, catalog, fit, pull, and chat handlers are mounted; catalog refresh remains unavailable until a verified official page source is supplied, and harness actions remain unavailable until explicit allowlisted launch adapters are supplied. Neither surface invents models, health, conversion output, or sample data.
 

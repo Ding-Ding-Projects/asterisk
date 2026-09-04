@@ -1,4 +1,4 @@
-import type { Component, ReactNode } from 'react';
+import { createElement, type Component, type ReactNode } from 'react';
 import ConsoleShell, { APPEAR_GROUPS, ONBOARD, ORDER, SCREENS } from './generated/console';
 import { h } from './dc-runtime';
 import {
@@ -91,11 +91,14 @@ import {
   resetDisplayName, setDisplayName,
 } from './display-name';
 import { withTitleBarName } from './title-bar-name';
+import { LogoMark, presetLogoSource } from './logo-mark';
+import { constrainLogoPickerValues } from './logo-picker-capability';
 import { setEmojisEnabled } from './dialog-emojis';
 import {
   classifyDialogKind, copyLanguageFor, styledDialog, styledToastText, type MessageStorage,
 } from './message-styling';
 import {
+  ATTENTION_MUTATION_ACTIONS,
   elapsedPhrase, isAttentionMode, MODE_SETTING_PREFIX, modeEnabled, momentumPrompt, msSinceSnooze,
   nextAction, presentationFor, setModeEnabled, setNextAction, snoozeMomentum,
   type AttentionMode, type PresentationState,
@@ -126,6 +129,7 @@ import {
 } from './narration';
 import { NULL_SPEECH_ENGINE, createWebSpeechEngine } from './narration-engine';
 import { HEADER_BYTES, readHeaderFacts } from '../../../control-plane/image-facts';
+import type { LogoCacheRecord, LogoConversionResult } from '../../../shared/logo';
 import {
   DEFAULT_PRESET_ID, LOGO_PRESETS, acceptLogo, chooseCustom, choosePreset, currentChoice, resetLogo,
 } from './logo-customization';
@@ -551,6 +555,12 @@ export class App extends Base {
   /** Read by the compiled `text`-kind control marked `action:'logo-status'`. */
   private logoStatusLine = 'The shipped mark.';
 
+  /** A custom mark is held as a renderer object URL only for this session. The
+   * validated local cache remains the source of persistence, never this URL. */
+  private logoPreviewUrl: string | undefined;
+  private logoCacheRecord: LogoCacheRecord | undefined;
+  private logoBusy = false;
+
   /* --- command palette ---------------------------------------------------------------
    * Built once: it is derived from the compiled design, which cannot change while the
    * console is running, so rebuilding it per keystroke would be work with no possible
@@ -651,6 +661,34 @@ export class App extends Base {
    *  {@link languageAwareSetVal} so every screen's edits count. Momentum's idle clock
    *  and time awareness's "since anything changed" reading both come from here. */
   private lastChangeAt = Date.now();
+
+  /**
+   * The hook the compiled shell calls after it accepts a changed value. It is part of
+   * the shell's contract with whatever subclass mounts it, not an internal helper, so
+   * it is public and must exist before any control is touched.
+   *
+   * It did not exist. `scripts/extend-pbx-m3.mjs` injects a call to this method, with a
+   * `control:`-prefixed source, into the shell's `setVal`, and no class declared the
+   * method, so every accepted control value threw
+   * `TypeError: this.onUserMutation is not a function` out of a React post-commit
+   * callback. Nothing in the suite could see it: the only test covering that call
+   * assigns its own `onUserMutation` onto the instance before calling `setVal`, and
+   * every harness that drives the real `App` stubs `enqueueSetState` and drops the
+   * `callback` argument -- which is the one argument this method runs inside.
+   *
+   * The injected call is quoted exactly in `attention-inventory.ts` rather than here,
+   * because `verifyAttentionMutationInventory` scans this file for call-shaped text
+   * without stripping comments: a comment quoting the call reads to it as a second,
+   * unlisted call site. That is its defect and not this comment's, and it is recorded
+   * on the roadmap beside the rest of that inventory's drift.
+   *
+   * `source` is deliberately unread. It names which mutation happened, for a future
+   * per-subject reading; what the attention runtime needs today is only that the user
+   * changed their own data, and that is what `lastChangeAt` records.
+   */
+  onUserMutation = (_source: string = 'unknown'): void => {
+    this.lastChangeAt = Date.now();
+  };
 
   /** Redraws the attention rail on a slow clock so the elapsed-time reading and a
    *  momentum prompt that has just become due both appear without requiring the user
@@ -947,9 +985,33 @@ export class App extends Base {
    *  value to restore instead of only the value at the moment the setting was touched. */
   private baseSet!: (key: string, value: unknown) => void;
 
+  /**
+   * The state keys the compiled shell writes through `set()` that hold the user's own
+   * work rather than navigation, selection or a transient overlay.
+   *
+   * Built from the canonical inventory rather than restated here, so the list a person
+   * edits and the list this consults cannot drift apart. `set()` is the shell's general
+   * state writer and most of what goes through it is passive -- the screen you are
+   * looking at, which row is selected, whether an overlay is open -- so notifying for
+   * everything would make "nothing has changed" answerable by scrolling, which is the
+   * exact reading Momentum exists to give.
+   */
+  private static readonly SET_MUTATION_KEYS: ReadonlySet<string> = new Set(
+    ATTENTION_MUTATION_ACTIONS.filter((action) => action.action === 'set').map((action) => action.key),
+  );
+
   private screenTrackingSet = (key: string, value: unknown): void => {
     if (key === 'screen' && typeof value === 'string') this.rememberLastScreen(value);
+    /* Read before the write and compared, for the same reason the shell's own value
+     * writer compares: re-picking the canvas tool that is already active is not a
+     * change, and letting it move the clock would make the idle reading resettable by
+     * pressing the same button twice. */
+    const changed = App.SET_MUTATION_KEYS.has(key)
+      && !Object.is((this.state as unknown as Record<string, unknown>)[key], value);
     this.baseSet(key, value);
+    /* After the write, matching where the shell puts its own control notification --
+     * a mutation is reported once it has happened, never once it has been requested. */
+    if (changed) this.onUserMutation('set:' + key);
   };
 
   private consoleSetting<T>(id: string, fallback: T): T {
@@ -1278,6 +1340,7 @@ export class App extends Base {
       this.restorePartnerSettings();
       this.applyRestoredLiveConsoleSettings();
       this.refreshLogoStatus();
+      void this.restoreLogoCache();
       this.refreshSchoolStatus();
       this.restoreAppearance();
       this.forceUpdate();
@@ -1341,6 +1404,7 @@ export class App extends Base {
     this.stopDeepLinkListener = undefined;
     this.stopPaletteKeys?.();
     this.stopPaletteKeys = undefined;
+    this.clearLogoPreview();
     /* Cancels anything mid-utterance and drops the voice-list subscription the narrator
      * holds internally — the same "torn down on unmount" rule as every listener above. */
     this.narrator.dispose();
@@ -1507,16 +1571,40 @@ export class App extends Base {
    *  loader in `personal-vocabulary.ts`, and — only on success — cached locally. */
   onFilePicked = (ctl: { id: string }, file: File): void => {
     if (ctl.id === 'logo_pick') { this.pickLogo(file); return; }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const text = typeof reader.result === 'string' ? reader.result : '';
+    this.pickedFileNames.set(ctl.id, `${file.name} — reading`);
+    this.forceUpdate();
+    const apply = (text: string): void => {
       const result = loadVocabularyFile(this.vocabStorage, text);
       this.pickedFileNames.set(ctl.id, result.ok ? file.name : `${file.name} — rejected`);
       this.forceUpdate();
-      if (result.ok) this.toast(result.status);
+      if (result.ok) {
+        this.onUserMutation('vocabulary-load');
+        this.toast(result.status);
+      }
       else this.fire('Vocabulary file rejected', result.status);
     };
-    reader.onerror = () => this.fire('Vocabulary file not read', 'The file could not be read from disk.');
+    const localText = (file as File & { text?: () => Promise<string> }).text;
+    if (typeof localText === 'function') {
+      void localText.call(file).then(apply).catch(() => {
+        this.pickedFileNames.set(ctl.id, `${file.name} — could not read`);
+        this.forceUpdate();
+        this.fire('Vocabulary file not read', 'The file could not be read from disk.');
+      });
+      return;
+    }
+    if (typeof FileReader === 'undefined') {
+      this.pickedFileNames.set(ctl.id, `${file.name} — could not read`);
+      this.forceUpdate();
+      this.fire('Vocabulary file not read', 'This renderer has no local file reader.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => apply(typeof reader.result === 'string' ? reader.result : '');
+    reader.onerror = () => {
+      this.pickedFileNames.set(ctl.id, `${file.name} — could not read`);
+      this.forceUpdate();
+      this.fire('Vocabulary file not read', 'The file could not be read from disk.');
+    };
     reader.readAsText(file);
   };
 
@@ -1530,6 +1618,7 @@ export class App extends Base {
     const result = clearVocabulary(this.vocabStorage);
     this.pickedFileNames.delete(ctl.id);
     this.forceUpdate();
+    this.onUserMutation('vocabulary-clear');
     this.toast(result.status);
   };
 
@@ -1818,6 +1907,7 @@ export class App extends Base {
       this.fire('That ticket will not file', result.problems[0].message);
       return;
     }
+    this.onUserMutation('support-ticket');
     void this.openSupportTicketFolder(result);
   }
 
@@ -2578,7 +2668,12 @@ What you can do: ${offered}.` : ''}`);
      * title-bar-name.ts), and `.attn-content` wraps the result so Focus dimming is scoped
      * to it and can never reach the rail or the palette, neither of which is "the rest of
      * the interface" the mode exists to push back. */
-    const shell = withTitleBarName(super.render(), nameFor('titleBar', this.durableStorage.storage));
+    const shell = withTitleBarName(
+      super.render(),
+      nameFor('titleBar', this.durableStorage.storage),
+      8,
+      createElement(LogoMark, this.logoForTitleBar()),
+    );
     const presentation = this.attentionPresentation();
     return h('div', { className: 'app-root' },
       h('div', { className: 'attn-content' },
@@ -2821,6 +2916,99 @@ What you can do: ${offered}.` : ''}`);
 
   // ---------------------------------------------------------------- the console mark
 
+  private static bytesToBase64(bytes: Uint8Array): string {
+    let encoded = '';
+    for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+      encoded += String.fromCharCode(...bytes.subarray(offset, Math.min(offset + 0x8000, bytes.length)));
+    }
+    return typeof btoa === 'function' ? btoa(encoded) : '';
+  }
+
+  private static base64ToBytes(encoded: string): Uint8Array | undefined {
+    if (!/^[A-Za-z0-9+/]*={0,2}$/u.test(encoded) || encoded.length % 4 === 1 || typeof atob !== 'function') return undefined;
+    try {
+      const raw = atob(encoded);
+      const bytes = new Uint8Array(raw.length);
+      for (let index = 0; index < raw.length; index += 1) bytes[index] = raw.charCodeAt(index);
+      return bytes;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private validLogoCacheRecord(value: unknown): value is LogoCacheRecord & { assets: Array<LogoCacheRecord['assets'][number] & { bytesBase64?: string }> } {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const record = value as Partial<LogoCacheRecord>;
+    if (record.schemaVersion !== 1 || record.packageIdentity !== 'ding-pbx-console' || record.customLogoActive !== true || !Array.isArray(record.assets) || record.assets.length === 0) return false;
+    return record.assets.every((asset) => {
+      const receipt = asset?.receipt;
+      return typeof asset?.filename === 'string'
+        && !!receipt
+        && receipt.decoder === 'isolated'
+        && receipt.roundTripVerified === true
+        && typeof receipt.sha256 === 'string'
+        && /^[0-9a-f]{64}$/iu.test(receipt.sha256)
+        && Number.isSafeInteger(receipt.bytes)
+        && receipt.bytes > 0;
+    });
+  }
+
+  /** Rehydrate only service-validated cache metadata and an optional service-provided
+   * asset payload. The current service returns redacted receipt metadata, so a missing
+   * asset payload keeps the shipped mark visible rather than guessing a file URL. */
+  private async restoreLogoCache(): Promise<void> {
+    const response = await this.request('logo.cache.read', { payload: { kind: 'read', includeAssets: true } });
+    if (!response?.ok || !this.validLogoCacheRecord(response.data)) return;
+    this.logoCacheRecord = response.data;
+    const asset = response.data.assets[0] as LogoCacheRecord['assets'][number] & { bytesBase64?: string };
+    if (!asset.bytesBase64) {
+      this.logoStatusLine = 'A validated custom logo cache exists, but this renderer received no image bytes to display; the shipped mark is shown.';
+      this.forceUpdate();
+      return;
+    }
+    const bytes = App.base64ToBytes(asset.bytesBase64);
+    if (!bytes) {
+      this.logoStatusLine = 'The custom logo cache payload was not valid base64; the shipped mark is shown.';
+      this.forceUpdate();
+      return;
+    }
+    const blobBytes = new Uint8Array(bytes.length);
+    blobBytes.set(bytes);
+    const blob = new Blob([blobBytes.buffer], { type: asset.filename.endsWith('.webp') ? 'image/webp' : 'image/png' });
+    if (typeof URL.createObjectURL !== 'function') return;
+    this.clearLogoPreview();
+    this.logoPreviewUrl = URL.createObjectURL(blob);
+    chooseCustom(this.durableStorage.storage, `logo/cache/${asset.receipt.sha256}`);
+    this.logoStatusLine = 'A validated custom logo was restored from the local cache.';
+    this.forceUpdate();
+  }
+
+  /** Resolve only a package-local preset or a validated, in-session object URL.
+   * A persisted custom choice has no bytes in the renderer after relaunch, so the
+   * shipped mark stays visible until the user selects that local source again. */
+  private logoForTitleBar(): { source: string; label: string } {
+    const choice = currentChoice(this.durableStorage.storage);
+    if (choice.kind === 'custom' && this.logoPreviewUrl) {
+      return { source: this.logoPreviewUrl, label: 'Custom local app logo' };
+    }
+    return presetLogoSource(choice.presetId);
+  }
+
+  private clearLogoPreview(): void {
+    if (!this.logoPreviewUrl) return;
+    if (typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
+      URL.revokeObjectURL(this.logoPreviewUrl);
+    }
+    this.logoPreviewUrl = undefined;
+  }
+
+  private setLogoPreview(file: File): void {
+    if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+      this.clearLogoPreview();
+      this.logoPreviewUrl = URL.createObjectURL(file);
+    }
+  }
+
   /**
    * Decides whether a chosen picture may become the mark.
    *
@@ -2831,7 +3019,9 @@ What you can do: ${offered}.` : ''}`);
    * through the check written to catch it.
    */
   private pickLogo(file: File): void {
-    void file.slice(0, HEADER_BYTES).arrayBuffer().then((head) => {
+    if (this.logoBusy) return;
+    this.logoBusy = true;
+    void file.slice(0, HEADER_BYTES).arrayBuffer().then(async (head) => {
       const bytes = new Uint8Array(head);
       const facts = readHeaderFacts(bytes);
       if (!facts) {
@@ -2849,13 +3039,64 @@ What you can do: ${offered}.` : ''}`);
         this.rejectLogo(file, verdict.problems.map((problem) => problem.message).join(' '));
         return;
       }
+      if (verdict.format !== 'png') {
+        this.rejectLogo(file, 'Only PNG custom logos are enabled because the bundled isolated decoder supports PNG derivatives only. JPEG, WebP, and SVG remain unavailable in this build.');
+        return;
+      }
+      if (file.size > 8 * 1024 * 1024) {
+        this.rejectLogo(file, 'That image exceeds the local service input limit.');
+        return;
+      }
+      const fullBytes = new Uint8Array(await file.arrayBuffer());
+      const source = {
+        kind: 'local' as const,
+        bytesBase64: App.bytesToBase64(fullBytes),
+        metadata: { filename: file.name, declaredMime: file.type },
+      };
+      const inspectedResponse = await this.request('logo.inspect', { payload: source });
+      const inspected = inspectedResponse?.ok ? inspectedResponse.data as { ok?: boolean } : undefined;
+      if (!inspected?.ok) {
+        this.rejectLogo(file, inspectedResponse && !inspectedResponse.ok
+          ? inspectedResponse.message
+          : 'The local logo inspector did not accept this image.');
+        return;
+      }
+      const conversion = await this.request('logo.convert', {
+        payload: {
+          source,
+          crop: { fit: 'contain', crop: { x: 0, y: 0, width: 1, height: 1 }, focalPoint: { x: 0.5, y: 0.5 }, safeArea: { top: 0.08, right: 0.08, bottom: 0.08, left: 0.08 }, background: { kind: 'transparent' } },
+          targets: [{ format: 'png', width: 20, height: 20, alpha: true }, { format: 'png', width: 64, height: 64, alpha: true }],
+        },
+      });
+      const converted = conversion?.ok ? conversion.data as LogoConversionResult : undefined;
+      if (!converted || !converted.ok) {
+        this.rejectLogo(file, conversion && !conversion.ok
+          ? conversion.message
+          : 'The local logo converter did not accept this image.');
+        return;
+      }
+      const cached = await this.request('logo.cache.write', { payload: { kind: 'write', result: converted } });
+      if (!cached?.ok || !this.validLogoCacheRecord(cached.data)) {
+        this.rejectLogo(file, cached && !cached.ok
+          ? cached.message
+          : 'The validated logo could not be written to the local cache.');
+        return;
+      }
+      this.logoCacheRecord = cached.data;
       this.pickedFileNames.set('logo_pick', file.name);
-      chooseCustom(this.durableStorage.storage, `logo/${file.name}`);
+      this.setLogoPreview(file);
+      const receiptId = cached.data.assets[0]?.receipt.sha256;
+      if (!receiptId) {
+        this.rejectLogo(file, 'The local logo cache returned no opaque derivative receipt.');
+        return;
+      }
+      chooseCustom(this.durableStorage.storage, `logo/cache/${receiptId}`);
       this.refreshLogoStatus(verdict.notices);
       /* Stated before it becomes the mark rather than discovered when it looks soft in the
        * title bar. */
       for (const notice of verdict.notices) this.toast(notice);
-    }).catch(() => this.rejectLogo(file, 'That file could not be read from disk.'));
+    }).catch(() => this.rejectLogo(file, 'That file could not be read from disk or converted locally.'))
+      .finally(() => { this.logoBusy = false; });
   }
 
   /** Nothing partially applied: a rejected picture leaves the previous mark exactly as it
@@ -2874,7 +3115,9 @@ What you can do: ${offered}.` : ''}`);
     const chosenName = this.pickedFileNames.get('logo_pick');
     const preset = LOGO_PRESETS.find((candidate) => candidate.id === (choice.presetId ?? DEFAULT_PRESET_ID));
     this.logoStatusLine = choice.kind === 'custom'
-      ? [`Your own picture is in use${chosenName ? `: ${chosenName}` : ''}.`, ...notices].join(' ')
+      ? this.logoPreviewUrl
+        ? [`Your own picture is in use${chosenName ? `: ${chosenName}` : ''}.`, ...notices].join(' ')
+        : 'A custom mark is selected in local settings, but its source is unavailable in this session; the shipped mark is shown.'
       : `The shipped mark is in use: ${preset?.label ?? 'Ding'}.`;
     this.forceUpdate();
   }
@@ -3375,7 +3618,10 @@ What you can do: ${offered}.` : ''}`);
       /* Matched by LABEL because that is what the picker offers; the stable id is what
        * gets stored, so a renamed label never orphans somebody's choice. */
       const preset = LOGO_PRESETS.find((candidate) => candidate.label === value);
-      if (preset) choosePreset(this.durableStorage.storage, preset.id);
+      if (preset) {
+        this.clearLogoPreview();
+        choosePreset(this.durableStorage.storage, preset.id);
+      }
       this.refreshLogoStatus();
       /* Falls through to baseSetVal deliberately. Returning here would apply the change and
        * leave the picker showing the old value -- a control you operate that visibly does
@@ -3384,6 +3630,14 @@ What you can do: ${offered}.` : ''}`);
     }
     if (control?.id === 'logo_reset' && value === true) {
       resetLogo(this.durableStorage.storage);
+      this.clearLogoPreview();
+      this.logoCacheRecord = undefined;
+      void this.request('logo.cache.clear', { payload: { kind: 'reset' } }).then((response) => {
+        if (!response?.ok) {
+          this.logoStatusLine = response?.message ?? 'The local logo cache could not be cleared; the shipped mark remains active for this session.';
+          this.forceUpdate();
+        }
+      });
       this.pickedFileNames.delete('logo_pick');
       this.refreshLogoStatus();
       return;
@@ -3719,7 +3973,10 @@ What you can do: ${offered}.` : ''}`);
     }
     const created = await this.servers.add(input as never);
     this.forceUpdate();
-    if (created) this.fire('Connection added', `${created.name} is now in the server list below.`);
+    if (created) {
+      this.onUserMutation('server-add');
+      this.fire('Connection added', `${created.name} is now in the server list below.`);
+    }
     else this.fire('Not added', 'The control plane did not accept that connection.');
   };
 
@@ -3729,7 +3986,10 @@ What you can do: ${offered}.` : ''}`);
     if (!server) { this.fire('Not found', `${name} is no longer in the server list.`); return; }
     const removed = await this.servers.remove(server.id);
     this.forceUpdate();
-    if (removed) this.fire('Connection removed', `${name} was removed from the server list.`);
+    if (removed) {
+      this.onUserMutation('server-remove');
+      this.fire('Connection removed', `${name} was removed from the server list.`);
+    }
     else this.fire('Not removed', 'The control plane did not accept that removal.');
   };
 
@@ -3788,6 +4048,7 @@ What you can do: ${offered}.` : ''}`);
     const created = await this.servers.add(input as never);
     this.forceUpdate();
     if (created) {
+      this.onUserMutation('onboarding-connect');
       this.fire('Connected', `${created.name} was added to the server list and is available on Deploy & servers.`);
       void this.discover();
       this.set('onboardOpen', false);
@@ -3866,6 +4127,7 @@ What you can do: ${offered}.` : ''}`);
               'Every changed file was backed up first and is in local history if you need to undo this.',
             ].filter(Boolean).join('\n\n'),
           );
+          this.onUserMutation('onboarding-deploy');
           this.set('onboardOpen', false);
           this.set('screen', 'servers');
           this.set('railId', 'app');
@@ -4322,6 +4584,7 @@ What you can do: ${offered}.` : ''}`);
     const account = s.lockTarget || s.lockKey || 'this element';
     const uri = pairingUri({ issuer: 'Material Asterisk', account, parameters: { secret } });
     this.setState({ totpPendingSecret: secret, totpPendingUri: uri } as never);
+    this.onUserMutation('authenticator-pair');
     this.showInfo(
       'Authenticator secret',
       `Generated on this computer just now and never sent anywhere. Base32 secret: ${secret} - `
@@ -4360,6 +4623,7 @@ What you can do: ${offered}.` : ''}`);
       ...(needsTotp ? { totpSecret: s.totpPendingSecret } : {}),
     };
     this.setState({ locks: L, lockOpen: false, totpPendingSecret: undefined, totpPendingUri: undefined } as never);
+    this.onUserMutation('lock-create');
     this.toast(`${s.lockTarget} is locked with ${s.lockMethod} -- the surface is now disabled`);
   };
 
@@ -4415,6 +4679,7 @@ What you can do: ${offered}.` : ''}`);
       locks: n, unlockOpen: false, unlockPin: '', unlockPw: '', unlockTotpDigits: '', unlockPhase: undefined,
       ladderActive: false, ladderChallenge: null,
     } as never);
+    this.onUserMutation('lock-remove');
     this.fire('Unlocked', 'Welcome back.');
   };
 
@@ -4600,6 +4865,7 @@ It is shown once. The phone needs it to register.`);
     delete this.configs.endpoints;
     this.seeded.delete('endpoints');
     this.fire(done, summary.join('\n'));
+    this.onUserMutation('endpoint-write');
     this.forceUpdate();
     return true;
   }
@@ -8373,6 +8639,7 @@ It is shown once. The far end needs it to register.`);
     this.setState((st: { values: Record<string, unknown> }) => ({
       values: { ...st.values, ap_hue: Math.floor(Math.random() * 360) },
     }));
+    this.onUserMutation('appearance-random');
     this.fire('Bold choice', 'Nobody will ever say it is boring.');
   }
 
@@ -8389,11 +8656,13 @@ It is shown once. The far end needs it to register.`);
       return { values: next };
     });
     this.applyAppearanceToDom(resetAll(this.buildAppearanceTheme(this.currentAppearanceValues())));
+    this.onUserMutation('appearance-reset');
     this.toast('Appearance reset to the design system');
   }
 
   private saveAppearance(): void {
     this.syncAppearance();
+    this.onUserMutation('appearance-save');
     this.fire('Appearance saved', 'It will still be set the next time this opens.');
   }
 
@@ -8456,6 +8725,7 @@ It is shown once. The far end needs it to register.`);
     if (screen === 'servers') this.prepareServersScreen();
     if (screen === LOCAL_HISTORY_SCREEN_ID) this.prepareLocalHistoryScreen();
     const values = super.renderVals() as Record<string, unknown>;
+    values.groups = constrainLogoPickerValues(values.groups);
     const bridge = this.bridge();
     const readings = this.readings[screen];
     const note = this.note(screen);

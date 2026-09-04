@@ -35,7 +35,10 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const read = (p) => readFileSync(resolve(root, p), 'utf8');
 const norm = (s) => s.replace(/\r\n/g, '\n');
 
-const PAGE_NAMES = ['index', 'product', 'documentation', 'downloads', 'status', 'settings'];
+/* Derived from the filesystem, not hand-copied: the six-name literal that used to sit
+ * here excluded converter.html, ollama.html and history.html, so every 'anywhere in
+ * the site' claim below searched two thirds of the site. See ./site-pages.mjs. */
+import { PAGE_NAMES } from './site-pages.mjs';
 
 /**
  * The pages plus the builder that fills them in.
@@ -103,14 +106,37 @@ test('every <select> on the site is either a fixed, hard-coded option list, or o
    * they are not preferences but the set of parameters this page can actually compute a
    * code from, so an option outside them would be one that produces codes no service
    * accepts. The authenticator contract pins both lists equal to what the code accepts.
-   * All eight empty-in-markup selects are named here explicitly so a newly added select
-   * falls into neither bucket by accident. */
+   * All twelve empty-in-markup selects are named here explicitly so a newly added select
+   * falls into neither bucket by accident.
+   *
+   * converter-target-format and ollama-model-select arrived in this list on 2026-08-27
+   * without being added -- they had been on converter.html and ollama.html all along, and
+   * this contract could not see either page, because the six-name page list it read
+   * excluded them. converter-target-format is a genuinely fixed list: the six output
+   * formats the page's bundled adapters can actually write, so an option outside it would
+   * be one the converter could not produce. ollama-model-select is in the static bucket on
+   * a technicality worth naming rather than quietly moving -- its single markup option is
+   * the honest disabled placeholder "No verified model", and the real tags are filled at
+   * runtime from a user-approved local endpoint, which is exactly why nothing here can be
+   * a fixed list. */
   assert.deepEqual(withStaticOptions.sort(),
-    ['auth-algorithm', 'auth-digits', 'cantonese-funny', 'changelog-date-preset', 'density-mode',
-      'english-funny', 'language-mode', 'narration-language', 'theme-mode']);
+    ['auth-algorithm', 'auth-digits', 'cantonese-funny', 'changelog-date-preset', 'converter-target-format', 'density-mode',
+      'english-funny', 'language-mode', 'narration-language', 'ollama-model-select', 'theme-mode']);
   assert.deepEqual(empty.sort(), ['auth-export-format', 'changelog-export-format', 'doc-export-format',
-    'export-everything-format', 'history-action-filter', 'narration-voice-en', 'narration-voice-zh',
-    'notif-export-format']);
+    'export-everything-format', 'history-action-filter', 'locks-export-format', 'narration-voice-en',
+    'narration-voice-zh', 'notif-export-format', 'support-category', 'support-export-format', 'support-severity']);
+});
+
+test('the two lock-wizard selects are fixed, in-source lists built at load rather than blank freeform fields', () => {
+  const src = norm(read('site/app.js'));
+  for (const [id, table] of [['lock-wizard-policy', 'LOCK_POLICIES'], ['lock-wizard-duration', 'LOCK_DURATIONS']]) {
+    assert.match(src, new RegExp(`const (?:policy|duration)=lockAppend\\(wizard,'select',\\{id:'${id}'`),
+      `${id} is no longer built by ensureLockUI()`);
+    assert.match(src, new RegExp(`for\\(const entry of ${table}\\)lockAppend\\((?:policy|duration),'option'`),
+      `${id} is no longer populated from ${table}`);
+  }
+  assert.match(src, /const LOCK_POLICIES=\[\n    \{id:'pin',/u, 'LOCK_POLICIES is no longer an in-source literal');
+  assert.match(src, /const LOCK_DURATIONS=\[\n    \{id:'once',/u, 'LOCK_DURATIONS is no longer an in-source literal');
 });
 
 test('the five export-format selects are populated from the fixed export-format list, never from live/user data', () => {

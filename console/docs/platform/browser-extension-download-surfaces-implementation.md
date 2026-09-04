@@ -1,5 +1,7 @@
 # Browser-extension download transfer surfaces
 
+## Behavior
+
 This implementation adds three mount-ready renderer surfaces for a browser-extension handoff:
 
 1. **Start download** is a blocking decision surface. It names the file, source, destination, and known size. Nothing starts until `DownloadTransferClient.start()` accepts the typed handoff. Cancel uses `cancelHandoff()` and reports the receipt.
@@ -18,9 +20,53 @@ The dedicated `Ding-PBX-Console-NativeMessagingHost.exe` submits a bounded hando
 
 Language and funny-copy selection remain host-owned: labels are ordinary strings in these mount-ready components, so a future host can pass localized or funny-level copy without changing transfer facts such as bytes, timestamps, URLs, paths, status, or error codes. Unsaved-work state is required in the handoff and remains visible on the Start surface; no transfer action discards it.
 
-## Failure and verification boundaries
+## Configuration
 
-The transfer manager stores `download-transfers.json` beneath the installation data directory, strictly validates every persisted snapshot field before accepting it, and reconciles interrupted queued, downloading, and paused states at startup. It streams the HTTPS response into a unique adjacent temporary file, validates the byte total, records the exact complete size and SHA-256 digest, then uses the shared bounded Windows rename helper to publish atomically. A body interruption is distinct from a full-body publication failure. A complete temporary file remains available for retry publication only after its recorded size and digest are revalidated, without requesting Range at EOF. Header, body-idle, and total deadlines have distinct timeout codes. Pause and resume use HTTP Range with a recorded ETag or Last-Modified validator, and controls remain disabled with the exact reason when the server cannot resume. Cancel, discard, and non-resumable failure remove temporary files unless a resumable partial or publication-pending state is retained. A missing first snapshot is shown as a waiting state. A rejected command, deadline, non-retryable error, cancellation, and partial result stay visible and are not converted into success. This lane intentionally did not run tests, builds, runtime interaction, or captures, so built-artifact evidence remains pending.
+Nothing on this path is configured by editing a file by hand, and that is deliberate: every value
+below is either derived per installation or verified by digest, because a settable browser origin or
+a settable pipe name is a settable way in.
+
+| What | Where it comes from |
+| --- | --- |
+| The native-messaging manifest Chrome and Edge read | written by `native-messaging/register-native-host.ps1`, with absolute host and broker paths, after verifying each regular file's SHA-256 |
+| The allowed extension identity | `native-messaging/extension-identity.json`, checked again at the desktop boundary rather than trusted from the message |
+| The manifest name and shape | `native-messaging/com.dingdingprojects.asterisk.downloads.json` |
+| The named pipe carrying a handoff | random per installation, with a protected descriptor allowing only the current user and `SYSTEM`; the broker verifies the effective ACL before its ready handshake |
+| The per-user challenge | created by the same registration script, with protected inheritance and exact allow rules |
+| The host and broker binaries | built by `native-messaging/build-native-host.ps1` through MSVC, falling back to MinGW when MSVC is absent, recording a separate digest per binary after proving the binaries are fresh |
+| Durable transfer state | `download-transfers.json` beneath the installation data directory |
+
+Registration returns a typed receipt and settles only on ready, error or unavailable — never on a
+timeout read as success. The secure-helper path is armed only after every config, manifest, host,
+broker and helper digest and ACL check passes, and any later failure among them clears that path
+before the failure state is published, so a partly-verified helper is never left armed.
+
+Hosted mode has nothing to configure here at all: it returns an explicit unavailable receipt, because
+a hosted server cannot accept a desktop extension handoff.
+
+## Failure modes
+
+The transfer manager stores `download-transfers.json` beneath the installation data directory, strictly validates every persisted snapshot field before accepting it, and reconciles interrupted queued, downloading, and paused states at startup. It streams the HTTPS response into a unique adjacent temporary file, validates the byte total, records the exact complete size and SHA-256 digest, then uses the shared bounded Windows rename helper to publish atomically. A body interruption is distinct from a full-body publication failure. A complete temporary file remains available for retry publication only after its recorded size and digest are revalidated, without requesting Range at EOF. Header, body-idle, and total deadlines have distinct timeout codes. Pause and resume use HTTP Range with a recorded ETag or Last-Modified validator, and controls remain disabled with the exact reason when the server cannot resume. Cancel, discard, and non-resumable failure remove temporary files unless a resumable partial or publication-pending state is retained. A missing first snapshot is shown as a waiting state. A rejected command, deadline, non-retryable error, cancellation, and partial result stay visible and are not converted into success.
+
+## Verification
+
+The lane that wrote this ran no tests, no build, no runtime interaction and no captures. Since then
+the contract and the renderer surfaces are covered by the repository's own suites — `npm run
+test:renderer` and `npm run test:contracts` for the typed boundary and the three surfaces, `npx tsc
+-b` for the types — and all of that is source-level.
+
+What has **not** been observed, and matters most on this path:
+
+- No browser extension has actually handed a download off. The three surfaces have never been driven
+  from a real extension, so the Start → Downloading → Complete sequence is proved against supplied
+  snapshots rather than against a real transfer.
+- The native host, the ingress broker and the secure temporary-file helper are C++ binaries built by
+  `build-native-host.ps1`; nothing here proves a built pair registered, handshook and published a
+  file on a real machine.
+- The always-on-top intent is declared in `DOWNLOAD_WINDOW_INTENTS` and applied by Electron's
+  `alwaysOnTop`. No capture shows those windows above a browser.
+
+The inventory row stays `implemented-unverified` until a driven run produces those records.
 
 ## Suggested articles
 

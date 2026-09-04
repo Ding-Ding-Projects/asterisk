@@ -20,7 +20,11 @@ const json = (p) => JSON.parse(read(p));
 
 const app = read('app.js');
 const settingsHtml = read('settings.html');
-const everyPage = ['index', 'product', 'documentation', 'downloads', 'status', 'settings']
+/* Derived from the filesystem, not hand-copied: the six-name literal that used to sit
+ * here excluded converter.html, ollama.html and history.html, so every 'anywhere in
+ * the site' claim below searched two thirds of the site. See ./site-pages.mjs. */
+import { PAGE_NAMES } from './site-pages.mjs';
+const everyPage = PAGE_NAMES
   .map((n) => read(`${n}.html`)).join('\n');
 const registry = json('feature-registry.json');
 
@@ -120,7 +124,7 @@ test('there is no named-preset save/load/export mechanism beyond the one general
   const mentions = outside.split('\n').filter((line) => /preset/iu.test(line));
   assert.ok(mentions.length > 0, 'no line outside the exception mentions "preset" at all, so this list would pass vacuously');
   for (const line of mentions) {
-    assert.match(line, /CHANGELOG_PRESETS|changelogPresetRange|changelog-date-preset/u,
+    assert.match(line, /CHANGELOG_PRESETS|changelogPresetRange|changelog-date-preset|LOGO_MARKS|logo-preset|initLogoStudio/u,
       `app.js mentions "preset" outside the changelog date-range controls -- if a named appearance-preset system landed, the "partial" state needs re-checking: ${line.trim().slice(0, 90)}`);
   }
   assert.doesNotMatch(app, /appearancePreset|savePreset|loadPreset|presetName/iu,

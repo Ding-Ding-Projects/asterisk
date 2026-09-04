@@ -73,11 +73,17 @@ const cases = [
   // Commented out rather than deleted, because that is how a wiring line usually dies --
   // and because a bare substring needle is satisfied by the comment. The whole dialog
   // becomes unreachable and every unit assertion about it keeps passing.
+  // Anchored on the call itself rather than on whichever call precedes it. This used to
+  // read `initUpdates();initExportEverything();`, and it reported a FAILED CASE -- an
+  // anchor appearing zero times -- the day the Support Tickets desk added an
+  // `initSupport();` between the two. That is the script working as intended: a break that
+  // never landed reads exactly like a guard that held, and refusing to plant it is the
+  // only thing separating those two outcomes.
   ['the init call is commented out rather than removed',
-    swap(APP, 'initUpdates();initExportEverything();', 'initUpdates();/*initExportEverything();*/')],
+    swap(APP, ';initExportEverything();', ';/*initExportEverything();*/')],
 
   ['nothing calls initExportEverything at all',
-    swap(APP, 'initUpdates();initExportEverything();', 'initUpdates();')],
+    swap(APP, ';initExportEverything();', ';')],
 
   ['the open button is no longer wired, so the dialog can never be opened',
     swap(APP, "    open.addEventListener('click',()=>{\n      const dialog=$('export-everything-dialog');if(!dialog)return;",
@@ -321,12 +327,12 @@ const cases = [
   // ---- The records that speak for the code ----
 
   ['the site registry still calls the feature absent',
-    swap(REGISTRY, '      "state": "implemented",\n      "note": "The Export everything dialog runs a real multi-unit operation',
-      '      "state": "absent",\n      "note": "The Export everything dialog runs a real multi-unit operation')],
+    swap(REGISTRY, '      "status": "implemented-unverified",\n      "note": "The Export everything dialog runs a real multi-unit operation',
+      '      "status": "absent",\n      "note": "The Export everything dialog runs a real multi-unit operation')],
 
   ['the site registry stops naming the stylesheet the dialog depends on',
-    swap(REGISTRY, '        "site/settings.html",\n        "site/styles.css"\n      ]\n    },\n    "in-context-recovery"',
-      '        "site/settings.html"\n      ]\n    },\n    "in-context-recovery"')],
+    swap(REGISTRY, '          "site/settings.html",\n          "site/styles.css"\n        ],\n        "symbols": []\n      },\n      "registration": {\n        "paths": [],\n        "symbols": []\n      },\n      "route": "https://ding-ding-projects.github.io/asterisk/",\n      "documentation": {\n        "path": "console/docs/platform/long-operation-progress.md",',
+      '          "site/settings.html"\n        ],\n        "symbols": []\n      },\n      "registration": {\n        "paths": [],\n        "symbols": []\n      },\n      "route": "https://ding-ding-projects.github.io/asterisk/",\n      "documentation": {\n        "path": "console/docs/platform/long-operation-progress.md",')],
 
   ['the localization registry still calls the copy untranslated',
     swap(LOCALES, '    "long-operation-progress": {\n      "state": "localized",', '    "long-operation-progress": {\n      "state": "not-localized",')],

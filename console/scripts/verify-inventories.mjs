@@ -119,7 +119,7 @@ function verifyAttentionWiring() {
     if (!overlapRejected) throw new Error('Structured overlap fixture stayed green.');
     if (!sources.app.includes('if (raw === null) return;') || !sources.app.includes("if (raw === '')") || !sources.app.includes('Reset unreadable history')) throw new Error('Empty-history recovery surface is incomplete.');
     for (const row of ATTENTION_WIRING) {
-      const markers = [row.designMarker, row.controlConstruction, row.durableKey, ...row.writerMarkers, ...row.setterMarkers, ...row.consumerMarkers];
+      const markers = [row.controlDeclaration, row.controlConstruction, row.durableKey, ...row.writerMarkers, ...row.setterMarkers, ...row.consumerMarkers];
       for (const marker of markers) {
         const broken = removeOwned(sources, marker);
         let turnedRed = false;

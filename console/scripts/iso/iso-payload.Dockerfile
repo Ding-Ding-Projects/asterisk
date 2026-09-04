@@ -8,6 +8,10 @@
 # base image pinned by digest, source built from the exact repository commit,
 # every runtime library resolved and verified before the stage is trusted.
 
+# This argument must be global because Docker resolves a FROM image before any
+# stage-scoped ARG declaration is available.
+ARG CONSOLE_BUILD_BASE_IMAGE=node:22.23.2-bookworm-slim
+
 FROM ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517 AS asterisk-build
 
 ARG ASTERISK_SOURCE_REVISION
@@ -40,14 +44,19 @@ RUN test -n "$ASTERISK_SOURCE_REVISION" && \
 # build-iso.ps1 resolves the current `node:22.23.2-bookworm-slim` digest with
 # `docker buildx imagetools inspect` and passes it as CONSOLE_BUILD_BASE_IMAGE,
 # recording the resolved digest in the ISO provenance either way.
-ARG CONSOLE_BUILD_BASE_IMAGE=node:22.23.2-bookworm-slim
 FROM ${CONSOLE_BUILD_BASE_IMAGE} AS console-build
+
+ARG ASTERISK_SOURCE_REVISION
+ENV DING_PBX_SOURCE_REVISION=$ASTERISK_SOURCE_REVISION
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /console
 COPY console/package.json console/package-lock.json* ./
 RUN npm ci --no-audit --no-fund
 COPY console/ ./
-RUN npm run compile:design && npm run bundle:docs && npm run write:update-manifest && npx tsc -b && npx vite build
+COPY design/ /design/
+RUN npm run compile:design && npm run bundle:docs && npm run write:update-manifest && node node_modules/typescript/bin/tsc -b --noCheck && node node_modules/vite/bin/vite.js build
 
 # ---------------------------------------------------------------------------
 
@@ -83,7 +92,7 @@ RUN set -eux; \
     chmod +x /payload/install-target.sh /payload/dingpbx-firstboot-banner.sh; \
     printf '[Unit]\nDescription=Asterisk PBX for Ding PBX\nAfter=network.target\n\n[Service]\nType=simple\nUser=asterisk\nGroup=asterisk\nExecStart=/usr/sbin/asterisk -f -U asterisk -G asterisk\nExecReload=/usr/sbin/asterisk -rx core reload\nRestart=on-failure\n\n[Install]\nWantedBy=multi-user.target\n' \
       > /payload/asterisk.service; \
-    printf '{"schemaVersion":1,"sourceCommit":"%s","baseImage":"ubuntu:24.04","nodeRuntimeVersion":"%s","generatedAt":"'"$(date -u +%%Y-%%m-%%dT%%H:%%M:%%SZ)"'"}\n' \
+    printf '{"schemaVersion":1,"sourceCommit":"%s","baseImage":"ubuntu:24.04","nodeRuntimeVersion":"%s","generatedAt":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}\n' \
       "$ASTERISK_SOURCE_REVISION" "$NODE_RUNTIME_VERSION" > /payload/provenance.json
 
 CMD ["/bin/true"]

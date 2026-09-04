@@ -27,7 +27,10 @@ const read = (p) => readFileSync(resolve(root, p), 'utf8');
 /** CRLF is present throughout this source tree; normalise before any line-anchored match. */
 const norm = (s) => s.replace(/\r\n/g, '\n');
 
-const PAGE_NAMES = ['index', 'product', 'documentation', 'downloads', 'status', 'settings'];
+/* Derived from the filesystem, not hand-copied: the six-name literal that used to sit
+ * here excluded converter.html, ollama.html and history.html, so every 'anywhere in
+ * the site' claim below searched two thirds of the site. See ./site-pages.mjs. */
+import { PAGE_NAMES } from './site-pages.mjs';
 const pageText = () => norm(PAGE_NAMES.map((name) => read(`site/${name}.html`)).join('\n'));
 
 /**
@@ -65,7 +68,15 @@ function copyTable() {
 
 test('the COPY table defines a genuine four-level voice for both languages, on every key', () => {
   const table = copyTable();
-  /* Last moved on 2026-08-26, 19 -> 20, when in-context recovery landed with a
+  /* Last moved on 2026-08-27, 21 -> 22, when the local file converter was wired to the
+   * page that had been shipping its controls inert. The new key is `notifConverted`,
+   * the notification raised when a batch finishes; it is reached through
+   * `copyText('notifConverted')` rather than from markup, like `recoveryLead` below,
+   * because the message only exists at the moment a batch ends. The counts it reports
+   * -- converted, skipped, cancelled -- deliberately sit in the notification BODY and
+   * not in this line, so no funny level can move a number.
+   *
+   * Before that, 19 -> 20, when in-context recovery landed with a
    * `recoveryLead` line. That key is the first one here that is rendered from a runtime
    * element rather than from any page's markup: a recovery region is built by app.js at
    * the moment a failure happens, so the hook lives in the code that creates it. It is
@@ -81,14 +92,17 @@ test('the COPY table defines a genuine four-level voice for both languages, on e
    * moved 14 -> 15 for the restricted presentation's `schoolDesc`, 13 -> 14 for the
    * spoken narrator, and 10 -> 11, 11 -> 12 and 12 -> 13 for the display-name,
    * dialog-emoji and changelog cards. An exact pin is the point: a number that drifts
-   * fails and gets explained rather than quietly widened.
+   * Support Tickets then added `supportDesc` and `supportFirstResponse`, taking the table
+   * from 22 to 24, and the element-lock card added `locksDesc`, taking it to 25. An exact
+   * pin is the point: a number that drifts fails and gets explained
+   * rather than quietly widened.
    *
    * `schoolDesc` is the one key here whose four Cantonese variants can never render while
    * the feature they describe is switched on -- that mode forces English -- and they are
    * required all the same, because the card is read by somebody deciding whether to turn
    * it on, which is a state in which every language mode is still available. */
-  assert.equal(Object.keys(table).length, 21,
-    `expected exactly 21 COPY keys, found ${Object.keys(table).length} -- update this pin if a message was deliberately added or removed`);
+  assert.equal(Object.keys(table).length, 25,
+    `expected exactly 25 COPY keys, found ${Object.keys(table).length} -- update this pin if a message was deliberately added or removed`);
   for (const [key, counts] of Object.entries(table)) {
     assert.equal(counts.enCount, 4, `${key}: expected 4 English funny-level variants (Plain/Mild/Playful/Maximum), found ${counts.enCount}`);
     assert.equal(counts.zhCount, 4, `${key}: expected 4 Cantonese funny-level variants, found ${counts.zhCount}`);
@@ -154,7 +168,7 @@ test('every COPY key is genuinely reached from real markup or a real call site -
   }
 });
 
-test('the funny sliders reach only a small, explicitly wired subset of the six pages, not the pages themselves', () => {
+test('the funny sliders reach only a small, explicitly wired subset of the published pages, not the pages themselves', () => {
   /* This is the fact that makes "partial" the honest classification rather than
    * "implemented": the mechanism above is real, but only these six strings in the
    * whole site actually have a data-copy hook attached to them. The set last grew on
@@ -175,7 +189,7 @@ test('the funny sliders reach only a small, explicitly wired subset of the six p
   const wiredKeys = new Set([...html.matchAll(/data-copy="(\w+)"/g)].map((m) => m[1]));
   assert.deepEqual([...wiredKeys].sort(),
     ['authenticatorDesc', 'changelogDesc', 'dialogEmojisDesc', 'displayNameDesc', 'exportEverythingDesc',
-      'heroLede', 'motionDesc', 'narrationDesc', 'schoolDesc', 'themeDesc', 'updatesDesc'],
+      'heroLede', 'locksDesc', 'motionDesc', 'narrationDesc', 'schoolDesc', 'supportDesc', 'themeDesc', 'updatesDesc'],
     'the set of markup-wired funny-level strings changed -- if it grew, the "partial" classification may need revisiting');
   const totalKeys = Object.keys(copyTable()).length;
   assert.ok(wiredKeys.size < totalKeys,

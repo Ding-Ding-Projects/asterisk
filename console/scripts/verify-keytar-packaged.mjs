@@ -5,17 +5,19 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createHash, randomUUID } from 'node:crypto';
 import probePath from '../app/electron/probe-path.cjs';
+import { parseBuilderIdentity } from './packaging-contract.mjs';
 
 const { assertNoReparseAncestors } = probePath;
 
 const consoleRoot = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 const unpackedRoot = join(consoleRoot, 'dist', 'squirrel-windows', 'win-unpacked');
 const resourcesRoot = join(unpackedRoot, 'resources');
-const executable = join(unpackedRoot, 'Ding PBX Console.exe');
+const builderIdentity = parseBuilderIdentity(readFileSync(join(consoleRoot, 'electron-builder.yml'), 'utf8'));
+const executable = join(unpackedRoot, builderIdentity.executableName);
 const provenancePath = join(resourcesRoot, 'school-mode-provenance.json');
 const releaseIdentityPath = join(consoleRoot, 'dist', 'squirrel-windows', 'squirrel-windows', 'release-identity.json');
 const nativeBinary = join(resourcesRoot, 'app.asar.unpacked', 'node_modules', 'keytar', 'build', 'Release', 'keytar.node');
-if (!existsSync(executable)) throw new Error('Packaged Ding PBX Console executable is missing from win-unpacked.');
+if (!existsSync(executable)) throw new Error(`Packaged ${builderIdentity.executableName} executable is missing from win-unpacked.`);
 if (!existsSync(provenancePath)) throw new Error('Packaged School provenance is missing from the final resources directory.');
 if (!existsSync(nativeBinary)) throw new Error('Packaged keytar native add-on is missing from app.asar.unpacked.');
 if (!existsSync(releaseIdentityPath)) throw new Error('Final release identity is missing before the packaged vault probe.');
@@ -28,8 +30,8 @@ const expected = {
   appId: process.env.DING_PBX_EXPECTED_APP_ID,
 };
 if (!expected.product || !expected.packageVersion || !expected.candidateCommit || !expected.appId) throw new Error('Packaging controller did not supply independent product, candidate, version, and app identity values.');
-if (releaseIdentity.product !== expected.product || releaseIdentity.productName !== 'Ding PBX Console' || releaseIdentity.appId !== expected.appId || releaseIdentity.version !== expected.packageVersion || releaseIdentity.candidateCommit !== expected.candidateCommit) throw new Error('Final release identity does not match the independent packaging-controller identity.');
-if (provenance.schemaVersion !== 1 || provenance.product !== 'ding-pbx-console' || !/^[0-9a-f]{40}$/u.test(provenance.candidateCommit) || !/^\d+\.\d+\.\d+$/u.test(provenance.packageVersion) || provenance.appId !== 'org.dingdingprojects.dingpbxconsole') {
+if (releaseIdentity.product !== expected.product || releaseIdentity.productName !== builderIdentity.productName || releaseIdentity.appId !== expected.appId || releaseIdentity.version !== expected.packageVersion || releaseIdentity.candidateCommit !== expected.candidateCommit) throw new Error('Final release identity does not match the independent packaging-controller identity.');
+if (provenance.schemaVersion !== 1 || provenance.product !== expected.product || !/^[0-9a-f]{40}$/u.test(provenance.candidateCommit) || !/^\d+\.\d+\.\d+$/u.test(provenance.packageVersion) || provenance.appId !== builderIdentity.appId) {
   throw new Error('Final packaged School provenance is malformed.');
 }
 if (provenance.product !== expected.product || provenance.packageVersion !== expected.packageVersion || provenance.candidateCommit !== expected.candidateCommit || provenance.appId !== expected.appId) throw new Error('Final packaged School provenance does not match the independent packaging-controller identity.');
@@ -74,7 +76,7 @@ try {
   const artifact = result.artifact;
   const provenanceSha256 = createHash('sha256').update(readFileSync(provenancePath)).digest('hex');
   const executableDigest = releaseIdentity.artifacts?.executable;
-  if (!artifact || !executableDigest || executableDigest.name !== 'Ding PBX Console.exe' || artifact.executableSha256 !== executableDigest.sha256 || artifact.executableVersion !== expected.packageVersion || artifact.executableProduct !== releaseIdentity.productName) throw new Error('Packaged executable identity does not match the release identity.');
+  if (!artifact || !executableDigest || executableDigest.name !== builderIdentity.executableName || artifact.executableSha256 !== executableDigest.sha256 || artifact.executableVersion !== expected.packageVersion || artifact.executableProduct !== releaseIdentity.productName) throw new Error('Packaged executable identity does not match the release identity.');
   if (!artifact || artifact.product !== expected.product || artifact.packageVersion !== expected.packageVersion || artifact.candidateCommit !== expected.candidateCommit || artifact.appId !== expected.appId || artifact.provenanceSha256 !== provenanceSha256 || artifact.probeUserDataMatches !== true) throw new Error('Packaged main-process IPC probe returned mismatched or unredacted artifact identity.');
   if (!result.cleanup || result.cleanup.maxDeleteAttempts !== 3 || result.cleanup.vaultOperations !== 2 + (result.cleanup.deleteAttempts * 2) || result.cleanup.cleanupError) throw new Error('Packaged main-process IPC probe returned incomplete cumulative cleanup evidence.');
 } finally {

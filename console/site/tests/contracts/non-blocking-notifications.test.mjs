@@ -18,7 +18,11 @@ const siteRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(resolve(siteRoot, p), 'utf8').replaceAll('\r\n', '\n');
 const json = (p) => JSON.parse(read(p));
 
-const PAGES = ['index', 'product', 'documentation', 'downloads', 'status', 'settings'];
+/* Derived from the filesystem, not hand-copied: the six-name literal that used to sit
+ * here excluded converter.html, ollama.html and history.html, so every 'anywhere in
+ * the site' claim below searched two thirds of the site. See ./site-pages.mjs. */
+import { PAGE_NAMES } from './site-pages.mjs';
+const PAGES = PAGE_NAMES;
 const pageSource = Object.fromEntries(PAGES.map((name) => [name, read(`${name}.html`)]));
 const app = read('app.js');
 const registry = json('feature-registry.json');
@@ -65,9 +69,16 @@ test('a reviewable notification history with bulk select and a destructive-dismi
   assert.match(body, /destructive:options\.destructive\|\|false/u, 'planBulk no longer distinguishes destructive bulk actions');
 });
 
-test('the history dialog is reachable from only two of the six published pages, not all six', () => {
+/* Renamed from "only two of the six published pages" on 2026-08-27. The site has nine
+ * pages, not six, and the pages carrying this dialog were never two: converter.html and
+ * ollama.html have carried it since they were written. The old title said "six" because
+ * the page list it read said six, which is the blind spot the whole site-contract suite
+ * had. The page count is asserted here so a new page cannot quietly change what "all"
+ * means without this test being re-derived. */
+test('the history dialog is carried by four of the nine published pages, not all nine', () => {
+  assert.equal(PAGES.length, 9, 'the site page count changed -- re-derive which pages carry the dialog');
   const withHistory = PAGES.filter((name) => /id="notification-history"/u.test(pageSource[name]));
-  assert.deepEqual(withHistory.sort(), ['index', 'settings'],
+  assert.deepEqual(withHistory.sort(), ['converter', 'index', 'ollama', 'settings'],
     'the set of pages carrying the notification-history dialog changed -- update this test and the registry note together');
 });
 

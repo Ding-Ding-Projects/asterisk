@@ -256,10 +256,13 @@ const plan = (h, includeChangelog = true) => h.planExportEverything({ includeCha
 test('the site feature registry carries an implemented row for long-operation-progress', () => {
   const row = registry.features['long-operation-progress'];
   assert.ok(row, 'no long-operation-progress row in site/feature-registry.json');
-  assert.equal(row.state, 'implemented',
+  /* schema v2: the registry key is `status` with 'implemented-unverified', and the file
+   * list moved to `implementation.paths`. The site rows carry no built-artifact interaction
+   * record and no capture, which is exactly what 'implemented-unverified' says. */
+  assert.equal(row.status, 'implemented-unverified',
     'the site now runs a real reported multi-unit operation, so "absent" is no longer the honest state');
   for (const file of ['site/app.js', 'site/settings.html', 'site/styles.css']) {
-    assert.ok(row.files.includes(file), `the row no longer names ${file}`);
+    assert.ok(row.implementation.paths.includes(file), `the row no longer names ${file}`);
   }
 });
 
@@ -752,8 +755,20 @@ test('nothing here reaches a network: the whole operation is text and a local do
  * ------------------------------------------------------------------ */
 
 test('init() reaches initExportEverything on a statement boundary, not behind a comment', () => {
-  assert.match(app, /^\s*function init\(\)\{[\s\S]*?initUpdates\(\);initExportEverything\(\);initTimeAwareness\(\)/mu,
-    'init() no longer calls initExportEverything -- or the call has been commented out, which a bare substring needle would not notice');
+  /* Anchored to the statement boundary itself rather than to whichever calls happen to sit
+   * beside it. The first spelling of this pinned the run of three `initUpdates();
+   * initExportEverything();initTimeAwareness()`, and it went red the day the Support
+   * Tickets desk added an `initSupport();` between the first two -- a correct change this
+   * feature has no stake in, reported under this feature's name, which sends the next
+   * person looking in the wrong place. The property that actually matters is unchanged and
+   * is the whole reason the test exists: the call is reached, and it is not sitting behind
+   * a comment. `init()` is one physical line, so a `//` anywhere before the call, or an
+   * unclosed block comment, leaves a character other than `;` or `{` immediately to its
+   * left -- which is exactly what this refuses. */
+  const initLine = app.split('\n').find((line) => /^\s*function init\(\)\{/u.test(line));
+  assert.ok(initLine, 'init() is no longer declared as a single-line function, so this anchor cannot read it');
+  assert.match(initLine, /[;{]initExportEverything\(\);/u,
+    'init() no longer calls initExportEverything on a statement boundary -- or the call has been commented out, which a bare substring needle would not notice');
 });
 
 test('the open button opens the dialog, and every control in it is wired', () => {

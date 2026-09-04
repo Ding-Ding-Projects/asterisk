@@ -1,9 +1,7 @@
 name: Compose and publish Pages
 
 on:
-  push:
-    branches: [master]
-  workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -50,7 +48,7 @@ jobs:
           $nodeRecord = (Get-Content -Raw dependency-manifest.json | ConvertFrom-Json).dependencies | Where-Object id -eq 'node-win-x64'
           $node = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) "DingPBX\toolchains\$($nodeRecord.archiveRoot)\node.exe"
           & $node console/scripts/resolve-site-download-manifest.mjs --out console/site/release-manifest.local.json
-      - name: Compose the static Pages tree without tests or lint
+      - name: Compose the static Pages tree
         shell: powershell
         run: |
           $nodeRecord = (Get-Content -Raw dependency-manifest.json | ConvertFrom-Json).dependencies | Where-Object id -eq 'node-win-x64'
@@ -92,3 +90,12 @@ jobs:
           path: evidence/pages.json
           if-no-files-found: warn
           retention-days: 14
+      - name: Upload composed Pages output even after a failure
+        if: ${{ always() }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: pages-output-${{ github.run_id }}-${{ github.run_attempt }}
+          path: console/site/dist/**
+          if-no-files-found: warn
+          retention-days: 7

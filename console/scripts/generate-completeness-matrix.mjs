@@ -5,10 +5,13 @@
  * discover routes, or infer features from implementation. The arrays are the
  * contract; the generated JSON is the auditable matrix.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
-const root = resolve(import.meta.dirname, '..', '..');
+const rootOverride = process.argv.find((argument) => argument.startsWith('--root='));
+const root = rootOverride ? resolve(rootOverride.slice('--root='.length)) : resolve(import.meta.dirname, '..', '..');
+const sourceRoot = resolve(import.meta.dirname, '..', '..');
 const baselineCommit = '088ecde1a6';
 
 const features = [
@@ -75,16 +78,16 @@ const siteStatus = {
   'language-modes': 'partial', 'funny-levels': 'partial', 'dialog-emojis': 'implemented-unverified', 'school-mode': 'implemented-unverified',
   narration: 'implemented-unverified', 'scheduled-settings': 'partial', 'external-settings-sources': 'absent', 'dim-sum-surprise': 'absent',
   'regex-builder': 'implemented-unverified', 'non-blocking-notifications': 'implemented-unverified', 'status-hub': 'absent',
-  'material-appearance': 'partial', 'app-logo-customization': 'partial', 'local-file-converter': 'absent',
+  'material-appearance': 'partial', 'app-logo-customization': 'partial', 'local-file-converter': 'implemented-unverified',
   'ollama-suite-manager': 'absent', 'browser-style-tabs': 'absent', 'tab-groups-and-searches': 'absent', 'command-palette': 'partial',
   'destructive-action-confirmation': 'partial', 'local-version-history': 'implemented-unverified', 'changelog-viewer': 'implemented-unverified',
   'external-editor-handoff': 'absent', 'complete-exports': 'implemented-unverified', 'bulk-actions': 'implemented-unverified',
-  accessibility: 'partial', 'responsive-sizing': 'absent', 'personal-vocabulary-upload': 'implemented-unverified',
-  'per-element-toy-locks': 'absent', 'support-tickets': 'absent', 'unlock-ladder': 'absent', 'built-in-authenticator': 'absent',
+  accessibility: 'partial', 'responsive-sizing': 'partial', 'personal-vocabulary-upload': 'implemented-unverified',
+  'per-element-toy-locks': 'implemented-unverified', 'support-tickets': 'implemented-unverified', 'unlock-ladder': 'absent', 'built-in-authenticator': 'implemented-unverified',
   'attention-modes': 'implemented-unverified', 'browser-extension-download-surfaces': 'absent',
-  'offline-documentation-browser': 'partial', 'app-display-name': 'implemented-unverified', 'guided-forms': 'absent',
-  'bounded-overlays': 'implemented-unverified', 'context-menu-shortcuts': 'absent', 'long-operation-progress': 'absent',
-  'in-context-recovery': 'absent', 'provider-markup-rendering': 'implemented-unverified', 'forge-publishing': 'absent',
+  'offline-documentation-browser': 'partial', 'app-display-name': 'implemented-unverified', 'guided-forms': 'partial',
+  'bounded-overlays': 'implemented-unverified', 'context-menu-shortcuts': 'implemented-unverified', 'long-operation-progress': 'implemented-unverified',
+  'in-context-recovery': 'implemented-unverified', 'provider-markup-rendering': 'implemented-unverified', 'forge-publishing': 'absent',
   'collapsible-filters': 'implemented-unverified', 'automatic-updates': 'implemented-unverified',
 };
 
@@ -217,9 +220,12 @@ const siteImplementationSymbols = {
   'school-mode': [{ path: 'site/app.js', name: 'applySchoolMode', kind: 'function' }],
   'bounded-overlays': [{ path: 'site/app.js', name: 'openRegex', kind: 'function' }, { path: 'site/app.js', name: 'openPalette', kind: 'function' }],
   'collapsible-filters': [{ path: 'site/app.js', name: 'updateFilterStatus', kind: 'function' }],
+  'local-file-converter': [{ path: 'site/app.js', name: 'initConverter', kind: 'function' }, { path: 'site/app.js', name: 'converterConvert', kind: 'function' }],
+  'support-tickets': [{ path: 'site/app.js', name: 'openSupportTicket', kind: 'function' }, { path: 'site/app.js', name: 'initSupport', kind: 'function' }],
 };
 const siteRegistrationSymbols = {
   'local-file-converter': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
+  'support-tickets': [{ path: 'site/app.js', name: 'initSupport', kind: 'function' }],
   'ollama-suite-manager': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
   'language-modes': [{ path: 'site/app.js', name: 'init', kind: 'function' }], 'funny-levels': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
   'scheduled-settings': [{ path: 'site/app.js', name: 'init', kind: 'function' }], 'regex-builder': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
@@ -297,10 +303,58 @@ const matrix = {
   negativeRegression: { script: 'console/scripts/negative-surface-completeness.mjs', cases: negativeCases, state: 'not-run-under-yum-leung-cha' },
 };
 
-writeFileSync(resolve(root, 'console/inventories/surface-completeness.json'), `${JSON.stringify(matrix, null, 2)}\n`, 'utf8');
+/* `--check` compares instead of writing, so the three generated files can be gated rather
+ * than merely regenerable. It exists because the site registry had been hand-written back
+ * to schema v1 while this generator still claimed to own it, and nothing anywhere noticed:
+ * the canonical validator refused the file outright and thirty-three site contract
+ * assertions read a `status` key it no longer had.
+ *
+ * What it does NOT catch, said plainly rather than left to be discovered: `rewriteRegistry`
+ * sources each row's `note` from the file it is checking, so a hand-edited note round-trips
+ * and passes. `status` does not -- it comes from the hand-written maps above -- so a status
+ * edited in the JSON alone is caught, which is the drift that actually happened. */
+const CHECK_ONLY = process.argv.includes('--check');
+const differences = [];
+function emit(relativePath, text) {
+  const absolute = resolve(root, relativePath);
+  if (!CHECK_ONLY) {
+    writeFileSync(absolute, text, 'utf8');
+    return;
+  }
+  let onDisk;
+  if (existsSync(absolute)) {
+    onDisk = readFileSync(absolute, 'utf8');
+  } else {
+    try {
+      onDisk = execFileSync('git', ['show', `HEAD:${relativePath}`], { cwd: sourceRoot, encoding: 'utf8' });
+    } catch {
+      throw new Error(`cannot check ${relativePath}: file is absent from the sparse checkout and pinned HEAD`);
+    }
+  }
+  onDisk = onDisk.replace(/\r\n/g, '\n');
+  if (onDisk === text) return;
+  const onDiskLines = onDisk.split('\n');
+  const wantedLines = text.split('\n');
+  let firstDivergentLine = 0;
+  while (firstDivergentLine < onDiskLines.length && onDiskLines[firstDivergentLine] === wantedLines[firstDivergentLine]) firstDivergentLine += 1;
+  differences.push(`${relativePath}: checked-in file differs from this generator's output at line ${firstDivergentLine + 1}\n    on disk:   ${JSON.stringify(onDiskLines[firstDivergentLine] ?? '<end of file>')}\n    generated: ${JSON.stringify(wantedLines[firstDivergentLine] ?? '<end of file>')}`);
+}
+
+emit('console/inventories/surface-completeness.json', `${JSON.stringify(matrix, null, 2)}\n`);
 
 function readRegistry(relativePath) {
-  return JSON.parse(readFileSync(resolve(root, relativePath), 'utf8'));
+  let text;
+  const absolute = resolve(root, relativePath);
+  if (existsSync(absolute)) {
+    text = readFileSync(absolute, 'utf8');
+  } else {
+    try {
+      text = execFileSync('git', ['show', `HEAD:${relativePath}`], { cwd: sourceRoot, encoding: 'utf8' });
+    } catch {
+      throw new Error(`cannot read ${relativePath}: file is absent from the sparse checkout and pinned HEAD`);
+    }
+  }
+  return JSON.parse(text);
 }
 
 function rewriteRegistry(relativePath, surface, statuses) {
@@ -341,17 +395,65 @@ function rewriteRegistry(relativePath, surface, statuses) {
         entry.note = feature.id === 'local-file-converter'
           ? 'The converter is mounted at #surface=converter through surface-mounts.tsx and the real control-plane catalog and PDF-capability seam in dispatch.ts. The source picker, queue mutations, and packaged-worker proof remain explicitly unavailable until their privileged handlers are registered; no source, output, or sample value is invented.'
           : 'The Ollama surface is mounted at #surface=ollama through surface-mounts.tsx. Its client returns an honest bridge-not-registered state until the privileged local Ollama dispatcher is registered; no model, health, catalog, pull, chat, or harness value is assumed.';
-      } else {
-        entry.implementation.paths = ['site/app.js', feature.id === 'local-file-converter' ? 'site/converter.html' : 'site/ollama.html'];
+      } else if (feature.id === 'local-file-converter') {
+        entry.implementation.paths = ['site/app.js', 'site/converter.html', 'site/styles.css'];
         entry.registration.paths = ['site/app.js'];
+        entry.note = 'The documentation site exposes converter.html with a browser-local categorized adapter catalogue, bounded byte inspection, a paged queue, cancellation, and an adjacent regex builder. This remains implemented-unverified because no real browser file picker, build, or capture ran in this lane.';
+      } else {
+        /* Corrected 2026-08-27. These two notes used to say the site "exposes"
+         * converter.html and ollama.html and that the converter "is implemented in
+         * site/app.js and converter.html". Measured: `site/app.js` is the only script
+         * either page loads, and the strings "converter" and "ollama" occur in it zero
+         * times, so every control on both pages is decorative. No page links to either,
+         * so neither is reachable. The status stays `absent` -- which is what these rows
+         * already said -- but for the opposite reason to the one previously recorded:
+         * not that the markup is missing, but that nothing implements the markup that
+         * is there. */
+        entry.implementation.paths = ['site/app.js', feature.id === 'local-file-converter' ? 'site/converter.html' : 'site/ollama.html'];
+        entry.registration.paths = [];
         entry.note = feature.id === 'local-file-converter'
-          ? 'The documentation site exposes converter.html with categorized local adapters, bounded byte inspection, a paged queue, cancellation, and an adjacent regex builder. This is implemented in site/app.js and converter.html but remains unverified because no build, browser session, or capture ran in this lane.'
-          : 'The documentation site exposes ollama.html as a browser-local loopback surface with explicit endpoint approval, bounded local API reads, pull and chat cancellation, and honest Unknown catalog completeness. It remains unverified because no build, browser session, or capture ran in this lane.';
+          ? 'site/converter.html renders a complete-looking converter -- file picker, adapter catalogue, bounded paged queue, target-format select, cancel control, loss disclosure -- and has no implementation: site/app.js is the only script the page loads and never mentions the converter, so every control there is decorative. No page links to converter.html either, so the surface is unreachable as well as inert. Absent as a feature; the markup exists and is dead.'
+          : 'site/ollama.html renders a complete-looking local Ollama manager -- endpoint approval, verified-model select, pull and chat controls -- and has no implementation: site/app.js is the only script the page loads and mentions neither Ollama nor its local port, so every control there is decorative. No page links to ollama.html either, so the surface is unreachable as well as inert. Absent as a feature; the markup exists and is dead.';
       }
     }
+    if (feature.id === 'support-tickets' && surface === 'pages-site') {
+      const supportEntry = next.features[feature.id];
+      supportEntry.implementation.paths = ['site/app.js', 'site/settings.html', 'site/documentation.html', 'site/styles.css'];
+      supportEntry.registration.paths = ['site/app.js'];
+      supportEntry.note = 'The documentation site exposes a local Support Tickets desk from settings, its School-mode recovery disclosure, and documentation help. It records fictional tickets in browser storage, advances their status, and opens the actual browser storage guidance without sending data or deleting anything on the reader’s behalf. This remains implemented-unverified because no real browser interaction or capture ran in this lane.';
+    }
+    if (feature.id === 'per-element-toy-locks' && surface === 'pages-site') {
+      const lockEntry = next.features[feature.id];
+      lockEntry.implementation.paths = ['site/app.js', 'site/settings.html', 'site/styles.css'];
+      lockEntry.implementation.symbols = [
+        { path: 'site/app.js', name: 'LOCK_POLICIES', kind: 'const' },
+        { path: 'site/app.js', name: 'lockElementKey', kind: 'function' },
+        { path: 'site/app.js', name: 'lockSetupVerdict', kind: 'function' },
+        { path: 'site/app.js', name: 'lockCredentialVerdict', kind: 'function' },
+        { path: 'site/app.js', name: 'lockAttemptVerdict', kind: 'function' },
+        { path: 'site/app.js', name: 'lockOpenVerdict', kind: 'function' },
+        { path: 'site/app.js', name: 'lockEventVerdict', kind: 'function' },
+        { path: 'site/app.js', name: 'initLocks', kind: 'function' },
+      ];
+      lockEntry.registration.paths = ['site/app.js'];
+      lockEntry.registration.symbols = [
+        { path: 'site/app.js', name: 'ensureLockUI', kind: 'function' },
+        { path: 'site/app.js', name: 'initLocks', kind: 'function' },
+      ];
+      lockEntry.note = 'The documentation site exposes per-element toy locks through site/app.js, site/settings.html, and site/styles.css. It stores records under ding-pbx-pages-locks-v1, offers six ordered credential methods, anchored setup and unlock prompts, keypad and manual entry, bounded attempts, local redacted export, and storage-clear recovery. A locked element uses capture-phase interception rather than disabled state so its own unlock route remains reachable. This remains implemented-unverified because no real browser interaction or capture ran in this lane.';
+    }
   }
-  writeFileSync(resolve(root, relativePath), `${JSON.stringify(next, null, 2)}\n`, 'utf8');
+  emit(relativePath, `${JSON.stringify(next, null, 2)}\n`);
 }
 
 rewriteRegistry('console/app/feature-registry.json', 'windows-console', desktopStatus);
 rewriteRegistry('console/site/feature-registry.json', 'pages-site', siteStatus);
+
+if (CHECK_ONLY) {
+  if (differences.length > 0) {
+    for (const difference of differences) console.error(`FAIL: ${difference}`);
+    console.error(`FAIL: ${differences.length} of 3 generated inventory files are out of step. Run \`node scripts/generate-completeness-matrix.mjs\` and review the diff.`);
+    process.exit(1);
+  }
+  console.log('PASS: the canonical matrix and both feature registries match a fresh generator run.');
+}
