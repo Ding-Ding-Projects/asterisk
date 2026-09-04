@@ -27,6 +27,7 @@
     "schoolDesc",
     "searchModePlain",
     "searchModeRegex",
+    "supportTicketsDesc",
     "themeDesc",
     "updatesDesc"
   ],
@@ -250,11 +251,13 @@
       "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
     },
     "support-tickets": {
-      "state": "not-localized",
+      "state": "localized",
       "mechanism": "console/site/app.js -- the COPY table (per-key en/zh variants at four funny levels), copyText() as the selector, and applyVocabularyText() over the result",
-      "copyKeys": [],
+      "copyKeys": [
+        "supportTicketsDesc"
+      ],
       "missingCopyKeys": [],
-      "note": "The site has a working language mechanism (COPY/copyText, both funny sliders, live vocabulary) but no COPY entry covering this feature, so its copy renders English in every mode. Missing translation, not missing wiring."
+      "note": "Covered by COPY keys: supportTicketsDesc. The card description carries four English and four Cantonese variants, and every one of the eight says both facts that matter: a ticket goes nowhere and is read by nobody, and the thing that actually gets somebody back in is clearing this site storage in their own browser. The disclosure sentence is deliberately NOT a COPY key: it is written from SUPPORT_NO_NETWORK_DISCLOSURE so no funny level can reach it, because a reader who believes a person is coming will wait for a reply that never arrives. The form labels, the ticket rows and the resolution steps are still fixed English."
     },
     "unlock-ladder": {
       "state": "not-localized",

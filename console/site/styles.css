@@ -829,3 +829,24 @@ a.changelog-commit:hover,a.changelog-commit:focus-visible{color:var(--primary)}
 #authenticator-dialog .inline-controls input:not([type="file"]){flex:1 1 auto;min-width:0}
 /* Narrow screens: the action column stops competing with the code for width. */
 @media(max-width:620px){.auth-entry{flex-wrap:wrap}.auth-entry-actions{max-width:100%;justify-content:flex-start}}
+/* Support tickets. The list borrows the authenticator list's shape deliberately:
+   two lists of local records on one page that looked different would read as two
+   different kinds of thing, which they are not. */
+.support-list{display:flex;flex-direction:column;gap:8px;width:100%}
+.support-ticket{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid var(--outline-variant);border-radius:var(--radius-sm);background:var(--surface-0)}
+.support-select{flex:none;display:flex;align-items:center;min-height:var(--touch)}
+.support-select input[type="checkbox"]{width:22px;height:22px}
+.support-ticket-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px}
+.support-ticket-main strong{font-size:.92rem;overflow-wrap:anywhere}
+.support-meta{margin:0;font-size:.74rem;color:var(--muted-2);overflow-wrap:anywhere}
+.support-description{margin:0;font-size:.85rem;overflow-wrap:anywhere}
+.support-response{margin:0;font-size:.8rem;color:var(--muted-2);font-style:italic;overflow-wrap:anywhere}
+.support-ticket-actions{flex:none;display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;max-width:min(100%,320px)}
+#support-form{display:flex;flex-direction:column;gap:6px;width:100%}
+#support-form textarea{width:100%;min-height:calc(var(--touch) * 2);padding:10px;border:1px solid var(--outline-variant);border-radius:var(--radius-sm);background:var(--surface-0);color:inherit;font:inherit;resize:vertical}
+#support-resolution{width:100%}
+#support-resolution summary{min-height:var(--touch);display:flex;align-items:center;cursor:pointer}
+#support-resolution-body ol{margin:8px 0;padding-left:1.2rem;display:flex;flex-direction:column;gap:6px;font-size:.85rem}
+#support-resolution-body ul{margin:8px 0;padding-left:1.2rem;display:flex;flex-direction:column;gap:4px;font-size:.78rem;overflow-wrap:anywhere}
+/* Narrow screens: the action column stops competing with the ticket for width. */
+@media(max-width:620px){.support-ticket{flex-wrap:wrap}.support-ticket-actions{max-width:100%;justify-content:flex-start}}

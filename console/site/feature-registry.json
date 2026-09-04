@@ -204,9 +204,13 @@
       "files": []
     },
     "support-tickets": {
-      "state": "absent",
-      "note": "No Support Tickets surface exists on the site.",
-      "files": []
+      "state": "implemented",
+      "note": "Built on 2026-08-27. site/settings.html carries a SUPPORT card (#support-card) holding a Resolution disclosure that is open from the first render, a ticket form (category, severity, description, File a ticket), a searchable ticket list with its own anchored regex builder, the shared bulk-selection controls, an export, and an inline removal confirmation (#support-confirm) that the dialog-emoji switch decorates. site/app.js implements it: supportOpenTicket() validates and mints a DING-nnnnnn ticket, supportAdvance() moves the status one step and stops at Resolved, supportResolution() returns the single action this feature has (show-storage-keys) with the origin, every key this page owns and the browser steps, and supportRenderResolution() writes that into the card without innerHTML. Ticket numbers are derived from the ticket itself rather than drawn, so nothing here is random. Tickets persist in ding-pbx-pages-support-v1, bounded at 100 and revalidated on read. The desk is reachable from every page footer and from the restricted-presentation card own Forgotten the value? disclosure, which is the lockout it recovers from. Its vocabulary is deliberately identical to the desktop module app/renderer/src/support-tickets.ts (categories, severities, statuses, ticket-number scheme, first response, disclosure sentence) and the contract test compares those strings across both files. Nothing here reaches the network and nothing here clears storage for the reader: the resolution names what would go and the clearing is the reader own act in the browser. Unverified: no built-artifact interaction and no capture were run.",
+      "files": [
+        "site/app.js",
+        "site/settings.html",
+        "site/styles.css"
+      ]
     },
     "unlock-ladder": {
       "state": "absent",

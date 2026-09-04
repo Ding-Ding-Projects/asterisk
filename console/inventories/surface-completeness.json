@@ -211902,7 +211902,7 @@
         },
         {
           "featureId": "support-tickets",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -211913,12 +211913,29 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "supportOpenTicket",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "supportResolution",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "init",
+                "kind": "function"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/",
           "documentation": {
@@ -215814,7 +215831,7 @@
         },
         {
           "featureId": "support-tickets",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -215825,12 +215842,29 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "supportOpenTicket",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "supportResolution",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "init",
+                "kind": "function"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/product.html",
           "documentation": {
@@ -219726,7 +219760,7 @@
         },
         {
           "featureId": "support-tickets",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -219737,12 +219771,29 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "supportOpenTicket",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "supportResolution",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "init",
+                "kind": "function"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/documentation.html",
           "documentation": {
@@ -223638,7 +223689,7 @@
         },
         {
           "featureId": "support-tickets",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -223649,12 +223700,29 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "supportOpenTicket",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "supportResolution",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "init",
+                "kind": "function"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/downloads.html",
           "documentation": {
@@ -227550,7 +227618,7 @@
         },
         {
           "featureId": "support-tickets",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -227561,12 +227629,29 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "supportOpenTicket",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "supportResolution",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "init",
+                "kind": "function"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/status.html",
           "documentation": {
@@ -231462,7 +231547,7 @@
         },
         {
           "featureId": "support-tickets",
-          "status": "absent",
+          "status": "implemented-unverified",
           "demoState": "not-run",
           "dataProvenance": {
             "kind": "manual-source-audit",
@@ -231473,12 +231558,29 @@
           "implementation": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "supportOpenTicket",
+                "kind": "function"
+              },
+              {
+                "path": "site/app.js",
+                "name": "supportResolution",
+                "kind": "function"
+              }
+            ]
           },
           "registration": {
             "registry": "console/site/feature-registry.json#features.support-tickets",
             "paths": [],
-            "symbols": []
+            "symbols": [
+              {
+                "path": "site/app.js",
+                "name": "init",
+                "kind": "function"
+              }
+            ]
           },
           "route": "https://ding-ding-projects.github.io/asterisk/settings.html",
           "documentation": {

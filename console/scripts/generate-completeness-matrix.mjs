@@ -80,7 +80,7 @@ const siteStatus = {
   'destructive-action-confirmation': 'partial', 'local-version-history': 'implemented-unverified', 'changelog-viewer': 'implemented-unverified',
   'external-editor-handoff': 'absent', 'complete-exports': 'implemented-unverified', 'bulk-actions': 'implemented-unverified',
   accessibility: 'partial', 'responsive-sizing': 'absent', 'personal-vocabulary-upload': 'implemented-unverified',
-  'per-element-toy-locks': 'absent', 'support-tickets': 'absent', 'unlock-ladder': 'absent', 'built-in-authenticator': 'absent',
+  'per-element-toy-locks': 'absent', 'support-tickets': 'implemented-unverified', 'unlock-ladder': 'absent', 'built-in-authenticator': 'absent',
   'attention-modes': 'implemented-unverified', 'browser-extension-download-surfaces': 'absent',
   'offline-documentation-browser': 'partial', 'app-display-name': 'implemented-unverified', 'guided-forms': 'absent',
   'bounded-overlays': 'implemented-unverified', 'context-menu-shortcuts': 'absent', 'long-operation-progress': 'absent',
@@ -215,6 +215,7 @@ const siteImplementationSymbols = {
   narration: [{ path: 'site/app.js', name: 'applyNarration', kind: 'function' }, { path: 'site/app.js', name: 'pumpNarration', kind: 'function' }],
   'provider-markup-rendering': [{ path: 'site/app.js', name: 'renderMarkdownBlock', kind: 'function' }],
   'school-mode': [{ path: 'site/app.js', name: 'applySchoolMode', kind: 'function' }],
+  'support-tickets': [{ path: 'site/app.js', name: 'supportOpenTicket', kind: 'function' }, { path: 'site/app.js', name: 'supportResolution', kind: 'function' }],
   'bounded-overlays': [{ path: 'site/app.js', name: 'openRegex', kind: 'function' }, { path: 'site/app.js', name: 'openPalette', kind: 'function' }],
   'collapsible-filters': [{ path: 'site/app.js', name: 'updateFilterStatus', kind: 'function' }],
 };
@@ -236,6 +237,7 @@ const siteRegistrationSymbols = {
   narration: [{ path: 'site/app.js', name: 'initSettings', kind: 'function' }],
   'provider-markup-rendering': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
   'school-mode': [{ path: 'site/app.js', name: 'initSettings', kind: 'function' }],
+  'support-tickets': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
   'bounded-overlays': [{ path: 'site/app.js', name: 'init', kind: 'function' }], 'collapsible-filters': [{ path: 'site/app.js', name: 'init', kind: 'function' }],
 };
 
