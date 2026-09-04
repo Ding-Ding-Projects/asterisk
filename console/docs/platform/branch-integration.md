@@ -1,5 +1,13 @@
 # Why forty-eight branches are still unmerged
 
+## Current boundary
+
+The current default branch is `main` at
+`7c6e0c6c9520c6fd421cabf73bcbb6af15a18c60`, and the Git server ref was read back at that SHA.
+The branch inventory and measurements below are a historical snapshot from 2026-08-24. They are
+retained as evidence of that pass and do not describe the current branch inventory. See the current
+section at the top of `HANDOFF.md` for the latest release and integration state.
+
 At the 2026-08-24 measurement, forty-eight branches sat beside `master`, none of them an ancestor of it, every one holding
 commits that are not on the default branch. That looks like a backlog nobody has got round to.
 It is not: it was measured on 2026-08-24, and the reason each group is still separate is

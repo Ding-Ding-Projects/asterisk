@@ -1,5 +1,17 @@
 # Material Asterisk documentation
 
+## Current delivery record
+
+The current source commit is `7c6e0c6c9520c6fd421cabf73bcbb6af15a18c60` on `main`. The
+console release [`ding-pbx-console-v0.0.300-r1`](https://github.com/Ding-Ding-Projects/material-asterisk/releases/tag/ding-pbx-console-v0.0.300-r1),
+the installer ISO release [`ding-pbx-installer-iso-v0.0.7-r1`](https://github.com/Ding-Ding-Projects/material-asterisk/releases/tag/ding-pbx-installer-iso-v0.0.7-r1),
+and the Pages deployment run [33210571949](https://github.com/Ding-Ding-Projects/material-asterisk/actions/runs/33210571949)
+all target that SHA and were read back as successful. The release workflows do not run tests,
+lint, accessibility checks, UI interaction, or design-parity checks. Those claims remain open
+until a local or built-artifact record proves them. The public drafts for issue, Discussion,
+Project, release, and wiki updates are retained in `release-drafts/` and are not posted by this
+lane.
+
 Material Asterisk is a Windows desktop administration experience for Asterisk. The renderer is compiled directly from the design's navigation model, so this documentation follows the same structure: six rails and 32 destinations, one article per destination, grouped and ordered exactly as the app presents them.
 
 The documentation map contains 32 destinations in six rails. Every article covers behavior, configuration, failure modes and security, verification, and suggested reading.
