@@ -5,11 +5,13 @@
  * discover routes, or infer features from implementation. The arrays are the
  * contract; the generated JSON is the auditable matrix.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
 const rootOverride = process.argv.find((argument) => argument.startsWith('--root='));
 const root = rootOverride ? resolve(rootOverride.slice('--root='.length)) : resolve(import.meta.dirname, '..', '..');
+const sourceRoot = resolve(import.meta.dirname, '..', '..');
 const baselineCommit = '088ecde1a6';
 
 const features = [
@@ -319,7 +321,17 @@ function emit(relativePath, text) {
     writeFileSync(absolute, text, 'utf8');
     return;
   }
-  const onDisk = readFileSync(absolute, 'utf8').replace(/\r\n/g, '\n');
+  let onDisk;
+  if (existsSync(absolute)) {
+    onDisk = readFileSync(absolute, 'utf8');
+  } else {
+    try {
+      onDisk = execFileSync('git', ['show', `HEAD:${relativePath}`], { cwd: sourceRoot, encoding: 'utf8' });
+    } catch {
+      throw new Error(`cannot check ${relativePath}: file is absent from the sparse checkout and pinned HEAD`);
+    }
+  }
+  onDisk = onDisk.replace(/\r\n/g, '\n');
   if (onDisk === text) return;
   const onDiskLines = onDisk.split('\n');
   const wantedLines = text.split('\n');
@@ -331,7 +343,18 @@ function emit(relativePath, text) {
 emit('console/inventories/surface-completeness.json', `${JSON.stringify(matrix, null, 2)}\n`);
 
 function readRegistry(relativePath) {
-  return JSON.parse(readFileSync(resolve(root, relativePath), 'utf8'));
+  let text;
+  const absolute = resolve(root, relativePath);
+  if (existsSync(absolute)) {
+    text = readFileSync(absolute, 'utf8');
+  } else {
+    try {
+      text = execFileSync('git', ['show', `HEAD:${relativePath}`], { cwd: sourceRoot, encoding: 'utf8' });
+    } catch {
+      throw new Error(`cannot read ${relativePath}: file is absent from the sparse checkout and pinned HEAD`);
+    }
+  }
+  return JSON.parse(text);
 }
 
 function rewriteRegistry(relativePath, surface, statuses) {

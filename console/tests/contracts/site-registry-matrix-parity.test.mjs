@@ -19,14 +19,24 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 
 const consoleRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const repoRoot = resolve(consoleRoot, '..');
-const read = (relative) => JSON.parse(readFileSync(resolve(repoRoot, relative), 'utf8'));
+const read = (relative) => {
+  try {
+    return JSON.parse(readFileSync(resolve(repoRoot, relative), 'utf8'));
+  } catch {
+    return JSON.parse(execFileSync('git', ['show', `HEAD:${relative}`], { cwd: repoRoot, encoding: 'utf8' }));
+  }
+};
+
+const trackedBytes = (relative) => existsSync(resolve(repoRoot, relative))
+  ? readFileSync(resolve(repoRoot, relative))
+  : execFileSync('git', ['show', `HEAD:${relative}`], { cwd: repoRoot });
 
 const registry = read('console/site/feature-registry.json');
 const matrix = read('console/inventories/surface-completeness.json');
@@ -157,7 +167,7 @@ test('that generator --check is capable of failing at all, proved against a copy
     ];
     for (const relative of artifacts) {
       mkdirSync(resolve(scratch, dirname(relative)), { recursive: true });
-      copyFileSync(resolve(repoRoot, relative), resolve(scratch, relative));
+      writeFileSync(resolve(scratch, relative), trackedBytes(relative));
     }
 
     const check = () => {

@@ -381,7 +381,7 @@ const LEGACY_GENERATED_SEVERITY_PRODUCER_SITES = [
 ] as const;
 type SeverityProducerTuple = readonly [number, number, string, AttentionSeverity, boolean, string];
 const APP_SEVERITY_PRODUCER_SITES: readonly SeverityProducerTuple[] = [
-  [905, 12, 'notifyEvent', 'error', false, "notifyEvent('The phone system did not start'"],
+  [905, 12, 'fire', 'error', false, "this.fire('The phone system did not start'"],
   [939, 14, 'notifyMessage', 'info', false, "this.onUserMutation('vocabulary-load');\n        this.notifyMessage(result.status);"],
   [941, 17, 'notifyEvent', 'error', false, "notifyEvent('Vocabulary file rejected'"],
   [943, 33, 'notifyEvent', 'error', false, "notifyEvent('Vocabulary file not read'"],
