@@ -67,21 +67,21 @@ function cloneWithChildren(node: ReactNode, children: ReactNode): ReactNode {
 }
 
 /** Finds the `data-window-drag` node and returns it with its name span rewritten. */
-export function withTitleBarName(tree: ReactNode, name: string, searchDepth = 8): ReactNode {
-  return findDragRegion(tree, name, searchDepth);
+export function withTitleBarName(tree: ReactNode, name: string, searchDepth = 8, brand?: ReactNode): ReactNode {
+  return findDragRegion(tree, name, searchDepth, brand);
 }
 
-function findDragRegion(node: ReactNode, name: string, depth: number): ReactNode {
+function findDragRegion(node: ReactNode, name: string, depth: number, brand?: ReactNode): ReactNode {
   const el = asElement(node);
   if (!el || depth < 0) return node;
   if (el.props[DRAG_MARKER] !== undefined) {
     const children = el.props.children;
-    const rewritten = mapChildren(children, (child) => rewriteIconRow(child, name));
+    const rewritten = mapChildren(children, (child) => rewriteIconRow(child, name, brand));
     return rewritten === children ? node : cloneWithChildren(node, rewritten);
   }
   const children = el.props.children;
   if (children === undefined) return node;
-  const rewritten = mapChildren(children, (child) => findDragRegion(child, name, depth - 1));
+  const rewritten = mapChildren(children, (child) => findDragRegion(child, name, depth - 1, brand));
   return rewritten === children ? node : cloneWithChildren(node, rewritten);
 }
 
@@ -90,14 +90,25 @@ function findDragRegion(node: ReactNode, name: string, depth: number): ReactNode
  * `msym` icon qualifies -- the connection pill, the menu strip and the window-control
  * buttons are left completely untouched, because none of them are that row.
  */
-function rewriteIconRow(node: ReactNode, name: string): ReactNode {
+function rewriteIconRow(node: ReactNode, name: string, brand?: ReactNode): ReactNode {
   const el = asElement(node);
   if (!el) return node;
   const children = el.props.children;
   if (!Array.isArray(children) || !children.some(isIconSpan)) return node;
   let changed = false;
+  let brandInserted = false;
   const next = children.map((child) => {
     const childEl = asElement(child);
+    if (brand !== undefined && !brandInserted && isIconSpan(child)) {
+      brandInserted = true;
+      changed = true;
+      /* A key makes this dynamically supplied child safe when the design row sits in
+       * the generated shell's sibling arrays. The no-brand path remains equivalent to
+       * the existing title-bar rewrite. */
+      return isValidElement(brand)
+        ? cloneElement(brand as never, { key: 'app-logo' })
+        : brand;
+    }
     const isNameSpan = !!childEl && childEl.type === 'span' && childEl.props.className !== ICON_CLASS
       && typeof childEl.props.children === 'string' && childEl.props.children.trim() !== '';
     if (!isNameSpan) return child;
