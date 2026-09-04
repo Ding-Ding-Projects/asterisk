@@ -2972,7 +2972,9 @@ What you can do: ${offered}.` : ''}`);
       this.forceUpdate();
       return;
     }
-    const blob = new Blob([bytes], { type: asset.filename.endsWith('.webp') ? 'image/webp' : 'image/png' });
+    const blobBytes = new Uint8Array(bytes.length);
+    blobBytes.set(bytes);
+    const blob = new Blob([blobBytes.buffer], { type: asset.filename.endsWith('.webp') ? 'image/webp' : 'image/png' });
     if (typeof URL.createObjectURL !== 'function') return;
     this.clearLogoPreview();
     this.logoPreviewUrl = URL.createObjectURL(blob);
@@ -3054,7 +3056,9 @@ What you can do: ${offered}.` : ''}`);
       const inspectedResponse = await this.request('logo.inspect', { payload: source });
       const inspected = inspectedResponse?.ok ? inspectedResponse.data as { ok?: boolean } : undefined;
       if (!inspected?.ok) {
-        this.rejectLogo(file, inspectedResponse?.message ?? 'The local logo inspector did not accept this image.');
+        this.rejectLogo(file, inspectedResponse && !inspectedResponse.ok
+          ? inspectedResponse.message
+          : 'The local logo inspector did not accept this image.');
         return;
       }
       const conversion = await this.request('logo.convert', {
@@ -3066,12 +3070,16 @@ What you can do: ${offered}.` : ''}`);
       });
       const converted = conversion?.ok ? conversion.data as LogoConversionResult : undefined;
       if (!converted || !converted.ok) {
-        this.rejectLogo(file, conversion?.message ?? 'The local logo converter did not accept this image.');
+        this.rejectLogo(file, conversion && !conversion.ok
+          ? conversion.message
+          : 'The local logo converter did not accept this image.');
         return;
       }
       const cached = await this.request('logo.cache.write', { payload: { kind: 'write', result: converted } });
       if (!cached?.ok || !this.validLogoCacheRecord(cached.data)) {
-        this.rejectLogo(file, cached?.message ?? 'The validated logo could not be written to the local cache.');
+        this.rejectLogo(file, cached && !cached.ok
+          ? cached.message
+          : 'The validated logo could not be written to the local cache.');
         return;
       }
       this.logoCacheRecord = cached.data;
