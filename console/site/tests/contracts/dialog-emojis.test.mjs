@@ -66,6 +66,10 @@ const DECORATED_IDS = [
   'auth-secrets-dialog',
   'notif-confirm',
   'auth-confirm',
+  /* Joined on 2026-08-27 by the support desk: its inline removal confirmation is a
+     message box that decorates itself rather than a heading, exactly as the
+     notification and authenticator confirmations already did. */
+  'support-confirm',
 ];
 
 /* ------------------------------------------------------------------ *
