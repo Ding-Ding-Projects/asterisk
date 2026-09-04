@@ -1,0 +1,62 @@
+{
+  "feature": "non-blocking-notifications",
+  "surface": "pages-site",
+  "verification": "inspected-real-built-site",
+  "generatedAt": "2026-08-26T11:31:49.639Z",
+  "artifact": "console/site/dist/settings.html",
+  "artifactSha256": "ce42d66387a8f63a11bd998e11f3d1338dd1095cf34f22058541255c5e711426",
+  "runtime": "console/site/dist/app.js",
+  "runtimeSha256": "3c2c255fe2ba7675c4ddc2bf73b42c302bac5da4162cf24dfe36b5d7e7bad452",
+  "sources": [
+    {
+      "path": "console/site/app.js",
+      "sha256": "618cacd6b7afb3334904ece760305582700535bf3d66d0b4ac65b2fb065f98af"
+    },
+    {
+      "path": "console/site/styles.css",
+      "sha256": "d2c9c9a0c42818333b4a97382581a6a98e1dec907d029594a91b91e8dc28fdc2"
+    }
+  ],
+  "driver": "loopback Chrome DevTools Protocol against a headless Chromium under a throwaway profile; exactly one page target, at the expected URL, proven before any evaluation",
+  "targetsOnTheDebuggingPort": [
+    {
+      "type": "other",
+      "url": "about:blank"
+    },
+    {
+      "type": "other",
+      "url": ""
+    },
+    {
+      "type": "page",
+      "url": "http://127.0.0.1:64915/settings.html"
+    },
+    {
+      "type": "browser_ui",
+      "url": "chrome://omnibox-popup.top-chrome/"
+    },
+    {
+      "type": "browser_ui",
+      "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html"
+    }
+  ],
+  "page": "settings.html",
+  "capture": "console/release/captures/pages-site/non-blocking-notifications.png",
+  "captureBytes": 200183,
+  "captureSha256": "cae0ddd2f965136e24d902efd10b92234e0661761578c89c1618dadd40bae740",
+  "subject": "#notifications-dialog",
+  "subjectBox": {
+    "width": 720,
+    "height": 644
+  },
+  "interaction": {
+    "toastsBefore": 0,
+    "toastsAfterSettingChange": 1,
+    "notificationCountBefore": "1",
+    "notificationCountAfter": "2",
+    "noModalOpenedByTheNotification": true,
+    "pageStillInteractiveWhileToastShown": true,
+    "historyDialogOpen": true,
+    "historyEntriesListed": 2
+  }
+}

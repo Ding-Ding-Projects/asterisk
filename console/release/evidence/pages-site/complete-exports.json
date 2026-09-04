@@ -1,0 +1,75 @@
+{
+  "feature": "complete-exports",
+  "surface": "pages-site",
+  "verification": "inspected-real-built-site",
+  "generatedAt": "2026-08-26T11:32:12.261Z",
+  "artifact": "console/site/dist/documentation.html",
+  "artifactSha256": "5e90fa00c7b0a3d4acd66848d339f1d0b28c9675932309b0711a3dd67724f654",
+  "runtime": "console/site/dist/app.js",
+  "runtimeSha256": "3c2c255fe2ba7675c4ddc2bf73b42c302bac5da4162cf24dfe36b5d7e7bad452",
+  "sources": [
+    {
+      "path": "console/site/app.js",
+      "sha256": "618cacd6b7afb3334904ece760305582700535bf3d66d0b4ac65b2fb065f98af"
+    },
+    {
+      "path": "console/site/styles.css",
+      "sha256": "d2c9c9a0c42818333b4a97382581a6a98e1dec907d029594a91b91e8dc28fdc2"
+    }
+  ],
+  "driver": "loopback Chrome DevTools Protocol against a headless Chromium under a throwaway profile; exactly one page target, at the expected URL, proven before any evaluation",
+  "targetsOnTheDebuggingPort": [
+    {
+      "type": "page",
+      "url": "http://127.0.0.1:64915/documentation.html"
+    },
+    {
+      "type": "browser_ui",
+      "url": "chrome://omnibox-popup.top-chrome/"
+    },
+    {
+      "type": "browser_ui",
+      "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html"
+    }
+  ],
+  "page": "documentation.html",
+  "capture": "console/release/captures/pages-site/complete-exports.png",
+  "captureBytes": 85010,
+  "captureSha256": "38443f237eb614d4fb2004250d219e671ce4a532d657d48b8dcc122e0a7f0bb8",
+  "subject": "#doc-export-format",
+  "subjectBox": {
+    "width": 128,
+    "height": 48
+  },
+  "interaction": {
+    "formatsOffered": [
+      "json",
+      "jsonl",
+      "yaml",
+      "toml",
+      "xml",
+      "csv",
+      "tsv",
+      "markdown",
+      "html",
+      "sql"
+    ],
+    "formatCount": 10,
+    "lossStatementPerFormat": {
+      "json": "",
+      "jsonl": "",
+      "yaml": "",
+      "toml": "",
+      "xml": "",
+      "csv": "",
+      "tsv": "",
+      "markdown": "",
+      "html": "",
+      "sql": ""
+    },
+    "formatsDeclaringALoss": [],
+    "everyFormatWasSelectedAndTheReadoutRecomputed": 10,
+    "destinationsBehindTheExport": 1,
+    "whyNoLossIsDeclared": "the rows are flat records of plain-identifier string fields, so none of the ten offered formats loses anything; the readout is computed from the rows rather than fixed, and an empty statement here is the honest one"
+  }
+}

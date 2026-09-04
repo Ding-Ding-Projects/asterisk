@@ -1,0 +1,57 @@
+{
+  "feature": "provider-markup-rendering",
+  "surface": "pages-site",
+  "verification": "inspected-real-built-site",
+  "generatedAt": "2026-08-26T11:32:17.384Z",
+  "artifact": "console/site/dist/downloads.html",
+  "artifactSha256": "101d6793d9871b7e13fb6ba043a93045d933b7251dd269c292e07cd5f481b775",
+  "runtime": "console/site/dist/app.js",
+  "runtimeSha256": "3c2c255fe2ba7675c4ddc2bf73b42c302bac5da4162cf24dfe36b5d7e7bad452",
+  "sources": [
+    {
+      "path": "console/site/app.js",
+      "sha256": "618cacd6b7afb3334904ece760305582700535bf3d66d0b4ac65b2fb065f98af"
+    },
+    {
+      "path": "console/site/styles.css",
+      "sha256": "d2c9c9a0c42818333b4a97382581a6a98e1dec907d029594a91b91e8dc28fdc2"
+    }
+  ],
+  "driver": "loopback Chrome DevTools Protocol against a headless Chromium under a throwaway profile; exactly one page target, at the expected URL, proven before any evaluation",
+  "targetsOnTheDebuggingPort": [
+    {
+      "type": "page",
+      "url": "http://127.0.0.1:64915/downloads.html"
+    },
+    {
+      "type": "browser_ui",
+      "url": "chrome://omnibox-popup.top-chrome/"
+    },
+    {
+      "type": "browser_ui",
+      "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html"
+    }
+  ],
+  "page": "downloads.html",
+  "capture": "console/release/captures/pages-site/provider-markup-rendering.png",
+  "captureBytes": 98294,
+  "captureSha256": "6345cebe1bbcf977b04979d7e22327fa6d249cce025427f96306ccf27ccb91de",
+  "subject": "#release-notes",
+  "subjectBox": {
+    "width": 595,
+    "height": 113
+  },
+  "interaction": {
+    "renderedAsBlocks": true,
+    "childElementCount": 1,
+    "tagsRendered": [
+      "p"
+    ],
+    "unrenderedMarkdownHeadingsLeftInText": false,
+    "emptyStateText": null,
+    "dangerousElementsInOutput": [],
+    "inlineEventHandlersInOutput": 0,
+    "linkHrefsInOutput": [],
+    "linksOutsideTheAllowedSchemes": []
+  }
+}
