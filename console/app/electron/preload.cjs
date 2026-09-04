@@ -51,6 +51,17 @@ const api = Object.freeze({
     path: () => ipcRenderer.invoke('local-data:path'),
     openFolder: () => ipcRenderer.invoke('local-data:open-folder'),
   }),
+  // The `ding-pbx://` product route's renderer end. `pending` is pulled once on mount and
+  // is also the signal that tells the main process a listener exists here, so a link
+  // arriving later is pushed rather than queued behind a listener that never registered.
+  deepLink: Object.freeze({
+    pending: () => ipcRenderer.invoke('deep-link:pending'),
+    onNavigate: listener => {
+      const handler = (_event, delivery) => listener(delivery);
+      ipcRenderer.on('deep-link:navigate', handler);
+      return () => ipcRenderer.removeListener('deep-link:navigate', handler);
+    },
+  }),
 });
 
 contextBridge.exposeInMainWorld('dingDesktop', api);

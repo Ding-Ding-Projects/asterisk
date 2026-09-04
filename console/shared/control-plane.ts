@@ -4,6 +4,8 @@
  * that was declared here and implemented nowhere, so the application could see its own
  * packaged runtime and had no way to run it.
  */
+import type { DeepLinkDelivery } from './deep-link.js';
+
 export type ControlPlaneAction =
   | 'server.list' | 'server.connect' | 'pbx.snapshot' | 'pbx.apply'
   | 'server.inventory.list' | 'server.inventory.add' | 'server.inventory.update'
@@ -190,6 +192,24 @@ export interface DingDesktopApi {
     path(): Promise<string>;
     /** Opens it in the platform's file manager, or reports exactly why not. */
     openFolder(): Promise<{ ok: true } | { ok: false; reason: string }>;
+  };
+  /**
+   * The `ding-pbx://destination/<id>` product route -- the address the design-parity
+   * capture manifest records for every audited destination, arriving from the operating
+   * system through the main process. See `shared/deep-link.ts` for every rule about what
+   * such a link may say and which parts of the capture tuple this build can honour.
+   *
+   * Optional for the same reason `editors` is: a hosted browser tab has no operating
+   * system handing it a scheme link and no main process to receive one, so the HTTP
+   * bridge omits the field rather than supplying a no-op that never fires.
+   */
+  deepLink?: {
+    /** Every link that arrived before this renderer was listening, drained in arrival
+     *  order. Calling it is also what tells the main process a listener now exists, so
+     *  the next link is pushed to `onNavigate` instead of joining this queue. */
+    pending(): Promise<DeepLinkDelivery[]>;
+    /** Subscribes to every link that arrives while running; returns an unsubscribe. */
+    onNavigate(listener: (delivery: DeepLinkDelivery) => void): () => void;
   };
 }
 

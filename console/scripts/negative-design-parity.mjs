@@ -46,5 +46,12 @@ mustFail('reclassify the connection pill as chrome, so the design\'s invented re
 mustFail('drop one area from the bar entirely', (data) => { delete data.chromeParityBar.areas.tabStrip; });
 mustFail('add an area the pinned bar never decided a role for', (data) => { data.chromeParityBar.areas.mysteryPanel = { role: 'data', why: 'nobody said' }; });
 mustFail('strip the explanation of why the tolerance is zero', (data) => { delete data.chromeParityBar.whyToleranceIsZero; });
+/* The product-route column. It named an address nothing answered for as long as it existed,
+ * and nothing refused it because nothing read it; a scheme is registered and parsed now, so
+ * pointing the template at a different one has to go red here. Two directions, because a
+ * check that only refuses a foreign scheme would still wave through this scheme addressing
+ * something it never defined. */
+mustFail('point the product-route template at a scheme this application does not register', (data) => { data.evidenceTemplates.builtRoute = 'ding-pbx-console://open/{id}?state=default'; });
+mustFail('address the product route to an authority this scheme never defined', (data) => { data.evidenceTemplates.builtRoute = 'ding-pbx://screen/{id}?state=default'; });
 validateParityInventory(source, { allowUnverified: true });
 console.log('GREEN: restored design parity inventory passed exact-boundary validation.');

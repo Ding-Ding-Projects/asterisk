@@ -5,7 +5,7 @@
 Install: download the latest unsigned Windows installer from the [Releases page](https://github.com/Ding-Ding-Projects/asterisk/releases/latest) and run it — it will show an unknown-publisher warning (see [Installers are unsigned](#installers-are-unsigned)).
 Documentation and downloads: **https://ding-ding-projects.github.io/asterisk/**
 
-**Contents:** [What it is](#what-ding-pbx-console-is) · [What it looks like](#what-it-looks-like) · [Reaching a PBX](#reaching-a-pbx) · [Build and installer scripts](#build-and-installer-scripts) · [The bundled WSL runtime](#the-bundled-wsl-runtime) · [Safety model](#the-control-planes-safety-model) · [Testing](#testing) · [Documentation](#documentation) · [Contributing](#contributing) · [What is not done yet](#what-is-not-done-yet) · [This is a fork of Asterisk](#this-is-a-fork-of-asterisk) · [How long this would take a person](#how-long-this-would-take-a-person-to-write)
+**Contents:** [What it is](#what-ding-pbx-console-is) · [What it looks like](#what-it-looks-like) · [Reaching a PBX](#reaching-a-pbx) · [Opening a screen from a link](#opening-a-screen-from-a-link) · [Build and installer scripts](#build-and-installer-scripts) · [The bundled WSL runtime](#the-bundled-wsl-runtime) · [Safety model](#the-control-planes-safety-model) · [Testing](#testing) · [Documentation](#documentation) · [Contributing](#contributing) · [What is not done yet](#what-is-not-done-yet) · [This is a fork of Asterisk](#this-is-a-fork-of-asterisk) · [How long this would take a person](#how-long-this-would-take-a-person-to-write)
 
 ---
 
@@ -31,6 +31,27 @@ The console discovers or connects to a target through:
 - **a remote Debian or Ubuntu host** reached over SSH with scoped trust-on-first-use host-key handling.
 
 Every one of those routes goes through the same bounded control plane described below — there is no path that reaches a target through an unrestricted shell.
+
+</summary>
+</details>
+
+<details>
+<summary><strong>Opening a screen from a link</strong></summary>
+
+An installed copy registers `ding-pbx://`, so one address opens the console at one screen:
+
+```
+ding-pbx://destination/cdr
+ding-pbx://destination/appearance?state=default&theme=dark&width=1440&height=1000&scale=1
+```
+
+A second click moves the copy already running rather than starting another. `width` and
+`height` are applied to the window; `theme=light` and any `scale` other than `1` are **refused
+by name**, because this build has no light palette to switch to and no window can change the
+scale factor of the display it is on. A refused link says so on screen rather than doing
+nothing quietly.
+
+Full account: [`console/docs/platform/product-route.md`](console/docs/platform/product-route.md).
 
 </summary>
 </details>

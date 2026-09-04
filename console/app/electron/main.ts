@@ -15,6 +15,8 @@ import {
 import { MAX_DISPLAY_NAME_LENGTH } from '../renderer/src/display-name.js';
 import { detectInstalledEditors, openInEditor, readEditorSettingsSnapshot } from '../../control-plane/editor-launch.js';
 import { openFolderInFileManager } from '../../control-plane/local-folder.js';
+import { DEEP_LINK_SCHEME, firstDeepLinkInArgv, parseDeepLink } from '../../shared/deep-link.js';
+import type { DeepLinkDelivery } from '../../shared/deep-link.js';
 
 let mainWindow: BrowserWindow | null = null;
 const userDataPath = app.getPath('userData');
@@ -171,11 +173,73 @@ ipcMain.handle('updater:restart-to-install', async (): Promise<UpdaterRestartRes
   return result;
 });
 
+/* ---------------------------------------------------------------- the product route
+ *
+ * `ding-pbx://destination/<id>?state=…&theme=…&width=…&height=…&scale=…` opens this
+ * application at that destination. Every rule about what such a link may say lives in
+ * shared/deep-link.ts and is unit-tested there; this file is the plumbing that gets one
+ * from the operating system to the renderer, and nothing here re-decides any of it.
+ *
+ * DELIVERY IS A QUEUE, NOT A BROADCAST, and the reason is a race that would have been
+ * invisible. A link handed in on the command line is known before the window exists, so
+ * pushing it to the renderer means pushing it at a listener that has not been registered
+ * yet; the send succeeds, nothing receives it, and the link silently does nothing. So the
+ * renderer PULLS on mount (`deep-link:pending`), and only once it has pulled -- which is
+ * proof its listener exists -- does a later link get pushed. */
+let deepLinkQueue: DeepLinkDelivery[] = [];
+/** Set by the renderer's first `deep-link:pending` call, which is the only evidence the
+ *  main process has that anything is listening on the other channel. */
+let rendererTakesDeepLinks = false;
+
+/** One URL from the command line into either an accepted target or the refusal it earned.
+ *  A refusal travels: a link that quietly does nothing cannot be told apart from one the
+ *  operating system never routed here in the first place. */
+function deliveryFor(url: string | undefined): DeepLinkDelivery | undefined {
+  if (url === undefined) return undefined;
+  const parsed = parseDeepLink(url);
+  return parsed.ok ? { ok: true, target: parsed.target } : { ok: false, reason: parsed.reason, url };
+}
+
+/** The link this process was started with, if it was started with one. Read once, here,
+ *  rather than at each use: `process.argv` does not change, and re-reading it in two places
+ *  invites the two to disagree about which argument won. */
+const startupDelivery = deliveryFor(firstDeepLinkInArgv(process.argv));
+if (startupDelivery) deepLinkQueue.push(startupDelivery);
+
+function receiveDeepLink(url: string | undefined): void {
+  const delivery = deliveryFor(url);
+  if (!delivery) return;
+  if (delivery.ok && mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.setContentSize(delivery.target.width, delivery.target.height);
+  }
+  if (rendererTakesDeepLinks && mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('deep-link:navigate', delivery);
+  } else {
+    deepLinkQueue.push(delivery);
+  }
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+}
+
+ipcMain.handle('deep-link:pending', (): DeepLinkDelivery[] => {
+  rendererTakesDeepLinks = true;
+  const drained = deepLinkQueue;
+  deepLinkQueue = [];
+  return drained;
+});
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1440, height: 920, minWidth: 920, minHeight: 640, frame: false, backgroundColor: '#101510', show: false, title: 'Ding PBX Console',
     webPreferences: { preload: join(import.meta.dirname, '../../../app/electron/preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
+  /* A link that names a size gets that size, before the window is ever shown, so the route
+   * delivers the tuple it declares rather than a window of whatever size happened to be
+   * default. The parser has already refused anything below this window's own minimums, so
+   * this cannot ask for a box the window would silently widen. */
+  if (startupDelivery?.ok) mainWindow.setContentSize(startupDelivery.target.width, startupDelivery.target.height);
   mainWindow.once('ready-to-show', () => mainWindow?.show());
   if (process.env.VITE_DEV_SERVER_URL) mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
   else mainWindow.loadFile(join(import.meta.dirname, '../../../dist/index.html'));
@@ -226,7 +290,29 @@ ipcMain.handle('local-data:open-folder', async () => openFolderInFileManager(use
 
 if (handleSquirrelEvent(processHostess(() => app.quit())).handled) {
   app.quit();
+} else if (!app.requestSingleInstanceLock()) {
+  /* A second launch exists to hand its command line to the first and leave. Windows starts a
+   * fresh process for every `ding-pbx://` click, so without this the route would open a
+   * second copy of the console each time instead of moving the one already running. The lock
+   * is scoped to the user-data directory, which is why the capture harness -- which always
+   * launches with its own task-scoped `--user-data-dir` -- is unaffected by it and still gets
+   * its own instance even while an ordinary one is open. */
+  app.quit();
 } else {
+  app.on('second-instance', (_event, argv) => receiveDeepLink(firstDeepLinkInArgv(argv)));
+  /* macOS delivers a scheme link as an event rather than on the command line. Registered
+   * because leaving it out would make the route silently dead there rather than obviously
+   * absent; recorded plainly as UNEXERCISED, because this project's delivery scope is
+   * Windows and nothing here has been run on macOS. */
+  app.on('open-url', (event, url) => { event.preventDefault(); receiveDeepLink(url); });
+  /* Registered with the operating system only from an installed copy. A development
+   * checkout doing this would point the machine's `ding-pbx://` handler at whichever
+   * electron.exe happened to run last, hijacking the scheme for every installed copy on
+   * the same account. Handling a link is unconditional either way -- a URL passed on the
+   * command line is read whether or not this build is the registered handler -- so a
+   * development run can still be driven to a destination, it just is not what the shell
+   * launches. */
+  if (app.isPackaged) app.setAsDefaultProtocolClient(DEEP_LINK_SCHEME);
   app.whenReady().then(createWindow).then(scheduleUpdateChecks);
   app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

@@ -48,6 +48,8 @@ import {
   registerLocalHistoryScreen,
 } from './local-history-screen';
 import type { ControlPlaneResponse, PbxReadView } from '../../../shared/control-plane';
+import { resolveDeepLinkDestination } from '../../../shared/deep-link';
+import type { DeepLinkDelivery } from '../../../shared/deep-link';
 import { ServerSwitcher } from './servers';
 import { buildEndpointDraft, endpointDocument, PJSIP_RESOURCE, WIZARD_CONTROLS } from './endpoint-create';
 import {
@@ -326,6 +328,12 @@ interface Shell {
   /** Set by the app; the compiled menus call it for anything with a real effect. */
   hostAction?: (kind: HostActionKind, payload: Record<string, unknown>) => void;
   set(key: string, value: unknown): void;
+  /** The compiled shell's own navigation primitive: it moves the active screen AND the
+   *  open rail together. Setting `screen` alone leaves the section list showing whichever
+   *  rail was open before, so a destination reached that way arrives beside the wrong
+   *  list of siblings. Declared here so the `ding-pbx://` product route uses the same one
+   *  the rail buttons and the shell's own menus already do. */
+  openScreen(destinationId: string): void;
   setState(update: Record<string, unknown>): void;
   moveNode(id: string, dx: number, dy: number): void;
   addEdgeFrom(): void;
@@ -480,6 +488,9 @@ export class App extends Base {
   /** Torn down on unmount; set only when the desktop bridge actually reports
    *  accessibility-support changes (see `listenForScreenReader` below). */
   private stopScreenReaderListener: (() => void) | undefined;
+  /** The `ding-pbx://` route's unsubscribe, torn down on unmount like every other
+   *  bridge listener -- one that outlives the component fires into a dead tree. */
+  private stopDeepLinkListener: (() => void) | undefined;
 
   /** Read by the compiled `text`-kind control marked `action:'logo-status'`. */
   private logoStatusLine = 'The shipped mark.';
@@ -1134,6 +1145,11 @@ export class App extends Base {
     this.listenForProvisionSteps();
     this.startVoiceEnumeration();
     this.listenForScreenReader();
+    /* Outside the bootstrap chain for the same reason the provision listener is, and for
+     * one more: a link that started this process is already waiting in the main process's
+     * queue, and holding it behind a storage snapshot would leave the window sitting on
+     * the default screen for as long as that took. */
+    this.listenForDeepLinks();
     this.listenForPaletteChord();
     /* The configured server list is not a reading from any PBX — it exists before
      * anything is reachable and must be on screen whether or not discovery finds a
@@ -1173,6 +1189,8 @@ export class App extends Base {
     this.stopVoiceListener = undefined;
     this.stopScreenReaderListener?.();
     this.stopScreenReaderListener = undefined;
+    this.stopDeepLinkListener?.();
+    this.stopDeepLinkListener = undefined;
     this.stopPaletteKeys?.();
     this.stopPaletteKeys = undefined;
     /* Cancels anything mid-utterance and drops the voice-list subscription the narrator
@@ -2718,6 +2736,50 @@ What you can do: ${offered}.` : ''}`);
     if (!accessibility) return;
     void accessibility.isScreenReaderActive().then((active) => this.narrator.setScreenReaderActive(active));
     this.stopScreenReaderListener = accessibility.onChange((active) => this.narrator.setScreenReaderActive(active));
+  }
+
+  /**
+   * The renderer end of the `ding-pbx://destination/<id>` product route.
+   *
+   * Two sources, one handler. `pending()` drains whatever arrived before this component
+   * existed -- which is every link that started the process, since the operating system
+   * hands it in on the command line long before a renderer is running -- and `onNavigate`
+   * takes the ones that arrive afterwards. Calling `pending()` is also what tells the main
+   * process a listener is registered here, which is why the pull comes first: reversing the
+   * two would leave a window where main believes it can push and nothing is receiving.
+   */
+  private listenForDeepLinks(): void {
+    const deepLink = window.dingDesktop?.deepLink;
+    if (!deepLink) return;
+    void deepLink.pending().then((queued) => {
+      for (const delivery of queued) this.openDeepLink(delivery);
+    });
+    this.stopDeepLinkListener = deepLink.onNavigate((delivery) => this.openDeepLink(delivery));
+  }
+
+  /**
+   * Carries out one delivered link, or says why it could not be.
+   *
+   * Both refusals are reported rather than dropped. A link that silently does nothing is
+   * indistinguishable from one the operating system never routed here, so somebody who
+   * clicked it has no way to tell a typo from a broken installation.
+   *
+   * The membership check is the renderer's because the catalogue is: `ORDER` is the
+   * compiled design's own list of every destination this build renders, so a link naming a
+   * screen this version does not have is refused against the real list rather than against
+   * a copy of it kept somewhere else. It is deliberately the WHOLE catalogue and not the
+   * 32 audited destinations in `inventories/design-parity.json` -- the parity inventory is
+   * pinned to one audit and this build has more screens than that audit covered.
+   */
+  private openDeepLink(delivery: DeepLinkDelivery): void {
+    if (!delivery.ok) { this.toast(`That link could not be opened. ${delivery.reason}`); return; }
+    const resolved = resolveDeepLinkDestination(delivery.target, ORDER as string[]);
+    if (!resolved.ok) { this.toast(`That link could not be opened. ${resolved.reason}`); return; }
+    /* Not `set('screen', …)`: see `Shell.openScreen`. Arriving on the right screen beside
+     * the wrong rail's section list is the half-navigation this avoids. */
+    this.openScreen(resolved.destinationId);
+    const screen = (SCREENS as Record<string, { title?: string }>)[resolved.destinationId];
+    this.toast(`Opened ${screen?.title ?? resolved.destinationId} from a link.`);
   }
 
   /**

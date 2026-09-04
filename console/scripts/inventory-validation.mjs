@@ -134,6 +134,23 @@ export function validateParityInventory(data, { allowUnverified = false } = {}) 
   if (data.sourceArchive?.sha256 !== '9A4284745A745C18A18B0A23D2A2F5851A79F9B6EFCBC5EE30EDCD69CEA2863F') throw new Error('design parity inventory: source archive SHA-256 drift');
   if (data.sourceArchive?.verification !== 'independent-authoritative-audit') throw new Error('design parity inventory: source verification label drift');
   exactKeys(data.evidenceTemplates, parityTemplateKeys, 'design parity evidenceTemplates');
+  /* The product-route column has to be an address the application actually answers.
+   *
+   * It was not, for as long as it existed: `captureContract.builtRouteStatus` recorded the
+   * template as "a committed route template only; no custom protocol handler is registered",
+   * and nothing refused it because nothing read it. A scheme is now registered
+   * (`app.setAsDefaultProtocolClient` in app/electron/main.ts) and parsed
+   * (shared/deep-link.ts), so this pins the one prefix that reader accepts.
+   *
+   * Pinned as an exact string rather than shape-checked, and deliberately duplicated from
+   * `DEEP_LINK_SCHEME`/`DEEP_LINK_HOST` rather than imported: this validator is plain
+   * JavaScript and the reader is TypeScript, so importing it would mean building it. The
+   * duplication is safe because it is not the only check -- `tests/control-plane/deep-link.test.ts`
+   * feeds every generated route through the real parser, so the two cannot drift apart
+   * silently in either direction. */
+  if (!data.evidenceTemplates.builtRoute.startsWith('ding-pbx://destination/')) {
+    throw new Error("design parity inventory: evidenceTemplates.builtRoute must be a 'ding-pbx://destination/' route this application registers and can open");
+  }
   validateChromeParityBar(data.chromeParityBar);
   if (data.auditBaseline?.destinationCount !== 32) throw new Error('design parity inventory: destination count must be 32');
   exactSet(Object.keys(data.auditBaseline?.railCounts ?? {}), Object.keys(exactRails), 'rail identifiers');

@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { ControlPlaneRequest, ControlPlaneResponse, DingDesktopApi, UpdaterStatusForRenderer, UpdaterRestartResult } from '../../shared/control-plane.js';
+import type { DeepLinkDelivery } from '../../shared/deep-link.js';
 
 const api: DingDesktopApi = {
   platform: process.platform,
@@ -47,6 +48,16 @@ const api: DingDesktopApi = {
   localData: {
     path: () => ipcRenderer.invoke('local-data:path') as ReturnType<NonNullable<DingDesktopApi['localData']>['path']>,
     openFolder: () => ipcRenderer.invoke('local-data:open-folder') as ReturnType<NonNullable<DingDesktopApi['localData']>['openFolder']>,
+  },
+  deepLink: {
+    /** Pulled once on mount. Invoking it is also what tells the main process a listener
+     *  exists on this side, so a link arriving later can be pushed rather than queued. */
+    pending: () => ipcRenderer.invoke('deep-link:pending') as Promise<DeepLinkDelivery[]>,
+    onNavigate: (listener: (delivery: DeepLinkDelivery) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, delivery: DeepLinkDelivery) => listener(delivery);
+      ipcRenderer.on('deep-link:navigate', handler);
+      return () => ipcRenderer.removeListener('deep-link:navigate', handler);
+    },
   },
 };
 

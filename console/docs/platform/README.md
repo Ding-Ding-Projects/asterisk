@@ -46,6 +46,7 @@ The two surfaces referenced throughout are the desktop application (the installe
 - [Forge publishing](forge-publishing.md)
 - [Collapsible filters and statistics](collapsible-filters.md)
 - [Automatic updates](automatic-updates.md)
+- [The `ding-pbx://` product route](product-route.md)
 
 ## Exemptions
 
