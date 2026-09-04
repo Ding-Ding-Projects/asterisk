@@ -281,11 +281,11 @@
         },
         {
           "id": "regex-builder",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "non-blocking-notifications",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "status-hub",
@@ -325,7 +325,7 @@
         },
         {
           "id": "local-version-history",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "changelog-viewer",
@@ -337,11 +337,11 @@
         },
         {
           "id": "complete-exports",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "bulk-actions",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "accessibility",
@@ -353,7 +353,7 @@
         },
         {
           "id": "personal-vocabulary-upload",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "per-element-toy-locks",
@@ -373,7 +373,7 @@
         },
         {
           "id": "attention-modes",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "browser-extension-download-surfaces",
@@ -393,7 +393,7 @@
         },
         {
           "id": "bounded-overlays",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "context-menu-shortcuts",
@@ -409,7 +409,7 @@
         },
         {
           "id": "provider-markup-rendering",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "forge-publishing",
@@ -417,7 +417,7 @@
         },
         {
           "id": "collapsible-filters",
-          "status": "unverified"
+          "status": "verified"
         },
         {
           "id": "automatic-updates",

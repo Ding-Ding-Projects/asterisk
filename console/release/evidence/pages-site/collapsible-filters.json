@@ -1,0 +1,55 @@
+{
+  "feature": "collapsible-filters",
+  "surface": "pages-site",
+  "verification": "inspected-real-built-site",
+  "generatedAt": "2026-08-26T11:32:11.646Z",
+  "artifact": "console/site/dist/documentation.html",
+  "artifactSha256": "5e90fa00c7b0a3d4acd66848d339f1d0b28c9675932309b0711a3dd67724f654",
+  "runtime": "console/site/dist/app.js",
+  "runtimeSha256": "3c2c255fe2ba7675c4ddc2bf73b42c302bac5da4162cf24dfe36b5d7e7bad452",
+  "sources": [
+    {
+      "path": "console/site/app.js",
+      "sha256": "618cacd6b7afb3334904ece760305582700535bf3d66d0b4ac65b2fb065f98af"
+    },
+    {
+      "path": "console/site/styles.css",
+      "sha256": "d2c9c9a0c42818333b4a97382581a6a98e1dec907d029594a91b91e8dc28fdc2"
+    }
+  ],
+  "driver": "loopback Chrome DevTools Protocol against a headless Chromium under a throwaway profile; exactly one page target, at the expected URL, proven before any evaluation",
+  "targetsOnTheDebuggingPort": [
+    {
+      "type": "page",
+      "url": "http://127.0.0.1:64915/documentation.html"
+    },
+    {
+      "type": "browser_ui",
+      "url": "chrome://omnibox-popup.top-chrome/"
+    },
+    {
+      "type": "browser_ui",
+      "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html"
+    }
+  ],
+  "page": "documentation.html",
+  "capture": "console/release/captures/pages-site/collapsible-filters.png",
+  "captureBytes": 86203,
+  "captureSha256": "231234c05e20e1f09a297cf5a813e28d127fad14f1678fdca4a3886ffb238cab",
+  "subject": "#documentation-filters-panel",
+  "subjectBox": {
+    "width": 1315,
+    "height": 132
+  },
+  "interaction": {
+    "panelIsANativeDetailsElement": true,
+    "descriptivePanelIsANativeDetailsElement": true,
+    "controlsPanelOpenByDefault": true,
+    "descriptivePanelOpenByDefault": false,
+    "contentHiddenWhenCollapsed": false,
+    "contentShownWhenExpanded": true,
+    "filterStatusAfterQuery": " — filtering active",
+    "filterStatusAriaLive": "polite",
+    "visibleResultsAfterQuery": 1
+  }
+}
