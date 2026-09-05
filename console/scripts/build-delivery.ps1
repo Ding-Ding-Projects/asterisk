@@ -73,8 +73,14 @@ try {
         if (Test-Path -LiteralPath $packagingLogTemp) { Remove-Item -LiteralPath $packagingLogTemp -Force }
         & $node (Join-Path $consoleRoot 'scripts\copy-electron-cjs.mjs') --check
         if ($LASTEXITCODE -ne 0) { throw "copy-electron-cjs.mjs --check exited $LASTEXITCODE" }
-        $packageOutput = & $node (Join-Path $consoleRoot 'scripts\package-squirrel.mjs') 2>&1
-        $packageExit = $LASTEXITCODE
+        # Node writes its failure reason to stderr. Under Stop, 2>&1 turns the first stderr line
+        # into a terminating error and the real message never reaches the log; keep it as output.
+        $previousPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            $packageOutput = & $node (Join-Path $consoleRoot 'scripts\package-squirrel.mjs') 2>&1 | ForEach-Object { if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.ToString() } else { $_ } }
+            $packageExit = $LASTEXITCODE
+        } finally { $ErrorActionPreference = $previousPreference }
         $packageOutput | Tee-Object -LiteralPath $packagingLogTemp | Out-Host
         if ($packageExit -ne 0) { throw "package-squirrel.mjs exited $packageExit" }
 

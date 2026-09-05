@@ -152,3 +152,16 @@ test('release path invokes the target verifier and exposes a receipt-only post-i
   assert.match(wrapper, /validate-squirrel-runtime-receipt\.mjs/u);
   assert.match(wrapper, /Usage: validate-squirrel-runtime-receipt\.bat/u);
 });
+
+test('the packaging script generates School provenance before the input preflight can miss it', () => {
+  const root = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..', '..');
+  const source = readFileSync(join(root, 'console', 'scripts', 'package-squirrel.mjs'), 'utf8');
+  const writeIndex = source.search(/^\s*writeFileSync\(join\(consoleRoot, 'resources', 'school-mode-provenance[.]json'\)/m);
+  const preflightIndex = source.search(/^const missingInputs = findMissingPackagingInputs\(consoleRoot\);/m);
+  assert.ok(writeIndex >= 0, 'package-squirrel.mjs must write resources/school-mode-provenance.json');
+  assert.ok(preflightIndex >= 0, 'package-squirrel.mjs must run the packaging input preflight');
+  assert.ok(writeIndex < preflightIndex, 'School provenance must be written before the preflight');
+  for (const field of ['schemaVersion: 1', 'product: packageJson.name', 'packageVersion: version', 'candidateCommit,', 'appId: provenanceIdentity.appId']) {
+    assert.ok(source.includes(field), `School provenance must carry ${field}`);
+  }
+});

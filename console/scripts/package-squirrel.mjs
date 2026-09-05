@@ -36,6 +36,22 @@ if (publishing) {
 
 const head = spawnSync('git', ['-C', repoRoot, 'rev-parse', 'HEAD'], { encoding: 'utf8', shell: false });
 if (head.status !== 0 || head.stdout.trim() !== candidateCommit) throw new Error(`Candidate commit ${candidateCommit} does not match checkout HEAD ${head.stdout.trim()}.`);
+// School provenance is a generated packaging input: nothing else produces it, so it
+// is written here from the same identity the release record will carry, before the
+// hand-written input preflight can report it missing. electron-builder ships it via
+// extraResources and verify-keytar-packaged.mjs compares it against the release identity.
+{
+  const provenanceIdentity = parseBuilderIdentity(readFileSync(join(consoleRoot, 'electron-builder.yml'), 'utf8'));
+  const schoolProvenance = {
+    schemaVersion: 1,
+    product: packageJson.name,
+    productName: provenanceIdentity.productName,
+    appId: provenanceIdentity.appId,
+    packageVersion: version,
+    candidateCommit,
+  };
+  writeFileSync(join(consoleRoot, 'resources', 'school-mode-provenance.json'), `${JSON.stringify(schoolProvenance, null, 2)}\n`, 'utf8');
+}
 const missingInputs = findMissingPackagingInputs(consoleRoot);
 if (missingInputs.length > 0) throw new Error(`Packaging source inputs are missing or the wrong kind: ${missingInputs.join(', ')}.`);
 const builderConfig = readFileSync(join(consoleRoot, 'electron-builder.yml'), 'utf8');
