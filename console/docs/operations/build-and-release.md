@@ -128,3 +128,13 @@ authenticity.
   lanes' deltas together and never force a number.
 - A negative regression goes green → its fixture may be asserting something that progress
   made true. Force the condition instead of assuming it.
+- The installed app dies at launch with `ERR_MODULE_NOT_FOUND` for a `.cjs` file next to
+  `main.js` → `tsc` emits only `.ts`, so hand-written `.cjs` siblings must be copied into
+  `dist-electron/app/electron/` by `scripts/copy-electron-cjs.mjs` after emission. Both the
+  local `npm run build` path and `scripts/build-delivery.ps1` call it, and
+  `package-squirrel.mjs` lists the packaged `app.asar` to prove each sibling is at the path
+  the module loader resolves. `check-delivery-path.mjs` fails if either call is removed.
+  Release `0.1.302` shipped without the copy on the delivery path and reproduced this exactly.
+- `build-delivery.ps1` stops at `check-delivery-path.mjs` with `gh release list ... exit 4`
+  → `gh` has no token. The `build-package` job in `delivery.yml` must set `GH_TOKEN` from the
+  same secret chain the release job uses; the delivery-path contract asserts it.

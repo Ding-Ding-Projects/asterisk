@@ -4,6 +4,7 @@ import { existsSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync 
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { neededCjsSiblings } from './copy-electron-cjs.mjs';
 import {
   findMissingPackagingInputs,
   isUnsignedPortableExecutable,
@@ -72,6 +73,19 @@ const packagedSecureHelper = join(unpacked, 'resources', 'native-messaging', 'Di
 const packagedBroker = join(unpacked, 'resources', 'native-messaging', 'Ding-PBX-Console-NativeIngressBroker.exe');
 for (const path of [packagedRootfs, packagedRootfsProvenance, packagedUpdateManifest, packagedNativeHost, packagedSecureHelper, packagedBroker]) {
   if (!existsSync(path) || !statSync(path).isFile()) throw new Error(`Packaged resource is missing from the fresh unpacked output: ${path}`);
+}
+// The compiled main process imports hand-written .cjs siblings by bare relative
+// specifier. Prove they are inside the packaged asar at the exact path the ESM
+// loader will resolve, not merely somewhere in the config's file list.
+{
+  const asar = await import('@electron/asar');
+  const packagedAsar = join(unpacked, 'resources', 'app.asar');
+  if (!existsSync(packagedAsar)) throw new Error(`Packaged app.asar is missing: ${packagedAsar}`);
+  const entries = new Set(asar.listPackage(packagedAsar).map((entry) => entry.replace(/\\/g, '/')));
+  for (const name of neededCjsSiblings(join(consoleRoot, 'dist-electron', 'app', 'electron'))) {
+    const expected = `/dist-electron/app/electron/${name}`;
+    if (!entries.has(expected)) throw new Error(`Packaged app.asar lacks ${expected}; the installed app would fail with ERR_MODULE_NOT_FOUND at launch.`);
+  }
 }
 for (const path of [packagedNativeHost, packagedSecureHelper, packagedBroker]) {
   const sidecar = `${path}.sha256`;

@@ -38,6 +38,7 @@ box means the referenced external record was read back, not that the whole produ
 - [x] Replace inherited test and administration workflows with separate build/package/release and Pages publication workflows.
 - [x] Add unique release tags, workflow timing, SHA-256 records, safe failure artifacts, and runner fallback.
 - [x] Add a reproducible committed line counter with project, generated, and inherited-source attribution.
+- [x] Copy hand-written `.cjs` siblings on the delivery build path, prove them inside the packaged `app.asar`, and give the build job the `GH_TOKEN` its delivery-path contract needs (release `0.1.302` died at launch with `ERR_MODULE_NOT_FOUND`; the following three delivery runs failed before packaging on an unauthenticated `gh`).
 
 ## Design parity
 

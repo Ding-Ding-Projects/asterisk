@@ -52,6 +52,28 @@ if (!/package-squirrel\.mjs[\s\S]*packaging-build\.log[\s\S]*packaging-provenanc
 if (existsSync(join(consoleRoot, 'scripts', 'verify-squirrel-artifacts.ps1')) && !/verify-squirrel-artifacts\.ps1/i.test(localInstaller)) {
   throw new Error('local build-installer.ps1 must invoke the target-owned Squirrel verifier');
 }
+// tsc emits only .ts, so the hand-written .cjs siblings main.js imports must be
+// copied into dist-electron after emission and proven present before packaging.
+// 0.1.302 shipped without this and died at launch with ERR_MODULE_NOT_FOUND.
+const tscIndex = deliveryScript.search(/tsc['"\s)]*\)?\s+-b\s+--noCheck/i);
+const copyIndex = deliveryScript.search(/copy-electron-cjs\.mjs'\)\s*$/m);
+const copyCheckIndex = deliveryScript.indexOf("copy-electron-cjs.mjs') --check");
+const packageIndex = deliveryScript.indexOf('package-squirrel.mjs');
+if (tscIndex < 0 || copyIndex < 0 || copyIndex < tscIndex) {
+  throw new Error('build-delivery.ps1 must run copy-electron-cjs.mjs after TypeScript emission');
+}
+if (copyCheckIndex < 0 || packageIndex < 0 || copyCheckIndex > packageIndex) {
+  throw new Error('build-delivery.ps1 must run copy-electron-cjs.mjs --check before package-squirrel.mjs');
+}
+// --verify-gh-fields shells out to gh, which exits 4 without a token.
+if (/--verify-gh-fields/.test(deliveryScript)) {
+  const buildJobStart = delivery.search(/^  build-package:/m);
+  const stepsIndex = delivery.indexOf('    steps:', buildJobStart);
+  const buildJobEnv = delivery.slice(buildJobStart, stepsIndex < 0 ? undefined : stepsIndex);
+  if (buildJobStart < 0 || !/^\s{6}GH_TOKEN:\s*\$\{\{\s*secrets\./m.test(buildJobEnv)) {
+    throw new Error('delivery.yml build-package job must set GH_TOKEN because build-delivery.ps1 verifies installed gh fields');
+  }
+}
 const bootstrapIndex = deliveryScript.indexOf('& $bootstrap');
 const pathCheckIndex = deliveryScript.indexOf('check-delivery-path.mjs');
 const verifyFlagIndex = deliveryScript.indexOf('--verify-gh-fields');

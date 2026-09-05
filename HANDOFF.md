@@ -1,5 +1,13 @@
 # Handoff
 
+## Launch failure and red delivery lane, 2026-09-04
+
+- Installed `app-0.1.302` failed at startup: `ERR_MODULE_NOT_FOUND` for `probe-path.cjs` imported from `app.asar/dist-electron/app/electron/main.js`. Listing that asar confirmed 1,426 entries with no `/dist-electron/app/electron/probe-path.cjs` and a stray copy at `/app/electron/probe-path.cjs`.
+- Cause: `scripts/build-delivery.ps1` (the workflow path) re-implements the build inline and never called `scripts/copy-electron-cjs.mjs`, which commit `8f6b928dc3` had wired only into `npm run build` and `package:squirrel`.
+- Fix: the delivery script copies after `tsc -b --noCheck` and runs `--check` before `package-squirrel.mjs`; `package-squirrel.mjs` lists the packaged `app.asar` with `@electron/asar` and fails on a missing sibling; `check-delivery-path.mjs` guards both steps and was watched to fail red on each removal.
+- Separate failure: the last three `Build, package, and release` runs (latest `33839083970`) stopped in `check-delivery-path.mjs --verify-gh-fields` because the `build-package` job had no `GH_TOKEN` and `gh` exited 4. The job now sets `GH_TOKEN` from the release job's secret chain, and the contract asserts it.
+- Not yet proven at handoff time: a full packaged build from the fixed script and the resulting delivery run. Verify the next run's `build-package` job and the launch of the installer it produces before calling this closed.
+
 ## Current shipping state, measured 2026-08-31
 
 This section is authoritative for the current checkout. Sections below are historical records,

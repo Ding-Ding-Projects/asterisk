@@ -174,6 +174,8 @@ jobs:
       DING_PBX_VERSION: 0.1.${{ github.run_number }}
       DING_PBX_CANDIDATE_COMMIT: ${{ github.sha }}
       DING_PBX_RELEASE_TAG: ding-pbx-console-v0.0.${{ github.run_number }}-r${{ github.run_attempt }}
+      # check-delivery-path.mjs --verify-gh-fields shells out to gh; without a token gh exits 4.
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN }}
     steps:
       - name: Check out the exact source commit
         uses: actions/checkout@v4

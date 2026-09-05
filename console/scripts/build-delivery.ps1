@@ -62,12 +62,17 @@ try {
         Phase 'Emitting the Electron and server TypeScript without a type-check Chut.'
         & $node (Join-Path $consoleRoot 'node_modules\typescript\bin\tsc') -b --noCheck
         if ($LASTEXITCODE -ne 0) { throw "TypeScript emission exited $LASTEXITCODE" }
+        Phase 'Copying hand-written .cjs siblings into the compiled Electron tree.'
+        & $node (Join-Path $consoleRoot 'scripts\copy-electron-cjs.mjs')
+        if ($LASTEXITCODE -ne 0) { throw "copy-electron-cjs.mjs exited $LASTEXITCODE" }
         Phase 'Bundling the renderer with Vite.'
         & $node (Join-Path $consoleRoot 'node_modules\vite\bin\vite.js') build
         if ($LASTEXITCODE -ne 0) { throw "Vite bundle exited $LASTEXITCODE" }
         Phase 'Packaging and validating the unsigned Squirrel.Windows lap saps.'
         if (Test-Path -LiteralPath $output) { Remove-Item -LiteralPath $output -Recurse -Force }
         if (Test-Path -LiteralPath $packagingLogTemp) { Remove-Item -LiteralPath $packagingLogTemp -Force }
+        & $node (Join-Path $consoleRoot 'scripts\copy-electron-cjs.mjs') --check
+        if ($LASTEXITCODE -ne 0) { throw "copy-electron-cjs.mjs --check exited $LASTEXITCODE" }
         $packageOutput = & $node (Join-Path $consoleRoot 'scripts\package-squirrel.mjs') 2>&1
         $packageExit = $LASTEXITCODE
         $packageOutput | Tee-Object -LiteralPath $packagingLogTemp | Out-Host
