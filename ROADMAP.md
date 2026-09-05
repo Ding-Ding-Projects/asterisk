@@ -6,6 +6,7 @@ This short section records the current facts before the historical checklist bel
 box means the referenced external record was read back, not that the whole product is complete.
 
 - [x] `main` at `7c6e0c6c9520c6fd421cabf73bcbb6af15a18c60` is present locally and `refs/heads/main` on the Git server reads back to the same SHA.
+- [x] Canvas write proven on the built app: release `0.1.322` added `VoiceMail(5@default)` to `onboard-menu` extension 5 through the gate, the file gained the line, Asterisk reloaded it, and the canvas re-read it.
 - [x] The dialplan canvas writes: palette, wire, inspector edit, duplicate and delete are pending edits applied to `extensions.conf` through the gate and `pbx.apply`; every remaining toolbar control has a consumer.
 - [x] Fake-control sweep: wizard and server-form targets map to real connection kinds, the IVR screen writes what it previews, the dead Manager-interface group is withdrawn, appearance and arcade shortcuts act or say why not; `tests/contracts/live-controls.test.mjs` pins the inventory.
 - [x] The deploy wizard stands up a PBX on the managed WSL distro from the packaged console: release `0.1.317` applied 8 endpoints and an auto-attendant to `ding-pbx-console` on a real machine, verified in Asterisk and on the Endpoints and Dialplan canvas screens through real UI clicks.
