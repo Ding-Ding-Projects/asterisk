@@ -82,19 +82,38 @@ function parseSection(section: ConfigSection): Item[] {
   return items;
 }
 
+/**
+ * Serializes one context.
+ *
+ * The transport writes a changed document over the original file line by line, matching
+ * each entry to the original by key and occurrence, and appends whatever it cannot match at
+ * the end of the section. A new `same => n,…` line therefore lands at the section's end,
+ * under whatever extension happens to be last, and `n` would attach it there. So:
+ *
+ * - an untouched line goes back as the exact entry object it was read as (position and
+ *   separator preserved, which is what the post-write comparison checks);
+ * - a line edited in place keeps its key, position and separator with new text;
+ * - a NEW step is written as `exten => <ext>,<priority>,<App(...)>` with an explicit numeric
+ *   priority, appended after the section's existing entries: position-independent to
+ *   Asterisk, and placed where the writer will put it anyway.
+ */
 function serialize(name: string, items: Item[]): ConfigSection {
   const entries: Entry[] = [];
+  const appended: Entry[] = [];
   for (const item of items) {
     if (item.kind === 'entry') { entries.push(item.entry); continue; }
     item.block.lines.forEach((line, index) => {
-      const key = index === 0 ? 'exten' : 'same';
-      const value = index === 0 ? `${item.block.extension},${line.priority},${line.text}` : `${line.priority},${line.text}`;
-      /* An untouched line goes back exactly as it was read, separator included. */
-      if (line.original && line.original.key === key && line.originalText === line.text && line.original.value === value) entries.push(line.original);
-      else entries.push({ key, value, separator: DIALPLAN_SEPARATOR });
+      if (line.original) {
+        const key = line.original.key;
+        const value = key === 'exten' ? `${item.block.extension},${line.priority},${line.text}` : `${line.priority},${line.text}`;
+        if (line.originalText === line.text && line.original.value === value) entries.push(line.original);
+        else entries.push({ key, value, ...(line.original.separator ? { separator: line.original.separator } : {}) });
+        return;
+      }
+      appended.push({ key: 'exten', value: `${item.block.extension},${index + 1},${line.text}`, separator: DIALPLAN_SEPARATOR });
     });
   }
-  return { name, entries };
+  return { name, entries: [...entries, ...appended] };
 }
 
 function findBlock(items: Item[], extension: string): ExtensionBlock | undefined {
@@ -138,7 +157,8 @@ export function applyCanvasEdits(value: ConfigValue, edits: ReadonlyArray<Canvas
       const list = items(edit.context);
       const block = findBlock(list, edit.extension);
       if (block && !findBlock(list, edit.as)) {
-        list.push({ kind: 'block', block: { extension: edit.as, lines: block.lines.map((line) => ({ ...line })) } });
+        /* Copied lines are new lines: no `original`, so they are written fresh. */
+        list.push({ kind: 'block', block: { extension: edit.as, lines: block.lines.map((line) => ({ priority: line.priority, text: line.text })) } });
         summary.push(`${edit.context}: ${edit.extension} copied to ${edit.as}`);
       }
     } else if (edit.kind === 'set-step') {
@@ -151,7 +171,11 @@ export function applyCanvasEdits(value: ConfigValue, edits: ReadonlyArray<Canvas
       if (block && block.lines[edit.priority - 1]) {
         block.lines.splice(edit.priority - 1, 1);
         if (block.lines.length === 0) list.splice(list.findIndex((item) => item.kind === 'block' && item.block === block), 1);
-        else block.lines[0].priority = '1';
+        else if (edit.priority === 1) {
+          /* The block lost its `exten` head; a `same` line cannot lead. The remaining steps
+           * are rewritten as fresh explicit-priority lines, which the writer appends. */
+          block.lines = block.lines.map((line) => ({ priority: line.priority, text: line.text }));
+        }
         summary.push(`${edit.context}: ${edit.extension} priority ${edit.priority} removed`);
       }
     }

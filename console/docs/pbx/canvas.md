@@ -41,7 +41,7 @@ account for it.
 
 ## Configuration
 
-There is no settings form here. The toolbar offers exactly what works: Select and Wire tools, a Snap toggle that rounds moves to a 20 px grid, Dialplan / IVR / Queues layers that filter the drawn extensions by the applications they use, zoom that scales the automatic layout, Auto-arrange, Fit to view, Undo layout, and the apply and discard controls for pending changes. Layout lives in the console's own storage under `console.canvas.layout`; pending edits live only in the running window until applied or discarded. An unread or unavailable target produces an empty canvas with the control-plane reason.
+There is no settings form here. The toolbar offers exactly what works: Select and Wire tools, a Snap toggle that rounds moves to a 20 px grid, Dialplan / IVR / Queues layers that filter the drawn extensions by the applications they use, zoom that scales the automatic layout, Auto-arrange, Fit to view, Undo layout, and the apply and discard controls for pending changes. A new step is written as `exten => <extension>,<priority>,App(...)` with an explicit priority after the context's existing lines, because the target-side writer appends what it cannot match to the end of a context and a `same => n,…` line there would attach to the wrong extension. Layout lives in the console's own storage under `console.canvas.layout`; pending edits live only in the running window until applied or discarded. An unread or unavailable target produces an empty canvas with the control-plane reason.
 
 ## Failure modes and security
 
