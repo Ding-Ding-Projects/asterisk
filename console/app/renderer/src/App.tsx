@@ -50,7 +50,7 @@ import {
   buildManagerKickSessionCommand, buildModuleActionCommand, type ModuleActionKind,
 } from '../../../control-plane/write-commands';
 import { agiScriptRows } from './agi-scripting';
-import { canProvision, canRecoverRuntime, canStopRuntime, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
+import { canProvision, canRecoverRuntime, canStopRuntime, preferredDistribution, runtimeHint, runtimeLabel, type RuntimeStatus } from './runtime';
 import {
   buildLocalHistoryGroups, formatLocalHistoryEntry, LOCAL_HISTORY_FILTER_ALL, LOCAL_HISTORY_SCREEN_ID,
   registerLocalHistoryScreen,
@@ -1463,7 +1463,13 @@ export class App extends Base {
       this.forceUpdate();
       return;
     }
-    const distribution = distributions[0]!;
+    // Prefer the managed runtime over whichever distribution happens to sort first; the
+    // runtime status carries the managed name, and a stale one is refreshed here first.
+    if (!this.runtime?.managedDistribution) {
+      const runtime = await this.request('runtime.status');
+      if (runtime?.ok) this.runtime = runtime.data as RuntimeStatus;
+    }
+    const distribution = preferredDistribution(distributions, this.runtime?.managedDistribution) ?? distributions[0]!;
     this.target = { id: distribution, label: distribution, detail: 'connecting to the discovered target', connected: false };
     this.oneClickStage = 'Connecting to the discovered target';
     this.oneClickPct = '55%';

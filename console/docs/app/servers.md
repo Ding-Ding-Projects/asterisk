@@ -40,6 +40,11 @@ AMI for live events and CLI, ARI for Stasis applications.
 
 The server list is an honest local inventory. A discovered target is not labelled connected until `server.connect` confirms it. If the control plane cannot answer, the row retains the exact unavailable reason and the dashboard retries failed readings on its one-second refresh cadence. Over SSH the manager port is forwarded through the tunnel, so it never crosses the network unprotected — but only if tunnel forwarding stays enabled. The prompt asking a human to accept a new key is precisely how these attacks succeed. This console refuses instead of asking.
 
+- The dashboard reports `asterisk: command not found` on a machine that has the managed distribution → discovery is connecting to a different distribution. The console prefers `ding-pbx-console` whenever `wsl --list` includes it; if it still connects elsewhere, the runtime status did not report the managed name.
+- The wizard says the runtime cannot be created and mentions a missing base image → the packaged runtime provenance was rejected. The control plane accepts the schema version the generator writes (currently 2); a mismatch reports the whole payload as unavailable.
+- Asterisk starts and immediately dies with `Illegal instruction` although `asterisk -V` answers → the runtime was compiled for the build machine's CPU. The runtime image disables menuselect's `BUILD_NATIVE`; a rootfs built without that disable only runs on CPUs with the builder's instruction set.
+- Docker containers labelled `io.ding.pbx.project=ding-pbx-console` are discovered and readable through `docker exec`, but the console cannot deploy to or write into a container; only the `wsl` kind connects.
+
 ## Verification
 
 Exercise discovery with no target, discovery with a target whose daemon is stopped, a successful `server.connect`, and a refused connection. Confirm no row is labelled connected before the control-plane response, and that a failed dashboard read retries without relaunching the app.

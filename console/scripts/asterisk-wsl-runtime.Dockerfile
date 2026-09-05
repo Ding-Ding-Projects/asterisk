@@ -16,6 +16,8 @@ RUN test -n "$ASTERISK_SOURCE_REVISION" && \
     find . -type f -exec sh -c 'for path do if grep -Iq . "$path"; then sed -i "s/\r$//" "$path"; fi; done' sh {} + && \
     ./bootstrap.sh && \
     ./configure --with-pjproject-bundled --without-dahdi --without-pri --without-tonezone && \
+    make menuselect.makeopts && \
+    menuselect/menuselect --disable BUILD_NATIVE menuselect.makeopts && \
     make -j2 && \
     make install DESTDIR=/stage && \
     make samples DESTDIR=/stage

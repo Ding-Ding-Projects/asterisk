@@ -1,5 +1,15 @@
 # Handoff
 
+## Deploy smoke on WSL and Docker, 2026-09-05
+
+- Asked for a real PBX deploy smoke through the packaged console on WSL and on Docker. Three product poke guys stood in the way before any deploy could run, all found by driving and reading rather than by the suite:
+  - `bundledAsteriskRuntime()` in `console/control-plane/dispatch.ts` accepted provenance `schemaVersion === 1`; the generator writes 2 (`scripts/asterisk-runtime-provenance.mjs`). Every packaged runtime was `unavailable`, so the wizard went to the base-image fallback, which the package does not carry (`base-image.json` is not in `extraResources`). Fixed to accept 2; pinned by `tests/control-plane/bundled-runtime-provenance.test.ts` (red then green).
+  - `App.tsx` auto-selected `distributions[0]` from `wsl --list`; on this machine that is `lol`, hence the dashboard's `asterisk: command not found`. `preferredDistribution()` in `app/renderer/src/runtime.ts` now prefers the managed distribution; test in `tests/ui/runtime.test.tsx`.
+  - The Asterisk runtime image (`scripts/asterisk-wsl-runtime.Dockerfile`) compiled with menuselect's default `BUILD_NATIVE` (`-march=native`) on the GitHub runner. Pulled as a container on the i9-14900KF: `asterisk -V` answers, `asterisk -f` and `asterisk -F` die with `Illegal instruction` (exit 132). The older rootfs (built 2026-08-23) in the existing `ding-pbx-console` distro runs fine. Fixed by disabling `BUILD_NATIVE` between configure and make; guard test in `packaging-contract.test.mjs`.
+- Docker: the console has no Docker deploy path. Discovery lists containers labelled `io.ding.pbx.project=ding-pbx-console` and readings go through `docker exec`, but every write and connect rejects non-`wsl` kinds. A labelled container from `ghcr.io/ding-ding-projects/asterisk-runtime:5837764723…` was created for the smoke and is discovered by the app's own command; it cannot be a deploy target until that path exists.
+- The app pins its data directory to `%APPDATA%\Ding PBX Console`; `--user-data-dir` is honoured only in probe mode. The two earlier hidden-desktop launches therefore wrote `settings.json` there (`p_start_last_screen`, `dimSum.hasLaunchedBefore`), nothing else.
+- Machine state: WSL distros `docker-desktop`, `lol`, `test`, `ding-pbx-console` (Asterisk from the 2026-08-23 rootfs, daemon starts), `gitlab-gdk`, `test-instance`, `ding-pbx-test` (no asterisk). Docker 29.6.2.
+
 ## Launch failure and red delivery lane, 2026-09-04
 
 - Installed `app-0.1.302` failed at startup: `ERR_MODULE_NOT_FOUND` for `probe-path.cjs` imported from `app.asar/dist-electron/app/electron/main.js`. Listing that asar confirmed 1,426 entries with no `/dist-electron/app/electron/probe-path.cjs` and a stray copy at `/app/electron/probe-path.cjs`.

@@ -118,3 +118,18 @@ export function runtimeLabel(runtime: RuntimeStatus | undefined): string {
     default: return 'unknown';
   }
 }
+
+/**
+ * Which discovered WSL distribution to connect to first.
+ *
+ * Discovery returns names in the order `wsl --list --quiet` prints them, and the console
+ * used to take the first one. On a machine with any other distribution sorting ahead of
+ * the managed one, the dashboard probed that stranger, found no `asterisk` binary, and
+ * reported "command not found" while a working managed runtime sat further down the list.
+ * The managed distribution wins whenever it is present; otherwise the first name stands.
+ */
+export function preferredDistribution(discovered: ReadonlyArray<string>, managed: string | undefined): string | undefined {
+  if (!discovered.length) return undefined;
+  if (managed && discovered.includes(managed)) return managed;
+  return discovered[0];
+}

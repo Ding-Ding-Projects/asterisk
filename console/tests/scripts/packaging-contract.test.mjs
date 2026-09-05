@@ -180,3 +180,16 @@ test('the packaging script never publishes from electron-builder itself', () => 
   assert.ok(spawnLine, 'package-squirrel.mjs must invoke electron-builder for the squirrel target');
   assert.ok(spawnLine.includes("'--publish', 'never'"), 'electron-builder must run with --publish never; the workflow owns publication');
 });
+
+test('the Asterisk runtime image is not compiled for the build machine CPU', () => {
+  // menuselect enables BUILD_NATIVE (-march=native) by default. A runtime compiled on an
+  // AVX-512 runner died with SIGILL (exit 132) on an i9-14900KF desktop while `asterisk -V`
+  // still answered, so the defect only shows when the daemon actually starts.
+  const root = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..', '..');
+  const dockerfile = readFileSync(join(root, 'console', 'scripts', 'asterisk-wsl-runtime.Dockerfile'), 'utf8');
+  const configureAt = dockerfile.indexOf('./configure ');
+  const disableAt = dockerfile.indexOf('menuselect/menuselect --disable BUILD_NATIVE menuselect.makeopts');
+  const makeAt = dockerfile.indexOf('make -j');
+  assert.ok(configureAt >= 0 && disableAt >= 0 && makeAt >= 0, 'configure, the BUILD_NATIVE disable, and make must all be present');
+  assert.ok(configureAt < disableAt && disableAt < makeAt, 'BUILD_NATIVE must be disabled after configure and before make');
+});

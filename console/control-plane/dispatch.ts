@@ -437,7 +437,10 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
     if (!existsSync(rootfs) || !existsSync(provenance)) return { state: 'unavailable', reason: 'The packaged Asterisk WSL runtime is missing.' };
     try {
       const record = JSON.parse(readFileSync(provenance, 'utf8')) as Record<string, unknown>;
-      const valid = record.schemaVersion === 1
+      // The rootfs generator (scripts/asterisk-runtime-provenance.mjs) writes schemaVersion 2;
+      // pinning 1 here made every correctly built payload report "unavailable" and sent the
+      // deploy wizard to the base-image fallback that the package does not carry.
+      const valid = (record.schemaVersion === 1 || record.schemaVersion === 2)
         && typeof record.sourceCommit === 'string' && /^[0-9a-f]{40}$/iu.test(record.sourceCommit)
         && record.runtime === 'wsl2-linux-amd64'
         && typeof record.sha256 === 'string' && /^[0-9a-f]{64}$/iu.test(record.sha256)

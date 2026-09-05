@@ -5,6 +5,7 @@ import {
   canProvision,
   canRecoverRuntime,
   canStopRuntime,
+  preferredDistribution,
   runtimeHint,
   runtimeLabel,
   type ProvisionState,
@@ -121,4 +122,11 @@ test('stopping is refused when there is nothing registered to terminate', () => 
     assert.equal(canStopRuntime(status(state)), false, `stop was offered for ${state}, which has no registered distribution`);
   }
   assert.equal(canStopRuntime(undefined), false);
+});
+
+test('the managed distribution is connected first even when another sorts ahead of it', () => {
+  assert.equal(preferredDistribution(['lol', 'test', 'ding-pbx-console', 'gitlab-gdk'], 'ding-pbx-console'), 'ding-pbx-console');
+  assert.equal(preferredDistribution(['lol', 'test'], 'ding-pbx-console'), 'lol');
+  assert.equal(preferredDistribution(['ubuntu'], undefined), 'ubuntu');
+  assert.equal(preferredDistribution([], 'ding-pbx-console'), undefined);
 });
