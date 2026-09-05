@@ -155,6 +155,7 @@ import {
 } from './accessibility-contract';
 import { EMPTY_RUNNER_STATE, statusLine, tick, type RunnerState } from './schedule-runner';
 import { buildOnboardPlan, ONBOARD_HOURS_NOTE, type OnboardAnswers, type OnboardPlanInputs } from './onboarding';
+import { applyCanvasEdits, describeEdits, parseStepText, projectEdits, stepText, type CanvasEdit } from './canvas-edits';
 import { listArticles, resolveLink, search as docsSearch, searchBounded as docsSearchBounded, suggested as docsSuggestedFor } from './docs-browser';
 import { DOCS_BUNDLE } from './generated/docs-bundle';
 import { parseMarkdown, plainTextExcerpt, type DocsBlock } from './docs-markdown';
@@ -844,6 +845,18 @@ export class App extends Base {
     this.showInfo = this.styledShowInfo;
     this.baseSet = this.set as (key: string, value: unknown) => void;
     this.set = this.screenTrackingSet;
+    /* The design's moveNode looks the node up in its own sample NODES and dereferences the
+     * result, so an arrow-key nudge on a live node that has never been dragged threw. The
+     * live canvas records its laid-out positions in canvasLayoutBase for exactly this. */
+    (this as unknown as { moveNode: (id: string, dx: number, dy: number) => void }).moveNode = this.moveLiveNode;
+    /* The wizard's target step offered Docker targets the control plane cannot connect to
+     * or deploy onto (only `wsl` and `remoteLinux` are wired). Offering a choice that can
+     * only end in a refusal is the decorative control this console refuses to ship, so the
+     * options are the two that work until a Docker path exists. */
+    for (const step of ONBOARD as Array<{ ctls?: Array<{ id: string; options?: string[] }> }>) {
+      const where = step.ctls?.find((c) => c.id === 'ob_where');
+      if (where?.options) where.options = where.options.filter((option) => option === 'This machine' || option === 'SSH');
+    }
     this.baseSetState = this.setState.bind(this) as (update: Record<string, unknown>, callback?: () => void) => void;
     this.setState = this.boundedOverlaySetState;
   }
@@ -1794,7 +1807,18 @@ export class App extends Base {
 
   private prepareServersScreen(): void {
     const screens = SCREENS as unknown as Record<string, { groups?: unknown[] }>;
-    screens.servers!.groups = [...SERVERS_BASE_GROUPS, this.runtimeMaintenanceGroup()];
+    /* The design's "Manager interface" group (AMI/ARI interface, manager port, TLS, tunnel
+     * forwarding, auto-reconnect, read-only) described a manager connection this console
+     * does not make: every reading and write goes through the target's own CLI over WSL.
+     * Its six controls stored values nothing read, so the group is not offered. */
+    const offered = (SERVERS_BASE_GROUPS as Array<{ title?: string; ctls?: Array<{ id: string; options?: string[] }> }>).filter((group) => group.title !== 'Manager interface');
+    /* Same reason as the wizard's target step: only the kinds the control plane connects to
+     * are offered, so no choice on this form can only end in a refusal. */
+    for (const group of offered) {
+      const kind = group.ctls?.find((c) => c.id === 'sv_kind');
+      if (kind?.options) kind.options = kind.options.filter((option) => option === 'Local' || option === 'SSH');
+    }
+    screens.servers!.groups = [...offered, this.runtimeMaintenanceGroup()];
   }
 
   // ---------------------------------------------------------------- local history
@@ -2731,7 +2755,26 @@ What you can do: ${offered}.` : ''}`);
       const raw = Number(values[key]);
       return Number.isFinite(raw) ? Math.round(raw) : fallback;
     };
-    const definition: IvrDefinition = {
+    const definition: IvrDefinition = this.ivrDefinition(values, num);
+    const generated = generateIvr(definition);
+    if ('problems' in generated) {
+      return `This cannot be generated yet: ${generated.problems.map((p) => p.message).join(' ')}`;
+    }
+    return renderDialplan(definition.name, generated);
+  }
+
+  /**
+   * The key map the IVR form currently describes -- not bound to any pjsip.conf-style
+   * key, the same reasoning every other control on this screen already carries, and
+   * held here rather than in `state.values` because it is a genuine ordered list, not
+   * a single scalar `readControlValues` shape can carry.
+   */
+  private ivrKeys: IvrKeyRoute[] = [];
+
+  /** The IVR the form currently describes, shared by the preview and the apply path so
+   *  what is written is exactly what was previewed. */
+  private ivrDefinition(values: Record<string, unknown>, num: (key: string, fallback: number) => number): IvrDefinition {
+    return {
       /* The screen edits one IVR at a time and does not name it yet, so the context is named
        * for what it is. Naming it after something the person did not choose would be worse. */
       name: 'main-menu',
@@ -2748,20 +2791,66 @@ What you can do: ${offered}.` : ''}`);
       promptFile: typeof values['i_prompt'] === 'string' ? values['i_prompt'] : '',
       keys: this.ivrKeys,
     };
-    const generated = generateIvr(definition);
-    if ('problems' in generated) {
-      return `This cannot be generated yet: ${generated.problems.map((p) => p.message).join(' ')}`;
-    }
-    return renderDialplan(definition.name, generated);
   }
 
-  /**
-   * The key map the IVR form currently describes -- not bound to any pjsip.conf-style
-   * key, the same reasoning every other control on this screen already carries, and
-   * held here rather than in `state.values` because it is a genuine ordered list, not
-   * a single scalar `readControlValues` shape can carry.
-   */
-  private ivrKeys: IvrKeyRoute[] = [];
+  private ivrApplying = false;
+
+  /** "Write this IVR to extensions.conf": the previewed context replaces any section of the
+   *  same name in the file read from the target, through the same gate and full-document
+   *  apply the wizard and the canvas use. Until this existed the screen previewed a dialplan
+   *  it could never write. */
+  private applyIvr(): void {
+    if (!this.target.connected) { this.fire('No target', 'Connect a target first; the IVR is written to its extensions.conf.'); return; }
+    if (this.ivrApplying) return;
+    const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
+    const num = (key: string, fallback: number) => { const raw = Number(values[key]); return Number.isFinite(raw) ? Math.round(raw) : fallback; };
+    const definition = this.ivrDefinition(values, num);
+    const generated = generateIvr(definition);
+    if ('problems' in generated) { this.fire('IVR not written', `This cannot be generated yet: ${generated.problems.map((p) => p.message).join(' ')}`); return; }
+    const section: ConfigSection = { name: definition.name, entries: generated.map((line) => ({ key: line.key, value: line.value })) };
+    this.areYouSure(
+      `Write [${definition.name}] to extensions.conf?`,
+      [`Target: ${this.target.label}`, `Context [${definition.name}] with ${section.entries.length} exten line(s) replaces any existing context of that name.`, '', renderDialplan(definition.name, generated).trim(), '', 'The file is backed up first, the dialplan is reloaded, and the result is verified.'].join('\n'),
+      3,
+      () => {
+        this.ivrApplying = true;
+        void (async () => {
+          try {
+            const resource = resourceForFile('extensions.conf') as string;
+            const read = await this.request('pbx.config', { serverId: this.target.id, payload: { resource } });
+            const before = (read as { data?: { value?: ConfigValue } } | undefined)?.data?.value;
+            if (!read?.ok || !Array.isArray(before)) { this.fire('IVR not written', (read as { message?: string } | undefined)?.message ?? 'extensions.conf could not be read from the target, so it was not written.'); return; }
+            const value: ConfigValue = [...before.filter((s) => s.name !== section.name), section];
+            const response = await this.request('pbx.apply', { serverId: this.target.id, payload: { documents: [{ resource, value, expectedBefore: before }] } });
+            if (!response?.ok) { this.fire('IVR not written', response?.message ?? 'The target refused the change.'); return; }
+            this.canvasReadings = undefined;
+            this.canvasExtensionsConf = undefined;
+            this.fire('IVR written', `[${definition.name}] is in extensions.conf on ${this.target.label} and the dialplan was reloaded.`);
+            this.onUserMutation('ivr-apply');
+          } finally {
+            this.ivrApplying = false;
+            this.forceUpdate();
+          }
+        })();
+      },
+    );
+  }
+
+  private ivrScreenPrepared = false;
+
+  /** Adds the one control the IVR screen was missing: a way to write what it previews. */
+  private prepareIvrScreen(): void {
+    if (this.ivrScreenPrepared) return;
+    this.ivrScreenPrepared = true;
+    const screens = SCREENS as unknown as Record<string, { groups?: Array<{ title?: string; desc?: string; ctls: unknown[] }> }>;
+    const groups = screens.ivr?.groups;
+    if (!groups || groups.some((g) => g.title === 'Write it')) return;
+    groups.push({
+      title: 'Write it',
+      desc: 'Writes the previewed context to extensions.conf on the connected target, replacing any context of the same name, and reloads the dialplan.',
+      ctls: [{ id: 'i_apply', label: 'Write this IVR to extensions.conf', kind: 'segmented', value: 'Write', options: ['Write'], action: 'ivr-apply', info: 'The exact text in the preview above is what lands in the file. The file is backed up first and the change is verified against the running Asterisk.' }],
+    });
+  }
 
   /** Whether this destination needs somewhere to send the caller -- the same three
    *  `generateIvr` itself requires a target for. Kept beside it rather than imported,
@@ -3888,6 +3977,7 @@ What you can do: ${offered}.` : ''}`);
     if (action === 'fcodes-parking-save') { void this.onSaveFeatureCodesParking(); return; }
     if (action === 'iaxpeers-save') { void this.onSaveIaxPeer(); return; }
     if (action === 'trunk-save') { void this.onSaveTrunk(); return; }
+    if (action === 'ivr-apply') { this.applyIvr(); return; }
     if (action === 'ivr-key-add') { this.onAddIvrKey(); return; }
     if (action === 'ivr-key-remove') { this.onRemoveIvrKey(); return; }
     if (action === 'ivr-audition') { void this.onAuditionIvrPrompt(); return; }
@@ -3965,15 +4055,21 @@ What you can do: ${offered}.` : ''}`);
   onAddServer = async (): Promise<void> => {
     const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
     const kindLabel = String(values.sv_kind ?? 'Local');
-    const kindMap: Record<string, string> = { Local: 'local', 'Local Docker': 'local-docker', SSH: 'ssh', 'SSH Docker': 'ssh-docker' };
-    const connectionKind = kindMap[kindLabel] ?? 'local';
+    /* Control-plane connection kinds (contracts.ts). The earlier 'local'/'ssh' labels matched
+     * nothing there, so every server added from this form was refused on connect. */
+    const kindMap: Record<string, string> = { Local: 'wsl', SSH: 'remoteLinux' };
+    const connectionKind = kindMap[kindLabel];
+    if (!connectionKind) {
+      this.fire('Not available yet', `${kindLabel} is not a connection this console can make: only this machine's WSL runtime and a Linux host over SSH are wired.`);
+      return;
+    }
     const host = String(values.sv_host ?? '');
     const input: { name: string; connectionKind: string; wslDistribution?: string; host?: string; user?: string; port?: number } = {
       name: host || `connection-${this.servers.servers.length + 1}`,
       connectionKind,
     };
-    if (connectionKind !== 'local') input.host = host;
-    if (connectionKind === 'ssh' || connectionKind === 'ssh-docker') {
+    if (connectionKind !== 'wsl') input.host = host;
+    if (connectionKind === 'remoteLinux') {
       input.user = String(values.sv_user ?? '');
       input.port = Number(values.sv_sshport ?? 22);
     }
@@ -4043,8 +4139,14 @@ What you can do: ${offered}.` : ''}`);
   private async onboardConnect(): Promise<void> {
     const values = (this.state as { values?: Record<string, unknown> }).values ?? {};
     const whereLabel = String(values.ob_where ?? 'This machine');
-    const whereMap: Record<string, string> = { 'This machine': 'local', 'Local Docker': 'local-docker', SSH: 'ssh', 'SSH Docker': 'ssh-docker' };
-    const connectionKind = whereMap[whereLabel] ?? 'local';
+    /* These are the control plane's own connection kinds (contracts.ts). The earlier labels
+     * ('local', 'ssh', …) matched nothing there, so every wizard connection was refused. */
+    const whereMap: Record<string, string> = { 'This machine': 'wsl', SSH: 'remoteLinux' };
+    const connectionKind = whereMap[whereLabel];
+    if (!connectionKind) {
+      this.fire('Not available yet', `${whereLabel} is not a target this console can connect to: only this machine's WSL runtime and a Linux host over SSH are wired. Docker targets are tracked separately.`);
+      return;
+    }
     const host = String(values.ob_host ?? '');
     const input: { name: string; connectionKind: string; host?: string } = {
       name: host || `connection-${this.servers.servers.length + 1}`,
@@ -7766,21 +7868,155 @@ It is shown once. The far end needs it to register.`);
 
   /** Real dialplan nodes/edges in the design's canvas shapes, with a bezier path per edge
    *  computed the same way the design computes it for its own sample graph. */
-  private canvasVals(designVals: Record<string, unknown>): Record<string, unknown> {
-    const readOnlyCanvas = () => this.fire(
-      'Dialplan canvas is read-only',
-      'This graph is read from the live target. Adding, deleting, duplicating, or rewiring a step needs a configuration-write path that this console does not provide.',
-    );
-    const graph = canvasValueOf(this.canvasReadings?.dialplan);
-    if (!graph) return {
-      nodes: [], edges: [], nodeCtls: [], edgeRows: [], nodeTitle: '', nodeApp: '',
-      addEdge: readOnlyCanvas, paletteNodes: [], canvasBgClick: () => this.set('nodeId', ''),
-    };
+  /** Pending canvas edits against extensions.conf, in the order they were made. They are
+   *  drawn into the graph immediately and reach the target only through the gate below. */
+  private canvasEdits: CanvasEdit[] = [];
+  /** Node id → laid-out position of the last drawn graph, so nudges and drags have a base
+   *  for a live node the design's own sample list has never heard of. */
+  private canvasLayoutBase = new Map<string, { x: number; y: number }>();
+  /** Previous layouts, newest last, for "Undo layout". */
+  private canvasLayoutHistory: Array<Record<string, { x: number; y: number }>> = [];
+  /** The node a Wire-tool click started from, until a second node completes the wire. */
+  private canvasWireSource: string | undefined;
+  private canvasApplying = false;
+  private static readonly CANVAS_LAYOUT_KEY = 'console.canvas.layout';
+  private canvasLayoutLoaded = false;
 
-    const nodePos = ((this.state as { nodePos?: Record<string, { x: number; y: number }> }).nodePos) ?? {};
-    const selected = (this.state as { nodeId?: string }).nodeId;
-    const laidOut = layoutNodes(graph);
+  private readCanvasLayout(): Record<string, { x: number; y: number }> {
+    try {
+      const raw = this.durableStorage.storage.getItem(App.CANVAS_LAYOUT_KEY);
+      const parsed = raw ? JSON.parse(raw) as Record<string, { x: number; y: number }> : {};
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch { return {}; }
+  }
+
+  private writeCanvasLayout(next: Record<string, { x: number; y: number }>): void {
+    const previous = ((this.state as { nodePos?: Record<string, { x: number; y: number }> }).nodePos) ?? {};
+    this.canvasLayoutHistory.push(previous);
+    if (this.canvasLayoutHistory.length > 20) this.canvasLayoutHistory.shift();
+    this.setState({ nodePos: next });
+    try { this.durableStorage.storage.setItem(App.CANVAS_LAYOUT_KEY, JSON.stringify(next)); } catch { /* layout is a convenience; the graph is the record */ }
+  }
+
+  private moveLiveNode = (id: string, dx: number, dy: number): void => {
+    const state = this.state as { nodePos?: Record<string, { x: number; y: number }>; snap?: boolean };
+    const current = state.nodePos?.[id] ?? this.canvasLayoutBase.get(id);
+    if (!current) return;
+    const grid = state.snap ? 20 : 1;
+    const next = { ...(state.nodePos ?? {}) };
+    next[id] = { x: Math.max(0, Math.round((current.x + dx) / grid) * grid), y: Math.max(0, Math.round((current.y + dy) / grid) * grid) };
+    this.writeCanvasLayout(next);
+  };
+
+  private pushCanvasEdit(edit: CanvasEdit): void {
+    this.canvasEdits = [...this.canvasEdits, edit];
+    this.onUserMutation('canvas:edit');
+    this.forceUpdate();
+  }
+
+  /** The gate, then `pbx.apply` with the whole file as it should become; on success the
+   *  canvas re-reads the target so what it draws is once more what Asterisk has loaded. */
+  private applyCanvasEdits(): void {
+    if (this.canvasEdits.length === 0) { this.fire('Nothing pending', 'No canvas change is waiting to be applied.'); return; }
+    if (this.canvasApplying) return;
+    const file = this.canvasExtensionsConf;
+    if (!file || file.state !== 'read' || !file.value) {
+      this.fire('Cannot apply yet', 'The console has not finished reading /etc/asterisk/extensions.conf from the target, so it cannot write it back safely. Try again in a moment.');
+      return;
+    }
+    const before = file.value;
+    const { value, summary } = applyCanvasEdits(before, this.canvasEdits);
+    const lines = [`Target: ${this.target.label}`, ...summary.map((line) => `• ${line}`), '', 'The file is backed up before it is touched, the dialplan is reloaded, and the result is verified against the running Asterisk.'];
+    this.areYouSure('Apply the canvas changes to extensions.conf?', lines.join('\n'), 3, () => {
+      if (this.canvasApplying) return;
+      this.canvasApplying = true;
+      void (async () => {
+        try {
+          const response = await this.request('pbx.apply', {
+            serverId: this.target.id,
+            payload: { documents: [{ resource: resourceForFile('extensions.conf'), value, expectedBefore: before }] },
+          });
+          if (!response?.ok) {
+            this.fire('Canvas changes not applied', response?.message ?? 'The target refused the change.');
+            return;
+          }
+          this.canvasEdits = [];
+          this.canvasReadings = undefined;
+          this.canvasExtensionsConf = undefined;
+          this.fire('Dialplan applied', `${summary.length} change${summary.length === 1 ? '' : 's'} written to extensions.conf and reloaded. The canvas now shows what Asterisk has loaded.`);
+          this.onUserMutation('canvas:apply');
+        } finally {
+          this.canvasApplying = false;
+          this.forceUpdate();
+        }
+      })();
+    });
+  }
+
+  private canvasVals(designVals: Record<string, unknown>): Record<string, unknown> {
+    const live = canvasValueOf(this.canvasReadings?.dialplan);
+    const state = this.state as { nodePos?: Record<string, { x: number; y: number }>; nodeId?: string; canvasTool?: string; snap?: boolean; layer?: string; zoom?: number; ctxKind?: string };
+    const pending = this.canvasEdits.length;
+    const applyOps = [
+      { icon: 'publish', label: pending ? `Apply ${pending} change${pending === 1 ? '' : 's'} to target` : 'Nothing to apply', run: () => this.applyCanvasEdits() },
+      { icon: 'backspace', label: pending ? 'Discard pending changes' : 'No pending changes', run: () => { if (!pending) { this.fire('Nothing pending', 'No canvas change is waiting.'); return; } this.canvasEdits = []; this.fire('Pending changes discarded', 'The canvas shows the loaded dialplan again.'); this.forceUpdate(); } },
+    ];
+    const emptyCanvas = {
+      nodes: [], edges: [], nodeCtls: [], edgeRows: [], nodeTitle: '', nodeApp: '', paletteNodes: [],
+      addEdge: () => this.fire('No dialplan loaded', 'Connect a target first; the canvas draws the dialplan it reads from there.'),
+      canvasBgClick: () => this.set('nodeId', ''),
+      canvasTools: [], canvasToggles: [], canvasLayers: [], canvasOps: applyOps,
+    };
+    if (!live) return emptyCanvas;
+
+    if (!this.canvasLayoutLoaded) {
+      this.canvasLayoutLoaded = true;
+      const stored = this.readCanvasLayout();
+      if (Object.keys(stored).length > 0 && Object.keys(state.nodePos ?? {}).length === 0) queueMicrotask(() => this.setState({ nodePos: stored }));
+    }
+
+    const layer = state.layer ?? 'Dialplan';
+    const isIvr = (node: { steps: Array<{ app: string }> }) => node.steps.some((s) => /^(Background|WaitExten|Read)$/iu.test(s.app));
+    const isQueue = (node: { steps: Array<{ app: string }> }) => node.steps.some((s) => /^Queue$/iu.test(s.app));
+    const projected = projectEdits(live, this.canvasEdits);
+    const visible = layer === 'IVR' ? projected.nodes.filter(isIvr) : layer === 'Queues' ? projected.nodes.filter(isQueue) : projected.nodes;
+    const visibleIds = new Set(visible.map((node) => node.id));
+    const graph = { nodes: visible, edges: projected.edges.filter(([a, b]) => visibleIds.has(a) && visibleIds.has(b)) };
+
+    const nodePos = state.nodePos ?? {};
+    const selected = state.nodeId;
+    const scale = Math.max(40, Math.min(200, state.zoom ?? 100)) / 100;
+    const laidOut = layoutNodes(graph).map((node) => ({ ...node, x: Math.round(node.x * scale), y: Math.round(node.y * scale) }));
+    this.canvasLayoutBase = new Map(laidOut.map((node) => [node.id, { x: node.x, y: node.y }]));
     const byId = new Map(laidOut.map((node) => [node.id, node]));
+    const wireSource = this.canvasWireSource;
+    const tool = state.canvasTool ?? 'select';
+    const connectFrom = (fromId: string, toId: string) => {
+      const from = projected.nodes.find((n) => n.id === fromId);
+      const to = projected.nodes.find((n) => n.id === toId);
+      if (!from || !to || from.id === to.id) return;
+      this.canvasWireSource = undefined;
+      this.pushCanvasEdit({ kind: 'connect', from: { context: from.context, extension: from.extension }, to: { context: to.context, extension: to.extension } });
+      this.toast(`${from.context} ${from.extension} now continues to ${to.context} ${to.extension} (pending)`);
+    };
+    const startWire = (fromId: string) => {
+      this.canvasWireSource = fromId;
+      this.set('canvasTool', 'wire');
+      this.toast('Wire: click the step this one should continue to');
+    };
+    const deleteNode = (node: { id: string; context: string; extension: string }) => this.areYouSure(
+      `Delete ${node.context} ${node.extension}`,
+      'The extension, every step under it, and every connection into or out of it are removed from extensions.conf when the pending changes are applied.',
+      3,
+      () => { this.pushCanvasEdit({ kind: 'delete-extension', context: node.context, extension: node.extension }); if (selected === node.id) this.set('nodeId', ''); },
+    );
+    const duplicateNode = (node: { context: string; extension: string }) => {
+      let candidate = `${node.extension}copy`;
+      let n = 2;
+      while (projected.nodes.some((other) => other.context === node.context && other.extension === candidate)) candidate = `${node.extension}copy${n++}`;
+      this.pushCanvasEdit({ kind: 'duplicate-extension', context: node.context, extension: node.extension, as: candidate });
+      this.set('nodeId', `${node.context}/${candidate}`);
+    };
 
     const NW = 196;
     const NH = 68;
@@ -7809,8 +8045,17 @@ It is shown once. The far end needs it to register.`);
       const on = node.id === selected;
       return {
         x: `${pos.x}px`, y: `${pos.y}px`, icon: node.icon, title: node.title, detail: node.detail,
-        border: on ? '#82D9A5' : '#333B34', selected: on, unselected: !on,
-        pick: () => this.set('nodeId', node.id),
+        border: on ? '#82D9A5' : wireSource === node.id ? '#FFD68A' : '#333B34', selected: on, unselected: !on,
+        pick: () => {
+          if (tool === 'wire') {
+            if (wireSource && wireSource !== node.id) { connectFrom(wireSource, node.id); return; }
+            this.canvasWireSource = node.id;
+            this.set('nodeId', node.id);
+            this.toast('Wire: now click the step it continues to');
+            return;
+          }
+          this.set('nodeId', node.id);
+        },
         onDragStart: (e: DragEvent) => {
           const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
           this.setState({ nodeId: node.id, nodeDrag: { id: node.id, dx: e.clientX - r.left, dy: e.clientY - r.top } });
@@ -7819,10 +8064,10 @@ It is shown once. The far end needs it to register.`);
         nudge: (dx: number, dy: number) => this.moveNode(node.id, dx, dy),
         left: () => this.moveNode(node.id, -20, 0), right: () => this.moveNode(node.id, 20, 0),
         up: () => this.moveNode(node.id, 0, -20), down: () => this.moveNode(node.id, 0, 20),
-        connect: readOnlyCanvas,
+        connect: () => startWire(node.id),
         ctx: (e: MouseEvent) => { e.preventDefault(); this.setState({ nodeId: node.id, ctxOpen: true, ctxX: `${e.clientX}px`, ctxY: `${e.clientY}px`, ctxTarget: node.title, ctxKind: 'node' }); },
-        dup: readOnlyCanvas,
-        del: readOnlyCanvas,
+        dup: () => { const live = projected.nodes.find((n) => n.id === node.id); if (live) duplicateNode(live); },
+        del: () => { const live = projected.nodes.find((n) => n.id === node.id); if (live) deleteNode(live); },
       };
     });
 
@@ -7834,54 +8079,117 @@ It is shown once. The far end needs it to register.`);
           rawKey: `${source.id}-${step.priority}`,
           showKey: false,
           kind: 'text',
-          value: `${step.app}(${step.data})`,
-          display: `${step.app}(${step.data})`,
+          value: stepText(step.app, step.data),
+          display: stepText(step.app, step.data),
           narrow: true,
+          set: (next: unknown) => {
+            const text = String(next ?? '').trim();
+            if (!text || text === stepText(step.app, step.data)) return;
+            const parsed = parseStepText(text);
+            if (!parsed.app) { this.fire('Step not changed', 'A step needs an application, written as App(arguments).'); return; }
+            this.pushCanvasEdit({ kind: 'set-step', context: source.context, extension: source.extension, priority: step.priority, app: parsed.app, data: parsed.data });
+          },
           onInfo: () => this.showInfo(
-            'Read-only dialplan step',
-            `Priority ${step.priority} is an observed ${step.app}(${step.data}) step from the live target. The inspector does not write dialplan changes.`,
-            'This step is read-only because the console has no dialplan write path.',
+            'Dialplan step',
+            `Priority ${step.priority} of ${source.context} ${source.extension} is ${stepText(step.app, step.data)}. Edit the text to change the application or its arguments; the change is pending until you apply the canvas changes to the target.`,
+            'Write the step as App(arguments), for example Dial(PJSIP/100,20).',
             '46%',
             '150px',
           ),
-          onWizard: readOnlyCanvas,
+          onWizard: () => this.areYouSure(
+            `Remove priority ${step.priority}`,
+            `${stepText(step.app, step.data)} is removed from ${source.context} ${source.extension} when the pending changes are applied; later steps move up.`,
+            3,
+            () => this.pushCanvasEdit({ kind: 'delete-step', context: source.context, extension: source.extension, priority: step.priority }),
+          ),
         }))
       : [];
 
     const nodeById = new Map(graph.nodes.map((candidate) => [candidate.id, candidate]));
-    const edgeRows = graph.edges.map(([from, to]) => ({
-      from: nodeById.get(from) ? `${nodeById.get(from)!.context} · ${nodeById.get(from)!.extension}` : from,
-      to: nodeById.get(to) ? `${nodeById.get(to)!.context} · ${nodeById.get(to)!.extension}` : to,
-      toOpts: [],
-      del: readOnlyCanvas,
-    }));
-    const canvasContextItems = (this.state as { ctxKind?: string }).ctxKind === 'node'
+    const labelOf = (id: string) => (nodeById.get(id) ? `${nodeById.get(id)!.context} · ${nodeById.get(id)!.extension}` : id);
+    const edgeRows = graph.edges.map(([from, to]) => {
+      const fromNode = nodeById.get(from);
+      const gotoStep = fromNode?.steps.find((s) => /^Goto$/iu.test(s.app) && s.data.split(',').map((p) => p.trim()).includes(nodeById.get(to)?.extension ?? ' '));
+      return {
+        from: labelOf(from),
+        to: labelOf(to),
+        toOpts: graph.nodes.filter((n) => n.id !== from).map((n) => ({ label: labelOf(n.id), on: n.id === to, off: n.id !== to, pick: () => connectFrom(from, n.id) })),
+        del: () => {
+          if (!fromNode) return;
+          if (!gotoStep) { this.fire('Connection is not a Goto', `${labelOf(from)} reaches ${labelOf(to)} through ${fromNode.steps.map((s) => s.app).join(', ')}; edit or remove that step in the inspector instead.`); return; }
+          this.pushCanvasEdit({ kind: 'delete-step', context: fromNode.context, extension: fromNode.extension, priority: gotoStep.priority });
+        },
+      };
+    });
+    const canvasContextItems = state.ctxKind === 'node' && source
       ? [
-          { icon: 'info', label: 'Inspect observed step', hint: '', act: () => { this.set('ctxOpen', false); this.showInfo('Read-only dialplan step', 'This menu item describes the selected step from the live target. The canvas has no dialplan write path.', 'This step is read-only.', '46%', '150px'); }, hover: () => {}, bg: '#1B211C' },
-          { icon: 'timeline', label: 'Connect to…', hint: 'C', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
-          { icon: 'content_copy', label: 'Duplicate step', hint: '⌃D', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
-          { icon: 'call_split', label: 'Insert condition before', hint: '', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
-          { icon: 'delete', label: 'Delete step', hint: '⌦', act: () => { this.set('ctxOpen', false); readOnlyCanvas(); }, hover: () => {}, bg: '#1B211C' },
+          { icon: 'timeline', label: 'Connect to…', hint: 'C', act: () => { this.set('ctxOpen', false); startWire(source.id); }, hover: () => {}, bg: '#1B211C' },
+          { icon: 'content_copy', label: 'Duplicate step', hint: '⌃D', act: () => { this.set('ctxOpen', false); duplicateNode(source); }, hover: () => {}, bg: '#1B211C' },
+          { icon: 'call_split', label: 'Add a condition step', hint: '', act: () => { this.set('ctxOpen', false); this.pushCanvasEdit({ kind: 'add-step', context: source.context, extension: source.extension, app: 'ExecIf', data: '$[${DIALSTATUS} = BUSY]?Hangup()' }); }, hover: () => {}, bg: '#1B211C' },
+          { icon: 'delete', label: 'Delete step', hint: '⌦', act: () => { this.set('ctxOpen', false); deleteNode(source); }, hover: () => {}, bg: '#1B211C' },
         ]
       : undefined;
+
+    const addTo = (app: string, data: (node: { context: string; extension: string }) => string) => () => {
+      if (!source) { this.fire('Pick a step first', 'Select the extension the new step belongs to, then add it from the palette.'); return; }
+      this.pushCanvasEdit({ kind: 'add-step', context: source.context, extension: source.extension, app, data: data(source) });
+    };
+    const newExtension = () => {
+      const context = source?.context ?? 'from-internal';
+      const numbers = projected.nodes.filter((n) => n.context === context && /^\d+$/u.test(n.extension)).map((n) => Number(n.extension));
+      const extension = String(numbers.length ? Math.max(...numbers) + 1 : 100);
+      this.pushCanvasEdit({ kind: 'add-step', context, extension, app: 'Answer', data: '' });
+      this.set('nodeId', `${context}/${extension}`);
+    };
+    const previousLayout = this.canvasLayoutHistory.length;
 
     return {
       nodes,
       edges,
       nodeCtls,
       edgeRows,
-      nodeTitle: source ? `${source.context} · ${source.extension}` : (designVals.nodeTitle as string),
-      nodeApp: source && source.steps[0] ? `${source.steps[0].app}(${source.steps[0].data})` : '',
-      addEdge: readOnlyCanvas,
+      nodeTitle: source ? `${source.context} · ${source.extension}${pending ? ' · pending changes' : ''}` : (designVals.nodeTitle as string),
+      nodeApp: source && source.steps[0] ? stepText(source.steps[0].app, source.steps[0].data) : '',
+      addEdge: () => { if (!source) { this.fire('Pick a step first', 'Select the step the connection should start from.'); return; } startWire(source.id); },
       paletteNodes: [
-        { icon: 'add_call', label: 'Dial' },
-        { icon: 'dialpad', label: 'Menu' },
-        { icon: 'groups', label: 'Queue' },
-        { icon: 'call_split', label: 'Condition' },
-        { icon: 'voicemail', label: 'Voicemail' },
-      ].map((item) => ({ ...item, add: readOnlyCanvas })),
-      canvasBgClick: () => this.set('nodeId', ''),
+        { icon: 'add_call', label: 'Dial', add: addTo('Dial', (n) => `PJSIP/${n.extension},20`) },
+        { icon: 'dialpad', label: 'Menu', add: addTo('Goto', () => 'onboard-menu,s,1') },
+        { icon: 'groups', label: 'Queue', add: addTo('Queue', () => 'default') },
+        { icon: 'call_split', label: 'Condition', add: addTo('ExecIf', () => '$[${DIALSTATUS} = BUSY]?Hangup()') },
+        { icon: 'voicemail', label: 'Voicemail', add: addTo('VoiceMail', (n) => `${n.extension}@default`) },
+        { icon: 'add', label: 'New extension', add: newExtension },
+      ],
+      canvasBgClick: () => { this.canvasWireSource = undefined; this.set('nodeId', ''); },
+      canvasTools: [
+        { icon: 'near_me', label: 'Select', id: 'select' },
+        { icon: 'timeline', label: 'Wire', id: 'wire' },
+      ].map((t) => ({ icon: t.icon, label: t.label, on: tool === t.id, off: tool !== t.id, pick: () => { this.canvasWireSource = undefined; this.set('canvasTool', t.id); this.toast(t.id === 'wire' ? 'Wire: click the step a connection starts from, then the step it continues to' : 'Select: click a step to inspect it, drag to move it'); } })),
+      canvasToggles: [
+        { icon: 'grid_goldenratio', label: 'Snap', on: !!state.snap, off: !state.snap, pick: () => this.set('snap', !state.snap) },
+      ],
+      canvasLayers: ['Dialplan', 'IVR', 'Queues'].map((l) => ({ label: l, on: layer === l, off: layer !== l, pick: () => this.set('layer', l) })),
+      zoomLabel: `${Math.round(scale * 100)}%`,
+      zoomIn: () => this.set('zoom', Math.min(200, Math.round(scale * 100) + 10)),
+      zoomOut: () => this.set('zoom', Math.max(40, Math.round(scale * 100) - 10)),
+      canvasOps: [
+        ...applyOps,
+        { icon: 'auto_awesome_mosaic', label: 'Auto-arrange', run: () => { this.writeCanvasLayout({}); this.toast('Steps arranged by call order'); } },
+        { icon: 'fit_screen', label: 'Fit to view', run: () => { this.set('zoom', 100); this.writeCanvasLayout({}); } },
+        { icon: 'undo', label: previousLayout ? 'Undo layout' : 'No layout to undo', run: () => { const prior = this.canvasLayoutHistory.pop(); if (!prior) { this.fire('Nothing to undo', 'No earlier layout is recorded for this canvas.'); return; } this.setState({ nodePos: prior }); try { this.durableStorage.storage.setItem(App.CANVAS_LAYOUT_KEY, JSON.stringify(prior)); } catch { /* convenience only */ } } },
+      ],
+      canvasDrop: (e: DragEvent) => {
+        e.preventDefault();
+        const drag = (this.state as { nodeDrag?: { id: string; dx: number; dy: number } | null }).nodeDrag;
+        if (!drag) return;
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        const grid = state.snap ? 20 : 1;
+        const next = { ...nodePos };
+        next[drag.id] = { x: Math.max(0, Math.round((e.clientX - rect.left - drag.dx) / grid) * grid), y: Math.max(0, Math.round((e.clientY - rect.top - drag.dy) / grid) * grid) };
+        this.writeCanvasLayout(next);
+        this.set('nodeDrag', null);
+      },
       ...(canvasContextItems ? { ctxItems: canvasContextItems } : {}),
+      ...(wireSource ? { nodeTitle: `${labelOf(wireSource)} → click the step it continues to` } : {}),
     };
   }
 
@@ -8729,6 +9037,7 @@ It is shown once. The far end needs it to register.`);
     this.applyRows(screen);
     this.syncAppearance();
     if (screen === 'servers') this.prepareServersScreen();
+    if (screen === 'ivr') this.prepareIvrScreen();
     if (screen === LOCAL_HISTORY_SCREEN_ID) this.prepareLocalHistoryScreen();
     const values = super.renderVals() as Record<string, unknown>;
     values.groups = constrainLogoPickerValues(values.groups);
@@ -8754,6 +9063,60 @@ It is shown once. The far end needs it to register.`);
         minimize: () => bridge?.window.minimize(),
         toggleMaximize: () => bridge?.window.toggleMaximize(),
         close: () => bridge?.window.close(),
+      },
+      /* The design's colour actions announced results they did not produce; these write the
+       * same appearance values the editor's own controls write, and the screen pick uses the
+       * platform's EyeDropper when the runtime offers one instead of a host action that no
+       * process ever handled. */
+      colorActions: [
+        { icon: 'casino', label: 'Surprise me', run: () => this.setVal({ id: 'ap_hue', label: 'Hue' }, Math.floor(Math.random() * 360)) },
+        { icon: 'gradient', label: 'Rainbow it', run: () => this.setVal({ id: 'ap_rainbow', label: 'Rainbow fill', kind: 'switch' }, true) },
+        { icon: 'contrast', label: 'Fix contrast', run: () => this.setVal({ id: 'ap_light', label: 'Lightness' }, 72) },
+        {
+          icon: 'colorize',
+          label: 'Pick from screen',
+          run: () => {
+            const dropper = (globalThis as { EyeDropper?: new () => { open: () => Promise<{ sRGBHex: string }> } }).EyeDropper;
+            if (!dropper) { this.fire('Screen picker unavailable', 'This runtime does not offer the EyeDropper API, so a colour cannot be sampled from the screen here. Type or choose one instead.'); return; }
+            void new dropper().open().then(({ sRGBHex }) => {
+              const r = parseInt(sRGBHex.slice(1, 3), 16) / 255, g = parseInt(sRGBHex.slice(3, 5), 16) / 255, b = parseInt(sRGBHex.slice(5, 7), 16) / 255;
+              const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, d = max - min;
+              const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+              let h = 0;
+              if (d !== 0) h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+              h = Math.round(((h * 60) + 360) % 360);
+              this.setVal({ id: 'ap_hue', label: 'Hue' }, h);
+              this.setVal({ id: 'ap_sat', label: 'Saturation' }, Math.round(s * 100));
+              this.setVal({ id: 'ap_light', label: 'Lightness' }, Math.round(l * 100));
+            }).catch(() => { /* the person cancelled the picker */ });
+          },
+        },
+      ],
+      /* Arcade "Spend one now": a credit is only spendable inside a ceremony, where the
+       * "Skip with a credit" action already spends it for real. Outside one there is nothing
+       * to skip, and the design's version deducted a credit for that nothing. */
+      spendCredit: () => {
+        const credits = (this.state as { credits?: number }).credits ?? 0;
+        if (credits < 1) { this.fire('No credits', 'Win some in the arcade first.'); return; }
+        this.fire('Nothing to skip right now', `You have ${credits} credit${credits === 1 ? '' : 's'}. A credit is spent from inside a four-gate ceremony, with its "Skip with a credit" action; nothing was deducted here.`);
+      },
+      /* The design's fun shortcuts wrote a `chaos_level` no code reads. These move the two real
+       * playfulness dials (English and Cantonese), which every message in the console follows. */
+      toggleFun: () => {
+        const current = Number(((this.state as { values?: Record<string, unknown> }).values ?? {}).fun_level ?? 5);
+        const next = current > 1 ? 1 : 5;
+        this.setVal({ id: 'fun_level', label: 'Funny level (English)' }, next);
+        this.setVal({ id: 'fun_level_yue', label: 'Funny level (Cantonese)' }, next);
+      },
+      maxFun: () => {
+        this.setVal({ id: 'fun_level', label: 'Funny level (English)' }, 5);
+        this.setVal({ id: 'fun_level_yue', label: 'Funny level (Cantonese)' }, 5);
+        this.setVal({ id: 'th_rainbow', label: 'Rainbow accent', kind: 'switch' }, true);
+      },
+      zeroFun: () => {
+        this.setVal({ id: 'fun_level', label: 'Funny level (English)' }, 1);
+        this.setVal({ id: 'fun_level_yue', label: 'Funny level (Cantonese)' }, 1);
+        this.setVal({ id: 'th_rainbow', label: 'Rainbow accent', kind: 'switch' }, false);
       },
       executeCeremony: () => { void this.executeCeremonyCommand(); },
       skipCeremony: () => {

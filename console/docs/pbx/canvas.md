@@ -2,7 +2,7 @@
 
 ## Behavior
 
-One infinite canvas for the live dialplan, IVR and queue routing graph. Nodes and edges are parsed from the target's `dialplan show` output, and the layout can be moved locally for inspection. The inspector is read-only because this surface has no dialplan write path. The rail badge on this destination is empty until a live graph is read. It lives on the PBX rail, under the Telephony group: Endpoints, routing and everything a call touches while it is alive.
+One infinite canvas for the live dialplan, IVR and queue routing graph. Nodes and edges are parsed from the target's `dialplan show` output, and the layout can be moved locally and is remembered across launches. Edits are real: the palette adds a step to the selected extension (Dial, Menu, Queue, Condition, Voicemail) or a new numbered extension; the Wire tool connects one step to another by appending a `Goto`; the inspector edits a step's `App(arguments)` text in place or removes it; a step can be duplicated or deleted from its card or its right-click menu. Every edit is pending, drawn into the graph immediately, and listed on the apply control. "Apply N changes to target" runs the same three-hit confirmation gate and the same full-document `pbx.apply` the onboarding wizard uses: the file is backed up, written, the dialplan reloaded and verified, then the canvas re-reads what Asterisk has loaded. The rail badge on this destination is empty until a live graph is read. It lives on the PBX rail, under the Telephony group: Endpoints, routing and everything a call touches while it is alive.
 
 ## What the graph is, and what it is not
 
@@ -41,7 +41,7 @@ account for it.
 
 ## Configuration
 
-There is no settings form here. Adding, deleting, duplicating, or rewiring a node reports that the canvas is read-only rather than claiming a write occurred. An unread or unavailable target produces an empty canvas with the control-plane reason.
+There is no settings form here. The toolbar offers exactly what works: Select and Wire tools, a Snap toggle that rounds moves to a 20 px grid, Dialplan / IVR / Queues layers that filter the drawn extensions by the applications they use, zoom that scales the automatic layout, Auto-arrange, Fit to view, Undo layout, and the apply and discard controls for pending changes. Layout lives in the console's own storage under `console.canvas.layout`; pending edits live only in the running window until applied or discarded. An unread or unavailable target produces an empty canvas with the control-plane reason.
 
 ## Failure modes and security
 
@@ -60,7 +60,7 @@ agreement.
 
 ## Verification
 
-Confirm the graph contains only nodes and edges from a successful live reading, that local dragging changes layout only, and that every attempted write action reports the read-only boundary without changing the target.
+Confirm the graph contains only nodes and edges from a successful live reading and that local dragging changes layout only. Then add a step from the palette, wire two steps, edit a step in the inspector, delete one, and apply: the gate must list every pending change, `extensions.conf` on the target must gain exactly those lines (`same => n,App(...)` under an existing extension, `exten => ext,1,App(...)` for a new one, `Goto(context,exten,1)` for a wire), Asterisk must report them after the reload, and the canvas must redraw from the target with nothing pending. Discard must drop every pending edit without touching the target.
 
 Confirm the divergence sentence as well: edit a context out of `extensions.conf` without
 reloading and the screen must name it as declared-but-not-loaded; reload and it must report

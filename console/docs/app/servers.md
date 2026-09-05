@@ -44,6 +44,7 @@ The server list is an honest local inventory. A discovered target is not labelle
 - The wizard says the runtime cannot be created and mentions a missing base image → the packaged runtime provenance was rejected. The control plane accepts the schema version the generator writes (currently 2); a mismatch reports the whole payload as unavailable.
 - Asterisk starts and immediately dies with `Illegal instruction` although `asterisk -V` answers → the runtime was compiled for the build machine's CPU. The runtime image disables menuselect's `BUILD_NATIVE`; a rootfs built without that disable only runs on CPUs with the builder's instruction set.
 - The dashboard shows `No target is connected — Asterisk: Asterisk UNKNOWN__and_probably_unsupported …` → the daemon answered and the console refused its identity. Any `Asterisk <identity>` answer now counts as running; a runtime built without a `.version` file prints that identity.
+- The connection form and the wizard offer only **Local** (this machine's WSL runtime) and **SSH**: those are the two connection kinds the control plane can connect to. The design's Docker choices, and its "Manager interface" group (AMI/ARI interface, manager port, TLS, tunnel, reconnect, read-only), described a manager connection this console never makes and stored values nothing read, so they are not offered.
 - Docker containers labelled `io.ding.pbx.project=ding-pbx-console` are discovered and readable through `docker exec`, but the console cannot deploy to or write into a container; only the `wsl` kind connects.
 
 ## Verification
