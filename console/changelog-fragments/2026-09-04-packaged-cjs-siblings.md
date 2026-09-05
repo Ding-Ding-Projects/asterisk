@@ -6,3 +6,4 @@
 - `check-delivery-path.mjs` guards all three: the copy step after emission, the check step before packaging, and the build job token.
 - `package-squirrel.mjs` now generates `resources/school-mode-provenance.json` from the release identity before its packaging-input preflight. That file was required since the provenance hardening but nothing ever produced it, so the first run that reached the preflight with a token stopped there.
 - `build-delivery.ps1` now keeps Node's stderr in the packaging log instead of letting the first stderr line become the only error message.
+- `package-squirrel.mjs` runs electron-builder with `--publish never`. With `GH_TOKEN` now present, electron-builder tried to publish on its own after building the setup executable and failed on repository detection; the workflow's single `gh release create` is the only publisher.

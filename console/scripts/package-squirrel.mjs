@@ -63,7 +63,10 @@ const generatedRoot = join(consoleRoot, 'dist', 'squirrel-windows');
 // A package run must never inherit a prior candidate's unpacked files or release
 // rows. Remove only the generated packaging directory, then verify fresh output.
 rmSync(generatedRoot, { recursive: true, force: true });
-const result = spawnSync(process.execPath, [cli, '--win', 'squirrel', '--config', 'electron-builder.yml', `--config.extraMetadata.version=${version}`], { cwd: consoleRoot, env: process.env, stdio: 'inherit', shell: false });
+// --publish never: the workflow's single gh release create publishes. With GH_TOKEN in the
+// environment electron-builder otherwise tries to publish on its own and fails on
+// repository detection after the setup executable has already been built.
+const result = spawnSync(process.execPath, [cli, '--win', 'squirrel', '--config', 'electron-builder.yml', '--publish', 'never', `--config.extraMetadata.version=${version}`], { cwd: consoleRoot, env: process.env, stdio: 'inherit', shell: false });
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
 

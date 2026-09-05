@@ -165,3 +165,11 @@ test('the packaging script generates School provenance before the input prefligh
     assert.ok(source.includes(field), `School provenance must carry ${field}`);
   }
 });
+
+test('the packaging script never publishes from electron-builder itself', () => {
+  const root = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..', '..');
+  const source = readFileSync(join(root, 'console', 'scripts', 'package-squirrel.mjs'), 'utf8');
+  const spawnLine = source.split(String.fromCharCode(10)).map((line) => line.replace(String.fromCharCode(13), '')).find((line) => line.includes("'--win', 'squirrel'"));
+  assert.ok(spawnLine, 'package-squirrel.mjs must invoke electron-builder for the squirrel target');
+  assert.ok(spawnLine.includes("'--publish', 'never'"), 'electron-builder must run with --publish never; the workflow owns publication');
+});
