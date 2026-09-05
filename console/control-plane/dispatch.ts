@@ -665,7 +665,8 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
       await runTargetCli(target, 'core reload');
     }
     const identity = await runTargetCli(target, 'core show version');
-    if (!/^Asterisk\s+\d+(?:\.\d+)+/imu.test(identity)) {
+    // Same rule as server.connect: any `Asterisk <identity>` answer is the daemon speaking.
+    if (!/^Asterisk\s+\S+/imu.test(identity)) {
       throw new Error('The selected daemon did not return a valid identity after reload.');
     }
   }
@@ -1217,6 +1218,26 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
         }
 
         const result = await new ConfigTransaction(transport, () => new Date()).apply(plan);
+        /* Writing the file is half of "applied". Asterisk keeps running the old dialplan and
+         * endpoints until it reloads, and reloadAndVerifyRuntime existed for exactly that
+         * while nothing called it: two real deploys on 2026-09-05 wrote pjsip.conf and
+         * extensions.conf, reported Deployed, and changed nothing in the running PBX until a
+         * hand-typed reload. A failed reload is reported as such, with the file already
+         * written, rather than pretending either half did not happen. */
+        if (result.status === 'applied') {
+          try {
+            await reloadAndVerifyRuntime(target, plan);
+          } catch (error) {
+            const reason = error instanceof Error ? error.message : String(error);
+            return {
+              ok: false,
+              requestId: request.requestId,
+              code: 'CONFIG_RELOAD_FAILED',
+              message: `The file was written and backed up, but Asterisk did not reload or verify it: ${reason}`,
+              data: { plan: publicPlan, result: { ...result, status: 'written-not-reloaded', message: reason } },
+            } as ControlPlaneResponse;
+          }
+        }
         return {
           ok: result.status === 'applied',
           requestId: request.requestId,

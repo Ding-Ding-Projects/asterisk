@@ -4214,6 +4214,12 @@ What you can do: ${offered}.` : ''}`);
       return;
     }
 
+    /* The confirmation gate paints at a lower z-index than the onboarding overlay, so on the
+     * Guided and Every-detail paths it opened underneath the wizard: the DOM held a live gate
+     * while the screen showed "Deploy it all now" doing nothing (seen on release 0.1.319).
+     * The Super-easy card closes the wizard before deploying, which is why it never showed
+     * there. The plan summary in the gate is self-contained, so the wizard closes first. */
+    this.set('onboardOpen', false);
     this.areYouSure('Apply the deploy plan?', summaryLines.join('\n'), 3, () => {
       if (this.onboardBusy) return;
       this.onboardBusy = true;
@@ -7925,10 +7931,14 @@ It is shown once. The far end needs it to register.`);
       return;
     }
     const before = file.value;
-    const { value, summary } = applyCanvasEdits(before, this.canvasEdits);
+    const edits = this.canvasEdits;
+    const { value, summary } = applyCanvasEdits(before, edits);
     const lines = [`Target: ${this.target.label}`, ...summary.map((line) => `• ${line}`), '', 'The file is backed up before it is touched, the dialplan is reloaded, and the result is verified against the running Asterisk.'];
     this.areYouSure('Apply the canvas changes to extensions.conf?', lines.join('\n'), 3, () => {
       if (this.canvasApplying) return;
+      /* The gate can outlive the edits it was opened for: a discard, or a further edit,
+       * while it is up. Its "Yes" applies exactly the summary it showed or nothing. */
+      if (this.canvasEdits !== edits) { this.fire('Pending changes moved', 'The canvas changes were altered while the confirmation was open, so nothing was applied. Open Apply again to confirm the current set.'); return; }
       this.canvasApplying = true;
       void (async () => {
         try {
@@ -7995,6 +8005,7 @@ It is shown once. The far end needs it to register.`);
       const from = projected.nodes.find((n) => n.id === fromId);
       const to = projected.nodes.find((n) => n.id === toId);
       if (!from || !to || from.id === to.id) return;
+      if (!editable(from)) { this.canvasWireSource = undefined; return; }
       this.canvasWireSource = undefined;
       this.pushCanvasEdit({ kind: 'connect', from: { context: from.context, extension: from.extension }, to: { context: to.context, extension: to.extension } });
       this.toast(`${from.context} ${from.extension} now continues to ${to.context} ${to.extension} (pending)`);
@@ -8004,13 +8015,14 @@ It is shown once. The far end needs it to register.`);
       this.set('canvasTool', 'wire');
       this.toast('Wire: click the step this one should continue to');
     };
-    const deleteNode = (node: { id: string; context: string; extension: string }) => this.areYouSure(
+    const deleteNode = (node: { id: string; context: string; extension: string; registrar?: { file: string; line: number } | { name: string } }) => editable(node) && this.areYouSure(
       `Delete ${node.context} ${node.extension}`,
       'The extension, every step under it, and every connection into or out of it are removed from extensions.conf when the pending changes are applied.',
       3,
       () => { this.pushCanvasEdit({ kind: 'delete-extension', context: node.context, extension: node.extension }); if (selected === node.id) this.set('nodeId', ''); },
     );
-    const duplicateNode = (node: { context: string; extension: string }) => {
+    const duplicateNode = (node: { id: string; context: string; extension: string; registrar?: { file: string; line: number } | { name: string } }) => {
+      if (!editable(node)) return;
       let candidate = `${node.extension}copy`;
       let n = 2;
       while (projected.nodes.some((other) => other.context === node.context && other.extension === candidate)) candidate = `${node.extension}copy${n++}`;
@@ -8071,10 +8083,29 @@ It is shown once. The far end needs it to register.`);
       };
     });
 
-    const source = graph.nodes.find((node) => node.id === selected) ?? graph.nodes[0];
+    /* The inspector shows the first node when nothing is selected, but an EDIT needs an
+     * explicit selection: with the fallback, "add Voicemail" with nothing selected landed
+     * on whichever node sorted first (an AEL-registered context on a real target). And a
+     * node another module registered (pbx_ael, pbx_lua, a realtime engine) is not in
+     * extensions.conf, so writing it there would create a duplicate, not a change. */
+    const explicit = graph.nodes.find((node) => node.id === selected);
+    const source = explicit ?? graph.nodes[0];
+    const ownedByFile = (node: { registrar?: { file: string; line: number } | { name: string } } | undefined) =>
+      !!node && (!node.registrar || ('file' in node.registrar ? /extensions\.conf$/u.test(node.registrar.file) : /^pbx_config$/iu.test(node.registrar.name)));
+    const editable = (node: { id: string; context: string; extension: string; registrar?: { file: string; line: number } | { name: string } } | undefined): node is { id: string; context: string; extension: string; registrar?: { file: string; line: number } | { name: string } } => {
+      if (!node) { this.fire('Pick a step first', 'Select the extension the change belongs to; nothing is edited by default.'); return false; }
+      if (!ownedByFile(node)) {
+        const by = node.registrar ? ('file' in node.registrar ? node.registrar.file : node.registrar.name) : 'another module';
+        this.fire('Not editable here', `${node.context} ${node.extension} was registered by ${by}, not by extensions.conf, so this canvas cannot change it. Edit it where it is defined.`);
+        return false;
+      }
+      return true;
+    };
     const nodeCtls = source
       ? source.steps.map((step) => ({
-          id: `${source.id}-${step.priority}`,
+          /* The `pbxadm:` prefix is what M3Control renders as an editable text input; every
+           * other text control is a read-only display. */
+          id: ownedByFile(source) ? `pbxadm:${source.id}-${step.priority}` : `${source.id}-${step.priority}`,
           label: `Priority ${step.priority}`,
           rawKey: `${source.id}-${step.priority}`,
           showKey: false,
@@ -8083,11 +8114,17 @@ It is shown once. The far end needs it to register.`);
           display: stepText(step.app, step.data),
           narrow: true,
           set: (next: unknown) => {
+            if (!editable(source)) return;
             const text = String(next ?? '').trim();
-            if (!text || text === stepText(step.app, step.data)) return;
             const parsed = parseStepText(text);
-            if (!parsed.app) { this.fire('Step not changed', 'A step needs an application, written as App(arguments).'); return; }
-            this.pushCanvasEdit({ kind: 'set-step', context: source.context, extension: source.extension, priority: step.priority, app: parsed.app, data: parsed.data });
+            /* The input reports every keystroke; one pending edit per step is kept, replaced
+             * as the text changes, and dropped again if the text returns to what is loaded. */
+            const same = (edit: CanvasEdit) => edit.kind === 'set-step' && edit.context === source.context && edit.extension === source.extension && edit.priority === step.priority;
+            const others = this.canvasEdits.filter((edit) => !same(edit));
+            if (!text || !parsed.app || text === stepText(step.app, step.data)) { this.canvasEdits = others; this.forceUpdate(); return; }
+            this.canvasEdits = [...others, { kind: 'set-step', context: source.context, extension: source.extension, priority: step.priority, app: parsed.app, data: parsed.data }];
+            this.onUserMutation('canvas:edit');
+            this.forceUpdate();
           },
           onInfo: () => this.showInfo(
             'Dialplan step',
@@ -8096,7 +8133,7 @@ It is shown once. The far end needs it to register.`);
             '46%',
             '150px',
           ),
-          onWizard: () => this.areYouSure(
+          onWizard: () => editable(source) && this.areYouSure(
             `Remove priority ${step.priority}`,
             `${stepText(step.app, step.data)} is removed from ${source.context} ${source.extension} when the pending changes are applied; later steps move up.`,
             3,
@@ -8131,11 +8168,11 @@ It is shown once. The far end needs it to register.`);
       : undefined;
 
     const addTo = (app: string, data: (node: { context: string; extension: string }) => string) => () => {
-      if (!source) { this.fire('Pick a step first', 'Select the extension the new step belongs to, then add it from the palette.'); return; }
-      this.pushCanvasEdit({ kind: 'add-step', context: source.context, extension: source.extension, app, data: data(source) });
+      if (!editable(explicit)) return;
+      this.pushCanvasEdit({ kind: 'add-step', context: explicit.context, extension: explicit.extension, app, data: data(explicit) });
     };
     const newExtension = () => {
-      const context = source?.context ?? 'from-internal';
+      const context = explicit && ownedByFile(explicit) ? explicit.context : 'from-internal';
       const numbers = projected.nodes.filter((n) => n.context === context && /^\d+$/u.test(n.extension)).map((n) => Number(n.extension));
       const extension = String(numbers.length ? Math.max(...numbers) + 1 : 100);
       this.pushCanvasEdit({ kind: 'add-step', context, extension, app: 'Answer', data: '' });
@@ -8150,7 +8187,7 @@ It is shown once. The far end needs it to register.`);
       edgeRows,
       nodeTitle: source ? `${source.context} · ${source.extension}${pending ? ' · pending changes' : ''}` : (designVals.nodeTitle as string),
       nodeApp: source && source.steps[0] ? stepText(source.steps[0].app, source.steps[0].data) : '',
-      addEdge: () => { if (!source) { this.fire('Pick a step first', 'Select the step the connection should start from.'); return; } startWire(source.id); },
+      addEdge: () => { if (!editable(explicit)) return; startWire(explicit.id); },
       paletteNodes: [
         { icon: 'add_call', label: 'Dial', add: addTo('Dial', (n) => `PJSIP/${n.extension},20`) },
         { icon: 'dialpad', label: 'Menu', add: addTo('Goto', () => 'onboard-menu,s,1') },
@@ -8159,7 +8196,13 @@ It is shown once. The far end needs it to register.`);
         { icon: 'voicemail', label: 'Voicemail', add: addTo('VoiceMail', (n) => `${n.extension}@default`) },
         { icon: 'add', label: 'New extension', add: newExtension },
       ],
-      canvasBgClick: () => { this.canvasWireSource = undefined; this.set('nodeId', ''); },
+      /* A card click bubbles up to this handler. Deselecting on every click meant no node
+       * could ever stay selected, so only a click on the background itself clears. */
+      canvasBgClick: (e?: MouseEvent) => {
+        if (e && e.target !== e.currentTarget) return;
+        this.canvasWireSource = undefined;
+        this.set('nodeId', '');
+      },
       canvasTools: [
         { icon: 'near_me', label: 'Select', id: 'select' },
         { icon: 'timeline', label: 'Wire', id: 'wire' },

@@ -60,7 +60,7 @@ agreement.
 
 ## Verification
 
-Confirm the graph contains only nodes and edges from a successful live reading and that local dragging changes layout only. Then add a step from the palette, wire two steps, edit a step in the inspector, delete one, and apply: the gate must list every pending change, `extensions.conf` on the target must gain exactly those lines (`same => n,App(...)` under an existing extension, `exten => ext,1,App(...)` for a new one, `Goto(context,exten,1)` for a wire), Asterisk must report them after the reload, and the canvas must redraw from the target with nothing pending. Discard must drop every pending edit without touching the target.
+Confirm the graph contains only nodes and edges from a successful live reading and that local dragging changes layout only. Then add a step from the palette, wire two steps, edit a step in the inspector, delete one, and apply: the gate must list every pending change, `extensions.conf` on the target must gain exactly those lines (`same => n,App(...)` under an existing extension, `exten => ext,1,App(...)` for a new one, `Goto(context,exten,1)` for a wire), Asterisk must report them after the reload, and the canvas must redraw from the target with nothing pending. Discard must drop every pending edit without touching the target. Click a step and confirm it stays selected; with nothing selected the palette must refuse rather than pick a node; an AEL-registered or other-module context must be refused by name; and a confirmation opened for one set of pending edits must refuse to apply after that set changes.
 
 Confirm the divergence sentence as well: edit a context out of `extensions.conf` without
 reloading and the screen must name it as declared-but-not-loaded; reload and it must report

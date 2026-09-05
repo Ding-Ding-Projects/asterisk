@@ -10,3 +10,6 @@
 - The servers screen's "Manager interface" group was withdrawn: its six controls stored values nothing read.
 - Appearance colour actions, the Arcade "Spend one now", and the fun shortcuts now do what they say or say plainly what they cannot (screen picking uses the platform EyeDropper).
 - Arrow-key nudges on a live canvas node no longer throw.
+- `pbx.apply` now reloads and verifies the runtime after writing (`pjsip reload`, `dialplan reload`, `core reload` as the touched files require). The reload step existed and was never called, so every "applied" left Asterisk running the previous configuration; two real deploys proved it. A failed reload is reported as `CONFIG_RELOAD_FAILED` with the file already written.
+- The onboarding wizard closes before the deploy confirmation opens. On the Guided and Every-detail paths the gate rendered underneath the wizard overlay, so "Deploy it all now" appeared to do nothing.
+- Canvas: clicking a step now keeps it selected (the click bubbled to the background handler, which deselected); edits need an explicit selection and a step that `extensions.conf` owns (a context registered by AEL or another module is refused by name); a confirmation opened for one set of pending edits refuses to apply a different one.
