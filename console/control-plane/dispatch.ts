@@ -1114,7 +1114,11 @@ export function createControlPlaneDispatcher(options: ControlPlaneDispatcherOpti
           ? targetDiscovery.parseDebianOperatingSystem(os.stdout)
           : { state: 'unavailable' as const, reason: os.stderr || 'The WSL distribution refused the connection.', observedAt: new Date().toISOString() };
         const asteriskOutput = asterisk.stdout.trim();
-        const asteriskAvailable = asterisk.status === 'succeeded' && /^Asterisk\s+\d+(?:\.\d+)+/imu.test(asteriskOutput);
+        // The CLI answering `core show version` is the proof that Asterisk is running. Its
+        // identity is whatever it prints: a runtime built from a source checkout without a
+        // .version file answers `Asterisk UNKNOWN__and_probably_unsupported`, and a
+        // digits-only pattern refused that live daemon as "not ready" for a whole release line.
+        const asteriskAvailable = asterisk.status === 'succeeded' && /^Asterisk\s+\S+/imu.test(asteriskOutput);
         const asteriskReason = asterisk.stderr.trim() || asteriskOutput || 'Asterisk is not installed, is not running, or returned an invalid identity.';
         const asteriskObservation = asteriskAvailable
           ? { state: 'available' as const, value: asteriskOutput, observedAt: new Date().toISOString() }

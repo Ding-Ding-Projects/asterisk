@@ -192,4 +192,7 @@ test('the Asterisk runtime image is not compiled for the build machine CPU', () 
   const makeAt = dockerfile.indexOf('make -j');
   assert.ok(configureAt >= 0 && disableAt >= 0 && makeAt >= 0, 'configure, the BUILD_NATIVE disable, and make must all be present');
   assert.ok(configureAt < disableAt && disableAt < makeAt, 'BUILD_NATIVE must be disabled after configure and before make');
+  // Without a .version file the daemon identifies as UNKNOWN__and_probably_unsupported.
+  const versionAt = dockerfile.indexOf('> .version');
+  assert.ok(versionAt >= 0 && versionAt < configureAt, 'the source revision must be written to .version before configure');
 });

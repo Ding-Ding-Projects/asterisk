@@ -14,6 +14,7 @@ COPY . /src
 
 RUN test -n "$ASTERISK_SOURCE_REVISION" && \
     find . -type f -exec sh -c 'for path do if grep -Iq . "$path"; then sed -i "s/\r$//" "$path"; fi; done' sh {} + && \
+    printf 'master-g%s\n' "$(printf '%s' "$ASTERISK_SOURCE_REVISION" | cut -c1-12)" > .version && \
     ./bootstrap.sh && \
     ./configure --with-pjproject-bundled --without-dahdi --without-pri --without-tonezone && \
     make menuselect.makeopts && \
