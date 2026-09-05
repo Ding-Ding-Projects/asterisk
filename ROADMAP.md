@@ -6,6 +6,7 @@ This short section records the current facts before the historical checklist bel
 box means the referenced external record was read back, not that the whole product is complete.
 
 - [x] `main` at `7c6e0c6c9520c6fd421cabf73bcbb6af15a18c60` is present locally and `refs/heads/main` on the Git server reads back to the same SHA.
+- [x] Console release `ding-pbx-console-v0.0.313-r1` is non-draft, targets `5837764723`, and its packaged executable launches on a hidden desktop without the `ERR_MODULE_NOT_FOUND` dialog that killed `0.1.302`.
 - [x] Console release `ding-pbx-console-v0.0.300-r1` is non-draft and targets the exact current SHA, with downloadable Squirrel.Windows outputs and release evidence.
 - [x] Installer ISO release `ding-pbx-installer-iso-v0.0.7-r1` is non-draft and targets the exact current SHA, with two numbered volumes, reassembly instructions, and checksum evidence.
 - [x] Pages composition and deployment run [33210571949](https://github.com/Ding-Ding-Projects/material-asterisk/actions/runs/33210571949) completed successfully for the current SHA.
