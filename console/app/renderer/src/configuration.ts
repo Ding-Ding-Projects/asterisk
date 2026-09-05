@@ -15,7 +15,9 @@
 /** One `[section]` and its `key = value` lines, as the transport parses them. */
 export interface ConfigSection {
   name: string;
-  entries: ReadonlyArray<{ key: string; value: string }>;
+  /** `separator` is the transport's own field (`=` assignment or `=>` dialplan line); a
+   *  value written back must carry it unchanged or the post-write comparison fails. */
+  entries: ReadonlyArray<{ key: string; value: string; separator?: '=' | '=>' }>;
 }
 
 export type ConfigValue = ReadonlyArray<ConfigSection>;

@@ -32,9 +32,15 @@ export type CanvasEdit =
   | { kind: 'set-step'; context: string; extension: string; priority: number; app: string; data: string }
   | { kind: 'delete-step'; context: string; extension: string; priority: number };
 
-interface StepLine { priority: string; text: string }
+type Entry = { key: string; value: string; separator?: '=' | '=>' };
+/** `original` is the entry object as read from the target; it is emitted unchanged unless
+ *  the line was edited, so untouched lines keep their separator and exact text. The
+ *  transport compares what it reads back against what it was given field by field. */
+interface StepLine { priority: string; text: string; original?: Entry; originalText?: string }
 interface ExtensionBlock { extension: string; lines: StepLine[] }
-type Item = { kind: 'block'; block: ExtensionBlock } | { kind: 'entry'; entry: { key: string; value: string } };
+type Item = { kind: 'block'; block: ExtensionBlock } | { kind: 'entry'; entry: Entry };
+/** Dialplan lines are `=>` lines; `exten = …` is an assignment Asterisk reads differently. */
+const DIALPLAN_SEPARATOR = '=>' as const;
 
 export const nodeIdFor = (context: string, extension: string): string => `${context}/${extension}`;
 
@@ -56,7 +62,8 @@ function parseSection(section: ConfigSection): Item[] {
     if (entry.key === 'exten') {
       const parts = entry.value.split(',');
       if (parts.length >= 3) {
-        current = { extension: parts[0].trim(), lines: [{ priority: parts[1].trim(), text: parts.slice(2).join(',').trim() }] };
+        const text = parts.slice(2).join(',').trim();
+        current = { extension: parts[0].trim(), lines: [{ priority: parts[1].trim(), text, original: entry, originalText: text }] };
         items.push({ kind: 'block', block: current });
         continue;
       }
@@ -64,7 +71,8 @@ function parseSection(section: ConfigSection): Item[] {
     if (entry.key === 'same' && current) {
       const parts = entry.value.split(',');
       if (parts.length >= 2) {
-        current.lines.push({ priority: parts[0].trim(), text: parts.slice(1).join(',').trim() });
+        const text = parts.slice(1).join(',').trim();
+        current.lines.push({ priority: parts[0].trim(), text, original: entry, originalText: text });
         continue;
       }
     }
@@ -75,12 +83,15 @@ function parseSection(section: ConfigSection): Item[] {
 }
 
 function serialize(name: string, items: Item[]): ConfigSection {
-  const entries: Array<{ key: string; value: string }> = [];
+  const entries: Entry[] = [];
   for (const item of items) {
     if (item.kind === 'entry') { entries.push(item.entry); continue; }
     item.block.lines.forEach((line, index) => {
-      if (index === 0) entries.push({ key: 'exten', value: `${item.block.extension},${line.priority},${line.text}` });
-      else entries.push({ key: 'same', value: `${line.priority},${line.text}` });
+      const key = index === 0 ? 'exten' : 'same';
+      const value = index === 0 ? `${item.block.extension},${line.priority},${line.text}` : `${line.priority},${line.text}`;
+      /* An untouched line goes back exactly as it was read, separator included. */
+      if (line.original && line.original.key === key && line.originalText === line.text && line.original.value === value) entries.push(line.original);
+      else entries.push({ key, value, separator: DIALPLAN_SEPARATOR });
     });
   }
   return { name, entries };
