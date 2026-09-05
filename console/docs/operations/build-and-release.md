@@ -146,3 +146,6 @@ authenticity.
   .git/config` → its own publisher engaged because a GitHub token is in the environment.
   `package-squirrel.mjs` passes `--publish never`; the workflow's `gh release create` is the
   only publisher. Never fix this by adding a `repository` field so electron-builder can publish.
+- `RELEASES package rows do not exactly match generated packages ... got <number>` → the row
+  parser is reading the wrong column. Real rows are `sha1 package-file byte-size`; the
+  PowerShell verifier's regex is the reference shape.

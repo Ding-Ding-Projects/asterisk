@@ -67,10 +67,14 @@ export function validateReleaseIdentity(identity, { version, candidateCommit, ta
   return errors;
 }
 
+// A Squirrel.Windows RELEASES row is `<sha1> <package file> <byte size>`, the same shape
+// verify-squirrel-artifacts.ps1 enforces. A row that does not fit is reported as itself so a
+// mismatch names the offending text instead of silently picking a column.
+const RELEASES_ROW = /^[0-9a-fA-F]{40}\s+(\S+)\s+[0-9]+$/u;
 export function releasePackageNames(releasesText) {
   return releasesText.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean).map((line) => {
-    const fields = line.split(/\s+/u);
-    return fields.at(-1);
+    const match = line.match(RELEASES_ROW);
+    return match ? match[1].split(/[\\/]/u).at(-1) : `malformed row: ${line}`;
   });
 }
 

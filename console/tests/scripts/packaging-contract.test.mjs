@@ -100,10 +100,14 @@ test('release identity rejects stale candidate, product, app, and publication fi
 });
 
 test('RELEASES must contain exactly the generated full and delta package rows', () => {
-  const rows = ['hash 10 Console-0.1.42-full.nupkg', 'hash 11 Console-0.1.42-delta.nupkg'].join('\n');
+  // Real Squirrel.Windows rows are `sha1 package-file byte-size`. The earlier fixture used
+  // `hash size name`, so the validator read a real package's size as its name in CI.
+  const sha = '0123456789abcdef0123456789abcdef01234567';
+  const rows = [`${sha} Console-0.1.42-full.nupkg 466172676`, `${sha} Console-0.1.42-delta.nupkg 1024`].join('\n');
   assert.deepEqual(validateReleasesIndex(rows, ['Console-0.1.42-full.nupkg', 'Console-0.1.42-delta.nupkg']), []);
   assert.ok(validateReleasesIndex(rows, ['Console-0.1.42-full.nupkg']).some((error) => error.includes('exactly')));
-  assert.ok(validateReleasesIndex('hash 10 Console-0.1.42-full.nupkg\nhash 10 Console-0.1.42-full.nupkg', ['Console-0.1.42-full.nupkg', 'Console-0.1.42-full.nupkg']).some((error) => error.includes('duplicate')));
+  assert.ok(validateReleasesIndex(`${sha} Console-0.1.42-full.nupkg 10\n${sha} Console-0.1.42-full.nupkg 10`, ['Console-0.1.42-full.nupkg', 'Console-0.1.42-full.nupkg']).some((error) => error.includes('duplicate')));
+  assert.ok(validateReleasesIndex('hash 10 Console-0.1.42-full.nupkg', ['Console-0.1.42-full.nupkg']).some((error) => error.includes('malformed row')));
 });
 
 test('unsigned PE proof accepts a valid PE32+ with an empty certificate table', () => {
