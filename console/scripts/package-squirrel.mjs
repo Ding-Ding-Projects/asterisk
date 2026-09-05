@@ -141,7 +141,7 @@ const identity = {
   artifacts: {
     setup: record(setup[0]),
     releases: record(releases[0]),
-    executable: record(executable),
+    executable: record({ name: builderIdentity.executableName, path: executable }),
     fullPackages: fullPackages.map(record),
     deltaPackages: deltaPackages.map(record),
     sha256sums: 'SHA256SUMS.txt',

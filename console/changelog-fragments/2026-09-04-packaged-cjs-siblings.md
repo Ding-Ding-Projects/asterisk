@@ -8,3 +8,4 @@
 - `build-delivery.ps1` now keeps Node's stderr in the packaging log instead of letting the first stderr line become the only error message.
 - `package-squirrel.mjs` runs electron-builder with `--publish never`. With `GH_TOKEN` now present, electron-builder tried to publish on its own after building the setup executable and failed on repository detection; the workflow's single `gh release create` is the only publisher.
 - The `RELEASES` row validator now reads real Squirrel.Windows rows (`sha1 package-file byte-size`). Its fixture had the columns in the wrong order, so the first real package it ever saw was rejected with the byte size reported as the file name.
+- The release-identity record for the packaged executable now passes a `{ name, path }` entry; the previous call passed the bare path and crashed with `ERR_INVALID_ARG_TYPE` once a real build reached it.

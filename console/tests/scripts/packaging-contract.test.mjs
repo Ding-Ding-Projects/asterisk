@@ -141,7 +141,10 @@ test('packaging script clears generated output and checks fresh packaged resourc
   assert.match(source, /findMissingPackagingInputs\(consoleRoot\)/u);
   assert.match(source, /Packaged resource is missing from the fresh unpacked output/u);
   assert.match(source, /Packaged native resource digest proof is missing or stale/u);
-  assert.match(source, /executable: record\(executable\)/u);
+  // `executable` is a path string; record() takes an { name, path } entry. Run 33934757898
+  // packaged a real build and died here with ERR_INVALID_ARG_TYPE on statSync(undefined).
+  assert.match(source, /executable: record\(\{ name: builderIdentity\.executableName, path: executable \}\)/u);
+  assert.doesNotMatch(source, /record\(executable\)/u);
   assert.match(source, /isUnsignedPortableExecutable\(readFileSync\(setup\[0\]\.path\)\)/u);
 });
 
